@@ -50,6 +50,7 @@ import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
 import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_authenticated/relatorio-comissoes'
+import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_authenticated/relatorio-estoque'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authenticated/transferencias'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -280,6 +281,12 @@ const AuthenticatedRelatorioComissoesRoute =
     path: '/relatorio-comissoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRelatorioEstoqueRoute =
+  AuthenticatedRelatorioEstoqueRouteImport.update({
+    id: '/relatorio-estoque',
+    path: '/relatorio-estoque',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
   id: '/rota',
   path: '/rota',
@@ -382,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
+  '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -435,6 +443,7 @@ export interface FileRoutesByTo {
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
+  '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -490,6 +499,7 @@ export interface FileRoutesById {
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
   '/_authenticated/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
+  '/_authenticated/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/transferencias': typeof AuthenticatedTransferenciasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/profissionais'
     | '/relatorio'
     | '/relatorio-comissoes'
+    | '/relatorio-estoque'
     | '/rota'
     | '/transferencias'
     | '/usuarios'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/profissionais'
     | '/relatorio'
     | '/relatorio-comissoes'
+    | '/relatorio-estoque'
     | '/rota'
     | '/transferencias'
     | '/usuarios'
@@ -652,6 +664,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
     | '/_authenticated/relatorio-comissoes'
+    | '/_authenticated/relatorio-estoque'
     | '/_authenticated/rota'
     | '/_authenticated/transferencias'
     | '/_authenticated/usuarios'
@@ -961,6 +974,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatorioComissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorio-estoque': {
+      id: '/_authenticated/relatorio-estoque'
+      path: '/relatorio-estoque'
+      fullPath: '/relatorio-estoque'
+      preLoaderRoute: typeof AuthenticatedRelatorioEstoqueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/rota': {
       id: '/_authenticated/rota'
       path: '/rota'
@@ -1079,6 +1099,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
   AuthenticatedRelatorioComissoesRoute: typeof AuthenticatedRelatorioComissoesRoute
+  AuthenticatedRelatorioEstoqueRoute: typeof AuthenticatedRelatorioEstoqueRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedTransferenciasRoute: typeof AuthenticatedTransferenciasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
@@ -1130,6 +1151,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
   AuthenticatedRelatorioComissoesRoute: AuthenticatedRelatorioComissoesRoute,
+  AuthenticatedRelatorioEstoqueRoute: AuthenticatedRelatorioEstoqueRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedTransferenciasRoute: AuthenticatedTransferenciasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,

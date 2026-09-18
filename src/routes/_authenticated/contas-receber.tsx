@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Plus, Search, Wallet } from "lucide-react";
+import { AlertTriangle, BadgePercent, Plus, Search, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -78,12 +78,17 @@ function ContasReceber() {
   const [parcelas, setParcelas] = useState("1");
   const [forma, setForma] = useState("boleto");
 
+  const [creditoAberta, setCreditoAberta] = useState(false);
+  const [credProf, setCredProf] = useState("");
+  const [credValor, setCredValor] = useState("");
+  const [credObs, setCredObs] = useState("");
+
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-receber"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_receber")
-        .select("*, clientes(nome), pedidos(numero)")
+        .select("*, clientes(nome, profissional_id), pedidos(numero)")
         .order("vencimento");
       if (error) throw error;
       return data;
@@ -103,6 +108,29 @@ function ContasReceber() {
     },
   });
 
+  /** Crédito de premiação disponível de cada profissional, para abater nas contas. */
+  const { data: creditos = [] } = useQuery({
+    queryKey: ["creditos-profissionais"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id, nome, cliente_id")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      const lista = data ?? [];
+      const saldos = await Promise.all(
+        lista.map(async (p) => {
+          const { data: saldo } = await supabase.rpc("profissional_saldo_credito", {
+            p_profissional_id: p.id,
+          });
+          return { ...p, saldo: Number(saldo ?? 0) };
+        }),
+      );
+      return saldos.filter((p) => p.saldo > 0);
+    },
+  });
+
   const { data: caixaAberto } = useQuery({
     queryKey: ["caixa-aberto"],
     queryFn: async () => {
@@ -116,6 +144,7 @@ function ContasReceber() {
       return data;
     },
   });
+
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -219,16 +248,87 @@ function ContasReceber() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const creditoPorProfissional = useMemo(() => {
+    const m = new Map<string, { nome: string; saldo: number }>();
+    for (const p of creditos) m.set(p.id, { nome: p.nome, saldo: p.saldo });
+    return m;
+  }, [creditos]);
+
+  const creditoTotal = creditos.reduce((s, p) => s + p.saldo, 0);
+  const saldoCredProf = credProf ? (creditoPorProfissional.get(credProf)?.saldo ?? 0) : 0;
+  const contaCredito = contas.find((c) => c.id === contaId) ?? null;
+  const saldoContaCredito = contaCredito
+    ? Number(contaCredito.valor) - Number(contaCredito.valor_recebido)
+    : 0;
+
+  function abrirCredito(conta: (typeof contas)[number], saldo: number) {
+    const prof = (conta.clientes as { profissional_id: string | null } | null)?.profissional_id ?? "";
+    const sugerido = prof && creditoPorProfissional.has(prof) ? prof : (creditos[0]?.id ?? "");
+    const disponivel = sugerido ? (creditoPorProfissional.get(sugerido)?.saldo ?? 0) : 0;
+    setContaId(conta.id);
+    setSaldoConta(saldo);
+    setCredProf(sugerido);
+    setCredValor(Math.min(saldo, disponivel).toFixed(2));
+    setCredObs("");
+    setCreditoAberta(true);
+  }
+
+  const usarCredito = useMutation({
+    mutationFn: async () => {
+      const v = Number(credValor.replace(",", "."));
+      if (!credProf) throw new Error("Escolha o profissional");
+      if (!contaId) throw new Error("Escolha a conta");
+      if (!v || v <= 0) throw new Error("Informe um valor maior que zero");
+      const { error } = await supabase.rpc("premiacao_abater_conta", {
+        p_profissional_id: credProf,
+        p_conta_id: contaId,
+        p_valor: v,
+        ...(credObs.trim() ? { p_observacao: credObs.trim() } : {}),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Crédito do profissional abatido na conta.");
+      setCreditoAberta(false);
+      void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
+      void queryClient.invalidateQueries({ queryKey: ["creditos-profissionais"] });
+      void queryClient.invalidateQueries({ queryKey: ["premiacoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   return (
     <div>
       <PageHeader
         title="Contas a receber"
         description="Parcelas dos pedidos e cobranças avulsas, com baixa no caixa."
         actions={
-          <Button onClick={() => setNovaAberta(true)}>
-            <Plus className="size-4" /> Nova conta
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {creditoTotal > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const primeira = abertas[0];
+                  if (!primeira) {
+                    toast.error("Nenhuma conta em aberto para abater.");
+                    return;
+                  }
+                  abrirCredito(
+                    primeira,
+                    Number(primeira.valor) - Number(primeira.valor_recebido),
+                  );
+                }}
+              >
+                <BadgePercent className="size-4" /> Usar crédito do profissional
+              </Button>
+            )}
+            <Button onClick={() => setNovaAberta(true)}>
+              <Plus className="size-4" /> Nova conta
+            </Button>
+          </div>
         }
+
       />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -351,9 +451,19 @@ function ContasReceber() {
                           >
                             Receber
                           </Button>
+                          {creditoTotal > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => abrirCredito(c, saldo)}
+                            >
+                              Usar crédito
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" onClick={() => cancelar.mutate(c.id)}>
                             Cancelar
                           </Button>
+
                         </>
                       )}
                     </TableCell>
@@ -499,6 +609,79 @@ function ContasReceber() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={creditoAberta} onOpenChange={setCreditoAberta}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Usar crédito do profissional</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Profissional</Label>
+              <Select value={credProf} onValueChange={setCredProf}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolher profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {creditos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} — {brl(p.saldo)} de crédito
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Conta a receber</Label>
+              <Select value={contaId} onValueChange={setContaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolher conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {abertas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      nº {c.numero} · {(c.clientes as { nome: string } | null)?.nome ?? "Sem cliente"} ·
+                      saldo {brl(Number(c.valor) - Number(c.valor_recebido))} · vence{" "}
+                      {dateBR(c.vencimento)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Valor a abater</Label>
+              <div className="flex gap-2">
+                <Input value={credValor} onChange={(e) => setCredValor(e.target.value)} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setCredValor(Math.min(saldoCredProf, saldoContaCredito).toFixed(2))
+                  }
+                >
+                  Usar o máximo
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Crédito disponível: {brl(saldoCredProf)} · saldo da conta: {brl(saldoContaCredito)}
+              </p>
+            </div>
+            <div>
+              <Label>Observação</Label>
+              <Textarea value={credObs} onChange={(e) => setCredObs(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreditoAberta(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => usarCredito.mutate()} disabled={usarCredito.isPending}>
+              Abater na conta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
