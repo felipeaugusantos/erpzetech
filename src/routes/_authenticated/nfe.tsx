@@ -6,8 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num } from "@/lib/format";
-import { PageHeader, StatCard } from "@/components/app/PageHeader";
-import { EmptyState } from "@/components/app/EmptyState";
+import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -257,7 +256,6 @@ function Nfe() {
           <p className="p-4 text-sm text-muted-foreground">Carregando…</p>
         ) : (notas ?? []).length === 0 ? (
           <EmptyState
-            icon={FileText}
             title="Nenhuma nota gerada"
             description="Escolha um pedido acima e clique em gerar nota fiscal."
           />
@@ -276,7 +274,7 @@ function Nfe() {
             </TableHeader>
             <TableBody>
               {(notas ?? []).map((n) => {
-                const s = situacaoLabel[n.situacao] ?? situacaoLabel.rascunho!;
+                const s = situacaoLabel[n.situacao] ?? situacaoLabel["rascunho"]!;
                 return (
                   <TableRow key={n.id}>
                     <TableCell className="font-medium">
@@ -506,19 +504,19 @@ function Nfe() {
 
 function Bloco({ dados }: { dados: Record<string, string> | null }) {
   if (!dados) return <p className="text-muted-foreground">—</p>;
-  const linha2 = [dados.endereco, dados.numero].filter(Boolean).join(", ");
-  const linha3 = [dados.bairro, dados.cidade, dados.estado].filter(Boolean).join(" · ");
+  const linha2 = [dados["endereco"], dados["numero"]].filter(Boolean).join(", ");
+  const linha3 = [dados["bairro"], dados["cidade"], dados["estado"]].filter(Boolean).join(" · ");
   return (
     <div className="mt-1 space-y-0.5">
-      <p className="font-medium">{dados.razao_social ?? dados.nome}</p>
+      <p className="font-medium">{dados["razao_social"] ?? dados["nome"]}</p>
       <p className="text-muted-foreground">
-        {dados.cnpj ? `CNPJ ${dados.cnpj}` : dados.cpf ? `CPF ${dados.cpf}` : "sem documento"}
-        {dados.inscricao_estadual ? ` · IE ${dados.inscricao_estadual}` : ""}
+        {dados["cnpj"] ? `CNPJ ${dados["cnpj"]}` : dados["cpf"] ? `CPF ${dados["cpf"]}` : "sem documento"}
+        {dados["inscricao_estadual"] ? ` · IE ${dados["inscricao_estadual"]}` : ""}
       </p>
       <p className="text-muted-foreground">{linha2 || "endereço não informado"}</p>
       <p className="text-muted-foreground">
         {linha3}
-        {dados.cep ? ` · CEP ${dados.cep}` : ""}
+        {dados["cep"] ? ` · CEP ${dados["cep"]}` : ""}
       </p>
     </div>
   );

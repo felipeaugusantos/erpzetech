@@ -14,8 +14,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num } from "@/lib/format";
-import { PageHeader, StatCard } from "@/components/app/PageHeader";
-import { EmptyState } from "@/components/app/EmptyState";
+import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -224,7 +223,6 @@ function Lucro() {
           <p className="p-4 text-sm text-muted-foreground">Carregando…</p>
         ) : linhas.length === 0 ? (
           <EmptyState
-            icon={TrendingUp}
             title="Nenhuma venda no período"
             description="Ajuste as datas ou o depósito para ver o lucro."
           />
