@@ -101,7 +101,7 @@ function Nfe() {
       const { data, error } = await supabase
         .from("nfe")
         .select(
-          "id, numero, serie, situacao, ambiente, natureza_operacao, valor_total, valor_produtos, valor_frete, valor_desconto, pendencias, mensagem, created_at, emitente, destinatario, pedidos(numero), clientes(nome), depositos(nome)",
+          "id, numero, serie, situacao, ambiente, natureza_operacao, valor_total, valor_produtos, valor_frete, valor_desconto, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
