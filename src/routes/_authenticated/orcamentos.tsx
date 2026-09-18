@@ -835,6 +835,59 @@ function Orcamentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* VIA DO ORÇAMENTO EM 80 MM */}
+      <Dialog open={via} onOpenChange={setVia}>
+        <DialogContent className="max-h-[90vh] max-w-sm overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Via do orçamento — 80 mm</DialogTitle>
+            <DialogDescription>
+              Mesma impressora térmica do balcão usada no cupom do PDV.
+            </DialogDescription>
+          </DialogHeader>
+          {orcamentoAtual && (
+            <Via80
+              dados={{
+                tipo: "Orçamento",
+                numero: String(orcamentoAtual.numero).padStart(4, "0"),
+                emitidoEm: dateBR(orcamentoAtual.created_at),
+                loja:
+                  session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+                cliente:
+                  (orcamentoAtual.clientes as unknown as { nome: string } | null)?.nome ??
+                  "Consumidor final",
+                obra: (orcamentoAtual.obras as unknown as { nome: string } | null)?.nome ?? null,
+                situacao:
+                  situacoes.find((s) => s.value === orcamentoAtual.situacao)?.label ?? null,
+                validade: orcamentoAtual.validade ? dateBR(orcamentoAtual.validade) : null,
+                condicao: orcamentoAtual.condicao_pagamento,
+                prazo: orcamentoAtual.prazo_entrega,
+                observacoes: orcamentoAtual.observacoes,
+                itens: (itensDetalhe ?? []).map((i) => ({
+                  descricao:
+                    (i.produtos as unknown as { descricao: string } | null)?.descricao ?? "Item",
+                  unidade: i.unidade,
+                  quantidade: Number(i.quantidade),
+                  preco: Number(i.preco_unitario),
+                })),
+                subtotal: (itensDetalhe ?? []).reduce((s, i) => s + Number(i.total), 0),
+                desconto: Number(orcamentoAtual.desconto ?? 0),
+                frete: Number(orcamentoAtual.frete ?? 0),
+                total: Number(orcamentoAtual.total ?? 0),
+                rodape: "Orçamento válido até a data indicada acima.",
+              }}
+            />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVia(false)}>
+              Fechar
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="mr-2 size-4" /> Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
