@@ -4057,32 +4057,19 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimentacao:
-        | {
-            Args: {
-              p_deposito_destino_id?: string
-              p_deposito_id: string
-              p_documento?: string
-              p_motivo?: string
-              p_produto_id: string
-              p_quantidade: number
-              p_tipo: Database["public"]["Enums"]["mov_tipo"]
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_custo?: number
-              p_deposito_destino_id?: string
-              p_deposito_id: string
-              p_documento?: string
-              p_motivo?: string
-              p_produto_id: string
-              p_quantidade: number
-              p_tipo: Database["public"]["Enums"]["mov_tipo"]
-            }
-            Returns: string
-          }
+      registrar_movimentacao: {
+        Args: {
+          p_custo?: number
+          p_deposito_destino_id?: string
+          p_deposito_id: string
+          p_documento?: string
+          p_motivo?: string
+          p_produto_id: string
+          p_quantidade: number
+          p_tipo: Database["public"]["Enums"]["mov_tipo"]
+        }
+        Returns: string
+      }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string
