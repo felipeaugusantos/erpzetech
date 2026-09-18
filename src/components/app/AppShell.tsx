@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Gauge,
   HardHat,
+  IdCard,
   LayoutGrid,
   LogOut,
   Menu,
@@ -86,9 +87,10 @@ const groups: Group[] = [
     label: "Logística",
     icon: Truck,
     items: [
-      { label: "Entregas", icon: Truck, soon: true },
-      { label: "Veículos", icon: Truck, soon: true },
-      { label: "Motoristas", icon: Truck, soon: true },
+      { label: "Entregas", to: "/entregas", icon: Truck },
+      { label: "Tela do motorista", to: "/motorista", icon: IdCard },
+      { label: "Veículos", to: "/veiculos", icon: Truck },
+      { label: "Motoristas", to: "/motoristas", icon: IdCard },
     ],
   },
   {
