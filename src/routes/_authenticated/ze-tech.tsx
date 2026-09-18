@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, BarChart3, CircleDollarSign, Plus, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { criarAdminCliente } from "@/lib/cliente-admin.functions";
 import { brl, dateBR } from "@/lib/format";
 import {
   SITUACAO_SAAS,
@@ -777,5 +779,79 @@ function ClienteDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ---------------- acesso do administrador da loja ---------------- */
+
+function AcessoAdmin({ cliente }: { cliente: ClienteSaas }) {
+  const qc = useQueryClient();
+  const criar = useServerFn(criarAdminCliente);
+  const [email, setEmail] = useState(cliente.admin_email ?? cliente.email ?? "");
+  const [senha, setSenha] = useState("");
+
+  const enviar = useMutation({
+    mutationFn: async () => criar({ data: { clienteId: cliente.id, email, senha } }),
+    onSuccess: () => {
+      toast.success("Acesso do administrador criado.", {
+        description: "Informe o e-mail e a senha ao cliente para o primeiro acesso.",
+      });
+      setSenha("");
+      void qc.invalidateQueries({ queryKey: ["saas-dados"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (cliente.admin_user_id) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/40 p-3">
+        <p className="text-sm font-medium">Administrador da loja</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {cliente.admin_email} — acesso liberado
+          {cliente.admin_criado_em ? ` em ${dateBR(cliente.admin_criado_em.slice(0, 10))}` : ""}.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Ele entra pela tela de acesso do sistema e cadastra os dados da empresa no primeiro login.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-sm font-medium">Criar acesso do administrador</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Salve o cliente antes. O administrador entra com estes dados e cadastra a própria empresa,
+        filiais e depósitos no primeiro acesso.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-1.5">
+          <Label htmlFor="c-admin-mail">E-mail do administrador</Label>
+          <Input
+            id="c-admin-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="gestor@loja.com.br"
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="c-admin-senha">Senha provisória</Label>
+          <Input
+            id="c-admin-senha"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            placeholder="mínimo 8 caracteres"
+          />
+        </div>
+      </div>
+      <Button
+        className="mt-3"
+        variant="secondary"
+        onClick={() => enviar.mutate()}
+        disabled={enviar.isPending}
+      >
+        Criar acesso do administrador
+      </Button>
+    </div>
   );
 }
