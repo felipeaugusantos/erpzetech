@@ -415,6 +415,206 @@ function Usuarios() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo usuário</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="n-nome">Nome</Label>
+              <Input
+                id="n-nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-email">E-mail de acesso</Label>
+              <Input
+                id="n-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-senha">Senha provisória</Label>
+              <Input
+                id="n-senha"
+                value={form.senha}
+                placeholder="mínimo 8 caracteres"
+                onChange={(e) => setForm({ ...form, senha: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-tel">Telefone</Label>
+              <Input
+                id="n-tel"
+                value={form.telefone}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-cod">Código (vendedor)</Label>
+              <Input
+                id="n-cod"
+                value={form.codigo}
+                onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="n-filial">Loja / filial</Label>
+              <Select
+                value={form.filialId}
+                onValueChange={(v) => setForm({ ...form, filialId: v })}
+              >
+                <SelectTrigger id="n-filial" aria-label="Loja do usuário">
+                  <SelectValue placeholder="Selecione a loja" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(session?.filiais ?? []).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Perfis de acesso</Label>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {perfis.map((p) => (
+                  <label key={p} className="flex items-center gap-2 text-sm capitalize">
+                    <Checkbox
+                      checked={form.perfis.includes(p)}
+                      onCheckedChange={() =>
+                        setForm({ ...form, perfis: alternarPerfil(form.perfis, p) })
+                      }
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => criar.mutate()} disabled={criar.isPending}>
+              Cadastrar usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editando} onOpenChange={(v) => !v && setEditando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar usuário</DialogTitle>
+          </DialogHeader>
+          {editando && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label htmlFor="e-nome">Nome</Label>
+                <Input
+                  id="e-nome"
+                  value={editando.nome}
+                  onChange={(e) => setEditando({ ...editando, nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-tel">Telefone</Label>
+                <Input
+                  id="e-tel"
+                  value={editando.telefone}
+                  onChange={(e) => setEditando({ ...editando, telefone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-cod">Código</Label>
+                <Input
+                  id="e-cod"
+                  value={editando.codigo}
+                  onChange={(e) => setEditando({ ...editando, codigo: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="e-filial">Loja / filial</Label>
+                <Select
+                  value={editando.filialId}
+                  onValueChange={(v) => setEditando({ ...editando, filialId: v })}
+                >
+                  <SelectTrigger id="e-filial" aria-label="Loja do usuário">
+                    <SelectValue placeholder="Selecione a loja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(session?.filiais ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Perfis de acesso</Label>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {perfis.map((p) => (
+                    <label key={p} className="flex items-center gap-2 text-sm capitalize">
+                      <Checkbox
+                        checked={editando.perfis.includes(p)}
+                        onCheckedChange={() =>
+                          setEditando({ ...editando, perfis: alternarPerfil(editando.perfis, p) })
+                        }
+                      />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 sm:col-span-2">
+                <Switch
+                  id="e-ativo"
+                  checked={editando.ativo}
+                  onCheckedChange={(v) => setEditando({ ...editando, ativo: v })}
+                />
+                <Label htmlFor="e-ativo">Usuário ativo</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => salvarEdicao.mutate()} disabled={salvarEdicao.isPending}>
+              Salvar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!senhaAlvo} onOpenChange={(v) => !v && setSenhaAlvo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir senha de {senhaAlvo?.nome}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label htmlFor="s-nova">Nova senha</Label>
+            <Input
+              id="s-nova"
+              value={novaSenha}
+              placeholder="mínimo 8 caracteres"
+              onChange={(e) => setNovaSenha(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => trocarSenha.mutate()}
+              disabled={novaSenha.length < 8 || trocarSenha.isPending}
+            >
+              Redefinir senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }
