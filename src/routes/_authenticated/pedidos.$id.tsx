@@ -4,7 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, FileText, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  arquivosNfe,
+  cancelarNfeSefaz,
+  consultarNfe,
+  transmitirNfe,
+} from "@/lib/nfe-fiscal.functions";
 import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
 import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
@@ -60,7 +67,11 @@ function PedidoDetalhe() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
 
-  const [notaGerada, setNotaGerada] = useState<{
+  const CAMPOS_NFE =
+    "id, numero, serie, situacao, ambiente, valor_total, pendencias, mensagem, chave, protocolo, provider_id, provider_status";
+
+  type NotaFiscal = {
+    id: string;
     numero: number | null;
     serie: number;
     situacao: string;
@@ -68,30 +79,98 @@ function PedidoDetalhe() {
     valor_total: number;
     pendencias: string[];
     mensagem: string | null;
-  } | null>(null);
+    chave: string | null;
+    protocolo: string | null;
+    provider_id: string | null;
+    provider_status: string | null;
+  };
+
+  const [notaGerada, setNotaGerada] = useState<NotaFiscal | null>(null);
+  const [justificativa, setJustificativa] = useState("");
+
+  const transmitir = useServerFn(transmitirNfe);
+  const consultar = useServerFn(consultarNfe);
+  const cancelarSefaz = useServerFn(cancelarNfeSefaz);
+  const pegarArquivos = useServerFn(arquivosNfe);
 
   const { data: notaDoPedido } = useQuery({
     queryKey: ["nfe-do-pedido", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("nfe_pedidos")
-        .select("nfe(id, numero, serie, situacao, ambiente, valor_total, pendencias, mensagem)")
+        .select(`nfe(${CAMPOS_NFE})`)
         .eq("pedido_id", id);
       if (error) throw error;
       const notas = (data ?? [])
-        .map((v) => v.nfe as {
-          id: string;
-          numero: number | null;
-          serie: number;
-          situacao: string;
-          ambiente: string;
-          valor_total: number;
-          pendencias: string[];
-          mensagem: string | null;
-        } | null)
-        .filter((n): n is NonNullable<typeof n> => !!n && n.situacao !== "cancelada");
+        .map((v) => v.nfe as NotaFiscal | null)
+        .filter((n): n is NotaFiscal => !!n && n.situacao !== "cancelada");
       return notas[0] ?? null;
     },
+  });
+
+  useEffect(() => {
+    if (notaGerada && notaDoPedido && notaDoPedido.id === notaGerada.id) {
+      setNotaGerada(notaDoPedido);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notaDoPedido]);
+
+  const recarregarNota = async (nfeId: string) => {
+    await qc.invalidateQueries({ queryKey: ["nfe-do-pedido", id] });
+    await qc.invalidateQueries({ queryKey: ["nfe"] });
+    const { data } = await supabase.from("nfe").select(CAMPOS_NFE).eq("id", nfeId).single();
+    if (data) setNotaGerada(data as NotaFiscal);
+  };
+
+  const enviarSefaz = useMutation({
+    mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
+    onSuccess: async (r: { status: string; mensagem: string | null }, nfeId) => {
+      if (r.status === "autorizado" || r.status === "autorizada") {
+        toast.success("Nota autorizada pela Receita");
+      } else {
+        toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
+      }
+      await recarregarNota(nfeId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const consultarSituacao = useMutation({
+    mutationFn: async (nfeId: string) => consultar({ data: { nfeId } }),
+    onSuccess: async (r: { status: string }, nfeId) => {
+      toast.info(`Situação na Receita: ${r.status}`);
+      await recarregarNota(nfeId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelarNota = useMutation({
+    mutationFn: async (nfeId: string) =>
+      cancelarSefaz({ data: { nfeId, justificativa } }),
+    onSuccess: async (_r, nfeId) => {
+      toast.success("Nota cancelada na Receita");
+      setJustificativa("");
+      await recarregarNota(nfeId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const baixarArquivos = useMutation({
+    mutationFn: async (nfeId: string) => pegarArquivos({ data: { nfeId } }),
+    onSuccess: (r: { pdf: string | null; xml: string | null }) => {
+      if (!r.pdf && !r.xml) {
+        toast.error("O emissor ainda não disponibilizou o DANFE e o XML.");
+        return;
+      }
+      if (r.pdf) window.open(r.pdf, "_blank");
+      if (r.xml) {
+        const a = document.createElement("a");
+        a.href = r.xml;
+        a.download = "nfe.xml";
+        a.click();
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const gerarNota = useMutation({
@@ -100,7 +179,7 @@ function PedidoDetalhe() {
       if (error) throw error;
       const { data: nota } = await supabase
         .from("nfe")
-        .select("numero, serie, situacao, ambiente, valor_total, pendencias, mensagem")
+        .select(CAMPOS_NFE)
         .eq("id", data as string)
         .single();
       return nota;
@@ -799,25 +878,86 @@ function PedidoDetalhe() {
               {brl(Number(notaGerada?.valor_total ?? 0))}
             </DialogDescription>
           </DialogHeader>
-          {(notaGerada?.pendencias ?? []).length > 0 ? (
-            <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-              <p className="font-medium">Falta isto para transmitir à Sefaz</p>
-              <ul className="mt-1 list-disc pl-5 text-muted-foreground">
-                {(notaGerada?.pendencias ?? []).map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant="outline">{labelNfe(notaGerada?.situacao ?? "")}</Badge>
+              {notaGerada?.provider_status && (
+                <span className="text-muted-foreground">
+                  Retorno do emissor: {notaGerada.provider_status}
+                </span>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">{notaGerada?.mensagem}</p>
-          )}
-          <DialogFooter>
+            {notaGerada?.chave && (
+              <p className="break-all text-xs text-muted-foreground">
+                Chave de acesso: {notaGerada.chave}
+                {notaGerada.protocolo ? ` · protocolo ${notaGerada.protocolo}` : ""}
+              </p>
+            )}
+            {(notaGerada?.pendencias ?? []).length > 0 ? (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                <p className="font-medium">Falta isto para transmitir à Sefaz</p>
+                <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                  {(notaGerada?.pendencias ?? []).map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              notaGerada?.mensagem && (
+                <p className="text-sm text-muted-foreground">{notaGerada.mensagem}</p>
+              )
+            )}
+            {notaGerada?.situacao === "autorizada" && (
+              <div>
+                <Label htmlFor="nfe-just">Justificativa para cancelar (mín. 15 caracteres)</Label>
+                <Textarea
+                  id="nfe-just"
+                  value={justificativa}
+                  onChange={(e) => setJustificativa(e.target.value)}
+                  placeholder="Ex.: pedido cancelado pelo cliente antes da entrega"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-wrap gap-2">
             <Button variant="outline" onClick={() => setNotaGerada(null)}>
               Fechar
             </Button>
-            <Button asChild>
-              <Link to="/nfe">Ver notas fiscais</Link>
-            </Button>
+            {notaGerada && notaGerada.situacao !== "autorizada" && notaGerada.situacao !== "cancelada" && (
+              <Button
+                disabled={enviarSefaz.isPending}
+                onClick={() => enviarSefaz.mutate(notaGerada.id)}
+              >
+                <Send className="mr-2 size-4" /> Enviar à Receita
+              </Button>
+            )}
+            {notaGerada?.provider_id && (
+              <Button
+                variant="secondary"
+                disabled={consultarSituacao.isPending}
+                onClick={() => consultarSituacao.mutate(notaGerada.id)}
+              >
+                <RefreshCw className="mr-2 size-4" /> Consultar situação
+              </Button>
+            )}
+            {notaGerada?.situacao === "autorizada" && (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={baixarArquivos.isPending}
+                  onClick={() => baixarArquivos.mutate(notaGerada.id)}
+                >
+                  <FileText className="mr-2 size-4" /> DANFE e XML
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={cancelarNota.isPending || justificativa.trim().length < 15}
+                  onClick={() => cancelarNota.mutate(notaGerada.id)}
+                >
+                  Cancelar na Receita
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

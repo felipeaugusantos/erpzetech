@@ -248,6 +248,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          codigo_municipio: string | null
           complemento: string | null
           cpf: string | null
           created_at: string
@@ -279,6 +280,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           complemento?: string | null
           cpf?: string | null
           created_at?: string
@@ -310,6 +312,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           complemento?: string | null
           cpf?: string | null
           created_at?: string
@@ -1101,6 +1104,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          codigo_municipio: string | null
           complemento: string | null
           created_at: string
           email: string | null
@@ -1121,6 +1125,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           complemento?: string | null
           created_at?: string
           email?: string | null
@@ -1141,6 +1146,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           complemento?: string | null
           created_at?: string
           email?: string | null
@@ -1609,6 +1615,7 @@ export type Database = {
           certificado_nome: string | null
           certificado_validade: string | null
           cfop_padrao: string
+          conta_emissor: string | null
           created_at: string
           emissor: string | null
           empresa_id: string | null
@@ -1616,6 +1623,10 @@ export type Database = {
           informacoes_complementares: string | null
           proximo_numero: number
           regime_tributario: string
+          responsavel_tecnico_cnpj: string | null
+          responsavel_tecnico_contato: string | null
+          responsavel_tecnico_email: string | null
+          responsavel_tecnico_fone: string | null
           serie: number
           tenant_id: string
           updated_at: string
@@ -1625,6 +1636,7 @@ export type Database = {
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
+          conta_emissor?: string | null
           created_at?: string
           emissor?: string | null
           empresa_id?: string | null
@@ -1632,6 +1644,10 @@ export type Database = {
           informacoes_complementares?: string | null
           proximo_numero?: number
           regime_tributario?: string
+          responsavel_tecnico_cnpj?: string | null
+          responsavel_tecnico_contato?: string | null
+          responsavel_tecnico_email?: string | null
+          responsavel_tecnico_fone?: string | null
           serie?: number
           tenant_id?: string
           updated_at?: string
@@ -1641,6 +1657,7 @@ export type Database = {
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
+          conta_emissor?: string | null
           created_at?: string
           emissor?: string | null
           empresa_id?: string | null
@@ -1648,6 +1665,10 @@ export type Database = {
           informacoes_complementares?: string | null
           proximo_numero?: number
           regime_tributario?: string
+          responsavel_tecnico_cnpj?: string | null
+          responsavel_tecnico_contato?: string | null
+          responsavel_tecnico_email?: string | null
+          responsavel_tecnico_fone?: string | null
           serie?: number
           tenant_id?: string
           updated_at?: string
@@ -1866,6 +1887,7 @@ export type Database = {
       nfe: {
         Row: {
           ambiente: string
+          autorizada_em: string | null
           cancelada_em: string | null
           cfop: string | null
           chave: string | null
@@ -1886,9 +1908,14 @@ export type Database = {
           pedido_id: string | null
           pendencias: string[]
           protocolo: string | null
+          provider: string | null
+          provider_id: string | null
+          provider_status: string | null
+          retorno: Json | null
           serie: number
           situacao: string
           tenant_id: string
+          transmitida_em: string | null
           updated_at: string
           valor_desconto: number
           valor_frete: number
@@ -1898,6 +1925,7 @@ export type Database = {
         }
         Insert: {
           ambiente?: string
+          autorizada_em?: string | null
           cancelada_em?: string | null
           cfop?: string | null
           chave?: string | null
@@ -1918,9 +1946,14 @@ export type Database = {
           pedido_id?: string | null
           pendencias?: string[]
           protocolo?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          provider_status?: string | null
+          retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          transmitida_em?: string | null
           updated_at?: string
           valor_desconto?: number
           valor_frete?: number
@@ -1930,6 +1963,7 @@ export type Database = {
         }
         Update: {
           ambiente?: string
+          autorizada_em?: string | null
           cancelada_em?: string | null
           cfop?: string | null
           chave?: string | null
@@ -1950,9 +1984,14 @@ export type Database = {
           pedido_id?: string | null
           pendencias?: string[]
           protocolo?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          provider_status?: string | null
+          retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          transmitida_em?: string | null
           updated_at?: string
           valor_desconto?: number
           valor_frete?: number
