@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Barcode, Minus, Plus, ShoppingCart, Trash2, Wallet } from "lucide-react";
+import { Barcode, Minus, Plus, Printer, ShoppingCart, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
-import { brl, num } from "@/lib/format";
+import { brl, dateTimeBR, num } from "@/lib/format";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import type { FormaPagamento } from "@/lib/financeiro";
+import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/pdv")({
   head: () => ({
@@ -30,12 +37,12 @@ export const Route = createFileRoute("/_authenticated/pdv")({
       {
         name: "description",
         content:
-          "Venda de balcão com leitura de código de barras, baixa de estoque no depósito e lançamento automático no caixa.",
+          "Venda de balcão com leitura de código de barras, cupom impresso na hora, baixa de estoque no depósito e lançamento automático no caixa.",
       },
       { property: "og:title", content: "PDV — venda rápida — Ze Obra" },
       {
         property: "og:description",
-        content: "Passe o código de barras, receba o pagamento e a venda entra no caixa na hora.",
+        content: "Passe o código de barras, receba o pagamento, imprima o cupom e emita a nota.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -67,6 +74,8 @@ function Pdv() {
   const [parcelas, setParcelas] = useState("1");
   const [vencimento, setVencimento] = useState(somaDias(hojeISO(), 30));
   const [recebido, setRecebido] = useState("");
+  const [pagamentoAberto, setPagamentoAberto] = useState(false);
+  const [cupom, setCupom] = useState<(CupomDados & { pedidoId: string }) | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pdv-base"],
@@ -175,12 +184,28 @@ function Pdv() {
   );
   const descontoNum = Math.max(Number(desconto.replace(",", ".")) || 0, 0);
   const total = Math.max(subtotal - descontoNum, 0);
-  const troco = Math.max((Number(recebido.replace(",", ".")) || 0) - total, 0);
+  const recebidoNum = Number(recebido.replace(",", ".")) || 0;
+  const troco = Math.max(recebidoNum - total, 0);
   const aPrazo = forma === "crediario" || forma === "boleto";
 
   const semEstoque = linhas.filter(
     (l) => l.quantidade > (disponivelPorProduto.get(l.produto_id) ?? 0),
   );
+
+  const alterarQtd = (id: string, fn: (q: number) => number) =>
+    setLinhas((a) => a.map((x) => (x.produto_id === id ? { ...x, quantidade: fn(x.quantidade) } : x)));
+  const alterarPreco = (id: string, valor: string) =>
+    setLinhas((a) =>
+      a.map((x) =>
+        x.produto_id === id ? { ...x, preco: Number(valor.replace(",", ".")) || 0 } : x,
+      ),
+    );
+
+  const nomeDeposito = depositos.find((d) => d.id === depositoId)?.nome ?? "—";
+  const nomeCliente =
+    clienteId === "balcao"
+      ? "Consumidor final (balcão)"
+      : (clientes.find((c) => c.id === clienteId)?.nome ?? "—");
 
   const finalizar = useMutation({
     mutationFn: async () => {
@@ -201,14 +226,45 @@ function Pdv() {
         ...(aPrazo ? { p_primeiro_vencimento: vencimento } : {}),
       });
       if (error) throw error;
-      return data as string;
+      const pedidoId = data as string;
+      const { data: pedido } = await supabase
+        .from("pedidos")
+        .select("numero, created_at, clientes(nome)")
+        .eq("id", pedidoId)
+        .maybeSingle();
+      return { pedidoId, pedido };
     },
-    onSuccess: () => {
+    onSuccess: ({ pedidoId, pedido }) => {
       toast.success("Venda concluída", {
         description: aPrazo
           ? "Parcelas lançadas em contas a receber."
           : "Lançada no caixa, com baixa de estoque e comissão do vendedor.",
       });
+      setCupom({
+        pedidoId,
+        numero: String(pedido?.numero ?? "—").padStart(4, "0"),
+        emitidoEm: dateTimeBR(pedido?.created_at ?? new Date().toISOString()),
+        loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+        deposito: nomeDeposito,
+        cliente:
+          (pedido?.clientes as { nome: string } | null)?.nome ?? nomeCliente,
+        vendedor: session?.profile?.nome ?? session?.user.email ?? "—",
+        itens: linhas.map((l) => ({
+          descricao: l.descricao,
+          unidade: l.unidade,
+          quantidade: l.quantidade,
+          preco: l.preco,
+        })),
+        subtotal,
+        desconto: descontoNum,
+        total,
+        forma,
+        parcelas: aPrazo ? Math.max(Number(parcelas) || 1, 1) : 1,
+        recebido: aPrazo ? 0 : recebidoNum,
+        troco: aPrazo ? 0 : troco,
+        nfe: null,
+      });
+      setPagamentoAberto(false);
       setLinhas([]);
       setDesconto("0");
       setRecebido("");
@@ -219,11 +275,50 @@ function Pdv() {
     onError: (e: Error) => toast.error("Não foi possível finalizar", { description: e.message }),
   });
 
+  /** Nota fiscal do mesmo atendimento, gerada a partir do pedido da venda. */
+  const emitirNota = useMutation({
+    mutationFn: async (pedidoId: string) => {
+      const { data, error } = await supabase.rpc("gerar_nfe", { p_pedido_id: pedidoId });
+      if (error) throw error;
+      const nfeId = data as string;
+      const { data: nota } = await supabase
+        .from("nfe")
+        .select("numero, serie, situacao, chave, pendencias")
+        .eq("id", nfeId)
+        .maybeSingle();
+      return nota;
+    },
+    onSuccess: (nota) => {
+      setCupom((c) =>
+        c
+          ? {
+              ...c,
+              nfe: {
+                numero: nota?.numero ? String(nota.numero) : null,
+                serie: nota?.serie ? String(nota.serie) : null,
+                situacao: String(nota?.situacao ?? "rascunho"),
+                chave: nota?.chave ?? null,
+              },
+            }
+          : c,
+      );
+      const pendencias = (nota?.pendencias ?? []) as string[];
+      toast.success("Nota fiscal gerada", {
+        description:
+          pendencias.length > 0
+            ? `${pendencias.length} pendência(s) a resolver antes de enviar à Receita.`
+            : "Pronta para envio à Receita na tela de notas fiscais.",
+      });
+      void qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error("Não foi possível gerar a nota", { description: e.message }),
+  });
+
   return (
     <>
       <PageHeader
         title="PDV — venda rápida"
-        description="Passe o código de barras, escolha a forma de pagamento e finalize. A baixa de estoque, o caixa e a comissão do vendedor entram automaticamente."
+        description="Passe o código de barras, escolha a forma de pagamento e finalize. Cupom na hora, baixa de estoque, caixa e comissão automáticos."
         actions={
           <>
             <Badge variant={caixaAberto ? "default" : "destructive"}>
@@ -248,48 +343,19 @@ function Pdv() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-6 pb-40 lg:grid-cols-[1.6fr_1fr] lg:pb-0">
         <div>
-          <div className="panel mb-4 grid gap-4 p-4 sm:grid-cols-2">
+          <div className="panel mb-4 space-y-3 p-3 sm:p-4">
             <div>
-              <Label>Depósito de saída</Label>
-              <Select value={depositoId} onValueChange={setDepositoId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Escolha o depósito" />
-                </SelectTrigger>
-                <SelectContent>
-                  {depositos.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Cliente (opcional)</Label>
-              <Select value={clienteId} onValueChange={setClienteId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="balcao">Consumidor final (balcão)</SelectItem>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Código de barras ou nome do produto</Label>
+              <Label className="text-xs">Código de barras ou nome do produto</Label>
               <div className="relative mt-1">
-                <Barcode className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Barcode className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   ref={buscaRef}
                   autoFocus
-                  className="pl-9"
+                  autoComplete="off"
+                  enterKeyHint="done"
+                  className="h-14 pl-10 text-base"
                   placeholder="Passe o leitor ou digite e aperte Enter…"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
@@ -306,12 +372,12 @@ function Pdv() {
                   {sugestoes.map((p) => (
                     <li key={p.id}>
                       <button
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary"
+                        className="flex w-full items-center gap-3 px-3 py-3 text-left text-sm hover:bg-secondary"
                         onClick={() => adicionar(p)}
                       >
-                        <Plus className="size-4 text-primary" />
+                        <Plus className="size-4 shrink-0 text-primary" />
                         <span className="flex-1 truncate">{p.descricao}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
                           {num(disponivelPorProduto.get(p.id) ?? 0, 2)} disp.
                         </span>
                         <span className="text-numeric">{brl(Number(p.preco_venda ?? 0))}</span>
@@ -320,6 +386,39 @@ function Pdv() {
                   ))}
                 </ul>
               )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs">Depósito de saída</Label>
+                <Select value={depositoId} onValueChange={setDepositoId}>
+                  <SelectTrigger className="mt-1 h-11">
+                    <SelectValue placeholder="Escolha o depósito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {depositos.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Cliente (opcional)</Label>
+                <Select value={clienteId} onValueChange={setClienteId}>
+                  <SelectTrigger className="mt-1 h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="balcao">Consumidor final (balcão)</SelectItem>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -331,217 +430,122 @@ function Pdv() {
               description="Passe o código de barras do produto ou busque pelo nome para começar o atendimento."
             />
           ) : (
-            <div className="panel overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produto</TableHead>
-                    <TableHead className="text-center">Quantidade</TableHead>
-                    <TableHead className="text-right">Preço</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {linhas.map((l) => {
-                    const disp = disponivelPorProduto.get(l.produto_id) ?? 0;
-                    return (
-                      <TableRow key={l.produto_id}>
-                        <TableCell className="text-sm">
-                          <span className="font-medium">{l.descricao}</span>
-                          <span className="block text-xs text-muted-foreground">
-                            {l.unidade} · {num(disp, 2)} disponível
-                            {l.quantidade > disp && (
-                              <span className="ml-1 text-destructive">sem saldo suficiente</span>
-                            )}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="size-7"
-                              onClick={() =>
-                                setLinhas((a) =>
-                                  a.map((x) =>
-                                    x.produto_id === l.produto_id
-                                      ? { ...x, quantidade: Math.max(x.quantidade - 1, 1) }
-                                      : x,
-                                  ),
-                                )
-                              }
-                            >
-                              <Minus className="size-3" />
-                            </Button>
-                            <Input
-                              className="h-8 w-20 text-center"
-                              inputMode="decimal"
-                              value={String(l.quantidade)}
-                              onChange={(e) =>
-                                setLinhas((a) =>
-                                  a.map((x) =>
-                                    x.produto_id === l.produto_id
-                                      ? {
-                                          ...x,
-                                          quantidade:
-                                            Number(e.target.value.replace(",", ".")) || 0,
-                                        }
-                                      : x,
-                                  ),
-                                )
-                              }
-                            />
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="size-7"
-                              onClick={() =>
-                                setLinhas((a) =>
-                                  a.map((x) =>
-                                    x.produto_id === l.produto_id
-                                      ? { ...x, quantidade: x.quantidade + 1 }
-                                      : x,
-                                  ),
-                                )
-                              }
-                            >
-                              <Plus className="size-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            className="h-8 w-28 text-right text-numeric"
-                            inputMode="decimal"
-                            value={String(l.preco)}
-                            onChange={(e) =>
-                              setLinhas((a) =>
-                                a.map((x) =>
-                                  x.produto_id === l.produto_id
-                                    ? { ...x, preco: Number(e.target.value.replace(",", ".")) || 0 }
-                                    : x,
-                                ),
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-right text-numeric font-semibold">
-                          {brl(l.quantidade * l.preco)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setLinhas((a) => a.filter((x) => x.produto_id !== l.produto_id))
-                            }
-                            aria-label="Remover item"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <ul className="space-y-2">
+              {linhas.map((l) => {
+                const disp = disponivelPorProduto.get(l.produto_id) ?? 0;
+                return (
+                  <li key={l.produto_id} className="panel p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{l.descricao}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {l.unidade} · {num(disp, 2)} disponível
+                          {l.quantidade > disp && (
+                            <span className="ml-1 font-semibold text-destructive">
+                              sem saldo suficiente
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-numeric font-semibold">{brl(l.quantidade * l.preco)}</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-destructive"
+                          onClick={() =>
+                            setLinhas((a) => a.filter((x) => x.produto_id !== l.produto_id))
+                          }
+                          aria-label="Remover item"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-10"
+                          onClick={() =>
+                            alterarQtd(l.produto_id, (q) => Math.max(q - 1, 1))
+                          }
+                        >
+                          <Minus className="size-4" />
+                        </Button>
+                        <Input
+                          className="h-10 w-20 text-center text-base"
+                          inputMode="decimal"
+                          value={String(l.quantidade)}
+                          onChange={(e) =>
+                            setLinhas((a) =>
+                              a.map((x) =>
+                                x.produto_id === l.produto_id
+                                  ? {
+                                      ...x,
+                                      quantidade: Number(e.target.value.replace(",", ".")) || 0,
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                        />
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="size-10"
+                          onClick={() => alterarQtd(l.produto_id, (q) => q + 1)}
+                        >
+                          <Plus className="size-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Preço</Label>
+                        <Input
+                          className="h-10 w-28 text-right text-numeric"
+                          inputMode="decimal"
+                          value={String(l.preco)}
+                          onChange={(e) => alterarPreco(l.produto_id, e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 
-        <div className="space-y-4">
+        {/* Resumo e pagamento: coluna no computador, painel fixo no celular. */}
+        <div className="hidden space-y-4 lg:block">
           <div className="grid gap-4 sm:grid-cols-2">
             <StatCard label="Itens" value={String(linhas.length)} icon={ShoppingCart} />
             <StatCard label="Total da venda" value={brl(total)} icon={Wallet} tone="accent" />
           </div>
-
           <div className="panel space-y-4 p-4">
-            <div>
-              <Label>Desconto (R$)</Label>
-              <Input
-                className="mt-1"
-                inputMode="decimal"
-                value={desconto}
-                onChange={(e) => setDesconto(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Forma de pagamento</Label>
-              <Select value={forma} onValueChange={setForma}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {formasPagamento.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {aPrazo ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label>Parcelas</Label>
-                  <Input
-                    className="mt-1"
-                    inputMode="numeric"
-                    value={parcelas}
-                    onChange={(e) => setParcelas(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>1º vencimento</Label>
-                  <Input
-                    type="date"
-                    className="mt-1"
-                    value={vencimento}
-                    onChange={(e) => setVencimento(e.target.value)}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground sm:col-span-2">
-                  Em {labelForma(forma)} a venda vai para contas a receber, sem entrada no caixa.
-                </p>
-              </div>
-            ) : (
-              <div>
-                <Label>Valor recebido (R$)</Label>
-                <Input
-                  className="mt-1"
-                  inputMode="decimal"
-                  value={recebido}
-                  onChange={(e) => setRecebido(e.target.value)}
-                />
-                <p className="mt-1 text-sm">
-                  Troco: <span className="text-numeric font-semibold">{brl(troco)}</span>
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-1 border-t border-border pt-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-numeric">{brl(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Desconto</span>
-                <span className="text-numeric">{brl(descontoNum)}</span>
-              </div>
-              <div className="flex justify-between font-display text-lg font-bold">
-                <span>Total</span>
-                <span className="text-numeric">{brl(total)}</span>
-              </div>
-            </div>
-
+            <PagamentoCampos
+              desconto={desconto}
+              setDesconto={setDesconto}
+              forma={forma}
+              setForma={setForma}
+              aPrazo={aPrazo}
+              parcelas={parcelas}
+              setParcelas={setParcelas}
+              vencimento={vencimento}
+              setVencimento={setVencimento}
+              recebido={recebido}
+              setRecebido={setRecebido}
+              troco={troco}
+              subtotal={subtotal}
+              descontoNum={descontoNum}
+              total={total}
+            />
             {semEstoque.length > 0 && (
               <p className="text-xs text-destructive">
                 {semEstoque.length} item(ns) sem saldo suficiente neste depósito.
               </p>
             )}
-
             <Button
               className="w-full"
               size="lg"
@@ -557,6 +561,223 @@ function Pdv() {
           </div>
         </div>
       </div>
+
+      {/* Barra fixa do celular com total, troco e botão de pagamento. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card p-3 shadow-raised lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {linhas.length} item(ns) · {labelForma(forma)}
+            </p>
+            <p className="font-display text-2xl font-bold text-numeric">{brl(total)}</p>
+            {!aPrazo && recebidoNum > 0 && (
+              <p className="text-sm">
+                Troco: <span className="text-numeric font-semibold">{brl(troco)}</span>
+              </p>
+            )}
+          </div>
+          <Button
+            size="lg"
+            className="h-14 flex-1"
+            disabled={linhas.length === 0}
+            onClick={() => setPagamentoAberto(true)}
+          >
+            Pagamento
+          </Button>
+        </div>
+      </div>
+
+      {/* Pagamento no celular */}
+      <Dialog open={pagamentoAberto} onOpenChange={setPagamentoAberto}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pagamento · {brl(total)}</DialogTitle>
+          </DialogHeader>
+          <PagamentoCampos
+            desconto={desconto}
+            setDesconto={setDesconto}
+            forma={forma}
+            setForma={setForma}
+            aPrazo={aPrazo}
+            parcelas={parcelas}
+            setParcelas={setParcelas}
+            vencimento={vencimento}
+            setVencimento={setVencimento}
+            recebido={recebido}
+            setRecebido={setRecebido}
+            troco={troco}
+            subtotal={subtotal}
+            descontoNum={descontoNum}
+            total={total}
+            atalhosRecebido
+          />
+          {semEstoque.length > 0 && (
+            <p className="text-xs text-destructive">
+              {semEstoque.length} item(ns) sem saldo suficiente neste depósito.
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              size="lg"
+              className="h-14 w-full"
+              disabled={finalizar.isPending || linhas.length === 0}
+              onClick={() => finalizar.mutate()}
+            >
+              Finalizar venda · {brl(total)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cupom da venda concluída */}
+      <Dialog open={!!cupom} onOpenChange={(o) => !o && setCupom(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cupom da venda</DialogTitle>
+          </DialogHeader>
+          {cupom && <CupomFiscal dados={cupom} />}
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => window.print()}>
+              <Printer className="mr-2 size-4" /> Imprimir cupom
+            </Button>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={emitirNota.isPending || !!cupom?.nfe}
+              onClick={() => cupom && emitirNota.mutate(cupom.pedidoId)}
+            >
+              {cupom?.nfe ? "Nota gerada" : "Emitir NF-e desta venda"}
+            </Button>
+            {cupom?.nfe && (
+              <Button variant="outline" className="w-full sm:w-auto" asChild>
+                <Link to="/nfe">Ver notas fiscais</Link>
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setCupom(null)}>
+              Nova venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+type CamposProps = {
+  desconto: string;
+  setDesconto: (v: string) => void;
+  forma: string;
+  setForma: (v: string) => void;
+  aPrazo: boolean;
+  parcelas: string;
+  setParcelas: (v: string) => void;
+  vencimento: string;
+  setVencimento: (v: string) => void;
+  recebido: string;
+  setRecebido: (v: string) => void;
+  troco: number;
+  subtotal: number;
+  descontoNum: number;
+  total: number;
+  atalhosRecebido?: boolean;
+};
+
+function PagamentoCampos(p: CamposProps) {
+  const atalhos = [p.total, 50, 100, 200];
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label className="text-xs">Desconto (R$)</Label>
+        <Input
+          className="mt-1 h-11"
+          inputMode="decimal"
+          value={p.desconto}
+          onChange={(e) => p.setDesconto(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label className="text-xs">Forma de pagamento</Label>
+        <Select value={p.forma} onValueChange={p.setForma}>
+          <SelectTrigger className="mt-1 h-11">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {formasPagamento.map((f) => (
+              <SelectItem key={f.value} value={f.value}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {p.aPrazo ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs">Parcelas</Label>
+            <Input
+              className="mt-1 h-11"
+              inputMode="numeric"
+              value={p.parcelas}
+              onChange={(e) => p.setParcelas(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">1º vencimento</Label>
+            <Input
+              type="date"
+              className="mt-1 h-11"
+              value={p.vencimento}
+              onChange={(e) => p.setVencimento(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Em {labelForma(p.forma)} a venda vai para contas a receber, sem entrada no caixa.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <Label className="text-xs">Valor recebido (R$)</Label>
+          <Input
+            className="mt-1 h-12 text-right text-lg text-numeric"
+            inputMode="decimal"
+            value={p.recebido}
+            onChange={(e) => p.setRecebido(e.target.value)}
+          />
+          {p.atalhosRecebido && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {atalhos.map((v, i) => (
+                <Button
+                  key={`${v}-${i}`}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => p.setRecebido(v.toFixed(2))}
+                >
+                  {i === 0 ? `Valor exato ${brl(v)}` : brl(v)}
+                </Button>
+              ))}
+            </div>
+          )}
+          <div className="mt-2 rounded-md bg-secondary p-3">
+            <p className="text-xs text-secondary-foreground">Troco</p>
+            <p className="font-display text-2xl font-bold text-numeric">{brl(p.troco)}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-1 border-t border-border pt-3 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span className="text-numeric">{brl(p.subtotal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Desconto</span>
+          <span className="text-numeric">{brl(p.descontoNum)}</span>
+        </div>
+        <div className="flex justify-between font-display text-lg font-bold">
+          <span>Total</span>
+          <span className="text-numeric">{brl(p.total)}</span>
+        </div>
+      </div>
+    </div>
   );
 }
