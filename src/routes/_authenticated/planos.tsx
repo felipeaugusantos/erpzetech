@@ -127,6 +127,18 @@ function Planos() {
     },
   });
 
+  const { data: contatos } = useQuery({
+    queryKey: ["contatos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contatos")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      return data ?? [];
+    },
+  });
+
   const assinatura = data?.assinatura ?? null;
   const faturas = data?.faturas ?? [];
 
