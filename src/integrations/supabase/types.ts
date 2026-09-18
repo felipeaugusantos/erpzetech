@@ -3980,21 +3980,27 @@ export type Database = {
       }
       saas_clientes: {
         Row: {
+          bairro: string | null
+          cep: string | null
           cidade: string | null
+          complemento: string | null
           created_at: string
           dia_vencimento: number
           documento: string | null
           email: string | null
+          endereco: string | null
           filiais_extras: number
           id: string
           implantacao_paga: boolean
           inicio: string
           nome: string
+          numero: string | null
           observacoes: string | null
           plano_id: string | null
           prazo_meses: number
           responsavel: string | null
           situacao: string
+          telefone: string | null
           tenant_id: string | null
           teste_ate: string | null
           uf: string | null
@@ -4002,21 +4008,27 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
+          complemento?: string | null
           created_at?: string
           dia_vencimento?: number
           documento?: string | null
           email?: string | null
+          endereco?: string | null
           filiais_extras?: number
           id?: string
           implantacao_paga?: boolean
           inicio?: string
           nome: string
+          numero?: string | null
           observacoes?: string | null
           plano_id?: string | null
           prazo_meses?: number
           responsavel?: string | null
           situacao?: string
+          telefone?: string | null
           tenant_id?: string | null
           teste_ate?: string | null
           uf?: string | null
@@ -4024,21 +4036,27 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
+          complemento?: string | null
           created_at?: string
           dia_vencimento?: number
           documento?: string | null
           email?: string | null
+          endereco?: string | null
           filiais_extras?: number
           id?: string
           implantacao_paga?: boolean
           inicio?: string
           nome?: string
+          numero?: string | null
           observacoes?: string | null
           plano_id?: string | null
           prazo_meses?: number
           responsavel?: string | null
           situacao?: string
+          telefone?: string | null
           tenant_id?: string | null
           teste_ate?: string | null
           uf?: string | null
@@ -4168,6 +4186,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "saas_faturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saas_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_lojas: {
+        Row: {
+          abertura: string | null
+          apelido: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cliente_id: string
+          complemento: string | null
+          created_at: string
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          implantacao_paga: boolean
+          nome: string
+          numero: string | null
+          observacoes: string | null
+          responsavel: string | null
+          situacao: string
+          telefone: string | null
+          tipo: string
+          uf: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          abertura?: string | null
+          apelido?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cliente_id: string
+          complemento?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          implantacao_paga?: boolean
+          nome: string
+          numero?: string | null
+          observacoes?: string | null
+          responsavel?: string | null
+          situacao?: string
+          telefone?: string | null
+          tipo?: string
+          uf?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          abertura?: string | null
+          apelido?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cliente_id?: string
+          complemento?: string | null
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          implantacao_paga?: boolean
+          nome?: string
+          numero?: string | null
+          observacoes?: string | null
+          responsavel?: string | null
+          situacao?: string
+          telefone?: string | null
+          tipo?: string
+          uf?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_lojas_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "saas_clientes"
@@ -4938,6 +5042,10 @@ export type Database = {
           p_vencimento: string
         }
         Returns: string
+      }
+      saas_sincronizar_filiais: {
+        Args: { p_cliente_id: string }
+        Returns: number
       }
       solicitar_autorizacao_credito: {
         Args: {
