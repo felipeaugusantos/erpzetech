@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/impostos-nota")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ImpostosNota;
+  component: ImpostosNota,
 });
 
 type Item = {
