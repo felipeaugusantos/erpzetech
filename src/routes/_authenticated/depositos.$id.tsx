@@ -190,9 +190,26 @@ function DepositoDetalhe() {
     onError: (e: Error) => toast.error("Não foi possível ajustar", { description: e.message }),
   });
 
+  /** Custo de aquisição deste depósito (média ponderada, editável na mão). */
+  const salvarCusto = useMutation({
+    mutationFn: async ({ estoqueId, custo }: { estoqueId: string; custo: number }) => {
+      const { error } = await supabase
+        .from("estoques")
+        .update({ custo_medio: custo })
+        .eq("id", estoqueId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Custo do depósito atualizado");
+      invalidar();
+      qc.invalidateQueries({ queryKey: ["precos-produtos"] });
+    },
+    onError: (e: Error) => toast.error("Não foi possível salvar o custo", { description: e.message }),
+  });
+
   const totalFisico = linhas.reduce((s, l) => s + l.fisico, 0);
   const totalReservado = linhas.reduce((s, l) => s + l.reservado, 0);
-  const totalValor = linhas.reduce((s, l) => s + l.fisico * Number(l.p.custo), 0);
+  const totalValor = linhas.reduce((s, l) => s + l.fisico * l.custo, 0);
   const semSaldo = linhas.filter((l) => l.disponivel <= 0).length;
 
   const dep = data?.deposito;
