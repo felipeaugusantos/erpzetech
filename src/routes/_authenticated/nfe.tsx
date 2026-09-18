@@ -346,8 +346,8 @@ function Nfe() {
       <div className="panel mt-6 p-4">
         <h2 className="font-display text-sm font-semibold">Gerar nota de um ou vários pedidos</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Escolha o cliente e marque os pedidos: vários pedidos do mesmo cliente podem virar uma
-          única nota.
+          Escolha o cliente e marque os pedidos: só é possível juntar em uma única nota os pedidos
+          do mesmo cliente que saem do mesmo depósito.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Select
