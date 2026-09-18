@@ -150,10 +150,10 @@ function Usuarios() {
                           <span className="font-medium">{u.nome || "Sem nome"}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center align-middle">
                         {isAdmin ? (
                           <Input
-                            className="h-9 w-24 text-center font-mono"
+                            className="mx-auto h-9 w-20 text-center font-mono"
                             defaultValue={u.codigo ?? ""}
                             placeholder="001"
                             aria-label={`Código de ${u.nome || "usuário"}`}
@@ -167,8 +167,10 @@ function Usuarios() {
                           <span className="font-mono text-sm">{u.codigo ?? "—"}</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{u.email ?? "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle text-sm text-muted-foreground">
+                        {u.email ?? "—"}
+                      </TableCell>
+                      <TableCell className="align-middle">
                         <div className="flex flex-wrap gap-1">
                           {data!.roles
                             .filter((r) => r.user_id === u.id)
@@ -179,10 +181,10 @@ function Usuarios() {
                             ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="align-middle text-sm">
                         {session?.filiais.find((f) => f.id === u.filial_id)?.nome ?? "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center align-middle">
                         {u.ativo ? (
                           <span className="inline-flex items-center gap-1 text-sm text-success">
                             <Check className="size-3.5" /> Ativo
