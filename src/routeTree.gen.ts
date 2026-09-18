@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedContasPagarRouteImport } from './routes/_authenticated/contas-pagar'
 import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDepositosRouteImport } from './routes/_authenticated/depositos'
@@ -58,6 +59,12 @@ const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
     path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContasPagarRoute =
+  AuthenticatedContasPagarRouteImport.update({
+    id: '/contas-pagar',
+    path: '/contas-pagar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedContasReceberRoute =
@@ -142,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/depositos': typeof AuthenticatedDepositosRoute
@@ -163,6 +171,7 @@ export interface FileRoutesByTo {
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/depositos': typeof AuthenticatedDepositosRoute
@@ -186,6 +195,7 @@ export interface FileRoutesById {
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/depositos': typeof AuthenticatedDepositosRoute
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/clientes'
     | '/configuracoes'
+    | '/contas-pagar'
     | '/contas-receber'
     | '/dashboard'
     | '/depositos'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/clientes'
     | '/configuracoes'
+    | '/contas-pagar'
     | '/contas-receber'
     | '/dashboard'
     | '/depositos'
@@ -252,6 +264,7 @@ export interface FileRouteTypes {
     | '/_authenticated/categorias'
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/contas-pagar'
     | '/_authenticated/contas-receber'
     | '/_authenticated/dashboard'
     | '/_authenticated/depositos'
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contas-pagar': {
+      id: '/_authenticated/contas-pagar'
+      path: '/contas-pagar'
+      fullPath: '/contas-pagar'
+      preLoaderRoute: typeof AuthenticatedContasPagarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/contas-receber': {
@@ -423,6 +443,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedContasPagarRoute: typeof AuthenticatedContasPagarRoute
   AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDepositosRoute: typeof AuthenticatedDepositosRoute
@@ -443,6 +464,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedContasPagarRoute: AuthenticatedContasPagarRoute,
   AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDepositosRoute: AuthenticatedDepositosRoute,
