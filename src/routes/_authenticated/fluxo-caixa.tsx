@@ -37,9 +37,9 @@ function FluxoCaixa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_baixas")
-        .select("tipo, valor, data")
-        .gte("data", de)
-        .lte("data", ate);
+        .select("conta_receber_id, conta_pagar_id, valor, data_baixa")
+        .gte("data_baixa", de)
+        .lte("data_baixa", ate);
       if (error) throw error;
       return data;
     },
@@ -50,7 +50,7 @@ function FluxoCaixa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_receber")
-        .select("vencimento, valor, valor_pago, situacao")
+        .select("vencimento, valor, valor_recebido, situacao")
         .in("situacao", ["aberto", "parcial"])
         .gte("vencimento", de)
         .lte("vencimento", ate);
@@ -73,9 +73,9 @@ function FluxoCaixa() {
     },
   });
 
-  const recebido = baixas.reduce((s, b) => (b.tipo === "receber" ? s + Number(b.valor) : s), 0);
-  const pago = baixas.reduce((s, b) => (b.tipo === "pagar" ? s + Number(b.valor) : s), 0);
-  const aReceber = receber.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0);
+  const recebido = baixas.reduce((s, b) => (b.conta_receber_id ? s + Number(b.valor) : s), 0);
+  const pago = baixas.reduce((s, b) => (b.conta_pagar_id ? s + Number(b.valor) : s), 0);
+  const aReceber = receber.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
   const aPagar = pagar.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0);
 
   const projecao = useMemo(() => {
@@ -85,7 +85,7 @@ function FluxoCaixa() {
       linha[campo] += v;
       mapa.set(data, linha);
     };
-    for (const c of receber) add(c.vencimento, "receber", Number(c.valor) - Number(c.valor_pago));
+    for (const c of receber) add(c.vencimento, "receber", Number(c.valor) - Number(c.valor_recebido));
     for (const c of pagar) add(c.vencimento, "pagar", Number(c.valor) - Number(c.valor_pago));
     return [...mapa.values()].sort((a, b) => a.data.localeCompare(b.data));
   }, [receber, pagar]);
