@@ -125,14 +125,16 @@ function Empresa() {
       const tenantId = session?.profile?.tenant_id;
       if (!tenantId) throw new Error("Perfil sem empresa vinculada");
 
+      const payload = { ...form, logo_path: marca.logo, cor_primaria: marca.cor };
+
       let empresaId = data?.id ?? null;
       if (empresaId) {
-        const { error } = await supabase.from("empresas").update(form).eq("id", empresaId);
+        const { error } = await supabase.from("empresas").update(payload).eq("id", empresaId);
         if (error) throw error;
       } else {
         const criada = await supabase
           .from("empresas")
-          .insert({ ...form, tenant_id: tenantId })
+          .insert({ ...payload, tenant_id: tenantId })
           .select("id")
           .single();
         if (criada.error) throw criada.error;
