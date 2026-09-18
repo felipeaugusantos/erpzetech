@@ -463,9 +463,27 @@ function ContasReceber() {
                           <Button variant="ghost" size="sm" onClick={() => cancelar.mutate(c.id)}>
                             Cancelar
                           </Button>
-
                         </>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setHistorico({
+                            id: c.id,
+                            numero: c.numero,
+                            descricao: c.descricao,
+                            valor: Number(c.valor),
+                            quitado: Number(c.valor_recebido),
+                            vencimento: c.vencimento,
+                            pessoa: (c.clientes as { nome: string } | null)?.nome ?? "Cliente",
+                            parcela: c.parcela,
+                            parcelas: c.parcelas,
+                          })
+                        }
+                      >
+                        Histórico
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
