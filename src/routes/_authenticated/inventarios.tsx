@@ -221,7 +221,8 @@ function Inventarios() {
       if (contada !== null && Number.isNaN(contada)) throw new Error("Quantidade inválida");
       const { error } = await supabase.rpc("inventario_contar", {
         p_item_id: id,
-        p_contada: contada,
+        // limpar a contagem manda vazio de propósito — o item volta a "não contado"
+        p_contada: contada as unknown as number,
       });
       if (error) throw error;
     },
