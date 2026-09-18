@@ -78,12 +78,17 @@ function ContasReceber() {
   const [parcelas, setParcelas] = useState("1");
   const [forma, setForma] = useState("boleto");
 
+  const [creditoAberta, setCreditoAberta] = useState(false);
+  const [credProf, setCredProf] = useState("");
+  const [credValor, setCredValor] = useState("");
+  const [credObs, setCredObs] = useState("");
+
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-receber"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_receber")
-        .select("*, clientes(nome), pedidos(numero)")
+        .select("*, clientes(nome, profissional_id), pedidos(numero)")
         .order("vencimento");
       if (error) throw error;
       return data;
@@ -103,6 +108,29 @@ function ContasReceber() {
     },
   });
 
+  /** Crédito de premiação disponível de cada profissional, para abater nas contas. */
+  const { data: creditos = [] } = useQuery({
+    queryKey: ["creditos-profissionais"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profissionais")
+        .select("id, nome, cliente_id")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      const lista = data ?? [];
+      const saldos = await Promise.all(
+        lista.map(async (p) => {
+          const { data: saldo } = await supabase.rpc("profissional_saldo_credito", {
+            p_profissional_id: p.id,
+          });
+          return { ...p, saldo: Number(saldo ?? 0) };
+        }),
+      );
+      return saldos.filter((p) => p.saldo > 0);
+    },
+  });
+
   const { data: caixaAberto } = useQuery({
     queryKey: ["caixa-aberto"],
     queryFn: async () => {
@@ -116,6 +144,7 @@ function ContasReceber() {
       return data;
     },
   });
+
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
