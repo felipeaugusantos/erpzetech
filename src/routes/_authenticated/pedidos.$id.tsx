@@ -676,6 +676,73 @@ function PedidoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* CONTAS A RECEBER */}
+      <Dialog open={contasOpen} onOpenChange={setContasOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerar contas a receber</DialogTitle>
+            <DialogDescription>
+              Total do pedido: {brl(Number(pedido.total))}
+              {limiteCliente > 0 &&
+                ` · Crédito disponível do cliente: ${brl(disponivelCliente)}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="cr-parc">Parcelas</Label>
+                <Input
+                  id="cr-parc"
+                  inputMode="numeric"
+                  value={parcelasReceber}
+                  onChange={(e) => setParcelasReceber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cr-venc">1º vencimento</Label>
+                <Input
+                  id="cr-venc"
+                  type="date"
+                  value={primeiroVencimento}
+                  onChange={(e) => setPrimeiroVencimento(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={formaReceber} onValueChange={setFormaReceber}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formaReceber === "crediario" &&
+              limiteCliente > 0 &&
+              Number(pedido.total) > disponivelCliente && (
+                <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  O valor passa do limite de crédito do cliente. Ao confirmar, será criada uma
+                  solicitação de autorização para o gestor liberar.
+                </p>
+              )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContasOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={() => gerarContas.mutate()} disabled={gerarContas.isPending}>
+              Gerar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }
