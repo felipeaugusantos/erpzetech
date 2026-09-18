@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Store } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -332,7 +332,6 @@ function LojasZeTech() {
         <div className="panel h-52 animate-pulse" />
       ) : visiveis.length === 0 ? (
         <EmptyState
-          icon={Store}
           title="Nenhuma loja cadastrada."
           description="Cadastre a matriz de cada cliente e depois as filiais da rede."
           action={
