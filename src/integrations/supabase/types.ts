@@ -3738,6 +3738,166 @@ export type Database = {
         }
         Relationships: []
       }
+      transferencia_itens: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          quantidade_recebida: number | null
+          tenant_id: string
+          transferencia_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          quantidade_recebida?: number | null
+          tenant_id: string
+          transferencia_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          quantidade_recebida?: number | null
+          tenant_id?: string
+          transferencia_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencia_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_itens_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transferencias: {
+        Row: {
+          created_at: string
+          deposito_destino_id: string
+          deposito_origem_id: string
+          empresa_destino_id: string | null
+          empresa_origem_id: string | null
+          enviado_em: string | null
+          enviado_por: string | null
+          filial_destino_id: string | null
+          filial_origem_id: string | null
+          id: string
+          numero: number | null
+          observacao: string | null
+          recebido_em: string | null
+          recebido_por: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          deposito_destino_id: string
+          deposito_origem_id: string
+          empresa_destino_id?: string | null
+          empresa_origem_id?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          filial_destino_id?: string | null
+          filial_origem_id?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          situacao?: string
+          tenant_id: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          deposito_destino_id?: string
+          deposito_origem_id?: string
+          empresa_destino_id?: string | null
+          empresa_origem_id?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          filial_destino_id?: string | null
+          filial_origem_id?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencias_deposito_destino_id_fkey"
+            columns: ["deposito_destino_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_deposito_origem_id_fkey"
+            columns: ["deposito_origem_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_empresa_destino_id_fkey"
+            columns: ["empresa_destino_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_empresa_origem_id_fkey"
+            columns: ["empresa_origem_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_filial_destino_id_fkey"
+            columns: ["filial_destino_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_filial_origem_id_fkey"
+            columns: ["filial_origem_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4176,6 +4336,24 @@ export type Database = {
           p_valor: number
         }
         Returns: string
+      }
+      transferencia_cancelar: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      transferencia_criar: {
+        Args: {
+          p_deposito_destino_id: string
+          p_deposito_origem_id: string
+          p_itens: Json
+          p_observacao?: string
+        }
+        Returns: string
+      }
+      transferencia_enviar: { Args: { p_id: string }; Returns: undefined }
+      transferencia_receber: {
+        Args: { p_id: string; p_itens?: Json; p_observacao?: string }
+        Returns: undefined
       }
     }
     Enums: {
