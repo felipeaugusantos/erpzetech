@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Ze Obra — design system
- * Industrial ERP: graphite structure, safety-amber accent, warm neutral surfaces.
+ * Ze Obra — design system (padrão visual Ze Tech / Ze Registra)
+ * Verde Zé #008037, verde floresta #003D1A, verde neon de ação #00D15C.
  */
 
 @theme inline {
