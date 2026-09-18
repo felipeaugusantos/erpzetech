@@ -329,6 +329,15 @@ function PedidoDetalhe() {
                 <Wallet className="mr-2 size-4" /> Gerar contas a receber
               </Button>
             )}
+            {pedido.situacao !== "cancelado" && (
+              <Button
+                variant="secondary"
+                disabled={gerarNota.isPending}
+                onClick={() => gerarNota.mutate()}
+              >
+                <FileText className="mr-2 size-4" /> Gerar NF-e
+              </Button>
+            )}
             {podeEntregar && (
               <Button onClick={() => setEntregaOpen(true)}>
                 <Truck className="mr-2 size-4" /> Registrar entrega
