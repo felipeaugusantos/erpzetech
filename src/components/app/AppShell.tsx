@@ -270,7 +270,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ))}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </nav>
       </aside>
 
