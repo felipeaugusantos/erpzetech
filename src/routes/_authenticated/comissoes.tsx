@@ -360,6 +360,7 @@ function Comissoes() {
                     <TableHead>Vendedor</TableHead>
                     <TableHead>Pedido</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Depósito</TableHead>
                     <TableHead className="text-right">Venda</TableHead>
                     <TableHead className="text-right">Base</TableHead>
                     <TableHead className="text-right">%</TableHead>
@@ -380,6 +381,9 @@ function Comissoes() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {c.pedidos?.clientes?.nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.pedidos?.depositos?.nome ?? "—"}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(Number(c.valor_venda))}
