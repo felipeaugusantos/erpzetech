@@ -194,6 +194,91 @@ function Credito() {
       </div>
 
       <div className="panel mb-5 p-4">
+        <h2 className="mb-1 font-display text-lg font-semibold">Pedidos acima do limite</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Vendas no crediário em que o valor passa do crédito disponível do cliente.
+        </p>
+        {pedidosAcima.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Nenhum pedido acima do limite.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Limite</TableHead>
+                  <TableHead className="text-right">Excedente</TableHead>
+                  <TableHead className="text-right">Decisão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pedidosAcima.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-numeric">
+                      #{String(p.numero).padStart(4, "0")}
+                    </TableCell>
+                    <TableCell>{p.cliente}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(p.total)}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(p.limite)}</TableCell>
+                    <TableCell className="text-right text-numeric font-semibold text-destructive">
+                      {brl(p.excedente)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {p.autorizacao ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAutorizacaoId(p.autorizacao!.id);
+                              setAprovar(true);
+                              setDecisaoAberta(true);
+                            }}
+                          >
+                            Aprovar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAutorizacaoId(p.autorizacao!.id);
+                              setAprovar(false);
+                              setDecisaoAberta(true);
+                            }}
+                          >
+                            Recusar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={solicitar.isPending || !p.cliente_id}
+                          onClick={() =>
+                            solicitar.mutate({
+                              cliente_id: p.cliente_id as string,
+                              id: p.id,
+                              total: p.total,
+                            })
+                          }
+                        >
+                          Pedir autorização
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      <div className="panel mb-5 p-4">
         <h2 className="mb-3 font-display text-lg font-semibold">Autorizações</h2>
         {isLoading ? (
           <p className="py-4 text-sm text-muted-foreground">Carregando…</p>
