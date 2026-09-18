@@ -78,9 +78,8 @@ const groups: Group[] = [
     label: "Compras",
     icon: ShoppingCart,
     items: [
-      { label: "Fornecedores", icon: Building2, soon: true },
-      { label: "Pedidos de compra", icon: ShoppingCart, soon: true },
-      { label: "Recebimentos", icon: ShoppingCart, soon: true },
+      { label: "Fornecedores", to: "/fornecedores", icon: Building2 },
+      { label: "Pedidos de compra", to: "/compras", icon: ShoppingCart },
     ],
   },
   {
@@ -96,9 +95,11 @@ const groups: Group[] = [
     label: "Financeiro",
     icon: Wallet,
     items: [
-      { label: "Contas a receber", icon: Wallet, soon: true },
-      { label: "Contas a pagar", icon: Wallet, soon: true },
-      { label: "Caixa", icon: Wallet, soon: true },
+      { label: "Contas a receber", to: "/contas-receber", icon: Wallet },
+      { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
+      { label: "Caixa", to: "/caixa", icon: Wallet },
+      { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
+      { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
     ],
   },
   {
