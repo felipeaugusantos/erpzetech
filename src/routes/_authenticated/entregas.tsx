@@ -339,7 +339,13 @@ function Entregas() {
         actions={
           <>
             <Button variant="outline" asChild>
+              <Link to="/rota">Rota do dia</Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link to="/motorista">Tela do motorista</Link>
+            </Button>
+            <Button variant="outline" onClick={() => setRotaAberta(true)}>
+              <RouteIcon className="size-4" /> Roteirizar automaticamente
             </Button>
             <Button
               onClick={() => {
