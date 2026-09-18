@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export type TituloHistorico = {
   id: string;
-  numero: number;
+  numero: number | null;
   descricao: string | null;
   valor: number;
   quitado: number;
