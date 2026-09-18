@@ -151,6 +151,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
+    try {
+      const salvo = localStorage.getItem("zeobra:menu-fechados");
+      if (salvo) setFechados(JSON.parse(salvo) as string[]);
+    } catch {
+      /* preferência ausente ou inválida: mantém tudo aberto */
+    }
+  }, []);
+
+  function alternarGrupo(label: string) {
+    setFechados((atual) => {
+      const proximo = atual.includes(label)
+        ? atual.filter((l) => l !== label)
+        : [...atual, label];
+      try {
+        localStorage.setItem("zeobra:menu-fechados", JSON.stringify(proximo));
+      } catch {
+        /* sem armazenamento: só não guarda a preferência */
+      }
+      return proximo;
+    });
+  }
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
