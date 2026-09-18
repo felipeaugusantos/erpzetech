@@ -116,6 +116,20 @@ function Profissionais() {
     return mapa;
   }, [clientes]);
 
+  /** Saldo de cada profissional: a receber (a aprovar + aprovada) e já pago. */
+  const saldoPorProf = useMemo(() => {
+    const mapa = new Map<string, { aReceber: number; pago: number; vendas: number }>();
+    for (const p of premiacoes) {
+      if (!p.profissional_id) continue;
+      const atual = mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+      if (p.situacao === "paga") atual.pago += Number(p.valor);
+      else if (p.situacao !== "cancelada") atual.aReceber += Number(p.valor);
+      if (p.situacao !== "cancelada") atual.vendas += Number(p.valor_base);
+      mapa.set(p.profissional_id, atual);
+    }
+    return mapa;
+  }, [premiacoes]);
+
   /* ---------- cadastro ---------- */
   const vazio = {
     nome: "",
@@ -224,7 +238,7 @@ function Profissionais() {
     <>
       <PageHeader
         title="Profissionais e premiações"
-        description="Profissionais que indicam a loja recebem um percentual das vendas dos clientes indicados."
+        description="O prêmio é lançado sozinho quando o pedido do cliente indicado é entregue. O botão abaixo só serve para pedidos antigos."
         actions={
           <>
             <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
@@ -389,11 +403,16 @@ function Profissionais() {
                     <TableHead>PIX</TableHead>
                     <TableHead className="text-right">Premiação</TableHead>
                     <TableHead className="text-right">Indicações</TableHead>
+                    <TableHead className="text-right">Vendas indicadas</TableHead>
+                    <TableHead className="text-right">Saldo a receber</TableHead>
+                    <TableHead className="text-right">Já pago</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {profissionais.map((p) => (
+                  {profissionais.map((p) => {
+                    const saldo = saldoPorProf.get(p.id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+                    return (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm font-medium">{p.nome}</TableCell>
                       <TableCell className="text-sm capitalize">
@@ -411,13 +430,21 @@ function Profissionais() {
                       <TableCell className="text-right text-numeric">
                         {indicacoesPorProf.get(p.id) ?? 0}
                       </TableCell>
+                      <TableCell className="text-right text-numeric">{brl(saldo.vendas)}</TableCell>
+                      <TableCell className="text-right text-numeric font-semibold">
+                        {brl(saldo.aReceber)}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric text-muted-foreground">
+                        {brl(saldo.pago)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" variant="outline" onClick={() => editar(p)}>
                           Editar
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

@@ -204,7 +204,7 @@ function Nfe() {
         supabase
           .from("pedidos")
           .select(
-            "id, numero, total, situacao, cliente_id, deposito_id, clientes(nome), depositos(nome)",
+            "id, numero, total, situacao, cliente_id, deposito_id, clientes(nome), depositos(nome, filiais(nome))",
           )
           .neq("situacao", "cancelado")
           .order("numero", { ascending: false }),
@@ -404,7 +404,11 @@ function Nfe() {
                       {p.situacao.replace(/_/g, " ")}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      Depósito: {(p.depositos as { nome: string } | null)?.nome ?? "—"}
+                      Depósito:{" "}
+                      {(p.depositos as { nome: string } | null)?.nome ?? "—"}
+                      {(p.depositos as { filiais: { nome: string } | null } | null)?.filiais?.nome
+                        ? ` · loja ${(p.depositos as { filiais: { nome: string } | null }).filiais?.nome}`
+                        : ""}
                       {bloqueado ? " · outro depósito" : ""}
                     </span>
                   </Label>
