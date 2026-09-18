@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Truck } from "lucide-react";
+import { ArrowLeft, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
+import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/pedidos/$id")({
   head: () => ({
@@ -60,6 +69,11 @@ function PedidoDetalhe() {
   const [obsEntrega, setObsEntrega] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [contasOpen, setContasOpen] = useState(false);
+  const [parcelasReceber, setParcelasReceber] = useState("1");
+  const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeISO());
+  const [formaReceber, setFormaReceber] = useState("pix");
+  const queryClient = qc;
 
   const { data, isLoading } = useQuery({
     queryKey: ["pedido", id],
@@ -67,7 +81,7 @@ function PedidoDetalhe() {
       const [pedido, itens, historico, entregas] = await Promise.all([
         supabase
           .from("pedidos")
-          .select("*, clientes(nome, telefone), obras(nome, endereco, numero, bairro, cidade), depositos(nome)")
+          .select("*, clientes(id, nome, telefone, limite_credito), obras(nome, endereco, numero, bairro, cidade), depositos(nome)")
           .eq("id", id)
           .single(),
         supabase
@@ -97,6 +111,74 @@ function PedidoDetalhe() {
 
   const pedido = data?.pedido;
   const itens = data?.itens ?? [];
+  const clienteRel = pedido?.clientes as unknown as
+    | { id: string; nome: string; telefone: string | null; limite_credito: number | null }
+    | null;
+
+  const { data: financeiro } = useQuery({
+    queryKey: ["pedido-financeiro", id, clienteRel?.id ?? ""],
+    enabled: !!pedido,
+    queryFn: async () => {
+      const [contas, doCliente] = await Promise.all([
+        supabase
+          .from("contas_receber")
+          .select("id, numero, parcela, parcelas, vencimento, valor, valor_recebido, situacao")
+          .eq("pedido_id", id)
+          .order("parcela"),
+        clienteRel?.id
+          ? supabase
+              .from("contas_receber")
+              .select("valor, valor_recebido, vencimento")
+              .eq("cliente_id", clienteRel.id)
+              .in("situacao", ["aberto", "parcial"])
+          : Promise.resolve({ data: [] as { valor: number; valor_recebido: number; vencimento: string }[] }),
+      ]);
+      const abertas = doCliente.data ?? [];
+      const usado = abertas.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
+      return { contas: contas.data ?? [], usado };
+    },
+  });
+
+  const contasPedido = financeiro?.contas ?? [];
+  const limiteCliente = Number(clienteRel?.limite_credito ?? 0);
+  const usadoCliente = financeiro?.usado ?? 0;
+  const disponivelCliente = limiteCliente - usadoCliente;
+
+  const gerarContas = useMutation({
+    mutationFn: async () => {
+      const n = Math.max(1, Number(parcelasReceber || 1));
+      if (
+        formaReceber === "crediario" &&
+        limiteCliente > 0 &&
+        Number(pedido?.total ?? 0) > disponivelCliente
+      ) {
+        const { error: eAut } = await supabase.rpc("solicitar_autorizacao_credito", {
+          p_cliente_id: clienteRel?.id ?? "",
+          p_valor: Number(pedido?.total ?? 0),
+          p_pedido_id: id,
+          p_motivo: "Crediário acima do limite disponível do cliente",
+        });
+        if (eAut) throw eAut;
+        throw new Error(
+          "Valor acima do limite de crédito. Solicitação enviada para autorização do gestor.",
+        );
+      }
+      const { error } = await supabase.rpc("gerar_contas_receber", {
+        p_pedido_id: id,
+        p_parcelas: n,
+        p_primeiro_vencimento: primeiroVencimento,
+        p_forma: formaReceber as never,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Contas a receber geradas.");
+      setContasOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["pedido-financeiro"] });
+      void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   useEffect(() => {
     setSeparado(
@@ -242,6 +324,11 @@ function PedidoDetalhe() {
                 <ArrowLeft className="mr-2 size-4" /> Pedidos
               </Link>
             </Button>
+            {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
+              <Button variant="secondary" onClick={() => setContasOpen(true)}>
+                <Wallet className="mr-2 size-4" /> Gerar contas a receber
+              </Button>
+            )}
             {podeEntregar && (
               <Button onClick={() => setEntregaOpen(true)}>
                 <Truck className="mr-2 size-4" /> Registrar entrega
@@ -418,6 +505,48 @@ function PedidoDetalhe() {
             )}
           </div>
 
+          {contasPedido.length > 0 && (
+            <div className="panel p-4">
+              <p className="font-display font-semibold">Parcelas a receber</p>
+              <div className="mt-3 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Forma</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Recebido</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contasPedido.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="text-numeric">
+                          {c.parcela}/{c.parcelas}
+                        </TableCell>
+                        <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
+                        <TableCell className="text-sm">{labelForma(formaReceber)}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(c.valor))}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(c.valor_recebido))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={corConta(c.situacao, c.vencimento)}>
+                            {labelConta(c.situacao, c.vencimento)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           {(data?.entregas ?? []).length > 0 && (
             <div className="panel p-4">
               <p className="font-display font-semibold">Entregas registradas</p>
@@ -589,6 +718,73 @@ function PedidoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* CONTAS A RECEBER */}
+      <Dialog open={contasOpen} onOpenChange={setContasOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerar contas a receber</DialogTitle>
+            <DialogDescription>
+              Total do pedido: {brl(Number(pedido.total))}
+              {limiteCliente > 0 &&
+                ` · Crédito disponível do cliente: ${brl(disponivelCliente)}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="cr-parc">Parcelas</Label>
+                <Input
+                  id="cr-parc"
+                  inputMode="numeric"
+                  value={parcelasReceber}
+                  onChange={(e) => setParcelasReceber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cr-venc">1º vencimento</Label>
+                <Input
+                  id="cr-venc"
+                  type="date"
+                  value={primeiroVencimento}
+                  onChange={(e) => setPrimeiroVencimento(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={formaReceber} onValueChange={setFormaReceber}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formaReceber === "crediario" &&
+              limiteCliente > 0 &&
+              Number(pedido.total) > disponivelCliente && (
+                <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  O valor passa do limite de crédito do cliente. Ao confirmar, será criada uma
+                  solicitação de autorização para o gestor liberar.
+                </p>
+              )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContasOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={() => gerarContas.mutate()} disabled={gerarContas.isPending}>
+              Gerar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }

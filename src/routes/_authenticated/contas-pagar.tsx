@@ -1,0 +1,512 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Plus, Search, Wallet } from "lucide-react";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useSessionData } from "@/hooks/useSessionData";
+import { brl, dateBR } from "@/lib/format";
+import {
+  corConta,
+  estaVencida,
+  formasPagamento,
+  hojeISO,
+  labelConta,
+  labelForma,
+  situacoesConta,
+  somaDias,
+} from "@/lib/financeiro";
+import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+export const Route = createFileRoute("/_authenticated/contas-pagar")({
+  head: () => ({
+    meta: [
+      { title: "Contas a pagar — Ze Obra" },
+      {
+        name: "description",
+        content: "Pagamentos a fornecedores e despesas, com vencimentos e baixas.",
+      },
+      { property: "og:title", content: "Contas a pagar — Ze Obra" },
+      { property: "og:description", content: "Controle do que a loja tem para pagar." },
+    ],
+  }),
+  component: ContasPagar,
+});
+
+function ContasPagar() {
+  const { data: session } = useSessionData();
+  const profile = session?.profile ?? null;
+  const queryClient = useQueryClient();
+  const [filtro, setFiltro] = useState("aberto");
+  const [busca, setBusca] = useState("");
+  const [novaAberta, setNovaAberta] = useState(false);
+  const [baixaAberta, setBaixaAberta] = useState(false);
+  const [contaId, setContaId] = useState("");
+  const [saldoConta, setSaldoConta] = useState(0);
+  const [valorBaixa, setValorBaixa] = useState("");
+  const [formaBaixa, setFormaBaixa] = useState("pix");
+  const [dataBaixa, setDataBaixa] = useState(hojeISO());
+  const [obsBaixa, setObsBaixa] = useState("");
+  const [usarCaixa, setUsarCaixa] = useState("nao");
+
+  const [fornecedorId, setFornecedorId] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [valor, setValor] = useState("");
+  const [venc, setVenc] = useState(somaDias(hojeISO(), 30));
+  const [parcelas, setParcelas] = useState("1");
+  const [forma, setForma] = useState("boleto");
+
+  const { data: contas = [], isLoading } = useQuery({
+    queryKey: ["contas-pagar"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_pagar")
+        .select("*, fornecedores(razao_social), compras(numero)")
+        .order("vencimento");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ["fornecedores-lista"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fornecedores")
+        .select("id, razao_social")
+        .eq("ativo", true)
+        .order("razao_social");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: caixaAberto } = useQuery({
+    queryKey: ["caixa-aberto"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("caixas")
+        .select("id, numero")
+        .eq("situacao", "aberto")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const lista = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return contas.filter((c) => {
+      if (filtro === "vencidas" && !estaVencida(c.situacao, c.vencimento)) return false;
+      if (filtro !== "todas" && filtro !== "vencidas" && c.situacao !== filtro) return false;
+      if (!t) return true;
+      const forn = (c.fornecedores as { razao_social: string } | null)?.razao_social ?? "";
+      return `${c.numero} ${forn} ${c.descricao}`.toLowerCase().includes(t);
+    });
+  }, [contas, filtro, busca]);
+
+  const abertas = contas.filter((c) => ["aberto", "parcial"].includes(c.situacao));
+  const saldoAberto = abertas.reduce((s, c) => s + (Number(c.valor) - Number(c.valor_pago)), 0);
+  const vencidas = abertas.filter((c) => estaVencida(c.situacao, c.vencimento));
+  const venceHoje = abertas.filter((c) => c.vencimento === hojeISO());
+  const proximos7 = abertas.filter(
+    (c) => c.vencimento > hojeISO() && c.vencimento <= somaDias(hojeISO(), 7),
+  );
+  const pagoMes = contas.reduce(
+    (s, c) =>
+      (c.updated_at ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7)
+        ? s + Number(c.valor_pago)
+        : s,
+    0,
+  );
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      if (!profile?.tenant_id) throw new Error("Usuário sem empresa vinculada");
+      const v = Number(valor.replace(",", "."));
+      if (!descricao.trim()) throw new Error("Informe a descrição");
+      if (!v || v <= 0) throw new Error("Informe um valor maior que zero");
+      const n = Math.max(1, Number(parcelas || 1));
+      const parcela = Number((v / n).toFixed(2));
+      const linhas = Array.from({ length: n }, (_, i) => ({
+        tenant_id: profile.tenant_id as string,
+        empresa_id: profile.empresa_id,
+        filial_id: profile.filial_id,
+        fornecedor_id: fornecedorId || null,
+        descricao: descricao.trim(),
+        categoria: categoria || null,
+        parcela: i + 1,
+        parcelas: n,
+        vencimento: somaDias(venc, i * 30),
+        valor: i === n - 1 ? Number((v - parcela * (n - 1)).toFixed(2)) : parcela,
+        forma_pagamento: forma as never,
+      }));
+      const { error } = await supabase.from("contas_pagar").insert(linhas);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Conta a pagar criada.");
+      setNovaAberta(false);
+      setDescricao("");
+      setValor("");
+      setParcelas("1");
+      void queryClient.invalidateQueries({ queryKey: ["contas-pagar"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const baixar = useMutation({
+    mutationFn: async () => {
+      const v = Number(valorBaixa.replace(",", "."));
+      const { error } = await supabase.rpc("baixar_conta", {
+        p_tipo: "pagar",
+        p_conta_id: contaId,
+        p_valor: v,
+        p_forma: formaBaixa as never,
+        p_data: dataBaixa,
+        p_observacao: obsBaixa,
+        ...(usarCaixa === "sim" && caixaAberto ? { p_caixa_id: caixaAberto.id } : {}),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pagamento registrado.");
+      setBaixaAberta(false);
+      setObsBaixa("");
+      void queryClient.invalidateQueries({ queryKey: ["contas-pagar"] });
+      void queryClient.invalidateQueries({ queryKey: ["caixa-movimentos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const cancelar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("contas_pagar")
+        .update({ situacao: "cancelado", motivo_cancelamento: "Cancelada pelo usuário" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Conta cancelada.");
+      void queryClient.invalidateQueries({ queryKey: ["contas-pagar"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div>
+      <PageHeader
+        title="Contas a pagar"
+        description="Compras recebidas, despesas fixas e pagamentos a fornecedores."
+        actions={
+          <Button onClick={() => setNovaAberta(true)}>
+            <Plus className="size-4" /> Nova conta
+          </Button>
+        }
+      />
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Em aberto" value={brl(saldoAberto)} icon={Wallet} />
+        <StatCard
+          label="Vencidas"
+          value={brl(vencidas.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0))}
+          hint={`${vencidas.length} conta(s)`}
+          tone="danger"
+          icon={AlertTriangle}
+        />
+        <StatCard
+          label="Vence hoje"
+          value={brl(venceHoje.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0))}
+          hint={`${venceHoje.length} conta(s)`}
+          tone="warning"
+        />
+        <StatCard label="Pago no mês" value={brl(pagoMes)} tone="success" />
+      </div>
+
+      {(vencidas.length > 0 || venceHoje.length > 0 || proximos7.length > 0) && (
+        <div className="panel mb-4 flex flex-wrap items-center gap-3 border-l-4 border-l-warning p-4">
+          <AlertTriangle className="size-4 text-warning-foreground" />
+          <p className="text-sm">
+            {vencidas.length > 0 && <strong>{vencidas.length} conta(s) vencida(s). </strong>}
+            {venceHoje.length > 0 && <>{venceHoje.length} vence(m) hoje. </>}
+            {proximos7.length > 0 && <>{proximos7.length} vence(m) nos próximos 7 dias.</>}
+          </p>
+        </div>
+      )}
+
+      <div className="panel mb-4 flex flex-wrap items-center gap-3 p-3">
+        <Tabs value={filtro} onValueChange={setFiltro}>
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="todas">Todas</TabsTrigger>
+            <TabsTrigger value="vencidas">Vencidas</TabsTrigger>
+            {situacoesConta.map((s) => (
+              <TabsTrigger key={s.value} value={s.value}>
+                {s.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por fornecedor, número ou descrição"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
+      ) : lista.length === 0 ? (
+        <EmptyState
+          title="Nenhuma conta encontrada."
+          description="As compras recebidas geram contas automaticamente. Você também pode lançar despesas."
+          action={
+            <Button onClick={() => setNovaAberta(true)}>
+              <Plus className="size-4" /> Nova conta
+            </Button>
+          }
+        />
+      ) : (
+        <div className="panel overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nº</TableHead>
+                <TableHead>Fornecedor</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Forma</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lista.map((c) => {
+                const saldo = Number(c.valor) - Number(c.valor_pago);
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-numeric">{c.numero}</TableCell>
+                    <TableCell>
+                      {(c.fornecedores as { razao_social: string } | null)?.razao_social ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {c.descricao}
+                      <p className="text-xs text-muted-foreground">
+                        {c.categoria ? `${c.categoria} · ` : ""}Parcela {c.parcela}/{c.parcelas}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
+                    <TableCell className="text-sm">{labelForma(c.forma_pagamento)}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(Number(c.valor))}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(saldo)}</TableCell>
+                    <TableCell>
+                      <Badge className={corConta(c.situacao, c.vencimento)}>
+                        {labelConta(c.situacao, c.vencimento)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {["aberto", "parcial"].includes(c.situacao) && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setContaId(c.id);
+                              setSaldoConta(saldo);
+                              setValorBaixa(saldo.toFixed(2));
+                              setFormaBaixa(c.forma_pagamento ?? "pix");
+                              setDataBaixa(hojeISO());
+                              setUsarCaixa("nao");
+                              setBaixaAberta(true);
+                            }}
+                          >
+                            Pagar
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => cancelar.mutate(c.id)}>
+                            Cancelar
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={baixaAberta} onOpenChange={setBaixaAberta}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">Saldo em aberto: {brl(saldoConta)}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Valor pago</Label>
+                <Input value={valorBaixa} onChange={(e) => setValorBaixa(e.target.value)} />
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={dataBaixa} onChange={(e) => setDataBaixa(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={formaBaixa} onValueChange={setFormaBaixa}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Lançar saída no caixa aberto</Label>
+              <Select value={usarCaixa} onValueChange={setUsarCaixa} disabled={!caixaAberto}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sim">
+                    {caixaAberto ? `Sim — caixa nº ${caixaAberto.numero}` : "Sim"}
+                  </SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Observação</Label>
+              <Textarea value={obsBaixa} onChange={(e) => setObsBaixa(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaAberta(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => baixar.mutate()} disabled={baixar.isPending}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={novaAberta} onOpenChange={setNovaAberta}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova conta a pagar</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Fornecedor</Label>
+              <Select value={fornecedorId} onValueChange={setFornecedorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fornecedores.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.razao_social}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Descrição</Label>
+                <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Input
+                  placeholder="Ex.: Aluguel, Energia, Mercadorias"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <Label>Valor total</Label>
+                <Input value={valor} onChange={(e) => setValor(e.target.value)} />
+              </div>
+              <div>
+                <Label>1º vencimento</Label>
+                <Input type="date" value={venc} onChange={(e) => setVenc(e.target.value)} />
+              </div>
+              <div>
+                <Label>Parcelas</Label>
+                <Input
+                  inputMode="numeric"
+                  value={parcelas}
+                  onChange={(e) => setParcelas(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovaAberta(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => criar.mutate()} disabled={criar.isPending}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

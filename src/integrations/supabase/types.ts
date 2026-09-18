@@ -58,6 +58,147 @@ export type Database = {
           },
         ]
       }
+      caixa_movimentos: {
+        Row: {
+          caixa_id: string
+          created_at: string
+          descricao: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
+          id: string
+          tenant_id: string
+          tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          caixa_id: string
+          created_at?: string
+          descricao?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          tenant_id: string
+          tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          caixa_id?: string
+          created_at?: string
+          descricao?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          tenant_id?: string
+          tipo?: Database["public"]["Enums"]["caixa_mov_tipo"]
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caixa_movimentos_caixa_id_fkey"
+            columns: ["caixa_id"]
+            isOneToOne: false
+            referencedRelation: "caixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caixas: {
+        Row: {
+          aberto_em: string
+          aberto_por: string | null
+          created_at: string
+          diferenca: number | null
+          fechado_em: string | null
+          fechado_por: string | null
+          filial_id: string | null
+          id: string
+          numero: number | null
+          observacao: string | null
+          situacao: Database["public"]["Enums"]["caixa_situacao"]
+          tenant_id: string
+          updated_at: string
+          valor_abertura: number
+          valor_esperado: number | null
+          valor_informado: number | null
+        }
+        Insert: {
+          aberto_em?: string
+          aberto_por?: string | null
+          created_at?: string
+          diferenca?: number | null
+          fechado_em?: string | null
+          fechado_por?: string | null
+          filial_id?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          situacao?: Database["public"]["Enums"]["caixa_situacao"]
+          tenant_id: string
+          updated_at?: string
+          valor_abertura?: number
+          valor_esperado?: number | null
+          valor_informado?: number | null
+        }
+        Update: {
+          aberto_em?: string
+          aberto_por?: string | null
+          created_at?: string
+          diferenca?: number | null
+          fechado_em?: string | null
+          fechado_por?: string | null
+          filial_id?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          situacao?: Database["public"]["Enums"]["caixa_situacao"]
+          tenant_id?: string
+          updated_at?: string
+          valor_abertura?: number
+          valor_esperado?: number | null
+          valor_informado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caixas_aberto_por_fkey"
+            columns: ["aberto_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixas_fechado_por_fkey"
+            columns: ["fechado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixas_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           ativo: boolean
@@ -211,6 +352,690 @@ export type Database = {
           },
           {
             foreignKeyName: "clientes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_cotacoes: {
+        Row: {
+          compra_id: string
+          condicao_pagamento: string | null
+          created_at: string
+          escolhida: boolean
+          fornecedor_id: string
+          id: string
+          observacao: string | null
+          prazo_entrega_dias: number | null
+          tenant_id: string
+          valor_total: number
+        }
+        Insert: {
+          compra_id: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          escolhida?: boolean
+          fornecedor_id: string
+          id?: string
+          observacao?: string | null
+          prazo_entrega_dias?: number | null
+          tenant_id: string
+          valor_total?: number
+        }
+        Update: {
+          compra_id?: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          escolhida?: boolean
+          fornecedor_id?: string
+          id?: string
+          observacao?: string | null
+          prazo_entrega_dias?: number | null
+          tenant_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_cotacoes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_cotacoes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_cotacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_itens: {
+        Row: {
+          compra_id: string
+          created_at: string
+          custo_unitario: number
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          quantidade_recebida: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          quantidade_recebida?: number
+          tenant_id: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          quantidade_recebida?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_itens_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_recebimento_itens: {
+        Row: {
+          compra_item_id: string
+          created_at: string
+          custo_unitario: number
+          divergencia: Database["public"]["Enums"]["divergencia_tipo"] | null
+          divergencia_obs: string | null
+          id: string
+          produto_id: string
+          quantidade: number
+          recebimento_id: string
+          tenant_id: string
+        }
+        Insert: {
+          compra_item_id: string
+          created_at?: string
+          custo_unitario?: number
+          divergencia?: Database["public"]["Enums"]["divergencia_tipo"] | null
+          divergencia_obs?: string | null
+          id?: string
+          produto_id: string
+          quantidade: number
+          recebimento_id: string
+          tenant_id: string
+        }
+        Update: {
+          compra_item_id?: string
+          created_at?: string
+          custo_unitario?: number
+          divergencia?: Database["public"]["Enums"]["divergencia_tipo"] | null
+          divergencia_obs?: string | null
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          recebimento_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_recebimento_itens_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_recebimento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_recebimento_itens_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "compra_recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_recebimento_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_recebimentos: {
+        Row: {
+          compra_id: string
+          created_at: string
+          data_recebimento: string
+          documento: string | null
+          id: string
+          numero: number | null
+          observacao: string | null
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          data_recebimento?: string
+          documento?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          data_recebimento?: string
+          documento?: string | null
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_recebimentos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_recebimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compras: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          condicao_pagamento: string | null
+          created_at: string
+          deposito_id: string
+          desconto: number
+          empresa_id: string | null
+          filial_id: string | null
+          fornecedor_id: string | null
+          frete: number
+          id: string
+          motivo_cancelamento: string | null
+          numero: number | null
+          observacoes: string | null
+          origem: string
+          previsao_entrega: string | null
+          situacao: Database["public"]["Enums"]["compra_situacao"]
+          solicitante_id: string | null
+          subtotal: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          deposito_id: string
+          desconto?: number
+          empresa_id?: string | null
+          filial_id?: string | null
+          fornecedor_id?: string | null
+          frete?: number
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          origem?: string
+          previsao_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["compra_situacao"]
+          solicitante_id?: string | null
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          deposito_id?: string
+          desconto?: number
+          empresa_id?: string | null
+          filial_id?: string | null
+          fornecedor_id?: string | null
+          frete?: number
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          origem?: string
+          previsao_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["compra_situacao"]
+          solicitante_id?: string | null
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar: {
+        Row: {
+          categoria: string | null
+          compra_id: string | null
+          created_at: string
+          descricao: string
+          empresa_id: string | null
+          filial_id: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
+          fornecedor_id: string | null
+          id: string
+          motivo_cancelamento: string | null
+          numero: number | null
+          observacoes: string | null
+          parcela: number
+          parcelas: number
+          situacao: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id: string
+          updated_at: string
+          valor: number
+          valor_pago: number
+          vencimento: string
+        }
+        Insert: {
+          categoria?: string | null
+          compra_id?: string | null
+          created_at?: string
+          descricao: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          fornecedor_id?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          situacao?: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id: string
+          updated_at?: string
+          valor: number
+          valor_pago?: number
+          vencimento: string
+        }
+        Update: {
+          categoria?: string | null
+          compra_id?: string | null
+          created_at?: string
+          descricao?: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          fornecedor_id?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          situacao?: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_receber: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          descricao: string
+          empresa_id: string | null
+          filial_id: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
+          id: string
+          motivo_cancelamento: string | null
+          numero: number | null
+          observacoes: string | null
+          parcela: number
+          parcelas: number
+          pedido_id: string | null
+          situacao: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id: string
+          updated_at: string
+          valor: number
+          valor_recebido: number
+          vencimento: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          descricao: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          pedido_id?: string | null
+          situacao?: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id: string
+          updated_at?: string
+          valor: number
+          valor_recebido?: number
+          vencimento: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          descricao?: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento"]
+            | null
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          pedido_id?: string | null
+          situacao?: Database["public"]["Enums"]["conta_situacao"]
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          valor_recebido?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_receber_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credito_autorizacoes: {
+        Row: {
+          autorizado_em: string | null
+          autorizado_por: string | null
+          cliente_id: string
+          created_at: string
+          id: string
+          limite: number
+          motivo: string | null
+          observacao: string | null
+          orcamento_id: string | null
+          pedido_id: string | null
+          saldo_utilizado: number
+          situacao: Database["public"]["Enums"]["autorizacao_situacao"]
+          solicitante_id: string | null
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          autorizado_em?: string | null
+          autorizado_por?: string | null
+          cliente_id: string
+          created_at?: string
+          id?: string
+          limite?: number
+          motivo?: string | null
+          observacao?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          saldo_utilizado?: number
+          situacao?: Database["public"]["Enums"]["autorizacao_situacao"]
+          solicitante_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          autorizado_em?: string | null
+          autorizado_por?: string | null
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          limite?: number
+          motivo?: string | null
+          observacao?: string | null
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          saldo_utilizado?: number
+          situacao?: Database["public"]["Enums"]["autorizacao_situacao"]
+          solicitante_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credito_autorizacoes_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_autorizacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_autorizacoes_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_autorizacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_autorizacoes_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_autorizacoes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -650,6 +1475,77 @@ export type Database = {
           },
           {
             foreignKeyName: "filiais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_baixas: {
+        Row: {
+          caixa_id: string | null
+          conta_pagar_id: string | null
+          conta_receber_id: string | null
+          created_at: string
+          data_baixa: string
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          id: string
+          observacao: string | null
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          caixa_id?: string | null
+          conta_pagar_id?: string | null
+          conta_receber_id?: string | null
+          created_at?: string
+          data_baixa?: string
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          observacao?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          caixa_id?: string | null
+          conta_pagar_id?: string | null
+          conta_receber_id?: string | null
+          created_at?: string
+          data_baixa?: string
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          observacao?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_baixas_caixa_id_fkey"
+            columns: ["caixa_id"]
+            isOneToOne: false
+            referencedRelation: "caixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_baixas_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_baixas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_baixas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1619,11 +2515,74 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      abrir_caixa: {
+        Args: { p_filial_id: string; p_valor_abertura?: number }
+        Returns: string
+      }
+      baixar_conta: {
+        Args: {
+          p_caixa_id?: string
+          p_conta_id: string
+          p_data?: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacao?: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      caixa_movimento: {
+        Args: {
+          p_caixa_id: string
+          p_descricao?: string
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
+          p_valor: number
+        }
+        Returns: string
+      }
+      compra_avancar_status: {
+        Args: {
+          p_compra_id: string
+          p_observacao?: string
+          p_situacao: Database["public"]["Enums"]["compra_situacao"]
+        }
+        Returns: undefined
+      }
+      compra_escolher_cotacao: {
+        Args: { p_cotacao_id: string }
+        Returns: undefined
+      }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
+      decidir_autorizacao_credito: {
+        Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
+        Returns: undefined
+      }
+      fechar_caixa: {
+        Args: {
+          p_caixa_id: string
+          p_observacao?: string
+          p_valor_informado: number
+        }
+        Returns: number
+      }
+      gerar_compra_estoque_minimo: {
+        Args: { p_deposito_id: string }
+        Returns: string
+      }
+      gerar_contas_receber: {
+        Args: {
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_parcelas?: number
+          p_pedido_id: string
+          p_primeiro_vencimento?: string
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1648,8 +2607,21 @@ export type Database = {
         }
         Returns: string
       }
+      recalcular_compra: { Args: { p_id: string }; Returns: undefined }
       recalcular_orcamento: { Args: { p_id: string }; Returns: undefined }
       recalcular_pedido: { Args: { p_id: string }; Returns: undefined }
+      receber_compra: {
+        Args: {
+          p_compra_id: string
+          p_documento?: string
+          p_gerar_conta?: boolean
+          p_itens: Json
+          p_observacao?: string
+          p_parcelas?: number
+          p_vencimento?: string
+        }
+        Returns: string
+      }
       registrar_movimentacao: {
         Args: {
           p_deposito_destino_id?: string
@@ -1659,6 +2631,16 @@ export type Database = {
           p_produto_id: string
           p_quantidade: number
           p_tipo: Database["public"]["Enums"]["mov_tipo"]
+        }
+        Returns: string
+      }
+      solicitar_autorizacao_credito: {
+        Args: {
+          p_cliente_id: string
+          p_motivo?: string
+          p_orcamento_id?: string
+          p_pedido_id?: string
+          p_valor: number
         }
         Returns: string
       }
@@ -1674,6 +2656,35 @@ export type Database = {
         | "financeiro"
         | "logistica"
         | "motorista"
+      autorizacao_situacao: "pendente" | "aprovada" | "negada"
+      caixa_mov_tipo:
+        | "abertura"
+        | "entrada"
+        | "saida"
+        | "sangria"
+        | "suprimento"
+        | "venda"
+        | "recebimento"
+        | "fechamento"
+      caixa_situacao: "aberto" | "fechado"
+      compra_situacao:
+        | "rascunho"
+        | "cotacao"
+        | "aprovado"
+        | "pedido_enviado"
+        | "parcialmente_recebido"
+        | "recebido"
+        | "cancelado"
+      conta_situacao: "aberto" | "parcial" | "pago" | "cancelado"
+      divergencia_tipo: "quantidade" | "produto_errado" | "danificado"
+      forma_pagamento:
+        | "dinheiro"
+        | "pix"
+        | "cartao_credito"
+        | "cartao_debito"
+        | "boleto"
+        | "transferencia"
+        | "crediario"
       mov_tipo:
         | "entrada"
         | "saida"
@@ -1845,6 +2856,38 @@ export const Constants = {
         "financeiro",
         "logistica",
         "motorista",
+      ],
+      autorizacao_situacao: ["pendente", "aprovada", "negada"],
+      caixa_mov_tipo: [
+        "abertura",
+        "entrada",
+        "saida",
+        "sangria",
+        "suprimento",
+        "venda",
+        "recebimento",
+        "fechamento",
+      ],
+      caixa_situacao: ["aberto", "fechado"],
+      compra_situacao: [
+        "rascunho",
+        "cotacao",
+        "aprovado",
+        "pedido_enviado",
+        "parcialmente_recebido",
+        "recebido",
+        "cancelado",
+      ],
+      conta_situacao: ["aberto", "parcial", "pago", "cancelado"],
+      divergencia_tipo: ["quantidade", "produto_errado", "danificado"],
+      forma_pagamento: [
+        "dinheiro",
+        "pix",
+        "cartao_credito",
+        "cartao_debito",
+        "boleto",
+        "transferencia",
+        "crediario",
       ],
       mov_tipo: [
         "entrada",
