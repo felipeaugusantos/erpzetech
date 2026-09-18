@@ -68,6 +68,7 @@ type Form = {
   altura: string;
   largura: string;
   comprimento: string;
+  imagem_url: string | null;
   ativo: boolean;
 };
 
@@ -94,6 +95,7 @@ const vazio: Form = {
   altura: "",
   largura: "",
   comprimento: "",
+  imagem_url: null,
   ativo: true,
 };
 
@@ -162,6 +164,7 @@ function Produtos() {
         altura: form.altura ? Number(form.altura) : null,
         largura: form.largura ? Number(form.largura) : null,
         comprimento: form.comprimento ? Number(form.comprimento) : null,
+        imagem_url: form.imagem_url,
         ativo: form.ativo,
       };
       const { error } = form.id
@@ -343,6 +346,7 @@ function Produtos() {
                               altura: p.altura ? String(p.altura) : "",
                               largura: p.largura ? String(p.largura) : "",
                               comprimento: p.comprimento ? String(p.comprimento) : "",
+                              imagem_url: p.imagem_url ?? null,
                               ativo: p.ativo,
                             });
                             setOpen(true);
