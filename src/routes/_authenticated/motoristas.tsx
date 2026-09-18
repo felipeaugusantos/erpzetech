@@ -254,7 +254,25 @@ function Motoristas() {
                         <Badge variant="outline">Inativo</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
+                      {m.user_id ? (
+                        <Badge variant="secondary" className="mr-1">
+                          <KeyRound className="mr-1 size-3" /> com login
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mr-1"
+                          onClick={() => {
+                            setLoginMotorista({ id: m.id, nome: m.nome });
+                            setLoginEmail("");
+                            setLoginSenha("");
+                          }}
+                        >
+                          <KeyRound className="size-4" /> Criar login
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
