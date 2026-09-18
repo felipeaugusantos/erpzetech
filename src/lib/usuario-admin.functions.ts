@@ -165,7 +165,13 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
       throw new Error("Você não pode desativar o seu próprio acesso");
     }
 
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      nome?: string;
+      telefone?: string | null;
+      codigo?: string | null;
+      filial_id?: string | null;
+      ativo?: boolean;
+    } = {};
     if (data.nome !== undefined) patch.nome = data.nome;
     if (data.telefone !== undefined) patch.telefone = data.telefone;
     if (data.codigo !== undefined) patch.codigo = data.codigo;
