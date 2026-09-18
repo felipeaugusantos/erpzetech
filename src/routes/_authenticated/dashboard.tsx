@@ -96,6 +96,37 @@ function Dashboard() {
     },
   });
 
+  const { data: fiscal } = useQuery({
+    queryKey: ["dashboard-fiscal"],
+    queryFn: async () => {
+      const [notas, vinculos, pedidos] = await Promise.all([
+        supabase
+          .from("nfe")
+          .select(
+            "id, numero, serie, situacao, ambiente, valor_total, pendencias, mensagem, created_at, transmitida_em, autorizada_em, clientes(nome)",
+          )
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase.from("nfe_pedidos").select("pedido_id, nfe_id, nfe(situacao)"),
+        supabase
+          .from("pedidos")
+          .select("id, numero, total, situacao, created_at, clientes(nome)")
+          .neq("situacao", "cancelado")
+          .order("numero", { ascending: false })
+          .limit(100),
+      ]);
+      const comNota = new Set(
+        (vinculos.data ?? [])
+          .filter((v) => (v.nfe as { situacao: string } | null)?.situacao !== "cancelada")
+          .map((v) => v.pedido_id),
+      );
+      return {
+        notas: notas.data ?? [],
+        semNota: (pedidos.data ?? []).filter((p) => !comNota.has(p.id)),
+      };
+    },
+  });
+
   if (isLoading || !data) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
