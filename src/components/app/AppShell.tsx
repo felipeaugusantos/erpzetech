@@ -207,6 +207,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }, [data]);
 
+  /** Equipe Ze Tech: painel das assinaturas dos clientes. */
+  const { data: operadorSaas } = useSaasOperador();
+
   const menu: Group[] = somenteMotorista
     ? [
         {
@@ -215,7 +218,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
         },
       ]
-    : groups;
+    : operadorSaas
+      ? [
+          ...groups,
+          {
+            label: "Ze Tech",
+            icon: LayoutGrid,
+            items: [
+              { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+              { label: "Planos", to: "/ze-tech-planos", icon: Tag },
+              { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
+            ],
+          },
+        ]
+      : groups;
 
   useEffect(() => {
     if (somenteMotorista && pathname !== "/motorista") {
