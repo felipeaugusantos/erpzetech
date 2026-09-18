@@ -6,6 +6,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,6 +17,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num } from "@/lib/format";
+import { rotuloMes, usePeriodo } from "@/lib/periodo";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,15 +56,10 @@ export const Route = createFileRoute("/_authenticated/lucro")({
   component: Lucro,
 });
 
-function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
 function Lucro() {
-  const hoje = new Date();
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const [de, setDe] = useState(iso(inicioMes));
-  const [ate, setAte] = useState(iso(hoje));
+  const { periodo, setDe, setAte } = usePeriodo();
+  const de = periodo.de;
+  const ate = periodo.ate;
   const [deposito, setDeposito] = useState("todos");
   const [agrupar, setAgrupar] = useState<"produto" | "deposito" | "periodo">("produto");
 
@@ -142,6 +141,32 @@ function Lucro() {
     };
   }, [linhas]);
 
+  const porMes = useMemo(() => {
+    const mapa = new Map<string, { mes: string; receita: number; custo: number }>();
+    for (const p of data ?? []) {
+      const mes = String(p.created_at).slice(0, 7);
+      for (const i of (p.pedido_itens ?? []) as Array<{
+        quantidade: number;
+        custo_unitario: number;
+        total: number;
+      }>) {
+        const atual = mapa.get(mes) ?? { mes, receita: 0, custo: 0 };
+        atual.receita += Number(i.total);
+        atual.custo += Number(i.quantidade) * Number(i.custo_unitario);
+        mapa.set(mes, atual);
+      }
+    }
+    return [...mapa.values()]
+      .sort((a, b) => a.mes.localeCompare(b.mes))
+      .map((m) => ({
+        nome: rotuloMes(m.mes),
+        receita: Math.round(m.receita),
+        custo: Math.round(m.custo),
+        lucro: Math.round(m.receita - m.custo),
+        margem: m.receita > 0 ? ((m.receita - m.custo) / m.receita) * 100 : 0,
+      }));
+  }, [data]);
+
   const grafico = linhas.slice(0, 10).map((l) => ({
     nome: l.nome.length > 18 ? `${l.nome.slice(0, 18)}…` : l.nome,
     lucro: Math.round(l.lucro),
@@ -158,6 +183,7 @@ function Lucro() {
         <div>
           <Label>De</Label>
           <Input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          <p className="mt-1 text-xs text-muted-foreground">Mesmo período do dashboard.</p>
         </div>
         <div>
           <Label>Até</Label>
@@ -200,6 +226,58 @@ function Lucro() {
         <StatCard label="Lucro bruto" value={brl(totais.lucro)} icon={TrendingUp} tone="success" />
         <StatCard label="Margem média" value={`${num(totais.margem, 1)}%`} icon={Percent} />
       </div>
+
+      {porMes.length > 0 && (
+        <div className="panel mt-4 p-4">
+          <h2 className="mb-3 font-display text-sm font-semibold">
+            Receita, custo e lucro por mês
+          </h2>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={porMes}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => brl(Number(v))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="receita" name="Receita" stroke="var(--chart-1)" strokeWidth={2} />
+                <Line type="monotone" dataKey="custo" name="Custo" stroke="var(--chart-4)" strokeWidth={2} />
+                <Line type="monotone" dataKey="lucro" name="Lucro" stroke="var(--chart-2)" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mês</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                  <TableHead className="text-right">Margem</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {porMes.map((m) => (
+                  <TableRow key={m.nome}>
+                    <TableCell>{m.nome}</TableCell>
+                    <TableCell className="text-numeric text-right">{brl(m.receita)}</TableCell>
+                    <TableCell className="text-numeric text-right">{brl(m.custo)}</TableCell>
+                    <TableCell
+                      className={`text-numeric text-right font-semibold ${
+                        m.lucro >= 0 ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {brl(m.lucro)}
+                    </TableCell>
+                    <TableCell className="text-numeric text-right">{num(m.margem, 1)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {grafico.length > 0 && (
         <div className="panel mt-4 p-4">

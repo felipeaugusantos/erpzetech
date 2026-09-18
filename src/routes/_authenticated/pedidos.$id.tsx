@@ -60,19 +60,60 @@ function PedidoDetalhe() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
 
+  const [notaGerada, setNotaGerada] = useState<{
+    numero: number | null;
+    serie: number;
+    situacao: string;
+    ambiente: string;
+    valor_total: number;
+    pendencias: string[];
+    mensagem: string | null;
+  } | null>(null);
+
+  const { data: notaDoPedido } = useQuery({
+    queryKey: ["nfe-do-pedido", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("nfe_pedidos")
+        .select("nfe(id, numero, serie, situacao, ambiente, valor_total, pendencias, mensagem)")
+        .eq("pedido_id", id);
+      if (error) throw error;
+      const notas = (data ?? [])
+        .map((v) => v.nfe as {
+          id: string;
+          numero: number | null;
+          serie: number;
+          situacao: string;
+          ambiente: string;
+          valor_total: number;
+          pendencias: string[];
+          mensagem: string | null;
+        } | null)
+        .filter((n): n is NonNullable<typeof n> => !!n && n.situacao !== "cancelada");
+      return notas[0] ?? null;
+    },
+  });
+
   const gerarNota = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("gerar_nfe", { p_pedido_id: id });
+      const { data, error } = await supabase.rpc("gerar_nfe", { p_pedido_id: id });
       if (error) throw error;
+      const { data: nota } = await supabase
+        .from("nfe")
+        .select("numero, serie, situacao, ambiente, valor_total, pendencias, mensagem")
+        .eq("id", data as string)
+        .single();
+      return nota;
     },
-    onSuccess: () => {
-      toast.success("Nota fiscal gerada", {
-        description: "Abra Financeiro > Notas fiscais para conferir e transmitir.",
-      });
+    onSuccess: (nota) => {
+      toast.success("NF-e emitida a partir deste pedido");
       qc.invalidateQueries({ queryKey: ["nfe"] });
+      qc.invalidateQueries({ queryKey: ["nfe-do-pedido", id] });
+      qc.invalidateQueries({ queryKey: ["pedidos-sem-nota"] });
+      if (nota) setNotaGerada(nota as NonNullable<typeof notaGerada>);
     },
     onError: (e: Error) =>
-      toast.error("Não foi possível gerar a nota", { description: e.message }),
+      toast.error("Não foi possível emitir a nota", { description: e.message }),
   });
 
   const [separado, setSeparado] = useState<Record<string, string>>({});
@@ -344,13 +385,21 @@ function PedidoDetalhe() {
                 <Wallet className="mr-2 size-4" /> Gerar contas a receber
               </Button>
             )}
-            {pedido.situacao !== "cancelado" && (
+            {pedido.situacao !== "cancelado" && !notaDoPedido && (
               <Button
                 variant="secondary"
                 disabled={gerarNota.isPending}
                 onClick={() => gerarNota.mutate()}
               >
-                <FileText className="mr-2 size-4" /> Gerar NF-e
+                <FileText className="mr-2 size-4" /> Emitir NF-e
+              </Button>
+            )}
+            {notaDoPedido && (
+              <Button variant="outline" onClick={() => setNotaGerada(notaDoPedido)}>
+                <FileText className="mr-2 size-4" />
+                {notaDoPedido.numero
+                  ? `NF-e nº ${String(notaDoPedido.numero).padStart(6, "0")}`
+                  : "NF-e em rascunho"}
               </Button>
             )}
             {podeEntregar && (
@@ -736,6 +785,43 @@ function PedidoDetalhe() {
       </Dialog>
 
       {/* CANCELAMENTO */}
+      <Dialog open={!!notaGerada} onOpenChange={(o) => !o && setNotaGerada(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {notaGerada?.numero
+                ? `NF-e nº ${String(notaGerada.numero).padStart(6, "0")}`
+                : "NF-e em rascunho"}
+            </DialogTitle>
+            <DialogDescription>
+              Série {notaGerada?.serie} ·{" "}
+              {notaGerada?.ambiente === "producao" ? "produção" : "teste (homologação)"} ·{" "}
+              {brl(Number(notaGerada?.valor_total ?? 0))}
+            </DialogDescription>
+          </DialogHeader>
+          {(notaGerada?.pendencias ?? []).length > 0 ? (
+            <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+              <p className="font-medium">Falta isto para transmitir à Sefaz</p>
+              <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                {(notaGerada?.pendencias ?? []).map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{notaGerada?.mensagem}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotaGerada(null)}>
+              Fechar
+            </Button>
+            <Button asChild>
+              <Link to="/nfe">Ver notas fiscais</Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
           <DialogHeader>

@@ -9,6 +9,7 @@ import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -76,7 +77,8 @@ type Config = {
 
 function Nfe() {
   const qc = useQueryClient();
-  const [pedidoId, setPedidoId] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [selecionados, setSelecionados] = useState<string[]>([]);
   const [abrirConfig, setAbrirConfig] = useState(false);
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [cfg, setCfg] = useState<Config | null>(null);
@@ -124,32 +126,72 @@ function Nfe() {
   const { data: pedidos } = useQuery({
     queryKey: ["pedidos-sem-nota"],
     queryFn: async () => {
+      const [pedidos, vinculos] = await Promise.all([
+        supabase
+          .from("pedidos")
+          .select("id, numero, total, situacao, cliente_id, clientes(nome)")
+          .neq("situacao", "cancelado")
+          .order("numero", { ascending: false }),
+        supabase.from("nfe_pedidos").select("pedido_id, nfe(situacao)"),
+      ]);
+      if (pedidos.error) throw pedidos.error;
+      const usados = new Set(
+        (vinculos.data ?? [])
+          .filter((v) => (v.nfe as { situacao: string } | null)?.situacao !== "cancelada")
+          .map((v) => v.pedido_id),
+      );
+      return (pedidos.data ?? []).filter((p) => !usados.has(p.id));
+    },
+  });
+
+  const { data: pedidosDaNota } = useQuery({
+    queryKey: ["nfe-pedidos", detalhe],
+    enabled: !!detalhe,
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from("pedidos")
-        .select("id, numero, total, situacao, clientes(nome)")
-        .neq("situacao", "cancelado")
-        .order("numero", { ascending: false });
+        .from("nfe_pedidos")
+        .select("pedido_id, pedidos(numero, total)")
+        .eq("nfe_id", detalhe!);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const comNota = useMemo(
-    () => new Set((notas ?? []).map((n) => (n.pedidos as { numero: number } | null)?.numero)),
-    [notas],
-  );
-  const elegiveis = (pedidos ?? []).filter((p) => !comNota.has(p.numero as number));
+  const elegiveis = pedidos ?? [];
+  const clientesComPedido = useMemo(() => {
+    const mapa = new Map<string, { id: string; nome: string; qtd: number }>();
+    for (const p of elegiveis) {
+      const nome = (p.clientes as { nome: string } | null)?.nome ?? "Cliente";
+      const atual = mapa.get(p.cliente_id) ?? { id: p.cliente_id, nome, qtd: 0 };
+      atual.qtd += 1;
+      mapa.set(p.cliente_id, atual);
+    }
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [elegiveis]);
+
+  const pedidosDoCliente = elegiveis.filter((p) => p.cliente_id === clienteId);
+  const totalSelecionado = pedidosDoCliente
+    .filter((p) => selecionados.includes(p.id))
+    .reduce((s, p) => s + Number(p.total), 0);
 
   const gerar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("gerar_nfe", { p_pedido_id: pedidoId });
+      const { data, error } = await supabase.rpc("gerar_nfe_agrupada", {
+        p_pedido_ids: selecionados,
+      });
       if (error) throw error;
       return data as string;
     },
     onSuccess: (id) => {
-      toast.success("Nota gerada");
-      setPedidoId("");
+      toast.success(
+        selecionados.length > 1
+          ? `Nota única gerada com ${selecionados.length} pedidos`
+          : "Nota gerada",
+      );
+      setSelecionados([]);
+      setClienteId("");
       qc.invalidateQueries({ queryKey: ["nfe"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-sem-nota"] });
       qc.invalidateQueries({ queryKey: ["fiscal-config"] });
       setDetalhe(id);
     },
@@ -224,26 +266,70 @@ function Nfe() {
       </div>
 
       <div className="panel mt-6 p-4">
-        <h2 className="font-display text-sm font-semibold">Gerar nota de um pedido</h2>
+        <h2 className="font-display text-sm font-semibold">Gerar nota de um ou vários pedidos</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Escolha o cliente e marque os pedidos: vários pedidos do mesmo cliente podem virar uma
+          única nota.
+        </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Select value={pedidoId} onValueChange={setPedidoId}>
+          <Select
+            value={clienteId}
+            onValueChange={(v) => {
+              setClienteId(v);
+              setSelecionados([]);
+            }}
+          >
             <SelectTrigger className="sm:max-w-md">
-              <SelectValue placeholder="Escolha o pedido" />
+              <SelectValue placeholder="Escolha o cliente" />
             </SelectTrigger>
             <SelectContent>
-              {elegiveis.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  Pedido nº {String(p.numero).padStart(4, "0")} ·{" "}
-                  {(p.clientes as { nome: string } | null)?.nome} · {brl(Number(p.total))}
+              {clientesComPedido.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome} · {c.qtd} pedido(s) sem nota
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button disabled={!pedidoId || gerar.isPending} onClick={() => gerar.mutate()}>
+          <Button
+            disabled={selecionados.length === 0 || gerar.isPending}
+            onClick={() => gerar.mutate()}
+          >
             <FileText className="mr-2 size-4" />
-            Gerar nota fiscal
+            {selecionados.length > 1
+              ? `Gerar nota única (${selecionados.length} pedidos)`
+              : "Gerar nota fiscal"}
           </Button>
         </div>
+
+        {clienteId && (
+          <ul className="mt-3 divide-y divide-border rounded-lg border">
+            {pedidosDoCliente.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 p-3 text-sm">
+                <Checkbox
+                  id={`ped-${p.id}`}
+                  checked={selecionados.includes(p.id)}
+                  onCheckedChange={(v) =>
+                    setSelecionados((atual) =>
+                      v ? [...atual, p.id] : atual.filter((x) => x !== p.id),
+                    )
+                  }
+                />
+                <Label htmlFor={`ped-${p.id}`} className="flex-1 cursor-pointer font-normal">
+                  Pedido nº {String(p.numero).padStart(4, "0")}
+                  <span className="ml-2 text-xs text-muted-foreground">{p.situacao.replace(/_/g, " ")}</span>
+                </Label>
+                <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
+              </li>
+            ))}
+            {selecionados.length > 0 && (
+              <li className="flex items-center justify-end gap-2 bg-muted/40 p-3 text-sm">
+                Total da nota
+                <strong className="text-numeric">{brl(totalSelecionado)}</strong>
+              </li>
+            )}
+          </ul>
+        )}
+
         {elegiveis.length === 0 && (
           <p className="mt-2 text-xs text-muted-foreground">
             Todos os pedidos já têm nota gerada.
@@ -334,6 +420,17 @@ function Nfe() {
                     ))}
                   </ul>
                 </div>
+              )}
+              {(pedidosDaNota ?? []).length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Pedidos nesta nota:{" "}
+                  {(pedidosDaNota ?? [])
+                    .map(
+                      (v) =>
+                        `nº ${String((v.pedidos as { numero: number } | null)?.numero ?? 0).padStart(4, "0")}`,
+                    )
+                    .join(" · ")}
+                </p>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border p-3">
