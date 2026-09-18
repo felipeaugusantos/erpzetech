@@ -401,6 +401,7 @@ function PedidoDetalhe() {
                   <TableHead className="w-28">Conferido</TableHead>
                   <TableHead className="text-right">Entregue</TableHead>
                   <TableHead className="text-right">Pendente</TableHead>
+                  <TableHead className="text-right">Custo do depósito</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
