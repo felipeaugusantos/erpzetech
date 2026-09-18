@@ -82,6 +82,7 @@ function ContasReceber() {
   const [credProf, setCredProf] = useState("");
   const [credValor, setCredValor] = useState("");
   const [credObs, setCredObs] = useState("");
+  const [historico, setHistorico] = useState<TituloHistorico | null>(null);
 
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-receber"],
