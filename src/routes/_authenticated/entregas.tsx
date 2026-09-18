@@ -75,7 +75,7 @@ function Entregas() {
       const { data, error } = await supabase
         .from("entregas")
         .select(
-          "*, veiculos(placa, descricao), motoristas(nome), pedidos(numero, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome_razao_social)), entrega_itens(quantidade, produtos(descricao))",
+          "*, veiculos(placa, descricao), motoristas(nome), pedidos(numero, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome)), entrega_itens(quantidade, produtos(descricao))",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -89,7 +89,7 @@ function Entregas() {
       const { data, error } = await supabase
         .from("pedidos")
         .select(
-          "id, numero, situacao, previsao_entrega, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome_razao_social), pedido_itens(id, produto_id, quantidade, quantidade_entregue, unidade, produtos(descricao, codigo_interno))",
+          "id, numero, situacao, previsao_entrega, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome), pedido_itens(id, produto_id, quantidade, quantidade_entregue, unidade, produtos(descricao, codigo_interno))",
         )
         .in("situacao", ["pronto_entrega", "em_rota"])
         .order("numero");
@@ -134,12 +134,12 @@ function Entregas() {
       if (filtro !== "abertas" && filtro !== "todas" && e.situacao !== filtro) return false;
       if (!t) return true;
       const pedido = e.pedidos as unknown as
-        | { numero: number; clientes: { nome_razao_social: string } | null }
+        | { numero: number; clientes: { nome: string } | null }
         | null;
       return [
         String(e.numero),
         String(pedido?.numero ?? ""),
-        pedido?.clientes?.nome_razao_social ?? "",
+        pedido?.clientes?.nome ?? "",
         (e.motoristas as unknown as { nome: string } | null)?.nome ?? "",
         (e.veiculos as unknown as { placa: string } | null)?.placa ?? "",
       ]
@@ -311,7 +311,7 @@ function Entregas() {
                       entrega_bairro: string | null;
                       entrega_cidade: string | null;
                       entrega_estado: string | null;
-                      clientes: { nome_razao_social: string } | null;
+                      clientes: { nome: string } | null;
                     }
                   | null;
                 const veiculo = e.veiculos as unknown as { placa: string; descricao: string } | null;
@@ -330,7 +330,7 @@ function Entregas() {
                       </p>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium">{pedido?.clientes?.nome_razao_social ?? "—"}</p>
+                      <p className="font-medium">{pedido?.clientes?.nome ?? "—"}</p>
                       <p className="text-xs text-muted-foreground text-numeric">
                         Pedido #{String(pedido?.numero ?? "").padStart(4, "0")}
                       </p>
@@ -418,10 +418,10 @@ function Entregas() {
                 </SelectTrigger>
                 <SelectContent>
                   {pedidos.map((p) => {
-                    const cliente = p.clientes as unknown as { nome_razao_social: string } | null;
+                    const cliente = p.clientes as unknown as { nome: string } | null;
                     return (
                       <SelectItem key={p.id} value={p.id}>
-                        #{String(p.numero).padStart(4, "0")} — {cliente?.nome_razao_social ?? "—"}
+                        #{String(p.numero).padStart(4, "0")} — {cliente?.nome ?? "—"}
                       </SelectItem>
                     );
                   })}

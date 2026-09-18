@@ -169,7 +169,7 @@ function AppMotorista() {
       const { data, error } = await supabase
         .from("entregas")
         .select(
-          "*, veiculos(placa, descricao), pedidos(numero, observacoes, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome_razao_social, telefone)), entrega_itens(id, quantidade, produtos(descricao, codigo_interno))",
+          "*, veiculos(placa, descricao), pedidos(numero, observacoes, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome, telefone)), entrega_itens(id, quantidade, produtos(descricao, codigo_interno))",
         )
         .eq("motorista_id", motoristaId)
         .in("situacao", ["planejada", "em_rota"])
@@ -306,7 +306,7 @@ function AppMotorista() {
                   entrega_bairro: string | null;
                   entrega_cidade: string | null;
                   entrega_estado: string | null;
-                  clientes: { nome_razao_social: string; telefone: string | null } | null;
+                  clientes: { nome: string; telefone: string | null } | null;
                 }
               | null;
             const veiculo = e.veiculos as unknown as { placa: string; descricao: string } | null;
@@ -316,7 +316,7 @@ function AppMotorista() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-display text-base font-semibold">
-                      {pedido?.clientes?.nome_razao_social ?? "—"}
+                      {pedido?.clientes?.nome ?? "—"}
                     </p>
                     <p className="text-xs text-muted-foreground text-numeric">
                       Entrega #{String(e.numero).padStart(4, "0")} · Pedido #
