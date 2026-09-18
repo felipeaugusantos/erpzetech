@@ -113,6 +113,7 @@ const groups: Group[] = [
       { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
+      { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
       { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
     ],
   },
