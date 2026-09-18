@@ -58,8 +58,8 @@ const groups: Group[] = [
     items: [
       { label: "Clientes", to: "/clientes", icon: Users },
       { label: "Obras", to: "/obras", icon: HardHat },
-      { label: "Orçamentos", icon: ClipboardList, soon: true },
-      { label: "Pedidos", icon: ClipboardList, soon: true },
+      { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
+      { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
       { label: "PDV", icon: Store, soon: true },
     ],
   },
