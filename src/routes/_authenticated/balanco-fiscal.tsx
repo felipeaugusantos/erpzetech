@@ -238,6 +238,43 @@ function BalancoFiscal() {
     };
   }, [data?.movs, filialSel]);
 
+  /** Vendas de balcão (PDV) do período, separadas pelo depósito de saída. */
+  const vendasPdv = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { deposito: string; vendas: number; receita: number; custo: number }
+    >();
+    let receita = 0;
+    let custo = 0;
+    for (const p of data?.pedidos ?? []) {
+      if ((p as { origem?: string }).origem !== "pdv") continue;
+      const d = p.depositos as unknown as { nome: string; filial_id: string | null } | null;
+      if (filialSel !== "todas" && (d?.filial_id ?? p.filial_id) !== filialSel) continue;
+      const nome = d?.nome ?? "Sem depósito";
+      const atual = mapa.get(nome) ?? { deposito: nome, vendas: 0, receita: 0, custo: 0 };
+      const itens = (p.pedido_itens ?? []) as Array<{
+        quantidade: number;
+        custo_unitario: number;
+        total: number;
+      }>;
+      atual.vendas += 1;
+      for (const i of itens) {
+        atual.receita += Number(i.total);
+        atual.custo += Number(i.quantidade) * Number(i.custo_unitario);
+        receita += Number(i.total);
+        custo += Number(i.quantidade) * Number(i.custo_unitario);
+      }
+      mapa.set(nome, atual);
+    }
+    return {
+      receita,
+      custo,
+      lucro: receita - custo,
+      lista: [...mapa.values()].sort((a, b) => b.receita - a.receita),
+    };
+  }, [data?.pedidos, filialSel]);
+
+
   const linhas = [
     { conta: "1. Receita de notas emitidas", valor: contas.receitaNotas, tipo: "receita" },
     { conta: "1.1 Descontos concedidos", valor: -contas.desconto, tipo: "dedução" },
