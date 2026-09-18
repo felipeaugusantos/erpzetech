@@ -138,6 +138,8 @@ const groups: Group[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  /** Módulos recolhidos, guardados no navegador do usuário. */
+  const [fechados, setFechados] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useSessionData();
   const navigate = useNavigate();
