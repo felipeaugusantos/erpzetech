@@ -1603,6 +1603,65 @@ export type Database = {
           },
         ]
       }
+      fiscal_config: {
+        Row: {
+          ambiente: string
+          certificado_nome: string | null
+          certificado_validade: string | null
+          cfop_padrao: string
+          created_at: string
+          emissor: string | null
+          empresa_id: string | null
+          id: string
+          informacoes_complementares: string | null
+          proximo_numero: number
+          regime_tributario: string
+          serie: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          certificado_nome?: string | null
+          certificado_validade?: string | null
+          cfop_padrao?: string
+          created_at?: string
+          emissor?: string | null
+          empresa_id?: string | null
+          id?: string
+          informacoes_complementares?: string | null
+          proximo_numero?: number
+          regime_tributario?: string
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          certificado_nome?: string | null
+          certificado_validade?: string | null
+          cfop_padrao?: string
+          created_at?: string
+          emissor?: string | null
+          empresa_id?: string | null
+          id?: string
+          informacoes_complementares?: string | null
+          proximo_numero?: number
+          regime_tributario?: string
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean
@@ -1800,6 +1859,216 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe: {
+        Row: {
+          ambiente: string
+          cancelada_em: string | null
+          cfop: string | null
+          chave: string | null
+          cliente_id: string | null
+          created_at: string
+          deposito_id: string | null
+          destinatario: Json | null
+          emitente: Json | null
+          emitida_em: string | null
+          empresa_id: string | null
+          filial_id: string | null
+          id: string
+          mensagem: string | null
+          motivo_cancelamento: string | null
+          natureza_operacao: string
+          numero: number | null
+          pdf_url: string | null
+          pedido_id: string | null
+          pendencias: string[]
+          protocolo: string | null
+          serie: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor_desconto: number
+          valor_frete: number
+          valor_produtos: number
+          valor_total: number
+          xml_url: string | null
+        }
+        Insert: {
+          ambiente?: string
+          cancelada_em?: string | null
+          cfop?: string | null
+          chave?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          destinatario?: Json | null
+          emitente?: Json | null
+          emitida_em?: string | null
+          empresa_id?: string | null
+          filial_id?: string | null
+          id?: string
+          mensagem?: string | null
+          motivo_cancelamento?: string | null
+          natureza_operacao?: string
+          numero?: number | null
+          pdf_url?: string | null
+          pedido_id?: string | null
+          pendencias?: string[]
+          protocolo?: string | null
+          serie?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_desconto?: number
+          valor_frete?: number
+          valor_produtos?: number
+          valor_total?: number
+          xml_url?: string | null
+        }
+        Update: {
+          ambiente?: string
+          cancelada_em?: string | null
+          cfop?: string | null
+          chave?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          destinatario?: Json | null
+          emitente?: Json | null
+          emitida_em?: string | null
+          empresa_id?: string | null
+          filial_id?: string | null
+          id?: string
+          mensagem?: string | null
+          motivo_cancelamento?: string | null
+          natureza_operacao?: string
+          numero?: number | null
+          pdf_url?: string | null
+          pedido_id?: string | null
+          pendencias?: string[]
+          protocolo?: string | null
+          serie?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_desconto?: number
+          valor_frete?: number
+          valor_produtos?: number
+          valor_total?: number
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_itens: {
+        Row: {
+          aliquota_icms: number
+          cfop: string | null
+          codigo: string | null
+          created_at: string
+          cst_csosn: string | null
+          custo_unitario: number
+          desconto: number
+          descricao: string
+          id: string
+          ncm: string | null
+          nfe_id: string
+          preco_unitario: number
+          produto_id: string | null
+          quantidade: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          aliquota_icms?: number
+          cfop?: string | null
+          codigo?: string | null
+          created_at?: string
+          cst_csosn?: string | null
+          custo_unitario?: number
+          desconto?: number
+          descricao: string
+          id?: string
+          ncm?: string | null
+          nfe_id: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          aliquota_icms?: number
+          cfop?: string | null
+          codigo?: string | null
+          created_at?: string
+          cst_csosn?: string | null
+          custo_unitario?: number
+          desconto?: number
+          descricao?: string
+          id?: string
+          ncm?: string | null
+          nfe_id?: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_itens_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -2413,13 +2682,17 @@ export type Database = {
       }
       produtos: {
         Row: {
+          aliquota_icms: number
           altura: number | null
           ativo: boolean
           categoria_id: string | null
+          cest: string | null
+          cfop: string | null
           codigo_barras: string | null
           codigo_interno: string
           comprimento: number | null
           created_at: string
+          cst_csosn: string | null
           custo: number
           deleted_at: string | null
           descricao: string
@@ -2435,6 +2708,7 @@ export type Database = {
           localizacao: string | null
           marca: string | null
           ncm: string | null
+          origem_mercadoria: string | null
           peso: number | null
           preco_venda: number
           tenant_id: string
@@ -2444,13 +2718,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliquota_icms?: number
           altura?: number | null
           ativo?: boolean
           categoria_id?: string | null
+          cest?: string | null
+          cfop?: string | null
           codigo_barras?: string | null
           codigo_interno: string
           comprimento?: number | null
           created_at?: string
+          cst_csosn?: string | null
           custo?: number
           deleted_at?: string | null
           descricao: string
@@ -2466,6 +2744,7 @@ export type Database = {
           localizacao?: string | null
           marca?: string | null
           ncm?: string | null
+          origem_mercadoria?: string | null
           peso?: number | null
           preco_venda?: number
           tenant_id: string
@@ -2475,13 +2754,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliquota_icms?: number
           altura?: number | null
           ativo?: boolean
           categoria_id?: string | null
+          cest?: string | null
+          cfop?: string | null
           codigo_barras?: string | null
           codigo_interno?: string
           comprimento?: number | null
           created_at?: string
+          cst_csosn?: string | null
           custo?: number
           deleted_at?: string | null
           descricao?: string
@@ -2497,6 +2780,7 @@ export type Database = {
           localizacao?: string | null
           marca?: string | null
           ncm?: string | null
+          origem_mercadoria?: string | null
           peso?: number | null
           preco_venda?: number
           tenant_id?: string
@@ -2859,6 +3143,10 @@ export type Database = {
           p_primeiro_vencimento?: string
         }
         Returns: number
+      }
+      gerar_nfe: {
+        Args: { p_natureza?: string; p_pedido_id: string }
+        Returns: string
       }
       has_role: {
         Args: {
