@@ -305,7 +305,10 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        ERP Ze Tech • Multiempresa, multifilial e multidepósito
+        <p>ERP Ze Tech • Multiempresa, multifilial e multidepósito</p>
+        <Button asChild variant="ghost" size="sm" className="mt-2 text-xs">
+          <Link to="/ze-tech-login">Painel Ze Tech (equipe)</Link>
+        </Button>
       </footer>
     </div>
   );
