@@ -169,9 +169,11 @@ export type Database = {
         Row: {
           caixa_id: string
           created_at: string
+          deposito_id: string | null
           descricao: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
           id: string
+          pedido_id: string | null
           tenant_id: string
           tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
           usuario_id: string | null
@@ -180,11 +182,13 @@ export type Database = {
         Insert: {
           caixa_id: string
           created_at?: string
+          deposito_id?: string | null
           descricao?: string | null
           forma_pagamento?:
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
+          pedido_id?: string | null
           tenant_id: string
           tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
           usuario_id?: string | null
@@ -193,11 +197,13 @@ export type Database = {
         Update: {
           caixa_id?: string
           created_at?: string
+          deposito_id?: string | null
           descricao?: string | null
           forma_pagamento?:
             | Database["public"]["Enums"]["forma_pagamento"]
             | null
           id?: string
+          pedido_id?: string | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["caixa_mov_tipo"]
           usuario_id?: string | null
@@ -209,6 +215,20 @@ export type Database = {
             columns: ["caixa_id"]
             isOneToOne: false
             referencedRelation: "caixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentos_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
           {
@@ -2929,6 +2949,7 @@ export type Database = {
           obra_id: string | null
           observacoes: string | null
           orcamento_id: string | null
+          origem: string
           previsao_entrega: string | null
           situacao: Database["public"]["Enums"]["pedido_situacao"]
           subtotal: number
@@ -2960,6 +2981,7 @@ export type Database = {
           obra_id?: string | null
           observacoes?: string | null
           orcamento_id?: string | null
+          origem?: string
           previsao_entrega?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
@@ -2991,6 +3013,7 @@ export type Database = {
           obra_id?: string | null
           observacoes?: string | null
           orcamento_id?: string | null
+          origem?: string
           previsao_entrega?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
@@ -3681,6 +3704,18 @@ export type Database = {
           p_forma: Database["public"]["Enums"]["forma_pagamento"]
           p_observacao?: string
           p_tipo: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      caixa_lancar: {
+        Args: {
+          p_caixa_id: string
+          p_deposito_id?: string
+          p_descricao?: string
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_pedido_id?: string
+          p_tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
           p_valor: number
         }
         Returns: string
