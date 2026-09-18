@@ -129,12 +129,12 @@ function Usuarios() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead className="w-28">Código</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Perfis</TableHead>
-                    <TableHead>Filial</TableHead>
-                    <TableHead>Situação</TableHead>
+                    <TableHead className="min-w-56">Usuário</TableHead>
+                    <TableHead className="w-24 text-center">Código</TableHead>
+                    <TableHead className="min-w-56">E-mail</TableHead>
+                    <TableHead className="w-56">Perfis</TableHead>
+                    <TableHead className="w-40">Filial</TableHead>
+                    <TableHead className="w-28 text-center">Situação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
