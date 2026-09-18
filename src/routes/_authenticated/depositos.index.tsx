@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/depositos")({
+export const Route = createFileRoute("/_authenticated/depositos/")({
   head: () => ({
     meta: [
       { title: "Depósitos — Ze Obra" },
