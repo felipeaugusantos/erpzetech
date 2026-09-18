@@ -10,6 +10,7 @@ import { brl, dateTimeBR, num } from "@/lib/format";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
+import { InstalarApp } from "@/components/app/InstalarApp";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
