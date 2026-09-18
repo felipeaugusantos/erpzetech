@@ -37,7 +37,10 @@ function AuthPage() {
     setLoading("login");
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
     setLoading(null);
-    if (error) return toast.error("Não foi possível entrar", { description: error.message });
+    if (error) {
+      toast.error("Não foi possível entrar", { description: error.message });
+      return;
+    }
     navigate({ to: "/dashboard" });
   }
 
@@ -50,7 +53,10 @@ function AuthPage() {
       options: { emailRedirectTo: window.location.origin, data: { nome } },
     });
     setLoading(null);
-    if (error) return toast.error("Não foi possível criar a conta", { description: error.message });
+    if (error) {
+      toast.error("Não foi possível criar a conta", { description: error.message });
+      return;
+    }
     if (!data.session) {
       toast.success("Confirme seu e-mail", {
         description: "Enviamos um link de confirmação para concluir o cadastro.",
@@ -67,7 +73,8 @@ function AuthPage() {
     });
     if (result.error) {
       setLoading(null);
-      return toast.error("Falha no acesso com Google");
+      toast.error("Falha no acesso com Google");
+      return;
     }
     if (result.redirected) return;
     navigate({ to: "/dashboard" });
