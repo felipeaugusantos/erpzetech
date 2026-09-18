@@ -114,9 +114,14 @@ function Caixa() {
 
   const abrir = useMutation({
     mutationFn: async () => {
-      if (!filialId) throw new Error("Usuário sem filial vinculada");
+      let alvo = filialId;
+      if (!alvo) {
+        const { data } = await supabase.from("filiais").select("id").order("nome").limit(1);
+        alvo = data?.[0]?.id ?? null;
+      }
+      if (!alvo) throw new Error("Nenhuma filial cadastrada para abrir o caixa");
       const { error } = await supabase.rpc("abrir_caixa", {
-        p_filial_id: filialId,
+        p_filial_id: alvo,
         p_valor_abertura: Number(valorAbertura.replace(",", ".") || 0),
       });
       if (error) throw error;
