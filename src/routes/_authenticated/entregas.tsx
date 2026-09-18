@@ -1,12 +1,21 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, MapPin, Play, Search, Truck, XCircle } from "lucide-react";
+import { CalendarClock, MapPin, Play, Route as RouteIcon, Search, Truck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
 import { corEntrega, enderecoPedido, labelEntrega, motivosInsucesso, situacoesEntrega } from "@/lib/entrega";
+import {
+  diasParaEntrega,
+  hojeISO,
+  roteirizar,
+  rotuloUrgencia,
+  volumeM3,
+  type PedidoRota,
+  type VeiculoRota,
+} from "@/lib/rota";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +59,14 @@ type PedidoItem = {
   quantidade: number;
   quantidade_entregue: number;
   unidade: string;
-  produtos: { descricao: string; codigo_interno: string } | null;
+  produtos: {
+    descricao: string;
+    codigo_interno: string;
+    peso?: number | null;
+    altura?: number | null;
+    largura?: number | null;
+    comprimento?: number | null;
+  } | null;
 };
 
 function Entregas() {
@@ -68,6 +84,9 @@ function Entregas() {
   const [insucessoId, setInsucessoId] = useState<string | null>(null);
   const [motivo, setMotivo] = useState<string>(motivosInsucesso[0]);
   const [motivoObs, setMotivoObs] = useState("");
+  const [rotaAberta, setRotaAberta] = useState(false);
+  const [diaRota, setDiaRota] = useState(hojeISO());
+  const [veiculosEscolhidos, setVeiculosEscolhidos] = useState<string[]>([]);
 
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ["entregas"],
@@ -89,7 +108,7 @@ function Entregas() {
       const { data, error } = await supabase
         .from("pedidos")
         .select(
-          "id, numero, situacao, previsao_entrega, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome), pedido_itens(id, produto_id, quantidade, quantidade_entregue, unidade, produtos(descricao, codigo_interno))",
+          "id, numero, situacao, previsao_entrega, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome), pedido_itens(id, produto_id, quantidade, quantidade_entregue, unidade, produtos(descricao, codigo_interno, peso, altura, largura, comprimento))",
         )
         .in("situacao", ["pronto_entrega", "em_rota"])
         .order("numero");
@@ -103,7 +122,7 @@ function Entregas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("veiculos")
-        .select("id, placa, descricao")
+        .select("id, placa, descricao, capacidade_kg, capacidade_m3")
         .eq("ativo", true)
         .order("descricao");
       if (error) throw error;
@@ -126,6 +145,98 @@ function Entregas() {
 
   const pedidoSelecionado = pedidos.find((p) => p.id === pedidoId);
   const itensPedido = (pedidoSelecionado?.pedido_itens ?? []) as unknown as PedidoItem[];
+
+  /** Pedidos ainda sem entrega em aberto, já com peso e volume calculados. */
+  const pedidosRota = useMemo<PedidoRota[]>(() => {
+    const comEntregaAberta = new Set(
+      entregas
+        .filter((e) => ["planejada", "em_rota"].includes(e.situacao))
+        .map((e) => e.pedido_id as string),
+    );
+    return pedidos
+      .filter((p) => !comEntregaAberta.has(p.id))
+      .map((p) => {
+        const itens = (p.pedido_itens ?? []) as unknown as PedidoItem[];
+        const pendentes = itens
+          .map((i) => {
+            const q = Number(i.quantidade) - Number(i.quantidade_entregue);
+            const prod = i.produtos;
+            return {
+              pedido_item_id: i.id,
+              quantidade: q,
+              peso: q * Number(prod?.peso ?? 0),
+              volume: q * volumeM3(prod?.altura, prod?.largura, prod?.comprimento),
+            };
+          })
+          .filter((i) => i.quantidade > 0);
+        return {
+          id: p.id,
+          numero: Number(p.numero),
+          cliente: (p.clientes as unknown as { nome: string } | null)?.nome ?? "—",
+          bairro: p.entrega_bairro ?? "",
+          cidade: p.entrega_cidade ?? "",
+          previsao: p.previsao_entrega ?? null,
+          itens: pendentes,
+          pesoKg: pendentes.reduce((s, i) => s + i.peso, 0),
+          volumeM3: pendentes.reduce((s, i) => s + i.volume, 0),
+        };
+      })
+      .filter((p) => p.itens.length > 0);
+  }, [pedidos, entregas]);
+
+  const veiculosRota = useMemo<VeiculoRota[]>(
+    () =>
+      veiculos
+        .filter((v) => veiculosEscolhidos.length === 0 || veiculosEscolhidos.includes(v.id))
+        .map((v) => {
+          const m = motoristas.find((x) => x.veiculo_id === v.id);
+          return {
+            id: v.id,
+            placa: v.placa,
+            descricao: v.descricao ?? v.placa,
+            capacidade_kg: v.capacidade_kg,
+            capacidade_m3: v.capacidade_m3,
+            motorista_id: m?.id ?? null,
+            motorista_nome: m?.nome ?? null,
+          };
+        }),
+    [veiculos, motoristas, veiculosEscolhidos],
+  );
+
+  const sugestao = useMemo(
+    () => roteirizar(pedidosRota, veiculosRota, diaRota || hojeISO()),
+    [pedidosRota, veiculosRota, diaRota],
+  );
+
+  const aplicarRota = useMutation({
+    mutationFn: async () => {
+      const rotas = sugestao.rotas.filter((r) => r.paradas.length > 0);
+      if (rotas.length === 0) throw new Error("Nenhuma entrega para roteirizar");
+      for (const r of rotas) {
+        for (const parada of r.paradas) {
+          const { error } = await supabase.rpc("planejar_entrega", {
+            p_pedido_id: parada.pedido.id,
+            p_itens: parada.pedido.itens.map((i) => ({
+              pedido_item_id: i.pedido_item_id,
+              quantidade: i.quantidade,
+            })),
+            p_veiculo_id: r.veiculo.id,
+            p_sequencia: parada.sequencia,
+            ...(r.veiculo.motorista_id ? { p_motorista_id: r.veiculo.motorista_id } : {}),
+            ...(diaRota ? { p_previsao: diaRota } : {}),
+          });
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success("Rota criada a partir da sugestão.");
+      setRotaAberta(false);
+      void queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      void queryClient.invalidateQueries({ queryKey: ["pedidos-para-entrega"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
