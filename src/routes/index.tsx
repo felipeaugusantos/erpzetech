@@ -83,6 +83,53 @@ const features = [
   },
 ];
 
+const planos = [
+  {
+    nome: "Balcão",
+    preco: "R$ 149",
+    resumo: "1 loja, 1 depósito, 5 usuários",
+    destaque: false,
+    teste: false,
+    itens: [
+      "Clientes e obras",
+      "Produtos e categorias",
+      "Estoque com reserva",
+      "Orçamento no balcão",
+      "Pedidos",
+    ],
+  },
+  {
+    nome: "Loja",
+    preco: "R$ 299",
+    resumo: "1 loja, depósitos ilimitados, 15 usuários",
+    destaque: true,
+    teste: true,
+    itens: [
+      "Tudo do Balcão",
+      "Compras com cotação",
+      "Separação e conferência",
+      "Entregas",
+      "Financeiro completo",
+      "NF-e",
+    ],
+  },
+  {
+    nome: "Rede",
+    preco: "R$ 599",
+    resumo: "Multiempresa e filiais, usuários ilimitados",
+    destaque: false,
+    teste: true,
+    itens: [
+      "Tudo do Loja",
+      "Roteirização automática",
+      "Tela do motorista",
+      "Custo por depósito",
+      "Balanço fiscal",
+      "Relatórios gerenciais",
+    ],
+  },
+];
+
 function Landing() {
   return (
     <div className="min-h-screen">
