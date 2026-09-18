@@ -80,6 +80,20 @@ function Credito() {
     },
   });
 
+  const { data: pedidosCrediario = [] } = useQuery({
+    queryKey: ["credito-pedidos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("id, numero, total, situacao, created_at, cliente_id, clientes(nome, limite_credito)")
+        .eq("forma_pagamento", "crediario")
+        .not("situacao", "in", "(cancelado,concluido)")
+        .order("numero", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const hoje = new Date().toISOString().slice(0, 10);
   const saldoPor = new Map<string, { usado: number; vencido: number }>();
   for (const c of emAberto) {
