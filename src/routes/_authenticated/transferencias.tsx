@@ -348,7 +348,6 @@ function Transferencias() {
           <p className="p-6 text-sm text-muted-foreground">Carregando...</p>
         ) : filtradas.length === 0 ? (
           <EmptyState
-            icon={ArrowLeftRight}
             title="Nenhuma transferência"
             description="Crie uma transferência para mandar mercadoria de uma loja para outra."
           />
