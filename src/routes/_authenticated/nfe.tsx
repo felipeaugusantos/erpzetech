@@ -491,13 +491,42 @@ function Nfe() {
                 <span className="text-base font-semibold">{brl(Number(nota.valor_total))}</span>
               </div>
               {nota.mensagem && <p className="text-xs text-muted-foreground">{nota.mensagem}</p>}
+              {nota.chave && (
+                <p className="break-all text-xs text-muted-foreground">
+                  Chave de acesso: {nota.chave}
+                  {nota.protocolo ? ` · protocolo ${nota.protocolo}` : ""}
+                </p>
+              )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="mr-2 size-4" />
               Imprimir
             </Button>
+            {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
+              <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>
+                <Send className="mr-2 size-4" /> Enviar à Receita
+              </Button>
+            )}
+            {nota?.provider_id && (
+              <Button
+                variant="secondary"
+                disabled={consultarSituacao.isPending}
+                onClick={() => consultarSituacao.mutate(nota.id)}
+              >
+                <RefreshCw className="mr-2 size-4" /> Consultar situação
+              </Button>
+            )}
+            {nota?.situacao === "autorizada" && (
+              <Button
+                variant="secondary"
+                disabled={baixarArquivos.isPending}
+                onClick={() => baixarArquivos.mutate(nota.id)}
+              >
+                <FileText className="mr-2 size-4" /> DANFE e XML
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
