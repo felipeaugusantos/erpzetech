@@ -72,6 +72,9 @@ function GiroEstoque() {
   const [busca, setBusca] = useState("");
   const [horizonte, setHorizonte] = useState<"15" | "30" | "60">("30");
 
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
   const dias = Number(janela);
   const desde = useMemo(
     () => new Date(Date.now() - dias * 86400000).toISOString(),
