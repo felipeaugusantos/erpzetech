@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, Truck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,21 @@ export const Route = createFileRoute("/_authenticated/pedidos/$id")({
 function PedidoDetalhe() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+
+  const gerarNota = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("gerar_nfe", { p_pedido_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Nota fiscal gerada", {
+        description: "Abra Financeiro > Notas fiscais para conferir e transmitir.",
+      });
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível gerar a nota", { description: e.message }),
+  });
 
   const [separado, setSeparado] = useState<Record<string, string>>({});
   const [conferido, setConferido] = useState<Record<string, string>>({});

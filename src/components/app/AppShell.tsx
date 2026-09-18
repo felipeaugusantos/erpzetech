@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Store,
   Tag,
+  TrendingUp,
   Truck,
   Users,
   Wallet,
