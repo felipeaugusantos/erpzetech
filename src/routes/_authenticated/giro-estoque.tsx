@@ -78,20 +78,8 @@ function GiroEstoque() {
   );
 
   const { data, isLoading } = useQuery({
-    queryKey: ["giro-estoque", janela, depositoId],
+    queryKey: ["giro-estoque", janela],
     queryFn: async () => {
-      const itensQuery = supabase
-        .from("pedido_itens")
-        .select(
-          "produto_id, quantidade, total, pedidos!inner(id, created_at, situacao, deposito_id)",
-        )
-        .gte("pedidos.created_at", desde)
-        .neq("pedidos.situacao", "cancelado");
-      if (depositoId !== "todos") itensQuery.eq("pedidos.deposito_id", depositoId);
-
-      const estoqueQuery = supabase.from("estoques").select("produto_id, quantidade, reservado, custo_medio, deposito_id");
-      if (depositoId !== "todos") estoqueQuery.eq("deposito_id", depositoId);
-
       const [depRes, prodRes, itensRes, estRes] = await Promise.all([
         supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
         supabase
@@ -101,8 +89,16 @@ function GiroEstoque() {
           )
           .eq("ativo", true)
           .order("descricao"),
-        itensQuery,
-        estoqueQuery,
+        supabase
+          .from("pedido_itens")
+          .select(
+            "produto_id, quantidade, total, pedidos!inner(id, created_at, situacao, deposito_id)",
+          )
+          .gte("pedidos.created_at", desde)
+          .neq("pedidos.situacao", "cancelado"),
+        supabase
+          .from("estoques")
+          .select("produto_id, quantidade, reservado, custo_medio, deposito_id"),
       ]);
       if (itensRes.error) throw itensRes.error;
       if (estRes.error) throw estRes.error;
