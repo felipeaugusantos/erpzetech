@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IdCard, Pencil, Plus, Search } from "lucide-react";
+import { IdCard, KeyRound, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { criarLoginMotorista } from "@/lib/motorista-login.functions";
 import { dateBR } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,24 @@ function Motoristas() {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [loginMotorista, setLoginMotorista] = useState<{ id: string; nome: string } | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginSenha, setLoginSenha] = useState("");
+
+  const criarLogin = useMutation({
+    mutationFn: async () => {
+      if (!loginMotorista) return;
+      await criarLoginMotorista({
+        data: { motoristaId: loginMotorista.id, email: loginEmail, senha: loginSenha },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Login do motorista criado. Passe o e-mail e a senha para ele.");
+      setLoginMotorista(null);
+      void queryClient.invalidateQueries({ queryKey: ["motoristas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: motoristas = [], isLoading } = useQuery({
     queryKey: ["motoristas"],
@@ -254,7 +273,25 @@ function Motoristas() {
                         <Badge variant="outline">Inativo</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
+                      {m.user_id ? (
+                        <Badge variant="secondary" className="mr-1">
+                          <KeyRound className="mr-1 size-3" /> com login
+                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mr-1"
+                          onClick={() => {
+                            setLoginMotorista({ id: m.id, nome: m.nome });
+                            setLoginEmail("");
+                            setLoginSenha("");
+                          }}
+                        >
+                          <KeyRound className="size-4" /> Criar login
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -367,6 +404,44 @@ function Motoristas() {
             </Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={loginMotorista !== null} onOpenChange={(o) => !o && setLoginMotorista(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar login de {loginMotorista?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">
+              O motorista entra com este e-mail e senha e vê somente as entregas da própria rota.
+            </p>
+            <div>
+              <Label>E-mail do motorista</Label>
+              <Input
+                type="email"
+                value={loginEmail}
+                placeholder="motorista@email.com"
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Senha provisória</Label>
+              <Input
+                value={loginSenha}
+                placeholder="mínimo 8 caracteres"
+                onChange={(e) => setLoginSenha(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoginMotorista(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => criarLogin.mutate()} disabled={criarLogin.isPending}>
+              Criar login
             </Button>
           </DialogFooter>
         </DialogContent>

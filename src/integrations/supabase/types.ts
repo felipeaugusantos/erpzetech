@@ -2747,11 +2747,13 @@ export type Database = {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
       }
+      current_motorista_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
       decidir_autorizacao_credito: {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
       }
+      eh_motorista_restrito: { Args: never; Returns: boolean }
       entrega_concluir: {
         Args: {
           p_assinatura?: string

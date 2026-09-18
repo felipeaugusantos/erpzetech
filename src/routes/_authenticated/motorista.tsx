@@ -158,9 +158,28 @@ function AppMotorista() {
     },
   });
 
+  /** Motorista vinculado ao login atual — quando existe, a tela fica travada nele. */
+  const { data: meuMotorista } = useQuery({
+    queryKey: ["meu-motorista"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase
+        .from("motoristas")
+        .select("id, nome")
+        .eq("user_id", u.user.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
   useEffect(() => {
+    if (meuMotorista) {
+      if (motoristaId !== meuMotorista.id) setMotoristaId(meuMotorista.id);
+      return;
+    }
     if (!motoristaId && motoristas[0]) setMotoristaId(motoristas[0].id);
-  }, [motoristas, motoristaId]);
+  }, [motoristas, motoristaId, meuMotorista]);
 
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ["entregas-motorista", motoristaId],
@@ -174,6 +193,25 @@ function AppMotorista() {
         .eq("motorista_id", motoristaId)
         .in("situacao", ["planejada", "em_rota"])
         .order("sequencia", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  /** Entregas já finalizadas do motorista, para ele acompanhar divergências e insucessos. */
+  const { data: finalizadas = [] } = useQuery({
+    queryKey: ["entregas-motorista-finalizadas", motoristaId],
+    enabled: Boolean(motoristaId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("entregas")
+        .select(
+          "id, numero, situacao, data_entrega, motivo_insucesso, observacao, recebedor, pedidos(numero, clientes(nome))",
+        )
+        .eq("motorista_id", motoristaId)
+        .in("situacao", ["entregue", "insucesso"])
+        .order("updated_at", { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data;
     },
@@ -271,21 +309,31 @@ function AppMotorista() {
         description="Rota do dia na palma da mão: confirme quem recebeu, tire a foto e colha a assinatura."
       />
 
-      <div className="panel mb-4 p-3">
-        <Label>Motorista</Label>
-        <Select value={motoristaId} onValueChange={setMotoristaId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Escolha o motorista" />
-          </SelectTrigger>
-          <SelectContent>
-            {motoristas.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {meuMotorista ? (
+        <div className="panel mb-4 flex items-center justify-between gap-3 p-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Motorista</p>
+            <p className="font-display text-sm font-semibold">{meuMotorista.nome}</p>
+          </div>
+          <Badge variant="secondary">Sua rota</Badge>
+        </div>
+      ) : (
+        <div className="panel mb-4 p-3">
+          <Label>Motorista</Label>
+          <Select value={motoristaId} onValueChange={setMotoristaId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Escolha o motorista" />
+            </SelectTrigger>
+            <SelectContent>
+              {motoristas.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
@@ -389,6 +437,33 @@ function AppMotorista() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {finalizadas.length > 0 && (
+        <div className="panel mt-4 p-4">
+          <h2 className="font-display text-sm font-semibold">Entregas finalizadas e divergências</h2>
+          <ul className="mt-2 divide-y divide-border">
+            {finalizadas.map((f) => {
+              const cliente = (f.pedidos as unknown as { numero: number; clientes: { nome: string } | null } | null);
+              return (
+                <li key={f.id} className="py-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">{cliente?.clientes?.nome ?? "—"}</span>
+                    <Badge className={corEntrega(f.situacao)}>{labelEntrega(f.situacao)}</Badge>
+                  </div>
+                  <p className="text-numeric text-xs text-muted-foreground">
+                    Entrega #{String(f.numero).padStart(4, "0")}
+                    {f.recebedor ? ` · recebido por ${f.recebedor}` : ""}
+                  </p>
+                  {f.motivo_insucesso && (
+                    <p className="text-xs text-destructive">Motivo: {f.motivo_insucesso}</p>
+                  )}
+                  {f.observacao && <p className="text-xs text-muted-foreground">{f.observacao}</p>}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

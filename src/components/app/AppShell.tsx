@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  Tag,
   Truck,
   Users,
   Wallet,
@@ -70,6 +71,7 @@ const groups: Group[] = [
     icon: Boxes,
     items: [
       { label: "Produtos", to: "/produtos", icon: PackageSearch },
+      { label: "Preços e margens", to: "/precos", icon: Tag },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
@@ -145,6 +147,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     [data],
   );
 
+  /** Motorista puro vê apenas a própria rota. */
+  const somenteMotorista = useMemo(() => {
+    const roles = data?.roles ?? [];
+    return (
+      roles.includes("motorista") &&
+      !roles.some((r) => ["administrador", "gestor", "logistica"].includes(r))
+    );
+  }, [data]);
+
+  const menu: Group[] = somenteMotorista
+    ? [
+        {
+          label: "Minha rota",
+          icon: Truck,
+          items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
+        },
+      ]
+    : groups;
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -184,7 +205,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {groups.map((group) => (
+          {menu.map((group) => (
             <div key={group.label}>
               <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
                 {group.label}
