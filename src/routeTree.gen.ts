@@ -26,10 +26,12 @@ import { Route as AuthenticatedCreditoRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -142,6 +144,12 @@ const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   path: '/estoque',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstoqueMovimentosRoute =
+  AuthenticatedEstoqueMovimentosRouteImport.update({
+    id: '/estoque-movimentos',
+    path: '/estoque-movimentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFilialExtraRoute =
   AuthenticatedFilialExtraRouteImport.update({
     id: '/filial-extra',
@@ -162,6 +170,12 @@ const AuthenticatedFornecedoresRoute =
   AuthenticatedFornecedoresRouteImport.update({
     id: '/fornecedores',
     path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInventariosRoute =
+  AuthenticatedInventariosRouteImport.update({
+    id: '/inventarios',
+    path: '/inventarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
@@ -299,10 +313,12 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -343,10 +359,12 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -389,10 +407,12 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -435,10 +455,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/entregas'
     | '/estoque'
+    | '/estoque-movimentos'
     | '/filial-extra'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/inventarios'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -479,10 +501,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/entregas'
     | '/estoque'
+    | '/estoque-movimentos'
     | '/filial-extra'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/inventarios'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -524,10 +548,12 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/entregas'
     | '/_authenticated/estoque'
+    | '/_authenticated/estoque-movimentos'
     | '/_authenticated/filial-extra'
     | '/_authenticated/fiscal'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/inventarios'
     | '/_authenticated/lucro'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -680,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/estoque-movimentos': {
+      id: '/_authenticated/estoque-movimentos'
+      path: '/estoque-movimentos'
+      fullPath: '/estoque-movimentos'
+      preLoaderRoute: typeof AuthenticatedEstoqueMovimentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/filial-extra': {
       id: '/_authenticated/filial-extra'
       path: '/filial-extra'
@@ -706,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/fornecedores'
       fullPath: '/fornecedores'
       preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inventarios': {
+      id: '/_authenticated/inventarios'
+      path: '/inventarios'
+      fullPath: '/inventarios'
+      preLoaderRoute: typeof AuthenticatedInventariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lucro': {
@@ -879,10 +919,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -921,10 +963,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,

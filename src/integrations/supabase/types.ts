@@ -1484,6 +1484,7 @@ export type Database = {
       estoque_movimentacoes: {
         Row: {
           created_at: string
+          custo_unitario: number
           deposito_destino_id: string | null
           deposito_id: string
           documento: string | null
@@ -1497,9 +1498,11 @@ export type Database = {
           tipo: Database["public"]["Enums"]["mov_tipo"]
           unidade: string | null
           usuario_id: string | null
+          valor_total: number
         }
         Insert: {
           created_at?: string
+          custo_unitario?: number
           deposito_destino_id?: string | null
           deposito_id: string
           documento?: string | null
@@ -1513,9 +1516,11 @@ export type Database = {
           tipo: Database["public"]["Enums"]["mov_tipo"]
           unidade?: string | null
           usuario_id?: string | null
+          valor_total?: number
         }
         Update: {
           created_at?: string
+          custo_unitario?: number
           deposito_destino_id?: string | null
           deposito_id?: string
           documento?: string | null
@@ -1529,6 +1534,7 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["mov_tipo"]
           unidade?: string | null
           usuario_id?: string | null
+          valor_total?: number
         }
         Relationships: [
           {
@@ -1925,6 +1931,107 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventario_itens: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          id: string
+          inventario_id: string
+          observacao: string | null
+          produto_id: string
+          quantidade_contada: number | null
+          quantidade_sistema: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          inventario_id: string
+          observacao?: string | null
+          produto_id: string
+          quantidade_contada?: number | null
+          quantidade_sistema?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          inventario_id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade_contada?: number | null
+          quantidade_sistema?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventario_itens_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "inventarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventario_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventarios: {
+        Row: {
+          aplicado_em: string | null
+          created_at: string
+          deposito_id: string
+          descricao: string | null
+          id: string
+          observacao: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          aplicado_em?: string | null
+          created_at?: string
+          deposito_id: string
+          descricao?: string | null
+          id?: string
+          observacao?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          aplicado_em?: string | null
+          created_at?: string
+          deposito_id?: string
+          descricao?: string | null
+          id?: string
+          observacao?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventarios_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
             referencedColumns: ["id"]
           },
         ]
@@ -3546,6 +3653,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      inventario_abrir: {
+        Args: { p_deposito_id: string; p_descricao?: string }
+        Returns: string
+      }
+      inventario_aplicar: { Args: { p_inventario_id: string }; Returns: number }
+      inventario_cancelar: {
+        Args: { p_inventario_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      inventario_contar: {
+        Args: { p_contada: number; p_item_id: string; p_observacao?: string }
+        Returns: undefined
+      }
       pedido_avancar_status: {
         Args: {
           p_observacao?: string
@@ -3590,18 +3710,32 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimentacao: {
-        Args: {
-          p_deposito_destino_id?: string
-          p_deposito_id: string
-          p_documento?: string
-          p_motivo?: string
-          p_produto_id: string
-          p_quantidade: number
-          p_tipo: Database["public"]["Enums"]["mov_tipo"]
-        }
-        Returns: string
-      }
+      registrar_movimentacao:
+        | {
+            Args: {
+              p_deposito_destino_id?: string
+              p_deposito_id: string
+              p_documento?: string
+              p_motivo?: string
+              p_produto_id: string
+              p_quantidade: number
+              p_tipo: Database["public"]["Enums"]["mov_tipo"]
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_custo?: number
+              p_deposito_destino_id?: string
+              p_deposito_id: string
+              p_documento?: string
+              p_motivo?: string
+              p_produto_id: string
+              p_quantidade: number
+              p_tipo: Database["public"]["Enums"]["mov_tipo"]
+            }
+            Returns: string
+          }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string

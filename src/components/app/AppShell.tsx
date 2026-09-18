@@ -81,6 +81,8 @@ const groups: Group[] = [
       { label: "Preços e margens", to: "/precos", icon: Tag },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
+      { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
+      { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
       { label: "Depósitos", to: "/depositos", icon: Warehouse },
     ],
