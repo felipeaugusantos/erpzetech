@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { useSaasOperador } from "@/lib/saas";
 import { brl, dateBR } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -281,9 +282,11 @@ function Planos() {
         actions={
           podeEditar && assinatura ? (
             <>
-              <Button variant="outline" onClick={() => setImplantacao(true)}>
-                <Building2 className="mr-2 size-4" /> Implantar filial extra
-              </Button>
+              {operadorSaas && (
+                <Button variant="outline" onClick={() => setImplantacao(true)}>
+                  <Building2 className="mr-2 size-4" /> Implantar filial extra
+                </Button>
+              )}
               <Button onClick={abrirEdicao}>Alterar plano</Button>
             </>
           ) : null
