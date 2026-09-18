@@ -1,7 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, RefreshCw, Send, Truck, Wallet } from "lucide-react";
+
+const NFE_SITUACAO: Record<string, string> = {
+  rascunho: "Rascunho",
+  pronta: "Pronta para enviar",
+  transmitida: "Enviada — aguardando a Receita",
+  autorizada: "Autorizada pela Receita",
+  rejeitada: "Rejeitada",
+  cancelada: "Cancelada",
+};
+
+function labelNfe(situacao: string): string {
+  return NFE_SITUACAO[situacao] ?? situacao;
+}
 import { toast } from "sonner";
 
 import { useServerFn } from "@tanstack/react-start";
