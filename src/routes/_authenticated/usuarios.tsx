@@ -251,6 +251,8 @@ function Usuarios() {
                     <TableHead className="w-56">Perfis</TableHead>
                     <TableHead className="w-40">Filial</TableHead>
                     <TableHead className="w-28 text-center">Situação</TableHead>
+                    <TableHead className="w-28 text-right">Ações</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
