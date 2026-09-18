@@ -2112,18 +2112,27 @@ export type Database = {
       }
       fiscal_config: {
         Row: {
+          aliquota_cofins: number
+          aliquota_icms_interestadual: number
+          aliquota_icms_interna: number
+          aliquota_iss: number
+          aliquota_pis: number
           ambiente: string
           certificado_nome: string | null
           certificado_validade: string | null
           cfop_padrao: string
           conta_emissor: string | null
           created_at: string
+          cst_cofins: string
+          cst_pis: string
           emissor: string | null
           empresa_id: string | null
           filial_id: string | null
           id: string
           informacoes_complementares: string | null
+          mva_st: number
           proximo_numero: number
+          reducao_base_icms: number
           regime_tributario: string
           responsavel_tecnico_cnpj: string | null
           responsavel_tecnico_contato: string | null
@@ -2134,18 +2143,27 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliquota_cofins?: number
+          aliquota_icms_interestadual?: number
+          aliquota_icms_interna?: number
+          aliquota_iss?: number
+          aliquota_pis?: number
           ambiente?: string
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
           conta_emissor?: string | null
           created_at?: string
+          cst_cofins?: string
+          cst_pis?: string
           emissor?: string | null
           empresa_id?: string | null
           filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
+          mva_st?: number
           proximo_numero?: number
+          reducao_base_icms?: number
           regime_tributario?: string
           responsavel_tecnico_cnpj?: string | null
           responsavel_tecnico_contato?: string | null
@@ -2156,18 +2174,27 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliquota_cofins?: number
+          aliquota_icms_interestadual?: number
+          aliquota_icms_interna?: number
+          aliquota_iss?: number
+          aliquota_pis?: number
           ambiente?: string
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
           conta_emissor?: string | null
           created_at?: string
+          cst_cofins?: string
+          cst_pis?: string
           emissor?: string | null
           empresa_id?: string | null
           filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
+          mva_st?: number
           proximo_numero?: number
+          reducao_base_icms?: number
           regime_tributario?: string
           responsavel_tecnico_cnpj?: string | null
           responsavel_tecnico_contato?: string | null
@@ -2500,6 +2527,8 @@ export type Database = {
         Row: {
           ambiente: string
           autorizada_em: string | null
+          base_icms: number
+          base_icms_st: number
           cancelada_em: string | null
           cfop: string | null
           chave: string | null
@@ -2512,6 +2541,7 @@ export type Database = {
           empresa_id: string | null
           filial_id: string | null
           id: string
+          impostos_calculados_em: string | null
           mensagem: string | null
           motivo_cancelamento: string | null
           natureza_operacao: string
@@ -2529,8 +2559,13 @@ export type Database = {
           tenant_id: string
           transmitida_em: string | null
           updated_at: string
+          valor_cofins: number
           valor_desconto: number
           valor_frete: number
+          valor_icms: number
+          valor_icms_st: number
+          valor_iss: number
+          valor_pis: number
           valor_produtos: number
           valor_total: number
           xml_url: string | null
@@ -2538,6 +2573,8 @@ export type Database = {
         Insert: {
           ambiente?: string
           autorizada_em?: string | null
+          base_icms?: number
+          base_icms_st?: number
           cancelada_em?: string | null
           cfop?: string | null
           chave?: string | null
@@ -2550,6 +2587,7 @@ export type Database = {
           empresa_id?: string | null
           filial_id?: string | null
           id?: string
+          impostos_calculados_em?: string | null
           mensagem?: string | null
           motivo_cancelamento?: string | null
           natureza_operacao?: string
@@ -2567,8 +2605,13 @@ export type Database = {
           tenant_id?: string
           transmitida_em?: string | null
           updated_at?: string
+          valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_icms?: number
+          valor_icms_st?: number
+          valor_iss?: number
+          valor_pis?: number
           valor_produtos?: number
           valor_total?: number
           xml_url?: string | null
@@ -2576,6 +2619,8 @@ export type Database = {
         Update: {
           ambiente?: string
           autorizada_em?: string | null
+          base_icms?: number
+          base_icms_st?: number
           cancelada_em?: string | null
           cfop?: string | null
           chave?: string | null
@@ -2588,6 +2633,7 @@ export type Database = {
           empresa_id?: string | null
           filial_id?: string | null
           id?: string
+          impostos_calculados_em?: string | null
           mensagem?: string | null
           motivo_cancelamento?: string | null
           natureza_operacao?: string
@@ -2605,8 +2651,13 @@ export type Database = {
           tenant_id?: string
           transmitida_em?: string | null
           updated_at?: string
+          valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_icms?: number
+          valor_icms_st?: number
+          valor_iss?: number
+          valor_pis?: number
           valor_produtos?: number
           valor_total?: number
           xml_url?: string | null
@@ -2706,11 +2757,18 @@ export type Database = {
       }
       nfe_itens: {
         Row: {
+          aliquota_cofins: number
           aliquota_icms: number
+          aliquota_iss: number
+          aliquota_pis: number
+          base_icms: number
+          base_icms_st: number
           cfop: string | null
           codigo: string | null
           created_at: string
+          cst_cofins: string | null
           cst_csosn: string | null
+          cst_pis: string | null
           custo_unitario: number
           desconto: number
           descricao: string
@@ -2723,13 +2781,25 @@ export type Database = {
           tenant_id: string
           total: number
           unidade: string | null
+          valor_cofins: number
+          valor_icms: number
+          valor_icms_st: number
+          valor_iss: number
+          valor_pis: number
         }
         Insert: {
+          aliquota_cofins?: number
           aliquota_icms?: number
+          aliquota_iss?: number
+          aliquota_pis?: number
+          base_icms?: number
+          base_icms_st?: number
           cfop?: string | null
           codigo?: string | null
           created_at?: string
+          cst_cofins?: string | null
           cst_csosn?: string | null
+          cst_pis?: string | null
           custo_unitario?: number
           desconto?: number
           descricao: string
@@ -2742,13 +2812,25 @@ export type Database = {
           tenant_id?: string
           total?: number
           unidade?: string | null
+          valor_cofins?: number
+          valor_icms?: number
+          valor_icms_st?: number
+          valor_iss?: number
+          valor_pis?: number
         }
         Update: {
+          aliquota_cofins?: number
           aliquota_icms?: number
+          aliquota_iss?: number
+          aliquota_pis?: number
+          base_icms?: number
+          base_icms_st?: number
           cfop?: string | null
           codigo?: string | null
           created_at?: string
+          cst_cofins?: string | null
           cst_csosn?: string | null
+          cst_pis?: string | null
           custo_unitario?: number
           desconto?: number
           descricao?: string
@@ -2761,6 +2843,11 @@ export type Database = {
           tenant_id?: string
           total?: number
           unidade?: string | null
+          valor_cofins?: number
+          valor_icms?: number
+          valor_icms_st?: number
+          valor_iss?: number
+          valor_pis?: number
         }
         Relationships: [
           {
@@ -4938,6 +5025,18 @@ export type Database = {
       inventario_contar: {
         Args: { p_contada: number; p_item_id: string; p_observacao?: string }
         Returns: undefined
+      }
+      nfe_calcular_impostos: {
+        Args: {
+          p_aliquota_cofins?: number
+          p_aliquota_icms?: number
+          p_aliquota_iss?: number
+          p_aliquota_pis?: number
+          p_aplicar_icms_em_todos?: boolean
+          p_nfe_id: string
+          p_reducao_base?: number
+        }
+        Returns: Json
       }
       pdv_venda: {
         Args: {
