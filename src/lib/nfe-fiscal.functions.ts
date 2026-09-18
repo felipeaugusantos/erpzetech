@@ -24,6 +24,8 @@ function tPagDe(forma: string | null): string {
   return FORMA_PAGAMENTO[forma] ?? "99";
 }
 
+const arred = (v: number, casas = 2) => Number(Number(v || 0).toFixed(casas));
+
 function icmsDoItem(
   cstCsosn: string | null,
   origem: number,
@@ -31,8 +33,8 @@ function icmsDoItem(
   aliquota = 0,
 ) {
   const codigo = (cstCsosn ?? "").replace(/\D/g, "");
-  const pST = num(aliquota);
-  const vST = num((vProd * pST) / 100);
+  const pST = arred(aliquota);
+  const vST = arred((vProd * pST) / 100);
   if (codigo.length === 3) {
     // Simples Nacional (CSOSN)
     if (codigo === "101") {
