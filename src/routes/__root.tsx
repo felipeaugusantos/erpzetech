@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Enzova Build — ERP para lojas de material de construção" },
+      { title: "Ze Obra — ERP para lojas de material de construção" },
       {
         name: "description",
         content:
           "Sistema de gestão para lojas de materiais de construção: clientes, obras, produtos, estoque em múltiplos depósitos e conversão de unidades.",
       },
-      { property: "og:title", content: "Enzova Build" },
+      { property: "og:title", content: "Ze Obra" },
       {
         property: "og:description",
         content: "ERP multiempresa para lojas de materiais de construção.",

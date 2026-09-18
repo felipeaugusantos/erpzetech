@@ -32,9 +32,9 @@ import {
 export const Route = createFileRoute("/_authenticated/depositos")({
   head: () => ({
     meta: [
-      { title: "Depósitos — Enzova Build" },
+      { title: "Depósitos — Ze Obra" },
       { name: "description", content: "Depósitos da filial com saldo e valor de estoque." },
-      { property: "og:title", content: "Depósitos — Enzova Build" },
+      { property: "og:title", content: "Depósitos — Ze Obra" },
       { property: "og:description", content: "Controle de múltiplos depósitos por filial." },
     ],
   }),

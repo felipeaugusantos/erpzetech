@@ -34,12 +34,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes — Enzova Build" },
+      { title: "Clientes — Ze Obra" },
       {
         name: "description",
         content: "Cadastro de clientes pessoa física e jurídica com limite de crédito e obras.",
       },
-      { property: "og:title", content: "Clientes — Enzova Build" },
+      { property: "og:title", content: "Clientes — Ze Obra" },
       { property: "og:description", content: "Gestão de clientes da loja de materiais." },
     ],
   }),

@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Enzova Build — ERP para lojas de materiais de construção" },
+      { title: "Ze Obra — ERP para lojas de materiais de construção" },
       {
         name: "description",
         content:
-          "Enzova Build controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
+          "Ze Obra controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
       },
-      { property: "og:title", content: "Enzova Build — ERP para materiais de construção" },
+      { property: "og:title", content: "Ze Obra — ERP para materiais de construção" },
       {
         property: "og:description",
         content: "Do balcão ao depósito: clientes, obras, produtos e estoque em um só sistema.",
@@ -70,9 +70,9 @@ function Landing() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <div className="flex items-center gap-2">
           <span className="grid size-9 place-items-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
-            EB
+            ZO
           </span>
-          <span className="font-display text-base font-bold tracking-wide">ENZOVA BUILD</span>
+          <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
         </div>
         <Button asChild size="sm">
           <Link to="/auth">Entrar</Link>
@@ -114,7 +114,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        Enzova Build • Multiempresa, multifilial e multidepósito
+        Ze Obra, um produto Ze Tech • Multiempresa, multifilial e multidepósito
       </footer>
     </div>
   );
