@@ -330,6 +330,22 @@ function DepositoDetalhe() {
                         </Badge>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        defaultValue={l.custo ? String(l.custo) : ""}
+                        placeholder="0,00"
+                        inputMode="decimal"
+                        className="ml-auto h-8 w-24 text-right text-numeric"
+                        onBlur={(ev) => {
+                          const valor = Number(ev.target.value.replace(",", "."));
+                          if (!Number.isFinite(valor) || valor < 0 || valor === l.custo) return;
+                          salvarCusto.mutate({ estoqueId: l.e.id, custo: valor });
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        total {brl(l.fisico * l.custo)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatConverted(
                         l.fisico,
