@@ -59,8 +59,13 @@ type ItemNota = {
   desconto: number;
   total: number;
   aliquota_icms: number;
+  cst_csosn: string | null;
   descricao: string;
 };
+
+/** Itens com ICMS já cobrado antes (CSOSN 500 / CST 60) não destacam imposto próprio. */
+const ehST = (i: ItemNota) => ["500", "60"].includes((i.cst_csosn ?? "").replace(/\D/g, ""));
+const icmsDoItem = (i: ItemNota) => (Number(i.total) * Number(i.aliquota_icms ?? 0)) / 100;
 
 function BalancoFiscal() {
   const { periodo, setDe, setAte } = usePeriodo();
@@ -72,7 +77,7 @@ function BalancoFiscal() {
         supabase
           .from("nfe")
           .select(
-            "id, numero, serie, situacao, ambiente, valor_total, valor_produtos, valor_frete, valor_desconto, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, descricao)",
+            "id, numero, serie, situacao, ambiente, valor_total, valor_produtos, valor_frete, valor_desconto, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, cst_csosn, descricao)",
           )
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`)
@@ -99,10 +104,8 @@ function BalancoFiscal() {
       (s, i) => s + Number(i.quantidade) * Number(i.custo_unitario),
       0,
     );
-    const icms = itens.reduce(
-      (s, i) => s + (Number(i.total) * Number(i.aliquota_icms ?? 0)) / 100,
-      0,
-    );
+    const icms = itens.reduce((s, i) => (ehST(i) ? s : s + icmsDoItem(i)), 0);
+    const icmsST = itens.reduce((s, i) => (ehST(i) ? s + icmsDoItem(i) : s), 0);
     const frete = notas.reduce((s, n) => s + Number(n.valor_frete), 0);
     const desconto = notas.reduce((s, n) => s + Number(n.valor_desconto), 0);
 
@@ -126,6 +129,7 @@ function BalancoFiscal() {
       receitaNotas,
       custoNotas,
       icms,
+      icmsST,
       frete,
       desconto,
       lucroNotas,
@@ -138,14 +142,18 @@ function BalancoFiscal() {
   }, [data]);
 
   const porMes = useMemo(() => {
-    const mapa = new Map<string, { mes: string; receita: number; custo: number; icms: number }>();
+    const mapa = new Map<
+      string,
+      { mes: string; receita: number; custo: number; icms: number; icmsST: number }
+    >();
     for (const n of contas.notas) {
       const mes = String(n.created_at).slice(0, 7);
-      const atual = mapa.get(mes) ?? { mes, receita: 0, custo: 0, icms: 0 };
+      const atual = mapa.get(mes) ?? { mes, receita: 0, custo: 0, icms: 0, icmsST: 0 };
       for (const i of (n.nfe_itens ?? []) as ItemNota[]) {
         atual.receita += Number(i.total);
         atual.custo += Number(i.quantidade) * Number(i.custo_unitario);
-        atual.icms += (Number(i.total) * Number(i.aliquota_icms ?? 0)) / 100;
+        if (ehST(i)) atual.icmsST += icmsDoItem(i);
+        else atual.icms += icmsDoItem(i);
       }
       mapa.set(mes, atual);
     }
@@ -159,7 +167,12 @@ function BalancoFiscal() {
     { conta: "1.1 Descontos concedidos", valor: -contas.desconto, tipo: "dedução" },
     { conta: "1.2 Frete cobrado", valor: contas.frete, tipo: "receita" },
     { conta: "2. Custo das mercadorias vendidas", valor: -contas.custoNotas, tipo: "custo" },
-    { conta: "3. ICMS destacado nas notas", valor: -contas.icms, tipo: "imposto" },
+    { conta: "3. ICMS próprio destacado nas notas", valor: -contas.icms, tipo: "imposto" },
+    {
+      conta: "3.1 ICMS já recolhido por substituição (ST, dentro do custo)",
+      valor: -contas.icmsST,
+      tipo: "imposto",
+    },
     { conta: "4. Lucro do período (notas)", valor: contas.lucroNotas, tipo: "resultado" },
   ];
 
@@ -197,7 +210,13 @@ function BalancoFiscal() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Receita em notas" value={brl(contas.receitaNotas)} icon={Receipt} />
         <StatCard label="Custo das mercadorias" value={brl(contas.custoNotas)} icon={Coins} tone="warning" />
-        <StatCard label="ICMS destacado" value={brl(contas.icms)} icon={Percent} tone="accent" />
+        <StatCard
+          label="ICMS do período"
+          value={brl(contas.icms + contas.icmsST)}
+          hint={`Próprio ${brl(contas.icms)} · ST ${brl(contas.icmsST)}`}
+          icon={Percent}
+          tone="accent"
+        />
         <StatCard
           label="Lucro do período"
           value={brl(contas.lucroNotas)}
@@ -255,7 +274,8 @@ function BalancoFiscal() {
                   <Legend />
                   <Bar dataKey="receita" name="Receita" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="custo" name="Custo" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="icms" name="ICMS" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="icms" name="ICMS próprio" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="icmsST" name="ICMS ST" fill="var(--chart-5)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="lucro" name="Lucro" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -288,10 +308,8 @@ function BalancoFiscal() {
             <TableBody>
               {contas.notas.map((n) => {
                 const itens = (n.nfe_itens ?? []) as ItemNota[];
-                const icms = itens.reduce(
-                  (s, i) => s + (Number(i.total) * Number(i.aliquota_icms ?? 0)) / 100,
-                  0,
-                );
+                const icms = itens.reduce((s, i) => (ehST(i) ? s : s + icmsDoItem(i)), 0);
+                const icmsST = itens.reduce((s, i) => (ehST(i) ? s + icmsDoItem(i) : s), 0);
                 const envio = n.autorizada_em ?? n.transmitida_em;
                 return (
                   <TableRow key={n.id}>
@@ -328,7 +346,14 @@ function BalancoFiscal() {
                     <TableCell className="text-right text-numeric">
                       {brl(Number(n.valor_produtos))}
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{brl(icms)}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(icms)}
+                      {icmsST > 0 && (
+                        <span className="block text-xs text-muted-foreground">
+                          ST {brl(icmsST)}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right text-numeric font-semibold">
                       {brl(Number(n.valor_total))}
                     </TableCell>
