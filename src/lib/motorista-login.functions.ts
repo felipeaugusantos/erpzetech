@@ -63,6 +63,14 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
       .upsert({ user_id: novoId, role: "motorista" }, { onConflict: "user_id,role" });
     if (papel.error) throw papel.error;
 
+    // O motorista deve ter somente o perfil de motorista (o cadastro novo nasce como administrador).
+    const limpeza = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", novoId)
+      .neq("role", "motorista");
+    if (limpeza.error) throw limpeza.error;
+
     const vinculo = await supabaseAdmin
       .from("motoristas")
       .update({ user_id: novoId })
