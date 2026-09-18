@@ -772,6 +772,9 @@ function Orcamentos() {
             </span>
           </div>
           <DialogFooter>
+            <Button variant="secondary" onClick={() => setVia(true)}>
+              <Printer className="mr-2 size-4" /> Imprimir 80 mm
+            </Button>
             {orcamentoAtual && ["rascunho", "enviado", "em_negociacao"].includes(orcamentoAtual.situacao) && (
               <Select
                 onValueChange={(v) => mudarSituacao.mutate({ id: orcamentoAtual.id, situacao: v })}
