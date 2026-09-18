@@ -390,6 +390,27 @@ function ContasPagar() {
                           </Button>
                         </>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setHistorico({
+                            id: c.id,
+                            numero: c.numero,
+                            descricao: c.descricao,
+                            valor: Number(c.valor),
+                            quitado: Number(c.valor_pago),
+                            vencimento: c.vencimento,
+                            pessoa:
+                              (c.fornecedores as { razao_social: string } | null)?.razao_social ??
+                              "Fornecedor",
+                            parcela: c.parcela,
+                            parcelas: c.parcelas,
+                          })
+                        }
+                      >
+                        Histórico
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
