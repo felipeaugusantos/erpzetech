@@ -85,9 +85,9 @@ function AuthPage() {
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
           <span className="grid size-9 place-items-center rounded-md bg-sidebar-primary font-display font-bold text-sidebar-primary-foreground">
-            EB
+            ZO
           </span>
-          <span className="font-display text-lg font-bold tracking-wide">ENZOVA BUILD</span>
+          <span className="font-display text-lg font-bold tracking-wide">ZE OBRA</span>
         </Link>
         <div className="max-w-md">
           <HardHat className="mb-4 size-9 text-sidebar-primary" />
@@ -106,7 +106,7 @@ function AuthPage() {
         <div className="w-full max-w-sm">
           <div className="mb-6 lg:hidden">
             <span className="grid size-10 place-items-center rounded-md bg-primary font-display font-bold text-primary-foreground">
-              EB
+              ZO
             </span>
           </div>
           <h1 className="font-display text-2xl font-bold">Acessar o sistema</h1>

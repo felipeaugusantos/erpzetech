@@ -163,10 +163,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
           <span className="grid size-9 place-items-center rounded-md bg-sidebar-primary font-display text-base font-bold text-sidebar-primary-foreground">
-            EB
+            ZO
           </span>
           <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold tracking-wide">ENZOVA BUILD</p>
+            <p className="truncate font-display text-sm font-bold tracking-wide">ZE OBRA</p>
             <p className="truncate text-[11px] text-sidebar-foreground/60">Gestão de materiais</p>
           </div>
           <button

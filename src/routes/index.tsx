@@ -70,9 +70,9 @@ function Landing() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <div className="flex items-center gap-2">
           <span className="grid size-9 place-items-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
-            EB
+            ZO
           </span>
-          <span className="font-display text-base font-bold tracking-wide">ENZOVA BUILD</span>
+          <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
         </div>
         <Button asChild size="sm">
           <Link to="/auth">Entrar</Link>
