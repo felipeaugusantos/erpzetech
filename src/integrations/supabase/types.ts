@@ -3832,6 +3832,212 @@ export type Database = {
           },
         ]
       }
+      saas_clientes: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          dia_vencimento: number
+          documento: string | null
+          email: string | null
+          filiais_extras: number
+          id: string
+          implantacao_paga: boolean
+          inicio: string
+          nome: string
+          observacoes: string | null
+          plano_id: string | null
+          prazo_meses: number
+          responsavel: string | null
+          situacao: string
+          tenant_id: string | null
+          teste_ate: string | null
+          uf: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          dia_vencimento?: number
+          documento?: string | null
+          email?: string | null
+          filiais_extras?: number
+          id?: string
+          implantacao_paga?: boolean
+          inicio?: string
+          nome: string
+          observacoes?: string | null
+          plano_id?: string | null
+          prazo_meses?: number
+          responsavel?: string | null
+          situacao?: string
+          tenant_id?: string | null
+          teste_ate?: string | null
+          uf?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          dia_vencimento?: number
+          documento?: string | null
+          email?: string | null
+          filiais_extras?: number
+          id?: string
+          implantacao_paga?: boolean
+          inicio?: string
+          nome?: string
+          observacoes?: string | null
+          plano_id?: string | null
+          prazo_meses?: number
+          responsavel?: string | null
+          situacao?: string
+          tenant_id?: string | null
+          teste_ate?: string | null
+          uf?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_clientes_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "saas_planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_clientes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_faturas: {
+        Row: {
+          cliente_id: string
+          competencia: string | null
+          created_at: string
+          descricao: string
+          forma_pagamento: string | null
+          id: string
+          pago_em: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+          valor_pago: number
+          vencimento: string
+        }
+        Insert: {
+          cliente_id: string
+          competencia?: string | null
+          created_at?: string
+          descricao: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento: string
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string | null
+          created_at?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_faturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saas_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_operadores: {
+        Row: {
+          created_at: string
+          nome: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          nome?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          nome?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saas_planos: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          dias_teste: number
+          id: string
+          nome: string
+          ordem: number
+          prazo_meses: number
+          recursos: string[]
+          resumo: string | null
+          updated_at: string
+          valor_filial_extra: number
+          valor_implantacao: number
+          valor_mensal: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          dias_teste?: number
+          id?: string
+          nome: string
+          ordem?: number
+          prazo_meses?: number
+          recursos?: string[]
+          resumo?: string | null
+          updated_at?: string
+          valor_filial_extra?: number
+          valor_implantacao?: number
+          valor_mensal?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          dias_teste?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          prazo_meses?: number
+          recursos?: string[]
+          resumo?: string | null
+          updated_at?: string
+          valor_filial_extra?: number
+          valor_implantacao?: number
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           ativo: boolean
@@ -4278,6 +4484,7 @@ export type Database = {
         Returns: undefined
       }
       eh_motorista_restrito: { Args: never; Returns: boolean }
+      eh_saas_operador: { Args: never; Returns: boolean }
       entrega_concluir: {
         Args: {
           p_assinatura?: string
@@ -4462,6 +4669,16 @@ export type Database = {
         }
         Returns: string
       }
+      saas_baixar_fatura: {
+        Args: {
+          p_data?: string
+          p_fatura_id: string
+          p_forma?: string
+          p_valor: number
+        }
+        Returns: undefined
+      }
+      saas_gerar_faturas: { Args: never; Returns: number }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string
