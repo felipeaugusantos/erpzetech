@@ -82,13 +82,16 @@ function Caixa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("caixa_movimentos")
-        .select("*")
+        .select("*, depositos(nome), pedidos(numero, origem)")
         .eq("caixa_id", caixaAtual?.id ?? "")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+
+  const nomeDeposito = (m: (typeof movimentos)[number]) =>
+    (m.depositos as unknown as { nome: string } | null)?.nome ?? null;
 
   const resumo = useMemo(() => {
     let entradas = 0;
@@ -111,6 +114,25 @@ function Caixa() {
     }
     return { entradas, saidas, dinheiro };
   }, [movimentos, caixaAtual]);
+
+  /** Vendas de balcão (PDV) lançadas neste caixa, separadas por depósito de saída. */
+  const vendasPdv = useMemo(() => {
+    const mapa = new Map<string, { deposito: string; vendas: number; valor: number }>();
+    let total = 0;
+    for (const m of movimentos) {
+      if (m.tipo !== "venda") continue;
+      const nome = nomeDeposito(m) ?? "Sem depósito informado";
+      const atual = mapa.get(nome) ?? { deposito: nome, vendas: 0, valor: 0 };
+      atual.vendas += 1;
+      atual.valor += Number(m.valor);
+      mapa.set(nome, atual);
+      total += Number(m.valor);
+    }
+    return {
+      total,
+      lista: [...mapa.values()].sort((a, b) => b.valor - a.valor),
+    };
+  }, [movimentos]);
 
   const abrir = useMutation({
     mutationFn: async () => {
@@ -259,6 +281,7 @@ function Caixa() {
                       <TableHead>Quando</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Descrição</TableHead>
+                      <TableHead>Depósito</TableHead>
                       <TableHead>Forma</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                     </TableRow>
@@ -279,6 +302,7 @@ function Caixa() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{m.descricao ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{nomeDeposito(m) ?? "—"}</TableCell>
                         <TableCell className="text-sm">{labelForma(m.forma_pagamento)}</TableCell>
                         <TableCell className="text-right text-numeric">
                           {entradaCaixa(m.tipo) ? "" : "-"}
@@ -289,6 +313,41 @@ function Caixa() {
                   </TableBody>
                 </Table>
               </div>
+            )}
+          </div>
+
+          <div className="panel mb-5 p-4">
+            <h2 className="mb-1 font-display text-lg font-semibold">
+              Vendas de balcão (PDV) por depósito
+            </h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Total de {brl(vendasPdv.total)} em vendas rápidas lançadas neste caixa.
+            </p>
+            {vendasPdv.lista.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Nenhuma venda de balcão neste caixa ainda.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Depósito</TableHead>
+                    <TableHead className="text-right">Vendas</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendasPdv.lista.map((d) => (
+                    <TableRow key={d.deposito}>
+                      <TableCell>{d.deposito}</TableCell>
+                      <TableCell className="text-right text-numeric">{d.vendas}</TableCell>
+                      <TableCell className="text-right text-numeric font-semibold">
+                        {brl(d.valor)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </div>
         </>

@@ -181,3 +181,27 @@
 @utility text-numeric {
   font-variant-numeric: tabular-nums;
 }
+
+/* Impressão do cupom de venda: só o cupom vai para o papel (80 mm). */
+@media print {
+  body:has(#cupom-impresso) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#cupom-impresso) #cupom-impresso,
+  body:has(#cupom-impresso) #cupom-impresso * {
+    visibility: visible !important;
+  }
+
+  body:has(#cupom-impresso) #cupom-impresso {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    max-width: 80mm;
+    padding: 4mm;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+}

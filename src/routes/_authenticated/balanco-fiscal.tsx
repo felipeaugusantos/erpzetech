@@ -96,7 +96,7 @@ function BalancoFiscal() {
         supabase
           .from("pedidos")
           .select(
-            "id, total, situacao, filial_id, created_at, pedido_itens(quantidade, custo_unitario, total)",
+            "id, total, situacao, filial_id, origem, created_at, depositos(nome, filial_id), pedido_itens(quantidade, custo_unitario, total)",
           )
           .neq("situacao", "cancelado")
           .gte("created_at", `${periodo.de}T00:00:00`)
@@ -238,6 +238,43 @@ function BalancoFiscal() {
     };
   }, [data?.movs, filialSel]);
 
+  /** Vendas de balcão (PDV) do período, separadas pelo depósito de saída. */
+  const vendasPdv = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { deposito: string; vendas: number; receita: number; custo: number }
+    >();
+    let receita = 0;
+    let custo = 0;
+    for (const p of data?.pedidos ?? []) {
+      if ((p as { origem?: string }).origem !== "pdv") continue;
+      const d = p.depositos as unknown as { nome: string; filial_id: string | null } | null;
+      if (filialSel !== "todas" && (d?.filial_id ?? p.filial_id) !== filialSel) continue;
+      const nome = d?.nome ?? "Sem depósito";
+      const atual = mapa.get(nome) ?? { deposito: nome, vendas: 0, receita: 0, custo: 0 };
+      const itens = (p.pedido_itens ?? []) as Array<{
+        quantidade: number;
+        custo_unitario: number;
+        total: number;
+      }>;
+      atual.vendas += 1;
+      for (const i of itens) {
+        atual.receita += Number(i.total);
+        atual.custo += Number(i.quantidade) * Number(i.custo_unitario);
+        receita += Number(i.total);
+        custo += Number(i.quantidade) * Number(i.custo_unitario);
+      }
+      mapa.set(nome, atual);
+    }
+    return {
+      receita,
+      custo,
+      lucro: receita - custo,
+      lista: [...mapa.values()].sort((a, b) => b.receita - a.receita),
+    };
+  }, [data?.pedidos, filialSel]);
+
+
   const linhas = [
     { conta: "1. Receita de notas emitidas", valor: contas.receitaNotas, tipo: "receita" },
     { conta: "1.1 Descontos concedidos", valor: -contas.desconto, tipo: "dedução" },
@@ -252,6 +289,9 @@ function BalancoFiscal() {
     { conta: "4. Lucro do período (notas)", valor: contas.lucroNotas, tipo: "resultado" },
     { conta: "5. Entradas de estoque a custo real", valor: estoque.entradas, tipo: "estoque" },
     { conta: "5.1 Saídas de estoque a custo real", valor: -estoque.saidas, tipo: "estoque" },
+    { conta: "6. Vendas de balcão no PDV", valor: vendasPdv.receita, tipo: "receita" },
+    { conta: "6.1 Custo das vendas do PDV", valor: -vendasPdv.custo, tipo: "custo" },
+    { conta: "6.2 Lucro das vendas do PDV", valor: vendasPdv.lucro, tipo: "resultado" },
   ];
 
   return (
@@ -382,6 +422,42 @@ function BalancoFiscal() {
                     </TableCell>
                     <TableCell className="text-right text-numeric">
                       {d.ajusteQtd > 0 ? `${d.ajusteQtd} ajuste(s)` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          <h3 className="mt-5 font-display text-sm font-semibold">
+            Vendas de balcão (PDV) por depósito
+          </h3>
+          {vendasPdv.lista.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nenhuma venda de balcão no período.
+            </p>
+          ) : (
+            <Table className="mt-2">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Depósito</TableHead>
+                  <TableHead className="text-right">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vendasPdv.lista.map((d) => (
+                  <TableRow key={d.deposito}>
+                    <TableCell>{d.deposito}</TableCell>
+                    <TableCell className="text-right text-numeric">{d.vendas}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(d.receita)}</TableCell>
+                    <TableCell className="text-right text-numeric text-destructive">
+                      {brl(d.custo)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric font-semibold">
+                      {brl(d.receita - d.custo)}
                     </TableCell>
                   </TableRow>
                 ))}
