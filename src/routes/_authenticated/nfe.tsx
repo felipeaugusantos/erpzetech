@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, FileText, Printer, Settings2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+  Printer,
+  RefreshCw,
+  Send,
+  Settings2,
+} from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
+import { arquivosNfe, consultarNfe, transmitirNfe } from "@/lib/nfe-fiscal.functions";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +67,7 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const situacaoLabel: Record<string, { label: string; tone: string }> = {
   rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
   pronta: { label: "Pronta para transmitir", tone: "bg-accent/15 text-accent-foreground" },
+  transmitida: { label: "Enviada — aguardando Receita", tone: "bg-primary/15 text-primary" },
   autorizada: { label: "Autorizada", tone: "bg-success/15 text-success" },
   rejeitada: { label: "Rejeitada", tone: "bg-destructive/15 text-destructive" },
   cancelada: { label: "Cancelada", tone: "bg-destructive/10 text-destructive" },
@@ -83,6 +94,51 @@ function Nfe() {
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [cfg, setCfg] = useState<Config | null>(null);
 
+  const transmitir = useServerFn(transmitirNfe);
+  const consultar = useServerFn(consultarNfe);
+  const pegarArquivos = useServerFn(arquivosNfe);
+
+  const enviarSefaz = useMutation({
+    mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
+    onSuccess: (r: { status: string; mensagem: string | null }) => {
+      if (r.status === "autorizado" || r.status === "autorizada") {
+        toast.success("Nota autorizada pela Receita");
+      } else {
+        toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
+      }
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const consultarSituacao = useMutation({
+    mutationFn: async (nfeId: string) => consultar({ data: { nfeId } }),
+    onSuccess: (r: { status: string }) => {
+      toast.info(`Situação na Receita: ${r.status}`);
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const baixarArquivos = useMutation({
+    mutationFn: async (nfeId: string) => pegarArquivos({ data: { nfeId } }),
+    onSuccess: (r: { pdf: string | null; xml: string | null }) => {
+      if (!r.pdf && !r.xml) {
+        toast.error("O emissor ainda não disponibilizou o DANFE e o XML.");
+        return;
+      }
+      if (r.pdf) window.open(r.pdf, "_blank");
+      if (r.xml) {
+        const a = document.createElement("a");
+        a.href = r.xml;
+        a.download = "nfe.xml";
+        a.click();
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const { data: config } = useQuery({
     queryKey: ["fiscal-config"],
     queryFn: async () => {
@@ -101,7 +157,7 @@ function Nfe() {
       const { data, error } = await supabase
         .from("nfe")
         .select(
-          "id, numero, serie, situacao, ambiente, natureza_operacao, valor_total, valor_produtos, valor_frete, valor_desconto, pendencias, mensagem, created_at, emitente, destinatario, pedidos(numero), clientes(nome), depositos(nome)",
+          "id, numero, serie, situacao, ambiente, natureza_operacao, valor_total, valor_produtos, valor_frete, valor_desconto, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -490,13 +546,42 @@ function Nfe() {
                 <span className="text-base font-semibold">{brl(Number(nota.valor_total))}</span>
               </div>
               {nota.mensagem && <p className="text-xs text-muted-foreground">{nota.mensagem}</p>}
+              {nota.chave && (
+                <p className="break-all text-xs text-muted-foreground">
+                  Chave de acesso: {nota.chave}
+                  {nota.protocolo ? ` · protocolo ${nota.protocolo}` : ""}
+                </p>
+              )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="mr-2 size-4" />
               Imprimir
             </Button>
+            {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
+              <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>
+                <Send className="mr-2 size-4" /> Enviar à Receita
+              </Button>
+            )}
+            {nota?.provider_id && (
+              <Button
+                variant="secondary"
+                disabled={consultarSituacao.isPending}
+                onClick={() => consultarSituacao.mutate(nota.id)}
+              >
+                <RefreshCw className="mr-2 size-4" /> Consultar situação
+              </Button>
+            )}
+            {nota?.situacao === "autorizada" && (
+              <Button
+                variant="secondary"
+                disabled={baixarArquivos.isPending}
+                onClick={() => baixarArquivos.mutate(nota.id)}
+              >
+                <FileText className="mr-2 size-4" /> DANFE e XML
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
