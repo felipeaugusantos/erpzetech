@@ -145,6 +145,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     [data],
   );
 
+  /** Motorista puro vê apenas a própria rota. */
+  const somenteMotorista = useMemo(() => {
+    const roles = data?.roles ?? [];
+    return (
+      roles.includes("motorista") &&
+      !roles.some((r) => ["administrador", "gestor", "logistica"].includes(r))
+    );
+  }, [data]);
+
+  const menu: Group[] = somenteMotorista
+    ? [
+        {
+          label: "Minha rota",
+          icon: Truck,
+          items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
+        },
+      ]
+    : groups;
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
