@@ -132,6 +132,7 @@ const groups: Group[] = [
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
+      { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },
       { label: "Balanço fiscal", to: "/balanco-fiscal", icon: FileText },
       { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
     ],
@@ -141,6 +142,7 @@ const groups: Group[] = [
     icon: ShieldCheck,
     items: [
       { label: "Cadastro da empresa", to: "/empresa", icon: Building2 },
+      { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
