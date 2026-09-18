@@ -29,6 +29,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { hojeISO, somaDias } from "@/lib/financeiro";
+import { usePeriodo } from "@/lib/periodo";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PageHeader, StatCard, EmptyState } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,13 +67,14 @@ const emAndamento = [
 function Dashboard() {
   const hoje = hojeISO();
   const em7 = somaDias(hoje, 7);
+  const { periodo, setDe, setAte } = usePeriodo();
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
       const [pedidos, orcamentos, receber, pagar, entregas, estoques, produtosCount] =
         await Promise.all([
-          supabase.from("pedidos").select("id, numero, situacao, total, previsao_entrega, clientes(nome)"),
+          supabase.from("pedidos").select("id, numero, situacao, total, previsao_entrega, created_at, clientes(nome), pedido_itens(quantidade, custo_unitario, total)"),
           supabase.from("orcamentos").select("id, numero, situacao, validade, total, clientes(nome)").is("deleted_at", null),
           supabase.from("contas_receber").select("id, numero, descricao, vencimento, valor, valor_recebido, situacao, clientes(nome)"),
           supabase.from("contas_pagar").select("id, numero, descricao, vencimento, valor, valor_pago, situacao, fornecedores(nome_fantasia, razao_social)"),
@@ -101,6 +105,18 @@ function Dashboard() {
       </div>
     );
   }
+
+  const noPeriodo = data.pedidos.filter((p) => {
+    const d = String(p.created_at).slice(0, 10);
+    return p.situacao !== "cancelado" && d >= periodo.de && d <= periodo.ate;
+  });
+  const itensPeriodo = noPeriodo.flatMap(
+    (p) => (p.pedido_itens ?? []) as Array<{ quantidade: number; custo_unitario: number; total: number }>,
+  );
+  const receitaPeriodo = itensPeriodo.reduce((s, i) => s + Number(i.total), 0);
+  const custoPeriodo = itensPeriodo.reduce((s, i) => s + Number(i.quantidade) * Number(i.custo_unitario), 0);
+  const lucroPeriodo = receitaPeriodo - custoPeriodo;
+  const margemPeriodo = receitaPeriodo > 0 ? (lucroPeriodo / receitaPeriodo) * 100 : 0;
 
   const nomeCliente = (x: unknown) => (x as { nome: string } | null)?.nome ?? "—";
 
@@ -211,6 +227,28 @@ function Dashboard() {
           </div>
         }
       />
+
+      <div className="panel mb-4 p-4">
+        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div>
+          <Label>De</Label>
+          <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+        </div>
+        <div>
+          <Label>Até</Label>
+          <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
+          custo {brl(custoPeriodo)} · lucro{" "}
+          <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
+            {brl(lucroPeriodo)}
+          </strong>{" "}
+          ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
+          </p>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

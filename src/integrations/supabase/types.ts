@@ -2073,6 +2073,45 @@ export type Database = {
           },
         ]
       }
+      nfe_pedidos: {
+        Row: {
+          created_at: string
+          id: string
+          nfe_id: string
+          pedido_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nfe_id: string
+          pedido_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nfe_id?: string
+          pedido_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_pedidos_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_pedidos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obras: {
         Row: {
           ativo: boolean
@@ -3146,6 +3185,10 @@ export type Database = {
       }
       gerar_nfe: {
         Args: { p_natureza?: string; p_pedido_id: string }
+        Returns: string
+      }
+      gerar_nfe_agrupada: {
+        Args: { p_natureza?: string; p_pedido_ids: string[] }
         Returns: string
       }
       has_role: {
