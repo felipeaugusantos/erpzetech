@@ -1575,6 +1575,7 @@ export type Database = {
           cnpj: string | null
           codigo_municipio: string | null
           complemento: string | null
+          cor_primaria: string
           created_at: string
           email: string | null
           endereco: string | null
@@ -1582,6 +1583,7 @@ export type Database = {
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
+          logo_path: string | null
           nome_fantasia: string | null
           numero: string | null
           ramo_atividade: string
@@ -1600,6 +1602,7 @@ export type Database = {
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
+          cor_primaria?: string
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -1607,6 +1610,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          logo_path?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           ramo_atividade?: string
@@ -1625,6 +1629,7 @@ export type Database = {
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
+          cor_primaria?: string
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -1632,6 +1637,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          logo_path?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           ramo_atividade?: string

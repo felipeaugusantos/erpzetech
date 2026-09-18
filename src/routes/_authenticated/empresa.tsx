@@ -18,6 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
+import {
+  COR_PADRAO,
+  LogoEmpresaUpload,
+  aplicarCorEmpresa,
+} from "@/components/app/MarcaEmpresa";
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
@@ -66,11 +71,19 @@ const vazio = {
   codigo_municipio: "",
 };
 
+/** Sugestões de cor para a marca da loja. */
+const coresSugeridas = ["#008037", "#0f62fe", "#b42318", "#7a5af8", "#ef6c00", "#0f172a"];
+
 function Empresa() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
   const isAdmin = session?.roles.includes("administrador") ?? false;
   const [form, setForm] = useState(vazio);
+  /** Identidade visual da loja: logo e cor principal do sistema. */
+  const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
+    logo: null,
+    cor: COR_PADRAO,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
@@ -103,6 +116,7 @@ function Empresa() {
       estado: data.estado ?? "",
       codigo_municipio: data.codigo_municipio ?? "",
     });
+    setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
   }, [data]);
 
   const salvar = useMutation({
@@ -111,14 +125,16 @@ function Empresa() {
       const tenantId = session?.profile?.tenant_id;
       if (!tenantId) throw new Error("Perfil sem empresa vinculada");
 
+      const payload = { ...form, logo_path: marca.logo, cor_primaria: marca.cor };
+
       let empresaId = data?.id ?? null;
       if (empresaId) {
-        const { error } = await supabase.from("empresas").update(form).eq("id", empresaId);
+        const { error } = await supabase.from("empresas").update(payload).eq("id", empresaId);
         if (error) throw error;
       } else {
         const criada = await supabase
           .from("empresas")
-          .insert({ ...form, tenant_id: tenantId })
+          .insert({ ...payload, tenant_id: tenantId })
           .select("id")
           .single();
         if (criada.error) throw criada.error;
@@ -152,6 +168,8 @@ function Empresa() {
     },
     onSuccess: () => {
       toast.success(data ? "Dados da empresa salvos" : "Empresa cadastrada");
+      // A nova cor passa a valer na hora, sem precisar recarregar.
+      aplicarCorEmpresa(marca.cor);
       qc.invalidateQueries({ queryKey: ["empresa-cadastro"] });
       qc.invalidateQueries({ queryKey: ["configuracoes"] });
       qc.invalidateQueries({ queryKey: ["session-data"] });
@@ -271,6 +289,76 @@ function Empresa() {
             {campo("estado", "Estado", { maxLength: 2, upper: true })}
             {campo("codigo_municipio", "Código IBGE do município")}
           </div>
+
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="font-display text-sm font-semibold">Identidade da loja</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              A logo e a cor escolhidas aparecem já na abertura do sistema, no menu e nos
+              documentos.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="mb-2 block">Logo da empresa</Label>
+                <LogoEmpresaUpload
+                  caminho={marca.logo}
+                  tenantId={session?.profile?.tenant_id}
+                  podeEditar={isAdmin}
+                  onChange={(logo) => setMarca((m) => ({ ...m, logo }))}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="emp-cor" className="mb-2 block">
+                  Cor principal
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="emp-cor"
+                    type="color"
+                    aria-label="Cor principal"
+                    value={marca.cor}
+                    disabled={!isAdmin}
+                    onChange={(e) => setMarca((m) => ({ ...m, cor: e.target.value }))}
+                    className="size-10 cursor-pointer rounded-md border border-border bg-transparent p-1"
+                  />
+                  <Input
+                    value={marca.cor}
+                    disabled={!isAdmin}
+                    maxLength={7}
+                    onChange={(e) => setMarca((m) => ({ ...m, cor: e.target.value }))}
+                    className="w-32 font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={!isAdmin}
+                    onClick={() => setMarca((m) => ({ ...m, cor: COR_PADRAO }))}
+                  >
+                    Padrão
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {coresSugeridas.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-label={`Usar a cor ${c}`}
+                      disabled={!isAdmin}
+                      onClick={() => setMarca((m) => ({ ...m, cor: c }))}
+                      className="size-7 rounded-full border-2 border-border"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Use o código da cor da sua marca (ex.: #008037).
+                </p>
+              </div>
+            </div>
+          </div>
+
 
           <div className="mt-5">
             <Button
