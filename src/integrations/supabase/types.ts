@@ -900,6 +900,9 @@ export type Database = {
           frete: number
           id: string
           motivo_cancelamento: string | null
+          nfe_chave: string | null
+          nfe_emissao: string | null
+          nfe_numero: string | null
           numero: number | null
           observacoes: string | null
           origem: string
@@ -924,6 +927,9 @@ export type Database = {
           frete?: number
           id?: string
           motivo_cancelamento?: string | null
+          nfe_chave?: string | null
+          nfe_emissao?: string | null
+          nfe_numero?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -948,6 +954,9 @@ export type Database = {
           frete?: number
           id?: string
           motivo_cancelamento?: string | null
+          nfe_chave?: string | null
+          nfe_emissao?: string | null
+          nfe_numero?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -2476,6 +2485,61 @@ export type Database = {
           },
         ]
       }
+      nfe_entrada_produtos: {
+        Row: {
+          codigo_barras: string | null
+          codigo_fornecedor: string
+          created_at: string
+          fornecedor_id: string | null
+          id: string
+          produto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          codigo_barras?: string | null
+          codigo_fornecedor: string
+          created_at?: string
+          fornecedor_id?: string | null
+          id?: string
+          produto_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          codigo_barras?: string | null
+          codigo_fornecedor?: string
+          created_at?: string
+          fornecedor_id?: string | null
+          id?: string
+          produto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_entrada_produtos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_entrada_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_entrada_produtos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfe_itens: {
         Row: {
           aliquota_icms: number
@@ -3900,6 +3964,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      importar_nfe_entrada: {
+        Args: {
+          p_deposito_id: string
+          p_fornecedor: Json
+          p_gerar_conta?: boolean
+          p_itens: Json
+          p_nota: Json
+          p_parcelas?: number
+          p_vencimento?: string
+        }
+        Returns: Json
+      }
       inventario_abrir: {
         Args: { p_deposito_id: string; p_descricao?: string }
         Returns: string
@@ -3981,32 +4057,19 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimentacao:
-        | {
-            Args: {
-              p_deposito_destino_id?: string
-              p_deposito_id: string
-              p_documento?: string
-              p_motivo?: string
-              p_produto_id: string
-              p_quantidade: number
-              p_tipo: Database["public"]["Enums"]["mov_tipo"]
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_custo?: number
-              p_deposito_destino_id?: string
-              p_deposito_id: string
-              p_documento?: string
-              p_motivo?: string
-              p_produto_id: string
-              p_quantidade: number
-              p_tipo: Database["public"]["Enums"]["mov_tipo"]
-            }
-            Returns: string
-          }
+      registrar_movimentacao: {
+        Args: {
+          p_custo?: number
+          p_deposito_destino_id?: string
+          p_deposito_id: string
+          p_documento?: string
+          p_motivo?: string
+          p_produto_id: string
+          p_quantidade: number
+          p_tipo: Database["public"]["Enums"]["mov_tipo"]
+        }
+        Returns: string
+      }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string
