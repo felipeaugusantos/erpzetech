@@ -4062,15 +4062,61 @@ export type Database = {
           },
         ]
       }
+      saas_config: {
+        Row: {
+          banco: string | null
+          beneficiario: string
+          chave_pix: string | null
+          cidade: string
+          documento: string | null
+          email_cobranca: string | null
+          id: boolean
+          instrucoes: string | null
+          updated_at: string
+          whatsapp_cobranca: string | null
+        }
+        Insert: {
+          banco?: string | null
+          beneficiario?: string
+          chave_pix?: string | null
+          cidade?: string
+          documento?: string | null
+          email_cobranca?: string | null
+          id?: boolean
+          instrucoes?: string | null
+          updated_at?: string
+          whatsapp_cobranca?: string | null
+        }
+        Update: {
+          banco?: string | null
+          beneficiario?: string
+          chave_pix?: string | null
+          cidade?: string
+          documento?: string | null
+          email_cobranca?: string | null
+          id?: boolean
+          instrucoes?: string | null
+          updated_at?: string
+          whatsapp_cobranca?: string | null
+        }
+        Relationships: []
+      }
       saas_faturas: {
         Row: {
+          boleto_linha_digitavel: string | null
+          boleto_url: string | null
           cliente_id: string
           competencia: string | null
           created_at: string
           descricao: string
+          enviado_canal: string | null
+          enviado_em: string | null
+          forma_cobranca: string | null
           forma_pagamento: string | null
           id: string
+          observacao: string | null
           pago_em: string | null
+          pix_copia_cola: string | null
           tipo: string
           updated_at: string
           valor: number
@@ -4078,13 +4124,20 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          boleto_linha_digitavel?: string | null
+          boleto_url?: string | null
           cliente_id: string
           competencia?: string | null
           created_at?: string
           descricao: string
+          enviado_canal?: string | null
+          enviado_em?: string | null
+          forma_cobranca?: string | null
           forma_pagamento?: string | null
           id?: string
+          observacao?: string | null
           pago_em?: string | null
+          pix_copia_cola?: string | null
           tipo?: string
           updated_at?: string
           valor?: number
@@ -4092,13 +4145,20 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          boleto_linha_digitavel?: string | null
+          boleto_url?: string | null
           cliente_id?: string
           competencia?: string | null
           created_at?: string
           descricao?: string
+          enviado_canal?: string | null
+          enviado_em?: string | null
+          forma_cobranca?: string | null
           forma_pagamento?: string | null
           id?: string
+          observacao?: string | null
           pago_em?: string | null
+          pix_copia_cola?: string | null
           tipo?: string
           updated_at?: string
           valor?: number
@@ -4859,6 +4919,26 @@ export type Database = {
         Returns: undefined
       }
       saas_gerar_faturas: { Args: never; Returns: number }
+      saas_marcar_enviada: {
+        Args: { p_canal?: string; p_fatura_id: string }
+        Returns: undefined
+      }
+      saas_registrar_cobranca: {
+        Args: {
+          p_boleto_url?: string
+          p_cliente_id: string
+          p_competencia?: string
+          p_descricao: string
+          p_forma?: string
+          p_linha_digitavel?: string
+          p_observacao?: string
+          p_pix?: string
+          p_tipo?: string
+          p_valor: number
+          p_vencimento: string
+        }
+        Returns: string
+      }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string

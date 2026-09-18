@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
@@ -60,6 +61,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
 import { Route as AuthenticatedZeTechRouteImport } from './routes/_authenticated/ze-tech'
+import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
 import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
@@ -86,6 +88,11 @@ const AuthRoute = AuthRouteImport.update({
 const ContatoRoute = ContatoRouteImport.update({
   id: '/contato',
   path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
+  id: '/ze-tech-login',
+  path: '/ze-tech-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBalancoFiscalRoute =
@@ -342,6 +349,12 @@ const AuthenticatedZeTechRoute = AuthenticatedZeTechRouteImport.update({
   path: '/ze-tech',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedZeTechCobrancaRoute =
+  AuthenticatedZeTechCobrancaRouteImport.update({
+    id: '/ze-tech-cobranca',
+    path: '/ze-tech-cobranca',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechPlanosRoute =
   AuthenticatedZeTechPlanosRouteImport.update({
     id: '/ze-tech-planos',
@@ -393,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/ze-tech-login': typeof ZeTechLoginRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -440,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
+  '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
@@ -453,6 +468,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/ze-tech-login': typeof ZeTechLoginRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -500,6 +516,7 @@ export interface FileRoutesByTo {
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
+  '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
@@ -515,6 +532,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/ze-tech-login': typeof ZeTechLoginRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
@@ -562,6 +580,7 @@ export interface FileRoutesById {
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
   '/_authenticated/ze-tech': typeof AuthenticatedZeTechRoute
+  '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
@@ -577,6 +596,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/contato'
+    | '/ze-tech-login'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -624,6 +644,7 @@ export interface FileRouteTypes {
     | '/veiculos'
     | '/vendedores'
     | '/ze-tech'
+    | '/ze-tech-cobranca'
     | '/ze-tech-planos'
     | '/ze-tech-relatorios'
     | '/compras/$id'
@@ -637,6 +658,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/contato'
+    | '/ze-tech-login'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -684,6 +706,7 @@ export interface FileRouteTypes {
     | '/veiculos'
     | '/vendedores'
     | '/ze-tech'
+    | '/ze-tech-cobranca'
     | '/ze-tech-planos'
     | '/ze-tech-relatorios'
     | '/compras/$id'
@@ -698,6 +721,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/contato'
+    | '/ze-tech-login'
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
@@ -745,6 +769,7 @@ export interface FileRouteTypes {
     | '/_authenticated/veiculos'
     | '/_authenticated/vendedores'
     | '/_authenticated/ze-tech'
+    | '/_authenticated/ze-tech-cobranca'
     | '/_authenticated/ze-tech-planos'
     | '/_authenticated/ze-tech-relatorios'
     | '/_authenticated/compras/$id'
@@ -760,6 +785,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ContatoRoute: typeof ContatoRoute
+  ZeTechLoginRoute: typeof ZeTechLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -790,6 +816,13 @@ declare module '@tanstack/react-router' {
       path: '/contato'
       fullPath: '/contato'
       preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ze-tech-login': {
+      id: '/ze-tech-login'
+      path: '/ze-tech-login'
+      fullPath: '/ze-tech-login'
+      preLoaderRoute: typeof ZeTechLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/balanco-fiscal': {
@@ -1121,6 +1154,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-cobranca': {
+      id: '/_authenticated/ze-tech-cobranca'
+      path: '/ze-tech-cobranca'
+      fullPath: '/ze-tech-cobranca'
+      preLoaderRoute: typeof AuthenticatedZeTechCobrancaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-planos': {
       id: '/_authenticated/ze-tech-planos'
       path: '/ze-tech-planos'
@@ -1228,6 +1268,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
   AuthenticatedZeTechRoute: typeof AuthenticatedZeTechRoute
+  AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
   AuthenticatedZeTechRelatoriosRoute: typeof AuthenticatedZeTechRelatoriosRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
@@ -1286,6 +1327,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
   AuthenticatedZeTechRoute: AuthenticatedZeTechRoute,
+  AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
   AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,
   AuthenticatedZeTechRelatoriosRoute: AuthenticatedZeTechRelatoriosRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
@@ -1304,6 +1346,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ContatoRoute: ContatoRoute,
+  ZeTechLoginRoute: ZeTechLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

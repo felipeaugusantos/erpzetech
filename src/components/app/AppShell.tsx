@@ -28,6 +28,7 @@ import {
   Wallet,
   Warehouse,
   X,
+  CircleDollarSign,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -230,6 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             items: [
               { label: "Painel de clientes", to: "/ze-tech", icon: Users },
               { label: "Planos", to: "/ze-tech-planos", icon: Tag },
+              { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
               { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
             ],
           },
