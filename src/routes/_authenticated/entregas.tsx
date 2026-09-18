@@ -699,6 +699,135 @@ function Entregas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={rotaAberta} onOpenChange={setRotaAberta}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Roteirização automática</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            O sistema coloca primeiro as entregas atrasadas e as do dia, agrupa endereços do mesmo
+            bairro e cidade e para quando o veículo chega ao limite de peso ou volume.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Dia da rota</Label>
+              <Input type="date" value={diaRota} onChange={(e) => setDiaRota(e.target.value)} />
+            </div>
+            <div>
+              <Label>Veículos</Label>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {veiculos.map((v) => {
+                  const ativo =
+                    veiculosEscolhidos.length === 0 || veiculosEscolhidos.includes(v.id);
+                  return (
+                    <Button
+                      key={v.id}
+                      type="button"
+                      size="sm"
+                      variant={ativo ? "default" : "outline"}
+                      onClick={() =>
+                        setVeiculosEscolhidos((atual) => {
+                          const base = atual.length === 0 ? veiculos.map((x) => x.id) : atual;
+                          return base.includes(v.id)
+                            ? base.filter((id) => id !== v.id)
+                            : [...base, v.id];
+                        })
+                      }
+                    >
+                      {v.placa}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {sugestao.rotas.filter((r) => r.paradas.length > 0).length === 0 ? (
+            <p className="rounded-md border border-border p-4 text-sm text-muted-foreground">
+              Nenhum pedido pronto para entrega sem rota definida.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {sugestao.rotas
+                .filter((r) => r.paradas.length > 0)
+                .map((r) => (
+                  <div key={r.veiculo.id} className="rounded-md border border-border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium">
+                        {r.veiculo.descricao} ({r.veiculo.placa})
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {r.veiculo.motorista_nome ?? "sem motorista habitual"}
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground text-numeric">
+                        {num(r.pesoKg)} kg
+                        {Number(r.veiculo.capacidade_kg ?? 0) > 0
+                          ? ` de ${num(Number(r.veiculo.capacidade_kg))} kg`
+                          : ""}{" "}
+                        · {num(r.volumeM3)} m³
+                        {Number(r.veiculo.capacidade_m3 ?? 0) > 0
+                          ? ` de ${num(Number(r.veiculo.capacidade_m3))} m³`
+                          : ""}
+                      </p>
+                    </div>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {r.paradas.map((p) => {
+                        const u = rotuloUrgencia(diasParaEntrega(p.pedido.previsao, diaRota));
+                        return (
+                          <li key={p.pedido.id} className="flex flex-wrap items-center gap-2">
+                            <span className="text-numeric text-muted-foreground">
+                              {p.sequencia}.
+                            </span>
+                            <span className="font-medium">{p.pedido.cliente}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {[p.pedido.bairro, p.pedido.cidade].filter(Boolean).join(" · ") ||
+                                "sem endereço"}
+                            </span>
+                            <Badge className={u.classe}>{u.label}</Badge>
+                            <span className="text-xs text-muted-foreground text-numeric">
+                              {num(p.pedido.pesoKg)} kg
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {sugestao.sobras.length > 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              <p className="font-medium">Ficaram fora desta rota:</p>
+              <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                {sugestao.sobras.map((s) => (
+                  <li key={s.pedido.id}>
+                    Pedido #{String(s.pedido.numero).padStart(4, "0")} — {s.pedido.cliente}:{" "}
+                    {s.motivo}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotaAberta(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => aplicarRota.mutate()}
+              disabled={
+                aplicarRota.isPending ||
+                sugestao.rotas.filter((r) => r.paradas.length > 0).length === 0
+              }
+            >
+              <RouteIcon className="size-4" /> Criar entregas da rota
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
