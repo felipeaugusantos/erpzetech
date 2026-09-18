@@ -134,7 +134,9 @@ function BalancoFiscal() {
     const frete = notas.reduce((s, n) => s + Number(n.valor_frete), 0);
     const desconto = notas.reduce((s, n) => s + Number(n.valor_desconto), 0);
 
-    const itensPedidos = (data?.pedidos ?? []).flatMap(
+    const itensPedidos = (data?.pedidos ?? [])
+      .filter((p) => filialSel === "todas" || p.filial_id === filialSel)
+      .flatMap(
       (p) =>
         (p.pedido_itens ?? []) as Array<{
           quantidade: number;
