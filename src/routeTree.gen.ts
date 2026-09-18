@@ -34,6 +34,7 @@ import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
+import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
@@ -177,6 +178,11 @@ const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
   path: '/orcamentos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPrecosRoute = AuthenticatedPrecosRouteImport.update({
   id: '/precos',
   path: '/precos',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/nfe': typeof AuthenticatedNfeRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
+  '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/nfe': typeof AuthenticatedNfeRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
+  '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
+  '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/nfe'
     | '/obras'
     | '/orcamentos'
+    | '/planos'
     | '/precos'
     | '/produtos'
     | '/relatorio'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/nfe'
     | '/obras'
     | '/orcamentos'
+    | '/planos'
     | '/precos'
     | '/produtos'
     | '/relatorio'
@@ -462,6 +473,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nfe'
     | '/_authenticated/obras'
     | '/_authenticated/orcamentos'
+    | '/_authenticated/planos'
     | '/_authenticated/precos'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorio'
@@ -659,6 +671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrcamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planos': {
+      id: '/_authenticated/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof AuthenticatedPlanosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/precos': {
       id: '/_authenticated/precos'
       path: '/precos'
@@ -769,6 +788,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
+  AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
@@ -806,6 +826,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
+  AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
