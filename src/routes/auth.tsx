@@ -5,6 +5,7 @@ import { HardHat, Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,9 +85,7 @@ function AuthPage() {
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-md bg-sidebar-primary font-display font-bold text-sidebar-primary-foreground">
-            ZO
-          </span>
+          <ZeLogo />
           <span className="font-display text-lg font-bold tracking-wide">ZE OBRA</span>
         </Link>
         <div className="max-w-md">
@@ -105,9 +104,7 @@ function AuthPage() {
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="mb-6 lg:hidden">
-            <span className="grid size-10 place-items-center rounded-md bg-primary font-display font-bold text-primary-foreground">
-              ZO
-            </span>
+            <ZeLogo className="size-10" />
           </div>
           <h1 className="font-display text-2xl font-bold">Acessar o sistema</h1>
           <p className="mt-1 text-sm text-muted-foreground">
