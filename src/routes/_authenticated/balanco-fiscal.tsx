@@ -354,6 +354,40 @@ function BalancoFiscal() {
             Vendas do período nos pedidos: {brl(contas.receitaVendas)} — diferença de{" "}
             {brl(contas.semNota)} ainda sem nota emitida.
           </p>
+
+          <h3 className="mt-5 font-display text-sm font-semibold">
+            Movimentação de estoque a custo real
+          </h3>
+          {estoque.lista.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nenhuma entrada, saída ou contagem de estoque no período.
+            </p>
+          ) : (
+            <Table className="mt-2">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Depósito</TableHead>
+                  <TableHead className="text-right">Entradas</TableHead>
+                  <TableHead className="text-right">Saídas</TableHead>
+                  <TableHead className="text-right">Contagens</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {estoque.lista.map((d) => (
+                  <TableRow key={d.nome}>
+                    <TableCell>{d.nome}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(d.entradas)}</TableCell>
+                    <TableCell className="text-right text-numeric text-destructive">
+                      {brl(d.saidas)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {d.ajusteQtd > 0 ? `${d.ajusteQtd} ajuste(s)` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
 
         <div className="panel p-4">
