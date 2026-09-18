@@ -756,6 +756,11 @@ function ClienteDialog({
               onChange={(e) => setForm({ ...form, teste_ate: e.target.value })}
             />
           </div>
+          {cliente && (
+            <div className="sm:col-span-2">
+              <AcessoAdmin cliente={cliente} />
+            </div>
+          )}
           <div className="grid gap-1.5 sm:col-span-2">
             <Label htmlFor="c-obs">Observações</Label>
             <Textarea
