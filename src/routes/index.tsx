@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BarChart3,
   Boxes,
+  Check,
   HardHat,
   LayoutGrid,
   Receipt,
