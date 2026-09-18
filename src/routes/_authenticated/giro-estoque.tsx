@@ -185,7 +185,19 @@ function GiroEstoque() {
         comprar60: necessidade(60),
       };
     });
-  }, [data, dias]);
+    },
+    [data, dias],
+  );
+
+  /** Uma linha de giro por depósito, mais a visão consolidada. */
+  const porDeposito = useMemo(() => {
+    const mapa = new Map<string, Linha[]>();
+    mapa.set("todos", calcular("todos"));
+    for (const d of depositos) mapa.set(d.id, calcular(d.id));
+    return mapa;
+  }, [calcular, depositos]);
+
+  const linhas = useMemo(() => porDeposito.get(depositoId) ?? [], [porDeposito, depositoId]);
 
   const visiveis = useMemo(() => {
     const t = busca.trim().toLowerCase();
