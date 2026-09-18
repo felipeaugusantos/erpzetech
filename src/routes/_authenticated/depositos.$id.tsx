@@ -105,7 +105,7 @@ function DepositoDetalhe() {
         supabase
           .from("estoques")
           .select(
-            "id, quantidade, reservado, localizacao, produto_id, produtos(descricao, codigo_interno, codigo_barras, unidade, unidade_compra, fator_conversao, custo, estoque_minimo, estoque_maximo)",
+            "id, quantidade, reservado, custo_medio, localizacao, produto_id, produtos(descricao, codigo_interno, codigo_barras, unidade, unidade_compra, fator_conversao, custo, estoque_minimo, estoque_maximo)",
           )
           .eq("deposito_id", id),
         supabase.from("depositos").select("id, nome").eq("ativo", true).neq("id", id).order("nome"),
@@ -122,7 +122,8 @@ function DepositoDetalhe() {
         const p = e.produtos as unknown as Prod;
         const fisico = Number(e.quantidade);
         const reservado = Number(e.reservado);
-        return { e, p, fisico, reservado, disponivel: fisico - reservado };
+        const custo = Number(e.custo_medio) > 0 ? Number(e.custo_medio) : Number(p?.custo ?? 0);
+        return { e, p, fisico, reservado, custo, disponivel: fisico - reservado };
       })
       .filter((l) => {
         if (!l.p) return false;
@@ -189,9 +190,26 @@ function DepositoDetalhe() {
     onError: (e: Error) => toast.error("Não foi possível ajustar", { description: e.message }),
   });
 
+  /** Custo de aquisição deste depósito (média ponderada, editável na mão). */
+  const salvarCusto = useMutation({
+    mutationFn: async ({ estoqueId, custo }: { estoqueId: string; custo: number }) => {
+      const { error } = await supabase
+        .from("estoques")
+        .update({ custo_medio: custo })
+        .eq("id", estoqueId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Custo do depósito atualizado");
+      invalidar();
+      qc.invalidateQueries({ queryKey: ["precos-produtos"] });
+    },
+    onError: (e: Error) => toast.error("Não foi possível salvar o custo", { description: e.message }),
+  });
+
   const totalFisico = linhas.reduce((s, l) => s + l.fisico, 0);
   const totalReservado = linhas.reduce((s, l) => s + l.reservado, 0);
-  const totalValor = linhas.reduce((s, l) => s + l.fisico * Number(l.p.custo), 0);
+  const totalValor = linhas.reduce((s, l) => s + l.fisico * l.custo, 0);
   const semSaldo = linhas.filter((l) => l.disponivel <= 0).length;
 
   const dep = data?.deposito;
@@ -283,6 +301,7 @@ function DepositoDetalhe() {
                   <TableHead className="text-right">Físico</TableHead>
                   <TableHead className="text-right">Reservado</TableHead>
                   <TableHead className="text-right">Disponível</TableHead>
+                  <TableHead className="text-right">Custo neste depósito</TableHead>
                   <TableHead>Conversão</TableHead>
                   <TableHead />
                 </TableRow>
@@ -310,6 +329,22 @@ function DepositoDetalhe() {
                           baixo
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        defaultValue={l.custo ? String(l.custo) : ""}
+                        placeholder="0,00"
+                        inputMode="decimal"
+                        className="ml-auto h-8 w-24 text-right text-numeric"
+                        onBlur={(ev) => {
+                          const valor = Number(ev.target.value.replace(",", "."));
+                          if (!Number.isFinite(valor) || valor < 0 || valor === l.custo) return;
+                          salvarCusto.mutate({ estoqueId: l.e.id, custo: valor });
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        total {brl(l.fisico * l.custo)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatConverted(

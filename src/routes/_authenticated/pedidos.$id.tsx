@@ -401,6 +401,7 @@ function PedidoDetalhe() {
                   <TableHead className="w-28">Conferido</TableHead>
                   <TableHead className="text-right">Entregue</TableHead>
                   <TableHead className="text-right">Pendente</TableHead>
+                  <TableHead className="text-right">Custo do depósito</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
@@ -476,6 +477,25 @@ function PedidoDetalhe() {
                           <span className="font-medium text-warning-foreground">{num(pendente)}</span>
                         ) : (
                           <span className="text-success">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-muted-foreground">
+                        {Number(i.custo_unitario) > 0 ? (
+                          <>
+                            <span className="text-numeric block">{brl(Number(i.custo_unitario))}</span>
+                            <span>
+                              margem{" "}
+                              {num(
+                                ((Number(i.preco_unitario) - Number(i.custo_unitario)) /
+                                  Math.max(Number(i.preco_unitario), 0.01)) *
+                                  100,
+                                1,
+                              )}
+                              %
+                            </span>
+                          </>
+                        ) : (
+                          "—"
                         )}
                       </TableCell>
                       <TableCell className="text-right font-semibold">

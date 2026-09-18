@@ -6,6 +6,7 @@ import {
   Boxes,
   ChevronDown,
   ClipboardList,
+  FileText,
   Gauge,
   HardHat,
   IdCard,
@@ -53,7 +54,10 @@ const groups: Group[] = [
   {
     label: "Visão geral",
     icon: Gauge,
-    items: [{ label: "Dashboard", to: "/dashboard", icon: Gauge }],
+    items: [
+      { label: "Dashboard", to: "/dashboard", icon: Gauge },
+      { label: "Relatório do sócio", to: "/relatorio", icon: FileText },
+    ],
   },
   {
     label: "Comercial",

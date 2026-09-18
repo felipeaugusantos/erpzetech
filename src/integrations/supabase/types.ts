@@ -1407,6 +1407,7 @@ export type Database = {
       }
       estoques: {
         Row: {
+          custo_medio: number
           deposito_id: string
           id: string
           localizacao: string | null
@@ -1417,6 +1418,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          custo_medio?: number
           deposito_id: string
           id?: string
           localizacao?: string | null
@@ -1427,6 +1429,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          custo_medio?: number
           deposito_id?: string
           id?: string
           localizacao?: string | null
@@ -1676,6 +1679,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      modelo_negocio: {
+        Row: {
+          custo_equipe_mensal: number
+          custo_infra_mensal: number
+          custo_marketing_mensal: number
+          id: string
+          investimento_realizado: number
+          meta_clientes_ano1: number
+          meta_clientes_ano2: number
+          observacoes: string | null
+          preco_filial_extra: number
+          preco_implantacao: number
+          preco_mensal_loja: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          custo_equipe_mensal?: number
+          custo_infra_mensal?: number
+          custo_marketing_mensal?: number
+          id?: string
+          investimento_realizado?: number
+          meta_clientes_ano1?: number
+          meta_clientes_ano2?: number
+          observacoes?: string | null
+          preco_filial_extra?: number
+          preco_implantacao?: number
+          preco_mensal_loja?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          custo_equipe_mensal?: number
+          custo_infra_mensal?: number
+          custo_marketing_mensal?: number
+          id?: string
+          investimento_realizado?: number
+          meta_clientes_ano1?: number
+          meta_clientes_ano2?: number
+          observacoes?: string | null
+          preco_filial_extra?: number
+          preco_implantacao?: number
+          preco_mensal_loja?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       motoristas: {
         Row: {
@@ -2083,6 +2134,7 @@ export type Database = {
       pedido_itens: {
         Row: {
           created_at: string
+          custo_unitario: number
           desconto: number
           divergencia: string | null
           id: string
@@ -2100,6 +2152,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custo_unitario?: number
           desconto?: number
           divergencia?: string | null
           id?: string
@@ -2117,6 +2170,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custo_unitario?: number
           desconto?: number
           divergencia?: string | null
           id?: string
@@ -2704,6 +2758,15 @@ export type Database = {
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
+      }
+      atualizar_custo_medio: {
+        Args: {
+          p_custo: number
+          p_deposito_id: string
+          p_produto_id: string
+          p_qtd_entrada: number
+        }
+        Returns: number
       }
       baixar_conta: {
         Args: {
