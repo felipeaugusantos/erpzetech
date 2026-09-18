@@ -702,6 +702,14 @@ function ContasReceber() {
         </DialogContent>
       </Dialog>
 
+      <HistoricoTitulo
+        tipo="receber"
+        titulo={historico}
+        onOpenChange={(aberto) => {
+          if (!aberto) setHistorico(null);
+        }}
+      />
+
     </div>
   );
 }
