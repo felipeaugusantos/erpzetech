@@ -166,7 +166,7 @@ function BalancoFiscal() {
       lucroVendas: receitaVendas - custoVendas,
       semNota: receitaVendas - receitaNotas,
     };
-  }, [data]);
+  }, [data, filialSel]);
 
   const porMes = useMemo(() => {
     const mapa = new Map<
@@ -229,8 +229,25 @@ function BalancoFiscal() {
           <Label className="text-xs">Até</Label>
           <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
         </div>
+        <div className="sm:w-56">
+          <Label className="text-xs">Loja</Label>
+          <Select value={filialSel} onValueChange={setFilialSel}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as lojas</SelectItem>
+              {filiais.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <p className="text-xs text-muted-foreground sm:pb-2">
-          É o mesmo período do painel e do relatório de lucro — mudou aqui, muda lá.
+          É o mesmo período do painel e do relatório de lucro — mudou aqui, muda lá. A loja considera
+          o depósito de onde a mercadoria saiu.
         </p>
       </div>
 
