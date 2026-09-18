@@ -116,6 +116,20 @@ function Profissionais() {
     return mapa;
   }, [clientes]);
 
+  /** Saldo de cada profissional: a receber (a aprovar + aprovada) e já pago. */
+  const saldoPorProf = useMemo(() => {
+    const mapa = new Map<string, { aReceber: number; pago: number; vendas: number }>();
+    for (const p of premiacoes) {
+      if (!p.profissional_id) continue;
+      const atual = mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+      if (p.situacao === "paga") atual.pago += Number(p.valor);
+      else if (p.situacao !== "cancelada") atual.aReceber += Number(p.valor);
+      if (p.situacao !== "cancelada") atual.vendas += Number(p.valor_base);
+      mapa.set(p.profissional_id, atual);
+    }
+    return mapa;
+  }, [premiacoes]);
+
   /* ---------- cadastro ---------- */
   const vazio = {
     nome: "",
