@@ -113,10 +113,14 @@ function GiroEstoque() {
 
   const depositos = data?.depositos ?? [];
 
-  const linhas = useMemo<Linha[]>(() => {
+  /** Calcula o giro de um depósito específico, ou de todos juntos quando "todos". */
+  const calcular = useCallback(
+    (alvo: string): Linha[] => {
     const produtos = data?.produtos ?? [];
     const vendas = new Map<string, { qtd: number; receita: number }>();
     for (const i of data?.itens ?? []) {
+      const dep = (i.pedidos as unknown as { deposito_id: string | null } | null)?.deposito_id ?? "";
+      if (alvo !== "todos" && dep !== alvo) continue;
       const atual = vendas.get(i.produto_id) ?? { qtd: 0, receita: 0 };
       atual.qtd += Number(i.quantidade ?? 0);
       atual.receita += Number(i.total ?? 0);
@@ -125,6 +129,7 @@ function GiroEstoque() {
 
     const saldo = new Map<string, { disponivel: number; custo: number }>();
     for (const e of data?.estoques ?? []) {
+      if (alvo !== "todos" && e.deposito_id !== alvo) continue;
       const atual = saldo.get(e.produto_id) ?? { disponivel: 0, custo: 0 };
       atual.disponivel += Number(e.quantidade ?? 0) - Number(e.reservado ?? 0);
       atual.custo = Math.max(atual.custo, Number(e.custo_medio ?? 0));
