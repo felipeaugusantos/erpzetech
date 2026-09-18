@@ -80,6 +80,10 @@ export function aplicarCorEmpresa(cor: string | null | undefined) {
   raiz.style.setProperty("--sidebar", ajustar(base, -0.55));
   raiz.style.setProperty("--sidebar-primary", ajustar(base, 0.25));
   raiz.style.setProperty("--sidebar-primary-foreground", ajustar(base, -0.7));
+  raiz.style.setProperty("--sidebar-accent", ajustar(base, -0.35));
+  raiz.style.setProperty("--sidebar-accent-foreground", "#ffffff");
+  raiz.style.setProperty("--sidebar-border", ajustar(base, -0.35));
+  raiz.style.setProperty("--sidebar-ring", ajustar(base, 0.25));
 }
 
 /** Mantém a cor da loja aplicada em toda a navegação. */
