@@ -167,7 +167,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
           <div className="min-w-0">
             <p className="truncate font-display text-sm font-bold tracking-wide">ZE OBRA</p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">Gestão de materiais</p>
+            <p className="truncate text-[11px] text-sidebar-foreground/60">por Ze Tech</p>
           </div>
           <button
             className="ml-auto lg:hidden"

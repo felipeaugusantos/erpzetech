@@ -114,7 +114,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        Ze Obra • Multiempresa, multifilial e multidepósito
+        Ze Obra, um produto Ze Tech • Multiempresa, multifilial e multidepósito
       </footer>
     </div>
   );
