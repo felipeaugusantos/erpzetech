@@ -329,9 +329,11 @@ function FilialExtra() {
                 </SelectContent>
               </Select>
             )}
-            <Button variant="outline" onClick={() => setNovaAberta(true)}>
-              <Building2 className="mr-2 size-4" /> Nova filial
-            </Button>
+            {operadorSaas && (
+              <Button variant="outline" onClick={() => setNovaAberta(true)}>
+                <Building2 className="mr-2 size-4" /> Nova filial
+              </Button>
+            )}
           </>
         }
       />
@@ -341,8 +343,10 @@ function FilialExtra() {
       ) : !filial ? (
         <EmptyState
           title="Nenhuma filial cadastrada."
-          description="Crie a filial extra para montar o depósito, os custos e a numeração de nota dela."
-          action={<Button onClick={() => setNovaAberta(true)}>Nova filial</Button>}
+          description="A abertura de uma nova filial é feita pela equipe Ze Tech. Fale com a Ze Tech para liberar a filial extra."
+          action={
+            operadorSaas ? <Button onClick={() => setNovaAberta(true)}>Nova filial</Button> : undefined
+          }
         />
       ) : (
         <div className="space-y-6">
