@@ -315,6 +315,41 @@ function Caixa() {
               </div>
             )}
           </div>
+
+          <div className="panel mb-5 p-4">
+            <h2 className="mb-1 font-display text-lg font-semibold">
+              Vendas de balcão (PDV) por depósito
+            </h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Total de {brl(vendasPdv.total)} em vendas rápidas lançadas neste caixa.
+            </p>
+            {vendasPdv.lista.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Nenhuma venda de balcão neste caixa ainda.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Depósito</TableHead>
+                    <TableHead className="text-right">Vendas</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendasPdv.lista.map((d) => (
+                    <TableRow key={d.deposito}>
+                      <TableCell>{d.deposito}</TableCell>
+                      <TableCell className="text-right text-numeric">{d.vendas}</TableCell>
+                      <TableCell className="text-right text-numeric font-semibold">
+                        {brl(d.valor)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </>
       )}
 
