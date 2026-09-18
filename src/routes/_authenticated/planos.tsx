@@ -385,6 +385,10 @@ function Planos() {
           <div className="panel overflow-x-auto">
             <div className="border-b border-border px-4 py-3">
               <p className="font-display text-sm font-semibold">Pagamentos da assinatura</p>
+              <p className="text-xs text-muted-foreground">
+                A mensalidade do plano e as filiais extras são lançadas automaticamente a cada mês,
+                no dia de vencimento escolhido — sem lançamento manual.
+              </p>
             </div>
             {faturas.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
