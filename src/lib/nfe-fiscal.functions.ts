@@ -456,3 +456,35 @@ export const arquivosNfe = createServerFn({ method: "POST" })
 
     return { pdf, xml };
   });
+
+/** Conferência da conta do emissor fiscal: conexão, empresas e certificados cadastrados. */
+export const statusEmissor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { acbr } = await import("./acbr.server");
+    try {
+      const empresas = await acbr<{ data?: any[] }>("producao", "/empresas");
+      const certificados = await acbr<{ data?: any[] }>("producao", "/empresas/certificados");
+      const listaEmpresas = (empresas?.data ?? []).map((e: any) => ({
+        cpfCnpj: String(e?.cpf_cnpj ?? ""),
+        nome: String(e?.razao_social ?? e?.nome ?? ""),
+      }));
+      const listaCertificados = (certificados?.data ?? []).map((c: any) => ({
+        nome: String(c?.razao_social ?? c?.nome ?? c?.cpf_cnpj ?? ""),
+        validade: String(c?.data_validade ?? c?.validade ?? ""),
+      }));
+      return {
+        conectado: true,
+        mensagem: "Conexão com o emissor fiscal funcionando.",
+        empresas: listaEmpresas,
+        certificados: listaCertificados,
+      };
+    } catch (erro) {
+      return {
+        conectado: false,
+        mensagem: erro instanceof Error ? erro.message : "Falha ao falar com o emissor fiscal.",
+        empresas: [] as { cpfCnpj: string; nome: string }[],
+        certificados: [] as { nome: string; validade: string }[],
+      };
+    }
+  });
