@@ -197,12 +197,12 @@ function Configuracoes() {
                 />
               </div>
               <div>
-                <Label>Ramo de atividade</Label>
+                <Label htmlFor="e-ramo">Ramo de atividade</Label>
                 <Select
                   value={empresa.ramo_atividade}
                   onValueChange={(v) => setEmpresa({ ...empresa, ramo_atividade: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="e-ramo" aria-label="Ramo de atividade">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
