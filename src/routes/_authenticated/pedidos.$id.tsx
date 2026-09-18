@@ -1153,10 +1153,7 @@ function PedidoDetalhe() {
                 </SelectContent>
               </Select>
             </div>
-            {(checkoutForma === "crediario" ||
-              checkoutForma === "boleto" ||
-              Number(checkoutParcelas) > 1) && (
-              <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="ck-parc">Parcelas</Label>
                   <Input
@@ -1175,23 +1172,11 @@ function PedidoDetalhe() {
                     onChange={(e) => setCheckoutVencimento(e.target.value)}
                   />
                 </div>
-              </div>
-            )}
+            </div>
             <p className="text-xs text-muted-foreground">
               À vista, o valor entra no caixa aberto e dá baixa nas parcelas deste pedido. A prazo,
               gera as parcelas em contas a receber.
             </p>
-            {Number(checkoutParcelas) <= 1 && (
-              <div>
-                <Label htmlFor="ck-parc2">Parcelas</Label>
-                <Input
-                  id="ck-parc2"
-                  inputMode="numeric"
-                  value={checkoutParcelas}
-                  onChange={(e) => setCheckoutParcelas(e.target.value)}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
