@@ -563,6 +563,14 @@ function ContasPagar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HistoricoTitulo
+        tipo="pagar"
+        titulo={historico}
+        onOpenChange={(aberto) => {
+          if (!aberto) setHistorico(null);
+        }}
+      />
     </div>
   );
 }
