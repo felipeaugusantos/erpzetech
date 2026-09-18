@@ -158,9 +158,28 @@ function AppMotorista() {
     },
   });
 
+  /** Motorista vinculado ao login atual — quando existe, a tela fica travada nele. */
+  const { data: meuMotorista } = useQuery({
+    queryKey: ["meu-motorista"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase
+        .from("motoristas")
+        .select("id, nome")
+        .eq("user_id", u.user.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
   useEffect(() => {
+    if (meuMotorista) {
+      if (motoristaId !== meuMotorista.id) setMotoristaId(meuMotorista.id);
+      return;
+    }
     if (!motoristaId && motoristas[0]) setMotoristaId(motoristas[0].id);
-  }, [motoristas, motoristaId]);
+  }, [motoristas, motoristaId, meuMotorista]);
 
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ["entregas-motorista", motoristaId],
@@ -174,6 +193,25 @@ function AppMotorista() {
         .eq("motorista_id", motoristaId)
         .in("situacao", ["planejada", "em_rota"])
         .order("sequencia", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  /** Entregas já finalizadas do motorista, para ele acompanhar divergências e insucessos. */
+  const { data: finalizadas = [] } = useQuery({
+    queryKey: ["entregas-motorista-finalizadas", motoristaId],
+    enabled: Boolean(motoristaId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("entregas")
+        .select(
+          "id, numero, situacao, data_entrega, motivo_insucesso, observacao, recebedor, pedidos(numero, clientes(nome))",
+        )
+        .eq("motorista_id", motoristaId)
+        .in("situacao", ["entregue", "insucesso"])
+        .order("updated_at", { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data;
     },
