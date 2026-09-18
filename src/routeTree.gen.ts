@@ -25,6 +25,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
+import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 
@@ -111,6 +112,11 @@ const AuthenticatedComprasIndexRoute =
     path: '/compras/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedComprasIdRoute = AuthenticatedComprasIdRouteImport.update({
+  id: '/compras/$id',
+  path: '/compras/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPedidosIndexRoute =
   AuthenticatedPedidosIndexRouteImport.update({
     id: '/pedidos/',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/produtos'
     | '/usuarios'
+    | '/compras/$id'
     | '/pedidos/$id'
     | '/compras/'
     | '/pedidos/'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/produtos'
     | '/usuarios'
+    | '/compras/$id'
     | '/pedidos/$id'
     | '/compras'
     | '/pedidos'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamentos'
     | '/_authenticated/produtos'
     | '/_authenticated/usuarios'
+    | '/_authenticated/compras/$id'
     | '/_authenticated/pedidos/$id'
     | '/_authenticated/compras/'
     | '/_authenticated/pedidos/'
@@ -363,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComprasIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/compras/$id': {
+      id: '/_authenticated/compras/$id'
+      path: '/compras/$id'
+      fullPath: '/compras/$id'
+      preLoaderRoute: typeof AuthenticatedComprasIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pedidos/': {
       id: '/_authenticated/pedidos/'
       path: '/pedidos'
@@ -393,6 +412,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedPedidosIndexRoute: typeof AuthenticatedPedidosIndexRoute
@@ -411,6 +431,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedPedidosIndexRoute: AuthenticatedPedidosIndexRoute,
