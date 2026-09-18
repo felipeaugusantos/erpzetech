@@ -57,6 +57,7 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const situacaoLabel: Record<string, { label: string; tone: string }> = {
   rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
   pronta: { label: "Pronta para transmitir", tone: "bg-accent/15 text-accent-foreground" },
+  transmitida: { label: "Enviada — aguardando Receita", tone: "bg-primary/15 text-primary" },
   autorizada: { label: "Autorizada", tone: "bg-success/15 text-success" },
   rejeitada: { label: "Rejeitada", tone: "bg-destructive/15 text-destructive" },
   cancelada: { label: "Cancelada", tone: "bg-destructive/10 text-destructive" },
