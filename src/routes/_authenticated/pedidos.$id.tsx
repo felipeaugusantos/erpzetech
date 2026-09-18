@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
+import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
