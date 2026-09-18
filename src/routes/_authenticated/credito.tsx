@@ -115,6 +115,38 @@ function Credito() {
   const acimaLimite = linhas.filter((l) => l.disponivel < 0);
   const comVencidas = linhas.filter((l) => l.vencido > 0);
 
+  /** Pedidos no crediário em que o valor passa do limite disponível do cliente. */
+  const pedidosAcima = pedidosCrediario
+    .map((p) => {
+      const cli = p.clientes as unknown as { nome: string; limite_credito: number | null } | null;
+      const limite = Number(cli?.limite_credito ?? 0);
+      const usado = saldoPor.get(p.cliente_id ?? "")?.usado ?? 0;
+      const total = Number(p.total);
+      const excedente = usado + total - limite;
+      const autorizacao = autorizacoes.find(
+        (a) => a.pedido_id === p.id && a.situacao === "pendente",
+      );
+      return { ...p, cliente: cli?.nome ?? "—", limite, usado, total, excedente, autorizacao };
+    })
+    .filter((p) => p.limite > 0 && p.excedente > 0);
+
+  const solicitar = useMutation({
+    mutationFn: async (p: { cliente_id: string; id: string; total: number }) => {
+      const { error } = await supabase.rpc("solicitar_autorizacao_credito", {
+        p_cliente_id: p.cliente_id,
+        p_valor: p.total,
+        p_pedido_id: p.id,
+        p_motivo: "Pedido acima do limite de crédito",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Autorização solicitada ao gestor.");
+      void queryClient.invalidateQueries({ queryKey: ["credito-autorizacoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const decidir = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("decidir_autorizacao_credito", {
