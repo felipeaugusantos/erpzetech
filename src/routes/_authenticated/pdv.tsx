@@ -324,6 +324,7 @@ function Pdv() {
             <Badge variant={caixaAberto ? "default" : "destructive"}>
               {caixaAberto ? "Caixa aberto" : "Caixa fechado"}
             </Badge>
+            <InstalarApp />
             <Button variant="outline" asChild>
               <Link to="/caixa">
                 <Wallet className="mr-2 size-4" /> Caixa
