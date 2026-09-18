@@ -609,6 +609,79 @@ function ContasReceber() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={creditoAberta} onOpenChange={setCreditoAberta}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Usar crédito do profissional</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Profissional</Label>
+              <Select value={credProf} onValueChange={setCredProf}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolher profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {creditos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} — {brl(p.saldo)} de crédito
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Conta a receber</Label>
+              <Select value={contaId} onValueChange={setContaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolher conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {abertas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      nº {c.numero} · {(c.clientes as { nome: string } | null)?.nome ?? "Sem cliente"} ·
+                      saldo {brl(Number(c.valor) - Number(c.valor_recebido))} · vence{" "}
+                      {dateBR(c.vencimento)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Valor a abater</Label>
+              <div className="flex gap-2">
+                <Input value={credValor} onChange={(e) => setCredValor(e.target.value)} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setCredValor(Math.min(saldoCredProf, saldoContaCredito).toFixed(2))
+                  }
+                >
+                  Usar o máximo
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Crédito disponível: {brl(saldoCredProf)} · saldo da conta: {brl(saldoContaCredito)}
+              </p>
+            </div>
+            <div>
+              <Label>Observação</Label>
+              <Textarea value={credObs} onChange={(e) => setCredObs(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreditoAberta(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => usarCredito.mutate()} disabled={usarCredito.isPending}>
+              Abater na conta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
