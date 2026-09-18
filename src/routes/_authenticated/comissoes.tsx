@@ -286,6 +286,22 @@ function Comissoes() {
             onChange={(e) => setAte(e.target.value)}
           />
         </div>
+        <div className="min-w-48">
+          <Label>Depósito</Label>
+          <Select value={depositoId} onValueChange={setDepositoId}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os depósitos</SelectItem>
+              {depositos.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <p className="text-xs text-muted-foreground">Mesmo período do painel e dos relatórios.</p>
       </div>
 
