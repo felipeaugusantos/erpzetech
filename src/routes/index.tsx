@@ -8,6 +8,8 @@ import {
   LayoutGrid,
   Receipt,
   Ruler,
+  ScanBarcode,
+
   ShieldCheck,
   Truck,
   Wallet,
