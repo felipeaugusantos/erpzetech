@@ -95,7 +95,8 @@ function Pdv() {
   const caixaAberto = data?.caixaAberto ?? null;
 
   useEffect(() => {
-    if (!depositoId && depositos.length) setDepositoId(depositos[0].id);
+    const primeiro = depositos[0];
+    if (!depositoId && primeiro) setDepositoId(primeiro.id);
   }, [depositos, depositoId]);
 
   /** Saldo disponível do depósito escolhido, para não vender o que não tem. */
