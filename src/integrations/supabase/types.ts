@@ -479,6 +479,78 @@ export type Database = {
           },
         ]
       }
+      comissoes: {
+        Row: {
+          base: string
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          observacao: string | null
+          pago_em: string | null
+          pedido_id: string | null
+          percentual: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+          valor_base: number
+          valor_custo: number
+          valor_venda: number
+          vendedor_id: string
+        }
+        Insert: {
+          base?: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id?: string | null
+          percentual?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          valor_base?: number
+          valor_custo?: number
+          valor_venda?: number
+          vendedor_id: string
+        }
+        Update: {
+          base?: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id?: string | null
+          percentual?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          valor_base?: number
+          valor_custo?: number
+          valor_venda?: number
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_cotacoes: {
         Row: {
           compra_id: string
@@ -3526,6 +3598,63 @@ export type Database = {
           },
         ]
       }
+      vendedor_comissao_regras: {
+        Row: {
+          ativo: boolean
+          base: string
+          created_at: string
+          empresa_id: string | null
+          id: string
+          observacoes: string | null
+          percentual: number
+          tenant_id: string
+          updated_at: string
+          venda_minima: number
+          vendedor_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          base?: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual?: number
+          tenant_id?: string
+          updated_at?: string
+          venda_minima?: number
+          vendedor_id: string
+        }
+        Update: {
+          ativo?: boolean
+          base?: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual?: number
+          tenant_id?: string
+          updated_at?: string
+          venda_minima?: number
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_comissao_regras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_comissao_regras_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3566,6 +3695,7 @@ export type Database = {
         }
         Returns: string
       }
+      comissionar_pedido_id: { Args: { p_pedido_id: string }; Returns: boolean }
       compra_aplicar_cotacao: {
         Args: { p_cotacao_id: string }
         Returns: undefined
@@ -3623,6 +3753,7 @@ export type Database = {
         }
         Returns: number
       }
+      gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
         Returns: string
