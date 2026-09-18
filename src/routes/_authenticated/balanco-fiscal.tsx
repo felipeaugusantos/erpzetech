@@ -289,6 +289,9 @@ function BalancoFiscal() {
     { conta: "4. Lucro do período (notas)", valor: contas.lucroNotas, tipo: "resultado" },
     { conta: "5. Entradas de estoque a custo real", valor: estoque.entradas, tipo: "estoque" },
     { conta: "5.1 Saídas de estoque a custo real", valor: -estoque.saidas, tipo: "estoque" },
+    { conta: "6. Vendas de balcão no PDV", valor: vendasPdv.receita, tipo: "receita" },
+    { conta: "6.1 Custo das vendas do PDV", valor: -vendasPdv.custo, tipo: "custo" },
+    { conta: "6.2 Lucro das vendas do PDV", valor: vendasPdv.lucro, tipo: "resultado" },
   ];
 
   return (
@@ -419,6 +422,42 @@ function BalancoFiscal() {
                     </TableCell>
                     <TableCell className="text-right text-numeric">
                       {d.ajusteQtd > 0 ? `${d.ajusteQtd} ajuste(s)` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          <h3 className="mt-5 font-display text-sm font-semibold">
+            Vendas de balcão (PDV) por depósito
+          </h3>
+          {vendasPdv.lista.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nenhuma venda de balcão no período.
+            </p>
+          ) : (
+            <Table className="mt-2">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Depósito</TableHead>
+                  <TableHead className="text-right">Vendas</TableHead>
+                  <TableHead className="text-right">Receita</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vendasPdv.lista.map((d) => (
+                  <TableRow key={d.deposito}>
+                    <TableCell>{d.deposito}</TableCell>
+                    <TableCell className="text-right text-numeric">{d.vendas}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(d.receita)}</TableCell>
+                    <TableCell className="text-right text-numeric text-destructive">
+                      {brl(d.custo)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric font-semibold">
+                      {brl(d.receita - d.custo)}
                     </TableCell>
                   </TableRow>
                 ))}
