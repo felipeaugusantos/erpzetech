@@ -223,6 +223,88 @@ function Pedidos() {
     onError: (e: Error) => toast.error("Erro ao criar pedido", { description: e.message }),
   });
 
+  /* ---------- converter orçamento(s) em pedido ---------- */
+  const [openConv, setOpenConv] = useState(false);
+  const [convCliente, setConvCliente] = useState("");
+  const [convDeposito, setConvDeposito] = useState("");
+  const [convSelecao, setConvSelecao] = useState<string[]>([]);
+
+  const { data: convBase } = useQuery({
+    queryKey: ["orcamentos-para-pedido"],
+    enabled: openConv,
+    queryFn: async () => {
+      const [orcRes, pedRes, linkRes, depRes] = await Promise.all([
+        supabase
+          .from("orcamentos")
+          .select("id, numero, total, validade, cliente_id, clientes(nome)")
+          .eq("situacao", "aprovado")
+          .order("numero"),
+        supabase.from("pedidos").select("orcamento_id, situacao"),
+        supabase.from("pedido_orcamentos").select("orcamento_id, pedidos(situacao)"),
+        supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
+      ]);
+      const usados = new Set<string>();
+      for (const p of pedRes.data ?? []) {
+        if (p.orcamento_id && p.situacao !== "cancelado") usados.add(p.orcamento_id);
+      }
+      for (const l of linkRes.data ?? []) {
+        const s = (l.pedidos as unknown as { situacao: string } | null)?.situacao;
+        if (s && s !== "cancelado") usados.add(l.orcamento_id);
+      }
+      return {
+        orcamentos: (orcRes.data ?? []).filter((o) => !usados.has(o.id)),
+        depositos: depRes.data ?? [],
+      };
+    },
+  });
+
+  const convClientes = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const o of convBase?.orcamentos ?? []) {
+      const nome = (o.clientes as unknown as { nome: string } | null)?.nome ?? "Cliente";
+      if (o.cliente_id) mapa.set(o.cliente_id, nome);
+    }
+    return [...mapa.entries()].map(([id, nome]) => ({ id, nome }));
+  }, [convBase]);
+
+  const convOrcamentos = useMemo(
+    () => (convBase?.orcamentos ?? []).filter((o) => o.cliente_id === convCliente),
+    [convBase, convCliente],
+  );
+
+  const convTotal = convOrcamentos
+    .filter((o) => convSelecao.includes(o.id))
+    .reduce((s, o) => s + Number(o.total), 0);
+
+  const converter = useMutation({
+    mutationFn: async () => {
+      if (convSelecao.length === 0) throw new Error("Escolha pelo menos um orçamento");
+      if (!convDeposito) throw new Error("Escolha o depósito de saída");
+      const { data: pedidoId, error } = await supabase.rpc("converter_orcamentos_em_pedido", {
+        p_orcamento_ids: convSelecao,
+        p_deposito_id: convDeposito,
+      });
+      if (error) throw error;
+      return pedidoId as string;
+    },
+    onSuccess: (id) => {
+      toast.success(
+        convSelecao.length > 1
+          ? `${convSelecao.length} orçamentos viraram um pedido`
+          : "Orçamento convertido em pedido",
+        { description: "Estoque reservado no depósito escolhido." },
+      );
+      setOpenConv(false);
+      setConvCliente("");
+      setConvDeposito("");
+      setConvSelecao([]);
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      navigate({ to: "/pedidos/$id", params: { id } });
+    },
+    onError: (e: Error) => toast.error("Não foi possível converter", { description: e.message }),
+  });
+
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return (data ?? []).filter((p) => {
