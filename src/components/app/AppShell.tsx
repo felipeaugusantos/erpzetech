@@ -140,7 +140,9 @@ const groups: Group[] = [
     label: "Administração",
     icon: ShieldCheck,
     items: [
+      { label: "Cadastro da empresa", to: "/empresa", icon: Building2 },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Painel da filial", to: "/painel-filial", icon: Gauge },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },

@@ -1,18 +1,43 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, KeyRound, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import {
+  PERFIS,
+  atualizarUsuario,
+  criarUsuario,
+  redefinirSenhaUsuario,
+} from "@/lib/usuario-admin.functions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
@@ -26,17 +51,18 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   component: Usuarios,
 });
 
-const perfis = [
-  "administrador",
-  "gestor",
-  "vendedor",
-  "caixa",
-  "estoquista",
-  "comprador",
-  "financeiro",
-  "logistica",
-  "motorista",
-];
+const perfis = [...PERFIS];
+
+const formVazio = {
+  nome: "",
+  email: "",
+  senha: "",
+  telefone: "",
+  codigo: "",
+  filialId: "",
+  perfis: ["vendedor"] as string[],
+};
+
 
 function Usuarios() {
   const qc = useQueryClient();
@@ -104,7 +130,89 @@ function Usuarios() {
     onError: (e: Error) => toast.error("Erro ao salvar código", { description: e.message }),
   });
 
+  const fnCriar = useServerFn(criarUsuario);
+  const fnAtualizar = useServerFn(atualizarUsuario);
+  const fnSenha = useServerFn(redefinirSenhaUsuario);
+
+  const [openNovo, setOpenNovo] = useState(false);
+  const [form, setForm] = useState(formVazio);
+  const [editando, setEditando] = useState<{
+    id: string;
+    nome: string;
+    telefone: string;
+    codigo: string;
+    filialId: string;
+    ativo: boolean;
+    perfis: string[];
+  } | null>(null);
+  const [senhaAlvo, setSenhaAlvo] = useState<{ id: string; nome: string } | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+
+  const recarregar = () => {
+    qc.invalidateQueries({ queryKey: ["usuarios"] });
+    qc.invalidateQueries({ queryKey: ["session-data"] });
+  };
+
+  const criar = useMutation({
+    mutationFn: async () =>
+      fnCriar({
+        data: {
+          nome: form.nome,
+          email: form.email,
+          senha: form.senha,
+          telefone: form.telefone,
+          codigo: form.codigo,
+          filialId: form.filialId || null,
+          perfis: form.perfis,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Operador cadastrado", {
+        description: "Ele já pode entrar com o e-mail e a senha informados.",
+      });
+      setOpenNovo(false);
+      setForm(formVazio);
+      recarregar();
+    },
+    onError: (e: Error) => toast.error("Erro ao cadastrar", { description: e.message }),
+  });
+
+  const salvarEdicao = useMutation({
+    mutationFn: async () =>
+      fnAtualizar({
+        data: {
+          userId: editando!.id,
+          nome: editando!.nome,
+          telefone: editando!.telefone,
+          codigo: editando!.codigo,
+          filialId: editando!.filialId || null,
+          ativo: editando!.ativo,
+          perfis: editando!.perfis,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Usuário atualizado");
+      setEditando(null);
+      recarregar();
+    },
+    onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
+  });
+
+  const trocarSenha = useMutation({
+    mutationFn: async () => fnSenha({ data: { userId: senhaAlvo!.id, senha: novaSenha } }),
+    onSuccess: () => {
+      toast.success("Senha redefinida");
+      setSenhaAlvo(null);
+      setNovaSenha("");
+    },
+    onError: (e: Error) => toast.error("Erro ao redefinir", { description: e.message }),
+  });
+
+  const alternarPerfil = (lista: string[], perfil: string) =>
+    lista.includes(perfil) ? lista.filter((p) => p !== perfil) : [...lista, perfil];
+
   const modulos = [...new Set((data?.permissoes ?? []).map((p) => p.modulo))];
+
 
   return (
     <>
@@ -120,7 +228,15 @@ function Usuarios() {
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
+          {isAdmin && (
+            <div className="mb-3 flex justify-end">
+              <Button onClick={() => setOpenNovo(true)}>
+                <Plus className="mr-2 size-4" /> Novo usuário
+              </Button>
+            </div>
+          )}
           {isLoading ? (
+
             <div className="panel h-52 animate-pulse" />
           ) : (data?.usuarios.length ?? 0) === 0 ? (
             <EmptyState title="Nenhum usuário encontrado." />
@@ -135,6 +251,8 @@ function Usuarios() {
                     <TableHead className="w-56">Perfis</TableHead>
                     <TableHead className="w-40">Filial</TableHead>
                     <TableHead className="w-28 text-center">Situação</TableHead>
+                    <TableHead className="w-28 text-right">Ações</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -193,6 +311,43 @@ function Usuarios() {
                           <Badge variant="outline">Inativo</Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-right align-middle">
+                        {isAdmin && (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Editar ${u.nome || "usuário"}`}
+                              onClick={() =>
+                                setEditando({
+                                  id: u.id,
+                                  nome: u.nome ?? "",
+                                  telefone: "",
+                                  codigo: u.codigo ?? "",
+                                  filialId: u.filial_id ?? "",
+                                  ativo: u.ativo ?? true,
+                                  perfis: data!.roles
+                                    .filter((r) => r.user_id === u.id)
+                                    .map((r) => r.role as string),
+                                })
+                              }
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Redefinir senha de ${u.nome || "usuário"}`}
+                              onClick={() => {
+                                setSenhaAlvo({ id: u.id, nome: u.nome ?? "" });
+                                setNovaSenha("");
+                              }}
+                            >
+                              <KeyRound className="size-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -200,9 +355,10 @@ function Usuarios() {
             </div>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Novos usuários entram automaticamente na empresa como administrador nesta versão de
-            demonstração. Convites por e-mail e troca de perfil chegam na próxima fase.
+            O administrador cadastra os operadores com e-mail e senha provisória, escolhe os perfis
+            de acesso e pode ativar, inativar ou trocar a senha quando precisar.
           </p>
+
         </TabsContent>
 
         <TabsContent value="permissoes" className="mt-4">
@@ -259,6 +415,206 @@ function Usuarios() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openNovo} onOpenChange={setOpenNovo}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo usuário</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="n-nome">Nome</Label>
+              <Input
+                id="n-nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-email">E-mail de acesso</Label>
+              <Input
+                id="n-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-senha">Senha provisória</Label>
+              <Input
+                id="n-senha"
+                value={form.senha}
+                placeholder="mínimo 8 caracteres"
+                onChange={(e) => setForm({ ...form, senha: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-tel">Telefone</Label>
+              <Input
+                id="n-tel"
+                value={form.telefone}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="n-cod">Código (vendedor)</Label>
+              <Input
+                id="n-cod"
+                value={form.codigo}
+                onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="n-filial">Loja / filial</Label>
+              <Select
+                value={form.filialId}
+                onValueChange={(v) => setForm({ ...form, filialId: v })}
+              >
+                <SelectTrigger id="n-filial" aria-label="Loja do usuário">
+                  <SelectValue placeholder="Selecione a loja" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(session?.filiais ?? []).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Perfis de acesso</Label>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {perfis.map((p) => (
+                  <label key={p} className="flex items-center gap-2 text-sm capitalize">
+                    <Checkbox
+                      checked={form.perfis.includes(p)}
+                      onCheckedChange={() =>
+                        setForm({ ...form, perfis: alternarPerfil(form.perfis, p) })
+                      }
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => criar.mutate()} disabled={criar.isPending}>
+              Cadastrar usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editando} onOpenChange={(v) => !v && setEditando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar usuário</DialogTitle>
+          </DialogHeader>
+          {editando && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label htmlFor="e-nome">Nome</Label>
+                <Input
+                  id="e-nome"
+                  value={editando.nome}
+                  onChange={(e) => setEditando({ ...editando, nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-tel">Telefone</Label>
+                <Input
+                  id="e-tel"
+                  value={editando.telefone}
+                  onChange={(e) => setEditando({ ...editando, telefone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-cod">Código</Label>
+                <Input
+                  id="e-cod"
+                  value={editando.codigo}
+                  onChange={(e) => setEditando({ ...editando, codigo: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="e-filial">Loja / filial</Label>
+                <Select
+                  value={editando.filialId}
+                  onValueChange={(v) => setEditando({ ...editando, filialId: v })}
+                >
+                  <SelectTrigger id="e-filial" aria-label="Loja do usuário">
+                    <SelectValue placeholder="Selecione a loja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(session?.filiais ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Perfis de acesso</Label>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {perfis.map((p) => (
+                    <label key={p} className="flex items-center gap-2 text-sm capitalize">
+                      <Checkbox
+                        checked={editando.perfis.includes(p)}
+                        onCheckedChange={() =>
+                          setEditando({ ...editando, perfis: alternarPerfil(editando.perfis, p) })
+                        }
+                      />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 sm:col-span-2">
+                <Switch
+                  id="e-ativo"
+                  checked={editando.ativo}
+                  onCheckedChange={(v) => setEditando({ ...editando, ativo: v })}
+                />
+                <Label htmlFor="e-ativo">Usuário ativo</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => salvarEdicao.mutate()} disabled={salvarEdicao.isPending}>
+              Salvar alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!senhaAlvo} onOpenChange={(v) => !v && setSenhaAlvo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir senha de {senhaAlvo?.nome}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label htmlFor="s-nova">Nova senha</Label>
+            <Input
+              id="s-nova"
+              value={novaSenha}
+              placeholder="mínimo 8 caracteres"
+              onChange={(e) => setNovaSenha(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => trocarSenha.mutate()}
+              disabled={novaSenha.length < 8 || trocarSenha.isPending}
+            >
+              Redefinir senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }
