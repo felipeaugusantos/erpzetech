@@ -68,10 +68,13 @@ function Usuarios() {
       campo: "pode_ver" | "pode_criar" | "pode_editar" | "pode_excluir";
       valor: boolean;
     }) => {
-      const { error } = await supabase
-        .from("role_permissoes")
-        .update({ [campo]: valor })
-        .eq("id", id);
+      const patch: {
+        pode_ver?: boolean;
+        pode_criar?: boolean;
+        pode_editar?: boolean;
+        pode_excluir?: boolean;
+      } = { [campo]: valor };
+      const { error } = await supabase.from("role_permissoes").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

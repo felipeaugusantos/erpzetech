@@ -131,9 +131,10 @@ function Estoque() {
         p_deposito_id: mov.deposito_id,
         p_tipo: mov.tipo as "entrada",
         p_quantidade: Number(mov.quantidade),
-        p_motivo: mov.motivo || null,
-        p_documento: mov.documento || null,
-        p_deposito_destino_id: mov.tipo === "transferencia_saida" ? mov.destino_id : null,
+        p_motivo: mov.motivo || undefined,
+        p_documento: mov.documento || undefined,
+        p_deposito_destino_id:
+          mov.tipo === "transferencia_saida" ? mov.destino_id : undefined,
       });
       if (error) throw error;
     },
