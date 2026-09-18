@@ -3980,6 +3980,9 @@ export type Database = {
       }
       saas_clientes: {
         Row: {
+          admin_criado_em: string | null
+          admin_email: string | null
+          admin_user_id: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -4008,6 +4011,9 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          admin_criado_em?: string | null
+          admin_email?: string | null
+          admin_user_id?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -4036,6 +4042,9 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          admin_criado_em?: string | null
+          admin_email?: string | null
+          admin_user_id?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null

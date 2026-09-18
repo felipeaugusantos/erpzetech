@@ -75,6 +75,10 @@ export type ClienteSaas = {
   teste_ate: string | null;
   implantacao_paga: boolean;
   observacoes: string | null;
+  /** Login do administrador da loja, criado pela equipe Ze Tech. */
+  admin_email: string | null;
+  admin_user_id: string | null;
+  admin_criado_em: string | null;
 };
 
 export const SITUACAO_SAAS: Record<string, string> = {
