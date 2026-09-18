@@ -434,7 +434,11 @@ function Orcamentos() {
                             variant="outline"
                             onClick={() => {
                               setConverter(o.id);
-                              setDepositoId(data?.depositos[0]?.id ?? "");
+                              const principal =
+                                data?.depositos.find((d) =>
+                                  d.nome.toLowerCase().includes("principal"),
+                                ) ?? data?.depositos[0];
+                              setDepositoId(principal?.id ?? "");
                             }}
                           >
                             Gerar pedido <ArrowRight className="ml-1 size-3.5" />
