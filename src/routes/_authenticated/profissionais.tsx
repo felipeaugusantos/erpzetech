@@ -238,7 +238,7 @@ function Profissionais() {
     <>
       <PageHeader
         title="Profissionais e premiações"
-        description="Profissionais que indicam a loja recebem um percentual das vendas dos clientes indicados."
+        description="O prêmio é lançado sozinho quando o pedido do cliente indicado é entregue. O botão abaixo só serve para pedidos antigos."
         actions={
           <>
             <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
