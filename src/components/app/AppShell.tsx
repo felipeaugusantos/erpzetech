@@ -70,6 +70,7 @@ const groups: Group[] = [
       { label: "Profissionais e prêmios", to: "/profissionais", icon: HardHat },
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
+      { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
       { label: "PDV", icon: Store, soon: true },
     ],
   },
