@@ -228,9 +228,11 @@ function Dashboard() {
         }
       />
 
-      <div className="panel mb-4 grid gap-3 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="panel mb-4 p-4">
+        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div>
-          <Label>Período de referência — de</Label>
+          <Label>De</Label>
           <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
         </div>
         <div>
@@ -244,7 +246,8 @@ function Dashboard() {
             {brl(lucroPeriodo)}
           </strong>{" "}
           ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
-        </p>
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
