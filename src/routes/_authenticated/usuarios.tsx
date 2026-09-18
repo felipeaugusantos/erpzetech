@@ -130,7 +130,89 @@ function Usuarios() {
     onError: (e: Error) => toast.error("Erro ao salvar código", { description: e.message }),
   });
 
+  const fnCriar = useServerFn(criarUsuario);
+  const fnAtualizar = useServerFn(atualizarUsuario);
+  const fnSenha = useServerFn(redefinirSenhaUsuario);
+
+  const [openNovo, setOpenNovo] = useState(false);
+  const [form, setForm] = useState(formVazio);
+  const [editando, setEditando] = useState<{
+    id: string;
+    nome: string;
+    telefone: string;
+    codigo: string;
+    filialId: string;
+    ativo: boolean;
+    perfis: string[];
+  } | null>(null);
+  const [senhaAlvo, setSenhaAlvo] = useState<{ id: string; nome: string } | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+
+  const recarregar = () => {
+    qc.invalidateQueries({ queryKey: ["usuarios"] });
+    qc.invalidateQueries({ queryKey: ["session-data"] });
+  };
+
+  const criar = useMutation({
+    mutationFn: async () =>
+      fnCriar({
+        data: {
+          nome: form.nome,
+          email: form.email,
+          senha: form.senha,
+          telefone: form.telefone,
+          codigo: form.codigo,
+          filialId: form.filialId || null,
+          perfis: form.perfis,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Operador cadastrado", {
+        description: "Ele já pode entrar com o e-mail e a senha informados.",
+      });
+      setOpenNovo(false);
+      setForm(formVazio);
+      recarregar();
+    },
+    onError: (e: Error) => toast.error("Erro ao cadastrar", { description: e.message }),
+  });
+
+  const salvarEdicao = useMutation({
+    mutationFn: async () =>
+      fnAtualizar({
+        data: {
+          userId: editando!.id,
+          nome: editando!.nome,
+          telefone: editando!.telefone,
+          codigo: editando!.codigo,
+          filialId: editando!.filialId || null,
+          ativo: editando!.ativo,
+          perfis: editando!.perfis,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Usuário atualizado");
+      setEditando(null);
+      recarregar();
+    },
+    onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
+  });
+
+  const trocarSenha = useMutation({
+    mutationFn: async () => fnSenha({ data: { userId: senhaAlvo!.id, senha: novaSenha } }),
+    onSuccess: () => {
+      toast.success("Senha redefinida");
+      setSenhaAlvo(null);
+      setNovaSenha("");
+    },
+    onError: (e: Error) => toast.error("Erro ao redefinir", { description: e.message }),
+  });
+
+  const alternarPerfil = (lista: string[], perfil: string) =>
+    lista.includes(perfil) ? lista.filter((p) => p !== perfil) : [...lista, perfil];
+
   const modulos = [...new Set((data?.permissoes ?? []).map((p) => p.modulo))];
+
 
   return (
     <>
