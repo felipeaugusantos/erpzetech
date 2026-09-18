@@ -479,6 +479,25 @@ function PedidoDetalhe() {
                           <span className="text-success">0</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-right text-xs text-muted-foreground">
+                        {Number(i.custo_unitario) > 0 ? (
+                          <>
+                            <span className="text-numeric block">{brl(Number(i.custo_unitario))}</span>
+                            <span>
+                              margem{" "}
+                              {num(
+                                ((Number(i.preco_unitario) - Number(i.custo_unitario)) /
+                                  Math.max(Number(i.preco_unitario), 0.01)) *
+                                  100,
+                                1,
+                              )}
+                              %
+                            </span>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
                       <TableCell className="text-right font-semibold">
                         {brl(Number(i.total))}
                       </TableCell>
