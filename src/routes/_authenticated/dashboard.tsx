@@ -96,6 +96,37 @@ function Dashboard() {
     },
   });
 
+  const { data: fiscal } = useQuery({
+    queryKey: ["dashboard-fiscal"],
+    queryFn: async () => {
+      const [notas, vinculos, pedidos] = await Promise.all([
+        supabase
+          .from("nfe")
+          .select(
+            "id, numero, serie, situacao, ambiente, valor_total, pendencias, mensagem, created_at, transmitida_em, autorizada_em, clientes(nome)",
+          )
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase.from("nfe_pedidos").select("pedido_id, nfe_id, nfe(situacao)"),
+        supabase
+          .from("pedidos")
+          .select("id, numero, total, situacao, created_at, clientes(nome)")
+          .neq("situacao", "cancelado")
+          .order("numero", { ascending: false })
+          .limit(100),
+      ]);
+      const comNota = new Set(
+        (vinculos.data ?? [])
+          .filter((v) => (v.nfe as { situacao: string } | null)?.situacao !== "cancelada")
+          .map((v) => v.pedido_id),
+      );
+      return {
+        notas: notas.data ?? [],
+        semNota: (pedidos.data ?? []).filter((p) => !comNota.has(p.id)),
+      };
+    },
+  });
+
   if (isLoading || !data) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -384,6 +415,108 @@ function Dashboard() {
           )}
         </div>
       </div>
+
+      <div className="panel mt-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display text-sm font-semibold">Pendências fiscais</h2>
+            <p className="text-xs text-muted-foreground">
+              Notas emitidas com data de envio e situação, e pedidos que ainda não geraram nota.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/nfe">Notas fiscais</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/balanco-fiscal">Balanço fiscal</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">Notas emitidas</h3>
+            {(fiscal?.notas ?? []).length === 0 ? (
+              <EmptyState
+                className="mt-3 border-0 shadow-none"
+                title="Nenhuma nota gerada."
+                description="Gere a nota a partir do pedido."
+              />
+            ) : (
+              <ul className="mt-2 divide-y divide-border">
+                {(fiscal?.notas ?? []).slice(0, 8).map((n) => {
+                  const pend = (n.pendencias ?? []).length;
+                  const envio = n.autorizada_em ?? n.transmitida_em;
+                  return (
+                    <li key={n.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                      <Badge
+                        className={
+                          n.situacao === "autorizada"
+                            ? "bg-success/15 text-success"
+                            : n.situacao === "rejeitada" || n.situacao === "cancelada"
+                              ? "bg-destructive/15 text-destructive"
+                              : pend > 0
+                                ? "bg-warning/15 text-warning"
+                                : "bg-primary/15 text-primary"
+                        }
+                      >
+                        {n.situacao}
+                      </Badge>
+                      <span className="min-w-0 flex-1 truncate">
+                        {n.numero ? `nº ${String(n.numero).padStart(4, "0")}` : "sem número"} ·{" "}
+                        {nomeCliente(n.clientes)}
+                        {pend > 0 && (
+                          <span className="block text-xs text-warning">
+                            {pend} pendência(s): {(n.pendencias ?? []).slice(0, 2).join(" · ")}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {envio ? `enviada ${dateBR(String(envio).slice(0, 10))}` : "não enviada"}
+                      </span>
+                      <span className="text-numeric font-semibold">{brl(Number(n.valor_total))}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Pedidos sem nota fiscal
+            </h3>
+            {(fiscal?.semNota ?? []).length === 0 ? (
+              <EmptyState
+                className="mt-3 border-0 shadow-none"
+                title="Todos os pedidos têm nota."
+                description="Nenhuma pendência por pedido."
+              />
+            ) : (
+              <ul className="mt-2 divide-y divide-border">
+                {(fiscal?.semNota ?? []).slice(0, 8).map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                    <Badge className="bg-warning/15 text-warning">sem nota</Badge>
+                    <Link
+                      to="/pedidos/$id"
+                      params={{ id: p.id }}
+                      className="min-w-0 flex-1 truncate hover:underline"
+                    >
+                      Pedido nº {String(p.numero).padStart(4, "0")} · {nomeCliente(p.clientes)}
+                    </Link>
+                    <span className="text-xs text-muted-foreground">
+                      {dateBR(String(p.created_at).slice(0, 10))}
+                    </span>
+                    <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="panel p-4">
