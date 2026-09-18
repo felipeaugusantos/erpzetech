@@ -311,6 +311,43 @@ function Usuarios() {
                           <Badge variant="outline">Inativo</Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-right align-middle">
+                        {isAdmin && (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Editar ${u.nome || "usuário"}`}
+                              onClick={() =>
+                                setEditando({
+                                  id: u.id,
+                                  nome: u.nome ?? "",
+                                  telefone: "",
+                                  codigo: u.codigo ?? "",
+                                  filialId: u.filial_id ?? "",
+                                  ativo: u.ativo ?? true,
+                                  perfis: data!.roles
+                                    .filter((r) => r.user_id === u.id)
+                                    .map((r) => r.role as string),
+                                })
+                              }
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Redefinir senha de ${u.nome || "usuário"}`}
+                              onClick={() => {
+                                setSenhaAlvo({ id: u.id, nome: u.nome ?? "" });
+                                setNovaSenha("");
+                              }}
+                            >
+                              <KeyRound className="size-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -318,9 +355,10 @@ function Usuarios() {
             </div>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Novos usuários entram automaticamente na empresa como administrador nesta versão de
-            demonstração. Convites por e-mail e troca de perfil chegam na próxima fase.
+            O administrador cadastra os operadores com e-mail e senha provisória, escolhe os perfis
+            de acesso e pode ativar, inativar ou trocar a senha quando precisar.
           </p>
+
         </TabsContent>
 
         <TabsContent value="permissoes" className="mt-4">
