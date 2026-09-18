@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, num } from "@/lib/format";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
+import type { FormaPagamento } from "@/lib/financeiro";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
