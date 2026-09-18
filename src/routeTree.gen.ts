@@ -57,6 +57,9 @@ import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authe
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
+import { Route as AuthenticatedZeTechRouteImport } from './routes/_authenticated/ze-tech'
+import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
+import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -320,6 +323,23 @@ const AuthenticatedVendedoresRoute = AuthenticatedVendedoresRouteImport.update({
   path: '/vendedores',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedZeTechRoute = AuthenticatedZeTechRouteImport.update({
+  id: '/ze-tech',
+  path: '/ze-tech',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedZeTechPlanosRoute =
+  AuthenticatedZeTechPlanosRouteImport.update({
+    id: '/ze-tech-planos',
+    path: '/ze-tech-planos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedZeTechRelatoriosRoute =
+  AuthenticatedZeTechRelatoriosRouteImport.update({
+    id: '/ze-tech-relatorios',
+    path: '/ze-tech-relatorios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedComprasIndexRoute =
   AuthenticatedComprasIndexRouteImport.update({
     id: '/compras/',
@@ -403,6 +423,9 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
+  '/ze-tech': typeof AuthenticatedZeTechRoute
+  '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
+  '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -458,6 +481,9 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
+  '/ze-tech': typeof AuthenticatedZeTechRoute
+  '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
+  '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -515,6 +541,9 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
+  '/_authenticated/ze-tech': typeof AuthenticatedZeTechRoute
+  '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
+  '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -572,6 +601,9 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/veiculos'
     | '/vendedores'
+    | '/ze-tech'
+    | '/ze-tech-planos'
+    | '/ze-tech-relatorios'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -627,6 +659,9 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/veiculos'
     | '/vendedores'
+    | '/ze-tech'
+    | '/ze-tech-planos'
+    | '/ze-tech-relatorios'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -683,6 +718,9 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/_authenticated/veiculos'
     | '/_authenticated/vendedores'
+    | '/_authenticated/ze-tech'
+    | '/_authenticated/ze-tech-planos'
+    | '/_authenticated/ze-tech-relatorios'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/pedidos/$id'
@@ -1036,6 +1074,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech': {
+      id: '/_authenticated/ze-tech'
+      path: '/ze-tech'
+      fullPath: '/ze-tech'
+      preLoaderRoute: typeof AuthenticatedZeTechRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ze-tech-planos': {
+      id: '/_authenticated/ze-tech-planos'
+      path: '/ze-tech-planos'
+      fullPath: '/ze-tech-planos'
+      preLoaderRoute: typeof AuthenticatedZeTechPlanosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ze-tech-relatorios': {
+      id: '/_authenticated/ze-tech-relatorios'
+      path: '/ze-tech-relatorios'
+      fullPath: '/ze-tech-relatorios'
+      preLoaderRoute: typeof AuthenticatedZeTechRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/compras/': {
       id: '/_authenticated/compras/'
       path: '/compras'
@@ -1126,6 +1185,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
+  AuthenticatedZeTechRoute: typeof AuthenticatedZeTechRoute
+  AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
+  AuthenticatedZeTechRelatoriosRoute: typeof AuthenticatedZeTechRelatoriosRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
@@ -1179,6 +1241,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
+  AuthenticatedZeTechRoute: AuthenticatedZeTechRoute,
+  AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,
+  AuthenticatedZeTechRelatoriosRoute: AuthenticatedZeTechRelatoriosRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
