@@ -16,6 +16,7 @@ import {
   MapPin,
   Menu,
   PackageSearch,
+  Percent,
   Search,
   Settings,
   ShieldCheck,
