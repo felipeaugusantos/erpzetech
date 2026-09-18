@@ -20,21 +20,25 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ze Obra — ERP para lojas de materiais de construção" },
+      { title: "ERP Ze Tech — gestão completa para comércio de materiais e varejo" },
       {
         name: "description",
         content:
-          "Ze Obra controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
+          "ERP Ze Tech: clientes, produtos, estoque por depósito, orçamento, pedido, compras, entregas, caixa, financeiro, NF-e e PDV em um só sistema.",
       },
-      { property: "og:title", content: "Ze Obra — ERP para materiais de construção" },
+      { property: "og:title", content: "ERP Ze Tech — gestão completa da sua loja" },
       {
         property: "og:description",
-        content: "Do balcão ao depósito: clientes, obras, produtos e estoque em um só sistema.",
+        content:
+          "Do orçamento no balcão à entrega e ao financeiro, com estoque por depósito, PDV, NF-e e relatórios.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
 });
+
 
 const features = [
   {
