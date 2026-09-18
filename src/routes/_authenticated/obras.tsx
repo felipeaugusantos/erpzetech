@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { dateBR } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -299,22 +300,12 @@ function Obras() {
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label>Cliente</Label>
-                <Select
+                <Label>Cliente (digite o nome)</Label>
+                <ClienteCombobox
+                  clientes={data?.clientes ?? []}
                   value={form.cliente_id}
-                  onValueChange={(v) => setForm({ ...form, cliente_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(data?.clientes ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(v) => setForm({ ...form, cliente_id: v })}
+                />
               </div>
               <div>
                 <Label htmlFor="o-nome">Nome da obra</Label>

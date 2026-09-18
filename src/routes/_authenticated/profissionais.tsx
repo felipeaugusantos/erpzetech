@@ -133,6 +133,7 @@ function Profissionais() {
   /* ---------- cadastro ---------- */
   const vazio = {
     nome: "",
+    codigo: "",
     tipo: "pedreiro",
     cpf: "",
     telefone: "",
@@ -155,6 +156,7 @@ function Profissionais() {
     setEditandoId(p.id);
     setForm({
       nome: p.nome,
+      codigo: p.codigo ?? "",
       tipo: p.tipo,
       cpf: p.cpf ?? "",
       telefone: p.telefone ?? "",
@@ -174,6 +176,7 @@ function Profissionais() {
         throw new Error("Percentual de premiação inválido");
       const valores = {
         nome: form.nome.trim(),
+        codigo: form.codigo.trim() || null,
         tipo: form.tipo,
         cpf: form.cpf.trim() || null,
         telefone: form.telefone.trim() || null,
@@ -458,12 +461,21 @@ function Profissionais() {
             <DialogTitle>{editandoId ? "Editar profissional" : "Novo profissional"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
+            <div>
               <Label>Nome</Label>
               <Input
                 className="mt-1"
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Código (usado no orçamento e no pedido)</Label>
+              <Input
+                className="mt-1 font-mono"
+                placeholder="Ex.: 001"
+                value={form.codigo}
+                onChange={(e) => setForm({ ...form, codigo: e.target.value })}
               />
             </div>
             <div>

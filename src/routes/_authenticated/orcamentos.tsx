@@ -9,6 +9,8 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Via80 } from "@/components/app/Via80";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { CodigoPessoa } from "@/components/app/CodigoPessoa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,9 +80,18 @@ type Item = {
   descricao: string;
   unidade: string;
   quantidade: number;
+  /** Texto digitado da quantidade, permitindo fração com vírgula (ex.: 0,500). */
+  qtdTexto: string;
   preco_unitario: number;
   desconto: number;
 };
+
+/** Aceita vírgula e até 3 casas decimais. */
+function parseQtd(valor: string) {
+  const n = Number(valor.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.round(n * 1000) / 1000;
+}
 
 function hoje(diasFrente = 0) {
   const d = new Date();
@@ -111,30 +122,47 @@ function Orcamentos() {
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<Item[]>([]);
   const [produtoBusca, setProdutoBusca] = useState("");
+  const [codVendedor, setCodVendedor] = useState("");
+  const [vendedorId, setVendedorId] = useState<string | null>(null);
+  const [codProfissional, setCodProfissional] = useState("");
+  const [profissionalId, setProfissionalId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["orcamentos"],
     queryFn: async () => {
-      const [orcamentos, clientes, obras, produtos, depositos] = await Promise.all([
-        supabase
-          .from("orcamentos")
-          .select("*, clientes(nome), obras(nome)")
-          .order("numero", { ascending: false }),
-        supabase.from("clientes").select("id, nome, desconto_maximo").eq("ativo", true).order("nome"),
-        supabase.from("obras").select("id, nome, cliente_id").order("nome"),
-        supabase
-          .from("produtos")
-          .select("id, codigo_interno, codigo_barras, descricao, unidade, preco_venda")
-          .eq("ativo", true)
-          .order("descricao"),
-        supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
-      ]);
+      const [orcamentos, clientes, obras, produtos, depositos, vendedores, profissionais] =
+        await Promise.all([
+          supabase
+            .from("orcamentos")
+            .select("*, clientes(nome), obras(nome)")
+            .order("numero", { ascending: false }),
+          supabase
+            .from("clientes")
+            .select("id, nome, cpf, cnpj, telefone, desconto_maximo")
+            .eq("ativo", true)
+            .order("nome"),
+          supabase.from("obras").select("id, nome, cliente_id").order("nome"),
+          supabase
+            .from("produtos")
+            .select("id, codigo_interno, codigo_barras, descricao, unidade, preco_venda")
+            .eq("ativo", true)
+            .order("descricao"),
+          supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
+          supabase.from("profiles").select("id, nome, codigo").eq("ativo", true).order("nome"),
+          supabase
+            .from("profissionais")
+            .select("id, nome, codigo")
+            .eq("ativo", true)
+            .order("nome"),
+        ]);
       return {
         orcamentos: orcamentos.data ?? [],
         clientes: clientes.data ?? [],
         obras: obras.data ?? [],
         produtos: produtos.data ?? [],
         depositos: depositos.data ?? [],
+        vendedores: vendedores.data ?? [],
+        profissionais: profissionais.data ?? [],
       };
     },
   });
@@ -196,6 +224,10 @@ function Orcamentos() {
     setObservacoes("");
     setItens([]);
     setProdutoBusca("");
+    setCodVendedor("");
+    setVendedorId(null);
+    setCodProfissional("");
+    setProfissionalId(null);
   }
 
   const salvar = useMutation({
@@ -208,7 +240,8 @@ function Orcamentos() {
           filial_id: session?.profile?.filial_id ?? null,
           cliente_id: clienteId,
           obra_id: obraId || null,
-          vendedor_id: session?.user.id ?? null,
+          vendedor_id: vendedorId ?? session?.user.id ?? null,
+          profissional_id: profissionalId,
           situacao: "rascunho",
           validade: validade || null,
           condicao_pagamento: condicao || null,
@@ -469,25 +502,15 @@ function Orcamentos() {
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-4">
               <div className="sm:col-span-2">
-                <Label>Cliente</Label>
-                <Select
+                <Label>Cliente (digite o nome)</Label>
+                <ClienteCombobox
+                  clientes={data?.clientes ?? []}
                   value={clienteId}
-                  onValueChange={(v) => {
+                  onChange={(v) => {
                     setClienteId(v);
                     setObraId("");
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(data?.clientes ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
               <div>
                 <Label>Obra (opcional)</Label>
@@ -540,6 +563,7 @@ function Orcamentos() {
                               descricao: p.descricao,
                               unidade: p.unidade,
                               quantidade: 1,
+                              qtdTexto: "1",
                               preco_unitario: Number(p.preco_venda),
                               desconto: 0,
                             },
@@ -586,17 +610,19 @@ function Orcamentos() {
                           </TableCell>
                           <TableCell>
                             <Input
-                              type="number"
-                              min="0"
-                              step="0.001"
-                              value={i.quantidade}
-                              onChange={(e) =>
+                              inputMode="decimal"
+                              aria-label={`Quantidade em ${i.unidade}`}
+                              value={i.qtdTexto}
+                              onChange={(e) => {
+                                const texto = e.target.value.replace(/[^0-9.,]/g, "");
                                 setItens((prev) =>
                                   prev.map((x, j) =>
-                                    j === idx ? { ...x, quantidade: Number(e.target.value) } : x,
+                                    j === idx
+                                      ? { ...x, qtdTexto: texto, quantidade: parseQtd(texto) }
+                                      : x,
                                   ),
-                                )
-                              }
+                                );
+                              }}
                             />
                           </TableCell>
                           <TableCell>
@@ -691,6 +717,22 @@ function Orcamentos() {
                   onChange={(e) => setFrete(e.target.value)}
                 />
               </div>
+              <CodigoPessoa
+                id="orc-cod-vendedor"
+                label="Código do vendedor"
+                codigo={codVendedor}
+                onCodigo={setCodVendedor}
+                onResolver={setVendedorId}
+                pessoas={data?.vendedores ?? []}
+              />
+              <CodigoPessoa
+                id="orc-cod-profissional"
+                label="Código do profissional"
+                codigo={codProfissional}
+                onCodigo={setCodProfissional}
+                onResolver={setProfissionalId}
+                pessoas={data?.profissionais ?? []}
+              />
             </div>
 
             <div>

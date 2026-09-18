@@ -2817,6 +2817,7 @@ export type Database = {
           obra_id: string | null
           observacoes: string | null
           prazo_entrega: string | null
+          profissional_id: string | null
           situacao: Database["public"]["Enums"]["orcamento_situacao"]
           subtotal: number
           tenant_id: string
@@ -2842,6 +2843,7 @@ export type Database = {
           obra_id?: string | null
           observacoes?: string | null
           prazo_entrega?: string | null
+          profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["orcamento_situacao"]
           subtotal?: number
           tenant_id: string
@@ -2867,6 +2869,7 @@ export type Database = {
           obra_id?: string | null
           observacoes?: string | null
           prazo_entrega?: string | null
+          profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["orcamento_situacao"]
           subtotal?: number
           tenant_id?: string
@@ -2909,6 +2912,13 @@ export type Database = {
             columns: ["obra_id"]
             isOneToOne: false
             referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
           {
@@ -3086,6 +3096,7 @@ export type Database = {
           orcamento_id: string | null
           origem: string
           previsao_entrega: string | null
+          profissional_id: string | null
           situacao: Database["public"]["Enums"]["pedido_situacao"]
           subtotal: number
           tenant_id: string
@@ -3118,6 +3129,7 @@ export type Database = {
           orcamento_id?: string | null
           origem?: string
           previsao_entrega?: string | null
+          profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
           tenant_id: string
@@ -3150,6 +3162,7 @@ export type Database = {
           orcamento_id?: string | null
           origem?: string
           previsao_entrega?: string | null
+          profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
           tenant_id?: string
@@ -3198,6 +3211,13 @@ export type Database = {
             columns: ["orcamento_id"]
             isOneToOne: false
             referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
           {
@@ -3473,6 +3493,7 @@ export type Database = {
       profiles: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
           email: string | null
           empresa_id: string | null
@@ -3485,6 +3506,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: string | null
@@ -3497,6 +3519,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           email?: string | null
           empresa_id?: string | null
@@ -3536,6 +3559,7 @@ export type Database = {
           ativo: boolean
           chave_pix: string | null
           cnpj: string | null
+          codigo: string | null
           cpf: string | null
           created_at: string
           email: string | null
@@ -3554,6 +3578,7 @@ export type Database = {
           ativo?: boolean
           chave_pix?: string | null
           cnpj?: string | null
+          codigo?: string | null
           cpf?: string | null
           created_at?: string
           email?: string | null
@@ -3572,6 +3597,7 @@ export type Database = {
           ativo?: boolean
           chave_pix?: string | null
           cnpj?: string | null
+          codigo?: string | null
           cpf?: string | null
           created_at?: string
           email?: string | null
@@ -3895,6 +3921,22 @@ export type Database = {
           p_prazo_entrega_dias?: number
         }
         Returns: number
+      }
+      criar_pedido_direto: {
+        Args: {
+          p_cliente_id: string
+          p_condicao_pagamento?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_frete?: number
+          p_itens: Json
+          p_obra_id?: string
+          p_observacoes?: string
+          p_previsao_entrega?: string
+          p_profissional_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: string
       }
       current_motorista_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }

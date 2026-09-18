@@ -1,13 +1,26 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { CodigoPessoa } from "@/components/app/CodigoPessoa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -43,7 +56,27 @@ export const Route = createFileRoute("/_authenticated/pedidos/")({
   component: Pedidos,
 });
 
+type Item = {
+  produto_id: string;
+  descricao: string;
+  unidade: string;
+  quantidade: number;
+  /** Texto digitado da quantidade, permitindo fração com vírgula (ex.: 0,500). */
+  qtdTexto: string;
+  preco_unitario: number;
+  desconto: number;
+};
+
+/** Aceita vírgula e até 3 casas decimais. */
+function parseQtd(valor: string) {
+  const n = Number(valor.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.round(n * 1000) / 1000;
+}
+
 function Pedidos() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todos");
 
@@ -56,6 +89,137 @@ function Pedidos() {
         .order("numero", { ascending: false });
       return data ?? [];
     },
+  });
+
+  /* ---------- novo pedido ---------- */
+  const [open, setOpen] = useState(false);
+  const [clienteId, setClienteId] = useState("");
+  const [obraId, setObraId] = useState("");
+  const [depositoId, setDepositoId] = useState("");
+  const [previsao, setPrevisao] = useState("");
+  const [condicao, setCondicao] = useState("");
+  const [desconto, setDesconto] = useState("0");
+  const [frete, setFrete] = useState("0");
+  const [observacoes, setObservacoes] = useState("");
+  const [itens, setItens] = useState<Item[]>([]);
+  const [produtoBusca, setProdutoBusca] = useState("");
+  const [codVendedor, setCodVendedor] = useState("");
+  const [vendedorId, setVendedorId] = useState<string | null>(null);
+  const [codProfissional, setCodProfissional] = useState("");
+  const [profissionalId, setProfissionalId] = useState<string | null>(null);
+
+  const { data: base } = useQuery({
+    queryKey: ["pedido-novo-base"],
+    enabled: open,
+    queryFn: async () => {
+      const [cli, obr, prod, dep, vend, prof] = await Promise.all([
+        supabase
+          .from("clientes")
+          .select("id, nome, cpf, cnpj, telefone")
+          .eq("ativo", true)
+          .order("nome"),
+        supabase.from("obras").select("id, nome, cliente_id").order("nome"),
+        supabase
+          .from("produtos")
+          .select("id, codigo_interno, codigo_barras, descricao, unidade, preco_venda")
+          .eq("ativo", true)
+          .order("descricao"),
+        supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
+        supabase.from("profiles").select("id, nome, codigo").eq("ativo", true).order("nome"),
+        supabase.from("profissionais").select("id, nome, codigo").eq("ativo", true).order("nome"),
+      ]);
+      return {
+        clientes: cli.data ?? [],
+        obras: obr.data ?? [],
+        produtos: prod.data ?? [],
+        depositos: dep.data ?? [],
+        vendedores: vend.data ?? [],
+        profissionais: prof.data ?? [],
+      };
+    },
+  });
+
+  const obrasCliente = useMemo(
+    () => (base?.obras ?? []).filter((o) => o.cliente_id === clienteId),
+    [base, clienteId],
+  );
+
+  const produtosFiltrados = useMemo(() => {
+    const t = produtoBusca.trim().toLowerCase();
+    const lista = base?.produtos ?? [];
+    if (!t) return lista.slice(0, 8);
+    return lista
+      .filter((p) =>
+        [p.descricao, p.codigo_interno, p.codigo_barras]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(t)),
+      )
+      .slice(0, 8);
+  }, [base, produtoBusca]);
+
+  const subtotalNovo = itens.reduce(
+    (s, i) => s + (i.quantidade * i.preco_unitario - i.desconto),
+    0,
+  );
+  const totalNovo = Math.max(
+    0,
+    subtotalNovo - Number(desconto || 0) + Number(frete || 0),
+  );
+
+  function limpar() {
+    setClienteId("");
+    setObraId("");
+    setDepositoId("");
+    setPrevisao("");
+    setCondicao("");
+    setDesconto("0");
+    setFrete("0");
+    setObservacoes("");
+    setItens([]);
+    setProdutoBusca("");
+    setCodVendedor("");
+    setVendedorId(null);
+    setCodProfissional("");
+    setProfissionalId(null);
+  }
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      if (!clienteId) throw new Error("Escolha o cliente");
+      if (!depositoId) throw new Error("Escolha o depósito de saída");
+      if (itens.length === 0) throw new Error("Inclua pelo menos um produto");
+      if (itens.some((i) => i.quantidade <= 0))
+        throw new Error("Informe a quantidade de cada item");
+      const { data: pedidoId, error } = await supabase.rpc("criar_pedido_direto", {
+        p_cliente_id: clienteId,
+        p_deposito_id: depositoId,
+        p_itens: itens.map((i) => ({
+          produto_id: i.produto_id,
+          quantidade: i.quantidade,
+          unidade: i.unidade,
+          preco_unitario: i.preco_unitario,
+          desconto: i.desconto,
+        })),
+        p_desconto: Number(desconto || 0),
+        p_frete: Number(frete || 0),
+        ...(obraId ? { p_obra_id: obraId } : {}),
+        ...(condicao ? { p_condicao_pagamento: condicao } : {}),
+        ...(previsao ? { p_previsao_entrega: previsao } : {}),
+        ...(vendedorId ? { p_vendedor_id: vendedorId } : {}),
+        ...(profissionalId ? { p_profissional_id: profissionalId } : {}),
+        ...(observacoes ? { p_observacoes: observacoes } : {}),
+      });
+      if (error) throw error;
+      return pedidoId as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Pedido criado", { description: "Estoque reservado no depósito escolhido." });
+      setOpen(false);
+      limpar();
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      navigate({ to: "/pedidos/$id", params: { id } });
+    },
+    onError: (e: Error) => toast.error("Erro ao criar pedido", { description: e.message }),
   });
 
   const lista = useMemo(() => {
@@ -84,6 +248,12 @@ function Pedidos() {
       <PageHeader
         title="Pedidos"
         description="Fluxo completo: pagamento, separação, conferência, expedição e entrega."
+        actions={
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="mr-2 size-4" />
+            Criar pedido
+          </Button>
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -124,11 +294,14 @@ function Pedidos() {
         ) : lista.length === 0 ? (
           <EmptyState
             title="Nenhum pedido encontrado."
-            description="Pedidos são gerados a partir de orçamentos aprovados."
+            description="Crie o pedido direto aqui ou aprove um orçamento do cliente."
             action={
-              <Button asChild>
-                <Link to="/orcamentos">Ir para orçamentos</Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setOpen(true)}>Criar pedido</Button>
+                <Button asChild variant="outline">
+                  <Link to="/orcamentos">Ir para orçamentos</Link>
+                </Button>
+              </div>
             }
           />
         ) : (
@@ -184,6 +357,298 @@ function Pedidos() {
           </div>
         )}
       </div>
+
+      {/* NOVO PEDIDO */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar pedido</DialogTitle>
+            <DialogDescription>
+              Pedido direto, sem orçamento: ao salvar, o estoque já é reservado no depósito
+              escolhido.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="sm:col-span-2">
+                <Label>Cliente (digite o nome)</Label>
+                <ClienteCombobox
+                  clientes={base?.clientes ?? []}
+                  value={clienteId}
+                  onChange={(v) => {
+                    setClienteId(v);
+                    setObraId("");
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Obra (opcional)</Label>
+                <Select value={obraId} onValueChange={setObraId} disabled={!clienteId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sem obra" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {obrasCliente.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Depósito de saída</Label>
+                <Select value={depositoId} onValueChange={setDepositoId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha o depósito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(base?.depositos ?? []).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-3">
+              <Label>Produtos</Label>
+              <div className="relative mt-1">
+                <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                <Input
+                  value={produtoBusca}
+                  onChange={(e) => setProdutoBusca(e.target.value)}
+                  placeholder="Código, código de barras ou descrição…"
+                  className="pl-8"
+                />
+              </div>
+              {produtoBusca && (
+                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                  {produtosFiltrados.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-secondary"
+                        onClick={() => {
+                          setItens((prev) => [
+                            ...prev,
+                            {
+                              produto_id: p.id,
+                              descricao: p.descricao,
+                              unidade: p.unidade,
+                              quantidade: 1,
+                              qtdTexto: "1",
+                              preco_unitario: Number(p.preco_venda ?? 0),
+                              desconto: 0,
+                            },
+                          ]);
+                          setProdutoBusca("");
+                        }}
+                      >
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {p.codigo_interno}
+                        </span>
+                        <span className="flex-1 truncate">{p.descricao}</span>
+                        <span className="text-xs text-muted-foreground">{p.unidade}</span>
+                        <span className="font-semibold">{brl(Number(p.preco_venda ?? 0))}</span>
+                      </button>
+                    </li>
+                  ))}
+                  {produtosFiltrados.length === 0 && (
+                    <li className="px-3 py-2 text-sm text-muted-foreground">
+                      Nenhum produto encontrado.
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              {itens.length > 0 && (
+                <div className="mt-3 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead className="w-28">Qtd</TableHead>
+                        <TableHead className="w-32">Preço</TableHead>
+                        <TableHead className="w-28">Desc. R$</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {itens.map((i, idx) => (
+                        <TableRow key={`${i.produto_id}-${idx}`}>
+                          <TableCell className="text-sm">
+                            {i.descricao}
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              ({i.unidade})
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              inputMode="decimal"
+                              aria-label={`Quantidade em ${i.unidade}`}
+                              value={i.qtdTexto}
+                              onChange={(e) => {
+                                const texto = e.target.value.replace(/[^0-9.,]/g, "");
+                                setItens((prev) =>
+                                  prev.map((x, j) =>
+                                    j === idx
+                                      ? { ...x, qtdTexto: texto, quantidade: parseQtd(texto) }
+                                      : x,
+                                  ),
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={i.preco_unitario}
+                              onChange={(e) =>
+                                setItens((prev) =>
+                                  prev.map((x, j) =>
+                                    j === idx
+                                      ? { ...x, preco_unitario: Number(e.target.value) }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={i.desconto}
+                              onChange={(e) =>
+                                setItens((prev) =>
+                                  prev.map((x, j) =>
+                                    j === idx ? { ...x, desconto: Number(e.target.value) } : x,
+                                  ),
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {brl(i.quantidade * i.preco_unitario - i.desconto)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Remover item"
+                              onClick={() => setItens((prev) => prev.filter((_, j) => j !== idx))}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <Label htmlFor="ped-prev">Previsão de entrega</Label>
+                <Input
+                  id="ped-prev"
+                  type="date"
+                  value={previsao}
+                  onChange={(e) => setPrevisao(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="ped-cond">Condição de pagamento</Label>
+                <Input
+                  id="ped-cond"
+                  value={condicao}
+                  onChange={(e) => setCondicao(e.target.value)}
+                  placeholder="Ex.: 30/60 dias"
+                />
+              </div>
+              <div />
+              <div>
+                <Label htmlFor="ped-desc">Desconto geral (R$)</Label>
+                <Input
+                  id="ped-desc"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={desconto}
+                  onChange={(e) => setDesconto(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="ped-frete">Frete (R$)</Label>
+                <Input
+                  id="ped-frete"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={frete}
+                  onChange={(e) => setFrete(e.target.value)}
+                />
+              </div>
+              <div />
+              <CodigoPessoa
+                id="ped-cod-vendedor"
+                label="Código do vendedor"
+                codigo={codVendedor}
+                onCodigo={setCodVendedor}
+                onResolver={setVendedorId}
+                pessoas={base?.vendedores ?? []}
+              />
+              <CodigoPessoa
+                id="ped-cod-profissional"
+                label="Código do profissional"
+                codigo={codProfissional}
+                onCodigo={setCodProfissional}
+                onResolver={setProfissionalId}
+                pessoas={base?.profissionais ?? []}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="ped-obs">Observações</Label>
+              <Textarea
+                id="ped-obs"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-6 rounded-lg bg-secondary px-4 py-3 text-sm">
+              <span>
+                Subtotal <strong className="ml-1">{brl(subtotalNovo)}</strong>
+              </span>
+              <span>
+                Total <strong className="ml-1 text-lg">{brl(totalNovo)}</strong>
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => criar.mutate()}
+              disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
+            >
+              Salvar pedido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
