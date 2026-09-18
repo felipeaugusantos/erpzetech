@@ -126,6 +126,8 @@ const groups: Group[] = [
       { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
       { label: "Caixa", to: "/caixa", icon: Wallet },
       { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
+      { label: "Contas bancárias", to: "/contas-bancarias", icon: Building2 },
+      { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
