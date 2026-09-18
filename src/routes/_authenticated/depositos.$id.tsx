@@ -105,7 +105,7 @@ function DepositoDetalhe() {
         supabase
           .from("estoques")
           .select(
-            "id, quantidade, reservado, localizacao, produto_id, produtos(descricao, codigo_interno, codigo_barras, unidade, unidade_compra, fator_conversao, custo, estoque_minimo, estoque_maximo)",
+            "id, quantidade, reservado, custo_medio, localizacao, produto_id, produtos(descricao, codigo_interno, codigo_barras, unidade, unidade_compra, fator_conversao, custo, estoque_minimo, estoque_maximo)",
           )
           .eq("deposito_id", id),
         supabase.from("depositos").select("id, nome").eq("ativo", true).neq("id", id).order("nome"),
@@ -122,7 +122,8 @@ function DepositoDetalhe() {
         const p = e.produtos as unknown as Prod;
         const fisico = Number(e.quantidade);
         const reservado = Number(e.reservado);
-        return { e, p, fisico, reservado, disponivel: fisico - reservado };
+        const custo = Number(e.custo_medio) > 0 ? Number(e.custo_medio) : Number(p?.custo ?? 0);
+        return { e, p, fisico, reservado, custo, disponivel: fisico - reservado };
       })
       .filter((l) => {
         if (!l.p) return false;
