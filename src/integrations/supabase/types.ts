@@ -1571,6 +1571,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          cnae: string | null
           cnpj: string | null
           codigo_municipio: string | null
           complemento: string | null
@@ -1580,10 +1581,12 @@ export type Database = {
           estado: string | null
           id: string
           inscricao_estadual: string | null
+          inscricao_municipal: string | null
           nome_fantasia: string | null
           numero: string | null
           ramo_atividade: string
           razao_social: string
+          regime_tributario: string
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -1593,6 +1596,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnae?: string | null
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
@@ -1602,10 +1606,12 @@ export type Database = {
           estado?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           ramo_atividade?: string
           razao_social: string
+          regime_tributario?: string
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -1615,6 +1621,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnae?: string | null
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
@@ -1624,10 +1631,12 @@ export type Database = {
           estado?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           ramo_atividade?: string
           razao_social?: string
+          regime_tributario?: string
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
