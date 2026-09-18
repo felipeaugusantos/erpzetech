@@ -199,6 +199,45 @@ function BalancoFiscal() {
       .map((m) => ({ ...m, rotulo: rotuloMes(m.mes), lucro: m.receita - m.custo - m.icms }));
   }, [contas.notas]);
 
+  /** Entradas, saídas e ajustes de estoque valorizados pelo custo real, por depósito. */
+  const estoque = useMemo(() => {
+    const porDeposito = new Map<
+      string,
+      { nome: string; entradas: number; saidas: number; ajustes: number; ajusteQtd: number }
+    >();
+    let entradas = 0;
+    let saidas = 0;
+    let ajustes = 0;
+
+    for (const m of data?.movs ?? []) {
+      const d = m.depositos as unknown as { nome: string; filial_id: string | null } | null;
+      if (filialSel !== "todas" && d?.filial_id !== filialSel) continue;
+      const nome = d?.nome ?? "Sem depósito";
+      const atual =
+        porDeposito.get(nome) ?? { nome, entradas: 0, saidas: 0, ajustes: 0, ajusteQtd: 0 };
+      const valor = Number(m.valor_total ?? 0);
+      if (m.tipo === "entrada") {
+        atual.entradas += valor;
+        entradas += valor;
+      } else if (m.tipo === "saida") {
+        atual.saidas += valor;
+        saidas += valor;
+      } else {
+        atual.ajustes += valor;
+        atual.ajusteQtd += 1;
+        ajustes += valor;
+      }
+      porDeposito.set(nome, atual);
+    }
+
+    return {
+      entradas,
+      saidas,
+      ajustes,
+      lista: [...porDeposito.values()].sort((a, b) => a.nome.localeCompare(b.nome)),
+    };
+  }, [data?.movs, filialSel]);
+
   const linhas = [
     { conta: "1. Receita de notas emitidas", valor: contas.receitaNotas, tipo: "receita" },
     { conta: "1.1 Descontos concedidos", valor: -contas.desconto, tipo: "dedução" },
@@ -211,6 +250,8 @@ function BalancoFiscal() {
       tipo: "imposto",
     },
     { conta: "4. Lucro do período (notas)", valor: contas.lucroNotas, tipo: "resultado" },
+    { conta: "5. Entradas de estoque a custo real", valor: estoque.entradas, tipo: "estoque" },
+    { conta: "5.1 Saídas de estoque a custo real", valor: -estoque.saidas, tipo: "estoque" },
   ];
 
   return (
