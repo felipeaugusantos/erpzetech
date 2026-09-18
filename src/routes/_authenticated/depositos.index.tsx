@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Warehouse } from "lucide-react";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/_authenticated/depositos")({
+export const Route = createFileRoute("/_authenticated/depositos/")({
   head: () => ({
     meta: [
       { title: "Depósitos — Ze Obra" },
@@ -241,6 +241,11 @@ function Depositos() {
                     <dd className="text-numeric">{brl(r?.valor ?? 0)}</dd>
                   </div>
                 </dl>
+                <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                  <Link to="/depositos/$id" params={{ id: d.id }}>
+                    Ver estoque do depósito
+                  </Link>
+                </Button>
               </div>
             );
           })}
