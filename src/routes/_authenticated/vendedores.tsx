@@ -191,8 +191,10 @@ function Vendedores() {
           .eq("id", existente.id);
         if (error) throw error;
       } else if (perc > 0) {
+        const tenant = session?.profile?.tenant_id;
+        if (!tenant) throw new Error("Usuário sem empresa vinculada");
         const { error } = await supabase.from("vendedor_comissao_regras").insert({
-          tenant_id: session?.profile?.tenant_id ?? "",
+          tenant_id: tenant,
           vendedor_id: editId,
           percentual: perc,
           base: form.base,
