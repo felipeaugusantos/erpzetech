@@ -8,6 +8,8 @@ import {
   LayoutGrid,
   Receipt,
   Ruler,
+  ScanBarcode,
+
   ShieldCheck,
   Truck,
   Wallet,
@@ -20,21 +22,25 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Ze Obra — ERP para lojas de materiais de construção" },
+      { title: "ERP Ze Tech — gestão completa para comércio de materiais e varejo" },
       {
         name: "description",
         content:
-          "Ze Obra controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
+          "ERP Ze Tech: clientes, produtos, estoque por depósito, orçamento, pedido, compras, entregas, caixa, financeiro, NF-e e PDV em um só sistema.",
       },
-      { property: "og:title", content: "Ze Obra — ERP para materiais de construção" },
+      { property: "og:title", content: "ERP Ze Tech — gestão completa da sua loja" },
       {
         property: "og:description",
-        content: "Do balcão ao depósito: clientes, obras, produtos e estoque em um só sistema.",
+        content:
+          "Do orçamento no balcão à entrega e ao financeiro, com estoque por depósito, PDV, NF-e e relatórios.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,
 });
+
 
 const features = [
   {
@@ -73,10 +79,16 @@ const features = [
     text: "NCM, CFOP e CST por produto, nota do pedido ou agrupada e balanço fiscal com ICMS.",
   },
   {
+    icon: ScanBarcode,
+    title: "PDV de venda rápida",
+    text: "Leitor de código de barras, troco na tela, cupom de 80 mm, baixa de estoque e caixa.",
+  },
+  {
     icon: BarChart3,
     title: "Painel e relatórios",
     text: "Pedidos em andamento, pendências fiscais, lucro por produto, depósito e mês.",
   },
+
   {
     icon: ShieldCheck,
     title: "Multiempresa e permissões",
@@ -137,7 +149,8 @@ function Landing() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <div className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
+          <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
+
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
@@ -154,16 +167,19 @@ function Landing() {
 
       <section className="mx-auto max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-          <LayoutGrid className="size-3.5" /> Comercial, estoque, compras, logística, financeiro e
-          fiscal
+          <LayoutGrid className="size-3.5" /> PDV, comercial, estoque, compras, logística,
+          financeiro e fiscal
         </span>
         <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-          A gestão completa da sua loja de <span className="text-accent">material de construção</span>
+          O <span className="text-accent">ERP Ze Tech</span> para quem vende produto e controla
+          estoque
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-          Do orçamento no balcão à entrega na obra, com estoque reservado, custo por depósito,
-          cobrança, caixa e nota fiscal. Simples para o atendente, completo para o gestor.
+          Da venda no balcão à entrega e ao financeiro, com estoque por depósito, custo de aquisição
+          real, caixa, nota fiscal e relatórios. Nasceu nas lojas de material de construção e atende
+          também autopeças, agro, elétrica, hidráulica, distribuidoras e papelaria.
         </p>
+
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
             <Link to="/auth">
@@ -289,7 +305,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        Ze Obra, um produto Ze Tech • Multiempresa, multifilial e multidepósito
+        ERP Ze Tech • Multiempresa, multifilial e multidepósito
       </footer>
     </div>
   );
