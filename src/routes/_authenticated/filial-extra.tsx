@@ -50,6 +50,8 @@ export const Route = createFileRoute("/_authenticated/filial-extra")({
 function FilialExtra() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
+  /** Abrir filial é operação exclusiva da equipe Ze Tech. */
+  const { data: operadorSaas } = useSaasOperador();
   const empresaId = session?.profile?.empresa_id ?? session?.empresa?.id ?? null;
   const tenantId = session?.profile?.tenant_id ?? null;
 
