@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Store,
   Tag,
+  TrendingUp,
   Truck,
   Users,
   Wallet,
@@ -111,6 +112,8 @@ const groups: Group[] = [
       { label: "Caixa", to: "/caixa", icon: Wallet },
       { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
+      { label: "Notas fiscais", to: "/nfe", icon: FileText },
+      { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
     ],
   },
   {
