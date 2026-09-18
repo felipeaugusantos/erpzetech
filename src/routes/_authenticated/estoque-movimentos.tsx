@@ -114,7 +114,7 @@ function EstoqueMovimentos() {
         supabase
           .from("estoque_movimentacoes")
           .select(
-            "id, tipo, quantidade, custo_unitario, valor_total, saldo_anterior, saldo_posterior, unidade, documento, motivo, created_at, produtos(descricao, codigo_interno)",
+            "id, tipo, produto_id, quantidade, custo_unitario, valor_total, saldo_anterior, saldo_posterior, unidade, documento, motivo, created_at, produtos(descricao, codigo_interno)",
           )
           .eq("deposito_id", depositoId)
           .gte("created_at", `${periodo.de}T00:00:00`)
