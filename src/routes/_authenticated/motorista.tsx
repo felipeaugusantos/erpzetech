@@ -309,21 +309,31 @@ function AppMotorista() {
         description="Rota do dia na palma da mão: confirme quem recebeu, tire a foto e colha a assinatura."
       />
 
-      <div className="panel mb-4 p-3">
-        <Label>Motorista</Label>
-        <Select value={motoristaId} onValueChange={setMotoristaId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Escolha o motorista" />
-          </SelectTrigger>
-          <SelectContent>
-            {motoristas.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {meuMotorista ? (
+        <div className="panel mb-4 flex items-center justify-between gap-3 p-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Motorista</p>
+            <p className="font-display text-sm font-semibold">{meuMotorista.nome}</p>
+          </div>
+          <Badge variant="secondary">Sua rota</Badge>
+        </div>
+      ) : (
+        <div className="panel mb-4 p-3">
+          <Label>Motorista</Label>
+          <Select value={motoristaId} onValueChange={setMotoristaId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Escolha o motorista" />
+            </SelectTrigger>
+            <SelectContent>
+              {motoristas.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
