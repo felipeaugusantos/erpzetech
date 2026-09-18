@@ -98,14 +98,15 @@ function Landing() {
 
       <section className="mx-auto max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-          <LayoutGrid className="size-3.5" /> Fase 1 disponível
+          <LayoutGrid className="size-3.5" /> Comercial, estoque, compras, logística, financeiro e
+          fiscal
         </span>
         <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
           A gestão completa da sua loja de <span className="text-accent">material de construção</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-          Cadastros, estoque com reserva, múltiplos depósitos e filiais em um ERP feito para o ritmo
-          do balcão. Simples para o atendente, completo para o gestor.
+          Do orçamento no balcão à entrega na obra, com estoque reservado, custo por depósito,
+          cobrança, caixa e nota fiscal. Simples para o atendente, completo para o gestor.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
@@ -114,6 +115,19 @@ function Landing() {
             </Link>
           </Button>
         </div>
+        <dl className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-4">
+          {[
+            { k: "Fluxo completo", v: "Orçamento → pedido → entrega → financeiro" },
+            { k: "Depósitos", v: "Estoque e custo médio separados" },
+            { k: "Logística", v: "Rota do dia e tela do motorista" },
+            { k: "Fiscal", v: "NCM, CFOP, NF-e e balanço" },
+          ].map((i) => (
+            <div key={i.k} className="panel p-4 text-left">
+              <dt className="font-display text-sm font-semibold">{i.k}</dt>
+              <dd className="mt-1 text-xs text-muted-foreground">{i.v}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section className="border-t border-border bg-card">
