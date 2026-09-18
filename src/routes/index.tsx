@@ -77,10 +77,16 @@ const features = [
     text: "NCM, CFOP e CST por produto, nota do pedido ou agrupada e balanço fiscal com ICMS.",
   },
   {
+    icon: ScanBarcode,
+    title: "PDV de venda rápida",
+    text: "Leitor de código de barras, troco na tela, cupom de 80 mm, baixa de estoque e caixa.",
+  },
+  {
     icon: BarChart3,
     title: "Painel e relatórios",
     text: "Pedidos em andamento, pendências fiscais, lucro por produto, depósito e mês.",
   },
+
   {
     icon: ShieldCheck,
     title: "Multiempresa e permissões",
