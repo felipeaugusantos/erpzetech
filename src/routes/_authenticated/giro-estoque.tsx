@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Boxes, Gauge, Layers, ShoppingCart } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Boxes, FileSpreadsheet, Gauge, Layers, ShoppingCart, Warehouse } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num } from "@/lib/format";
@@ -71,6 +72,9 @@ function GiroEstoque() {
   const [busca, setBusca] = useState("");
   const [horizonte, setHorizonte] = useState<"15" | "30" | "60">("30");
 
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
   const dias = Number(janela);
   const desde = useMemo(
     () => new Date(Date.now() - dias * 86400000).toISOString(),
@@ -78,20 +82,8 @@ function GiroEstoque() {
   );
 
   const { data, isLoading } = useQuery({
-    queryKey: ["giro-estoque", janela, depositoId],
+    queryKey: ["giro-estoque", janela],
     queryFn: async () => {
-      const itensQuery = supabase
-        .from("pedido_itens")
-        .select(
-          "produto_id, quantidade, total, pedidos!inner(id, created_at, situacao, deposito_id)",
-        )
-        .gte("pedidos.created_at", desde)
-        .neq("pedidos.situacao", "cancelado");
-      if (depositoId !== "todos") itensQuery.eq("pedidos.deposito_id", depositoId);
-
-      const estoqueQuery = supabase.from("estoques").select("produto_id, quantidade, reservado, custo_medio, deposito_id");
-      if (depositoId !== "todos") estoqueQuery.eq("deposito_id", depositoId);
-
       const [depRes, prodRes, itensRes, estRes] = await Promise.all([
         supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
         supabase
@@ -101,8 +93,16 @@ function GiroEstoque() {
           )
           .eq("ativo", true)
           .order("descricao"),
-        itensQuery,
-        estoqueQuery,
+        supabase
+          .from("pedido_itens")
+          .select(
+            "produto_id, quantidade, total, pedidos!inner(id, created_at, situacao, deposito_id)",
+          )
+          .gte("pedidos.created_at", desde)
+          .neq("pedidos.situacao", "cancelado"),
+        supabase
+          .from("estoques")
+          .select("produto_id, quantidade, reservado, custo_medio, deposito_id"),
       ]);
       if (itensRes.error) throw itensRes.error;
       if (estRes.error) throw estRes.error;
@@ -117,10 +117,14 @@ function GiroEstoque() {
 
   const depositos = data?.depositos ?? [];
 
-  const linhas = useMemo<Linha[]>(() => {
+  /** Calcula o giro de um depósito específico, ou de todos juntos quando "todos". */
+  const calcular = useCallback(
+    (alvo: string): Linha[] => {
     const produtos = data?.produtos ?? [];
     const vendas = new Map<string, { qtd: number; receita: number }>();
     for (const i of data?.itens ?? []) {
+      const dep = (i.pedidos as unknown as { deposito_id: string | null } | null)?.deposito_id ?? "";
+      if (alvo !== "todos" && dep !== alvo) continue;
       const atual = vendas.get(i.produto_id) ?? { qtd: 0, receita: 0 };
       atual.qtd += Number(i.quantidade ?? 0);
       atual.receita += Number(i.total ?? 0);
@@ -129,6 +133,7 @@ function GiroEstoque() {
 
     const saldo = new Map<string, { disponivel: number; custo: number }>();
     for (const e of data?.estoques ?? []) {
+      if (alvo !== "todos" && e.deposito_id !== alvo) continue;
       const atual = saldo.get(e.produto_id) ?? { disponivel: 0, custo: 0 };
       atual.disponivel += Number(e.quantidade ?? 0) - Number(e.reservado ?? 0);
       atual.custo = Math.max(atual.custo, Number(e.custo_medio ?? 0));
@@ -184,7 +189,19 @@ function GiroEstoque() {
         comprar60: necessidade(60),
       };
     });
-  }, [data, dias]);
+    },
+    [data, dias],
+  );
+
+  /** Uma linha de giro por depósito, mais a visão consolidada. */
+  const porDeposito = useMemo(() => {
+    const mapa = new Map<string, Linha[]>();
+    mapa.set("todos", calcular("todos"));
+    for (const d of depositos) mapa.set(d.id, calcular(d.id));
+    return mapa;
+  }, [calcular, depositos]);
+
+  const linhas = useMemo(() => porDeposito.get(depositoId) ?? [], [porDeposito, depositoId]);
 
   const visiveis = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -207,6 +224,46 @@ function GiroEstoque() {
     return { porClasse, investimento, aComprar, emFalta };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linhas, visiveis, horizonte]);
+
+  /** Resumo de um depósito: o que comprar e quanto investir no horizonte escolhido. */
+  const resumoDe = useCallback(
+    (lista: Linha[]) => {
+      const dias = Number(horizonte);
+      const necessidade = (l: Linha) =>
+        horizonte === "15" ? l.comprar15 : horizonte === "30" ? l.comprar30 : l.comprar60;
+      const aComprar = lista.filter((l) => necessidade(l) > 0);
+      return {
+        receita: lista.reduce((s, l) => s + l.receita, 0),
+        itens: aComprar.length,
+        investimento: aComprar.reduce((s, l) => s + necessidade(l) * l.custo, 0),
+        emFalta: lista.filter((l) => l.mediaDia > 0 && l.cobertura < dias).length,
+        classeA: lista.filter((l) => l.vendido > 0 && l.classe === "A").length,
+      };
+    },
+    [horizonte],
+  );
+
+  const gerarCompra = useMutation({
+    mutationFn: async (dep: string) => {
+      const { data: id, error } = await supabase.rpc("gerar_compra_estoque_minimo", {
+        p_deposito_id: dep,
+      });
+      if (error) throw error;
+      return id as string | null;
+    },
+    onSuccess: (id) => {
+      if (!id) {
+        toast.info("Nenhum item abaixo do estoque mínimo neste depósito.");
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ["compras"] });
+      toast.success("Pedido de compra criado a partir da sugestão");
+      navigate({ to: "/compras/$id", params: { id } });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível gerar a compra", { description: e.message }),
+  });
+
 
   return (
     <>
@@ -328,6 +385,90 @@ function GiroEstoque() {
           tone="danger"
         />
       </div>
+
+      <div className="panel mb-6 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold">Giro por depósito</h2>
+            <p className="text-sm text-muted-foreground">
+              Cada depósito com o giro das suas próprias vendas, a sugestão de compra e o atalho para
+              cotar com os fornecedores.
+            </p>
+          </div>
+          {depositoId !== "todos" && (
+            <Button size="sm" variant="ghost" onClick={() => setDepositoId("todos")}>
+              Ver todos os depósitos
+            </Button>
+          )}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {depositos.map((d) => {
+            const r = resumoDe(porDeposito.get(d.id) ?? []);
+            const ativo = depositoId === d.id;
+            return (
+              <div
+                key={d.id}
+                className={`rounded-lg border p-3 ${ativo ? "border-primary bg-primary/5" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Warehouse className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{d.nome}</span>
+                  {r.emFalta > 0 && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {r.emFalta} em falta
+                    </Badge>
+                  )}
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Vendas no período</dt>
+                    <dd className="text-numeric font-semibold">{brl(r.receita)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Classe A</dt>
+                    <dd className="text-numeric font-semibold">{r.classeA} produtos</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">
+                      Comprar ({horizonte} dias)
+                    </dt>
+                    <dd className="text-numeric font-semibold">{r.itens} itens</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Investimento</dt>
+                    <dd className="text-numeric font-semibold">{brl(r.investimento)}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={ativo ? "default" : "outline"}
+                    onClick={() => setDepositoId(d.id)}
+                  >
+                    <Gauge className="mr-2 size-4" /> Ver o giro
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={gerarCompra.isPending}
+                    onClick={() => gerarCompra.mutate(d.id)}
+                  >
+                    <ShoppingCart className="mr-2 size-4" /> Gerar compra
+                  </Button>
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link to="/cotacoes">
+                      <FileSpreadsheet className="mr-2 size-4" /> Cotações
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
 
       {isLoading ? (
         <div className="panel h-72 animate-pulse" />
