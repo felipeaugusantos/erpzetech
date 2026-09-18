@@ -386,6 +386,90 @@ function GiroEstoque() {
         />
       </div>
 
+      <div className="panel mb-6 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold">Giro por depósito</h2>
+            <p className="text-sm text-muted-foreground">
+              Cada depósito com o giro das suas próprias vendas, a sugestão de compra e o atalho para
+              cotar com os fornecedores.
+            </p>
+          </div>
+          {depositoId !== "todos" && (
+            <Button size="sm" variant="ghost" onClick={() => setDepositoId("todos")}>
+              Ver todos os depósitos
+            </Button>
+          )}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {depositos.map((d) => {
+            const r = resumoDe(porDeposito.get(d.id) ?? []);
+            const ativo = depositoId === d.id;
+            return (
+              <div
+                key={d.id}
+                className={`rounded-lg border p-3 ${ativo ? "border-primary bg-primary/5" : "border-border"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Warehouse className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{d.nome}</span>
+                  {r.emFalta > 0 && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {r.emFalta} em falta
+                    </Badge>
+                  )}
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Vendas no período</dt>
+                    <dd className="text-numeric font-semibold">{brl(r.receita)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Classe A</dt>
+                    <dd className="text-numeric font-semibold">{r.classeA} produtos</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">
+                      Comprar ({horizonte} dias)
+                    </dt>
+                    <dd className="text-numeric font-semibold">{r.itens} itens</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Investimento</dt>
+                    <dd className="text-numeric font-semibold">{brl(r.investimento)}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={ativo ? "default" : "outline"}
+                    onClick={() => setDepositoId(d.id)}
+                  >
+                    <Gauge className="mr-2 size-4" /> Ver o giro
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={gerarCompra.isPending}
+                    onClick={() => gerarCompra.mutate(d.id)}
+                  >
+                    <ShoppingCart className="mr-2 size-4" /> Gerar compra
+                  </Button>
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link to="/cotacoes">
+                      <FileSpreadsheet className="mr-2 size-4" /> Cotações
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
+
       {isLoading ? (
         <div className="panel h-72 animate-pulse" />
       ) : visiveis.length === 0 ? (
