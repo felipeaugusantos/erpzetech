@@ -107,7 +107,7 @@ function Nfe() {
   };
   const [statusConta, setStatusConta] = useState<StatusConta | null>(null);
   const testarEmissor = useMutation({
-    mutationFn: async () => (await verificarEmissor({ data: {} })) as StatusConta,
+    mutationFn: async () => (await verificarEmissor()) as StatusConta,
     onSuccess: (r) => {
       setStatusConta(r);
       if (r.conectado) toast.success("Conexão com o emissor fiscal funcionando");
