@@ -571,6 +571,77 @@ export type Database = {
           },
         ]
       }
+      compra_cotacao_itens: {
+        Row: {
+          compra_item_id: string
+          cotacao_id: string
+          created_at: string
+          custo_unitario: number
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          compra_item_id: string
+          cotacao_id: string
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          compra_item_id?: string
+          cotacao_id?: string
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_cotacao_itens_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_cotacao_itens_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "compra_cotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_cotacao_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_cotacao_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_cotacoes: {
         Row: {
           compra_id: string
@@ -3750,6 +3821,16 @@ export type Database = {
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
+      }
+      cotacao_registrar_itens: {
+        Args: {
+          p_condicao_pagamento?: string
+          p_cotacao_id: string
+          p_itens: Json
+          p_observacao?: string
+          p_prazo_entrega_dias?: number
+        }
+        Returns: number
       }
       current_motorista_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Pencil, Plus, Search } from "lucide-react";
+import { Building2, History, Pencil, Plus, Search, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
-import { brl } from "@/lib/format";
+import { brl, dateBR, num } from "@/lib/format";
+import { diasDePrazo } from "@/lib/cotacao";
+import { labelCompra } from "@/lib/financeiro";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +77,35 @@ function Fornecedores() {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [historicoId, setHistoricoId] = useState<string | null>(null);
+
+  const { data: historico } = useQuery({
+    queryKey: ["fornecedor-historico", historicoId],
+    enabled: Boolean(historicoId),
+    queryFn: async () => {
+      const [comprasRes, cotacoesRes] = await Promise.all([
+        supabase
+          .from("compras")
+          .select(
+            "id, numero, situacao, total, created_at, previsao_entrega, condicao_pagamento, compra_itens(quantidade, unidade, custo_unitario, produtos(descricao, codigo_interno))",
+          )
+          .eq("fornecedor_id", historicoId!)
+          .order("numero", { ascending: false })
+          .limit(20),
+        supabase
+          .from("compra_cotacoes")
+          .select(
+            "id, valor_total, prazo_entrega_dias, condicao_pagamento, escolhida, created_at, compras(numero)",
+          )
+          .eq("fornecedor_id", historicoId!)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+      if (comprasRes.error) throw comprasRes.error;
+      if (cotacoesRes.error) throw cotacoesRes.error;
+      return { compras: comprasRes.data, cotacoes: cotacoesRes.data };
+    },
+  });
 
   const { data: fornecedores = [], isLoading } = useQuery({
     queryKey: ["fornecedores"],
@@ -166,14 +197,21 @@ function Fornecedores() {
         title="Fornecedores"
         description="Quem abastece a loja, com contato, prazo e histórico de compras."
         actions={
-          <Button
-            onClick={() => {
-              setForm(vazio);
-              setAberto(true);
-            }}
-          >
-            <Plus className="size-4" /> Novo fornecedor
-          </Button>
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/cotacoes">
+                <Trophy className="size-4" /> Cotações
+              </Link>
+            </Button>
+            <Button
+              onClick={() => {
+                setForm(vazio);
+                setAberto(true);
+              }}
+            >
+              <Plus className="size-4" /> Novo fornecedor
+            </Button>
+          </>
         }
       />
 
@@ -258,6 +296,14 @@ function Fornecedores() {
                     <TableCell className="text-right text-numeric">{r?.qtd ?? 0}</TableCell>
                     <TableCell className="text-right text-numeric">{brl(r?.total ?? 0)}</TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHistoricoId(f.id)}
+                        title="Histórico e cotações"
+                      >
+                        <History className="size-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -389,6 +435,205 @@ function Fornecedores() {
             </Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(historicoId)} onOpenChange={(v) => !v && setHistoricoId(null)}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {fornecedores.find((f) => f.id === historicoId)?.razao_social ?? "Fornecedor"} —
+              histórico
+            </DialogTitle>
+          </DialogHeader>
+
+          {!historico ? (
+            <p className="py-6 text-sm text-muted-foreground">Carregando…</p>
+          ) : (
+            <div className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatCard
+                  label="Compras"
+                  value={String(historico.compras.length)}
+                  hint="últimas 20"
+                />
+                <StatCard
+                  label="Total comprado"
+                  value={brl(historico.compras.reduce((s, c) => s + Number(c.total ?? 0), 0))}
+                  tone="accent"
+                />
+                <StatCard
+                  label="Prazo médio de pagamento"
+                  value={`${num(
+                    historico.cotacoes.length
+                      ? historico.cotacoes.reduce(
+                          (s, c) => s + diasDePrazo(c.condicao_pagamento),
+                          0,
+                        ) / historico.cotacoes.length
+                      : diasDePrazo(
+                          fornecedores.find((f) => f.id === historicoId)?.condicao_pagamento ?? "",
+                        ),
+                    0,
+                  )} dias`}
+                />
+              </div>
+
+              <div>
+                <h3 className="mb-2 font-display font-semibold">Propostas enviadas</h3>
+                {historico.cotacoes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma proposta registrada.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Compra</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">Entrega</TableHead>
+                        <TableHead>Pagamento</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historico.cotacoes.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell>
+                            #
+                            {String(
+                              (c.compras as { numero: number } | null)?.numero ?? 0,
+                            ).padStart(4, "0")}
+                            {c.escolhida && (
+                              <Badge className="ml-2 bg-success/15 text-success">Fechada</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-numeric">
+                            {brl(Number(c.valor_total))}
+                          </TableCell>
+                          <TableCell className="text-right text-numeric">
+                            {c.prazo_entrega_dias ?? 0} d
+                          </TableCell>
+                          <TableCell className="text-sm">{c.condicao_pagamento ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{dateBR(c.created_at)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              <div>
+                <h3 className="mb-2 font-display font-semibold">Compras</h3>
+                {historico.compras.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma compra com este fornecedor.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Compra</TableHead>
+                        <TableHead>Situação</TableHead>
+                        <TableHead>Previsão</TableHead>
+                        <TableHead>Pagamento</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historico.compras.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell>
+                            <Link
+                              to="/compras/$id"
+                              params={{ id: c.id }}
+                              className="font-medium text-primary hover:underline"
+                              onClick={() => setHistoricoId(null)}
+                            >
+                              #{String(c.numero).padStart(4, "0")}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">{dateBR(c.created_at)}</p>
+                          </TableCell>
+                          <TableCell className="text-sm">{labelCompra(c.situacao)}</TableCell>
+                          <TableCell className="text-sm">
+                            {c.previsao_entrega ? dateBR(c.previsao_entrega) : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">{c.condicao_pagamento ?? "—"}</TableCell>
+                          <TableCell className="text-right text-numeric">
+                            {brl(Number(c.total ?? 0))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              <div>
+                <h3 className="mb-2 font-display font-semibold">Últimos preços praticados</h3>
+                {(() => {
+                  const precos = new Map<
+                    string,
+                    { descricao: string; codigo: string; unidade: string; custo: number; data: string }
+                  >();
+                  for (const c of historico.compras) {
+                    for (const i of (c.compra_itens ?? []) as unknown as {
+                      quantidade: number;
+                      unidade: string | null;
+                      custo_unitario: number;
+                      produtos: { descricao: string; codigo_interno: string } | null;
+                    }[]) {
+                      const chave = i.produtos?.codigo_interno ?? i.produtos?.descricao ?? "";
+                      if (!chave || precos.has(chave)) continue;
+                      precos.set(chave, {
+                        descricao: i.produtos?.descricao ?? "—",
+                        codigo: i.produtos?.codigo_interno ?? "",
+                        unidade: i.unidade ?? "",
+                        custo: Number(i.custo_unitario),
+                        data: c.created_at,
+                      });
+                    }
+                  }
+                  const lista = [...precos.values()];
+                  if (lista.length === 0)
+                    return (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum produto comprado deste fornecedor ainda.
+                      </p>
+                    );
+                  return (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead className="text-right">Último custo</TableHead>
+                          <TableHead>Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lista.map((p) => (
+                          <TableRow key={p.codigo + p.descricao}>
+                            <TableCell>
+                              <p className="font-medium">{p.descricao}</p>
+                              <p className="text-numeric text-xs text-muted-foreground">
+                                {p.codigo} {p.unidade ? `· ${p.unidade}` : ""}
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right text-numeric">{brl(p.custo)}</TableCell>
+                            <TableCell className="text-sm">{dateBR(p.data)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoricoId(null)}>
+              Fechar
+            </Button>
+            <Button asChild>
+              <Link to="/cotacoes">Cotar com este fornecedor</Link>
             </Button>
           </DialogFooter>
         </DialogContent>
