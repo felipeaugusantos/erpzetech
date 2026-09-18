@@ -10,6 +10,7 @@ import {
   Warehouse,
 } from "lucide-react";
 
+import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
