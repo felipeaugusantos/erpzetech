@@ -35,7 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
-import { ZeLogo } from "@/components/app/ZeLogo";
+import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -157,6 +157,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [fechados, setFechados] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useSessionData();
+  // Aplica a cor da marca da loja assim que o sistema abre.
+  useTemaEmpresa();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -277,10 +279,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <ZeLogo />
+          <LogoEmpresa />
           <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold tracking-wide">ERP ZE TECH</p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">por Ze Tech</p>
+            <p className="truncate font-display text-sm font-bold tracking-wide">
+              {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "ERP ZE TECH")
+                .toUpperCase()
+                .slice(0, 22)}
+            </p>
+            <p className="truncate text-[11px] text-sidebar-foreground/60">
+              ERP Ze Tech · por Ze Tech
+            </p>
           </div>
           <button
             className="ml-auto lg:hidden"
