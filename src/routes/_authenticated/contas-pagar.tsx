@@ -78,6 +78,7 @@ function ContasPagar() {
   const [venc, setVenc] = useState(somaDias(hojeISO(), 30));
   const [parcelas, setParcelas] = useState("1");
   const [forma, setForma] = useState("boleto");
+  const [historico, setHistorico] = useState<TituloHistorico | null>(null);
 
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-pagar"],
