@@ -332,10 +332,16 @@ function Pedidos() {
         title="Pedidos"
         description="Fluxo completo: pagamento, separação, conferência, expedição e entrega."
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-2 size-4" />
-            Criar pedido
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setOpenConv(true)}>
+              <FileText className="mr-2 size-4" />
+              Converter orçamento
+            </Button>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 size-4" />
+              Criar pedido
+            </Button>
+          </div>
         }
       />
 
