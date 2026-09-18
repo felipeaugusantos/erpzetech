@@ -221,6 +221,11 @@ function PedidoDetalhe() {
   const [parcelasReceber, setParcelasReceber] = useState("1");
   const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeISO());
   const [formaReceber, setFormaReceber] = useState("pix");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutValor, setCheckoutValor] = useState("");
+  const [checkoutForma, setCheckoutForma] = useState("dinheiro");
+  const [checkoutParcelas, setCheckoutParcelas] = useState("1");
+  const [checkoutVencimento, setCheckoutVencimento] = useState(hojeISO());
   const queryClient = qc;
 
   const { data, isLoading } = useQuery({
