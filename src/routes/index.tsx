@@ -159,16 +159,19 @@ function Landing() {
 
       <section className="mx-auto max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-          <LayoutGrid className="size-3.5" /> Comercial, estoque, compras, logística, financeiro e
-          fiscal
+          <LayoutGrid className="size-3.5" /> PDV, comercial, estoque, compras, logística,
+          financeiro e fiscal
         </span>
         <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-          A gestão completa da sua loja de <span className="text-accent">material de construção</span>
+          O <span className="text-accent">ERP Ze Tech</span> para quem vende produto e controla
+          estoque
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-          Do orçamento no balcão à entrega na obra, com estoque reservado, custo por depósito,
-          cobrança, caixa e nota fiscal. Simples para o atendente, completo para o gestor.
+          Da venda no balcão à entrega e ao financeiro, com estoque por depósito, custo de aquisição
+          real, caixa, nota fiscal e relatórios. Nasceu nas lojas de material de construção e atende
+          também autopeças, agro, elétrica, hidráulica, distribuidoras e papelaria.
         </p>
+
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
             <Link to="/auth">
