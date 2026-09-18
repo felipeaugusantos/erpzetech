@@ -274,6 +274,17 @@ function Landing() {
             </div>
             <p className="font-display text-lg font-bold">R$ 1.500</p>
           </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Ficou em dúvida de qual plano atende a sua loja?
+            </p>
+            <Button asChild size="lg" className="mt-3">
+              <Link to="/contato">
+                Falar com a gente <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
