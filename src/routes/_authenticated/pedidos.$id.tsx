@@ -333,6 +333,35 @@ function PedidoDetalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  /** Checkout: recebe o valor, baixa as parcelas abertas ou lança direto no caixa. */
+  const checkout = useMutation({
+    mutationFn: async () => {
+      const valor = Number(checkoutValor.replace(",", ".")) || 0;
+      if (valor <= 0) throw new Error("Informe o valor recebido.");
+      const { data, error } = await supabase.rpc("pedido_checkout", {
+        p_pedido_id: id,
+        p_valor: valor,
+        p_forma: checkoutForma as never,
+        p_parcelas: Math.max(1, Number(checkoutParcelas) || 1),
+        p_primeiro_vencimento: checkoutVencimento,
+      });
+      if (error) throw error;
+      return data as { caixa: number; contas_geradas: number };
+    },
+    onSuccess: (r) => {
+      toast.success("Pagamento registrado", {
+        description:
+          Number(r?.caixa ?? 0) > 0
+            ? `${brl(Number(r.caixa))} lançados no caixa.`
+            : `${r?.contas_geradas ?? 0} parcela(s) em contas a receber.`,
+      });
+      setCheckoutOpen(false);
+      setCheckoutValor("");
+      void queryClient.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error("Não foi possível receber", { description: e.message }),
+  });
+
   useEffect(() => {
     setSeparado(
       Object.fromEntries(itens.map((i) => [i.id, String(Number(i.quantidade_separada))])),
