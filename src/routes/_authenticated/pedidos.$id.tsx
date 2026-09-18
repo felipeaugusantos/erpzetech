@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/pedidos/$id")({
       },
     ],
   }),
-  component: PedidoDetalhe;
+  component: PedidoDetalhe,
 });
 
 function PedidoDetalhe() {
