@@ -67,7 +67,7 @@ function PedidoDetalhe() {
       const [pedido, itens, historico, entregas] = await Promise.all([
         supabase
           .from("pedidos")
-          .select("*, clientes(nome, telefone), obras(nome, endereco, numero, bairro, cidade), depositos(nome)")
+          .select("*, clientes(id, nome, telefone, limite_credito), obras(nome, endereco, numero, bairro, cidade), depositos(nome)")
           .eq("id", id)
           .single(),
         supabase
