@@ -1,7 +1,7 @@
 {
-  "name": "Ze Obra — gestão da loja",
-  "short_name": "Ze Obra",
-  "description": "PDV de venda rápida, estoque, pedidos e financeiro da loja de materiais de construção.",
+  "name": "ERP Ze Tech — gestão da loja",
+  "short_name": "ERP Ze Tech",
+  "description": "PDV de venda rápida, estoque por depósito, pedidos, entregas, financeiro e NF-e.",
   "id": "/",
   "start_url": "/pdv",
   "scope": "/",
