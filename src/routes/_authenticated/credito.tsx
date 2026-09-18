@@ -59,7 +59,7 @@ function Credito() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, limite_credito, situacao_credito")
+        .select("id, nome, limite_credito")
         .eq("ativo", true)
         .gt("limite_credito", 0)
         .order("nome");
@@ -187,7 +187,7 @@ function Credito() {
                         className={
                           a.situacao === "pendente"
                             ? "bg-warning/15 text-warning-foreground"
-                            : a.situacao === "aprovado"
+                            : a.situacao === "aprovada"
                               ? "bg-success/15 text-success"
                               : "bg-destructive/15 text-destructive"
                         }
