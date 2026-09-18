@@ -239,7 +239,7 @@ function Contato() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        ERP Ze Tech, um produto Ze Tech
+        ERP Ze Tech — um produto Ze Tech
       </footer>
     </div>
   );
