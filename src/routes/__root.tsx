@@ -92,6 +92,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#008037" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Ze Obra" },
     ],
     links: [
       {
@@ -105,6 +110,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -139,6 +146,15 @@ function RootComponent() {
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
+
+  // Permite instalar o sistema no celular (atalho em tela cheia abrindo o PDV).
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const id = window.setTimeout(() => {
+      void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }, 1200);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

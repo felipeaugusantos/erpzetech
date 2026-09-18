@@ -1,0 +1,24 @@
+{
+  "name": "Ze Obra — gestão da loja",
+  "short_name": "Ze Obra",
+  "description": "PDV de venda rápida, estoque, pedidos e financeiro da loja de materiais de construção.",
+  "id": "/",
+  "start_url": "/pdv",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F0F4F2",
+  "theme_color": "#008037",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "PDV — venda rápida", "short_name": "PDV", "url": "/pdv", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Pedidos", "short_name": "Pedidos", "url": "/pedidos" },
+    { "name": "Entregas", "short_name": "Entregas", "url": "/entregas" }
+  ]
+}

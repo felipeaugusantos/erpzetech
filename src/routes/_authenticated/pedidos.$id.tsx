@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, RefreshCw, Send, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, Printer, RefreshCw, Send, Truck, Wallet } from "lucide-react";
 
 const NFE_SITUACAO: Record<string, string> = {
   rascunho: "Rascunho",
@@ -29,6 +29,8 @@ import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
 import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
 import { PageHeader } from "@/components/app/PageHeader";
+import { Via80 } from "@/components/app/Via80";
+import { useSessionData } from "@/hooks/useSessionData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -226,6 +228,8 @@ function PedidoDetalhe() {
   const [checkoutForma, setCheckoutForma] = useState("dinheiro");
   const [checkoutParcelas, setCheckoutParcelas] = useState("1");
   const [checkoutVencimento, setCheckoutVencimento] = useState(hojeISO());
+  const [viaOpen, setViaOpen] = useState(false);
+  const { data: session } = useSessionData();
   const queryClient = qc;
 
   const { data, isLoading } = useQuery({
@@ -505,6 +509,9 @@ function PedidoDetalhe() {
               <Link to="/pedidos">
                 <ArrowLeft className="mr-2 size-4" /> Pedidos
               </Link>
+            </Button>
+            <Button variant="outline" onClick={() => setViaOpen(true)}>
+              <Printer className="mr-2 size-4" /> Imprimir 80 mm
             </Button>
             {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
               <Button variant="secondary" onClick={() => setContasOpen(true)}>
@@ -1188,7 +1195,54 @@ function PedidoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* VIA DO PEDIDO EM 80 MM */}
+      <Dialog open={viaOpen} onOpenChange={setViaOpen}>
+        <DialogContent className="max-h-[90vh] max-w-sm overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Via do pedido — 80 mm</DialogTitle>
+            <DialogDescription>
+              Mesma impressora térmica do balcão usada no cupom do PDV.
+            </DialogDescription>
+          </DialogHeader>
+          <Via80
+            dados={{
+              tipo: "Pedido",
+              numero: String(pedido.numero).padStart(4, "0"),
+              emitidoEm: dateTimeBR(pedido.created_at),
+              loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+              deposito: (pedido.depositos as unknown as { nome: string } | null)?.nome ?? null,
+              cliente: cliente?.nome ?? "Consumidor final",
+              obra: obra?.nome ?? null,
+              situacao: labelSituacao(pedido.situacao),
+              prazo: pedido.previsao_entrega ? dateBR(pedido.previsao_entrega) : null,
+              observacoes: pedido.observacoes ?? null,
+              itens: itens.map((i) => ({
+                descricao:
+                  (i.produtos as unknown as { descricao: string } | null)?.descricao ?? "Item",
+                unidade: i.unidade ?? "un",
+                quantidade: Number(i.quantidade),
+                preco: Number(i.preco_unitario),
+              })),
+              subtotal: Number(pedido.subtotal),
+              desconto: Number(pedido.desconto),
+              frete: Number(pedido.frete),
+              total: Number(pedido.total),
+              rodape: "Confira os itens na entrega.",
+            }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViaOpen(false)}>
+              Fechar
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="mr-2 size-4" /> Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
 
 
   );
