@@ -27,7 +27,11 @@ export function useSessionData() {
             .eq("id", user.id)
             .maybeSingle(),
           supabase.from("user_roles").select("role").eq("user_id", user.id),
-          supabase.from("empresas").select("id, razao_social, nome_fantasia").limit(1).maybeSingle(),
+          supabase
+            .from("empresas")
+            .select("id, razao_social, nome_fantasia, ramo_atividade")
+            .limit(1)
+            .maybeSingle(),
           supabase.from("filiais").select("id, nome, codigo").order("nome"),
         ]);
 

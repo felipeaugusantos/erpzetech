@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Plus, Search, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -84,7 +84,7 @@ function ContasPagar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar")
-        .select("*, fornecedores(razao_social), compras(numero)")
+        .select("*, fornecedores(razao_social, nome_fantasia), compras(numero, origem)")
         .order("vencimento");
       if (error) throw error;
       return data;
@@ -224,9 +224,20 @@ function ContasPagar() {
         title="Contas a pagar"
         description="Compras recebidas, despesas fixas e pagamentos a fornecedores."
         actions={
-          <Button onClick={() => setNovaAberta(true)}>
-            <Plus className="size-4" /> Nova conta
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/giro-estoque">Giro e sugestão de compra</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/nfe-entrada">Importar XML da NF-e</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/compras">Pedidos de compra</Link>
+            </Button>
+            <Button onClick={() => setNovaAberta(true)}>
+              <Plus className="size-4" /> Nova conta
+            </Button>
+          </div>
         }
       />
 
@@ -302,6 +313,7 @@ function ContasPagar() {
                 <TableHead>Nº</TableHead>
                 <TableHead>Fornecedor</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Forma</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
@@ -324,6 +336,27 @@ function ContasPagar() {
                       <p className="text-xs text-muted-foreground">
                         {c.categoria ? `${c.categoria} · ` : ""}Parcela {c.parcela}/{c.parcelas}
                       </p>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const compra = c.compras as {
+                          numero: number | null;
+                          origem: string | null;
+                        } | null;
+                        if (!compra)
+                          return <span className="text-muted-foreground">Lançamento manual</span>;
+                        const porXml = compra.origem === "xml_nfe";
+                        return (
+                          <>
+                            <Badge variant={porXml ? "default" : "secondary"}>
+                              {porXml ? "XML da NF-e" : "Compra"}
+                            </Badge>
+                            <p className="mt-1 text-muted-foreground">
+                              Compra nº {compra.numero ?? "—"}
+                            </p>
+                          </>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
                     <TableCell className="text-sm">{labelForma(c.forma_pagamento)}</TableCell>
