@@ -281,6 +281,7 @@ function Caixa() {
                       <TableHead>Quando</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Descrição</TableHead>
+                      <TableHead>Depósito</TableHead>
                       <TableHead>Forma</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                     </TableRow>
@@ -301,6 +302,7 @@ function Caixa() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{m.descricao ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{nomeDeposito(m) ?? "—"}</TableCell>
                         <TableCell className="text-sm">{labelForma(m.forma_pagamento)}</TableCell>
                         <TableCell className="text-right text-numeric">
                           {entradaCaixa(m.tipo) ? "" : "-"}
