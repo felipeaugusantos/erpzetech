@@ -28,6 +28,7 @@ import {
   Wallet,
   Warehouse,
   X,
+  CircleDollarSign,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
