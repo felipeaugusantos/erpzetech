@@ -18,6 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
+import {
+  COR_PADRAO,
+  LogoEmpresaUpload,
+  aplicarCorEmpresa,
+} from "@/components/app/MarcaEmpresa";
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
@@ -65,6 +70,9 @@ const vazio = {
   estado: "",
   codigo_municipio: "",
 };
+
+/** Sugestões de cor para a marca da loja. */
+const coresSugeridas = ["#008037", "#0f62fe", "#b42318", "#7a5af8", "#ef6c00", "#0f172a"];
 
 function Empresa() {
   const qc = useQueryClient();
