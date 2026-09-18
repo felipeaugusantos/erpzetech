@@ -670,6 +670,42 @@ function Nfe() {
               </div>
             </div>
           )}
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">Conta do emissor fiscal</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => testarEmissor.mutate()}
+                disabled={testarEmissor.isPending}
+              >
+                {testarEmissor.isPending ? "Testando…" : "Testar conexão"}
+              </Button>
+            </div>
+            {statusConta && (
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                <p>{statusConta.mensagem}</p>
+                {statusConta.conectado && (
+                  <>
+                    <p>
+                      Empresas cadastradas no emissor:{" "}
+                      {statusConta.empresas.length > 0
+                        ? statusConta.empresas.map((e) => `${e.nome || e.cpfCnpj}`).join(", ")
+                        : "nenhuma ainda"}
+                    </p>
+                    <p>
+                      Certificados digitais enviados:{" "}
+                      {statusConta.certificados.length > 0
+                        ? statusConta.certificados
+                            .map((c) => `${c.nome}${c.validade ? ` (até ${c.validade.slice(0, 10)})` : ""}`)
+                            .join(", ")
+                        : "nenhum ainda"}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAbrirConfig(false)}>
               Fechar
