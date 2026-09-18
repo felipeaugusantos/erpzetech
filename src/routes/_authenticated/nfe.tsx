@@ -203,7 +203,9 @@ function Nfe() {
       const [pedidos, vinculos] = await Promise.all([
         supabase
           .from("pedidos")
-          .select("id, numero, total, situacao, cliente_id, clientes(nome)")
+          .select(
+            "id, numero, total, situacao, cliente_id, deposito_id, clientes(nome), depositos(nome)",
+          )
           .neq("situacao", "cancelado")
           .order("numero", { ascending: false }),
         supabase.from("nfe_pedidos").select("pedido_id, nfe(situacao)"),
