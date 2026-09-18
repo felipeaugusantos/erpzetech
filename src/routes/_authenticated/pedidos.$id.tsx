@@ -511,6 +511,22 @@ function PedidoDetalhe() {
                 <Wallet className="mr-2 size-4" /> Gerar contas a receber
               </Button>
             )}
+            {pedido.situacao !== "cancelado" && (
+              <Button
+                onClick={() => {
+                  const aberto = contasPedido.reduce(
+                    (s, c) => s + Number(c.valor) - Number(c.valor_recebido),
+                    0,
+                  );
+                  setCheckoutValor(
+                    String(aberto > 0 ? aberto.toFixed(2) : Number(pedido.total).toFixed(2)),
+                  );
+                  setCheckoutOpen(true);
+                }}
+              >
+                <Wallet className="mr-2 size-4" /> Receber pagamento
+              </Button>
+            )}
             {pedido.situacao !== "cancelado" && !notaDoPedido && (
               <Button
                 variant="secondary"
