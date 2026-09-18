@@ -258,6 +258,8 @@ function Nfe() {
         p_pedido_ids: selecionados,
       });
       if (error) throw error;
+      // Já calcula os impostos com as alíquotas da empresa.
+      await supabase.rpc("nfe_calcular_impostos", { p_nfe_id: data as string });
       return data as string;
     },
     onSuccess: (id) => {
