@@ -43,14 +43,14 @@ import {
 export const Route = createFileRoute("/_authenticated/relatorio")({
   head: () => ({
     meta: [
-      { title: "Relatório do sócio — Ze Obra" },
+      { title: "Relatório do sócio — ERP Ze Tech" },
       {
         name: "description",
         content:
-          "Resumo executivo da operação e o modelo de negócio do Ze Obra com os valores reais.",
+          "Resumo executivo da operação e o modelo de negócio do ERP Ze Tech com os valores reais.",
       },
-      { property: "og:title", content: "Relatório do sócio — Ze Obra" },
-      { property: "og:description", content: "Resumo executivo e modelo de negócio do Ze Obra." },
+      { property: "og:title", content: "Relatório do sócio — ERP Ze Tech" },
+      { property: "og:description", content: "Resumo executivo e modelo de negócio do ERP Ze Tech." },
     ],
   }),
   component: Relatorio,

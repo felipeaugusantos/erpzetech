@@ -28,13 +28,13 @@ export const CONTATO = {
 export const Route = createFileRoute("/contato")({
   head: () => ({
     meta: [
-      { title: "Falar com o Ze Obra — planos e demonstração" },
+      { title: "Falar com o ERP Ze Tech — planos e demonstração" },
       {
         name: "description",
         content:
-          "Fale com a equipe do Ze Obra por e-mail ou WhatsApp e escolha o plano ideal para a sua loja de material de construção.",
+          "Fale com a equipe do ERP Ze Tech por e-mail ou WhatsApp e escolha o plano ideal para a sua loja de material de construção.",
       },
-      { property: "og:title", content: "Falar com o Ze Obra — planos e demonstração" },
+      { property: "og:title", content: "Falar com o ERP Ze Tech — planos e demonstração" },
       {
         property: "og:description",
         content: "E-mail, WhatsApp e formulário para conhecer os planos Balcão, Loja e Rede.",
@@ -78,7 +78,7 @@ function Contato() {
   });
 
   const textoWhats = encodeURIComponent(
-    `Olá! Quero conhecer o Ze Obra (plano ${form.plano_interesse}).`,
+    `Olá! Quero conhecer o ERP Ze Tech (plano ${form.plano_interesse}).`,
   );
 
   return (
@@ -86,7 +86,7 @@ function Contato() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <Link to="/" className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
+          <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
         </Link>
         <Button asChild variant="ghost" size="sm">
           <Link to="/">
@@ -120,7 +120,7 @@ function Contato() {
             </a>
 
             <a
-              href={`mailto:${CONTATO.email}?subject=Planos Ze Obra`}
+              href={`mailto:${CONTATO.email}?subject=Planos ERP Ze Tech`}
               className="panel flex items-center gap-3 p-5 transition-colors hover:border-accent"
             >
               <span className="grid size-10 place-items-center rounded-md bg-secondary">
@@ -239,7 +239,7 @@ function Contato() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        Ze Obra, um produto Ze Tech
+        ERP Ze Tech, um produto Ze Tech
       </footer>
     </div>
   );

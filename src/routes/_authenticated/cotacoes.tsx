@@ -39,13 +39,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/cotacoes")({
   head: () => ({
     meta: [
-      { title: "Cotações de compra — Ze Obra" },
+      { title: "Cotações de compra — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Envie a planilha de cotação ao fornecedor, importe a resposta e gere o pedido de compra com o melhor preço, prazo e condição de pagamento.",
       },
-      { property: "og:title", content: "Cotações de compra — Ze Obra" },
+      { property: "og:title", content: "Cotações de compra — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Comparativo de fornecedores, planilha de cotação e geração do pedido de compra.",

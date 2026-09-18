@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_authenticated/inventarios")({
   head: () => ({
     meta: [
-      { title: "Balanço de estoque — Ze Obra" },
+      { title: "Balanço de estoque — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Contagem de estoque por depósito: quantidade do sistema, quantidade contada, diferença em unidades e em reais, com ajuste automático no histórico.",
       },
-      { property: "og:title", content: "Balanço de estoque — Ze Obra" },
+      { property: "og:title", content: "Balanço de estoque — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Contagem por depósito com diferença em unidades e em reais.",

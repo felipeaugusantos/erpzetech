@@ -32,9 +32,9 @@ import {
 export const Route = createFileRoute("/_authenticated/depositos/")({
   head: () => ({
     meta: [
-      { title: "Depósitos — Ze Obra" },
+      { title: "Depósitos — ERP Ze Tech" },
       { name: "description", content: "Depósitos da filial com saldo e valor de estoque." },
-      { property: "og:title", content: "Depósitos — Ze Obra" },
+      { property: "og:title", content: "Depósitos — ERP Ze Tech" },
       { property: "og:description", content: "Controle de múltiplos depósitos por filial." },
     ],
   }),

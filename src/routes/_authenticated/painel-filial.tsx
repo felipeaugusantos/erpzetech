@@ -41,13 +41,13 @@ import {
 export const Route = createFileRoute("/_authenticated/painel-filial")({
   head: () => ({
     meta: [
-      { title: "Painel da filial extra — Ze Obra" },
+      { title: "Painel da filial extra — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Painel só da filial extra: vendas, custo das mercadorias, lucro, margem e notas fiscais do depósito dessa loja.",
       },
-      { property: "og:title", content: "Painel da filial extra — Ze Obra" },
+      { property: "og:title", content: "Painel da filial extra — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Vendas, custo, lucro e NF-e da segunda loja, separados do painel principal.",

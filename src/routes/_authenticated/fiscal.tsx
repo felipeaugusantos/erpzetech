@@ -30,16 +30,16 @@ import {
 export const Route = createFileRoute("/_authenticated/fiscal")({
   head: () => ({
     meta: [
-      { title: "Fiscal — Ze Obra" },
+      { title: "Fiscal — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Controle fiscal dos produtos: NCM, CFOP, CST/CSOSN, origem e alíquota de ICMS, com as pendências que impedem a emissão da nota.",
       },
-      { property: "og:title", content: "Fiscal — Ze Obra" },
+      { property: "og:title", content: "Fiscal — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "NCM, CFOP e tributação dos produtos para emitir a nota fiscal no Ze Obra.",
+        content: "NCM, CFOP e tributação dos produtos para emitir a nota fiscal no ERP Ze Tech.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

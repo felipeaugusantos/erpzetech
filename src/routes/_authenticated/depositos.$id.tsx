@@ -40,12 +40,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/depositos/$id")({
   head: () => ({
     meta: [
-      { title: "Depósito — Ze Obra" },
+      { title: "Depósito — ERP Ze Tech" },
       {
         name: "description",
         content: "Estoque físico, reservado e disponível por produto no depósito, com transferência e ajuste.",
       },
-      { property: "og:title", content: "Depósito — Ze Obra" },
+      { property: "og:title", content: "Depósito — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Saldo por produto, transferência entre depósitos e ajuste de inventário.",

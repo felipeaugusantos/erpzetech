@@ -40,13 +40,13 @@ import {
 export const Route = createFileRoute("/_authenticated/estoque-movimentos")({
   head: () => ({
     meta: [
-      { title: "Entradas e saídas de estoque — Ze Obra" },
+      { title: "Entradas e saídas de estoque — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Registre entradas e saídas por depósito com custo real, acompanhe o saldo valorizado e leve os valores para o balanço fiscal.",
       },
-      { property: "og:title", content: "Entradas e saídas de estoque — Ze Obra" },
+      { property: "og:title", content: "Entradas e saídas de estoque — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Movimentação de estoque por depósito com custo real e saldo valorizado.",

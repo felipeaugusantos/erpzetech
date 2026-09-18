@@ -32,12 +32,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
     meta: [
-      { title: "Estoque — Ze Obra" },
+      { title: "Estoque — ERP Ze Tech" },
       {
         name: "description",
         content: "Estoque físico, reservado e disponível por produto e depósito, com movimentações.",
       },
-      { property: "og:title", content: "Estoque — Ze Obra" },
+      { property: "og:title", content: "Estoque — ERP Ze Tech" },
       { property: "og:description", content: "Controle de saldo por depósito com reserva." },
     ],
   }),

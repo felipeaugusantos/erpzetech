@@ -41,16 +41,16 @@ import {
 export const Route = createFileRoute("/_authenticated/balanco-fiscal")({
   head: () => ({
     meta: [
-      { title: "Balanço fiscal — Ze Obra" },
+      { title: "Balanço fiscal — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Balanço fiscal do período: receita, custo das mercadorias, ICMS destacado e lucro, com o resumo das notas emitidas.",
       },
-      { property: "og:title", content: "Balanço fiscal — Ze Obra" },
+      { property: "og:title", content: "Balanço fiscal — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Receita, custo, ICMS e lucro do período no Ze Obra.",
+        content: "Receita, custo, ICMS e lucro do período no ERP Ze Tech.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

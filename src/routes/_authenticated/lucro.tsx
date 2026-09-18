@@ -40,16 +40,16 @@ import {
 export const Route = createFileRoute("/_authenticated/lucro")({
   head: () => ({
     meta: [
-      { title: "Relatório de lucro — Ze Obra" },
+      { title: "Relatório de lucro — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Custo de aquisição, margem e lucro por produto, por depósito e por período nas vendas da loja.",
       },
-      { property: "og:title", content: "Relatório de lucro — Ze Obra" },
+      { property: "og:title", content: "Relatório de lucro — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Lucro e margem por produto, depósito e período no Ze Obra.",
+        content: "Lucro e margem por produto, depósito e período no ERP Ze Tech.",
       },
     ],
   }),

@@ -27,12 +27,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/fornecedores")({
   head: () => ({
     meta: [
-      { title: "Fornecedores — Ze Obra" },
+      { title: "Fornecedores — ERP Ze Tech" },
       {
         name: "description",
         content: "Cadastro de fornecedores com contato, prazo de entrega e histórico de compras.",
       },
-      { property: "og:title", content: "Fornecedores — Ze Obra" },
+      { property: "og:title", content: "Fornecedores — ERP Ze Tech" },
       { property: "og:description", content: "Fornecedores da loja de materiais de construção." },
     ],
   }),

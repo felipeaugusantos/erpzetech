@@ -48,16 +48,16 @@ import {
 export const Route = createFileRoute("/_authenticated/nfe")({
   head: () => ({
     meta: [
-      { title: "Notas fiscais — Ze Obra" },
+      { title: "Notas fiscais — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Gere a nota fiscal do pedido com cliente, produtos, depósito e valores, e acompanhe as pendências fiscais.",
       },
-      { property: "og:title", content: "Notas fiscais — Ze Obra" },
+      { property: "og:title", content: "Notas fiscais — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Emissão de nota fiscal a partir do pedido no Ze Obra.",
+        content: "Emissão de nota fiscal a partir do pedido no ERP Ze Tech.",
       },
     ],
   }),

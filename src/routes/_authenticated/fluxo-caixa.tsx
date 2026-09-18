@@ -14,12 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
-      { title: "Fluxo de caixa — Ze Obra" },
+      { title: "Fluxo de caixa — ERP Ze Tech" },
       {
         name: "description",
         content: "Entradas e saídas realizadas e projeção pelas contas em aberto.",
       },
-      { property: "og:title", content: "Fluxo de caixa — Ze Obra" },
+      { property: "og:title", content: "Fluxo de caixa — ERP Ze Tech" },
       { property: "og:description", content: "Visão de caixa realizada e projetada." },
     ],
   }),

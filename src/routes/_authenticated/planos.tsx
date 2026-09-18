@@ -31,16 +31,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
     meta: [
-      { title: "Plano e assinatura — Ze Obra" },
+      { title: "Plano e assinatura — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Plano contratado, mensalidade, filiais extras, implantação, o que já foi pago e o que falta.",
       },
-      { property: "og:title", content: "Plano e assinatura — Ze Obra" },
+      { property: "og:title", content: "Plano e assinatura — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Acompanhe a assinatura do Ze Obra, pagamentos e valores em aberto.",
+        content: "Acompanhe a assinatura do ERP Ze Tech, pagamentos e valores em aberto.",
       },
     ],
   }),
@@ -502,7 +502,7 @@ function Planos() {
                   )}
                   {c.email && (
                     <Button asChild size="sm" variant="outline">
-                      <a href={`mailto:${c.email}?subject=Planos Ze Obra`}>E-mail</a>
+                      <a href={`mailto:${c.email}?subject=Planos ERP Ze Tech`}>E-mail</a>
                     </Button>
                   )}
                 </div>

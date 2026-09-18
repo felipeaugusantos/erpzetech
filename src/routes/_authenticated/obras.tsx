@@ -33,9 +33,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/obras")({
   head: () => ({
     meta: [
-      { title: "Obras — Ze Obra" },
+      { title: "Obras — ERP Ze Tech" },
       { name: "description", content: "Obras vinculadas aos clientes, com responsável e situação." },
-      { property: "og:title", content: "Obras — Ze Obra" },
+      { property: "og:title", content: "Obras — ERP Ze Tech" },
       { property: "og:description", content: "Acompanhe as obras atendidas pela loja." },
     ],
   }),

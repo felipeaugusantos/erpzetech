@@ -43,12 +43,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/contas-pagar")({
   head: () => ({
     meta: [
-      { title: "Contas a pagar — Ze Obra" },
+      { title: "Contas a pagar — ERP Ze Tech" },
       {
         name: "description",
         content: "Pagamentos a fornecedores e despesas, com vencimentos e baixas.",
       },
-      { property: "og:title", content: "Contas a pagar — Ze Obra" },
+      { property: "og:title", content: "Contas a pagar — ERP Ze Tech" },
       { property: "og:description", content: "Controle do que a loja tem para pagar." },
     ],
   }),

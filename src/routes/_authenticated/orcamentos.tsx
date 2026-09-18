@@ -42,12 +42,12 @@ import {
 export const Route = createFileRoute("/_authenticated/orcamentos")({
   head: () => ({
     meta: [
-      { title: "Orçamentos — Ze Obra" },
+      { title: "Orçamentos — ERP Ze Tech" },
       {
         name: "description",
         content: "Orçamentos de balcão com aprovação e conversão em pedido.",
       },
-      { property: "og:title", content: "Orçamentos — Ze Obra" },
+      { property: "og:title", content: "Orçamentos — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Monte orçamentos rápidos, aprove e gere o pedido com reserva de estoque.",
@@ -895,7 +895,7 @@ function Orcamentos() {
                 numero: String(orcamentoAtual.numero).padStart(4, "0"),
                 emitidoEm: dateBR(orcamentoAtual.created_at),
                 loja:
-                  session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+                  session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
                 cliente:
                   (orcamentoAtual.clientes as unknown as { nome: string } | null)?.nome ??
                   "Consumidor final",
