@@ -25,9 +25,11 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
+import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
@@ -126,6 +128,11 @@ const AuthenticatedFornecedoresRoute =
     path: '/fornecedores',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
+  id: '/lucro',
+  path: '/lucro',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMotoristaRoute = AuthenticatedMotoristaRouteImport.update({
   id: '/motorista',
   path: '/motorista',
@@ -142,6 +149,11 @@ const AuthenticatedMovimentacoesRoute =
     path: '/movimentacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedNfeRoute = AuthenticatedNfeRouteImport.update({
+  id: '/nfe',
+  path: '/nfe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedObrasRoute = AuthenticatedObrasRouteImport.update({
   id: '/obras',
   path: '/obras',
@@ -233,9 +245,11 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/nfe': typeof AuthenticatedNfeRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/precos': typeof AuthenticatedPrecosRoute
@@ -267,9 +281,11 @@ export interface FileRoutesByTo {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/nfe': typeof AuthenticatedNfeRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/precos': typeof AuthenticatedPrecosRoute
@@ -303,9 +319,11 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
@@ -339,9 +357,11 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/lucro'
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/nfe'
     | '/obras'
     | '/orcamentos'
     | '/precos'
@@ -373,9 +393,11 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/lucro'
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/nfe'
     | '/obras'
     | '/orcamentos'
     | '/precos'
@@ -408,9 +430,11 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/lucro'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/movimentacoes'
+    | '/_authenticated/nfe'
     | '/_authenticated/obras'
     | '/_authenticated/orcamentos'
     | '/_authenticated/precos'
@@ -547,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lucro': {
+      id: '/_authenticated/lucro'
+      path: '/lucro'
+      fullPath: '/lucro'
+      preLoaderRoute: typeof AuthenticatedLucroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/motorista': {
       id: '/_authenticated/motorista'
       path: '/motorista'
@@ -566,6 +597,13 @@ declare module '@tanstack/react-router' {
       path: '/movimentacoes'
       fullPath: '/movimentacoes'
       preLoaderRoute: typeof AuthenticatedMovimentacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/nfe': {
+      id: '/_authenticated/nfe'
+      path: '/nfe'
+      fullPath: '/nfe'
+      preLoaderRoute: typeof AuthenticatedNfeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/obras': {
@@ -683,9 +721,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
+  AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
@@ -716,9 +756,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
+  AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
