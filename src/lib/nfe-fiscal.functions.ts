@@ -24,12 +24,31 @@ function tPagDe(forma: string | null): string {
   return FORMA_PAGAMENTO[forma] ?? "99";
 }
 
-function icmsDoItem(cstCsosn: string | null, origem: number, vProd: number) {
+const arred = (v: number, casas = 2) => Number(Number(v || 0).toFixed(casas));
+
+function icmsDoItem(
+  cstCsosn: string | null,
+  origem: number,
+  vProd: number,
+  aliquota = 0,
+) {
   const codigo = (cstCsosn ?? "").replace(/\D/g, "");
+  const pST = arred(aliquota);
+  const vST = arred((vProd * pST) / 100);
   if (codigo.length === 3) {
     // Simples Nacional (CSOSN)
     if (codigo === "101") {
       return { ICMSSN101: { orig: origem, CSOSN: "101", pCredSN: 0, vCredICMSSN: 0 } };
+    }
+    if (codigo === "500") {
+      // ICMS já recolhido por substituição tributária pelo fornecedor.
+      return {
+        ICMSSN500: {
+          orig: origem,
+          CSOSN: "500",
+          ...(vST > 0 ? { vBCSTRet: vProd, pST, vICMSSTRet: vST } : {}),
+        },
+      };
     }
     if (codigo === "900") {
       return {
@@ -41,13 +60,21 @@ function icmsDoItem(cstCsosn: string | null, origem: number, vProd: number) {
     return { [`ICMSSN${codigo}`]: { orig: origem, CSOSN: codigo } };
   }
   if (codigo === "00") {
-    return { ICMS00: { orig: origem, CST: "00", modBC: 3, vBC: vProd, pICMS: 0, vICMS: 0 } };
+    return {
+      ICMS00: { orig: origem, CST: "00", modBC: 3, vBC: vProd, pICMS: pST, vICMS: vST },
+    };
   }
   if (codigo === "40" || codigo === "41" || codigo === "50" || codigo === "51") {
     return { [`ICMS${codigo}`]: { orig: origem, CST: codigo } };
   }
   if (codigo === "60") {
-    return { ICMS60: { orig: origem, CST: "60" } };
+    return {
+      ICMS60: {
+        orig: origem,
+        CST: "60",
+        ...(vST > 0 ? { vBCSTRet: vProd, pST, vICMSSTRet: vST } : {}),
+      },
+    };
   }
   // Padrão seguro para o Simples Nacional sem permissão de crédito.
   return { ICMSSN102: { orig: origem, CSOSN: "102" } };
@@ -191,7 +218,12 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           indTot: 1,
         },
         imposto: {
-          ICMS: icmsDoItem(item.cst_csosn, origem, num(quantidade * unitario)),
+          ICMS: icmsDoItem(
+            item.cst_csosn,
+            origem,
+            num(quantidade * unitario),
+            num(item.aliquota_icms ?? item.produtos?.aliquota_icms ?? 0),
+          ),
           PIS: { PISOutr: { CST: "99", vBC: 0, pPIS: 0, vPIS: 0 } },
           COFINS: { COFINSOutr: { CST: "99", vBC: 0, pCOFINS: 0, vCOFINS: 0 } },
         },
