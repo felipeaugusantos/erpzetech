@@ -141,7 +141,8 @@ function Landing() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <div className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
+          <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
+
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
