@@ -222,6 +222,46 @@ function GiroEstoque() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linhas, visiveis, horizonte]);
 
+  /** Resumo de um depósito: o que comprar e quanto investir no horizonte escolhido. */
+  const resumoDe = useCallback(
+    (lista: Linha[]) => {
+      const dias = Number(horizonte);
+      const necessidade = (l: Linha) =>
+        horizonte === "15" ? l.comprar15 : horizonte === "30" ? l.comprar30 : l.comprar60;
+      const aComprar = lista.filter((l) => necessidade(l) > 0);
+      return {
+        receita: lista.reduce((s, l) => s + l.receita, 0),
+        itens: aComprar.length,
+        investimento: aComprar.reduce((s, l) => s + necessidade(l) * l.custo, 0),
+        emFalta: lista.filter((l) => l.mediaDia > 0 && l.cobertura < dias).length,
+        classeA: lista.filter((l) => l.vendido > 0 && l.classe === "A").length,
+      };
+    },
+    [horizonte],
+  );
+
+  const gerarCompra = useMutation({
+    mutationFn: async (dep: string) => {
+      const { data: id, error } = await supabase.rpc("gerar_compra_estoque_minimo", {
+        p_deposito_id: dep,
+      });
+      if (error) throw error;
+      return id as string | null;
+    },
+    onSuccess: (id) => {
+      if (!id) {
+        toast.info("Nenhum item abaixo do estoque mínimo neste depósito.");
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ["compras"] });
+      toast.success("Pedido de compra criado a partir da sugestão");
+      navigate({ to: "/compras/$id", params: { id } });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível gerar a compra", { description: e.message }),
+  });
+
+
   return (
     <>
       <PageHeader
