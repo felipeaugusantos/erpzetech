@@ -738,6 +738,118 @@ function Pedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={openConv} onOpenChange={setOpenConv}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Converter orçamento em pedido</DialogTitle>
+            <DialogDescription>
+              Escolha o cliente e marque um ou vários orçamentos aprovados. Vários orçamentos do
+              mesmo cliente viram um único pedido.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Cliente</Label>
+              <Select
+                value={convCliente}
+                onValueChange={(v) => {
+                  setConvCliente(v);
+                  setConvSelecao([]);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Cliente com orçamento aprovado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {convClientes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {convClientes.length === 0 && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Nenhum orçamento aprovado aguardando conversão.
+                </p>
+              )}
+            </div>
+
+            {convCliente && (
+              <div className="rounded-lg border border-border">
+                {convOrcamentos.map((o) => {
+                  const marcado = convSelecao.includes(o.id);
+                  return (
+                    <label
+                      key={o.id}
+                      className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 last:border-0"
+                    >
+                      <Checkbox
+                        checked={marcado}
+                        onCheckedChange={(v) =>
+                          setConvSelecao((atual) =>
+                            v ? [...atual, o.id] : atual.filter((x) => x !== o.id),
+                          )
+                        }
+                      />
+                      <span className="flex-1 text-sm">
+                        Orçamento nº {o.numero}
+                        {o.validade && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            válido até {dateBR(o.validade)}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-numeric text-sm font-semibold">{brl(Number(o.total))}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div>
+              <Label>Depósito de saída</Label>
+              <Select value={convDeposito} onValueChange={setConvDeposito}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha o depósito" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(convBase?.depositos ?? []).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {convSelecao.length > 0 && (
+              <div className="flex items-center justify-between rounded-lg bg-secondary px-4 py-3 text-sm">
+                <span>
+                  {convSelecao.length} orçamento(s) selecionado(s)
+                </span>
+                <span>
+                  Total <strong className="ml-1 text-lg">{brl(convTotal)}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenConv(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => converter.mutate()}
+              disabled={convSelecao.length === 0 || !convDeposito || converter.isPending}
+            >
+              Gerar pedido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
