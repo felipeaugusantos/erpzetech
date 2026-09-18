@@ -97,6 +97,74 @@ function PedidoDetalhe() {
 
   const pedido = data?.pedido;
   const itens = data?.itens ?? [];
+  const clienteRel = pedido?.clientes as unknown as
+    | { id: string; nome: string; telefone: string | null; limite_credito: number | null }
+    | null;
+
+  const { data: financeiro } = useQuery({
+    queryKey: ["pedido-financeiro", id, clienteRel?.id ?? ""],
+    enabled: !!pedido,
+    queryFn: async () => {
+      const [contas, doCliente] = await Promise.all([
+        supabase
+          .from("contas_receber")
+          .select("id, numero, parcela, parcelas, vencimento, valor, valor_recebido, situacao")
+          .eq("pedido_id", id)
+          .order("parcela"),
+        clienteRel?.id
+          ? supabase
+              .from("contas_receber")
+              .select("valor, valor_recebido, vencimento")
+              .eq("cliente_id", clienteRel.id)
+              .in("situacao", ["aberto", "parcial"])
+          : Promise.resolve({ data: [] as { valor: number; valor_recebido: number; vencimento: string }[] }),
+      ]);
+      const abertas = doCliente.data ?? [];
+      const usado = abertas.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
+      return { contas: contas.data ?? [], usado };
+    },
+  });
+
+  const contasPedido = financeiro?.contas ?? [];
+  const limiteCliente = Number(clienteRel?.limite_credito ?? 0);
+  const usadoCliente = financeiro?.usado ?? 0;
+  const disponivelCliente = limiteCliente - usadoCliente;
+
+  const gerarContas = useMutation({
+    mutationFn: async () => {
+      const n = Math.max(1, Number(parcelasReceber || 1));
+      if (
+        formaReceber === "crediario" &&
+        limiteCliente > 0 &&
+        Number(pedido?.total ?? 0) > disponivelCliente
+      ) {
+        const { error: eAut } = await supabase.rpc("solicitar_autorizacao_credito", {
+          p_cliente_id: clienteRel?.id ?? "",
+          p_valor: Number(pedido?.total ?? 0),
+          p_pedido_id: id,
+          p_motivo: "Crediário acima do limite disponível do cliente",
+        });
+        if (eAut) throw eAut;
+        throw new Error(
+          "Valor acima do limite de crédito. Solicitação enviada para autorização do gestor.",
+        );
+      }
+      const { error } = await supabase.rpc("gerar_contas_receber", {
+        p_pedido_id: id,
+        p_parcelas: n,
+        p_primeiro_vencimento: primeiroVencimento,
+        p_forma: formaReceber as never,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Contas a receber geradas.");
+      setContasOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["pedido-financeiro"] });
+      void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   useEffect(() => {
     setSeparado(
