@@ -52,6 +52,7 @@ import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authentica
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
+import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -286,6 +287,11 @@ const AuthenticatedVeiculosRoute = AuthenticatedVeiculosRouteImport.update({
   path: '/veiculos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVendedoresRoute = AuthenticatedVendedoresRouteImport.update({
+  id: '/vendedores',
+  path: '/vendedores',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedComprasIndexRoute =
   AuthenticatedComprasIndexRouteImport.update({
     id: '/compras/',
@@ -364,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/rota': typeof AuthenticatedRotaRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
+  '/vendedores': typeof AuthenticatedVendedoresRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -414,6 +421,7 @@ export interface FileRoutesByTo {
   '/rota': typeof AuthenticatedRotaRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
+  '/vendedores': typeof AuthenticatedVendedoresRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -466,6 +474,7 @@ export interface FileRoutesById {
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
+  '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/usuarios'
     | '/veiculos'
+    | '/vendedores'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/usuarios'
     | '/veiculos'
+    | '/vendedores'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rota'
     | '/_authenticated/usuarios'
     | '/_authenticated/veiculos'
+    | '/_authenticated/vendedores'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/pedidos/$id'
@@ -937,6 +949,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVeiculosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/vendedores': {
+      id: '/_authenticated/vendedores'
+      path: '/vendedores'
+      fullPath: '/vendedores'
+      preLoaderRoute: typeof AuthenticatedVendedoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/compras/': {
       id: '/_authenticated/compras/'
       path: '/compras'
@@ -1022,6 +1041,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
+  AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
@@ -1070,6 +1090,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
+  AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,

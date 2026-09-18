@@ -3070,6 +3070,45 @@ export type Database = {
           },
         ]
       }
+      pedido_orcamentos: {
+        Row: {
+          created_at: string
+          id: string
+          orcamento_id: string
+          pedido_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          orcamento_id: string
+          pedido_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          orcamento_id?: string
+          pedido_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_orcamentos_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_orcamentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           cliente_id: string
@@ -3493,8 +3532,11 @@ export type Database = {
       profiles: {
         Row: {
           ativo: boolean
+          cargo: string | null
           codigo: string | null
           created_at: string
+          data_admissao: string | null
+          data_demissao: string | null
           email: string | null
           empresa_id: string | null
           filial_id: string | null
@@ -3503,11 +3545,15 @@ export type Database = {
           telefone: string | null
           tenant_id: string | null
           updated_at: string
+          vender_outras_lojas: boolean
         }
         Insert: {
           ativo?: boolean
+          cargo?: string | null
           codigo?: string | null
           created_at?: string
+          data_admissao?: string | null
+          data_demissao?: string | null
           email?: string | null
           empresa_id?: string | null
           filial_id?: string | null
@@ -3516,11 +3562,15 @@ export type Database = {
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
+          vender_outras_lojas?: boolean
         }
         Update: {
           ativo?: boolean
+          cargo?: string | null
           codigo?: string | null
           created_at?: string
+          data_admissao?: string | null
+          data_demissao?: string | null
           email?: string | null
           empresa_id?: string | null
           filial_id?: string | null
@@ -3529,6 +3579,7 @@ export type Database = {
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
+          vender_outras_lojas?: boolean
         }
         Relationships: [
           {
@@ -3910,6 +3961,10 @@ export type Database = {
       }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
+        Returns: string
+      }
+      converter_orcamentos_em_pedido: {
+        Args: { p_deposito_id: string; p_orcamento_ids: string[] }
         Returns: string
       }
       cotacao_registrar_itens: {

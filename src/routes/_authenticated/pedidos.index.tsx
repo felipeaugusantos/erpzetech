@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { FileText, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { CodigoPessoa } from "@/components/app/CodigoPessoa";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -222,6 +223,88 @@ function Pedidos() {
     onError: (e: Error) => toast.error("Erro ao criar pedido", { description: e.message }),
   });
 
+  /* ---------- converter orçamento(s) em pedido ---------- */
+  const [openConv, setOpenConv] = useState(false);
+  const [convCliente, setConvCliente] = useState("");
+  const [convDeposito, setConvDeposito] = useState("");
+  const [convSelecao, setConvSelecao] = useState<string[]>([]);
+
+  const { data: convBase } = useQuery({
+    queryKey: ["orcamentos-para-pedido"],
+    enabled: openConv,
+    queryFn: async () => {
+      const [orcRes, pedRes, linkRes, depRes] = await Promise.all([
+        supabase
+          .from("orcamentos")
+          .select("id, numero, total, validade, cliente_id, clientes(nome)")
+          .eq("situacao", "aprovado")
+          .order("numero"),
+        supabase.from("pedidos").select("orcamento_id, situacao"),
+        supabase.from("pedido_orcamentos").select("orcamento_id, pedidos(situacao)"),
+        supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
+      ]);
+      const usados = new Set<string>();
+      for (const p of pedRes.data ?? []) {
+        if (p.orcamento_id && p.situacao !== "cancelado") usados.add(p.orcamento_id);
+      }
+      for (const l of linkRes.data ?? []) {
+        const s = (l.pedidos as unknown as { situacao: string } | null)?.situacao;
+        if (s && s !== "cancelado") usados.add(l.orcamento_id);
+      }
+      return {
+        orcamentos: (orcRes.data ?? []).filter((o) => !usados.has(o.id)),
+        depositos: depRes.data ?? [],
+      };
+    },
+  });
+
+  const convClientes = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const o of convBase?.orcamentos ?? []) {
+      const nome = (o.clientes as unknown as { nome: string } | null)?.nome ?? "Cliente";
+      if (o.cliente_id) mapa.set(o.cliente_id, nome);
+    }
+    return [...mapa.entries()].map(([id, nome]) => ({ id, nome }));
+  }, [convBase]);
+
+  const convOrcamentos = useMemo(
+    () => (convBase?.orcamentos ?? []).filter((o) => o.cliente_id === convCliente),
+    [convBase, convCliente],
+  );
+
+  const convTotal = convOrcamentos
+    .filter((o) => convSelecao.includes(o.id))
+    .reduce((s, o) => s + Number(o.total), 0);
+
+  const converter = useMutation({
+    mutationFn: async () => {
+      if (convSelecao.length === 0) throw new Error("Escolha pelo menos um orçamento");
+      if (!convDeposito) throw new Error("Escolha o depósito de saída");
+      const { data: pedidoId, error } = await supabase.rpc("converter_orcamentos_em_pedido", {
+        p_orcamento_ids: convSelecao,
+        p_deposito_id: convDeposito,
+      });
+      if (error) throw error;
+      return pedidoId as string;
+    },
+    onSuccess: (id) => {
+      toast.success(
+        convSelecao.length > 1
+          ? `${convSelecao.length} orçamentos viraram um pedido`
+          : "Orçamento convertido em pedido",
+        { description: "Estoque reservado no depósito escolhido." },
+      );
+      setOpenConv(false);
+      setConvCliente("");
+      setConvDeposito("");
+      setConvSelecao([]);
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      navigate({ to: "/pedidos/$id", params: { id } });
+    },
+    onError: (e: Error) => toast.error("Não foi possível converter", { description: e.message }),
+  });
+
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return (data ?? []).filter((p) => {
@@ -249,10 +332,16 @@ function Pedidos() {
         title="Pedidos"
         description="Fluxo completo: pagamento, separação, conferência, expedição e entrega."
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-2 size-4" />
-            Criar pedido
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setOpenConv(true)}>
+              <FileText className="mr-2 size-4" />
+              Converter orçamento
+            </Button>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 size-4" />
+              Criar pedido
+            </Button>
+          </div>
         }
       />
 
@@ -645,6 +734,118 @@ function Pedidos() {
               disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
             >
               Salvar pedido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openConv} onOpenChange={setOpenConv}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Converter orçamento em pedido</DialogTitle>
+            <DialogDescription>
+              Escolha o cliente e marque um ou vários orçamentos aprovados. Vários orçamentos do
+              mesmo cliente viram um único pedido.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Cliente</Label>
+              <Select
+                value={convCliente}
+                onValueChange={(v) => {
+                  setConvCliente(v);
+                  setConvSelecao([]);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Cliente com orçamento aprovado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {convClientes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {convClientes.length === 0 && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Nenhum orçamento aprovado aguardando conversão.
+                </p>
+              )}
+            </div>
+
+            {convCliente && (
+              <div className="rounded-lg border border-border">
+                {convOrcamentos.map((o) => {
+                  const marcado = convSelecao.includes(o.id);
+                  return (
+                    <label
+                      key={o.id}
+                      className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 last:border-0"
+                    >
+                      <Checkbox
+                        checked={marcado}
+                        onCheckedChange={(v) =>
+                          setConvSelecao((atual) =>
+                            v ? [...atual, o.id] : atual.filter((x) => x !== o.id),
+                          )
+                        }
+                      />
+                      <span className="flex-1 text-sm">
+                        Orçamento nº {o.numero}
+                        {o.validade && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            válido até {dateBR(o.validade)}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-numeric text-sm font-semibold">{brl(Number(o.total))}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div>
+              <Label>Depósito de saída</Label>
+              <Select value={convDeposito} onValueChange={setConvDeposito}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha o depósito" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(convBase?.depositos ?? []).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {convSelecao.length > 0 && (
+              <div className="flex items-center justify-between rounded-lg bg-secondary px-4 py-3 text-sm">
+                <span>
+                  {convSelecao.length} orçamento(s) selecionado(s)
+                </span>
+                <span>
+                  Total <strong className="ml-1 text-lg">{brl(convTotal)}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenConv(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => converter.mutate()}
+              disabled={convSelecao.length === 0 || !convDeposito || converter.isPending}
+            >
+              Gerar pedido
             </Button>
           </DialogFooter>
         </DialogContent>
