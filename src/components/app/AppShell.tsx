@@ -96,6 +96,7 @@ const groups: Group[] = [
       { label: "Fornecedores", to: "/fornecedores", icon: Building2 },
       { label: "Cotações", to: "/cotacoes", icon: ClipboardList },
       { label: "Pedidos de compra", to: "/compras", icon: ShoppingCart },
+      { label: "Importar XML da NF-e", to: "/nfe-entrada", icon: FileText },
     ],
   },
   {

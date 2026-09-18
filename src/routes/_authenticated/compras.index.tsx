@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Gauge, ShoppingCart, Plus, Search, Sparkles, Trophy } from "lucide-react";
+import { FileUp, Gauge, ShoppingCart, Plus, Search, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -195,6 +195,11 @@ function Compras() {
             <Button variant="outline" asChild>
               <Link to="/cotacoes">
                 <Trophy className="size-4" /> Cotações
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/nfe-entrada">
+                <FileUp className="size-4" /> Importar XML da NF-e
               </Link>
             </Button>
             <Button
