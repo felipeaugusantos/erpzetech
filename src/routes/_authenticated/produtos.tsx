@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_authenticated/produtos")({
       { property: "og:description", content: "Catálogo de materiais de construção da loja." },
     ],
   }),
-  component: Produtos;
+  component: Produtos,
 });
 
 type Form = {
