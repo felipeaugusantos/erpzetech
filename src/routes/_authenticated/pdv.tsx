@@ -193,12 +193,11 @@ function Pdv() {
           quantidade: l.quantidade,
           preco_unitario: l.preco,
         })),
-        p_forma: forma,
-        p_cliente_id: clienteId === "balcao" ? null : clienteId,
+        p_forma: forma as FormaPagamento,
+        ...(clienteId === "balcao" ? {} : { p_cliente_id: clienteId }),
         p_desconto: descontoNum,
         p_parcelas: Math.max(Number(parcelas) || 1, 1),
-        p_primeiro_vencimento: aPrazo ? vencimento : null,
-        p_observacao: null,
+        ...(aPrazo ? { p_primeiro_vencimento: vencimento } : {}),
       });
       if (error) throw error;
       return data as string;
