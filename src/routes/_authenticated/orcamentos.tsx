@@ -867,7 +867,7 @@ function Orcamentos() {
                 itens: (itensDetalhe ?? []).map((i) => ({
                   descricao:
                     (i.produtos as unknown as { descricao: string } | null)?.descricao ?? "Item",
-                  unidade: i.unidade,
+                  unidade: i.unidade ?? "un",
                   quantidade: Number(i.quantidade),
                   preco: Number(i.preco_unitario),
                 })),
