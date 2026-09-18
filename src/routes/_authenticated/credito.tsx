@@ -80,6 +80,20 @@ function Credito() {
     },
   });
 
+  const { data: pedidosCrediario = [] } = useQuery({
+    queryKey: ["credito-pedidos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("id, numero, total, situacao, created_at, cliente_id, clientes(nome, limite_credito)")
+        .eq("forma_pagamento", "crediario")
+        .not("situacao", "in", "(cancelado,concluido)")
+        .order("numero", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const hoje = new Date().toISOString().slice(0, 10);
   const saldoPor = new Map<string, { usado: number; vencido: number }>();
   for (const c of emAberto) {
@@ -100,6 +114,38 @@ function Credito() {
   const pendentes = autorizacoes.filter((a) => a.situacao === "pendente");
   const acimaLimite = linhas.filter((l) => l.disponivel < 0);
   const comVencidas = linhas.filter((l) => l.vencido > 0);
+
+  /** Pedidos no crediário em que o valor passa do limite disponível do cliente. */
+  const pedidosAcima = pedidosCrediario
+    .map((p) => {
+      const cli = p.clientes as unknown as { nome: string; limite_credito: number | null } | null;
+      const limite = Number(cli?.limite_credito ?? 0);
+      const usado = saldoPor.get(p.cliente_id ?? "")?.usado ?? 0;
+      const total = Number(p.total);
+      const excedente = usado + total - limite;
+      const autorizacao = autorizacoes.find(
+        (a) => a.pedido_id === p.id && a.situacao === "pendente",
+      );
+      return { ...p, cliente: cli?.nome ?? "—", limite, usado, total, excedente, autorizacao };
+    })
+    .filter((p) => p.limite > 0 && p.excedente > 0);
+
+  const solicitar = useMutation({
+    mutationFn: async (p: { cliente_id: string; id: string; total: number }) => {
+      const { error } = await supabase.rpc("solicitar_autorizacao_credito", {
+        p_cliente_id: p.cliente_id,
+        p_valor: p.total,
+        p_pedido_id: p.id,
+        p_motivo: "Pedido acima do limite de crédito",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Autorização solicitada ao gestor.");
+      void queryClient.invalidateQueries({ queryKey: ["credito-autorizacoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const decidir = useMutation({
     mutationFn: async () => {
@@ -145,6 +191,91 @@ function Credito() {
           hint={brl(comVencidas.reduce((s, c) => s + c.vencido, 0))}
           icon={Users}
         />
+      </div>
+
+      <div className="panel mb-5 p-4">
+        <h2 className="mb-1 font-display text-lg font-semibold">Pedidos acima do limite</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Vendas no crediário em que o valor passa do crédito disponível do cliente.
+        </p>
+        {pedidosAcima.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Nenhum pedido acima do limite.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Limite</TableHead>
+                  <TableHead className="text-right">Excedente</TableHead>
+                  <TableHead className="text-right">Decisão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pedidosAcima.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-numeric">
+                      #{String(p.numero).padStart(4, "0")}
+                    </TableCell>
+                    <TableCell>{p.cliente}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(p.total)}</TableCell>
+                    <TableCell className="text-right text-numeric">{brl(p.limite)}</TableCell>
+                    <TableCell className="text-right text-numeric font-semibold text-destructive">
+                      {brl(p.excedente)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {p.autorizacao ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAutorizacaoId(p.autorizacao!.id);
+                              setAprovar(true);
+                              setDecisaoAberta(true);
+                            }}
+                          >
+                            Aprovar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAutorizacaoId(p.autorizacao!.id);
+                              setAprovar(false);
+                              setDecisaoAberta(true);
+                            }}
+                          >
+                            Recusar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={solicitar.isPending || !p.cliente_id}
+                          onClick={() =>
+                            solicitar.mutate({
+                              cliente_id: p.cliente_id as string,
+                              id: p.id,
+                              total: p.total,
+                            })
+                          }
+                        >
+                          Pedir autorização
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <div className="panel mb-5 p-4">

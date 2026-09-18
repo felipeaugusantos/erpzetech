@@ -2727,6 +2727,10 @@ export type Database = {
         }
         Returns: string
       }
+      compra_aplicar_cotacao: {
+        Args: { p_cotacao_id: string }
+        Returns: undefined
+      }
       compra_avancar_status: {
         Args: {
           p_compra_id: string

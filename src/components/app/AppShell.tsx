@@ -11,6 +11,7 @@ import {
   IdCard,
   LayoutGrid,
   LogOut,
+  MapPin,
   Menu,
   PackageSearch,
   Search,
@@ -80,6 +81,7 @@ const groups: Group[] = [
     icon: ShoppingCart,
     items: [
       { label: "Fornecedores", to: "/fornecedores", icon: Building2 },
+      { label: "Cotações", to: "/cotacoes", icon: ClipboardList },
       { label: "Pedidos de compra", to: "/compras", icon: ShoppingCart },
     ],
   },
@@ -88,6 +90,7 @@ const groups: Group[] = [
     icon: Truck,
     items: [
       { label: "Entregas", to: "/entregas", icon: Truck },
+      { label: "Rota do dia", to: "/rota", icon: MapPin },
       { label: "Tela do motorista", to: "/motorista", icon: IdCard },
       { label: "Veículos", to: "/veiculos", icon: Truck },
       { label: "Motoristas", to: "/motoristas", icon: IdCard },
