@@ -126,16 +126,18 @@ function Estoque() {
 
   const movimentar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("registrar_movimentacao", {
+      const args = {
         p_produto_id: mov.produto_id,
         p_deposito_id: mov.deposito_id,
         p_tipo: mov.tipo as "entrada",
         p_quantidade: Number(mov.quantidade),
-        p_motivo: mov.motivo || undefined,
-        p_documento: mov.documento || undefined,
-        p_deposito_destino_id:
-          mov.tipo === "transferencia_saida" ? mov.destino_id : undefined,
-      });
+        ...(mov.motivo ? { p_motivo: mov.motivo } : {}),
+        ...(mov.documento ? { p_documento: mov.documento } : {}),
+        ...(mov.tipo === "transferencia_saida" && mov.destino_id
+          ? { p_deposito_destino_id: mov.destino_id }
+          : {}),
+      };
+      const { error } = await supabase.rpc("registrar_movimentacao", args);
       if (error) throw error;
     },
     onSuccess: () => {
