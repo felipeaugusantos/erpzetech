@@ -9,6 +9,7 @@ import { initials } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,7 +47,10 @@ function Usuarios() {
     queryKey: ["usuarios"],
     queryFn: async () => {
       const [perfilsRes, rolesRes, permsRes] = await Promise.all([
-        supabase.from("profiles").select("id, nome, email, ativo, filial_id").order("nome"),
+        supabase
+          .from("profiles")
+          .select("id, nome, codigo, email, ativo, filial_id")
+          .order("nome"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("role_permissoes").select("*").order("modulo"),
       ]);
@@ -84,6 +88,22 @@ function Usuarios() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  /** Código do vendedor usado no orçamento e no pedido. */
+  const salvarCodigo = useMutation({
+    mutationFn: async ({ id, codigo }: { id: string; codigo: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ codigo: codigo.trim() || null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Código salvo");
+      qc.invalidateQueries({ queryKey: ["usuarios"] });
+    },
+    onError: (e: Error) => toast.error("Erro ao salvar código", { description: e.message }),
+  });
+
   const modulos = [...new Set((data?.permissoes ?? []).map((p) => p.modulo))];
 
   return (
@@ -110,6 +130,7 @@ function Usuarios() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
+                    <TableHead className="w-28">Código</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Perfis</TableHead>
                     <TableHead>Filial</TableHead>
@@ -128,6 +149,23 @@ function Usuarios() {
                           </Avatar>
                           <span className="font-medium">{u.nome || "Sem nome"}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {isAdmin ? (
+                          <Input
+                            className="h-9 w-24 text-center font-mono"
+                            defaultValue={u.codigo ?? ""}
+                            placeholder="001"
+                            aria-label={`Código de ${u.nome || "usuário"}`}
+                            onBlur={(e) => {
+                              const v = e.target.value;
+                              if (v.trim() === (u.codigo ?? "").trim()) return;
+                              salvarCodigo.mutate({ id: u.id, codigo: v });
+                            }}
+                          />
+                        ) : (
+                          <span className="font-mono text-sm">{u.codigo ?? "—"}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{u.email ?? "—"}</TableCell>
                       <TableCell>

@@ -11,6 +11,7 @@ import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro
 import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { InstalarApp } from "@/components/app/InstalarApp";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,17 @@ type Linha = {
   unidade: string;
   preco: number;
   quantidade: number;
+  /** Texto digitado, para permitir venda fracionada com vírgula (ex.: 0,500). */
+  qtdTexto: string;
   disponivel: number;
 };
+
+/** Aceita vírgula e até 3 casas decimais (venda fracionada). */
+function parseQtd(valor: string) {
+  const n = Number(valor.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.round(n * 1000) / 1000;
+}
 
 function Pdv() {
   const qc = useQueryClient();
@@ -88,7 +98,12 @@ function Pdv() {
           .select("id, descricao, codigo_interno, codigo_barras, unidade, unidade_venda, preco_venda")
           .eq("ativo", true)
           .order("descricao"),
-        supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome").limit(500),
+        supabase
+          .from("clientes")
+          .select("id, nome, cpf, cnpj, telefone")
+          .eq("ativo", true)
+          .order("nome")
+          .limit(1000),
         supabase.from("caixas").select("id, situacao, valor_abertura").eq("situacao", "aberto"),
       ]);
       return {
@@ -148,9 +163,11 @@ function Pdv() {
     setLinhas((atual) => {
       const existe = atual.find((l) => l.produto_id === p.id);
       if (existe)
-        return atual.map((l) =>
-          l.produto_id === p.id ? { ...l, quantidade: l.quantidade + quantidade } : l,
-        );
+        return atual.map((l) => {
+          if (l.produto_id !== p.id) return l;
+          const q = Math.round((l.quantidade + quantidade) * 1000) / 1000;
+          return { ...l, quantidade: q, qtdTexto: String(q).replace(".", ",") };
+        });
       return [
         ...atual,
         {
@@ -159,6 +176,7 @@ function Pdv() {
           unidade: p.unidade_venda ?? p.unidade ?? "UN",
           preco: Number(p.preco_venda ?? 0),
           quantidade,
+          qtdTexto: String(quantidade).replace(".", ","),
           disponivel: disponivelPorProduto.get(p.id) ?? 0,
         },
       ];
@@ -194,7 +212,13 @@ function Pdv() {
   );
 
   const alterarQtd = (id: string, fn: (q: number) => number) =>
-    setLinhas((a) => a.map((x) => (x.produto_id === id ? { ...x, quantidade: fn(x.quantidade) } : x)));
+    setLinhas((a) =>
+      a.map((x) => {
+        if (x.produto_id !== id) return x;
+        const q = Math.round(fn(x.quantidade) * 1000) / 1000;
+        return { ...x, quantidade: q, qtdTexto: String(q).replace(".", ",") };
+      }),
+    );
   const alterarPreco = (id: string, valor: string) =>
     setLinhas((a) =>
       a.map((x) =>
@@ -212,6 +236,8 @@ function Pdv() {
     mutationFn: async () => {
       if (!depositoId) throw new Error("Escolha o depósito de saída da mercadoria");
       if (linhas.length === 0) throw new Error("Inclua pelo menos um produto");
+      if (linhas.some((l) => l.quantidade <= 0))
+        throw new Error("Informe a quantidade de cada item (pode ser fracionada, ex.: 0,5)");
       if (!aPrazo && !caixaAberto) throw new Error("Abra o caixa antes de vender no PDV");
       const { data, error } = await supabase.rpc("pdv_venda", {
         p_deposito_id: depositoId,
@@ -406,20 +432,14 @@ function Pdv() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Cliente (opcional)</Label>
-                <Select value={clienteId} onValueChange={setClienteId}>
-                  <SelectTrigger className="mt-1 h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="balcao">Consumidor final (balcão)</SelectItem>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">Cliente (digite o nome)</Label>
+                <ClienteCombobox
+                  className="mt-1 h-11"
+                  clientes={clientes}
+                  value={clienteId}
+                  onChange={setClienteId}
+                  balcaoValue="balcao"
+                />
               </div>
             </div>
           </div>
@@ -471,28 +491,28 @@ function Pdv() {
                           variant="outline"
                           className="size-10"
                           onClick={() =>
-                            alterarQtd(l.produto_id, (q) => Math.max(q - 1, 1))
+                            alterarQtd(l.produto_id, (q) => Math.max(q - 1, 0.001))
                           }
                         >
                           <Minus className="size-4" />
                         </Button>
                         <Input
-                          className="h-10 w-20 text-center text-base"
+                          className="h-10 w-24 text-center text-base"
                           inputMode="decimal"
-                          value={String(l.quantidade)}
-                          onChange={(e) =>
+                          aria-label={`Quantidade em ${l.unidade}`}
+                          value={l.qtdTexto}
+                          onChange={(e) => {
+                            const texto = e.target.value.replace(/[^0-9.,]/g, "");
                             setLinhas((a) =>
                               a.map((x) =>
                                 x.produto_id === l.produto_id
-                                  ? {
-                                      ...x,
-                                      quantidade: Number(e.target.value.replace(",", ".")) || 0,
-                                    }
+                                  ? { ...x, qtdTexto: texto, quantidade: parseQtd(texto) }
                                   : x,
                               ),
-                            )
-                          }
+                            );
+                          }}
                         />
+                        <span className="text-xs text-muted-foreground">{l.unidade}</span>
                         <Button
                           size="icon"
                           variant="outline"
