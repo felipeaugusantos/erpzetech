@@ -456,6 +456,56 @@ function Planos() {
         </div>
       )}
 
+      <div className="panel mt-6 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-display text-sm font-semibold">Interessados nos planos</p>
+            <p className="text-xs text-muted-foreground">
+              Contatos enviados pela página pública de contato.
+            </p>
+          </div>
+        </div>
+        {(contatos ?? []).length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum contato recebido ainda.
+          </p>
+        ) : (
+          <ul className="mt-4 divide-y divide-border">
+            {(contatos ?? []).map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{c.nome}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[c.email, c.whatsapp].filter(Boolean).join(" · ") || "—"}
+                    {c.plano_interesse ? ` · plano ${c.plano_interesse}` : ""} ·{" "}
+                    {dateBR(c.created_at)}
+                  </p>
+                  {c.mensagem && <p className="mt-1 text-xs">{c.mensagem}</p>}
+                </div>
+                <div className="flex gap-2">
+                  {c.whatsapp && (
+                    <Button asChild size="sm" variant="outline">
+                      <a
+                        href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                  {c.email && (
+                    <Button asChild size="sm" variant="outline">
+                      <a href={`mailto:${c.email}?subject=Planos Ze Obra`}>E-mail</a>
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* alterar plano */}
       <Dialog open={editar} onOpenChange={setEditar}>
         <DialogContent>
