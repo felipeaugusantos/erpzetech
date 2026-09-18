@@ -90,6 +90,8 @@ const groups: Group[] = [
       { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
       { label: "Transferência entre lojas", to: "/transferencias", icon: ArrowLeftRight },
+      { label: "Relatório de estoque", to: "/relatorio-estoque", icon: Warehouse },
+
       { label: "Depósitos", to: "/depositos", icon: Warehouse },
     ],
   },
