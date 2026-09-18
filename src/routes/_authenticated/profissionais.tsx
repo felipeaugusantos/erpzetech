@@ -403,11 +403,16 @@ function Profissionais() {
                     <TableHead>PIX</TableHead>
                     <TableHead className="text-right">Premiação</TableHead>
                     <TableHead className="text-right">Indicações</TableHead>
+                    <TableHead className="text-right">Vendas indicadas</TableHead>
+                    <TableHead className="text-right">Saldo a receber</TableHead>
+                    <TableHead className="text-right">Já pago</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {profissionais.map((p) => (
+                  {profissionais.map((p) => {
+                    const saldo = saldoPorProf.get(p.id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+                    return (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm font-medium">{p.nome}</TableCell>
                       <TableCell className="text-sm capitalize">
@@ -424,6 +429,13 @@ function Profissionais() {
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {indicacoesPorProf.get(p.id) ?? 0}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric">{brl(saldo.vendas)}</TableCell>
+                      <TableCell className="text-right text-numeric font-semibold">
+                        {brl(saldo.aReceber)}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric text-muted-foreground">
+                        {brl(saldo.pago)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" variant="outline" onClick={() => editar(p)}>
