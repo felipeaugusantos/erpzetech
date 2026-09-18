@@ -1,4 +1,4 @@
-import zeIcon from "@/assets/ze-icon.jpeg.asset.json";
+import zeIcon from "@/assets/ze-obra-icon.png.asset.json";
 import { cn } from "@/lib/utils";
 
 export function ZeLogo({ className }: { className?: string }) {
