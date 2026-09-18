@@ -7,8 +7,12 @@ const AUTH_URL = "https://auth.acbr.api.br/realms/ACBrAPI/protocol/openid-connec
 
 export type Ambiente = "homologacao" | "producao";
 
-export function baseUrl(ambiente: Ambiente): string {
-  return ambiente === "producao" ? "https://prod.acbr.api.br" : "https://hom.acbr.api.br";
+/**
+ * O token emitido para a conta tem audiência do host de produção; o ambiente de
+ * homologação é escolhido pelo campo tpAmb de cada nota, não por outro host.
+ */
+export function baseUrl(_ambiente: Ambiente): string {
+  return "https://prod.acbr.api.br";
 }
 
 let cache: { token: string; expira: number } | null = null;
