@@ -20,9 +20,9 @@ import {
 
 /** Contatos da loja — troque pelos seus dados reais. */
 export const CONTATO = {
-  email: "contato@zeobra.com.br",
-  whatsapp: "5511999999999",
-  whatsappVisivel: "(11) 99999-9999",
+  email: "contato@zeregistra.com.br",
+  whatsapp: "5516997994239",
+  whatsappVisivel: "(16) 99799-4239",
 };
 
 export const Route = createFileRoute("/contato")({

@@ -65,7 +65,9 @@ const groups: Group[] = [
     icon: Store,
     items: [
       { label: "Clientes", to: "/clientes", icon: Users },
+      { label: "Clientes e obras", to: "/clientes-obras", icon: Users },
       { label: "Obras", to: "/obras", icon: HardHat },
+      { label: "Profissionais e prêmios", to: "/profissionais", icon: HardHat },
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
       { label: "PDV", icon: Store, soon: true },
@@ -123,6 +125,7 @@ const groups: Group[] = [
     icon: ShieldCheck,
     items: [
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
     ],

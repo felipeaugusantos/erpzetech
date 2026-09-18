@@ -119,6 +119,8 @@ function Planos() {
   const { data, isLoading } = useQuery({
     queryKey: ["assinatura"],
     queryFn: async () => {
+      // gera automaticamente a mensalidade e as filiais extras do mês (sem lançamento manual)
+      await supabase.rpc("gerar_faturas_assinatura");
       const [assinaturaRes, faturasRes] = await Promise.all([
         supabase.from("assinaturas").select("*").maybeSingle(),
         supabase.from("assinatura_faturas").select("*").order("vencimento", { ascending: false }),
@@ -383,6 +385,10 @@ function Planos() {
           <div className="panel overflow-x-auto">
             <div className="border-b border-border px-4 py-3">
               <p className="font-display text-sm font-semibold">Pagamentos da assinatura</p>
+              <p className="text-xs text-muted-foreground">
+                A mensalidade do plano e as filiais extras são lançadas automaticamente a cada mês,
+                no dia de vencimento escolhido — sem lançamento manual.
+              </p>
             </div>
             {faturas.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
