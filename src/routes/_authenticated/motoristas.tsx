@@ -74,6 +74,24 @@ function Motoristas() {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [loginMotorista, setLoginMotorista] = useState<{ id: string; nome: string } | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginSenha, setLoginSenha] = useState("");
+
+  const criarLogin = useMutation({
+    mutationFn: async () => {
+      if (!loginMotorista) return;
+      await criarLoginMotorista({
+        data: { motoristaId: loginMotorista.id, email: loginEmail, senha: loginSenha },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Login do motorista criado. Passe o e-mail e a senha para ele.");
+      setLoginMotorista(null);
+      void queryClient.invalidateQueries({ queryKey: ["motoristas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: motoristas = [], isLoading } = useQuery({
     queryKey: ["motoristas"],
