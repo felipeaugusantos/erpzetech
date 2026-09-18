@@ -35,33 +35,48 @@ export const Route = createFileRoute("/")({
 const features = [
   {
     icon: HardHat,
-    title: "Clientes e obras",
-    text: "Pessoa física e jurídica, limite de crédito, prazo e obras vinculadas a cada cliente.",
+    title: "Clientes, obras e crédito",
+    text: "Pessoa física e jurídica, limite de crédito com autorização do gestor e obras por cliente.",
   },
   {
     icon: Ruler,
-    title: "Conversão de unidades",
-    text: "Compre em rolo, palete ou caixa e venda em metro, saco ou m² sem erro de saldo.",
+    title: "Orçamento vira pedido",
+    text: "Orçamento no balcão, aprovação, pedido com reserva de estoque, separação e conferência.",
   },
   {
     icon: Boxes,
-    title: "Estoque real",
-    text: "Físico, reservado e disponível por produto, com histórico permanente de movimentações.",
+    title: "Estoque e custo por depósito",
+    text: "Físico, reservado e disponível, custo médio de cada depósito e histórico que nunca se apaga.",
   },
   {
     icon: Warehouse,
-    title: "Múltiplos depósitos",
-    text: "Loja, depósito principal e externo com transferências entre depósitos e filiais.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Perfis e permissões",
-    text: "Nove perfis operacionais e permissões configuráveis por módulo.",
+    title: "Compras do início ao fim",
+    text: "Sugestão pelo estoque mínimo, cotação comparada, recebimento com divergência e conta a pagar.",
   },
   {
     icon: Truck,
-    title: "Pronto para crescer",
-    text: "Estrutura multiempresa preparada para orçamentos, pedidos, entregas e financeiro.",
+    title: "Entregas e rota do dia",
+    text: "Roteirização automática por urgência e capacidade, tela do motorista com foto e assinatura.",
+  },
+  {
+    icon: Wallet,
+    title: "Financeiro completo",
+    text: "Contas a receber e a pagar, caixa com sangria e fechamento, fluxo de caixa e alertas.",
+  },
+  {
+    icon: Receipt,
+    title: "Fiscal e NF-e",
+    text: "NCM, CFOP e CST por produto, nota do pedido ou agrupada e balanço fiscal com ICMS.",
+  },
+  {
+    icon: BarChart3,
+    title: "Painel e relatórios",
+    text: "Pedidos em andamento, pendências fiscais, lucro por produto, depósito e mês.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Multiempresa e permissões",
+    text: "Empresas, filiais e depósitos com nove perfis, permissões por módulo e auditoria.",
   },
 ];
 
