@@ -197,6 +197,13 @@ function AuthPage() {
             Continuar com Google
           </Button>
 
+          <Link
+            to="/ze-tech-login"
+            className="mt-3 flex w-full items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Entrar no Painel Ze Tech (equipe)
+          </Link>
+
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Ao entrar você acessa o ambiente de demonstração Constrular Materiais.
           </p>
