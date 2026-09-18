@@ -246,6 +246,8 @@ function Nfe() {
   }, [elegiveis]);
 
   const pedidosDoCliente = elegiveis.filter((p) => p.cliente_id === clienteId);
+  const depositoTravado =
+    pedidosDoCliente.find((p) => p.id === selecionados[0])?.deposito_id ?? null;
   const totalSelecionado = pedidosDoCliente
     .filter((p) => selecionados.includes(p.id))
     .reduce((s, p) => s + Number(p.total), 0);
