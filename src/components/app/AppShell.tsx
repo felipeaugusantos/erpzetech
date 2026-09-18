@@ -126,6 +126,7 @@ const groups: Group[] = [
     items: [
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
+      { label: "Painel da filial", to: "/painel-filial", icon: Gauge },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
     ],
