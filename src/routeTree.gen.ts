@@ -39,6 +39,7 @@ import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
+import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
@@ -235,6 +236,12 @@ const AuthenticatedImpostosRoute = AuthenticatedImpostosRouteImport.update({
   path: '/impostos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImpostosNotaRoute =
+  AuthenticatedImpostosNotaRouteImport.update({
+    id: '/impostos-nota',
+    path: '/impostos-nota',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInventariosRoute =
   AuthenticatedInventariosRouteImport.update({
     id: '/inventarios',
@@ -451,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
+  '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
@@ -516,6 +524,7 @@ export interface FileRoutesByTo {
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
+  '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
@@ -583,6 +592,7 @@ export interface FileRoutesById {
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
+  '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
@@ -650,6 +660,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/giro-estoque'
     | '/impostos'
+    | '/impostos-nota'
     | '/inventarios'
     | '/lucro'
     | '/motorista'
@@ -715,6 +726,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/giro-estoque'
     | '/impostos'
+    | '/impostos-nota'
     | '/inventarios'
     | '/lucro'
     | '/motorista'
@@ -781,6 +793,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fornecedores'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/impostos'
+    | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
     | '/_authenticated/lucro'
     | '/_authenticated/motorista'
@@ -1035,6 +1048,13 @@ declare module '@tanstack/react-router' {
       path: '/impostos'
       fullPath: '/impostos'
       preLoaderRoute: typeof AuthenticatedImpostosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/impostos-nota': {
+      id: '/_authenticated/impostos-nota'
+      path: '/impostos-nota'
+      fullPath: '/impostos-nota'
+      preLoaderRoute: typeof AuthenticatedImpostosNotaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inventarios': {
@@ -1304,6 +1324,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
+  AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
@@ -1366,6 +1387,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
+  AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,

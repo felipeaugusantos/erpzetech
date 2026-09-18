@@ -5,7 +5,10 @@ import { Calculator, FileText, Percent, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { brl, num } from "@/lib/format";
+import { brl } from "@/lib/format";
+
+/** Converte qualquer valor vindo do banco em número seguro para exibir. */
+const num = (v: unknown, casas = 2) => Number(Number(v ?? 0).toFixed(casas)) || 0;
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,11 +154,10 @@ function ImpostosNota() {
 
       const { data, error } = await supabase.rpc("nfe_calcular_impostos", {
         p_nfe_id: notaId,
-        p_aliquota_icms: dec(icms),
-        p_aliquota_pis: dec(pis),
-        p_aliquota_cofins: dec(cofins),
-        p_aliquota_iss: dec(iss),
-        p_reducao_base: null,
+        ...(dec(icms) !== null ? { p_aliquota_icms: dec(icms)! } : {}),
+        ...(dec(pis) !== null ? { p_aliquota_pis: dec(pis)! } : {}),
+        ...(dec(cofins) !== null ? { p_aliquota_cofins: dec(cofins)! } : {}),
+        ...(dec(iss) !== null ? { p_aliquota_iss: dec(iss)! } : {}),
         p_aplicar_icms_em_todos: todos,
       });
       if (error) throw error;
@@ -205,7 +207,6 @@ function ImpostosNota() {
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : (notas ?? []).length === 0 ? (
         <EmptyState
-          icon={FileText}
           title="Nenhuma nota fiscal gerada."
           description="Gere a nota de um pedido para calcular os impostos."
           action={
