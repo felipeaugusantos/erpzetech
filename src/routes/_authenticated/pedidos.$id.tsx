@@ -316,6 +316,11 @@ function PedidoDetalhe() {
                 <ArrowLeft className="mr-2 size-4" /> Pedidos
               </Link>
             </Button>
+            {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
+              <Button variant="secondary" onClick={() => setContasOpen(true)}>
+                <Wallet className="mr-2 size-4" /> Gerar contas a receber
+              </Button>
+            )}
             {podeEntregar && (
               <Button onClick={() => setEntregaOpen(true)}>
                 <Truck className="mr-2 size-4" /> Registrar entrega
