@@ -31,6 +31,7 @@ import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenti
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -169,6 +170,12 @@ const AuthenticatedFornecedoresRoute =
   AuthenticatedFornecedoresRouteImport.update({
     id: '/fornecedores',
     path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInventariosRoute =
+  AuthenticatedInventariosRouteImport.update({
+    id: '/inventarios',
+    path: '/inventarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
@@ -311,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -356,6 +364,7 @@ export interface FileRoutesByTo {
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -403,6 +412,7 @@ export interface FileRoutesById {
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -450,6 +460,7 @@ export interface FileRouteTypes {
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/inventarios'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/inventarios'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiscal'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/inventarios'
     | '/_authenticated/lucro'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -728,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/inventarios': {
+      id: '/_authenticated/inventarios'
+      path: '/inventarios'
+      fullPath: '/inventarios'
+      preLoaderRoute: typeof AuthenticatedInventariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/lucro': {
       id: '/_authenticated/lucro'
       path: '/lucro'
@@ -904,6 +924,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -947,6 +968,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
