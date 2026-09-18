@@ -3797,6 +3797,19 @@ export type Database = {
         Args: { p_contada: number; p_item_id: string; p_observacao?: string }
         Returns: undefined
       }
+      pdv_venda: {
+        Args: {
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_observacao?: string
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
       pedido_avancar_status: {
         Args: {
           p_observacao?: string
@@ -3804,6 +3817,17 @@ export type Database = {
           p_situacao: Database["public"]["Enums"]["pedido_situacao"]
         }
         Returns: undefined
+      }
+      pedido_checkout: {
+        Args: {
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacao?: string
+          p_parcelas?: number
+          p_pedido_id: string
+          p_primeiro_vencimento?: string
+          p_valor: number
+        }
+        Returns: Json
       }
       pedido_registrar_entrega: {
         Args: {

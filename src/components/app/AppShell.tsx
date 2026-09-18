@@ -71,7 +71,7 @@ const groups: Group[] = [
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
       { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
-      { label: "PDV", icon: Store, soon: true },
+      { label: "PDV — venda rápida", to: "/pdv", icon: Store },
     ],
   },
   {
@@ -138,6 +138,8 @@ const groups: Group[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  /** Módulos recolhidos, guardados no navegador do usuário. */
+  const [fechados, setFechados] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useSessionData();
   const navigate = useNavigate();
@@ -147,6 +149,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem("zeobra:menu-fechados");
+      if (salvo) setFechados(JSON.parse(salvo) as string[]);
+    } catch {
+      /* preferência ausente ou inválida: mantém tudo aberto */
+    }
+  }, []);
+
+  function alternarGrupo(label: string) {
+    setFechados((atual) => {
+      const proximo = atual.includes(label)
+        ? atual.filter((l) => l !== label)
+        : [...atual, label];
+      try {
+        localStorage.setItem("zeobra:menu-fechados", JSON.stringify(proximo));
+      } catch {
+        /* sem armazenamento: só não guarda a preferência */
+      }
+      return proximo;
+    });
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -228,13 +253,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {menu.map((group) => (
+        <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
+          {menu.map((group) => {
+            const aberto = !fechados.includes(group.label);
+            return (
             <div key={group.label}>
-              <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-                {group.label}
-              </p>
-              <ul className="space-y-0.5">
+              <button
+                onClick={() => alternarGrupo(group.label)}
+                aria-expanded={aberto}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                <group.icon className="size-3.5 shrink-0" />
+                <span className="flex-1 text-left">{group.label}</span>
+                <ChevronDown
+                  className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")}
+                />
+              </button>
+              <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
                 {group.items.map((item) => (
                   <li key={item.label}>
                     {item.to && !item.soon ? (
@@ -260,7 +295,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 ))}
               </ul>
             </div>
-          ))}
+            );
+          })}
         </nav>
       </aside>
 

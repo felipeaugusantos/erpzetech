@@ -221,6 +221,11 @@ function PedidoDetalhe() {
   const [parcelasReceber, setParcelasReceber] = useState("1");
   const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeISO());
   const [formaReceber, setFormaReceber] = useState("pix");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutValor, setCheckoutValor] = useState("");
+  const [checkoutForma, setCheckoutForma] = useState("dinheiro");
+  const [checkoutParcelas, setCheckoutParcelas] = useState("1");
+  const [checkoutVencimento, setCheckoutVencimento] = useState(hojeISO());
   const queryClient = qc;
 
   const { data, isLoading } = useQuery({
@@ -326,6 +331,35 @@ function PedidoDetalhe() {
       void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  /** Checkout: recebe o valor, baixa as parcelas abertas ou lança direto no caixa. */
+  const checkout = useMutation({
+    mutationFn: async () => {
+      const valor = Number(checkoutValor.replace(",", ".")) || 0;
+      if (valor <= 0) throw new Error("Informe o valor recebido.");
+      const { data, error } = await supabase.rpc("pedido_checkout", {
+        p_pedido_id: id,
+        p_valor: valor,
+        p_forma: checkoutForma as never,
+        p_parcelas: Math.max(1, Number(checkoutParcelas) || 1),
+        p_primeiro_vencimento: checkoutVencimento,
+      });
+      if (error) throw error;
+      return data as { caixa: number; contas_geradas: number };
+    },
+    onSuccess: (r) => {
+      toast.success("Pagamento registrado", {
+        description:
+          Number(r?.caixa ?? 0) > 0
+            ? `${brl(Number(r.caixa))} lançados no caixa.`
+            : `${r?.contas_geradas ?? 0} parcela(s) em contas a receber.`,
+      });
+      setCheckoutOpen(false);
+      setCheckoutValor("");
+      void queryClient.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error("Não foi possível receber", { description: e.message }),
   });
 
   useEffect(() => {
@@ -475,6 +509,22 @@ function PedidoDetalhe() {
             {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
               <Button variant="secondary" onClick={() => setContasOpen(true)}>
                 <Wallet className="mr-2 size-4" /> Gerar contas a receber
+              </Button>
+            )}
+            {pedido.situacao !== "cancelado" && (
+              <Button
+                onClick={() => {
+                  const aberto = contasPedido.reduce(
+                    (s, c) => s + Number(c.valor) - Number(c.valor_recebido),
+                    0,
+                  );
+                  setCheckoutValor(
+                    String(aberto > 0 ? aberto.toFixed(2) : Number(pedido.total).toFixed(2)),
+                  );
+                  setCheckoutOpen(true);
+                }}
+              >
+                <Wallet className="mr-2 size-4" /> Receber pagamento
               </Button>
             )}
             {pedido.situacao !== "cancelado" && !notaDoPedido && (
@@ -1067,7 +1117,79 @@ function PedidoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CHECKOUT DE PAGAMENTO */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Receber pagamento</DialogTitle>
+            <DialogDescription>
+              Total do pedido: {brl(Number(pedido.total))}
+              {contasPedido.length > 0 && " · há parcelas em aberto neste pedido"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label htmlFor="ck-valor">Valor recebido (R$)</Label>
+              <Input
+                id="ck-valor"
+                inputMode="decimal"
+                value={checkoutValor}
+                onChange={(e) => setCheckoutValor(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={checkoutForma} onValueChange={setCheckoutForma}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="ck-parc">Parcelas</Label>
+                  <Input
+                    id="ck-parc"
+                    inputMode="numeric"
+                    value={checkoutParcelas}
+                    onChange={(e) => setCheckoutParcelas(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ck-venc">1º vencimento</Label>
+                  <Input
+                    id="ck-venc"
+                    type="date"
+                    value={checkoutVencimento}
+                    onChange={(e) => setCheckoutVencimento(e.target.value)}
+                  />
+                </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              À vista, o valor entra no caixa aberto e dá baixa nas parcelas deste pedido. A prazo,
+              gera as parcelas em contas a receber.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={() => checkout.mutate()} disabled={checkout.isPending}>
+              Confirmar recebimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
 
   );
 }
