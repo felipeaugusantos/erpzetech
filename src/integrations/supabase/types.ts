@@ -165,6 +165,81 @@ export type Database = {
           },
         ]
       }
+      banco_movimentos: {
+        Row: {
+          categoria: string | null
+          conciliado: boolean
+          conciliado_em: string | null
+          conta_destino_id: string | null
+          conta_id: string
+          created_at: string
+          data: string
+          descricao: string
+          documento: string | null
+          forma: string | null
+          id: string
+          origem: string
+          origem_id: string | null
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          conciliado?: boolean
+          conciliado_em?: string | null
+          conta_destino_id?: string | null
+          conta_id: string
+          created_at?: string
+          data?: string
+          descricao: string
+          documento?: string | null
+          forma?: string | null
+          id?: string
+          origem?: string
+          origem_id?: string | null
+          tenant_id?: string
+          tipo: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          conciliado?: boolean
+          conciliado_em?: string | null
+          conta_destino_id?: string | null
+          conta_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          documento?: string | null
+          forma?: string | null
+          id?: string
+          origem?: string
+          origem_id?: string | null
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_movimentos_conta_destino_id_fkey"
+            columns: ["conta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_movimentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caixa_movimentos: {
         Row: {
           caixa_id: string
@@ -1016,6 +1091,77 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_bancarias: {
+        Row: {
+          agencia: string | null
+          apelido: string
+          ativa: boolean
+          banco_codigo: string | null
+          banco_nome: string | null
+          chave_pix: string | null
+          conta: string | null
+          conta_digito: string | null
+          created_at: string
+          filial_id: string | null
+          id: string
+          observacoes: string | null
+          padrao: boolean
+          saldo_inicial: number
+          saldo_inicial_data: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          apelido: string
+          ativa?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          chave_pix?: string | null
+          conta?: string | null
+          conta_digito?: string | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          observacoes?: string | null
+          padrao?: boolean
+          saldo_inicial?: number
+          saldo_inicial_data?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          apelido?: string
+          ativa?: boolean
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          chave_pix?: string | null
+          conta?: string | null
+          conta_digito?: string | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          observacoes?: string | null
+          padrao?: boolean
+          saldo_inicial?: number
+          saldo_inicial_data?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
             referencedColumns: ["id"]
           },
         ]
@@ -4400,6 +4546,40 @@ export type Database = {
           p_forma: Database["public"]["Enums"]["forma_pagamento"]
           p_observacao?: string
           p_tipo: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      banco_conciliar: {
+        Args: { p_conciliado?: boolean; p_mov_id: string }
+        Returns: undefined
+      }
+      banco_conta_padrao: {
+        Args: { p_filial?: string; p_tenant: string }
+        Returns: string
+      }
+      banco_lancar: {
+        Args: {
+          p_categoria?: string
+          p_conta_id: string
+          p_data?: string
+          p_descricao: string
+          p_documento?: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      banco_saldo: {
+        Args: { p_ate?: string; p_conta_id: string }
+        Returns: number
+      }
+      banco_transferir: {
+        Args: {
+          p_data?: string
+          p_destino_id: string
+          p_observacao?: string
+          p_origem_id: string
           p_valor: number
         }
         Returns: string
