@@ -70,6 +70,7 @@ const groups: Group[] = [
     icon: Boxes,
     items: [
       { label: "Produtos", to: "/produtos", icon: PackageSearch },
+      { label: "Preços e margens", to: "/precos", icon: Tag },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
