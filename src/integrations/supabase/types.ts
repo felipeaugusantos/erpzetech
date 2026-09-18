@@ -3275,6 +3275,57 @@ export type Database = {
           },
         ]
       }
+      premiacao_abatimentos: {
+        Row: {
+          conta_receber_id: string
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          profissional_id: string
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          conta_receber_id: string
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          profissional_id: string
+          tenant_id: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          conta_receber_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          profissional_id?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premiacao_abatimentos_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "premiacao_abatimentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       premiacoes: {
         Row: {
           cliente_id: string | null
@@ -3609,6 +3660,7 @@ export type Database = {
         Row: {
           ativo: boolean
           chave_pix: string | null
+          cliente_id: string | null
           cnpj: string | null
           codigo: string | null
           cpf: string | null
@@ -3628,6 +3680,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           chave_pix?: string | null
+          cliente_id?: string | null
           cnpj?: string | null
           codigo?: string | null
           cpf?: string | null
@@ -3647,6 +3700,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           chave_pix?: string | null
+          cliente_id?: string | null
           cnpj?: string | null
           codigo?: string | null
           cpf?: string | null
@@ -3664,6 +3718,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profissionais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profissionais_empresa_id_fkey"
             columns: ["empresa_id"]
@@ -4298,6 +4359,23 @@ export type Database = {
           p_veiculo_id?: string
         }
         Returns: string
+      }
+      premiacao_abater_conta: {
+        Args: {
+          p_conta_id: string
+          p_observacao?: string
+          p_profissional_id: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      profissional_converter_em_cliente: {
+        Args: { p_profissional_id: string }
+        Returns: string
+      }
+      profissional_saldo_credito: {
+        Args: { p_profissional_id: string }
+        Returns: number
       }
       recalcular_compra: { Args: { p_id: string }; Returns: undefined }
       recalcular_orcamento: { Args: { p_id: string }; Returns: undefined }
