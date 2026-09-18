@@ -77,18 +77,29 @@ function Profissionais() {
   const { data, isLoading } = useQuery({
     queryKey: ["profissionais"],
     queryFn: async () => {
-      const [profRes, premRes, cliRes] = await Promise.all([
+      const [profRes, premRes, cliRes, abatRes, contasRes] = await Promise.all([
         supabase.from("profissionais").select("*").order("nome"),
         supabase
           .from("premiacoes")
           .select("*, profissionais(nome), clientes(nome), pedidos(numero)")
           .order("created_at", { ascending: false }),
         supabase.from("clientes").select("id, nome, profissional_id").order("nome"),
+        supabase
+          .from("premiacao_abatimentos")
+          .select("*, profissionais(nome), contas_receber(numero, descricao, clientes(nome))")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("contas_receber")
+          .select("id, numero, descricao, valor, valor_recebido, vencimento, cliente_id, clientes(nome)")
+          .in("situacao", ["aberto", "parcial"])
+          .order("vencimento"),
       ]);
       return {
         profissionais: profRes.data ?? [],
         premiacoes: premRes.data ?? [],
         clientes: cliRes.data ?? [],
+        abatimentos: abatRes.data ?? [],
+        contas: contasRes.data ?? [],
       };
     },
   });
@@ -96,6 +107,8 @@ function Profissionais() {
   const profissionais = data?.profissionais ?? [];
   const premiacoes = data?.premiacoes ?? [];
   const clientes = data?.clientes ?? [];
+  const abatimentos = data?.abatimentos ?? [];
+  const contasAbertas = data?.contas ?? [];
 
   const resumo = useMemo(() => {
     let aPagar = 0;
@@ -104,8 +117,9 @@ function Profissionais() {
       if (p.situacao === "paga") pago += Number(p.valor);
       else if (p.situacao !== "cancelada") aPagar += Number(p.valor);
     }
-    return { aPagar, pago };
-  }, [premiacoes]);
+    const usado = abatimentos.reduce((s, a) => s + Number(a.valor), 0);
+    return { aPagar: Math.max(0, aPagar - usado), pago, usado };
+  }, [premiacoes, abatimentos]);
 
   const indicacoesPorProf = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -116,19 +130,34 @@ function Profissionais() {
     return mapa;
   }, [clientes]);
 
-  /** Saldo de cada profissional: a receber (a aprovar + aprovada) e já pago. */
+  /** Saldo de cada profissional: crédito a receber, já usado em contas e já pago. */
   const saldoPorProf = useMemo(() => {
-    const mapa = new Map<string, { aReceber: number; pago: number; vendas: number }>();
+    const mapa = new Map<
+      string,
+      { aReceber: number; pago: number; vendas: number; usado: number }
+    >();
     for (const p of premiacoes) {
       if (!p.profissional_id) continue;
-      const atual = mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+      const atual =
+        mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0, usado: 0 };
       if (p.situacao === "paga") atual.pago += Number(p.valor);
       else if (p.situacao !== "cancelada") atual.aReceber += Number(p.valor);
       if (p.situacao !== "cancelada") atual.vendas += Number(p.valor_base);
       mapa.set(p.profissional_id, atual);
     }
+    for (const a of abatimentos) {
+      const atual = mapa.get(a.profissional_id) ?? {
+        aReceber: 0,
+        pago: 0,
+        vendas: 0,
+        usado: 0,
+      };
+      atual.usado += Number(a.valor);
+      atual.aReceber = Math.max(0, atual.aReceber - Number(a.valor));
+      mapa.set(a.profissional_id, atual);
+    }
     return mapa;
-  }, [premiacoes]);
+  }, [premiacoes, abatimentos]);
 
   /* ---------- cadastro ---------- */
   const vazio = {
@@ -237,6 +266,95 @@ function Profissionais() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  /* ---------- converter em cliente ---------- */
+  const converterCliente = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("profissional_converter_em_cliente", {
+        p_profissional_id: id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Profissional também cadastrado como cliente");
+      qc.invalidateQueries({ queryKey: ["profissionais"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      qc.invalidateQueries({ queryKey: ["clientes-obras"] });
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
+  const desvincularCliente = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("profissionais")
+        .update({ cliente_id: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mantido somente como profissional");
+      qc.invalidateQueries({ queryKey: ["profissionais"] });
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
+  /* ---------- usar crédito na conta a receber ---------- */
+  const [creditoAberto, setCreditoAberto] = useState(false);
+  const [credProf, setCredProf] = useState("");
+  const [credConta, setCredConta] = useState("");
+  const [credValor, setCredValor] = useState("");
+  const [credObs, setCredObs] = useState("");
+
+  const saldoCredProf = credProf ? (saldoPorProf.get(credProf)?.aReceber ?? 0) : 0;
+  const contasDoProf = useMemo(() => {
+    if (!credProf) return contasAbertas;
+    const prof = profissionais.find((p) => p.id === credProf);
+    const idsCliente = new Set(
+      clientes.filter((c) => c.profissional_id === credProf).map((c) => c.id),
+    );
+    if (prof?.cliente_id) idsCliente.add(prof.cliente_id);
+    const doProf = contasAbertas.filter((c) => c.cliente_id && idsCliente.has(c.cliente_id));
+    return doProf.length > 0 ? doProf : contasAbertas;
+  }, [credProf, contasAbertas, clientes, profissionais]);
+
+  const contaEscolhida = contasAbertas.find((c) => c.id === credConta) ?? null;
+  const saldoContaEscolhida = contaEscolhida
+    ? Number(contaEscolhida.valor) - Number(contaEscolhida.valor_recebido ?? 0)
+    : 0;
+
+  function abrirCredito(profId?: string) {
+    setCredProf(profId ?? "");
+    setCredConta("");
+    setCredValor("");
+    setCredObs("");
+    setCreditoAberto(true);
+  }
+
+  const usarCredito = useMutation({
+    mutationFn: async () => {
+      if (!credProf) throw new Error("Escolha o profissional");
+      if (!credConta) throw new Error("Escolha a conta a receber");
+      const v = Number(credValor.replace(",", "."));
+      if (!Number.isFinite(v) || v <= 0) throw new Error("Informe um valor maior que zero");
+      const { error } = await supabase.rpc("premiacao_abater_conta", {
+        p_profissional_id: credProf,
+        p_conta_id: credConta,
+        p_valor: v,
+        ...(credObs.trim() ? { p_observacao: credObs.trim() } : {}),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Crédito usado na conta a receber");
+      setCreditoAberto(false);
+      qc.invalidateQueries({ queryKey: ["profissionais"] });
+      qc.invalidateQueries({ queryKey: ["contas-receber"] });
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
+
+
   return (
     <>
       <PageHeader
@@ -246,6 +364,9 @@ function Profissionais() {
           <>
             <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
               <RefreshCw className="mr-2 size-4" /> Gerar premiações
+            </Button>
+            <Button variant="outline" onClick={() => abrirCredito()}>
+              Usar crédito em conta
             </Button>
             <Button onClick={novo}>Novo profissional</Button>
           </>
@@ -267,16 +388,16 @@ function Profissionais() {
           icon={Users}
         />
         <StatCard
-          label="Premiações a pagar"
+          label="Crédito disponível"
           value={brl(resumo.aPagar)}
-          hint="A aprovar e aprovadas"
+          hint="Pode ser pago ou usado em conta"
           icon={Award}
           tone="warning"
         />
         <StatCard
-          label="Já pago"
-          value={brl(resumo.pago)}
-          hint="Premiações quitadas"
+          label="Usado em contas"
+          value={brl(resumo.usado)}
+          hint={`Já pago em dinheiro: ${brl(resumo.pago)}`}
           icon={Award}
           tone="success"
         />
@@ -286,7 +407,57 @@ function Profissionais() {
         <TabsList>
           <TabsTrigger value="premiacoes">Premiações</TabsTrigger>
           <TabsTrigger value="cadastro">Profissionais</TabsTrigger>
+          <TabsTrigger value="credito">Crédito usado</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="credito" className="mt-4">
+          {abatimentos.length === 0 ? (
+            <EmptyState
+              title="Nenhum crédito usado ainda."
+              description="Use o botão “Usar crédito em conta” para abater a premiação do profissional em uma conta a receber."
+              action={<Button onClick={() => abrirCredito()}>Usar crédito em conta</Button>}
+            />
+          ) : (
+            <div className="panel overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Profissional</TableHead>
+                    <TableHead>Conta</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Valor abatido</TableHead>
+                    <TableHead>Observação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {abatimentos.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="text-sm">{dateBR(a.data)}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {a.profissionais?.nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {a.contas_receber?.numero ? `nº ${a.contas_receber.numero}` : "—"}
+                        {a.contas_receber?.descricao ? ` · ${a.contas_receber.descricao}` : ""}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {a.contas_receber?.clientes?.nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric font-semibold">
+                        {brl(Number(a.valor))}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {a.observacao ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
 
         <TabsContent value="premiacoes" className="mt-4">
           {isLoading ? (
@@ -407,14 +578,16 @@ function Profissionais() {
                     <TableHead className="text-right">Premiação</TableHead>
                     <TableHead className="text-right">Indicações</TableHead>
                     <TableHead className="text-right">Vendas indicadas</TableHead>
-                    <TableHead className="text-right">Saldo a receber</TableHead>
-                    <TableHead className="text-right">Já pago</TableHead>
+                    <TableHead className="text-right">Crédito disponível</TableHead>
+                    <TableHead className="text-right">Usado em conta</TableHead>
+                    <TableHead>Também é cliente</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {profissionais.map((p) => {
-                    const saldo = saldoPorProf.get(p.id) ?? { aReceber: 0, pago: 0, vendas: 0 };
+                    const saldo =
+                      saldoPorProf.get(p.id) ?? { aReceber: 0, pago: 0, vendas: 0, usado: 0 };
                     return (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm font-medium">{p.nome}</TableCell>
@@ -438,12 +611,42 @@ function Profissionais() {
                         {brl(saldo.aReceber)}
                       </TableCell>
                       <TableCell className="text-right text-numeric text-muted-foreground">
-                        {brl(saldo.pago)}
+                        {brl(saldo.usado)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {p.cliente_id ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default">Sim</Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => desvincularCliente.mutate(p.id)}
+                            >
+                              Só profissional
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={converterCliente.isPending}
+                            onClick={() => converterCliente.mutate(p.id)}
+                          >
+                            Converter em cliente
+                          </Button>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => editar(p)}>
-                          Editar
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {saldo.aReceber > 0 && (
+                            <Button size="sm" onClick={() => abrirCredito(p.id)}>
+                              Usar crédito
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" onClick={() => editar(p)}>
+                            Editar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     );
@@ -542,6 +745,38 @@ function Profissionais() {
                 onChange={(e) => setForm({ ...form, chave_pix: e.target.value })}
               />
             </div>
+            {editandoId && (
+              <div className="panel sm:col-span-2 flex flex-wrap items-center justify-between gap-3 p-3">
+                <div>
+                  <p className="text-sm font-medium">Também é cliente da loja?</p>
+                  <p className="text-xs text-muted-foreground">
+                    Como cliente ele pode comprar, ter obras e receber notas; como profissional ele
+                    só indica e recebe premiação.
+                  </p>
+                </div>
+                {profissionais.find((p) => p.id === editandoId)?.cliente_id ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">Cliente vinculado</Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => desvincularCliente.mutate(editandoId)}
+                    >
+                      Manter só como profissional
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={converterCliente.isPending}
+                    onClick={() => converterCliente.mutate(editandoId)}
+                  >
+                    Converter em cliente
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>
@@ -549,6 +784,99 @@ function Profissionais() {
             </Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={creditoAberto} onOpenChange={setCreditoAberto}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Usar crédito do profissional em conta a receber</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Profissional</Label>
+              <Select value={credProf} onValueChange={setCredProf}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Escolha o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profissionais.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} — {brl(saldoPorProf.get(p.id)?.aReceber ?? 0)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {credProf && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Crédito disponível: <strong>{brl(saldoCredProf)}</strong>
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Conta a receber</Label>
+              <Select value={credConta} onValueChange={setCredConta}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Escolha a conta em aberto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contasDoProf.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      nº {c.numero} · {c.clientes?.nome ?? "Sem cliente"} ·{" "}
+                      {brl(Number(c.valor) - Number(c.valor_recebido ?? 0))} · vence{" "}
+                      {dateBR(c.vencimento)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {contaEscolhida && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saldo da conta: <strong>{brl(saldoContaEscolhida)}</strong>
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Valor a abater</Label>
+              <Input
+                className="mt-1"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={credValor}
+                onChange={(e) => setCredValor(e.target.value)}
+              />
+              <div className="mt-2 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setCredValor(
+                      String(Math.min(saldoCredProf, saldoContaEscolhida || saldoCredProf).toFixed(2)),
+                    )
+                  }
+                  disabled={!credProf || !credConta}
+                >
+                  Usar o máximo possível
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label>Observação</Label>
+              <Input
+                className="mt-1"
+                placeholder="Abatimento com crédito de premiação"
+                value={credObs}
+                onChange={(e) => setCredObs(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreditoAberto(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => usarCredito.mutate()} disabled={usarCredito.isPending}>
+              Abater na conta
             </Button>
           </DialogFooter>
         </DialogContent>

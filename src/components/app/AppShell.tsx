@@ -73,6 +73,7 @@ const groups: Group[] = [
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
       { label: "Vendedores", to: "/vendedores", icon: Users },
       { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
+      { label: "Relatório de comissões", to: "/relatorio-comissoes", icon: Tag },
       { label: "PDV — venda rápida", to: "/pdv", icon: Store },
     ],
   },

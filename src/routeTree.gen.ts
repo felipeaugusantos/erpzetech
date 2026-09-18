@@ -49,6 +49,7 @@ import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
+import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_authenticated/relatorio-comissoes'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authenticated/transferencias'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -273,6 +274,12 @@ const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatorioComissoesRoute =
+  AuthenticatedRelatorioComissoesRouteImport.update({
+    id: '/relatorio-comissoes',
+    path: '/relatorio-comissoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
   id: '/rota',
   path: '/rota',
@@ -374,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -426,6 +434,7 @@ export interface FileRoutesByTo {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -480,6 +489,7 @@ export interface FileRoutesById {
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
+  '/_authenticated/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/transferencias': typeof AuthenticatedTransferenciasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
@@ -534,6 +544,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-comissoes'
     | '/rota'
     | '/transferencias'
     | '/usuarios'
@@ -586,6 +597,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-comissoes'
     | '/rota'
     | '/transferencias'
     | '/usuarios'
@@ -639,6 +651,7 @@ export interface FileRouteTypes {
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
+    | '/_authenticated/relatorio-comissoes'
     | '/_authenticated/rota'
     | '/_authenticated/transferencias'
     | '/_authenticated/usuarios'
@@ -941,6 +954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorio-comissoes': {
+      id: '/_authenticated/relatorio-comissoes'
+      path: '/relatorio-comissoes'
+      fullPath: '/relatorio-comissoes'
+      preLoaderRoute: typeof AuthenticatedRelatorioComissoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/rota': {
       id: '/_authenticated/rota'
       path: '/rota'
@@ -1058,6 +1078,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
+  AuthenticatedRelatorioComissoesRoute: typeof AuthenticatedRelatorioComissoesRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedTransferenciasRoute: typeof AuthenticatedTransferenciasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
@@ -1108,6 +1129,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
+  AuthenticatedRelatorioComissoesRoute: AuthenticatedRelatorioComissoesRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedTransferenciasRoute: AuthenticatedTransferenciasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
