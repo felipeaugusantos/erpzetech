@@ -374,6 +374,7 @@ export type Database = {
           numero: string | null
           observacoes: string | null
           prazo_padrao_dias: number
+          profissional_id: string | null
           saldo_utilizado: number
           telefone: string | null
           tenant_id: string
@@ -406,6 +407,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           prazo_padrao_dias?: number
+          profissional_id?: string | null
           saldo_utilizado?: number
           telefone?: string | null
           tenant_id: string
@@ -438,6 +440,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           prazo_padrao_dias?: number
+          profissional_id?: string | null
           saldo_utilizado?: number
           telefone?: string | null
           tenant_id?: string
@@ -458,6 +461,13 @@ export type Database = {
             columns: ["filial_id"]
             isOneToOne: false
             referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
           {
@@ -1615,14 +1625,17 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          cnpj: string | null
           codigo: string | null
           created_at: string
           empresa_id: string
           endereco: string | null
           estado: string | null
           id: string
+          inscricao_estadual: string | null
           nome: string
           numero: string | null
+          situacao: string
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -1632,14 +1645,17 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnpj?: string | null
           codigo?: string | null
           created_at?: string
           empresa_id: string
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome: string
           numero?: string | null
+          situacao?: string
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -1649,14 +1665,17 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cnpj?: string | null
           codigo?: string | null
           created_at?: string
           empresa_id?: string
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome?: string
           numero?: string | null
+          situacao?: string
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
@@ -1759,6 +1778,7 @@ export type Database = {
           created_at: string
           emissor: string | null
           empresa_id: string | null
+          filial_id: string | null
           id: string
           informacoes_complementares: string | null
           proximo_numero: number
@@ -1780,6 +1800,7 @@ export type Database = {
           created_at?: string
           emissor?: string | null
           empresa_id?: string | null
+          filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
           proximo_numero?: number
@@ -1801,6 +1822,7 @@ export type Database = {
           created_at?: string
           emissor?: string | null
           empresa_id?: string | null
+          filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
           proximo_numero?: number
@@ -1819,6 +1841,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_config_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
             referencedColumns: ["id"]
           },
         ]
@@ -2850,6 +2879,79 @@ export type Database = {
           },
         ]
       }
+      premiacoes: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          observacao: string | null
+          pago_em: string | null
+          pedido_id: string | null
+          percentual: number
+          profissional_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+          valor_base: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id?: string | null
+          percentual?: number
+          profissional_id: string
+          situacao?: string
+          tenant_id: string
+          updated_at?: string
+          valor?: number
+          valor_base?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          pago_em?: string | null
+          pedido_id?: string | null
+          percentual?: number
+          profissional_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          valor_base?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premiacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "premiacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "premiacoes_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_conversoes: {
         Row: {
           ativo: boolean
@@ -3088,6 +3190,71 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profissionais: {
+        Row: {
+          ativo: boolean
+          chave_pix: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string
+          email: string | null
+          empresa_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          percentual_premio: number
+          telefone: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          chave_pix?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          percentual_premio?: number
+          telefone?: string | null
+          tenant_id: string
+          tipo?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          chave_pix?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          percentual_premio?: number
+          telefone?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -3362,6 +3529,7 @@ export type Database = {
         }
         Returns: number
       }
+      gerar_faturas_assinatura: { Args: never; Returns: number }
       gerar_nfe: {
         Args: { p_natureza?: string; p_pedido_id: string }
         Returns: string
@@ -3370,6 +3538,7 @@ export type Database = {
         Args: { p_natureza?: string; p_pedido_ids: string[] }
         Returns: string
       }
+      gerar_premiacoes: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
