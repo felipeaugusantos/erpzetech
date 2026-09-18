@@ -31,6 +31,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
+import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 
@@ -150,6 +151,12 @@ const AuthenticatedDepositosIndexRoute =
     path: '/depositos/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDepositosIdRoute =
+  AuthenticatedDepositosIdRouteImport.update({
+    id: '/depositos/$id',
+    path: '/depositos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPedidosIndexRoute =
   AuthenticatedPedidosIndexRouteImport.update({
     id: '/pedidos/',
@@ -182,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
+  '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
+  '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
@@ -234,6 +243,7 @@ export interface FileRoutesById {
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
+  '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/usuarios'
     | '/compras/$id'
+    | '/depositos/$id'
     | '/pedidos/$id'
     | '/compras/'
     | '/depositos/'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/usuarios'
     | '/compras/$id'
+    | '/depositos/$id'
     | '/pedidos/$id'
     | '/compras'
     | '/depositos'
@@ -312,6 +324,7 @@ export interface FileRouteTypes {
     | '/_authenticated/produtos'
     | '/_authenticated/usuarios'
     | '/_authenticated/compras/$id'
+    | '/_authenticated/depositos/$id'
     | '/_authenticated/pedidos/$id'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDepositosIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/depositos/$id': {
+      id: '/_authenticated/depositos/$id'
+      path: '/depositos/$id'
+      fullPath: '/depositos/$id'
+      preLoaderRoute: typeof AuthenticatedDepositosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pedidos/': {
       id: '/_authenticated/pedidos/'
       path: '/pedidos'
@@ -515,6 +535,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
+  AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedDepositosIndexRoute: typeof AuthenticatedDepositosIndexRoute
@@ -539,6 +560,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
+  AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedDepositosIndexRoute: AuthenticatedDepositosIndexRoute,

@@ -241,6 +241,11 @@ function Depositos() {
                     <dd className="text-numeric">{brl(r?.valor ?? 0)}</dd>
                   </div>
                 </dl>
+                <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                  <Link to="/depositos/$id" params={{ id: d.id }}>
+                    Ver estoque do depósito
+                  </Link>
+                </Button>
               </div>
             );
           })}
