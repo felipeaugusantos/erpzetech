@@ -1,18 +1,43 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, KeyRound, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import {
+  PERFIS,
+  atualizarUsuario,
+  criarUsuario,
+  redefinirSenhaUsuario,
+} from "@/lib/usuario-admin.functions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
@@ -26,17 +51,18 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   component: Usuarios,
 });
 
-const perfis = [
-  "administrador",
-  "gestor",
-  "vendedor",
-  "caixa",
-  "estoquista",
-  "comprador",
-  "financeiro",
-  "logistica",
-  "motorista",
-];
+const perfis = [...PERFIS];
+
+const formVazio = {
+  nome: "",
+  email: "",
+  senha: "",
+  telefone: "",
+  codigo: "",
+  filialId: "",
+  perfis: ["vendedor"] as string[],
+};
+
 
 function Usuarios() {
   const qc = useQueryClient();
