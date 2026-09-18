@@ -77,6 +77,9 @@ const icmsDoItem = (i: ItemNota) => (Number(i.total) * Number(i.aliquota_icms ??
 
 function BalancoFiscal() {
   const { periodo, setDe, setAte } = usePeriodo();
+  const { data: session } = useSessionData();
+  const filiais = session?.filiais ?? [];
+  const [filialSel, setFilialSel] = useState("todas");
 
   const { data, isLoading } = useQuery({
     queryKey: ["balanco-fiscal", periodo.de, periodo.ate],
@@ -85,14 +88,16 @@ function BalancoFiscal() {
         supabase
           .from("nfe")
           .select(
-            "id, numero, serie, situacao, ambiente, valor_total, valor_produtos, valor_frete, valor_desconto, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, cst_csosn, descricao)",
+            "id, numero, serie, situacao, ambiente, filial_id, deposito_id, valor_total, valor_produtos, valor_frete, valor_desconto, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), depositos(nome, filial_id), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, cst_csosn, descricao)",
           )
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`)
           .order("created_at", { ascending: false }),
         supabase
           .from("pedidos")
-          .select("id, total, situacao, created_at, pedido_itens(quantidade, custo_unitario, total)")
+          .select(
+            "id, total, situacao, filial_id, created_at, pedido_itens(quantidade, custo_unitario, total)",
+          )
           .neq("situacao", "cancelado")
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`),
@@ -103,8 +108,20 @@ function BalancoFiscal() {
     },
   });
 
+  /** A loja é a filial da nota ou a filial do depósito de onde a mercadoria saiu. */
+  const filialDaNota = (n: {
+    filial_id: string | null;
+    depositos: { filial_id: string | null } | null;
+  }) => n.depositos?.filial_id ?? n.filial_id;
+
   const contas = useMemo(() => {
-    const notas = (data?.notas ?? []).filter((n) => n.situacao !== "cancelada");
+    const notas = (data?.notas ?? [])
+      .filter((n) => n.situacao !== "cancelada")
+      .filter(
+        (n) =>
+          filialSel === "todas" ||
+          filialDaNota(n as unknown as Parameters<typeof filialDaNota>[0]) === filialSel,
+      );
     const itens = notas.flatMap((n) => (n.nfe_itens ?? []) as ItemNota[]);
 
     const receitaNotas = itens.reduce((s, i) => s + Number(i.total), 0);
