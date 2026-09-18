@@ -381,24 +381,37 @@ function Nfe() {
 
         {clienteId && (
           <ul className="mt-3 divide-y divide-border rounded-lg border">
-            {pedidosDoCliente.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 p-3 text-sm">
-                <Checkbox
-                  id={`ped-${p.id}`}
-                  checked={selecionados.includes(p.id)}
-                  onCheckedChange={(v) =>
-                    setSelecionados((atual) =>
-                      v ? [...atual, p.id] : atual.filter((x) => x !== p.id),
-                    )
-                  }
-                />
-                <Label htmlFor={`ped-${p.id}`} className="flex-1 cursor-pointer font-normal">
-                  Pedido nº {String(p.numero).padStart(4, "0")}
-                  <span className="ml-2 text-xs text-muted-foreground">{p.situacao.replace(/_/g, " ")}</span>
-                </Label>
-                <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
-              </li>
-            ))}
+            {pedidosDoCliente.map((p) => {
+              const bloqueado = !!depositoTravado && p.deposito_id !== depositoTravado;
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center gap-3 p-3 text-sm ${bloqueado ? "opacity-50" : ""}`}
+                >
+                  <Checkbox
+                    id={`ped-${p.id}`}
+                    disabled={bloqueado}
+                    checked={selecionados.includes(p.id)}
+                    onCheckedChange={(v) =>
+                      setSelecionados((atual) =>
+                        v ? [...atual, p.id] : atual.filter((x) => x !== p.id),
+                      )
+                    }
+                  />
+                  <Label htmlFor={`ped-${p.id}`} className="flex-1 cursor-pointer font-normal">
+                    Pedido nº {String(p.numero).padStart(4, "0")}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {p.situacao.replace(/_/g, " ")}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Depósito: {(p.depositos as { nome: string } | null)?.nome ?? "—"}
+                      {bloqueado ? " · outro depósito" : ""}
+                    </span>
+                  </Label>
+                  <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
+                </li>
+              );
+            })}
             {selecionados.length > 0 && (
               <li className="flex items-center justify-end gap-2 bg-muted/40 p-3 text-sm">
                 Total da nota
