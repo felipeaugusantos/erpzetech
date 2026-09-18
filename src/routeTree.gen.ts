@@ -20,6 +20,7 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
 import { Route as AuthenticatedContasPagarRouteImport } from './routes/_authenticated/contas-pagar'
 import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
 import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticated/cotacoes'
@@ -122,6 +123,12 @@ const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
     path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContasBancariasRoute =
+  AuthenticatedContasBancariasRouteImport.update({
+    id: '/contas-bancarias',
+    path: '/contas-bancarias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedContasPagarRoute =
@@ -386,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/cotacoes': typeof AuthenticatedCotacoesRoute
@@ -444,6 +452,7 @@ export interface FileRoutesByTo {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/cotacoes': typeof AuthenticatedCotacoesRoute
@@ -504,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/_authenticated/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
   '/_authenticated/cotacoes': typeof AuthenticatedCotacoesRoute
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/comissoes'
     | '/configuracoes'
+    | '/contas-bancarias'
     | '/contas-pagar'
     | '/contas-receber'
     | '/cotacoes'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/comissoes'
     | '/configuracoes'
+    | '/contas-bancarias'
     | '/contas-pagar'
     | '/contas-receber'
     | '/cotacoes'
@@ -681,6 +693,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes-obras'
     | '/_authenticated/comissoes'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/contas-bancarias'
     | '/_authenticated/contas-pagar'
     | '/_authenticated/contas-receber'
     | '/_authenticated/cotacoes'
@@ -813,6 +826,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contas-bancarias': {
+      id: '/_authenticated/contas-bancarias'
+      path: '/contas-bancarias'
+      fullPath: '/contas-bancarias'
+      preLoaderRoute: typeof AuthenticatedContasBancariasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/contas-pagar': {
@@ -1148,6 +1168,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
   AuthenticatedContasPagarRoute: typeof AuthenticatedContasPagarRoute
   AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
   AuthenticatedCotacoesRoute: typeof AuthenticatedCotacoesRoute
@@ -1204,6 +1225,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
   AuthenticatedContasPagarRoute: AuthenticatedContasPagarRoute,
   AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,
   AuthenticatedCotacoesRoute: AuthenticatedCotacoesRoute,
