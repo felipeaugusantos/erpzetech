@@ -330,9 +330,11 @@ function Relatorio() {
           label="Clientes para o equilíbrio"
           value={num(clientesEquilibrio, 0)}
           hint={
-            mesesRetorno > 0
-              ? `Investimento retorna em ~${num(mesesRetorno, 0)} meses`
-              : "Informe preço e custos para calcular"
+            clientesEquilibrio === 0
+              ? "Informe a mensalidade e os custos para calcular"
+              : mesesRetorno > 0
+                ? `Investimento retorna em ~${num(mesesRetorno, 0)} meses`
+                : `A meta do ano 1 ainda não cobre o custo mensal`
           }
           icon={Target}
         />
