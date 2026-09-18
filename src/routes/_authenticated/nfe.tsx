@@ -97,6 +97,24 @@ function Nfe() {
   const transmitir = useServerFn(transmitirNfe);
   const consultar = useServerFn(consultarNfe);
   const pegarArquivos = useServerFn(arquivosNfe);
+  const verificarEmissor = useServerFn(statusEmissor);
+
+  type StatusConta = {
+    conectado: boolean;
+    mensagem: string;
+    empresas: { cpfCnpj: string; nome: string }[];
+    certificados: { nome: string; validade: string }[];
+  };
+  const [statusConta, setStatusConta] = useState<StatusConta | null>(null);
+  const testarEmissor = useMutation({
+    mutationFn: async () => (await verificarEmissor({ data: {} })) as StatusConta,
+    onSuccess: (r) => {
+      setStatusConta(r);
+      if (r.conectado) toast.success("Conexão com o emissor fiscal funcionando");
+      else toast.error(r.mensagem);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const enviarSefaz = useMutation({
     mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
