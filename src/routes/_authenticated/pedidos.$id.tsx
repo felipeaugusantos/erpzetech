@@ -60,6 +60,11 @@ function PedidoDetalhe() {
   const [obsEntrega, setObsEntrega] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const [contasOpen, setContasOpen] = useState(false);
+  const [parcelasReceber, setParcelasReceber] = useState("1");
+  const [primeiroVencimento, setPrimeiroVencimento] = useState(hojeISO());
+  const [formaReceber, setFormaReceber] = useState("pix");
+  const queryClient = qc;
 
   const { data, isLoading } = useQuery({
     queryKey: ["pedido", id],
