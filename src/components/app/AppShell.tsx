@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  Tag,
   Truck,
   Users,
   Wallet,
