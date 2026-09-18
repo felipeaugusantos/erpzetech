@@ -33,12 +33,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/motoristas")({
   head: () => ({
     meta: [
-      { title: "Motoristas — Ze Obra" },
+      { title: "Motoristas — ERP Ze Tech" },
       {
         name: "description",
         content: "Motoristas da loja com CNH, validade, telefone e veículo habitual.",
       },
-      { property: "og:title", content: "Motoristas — Ze Obra" },
+      { property: "og:title", content: "Motoristas — ERP Ze Tech" },
       { property: "og:description", content: "Equipe responsável pelas entregas de material." },
     ],
   }),

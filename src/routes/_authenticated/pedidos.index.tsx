@@ -41,12 +41,12 @@ import { situacoesPedido, corSituacao, labelSituacao } from "@/lib/pedido";
 export const Route = createFileRoute("/_authenticated/pedidos/")({
   head: () => ({
     meta: [
-      { title: "Pedidos — Ze Obra" },
+      { title: "Pedidos — ERP Ze Tech" },
       {
         name: "description",
         content: "Pedidos com separação, conferência e entrega acompanhados por timeline.",
       },
-      { property: "og:title", content: "Pedidos — Ze Obra" },
+      { property: "og:title", content: "Pedidos — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Do pagamento à entrega: acompanhe cada etapa do pedido da loja.",

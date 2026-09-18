@@ -23,13 +23,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/giro-estoque")({
   head: () => ({
     meta: [
-      { title: "Giro de estoque e sugestão de compra — Ze Obra" },
+      { title: "Giro de estoque e sugestão de compra — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Curva ABC pelo giro de venda, cobertura em dias e quanto comprar de cada produto para 15, 30 ou 60 dias.",
       },
-      { property: "og:title", content: "Giro de estoque e sugestão de compra — Ze Obra" },
+      { property: "og:title", content: "Giro de estoque e sugestão de compra — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Veja o giro de cada produto e a quantidade sugerida de compra para 15, 30 e 60 dias.",

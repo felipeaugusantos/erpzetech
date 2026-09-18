@@ -259,7 +259,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           indFinal: pj ? 0 : 1,
           indPres: 1,
           procEmi: 0,
-          verProc: "Ze Obra 1.0",
+          verProc: "ERP Ze Tech 1.0",
         },
         emit: {
           CNPJ: cnpjEmitente,

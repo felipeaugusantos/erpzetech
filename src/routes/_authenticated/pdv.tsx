@@ -35,13 +35,13 @@ import {
 export const Route = createFileRoute("/_authenticated/pdv")({
   head: () => ({
     meta: [
-      { title: "PDV — venda rápida — Ze Obra" },
+      { title: "PDV — venda rápida — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Venda de balcão com leitura de código de barras, cupom impresso na hora, baixa de estoque no depósito e lançamento automático no caixa.",
       },
-      { property: "og:title", content: "PDV — venda rápida — Ze Obra" },
+      { property: "og:title", content: "PDV — venda rápida — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Passe o código de barras, receba o pagamento, imprima o cupom e emita a nota.",
@@ -271,7 +271,7 @@ function Pdv() {
         pedidoId,
         numero: String(pedido?.numero ?? "—").padStart(4, "0"),
         emitidoEm: dateTimeBR(pedido?.created_at ?? new Date().toISOString()),
-        loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+        loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
         deposito: nomeDeposito,
         cliente:
           (pedido?.clientes as { nome: string } | null)?.nome ?? nomeCliente,

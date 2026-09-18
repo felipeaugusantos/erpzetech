@@ -17,9 +17,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
     meta: [
-      { title: "Usuários e perfis — Ze Obra" },
+      { title: "Usuários e perfis — ERP Ze Tech" },
       { name: "description", content: "Usuários da empresa, perfis de acesso e permissões por módulo." },
-      { property: "og:title", content: "Usuários e perfis — Ze Obra" },
+      { property: "og:title", content: "Usuários e perfis — ERP Ze Tech" },
       { property: "og:description", content: "Controle de acesso da equipe." },
     ],
   }),

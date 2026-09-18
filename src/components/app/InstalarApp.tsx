@@ -66,7 +66,7 @@ export function InstalarApp({ className }: { className?: string }) {
       <Dialog open={ajuda} onOpenChange={setAjuda}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Instalar o Ze Obra no celular</DialogTitle>
+            <DialogTitle>Instalar o ERP Ze Tech no celular</DialogTitle>
             <DialogDescription>
               Depois de instalar, o atalho abre direto no PDV de venda rápida, em tela cheia.
             </DialogDescription>

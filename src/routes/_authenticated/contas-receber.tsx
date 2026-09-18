@@ -43,12 +43,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/contas-receber")({
   head: () => ({
     meta: [
-      { title: "Contas a receber — Ze Obra" },
+      { title: "Contas a receber — ERP Ze Tech" },
       {
         name: "description",
         content: "Recebimentos de clientes, parcelas, vencimentos e baixas no caixa.",
       },
-      { property: "og:title", content: "Contas a receber — Ze Obra" },
+      { property: "og:title", content: "Contas a receber — ERP Ze Tech" },
       { property: "og:description", content: "Controle do que a loja tem para receber." },
     ],
   }),

@@ -31,13 +31,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/filial-extra")({
   head: () => ({
     meta: [
-      { title: "Filial extra — Ze Obra" },
+      { title: "Filial extra — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Monte a segunda loja antes de pagar a implantação: depósito próprio, produtos com custo e numeração de NF-e da filial.",
       },
-      { property: "og:title", content: "Filial extra — Ze Obra" },
+      { property: "og:title", content: "Filial extra — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Depósito, produtos, custos e NF-e própria da filial extra.",

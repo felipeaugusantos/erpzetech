@@ -63,12 +63,12 @@ import { Badge } from "@/components/ui/badge";
 export const Route = createFileRoute("/_authenticated/pedidos/$id")({
   head: () => ({
     meta: [
-      { title: "Pedido — Ze Obra" },
+      { title: "Pedido — ERP Ze Tech" },
       {
         name: "description",
         content: "Detalhe do pedido: itens, separação, conferência, entregas e histórico.",
       },
-      { property: "og:title", content: "Pedido — Ze Obra" },
+      { property: "og:title", content: "Pedido — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Acompanhe separação, conferência e entregas parciais do pedido.",
@@ -1210,7 +1210,7 @@ function PedidoDetalhe() {
               tipo: "Pedido",
               numero: String(pedido.numero).padStart(4, "0"),
               emitidoEm: dateTimeBR(pedido.created_at),
-              loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "Ze Obra",
+              loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
               deposito: (pedido.depositos as unknown as { nome: string } | null)?.nome ?? null,
               cliente: cliente?.nome ?? "Consumidor final",
               obra: obra?.nome ?? null,

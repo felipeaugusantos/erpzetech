@@ -243,7 +243,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
           <ZeLogo />
           <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold tracking-wide">ZE OBRA</p>
+            <p className="truncate font-display text-sm font-bold tracking-wide">ERP ZE TECH</p>
             <p className="truncate text-[11px] text-sidebar-foreground/60">por Ze Tech</p>
           </div>
           <button

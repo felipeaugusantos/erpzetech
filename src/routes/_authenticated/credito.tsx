@@ -23,12 +23,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/credito")({
   head: () => ({
     meta: [
-      { title: "Crédito de clientes — Ze Obra" },
+      { title: "Crédito de clientes — ERP Ze Tech" },
       {
         name: "description",
         content: "Limites de crédito, clientes acima do limite e autorizações do gestor.",
       },
-      { property: "og:title", content: "Crédito de clientes — Ze Obra" },
+      { property: "og:title", content: "Crédito de clientes — ERP Ze Tech" },
       { property: "og:description", content: "Aprovação de vendas acima do limite de crédito." },
     ],
   }),

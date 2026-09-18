@@ -20,12 +20,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({
     meta: [
-      { title: "Movimentações — Ze Obra" },
+      { title: "Movimentações — ERP Ze Tech" },
       {
         name: "description",
         content: "Histórico permanente de entradas, saídas, ajustes, reservas e transferências.",
       },
-      { property: "og:title", content: "Movimentações — Ze Obra" },
+      { property: "og:title", content: "Movimentações — ERP Ze Tech" },
       { property: "og:description", content: "Rastreabilidade completa do estoque." },
     ],
   }),

@@ -14,12 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — Ze Obra" },
+      { title: "Entrar — ERP Ze Tech" },
       {
         name: "description",
-        content: "Acesse o Ze Obra para gerenciar clientes, produtos e estoque da sua loja.",
+        content: "Acesse o ERP Ze Tech para gerenciar clientes, produtos e estoque da sua loja.",
       },
-      { property: "og:title", content: "Entrar no Ze Obra" },
+      { property: "og:title", content: "Entrar no ERP Ze Tech" },
       { property: "og:description", content: "Acesso ao ERP da sua loja de materiais." },
     ],
   }),
@@ -86,7 +86,7 @@ function AuthPage() {
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-lg font-bold tracking-wide">ZE OBRA</span>
+          <span className="font-display text-lg font-bold tracking-wide">ERP ZE TECH</span>
         </Link>
         <div className="max-w-md">
           <HardHat className="mb-4 size-9 text-sidebar-primary" />
