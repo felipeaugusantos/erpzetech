@@ -203,7 +203,9 @@ function Nfe() {
       const [pedidos, vinculos] = await Promise.all([
         supabase
           .from("pedidos")
-          .select("id, numero, total, situacao, cliente_id, clientes(nome)")
+          .select(
+            "id, numero, total, situacao, cliente_id, deposito_id, clientes(nome), depositos(nome)",
+          )
           .neq("situacao", "cancelado")
           .order("numero", { ascending: false }),
         supabase.from("nfe_pedidos").select("pedido_id, nfe(situacao)"),
@@ -244,6 +246,8 @@ function Nfe() {
   }, [elegiveis]);
 
   const pedidosDoCliente = elegiveis.filter((p) => p.cliente_id === clienteId);
+  const depositoTravado =
+    pedidosDoCliente.find((p) => p.id === selecionados[0])?.deposito_id ?? null;
   const totalSelecionado = pedidosDoCliente
     .filter((p) => selecionados.includes(p.id))
     .reduce((s, p) => s + Number(p.total), 0);
@@ -342,8 +346,8 @@ function Nfe() {
       <div className="panel mt-6 p-4">
         <h2 className="font-display text-sm font-semibold">Gerar nota de um ou vários pedidos</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Escolha o cliente e marque os pedidos: vários pedidos do mesmo cliente podem virar uma
-          única nota.
+          Escolha o cliente e marque os pedidos: só é possível juntar em uma única nota os pedidos
+          do mesmo cliente que saem do mesmo depósito.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Select
@@ -377,24 +381,37 @@ function Nfe() {
 
         {clienteId && (
           <ul className="mt-3 divide-y divide-border rounded-lg border">
-            {pedidosDoCliente.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 p-3 text-sm">
-                <Checkbox
-                  id={`ped-${p.id}`}
-                  checked={selecionados.includes(p.id)}
-                  onCheckedChange={(v) =>
-                    setSelecionados((atual) =>
-                      v ? [...atual, p.id] : atual.filter((x) => x !== p.id),
-                    )
-                  }
-                />
-                <Label htmlFor={`ped-${p.id}`} className="flex-1 cursor-pointer font-normal">
-                  Pedido nº {String(p.numero).padStart(4, "0")}
-                  <span className="ml-2 text-xs text-muted-foreground">{p.situacao.replace(/_/g, " ")}</span>
-                </Label>
-                <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
-              </li>
-            ))}
+            {pedidosDoCliente.map((p) => {
+              const bloqueado = !!depositoTravado && p.deposito_id !== depositoTravado;
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center gap-3 p-3 text-sm ${bloqueado ? "opacity-50" : ""}`}
+                >
+                  <Checkbox
+                    id={`ped-${p.id}`}
+                    disabled={bloqueado}
+                    checked={selecionados.includes(p.id)}
+                    onCheckedChange={(v) =>
+                      setSelecionados((atual) =>
+                        v ? [...atual, p.id] : atual.filter((x) => x !== p.id),
+                      )
+                    }
+                  />
+                  <Label htmlFor={`ped-${p.id}`} className="flex-1 cursor-pointer font-normal">
+                    Pedido nº {String(p.numero).padStart(4, "0")}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {p.situacao.replace(/_/g, " ")}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Depósito: {(p.depositos as { nome: string } | null)?.nome ?? "—"}
+                      {bloqueado ? " · outro depósito" : ""}
+                    </span>
+                  </Label>
+                  <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
+                </li>
+              );
+            })}
             {selecionados.length > 0 && (
               <li className="flex items-center justify-end gap-2 bg-muted/40 p-3 text-sm">
                 Total da nota
