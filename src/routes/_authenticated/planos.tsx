@@ -115,6 +115,8 @@ function Planos() {
   const { data: session } = useSessionData();
   const podeEditar =
     session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
+  /** Implantar filial extra é operação exclusiva da equipe Ze Tech. */
+  const { data: operadorSaas } = useSaasOperador();
 
   const { data, isLoading } = useQuery({
     queryKey: ["assinatura"],
