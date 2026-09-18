@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  BarChart3,
   Boxes,
   HardHat,
   LayoutGrid,
+  Receipt,
   Ruler,
   ShieldCheck,
   Truck,
+  Wallet,
   Warehouse,
 } from "lucide-react";
 
