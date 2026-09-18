@@ -228,7 +228,15 @@ function Usuarios() {
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
+          {isAdmin && (
+            <div className="mb-3 flex justify-end">
+              <Button onClick={() => setOpenNovo(true)}>
+                <Plus className="mr-2 size-4" /> Novo usuário
+              </Button>
+            </div>
+          )}
           {isLoading ? (
+
             <div className="panel h-52 animate-pulse" />
           ) : (data?.usuarios.length ?? 0) === 0 ? (
             <EmptyState title="Nenhum usuário encontrado." />
