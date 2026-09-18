@@ -67,32 +67,47 @@ function Comissoes() {
     session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
 
   const { periodo, setDe, setAte } = usePeriodo();
+  const [depositoId, setDepositoId] = useState("todos");
 
   const { data, isLoading } = useQuery({
     queryKey: ["comissoes", periodo.de, periodo.ate],
     queryFn: async () => {
-      const [comRes, regraRes, perfRes] = await Promise.all([
+      const [comRes, regraRes, perfRes, depRes] = await Promise.all([
         supabase
           .from("comissoes")
-          .select("*, profiles(nome), pedidos(numero, clientes(nome))")
+          .select(
+            "*, profiles(nome), pedidos(numero, deposito_id, depositos(nome), clientes(nome))",
+          )
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`)
           .order("created_at", { ascending: false }),
         supabase.from("vendedor_comissao_regras").select("*, profiles(nome, email)"),
         supabase.from("profiles").select("id, nome, email, ativo").order("nome"),
+        supabase.from("depositos").select("id, nome").order("nome"),
       ]);
       if (comRes.error) throw comRes.error;
       return {
         comissoes: comRes.data ?? [],
         regras: regraRes.data ?? [],
         vendedores: perfRes.data ?? [],
+        depositos: depRes.data ?? [],
       };
     },
   });
 
-  const comissoes = data?.comissoes ?? [];
+  const todas = data?.comissoes ?? [];
   const regras = data?.regras ?? [];
   const vendedores = data?.vendedores ?? [];
+  const depositos = data?.depositos ?? [];
+
+  /** Filtro por depósito de saída da mercadoria do pedido. */
+  const comissoes = useMemo(
+    () =>
+      depositoId === "todos"
+        ? todas
+        : todas.filter((c) => c.pedidos?.deposito_id === depositoId),
+    [todas, depositoId],
+  );
 
   const resumo = useMemo(() => {
     let aPagar = 0;
@@ -271,6 +286,22 @@ function Comissoes() {
             onChange={(e) => setAte(e.target.value)}
           />
         </div>
+        <div className="min-w-48">
+          <Label>Depósito</Label>
+          <Select value={depositoId} onValueChange={setDepositoId}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os depósitos</SelectItem>
+              {depositos.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <p className="text-xs text-muted-foreground">Mesmo período do painel e dos relatórios.</p>
       </div>
 
@@ -329,6 +360,7 @@ function Comissoes() {
                     <TableHead>Vendedor</TableHead>
                     <TableHead>Pedido</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Depósito</TableHead>
                     <TableHead className="text-right">Venda</TableHead>
                     <TableHead className="text-right">Base</TableHead>
                     <TableHead className="text-right">%</TableHead>
@@ -349,6 +381,9 @@ function Comissoes() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {c.pedidos?.clientes?.nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.pedidos?.depositos?.nome ?? "—"}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(Number(c.valor_venda))}
