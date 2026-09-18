@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      assinatura_faturas: {
+        Row: {
+          assinatura_id: string
+          competencia: string | null
+          created_at: string
+          descricao: string
+          forma_pagamento: string | null
+          id: string
+          pago_em: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          valor: number
+          valor_pago: number
+          vencimento: string
+        }
+        Insert: {
+          assinatura_id: string
+          competencia?: string | null
+          created_at?: string
+          descricao: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          tenant_id: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento: string
+        }
+        Update: {
+          assinatura_id?: string
+          competencia?: string | null
+          created_at?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinatura_faturas_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "assinaturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assinaturas: {
+        Row: {
+          created_at: string
+          dia_vencimento: number
+          filiais_extras: number
+          id: string
+          implantacao_paga: boolean
+          observacoes: string | null
+          plano: string
+          situacao: string
+          tenant_id: string
+          teste_ate: string | null
+          updated_at: string
+          valor_filial_extra: number
+          valor_implantacao: number
+          valor_mensal: number
+        }
+        Insert: {
+          created_at?: string
+          dia_vencimento?: number
+          filiais_extras?: number
+          id?: string
+          implantacao_paga?: boolean
+          observacoes?: string | null
+          plano?: string
+          situacao?: string
+          tenant_id: string
+          teste_ate?: string | null
+          updated_at?: string
+          valor_filial_extra?: number
+          valor_implantacao?: number
+          valor_mensal?: number
+        }
+        Update: {
+          created_at?: string
+          dia_vencimento?: number
+          filiais_extras?: number
+          id?: string
+          implantacao_paga?: boolean
+          observacoes?: string | null
+          plano?: string
+          situacao?: string
+          tenant_id?: string
+          teste_ate?: string | null
+          updated_at?: string
+          valor_filial_extra?: number
+          valor_implantacao?: number
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       auditoria: {
         Row: {
           created_at: string
@@ -945,6 +1052,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contatos: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          mensagem: string | null
+          nome: string
+          plano_interesse: string | null
+          situacao: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          mensagem?: string | null
+          nome: string
+          plano_interesse?: string | null
+          situacao?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          mensagem?: string | null
+          nome?: string
+          plano_interesse?: string | null
+          situacao?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
       }
       credito_autorizacoes: {
         Row: {

@@ -123,6 +123,7 @@ const groups: Group[] = [
     icon: ShieldCheck,
     items: [
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
     ],
   },
