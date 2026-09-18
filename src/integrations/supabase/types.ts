@@ -340,6 +340,119 @@ export type Database = {
           },
         ]
       }
+      entrega_itens: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          pedido_item_id: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          pedido_item_id: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          pedido_item_id?: string
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_itens_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_itens_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregas: {
+        Row: {
+          created_at: string
+          data_entrega: string
+          id: string
+          numero: number | null
+          observacao: string | null
+          pedido_id: string
+          recebedor: string | null
+          situacao: string
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_entrega?: string
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          pedido_id: string
+          recebedor?: string | null
+          situacao?: string
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_entrega?: string
+          id?: string
+          numero?: number | null
+          observacao?: string | null
+          pedido_id?: string
+          recebedor?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_movimentacoes: {
         Row: {
           created_at: string
@@ -702,6 +815,481 @@ export type Database = {
           },
         ]
       }
+      orcamento_itens: {
+        Row: {
+          created_at: string
+          desconto: number
+          id: string
+          observacao: string | null
+          orcamento_id: string
+          preco_unitario: number
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          desconto?: number
+          id?: string
+          observacao?: string | null
+          orcamento_id: string
+          preco_unitario?: number
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          desconto?: number
+          id?: string
+          observacao?: string | null
+          orcamento_id?: string
+          preco_unitario?: number
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_itens_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          cliente_id: string
+          condicao_pagamento: string | null
+          created_at: string
+          deleted_at: string | null
+          desconto: number
+          empresa_id: string | null
+          filial_id: string | null
+          frete: number
+          id: string
+          motivo_rejeicao: string | null
+          numero: number | null
+          obra_id: string | null
+          observacoes: string | null
+          prazo_entrega: string | null
+          situacao: Database["public"]["Enums"]["orcamento_situacao"]
+          subtotal: number
+          tenant_id: string
+          total: number
+          updated_at: string
+          validade: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cliente_id: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          desconto?: number
+          empresa_id?: string | null
+          filial_id?: string | null
+          frete?: number
+          id?: string
+          motivo_rejeicao?: string | null
+          numero?: number | null
+          obra_id?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["orcamento_situacao"]
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+          validade?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cliente_id?: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          desconto?: number
+          empresa_id?: string | null
+          filial_id?: string | null
+          frete?: number
+          id?: string
+          motivo_rejeicao?: string | null
+          numero?: number | null
+          obra_id?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["orcamento_situacao"]
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+          validade?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_historico: {
+        Row: {
+          created_at: string
+          id: string
+          observacao: string | null
+          pedido_id: string
+          situacao_anterior:
+            | Database["public"]["Enums"]["pedido_situacao"]
+            | null
+          situacao_nova: Database["public"]["Enums"]["pedido_situacao"]
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pedido_id: string
+          situacao_anterior?:
+            | Database["public"]["Enums"]["pedido_situacao"]
+            | null
+          situacao_nova: Database["public"]["Enums"]["pedido_situacao"]
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pedido_id?: string
+          situacao_anterior?:
+            | Database["public"]["Enums"]["pedido_situacao"]
+            | null
+          situacao_nova?: Database["public"]["Enums"]["pedido_situacao"]
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_historico_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_itens: {
+        Row: {
+          created_at: string
+          desconto: number
+          divergencia: string | null
+          id: string
+          observacao: string | null
+          pedido_id: string
+          preco_unitario: number
+          produto_id: string
+          quantidade: number
+          quantidade_conferida: number
+          quantidade_entregue: number
+          quantidade_separada: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          desconto?: number
+          divergencia?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id: string
+          preco_unitario?: number
+          produto_id: string
+          quantidade: number
+          quantidade_conferida?: number
+          quantidade_entregue?: number
+          quantidade_separada?: number
+          tenant_id: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          desconto?: number
+          divergencia?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id?: string
+          preco_unitario?: number
+          produto_id?: string
+          quantidade?: number
+          quantidade_conferida?: number
+          quantidade_entregue?: number
+          quantidade_separada?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente_id: string
+          condicao_pagamento: string | null
+          created_at: string
+          deposito_id: string
+          desconto: number
+          empresa_id: string | null
+          entrega_bairro: string | null
+          entrega_cep: string | null
+          entrega_cidade: string | null
+          entrega_endereco: string | null
+          entrega_estado: string | null
+          entrega_numero: string | null
+          estoque_reservado: boolean
+          filial_id: string | null
+          forma_pagamento: string | null
+          frete: number
+          id: string
+          motivo_cancelamento: string | null
+          numero: number | null
+          obra_id: string | null
+          observacoes: string | null
+          orcamento_id: string | null
+          previsao_entrega: string | null
+          situacao: Database["public"]["Enums"]["pedido_situacao"]
+          subtotal: number
+          tenant_id: string
+          total: number
+          updated_at: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          deposito_id: string
+          desconto?: number
+          empresa_id?: string | null
+          entrega_bairro?: string | null
+          entrega_cep?: string | null
+          entrega_cidade?: string | null
+          entrega_endereco?: string | null
+          entrega_estado?: string | null
+          entrega_numero?: string | null
+          estoque_reservado?: boolean
+          filial_id?: string | null
+          forma_pagamento?: string | null
+          frete?: number
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          obra_id?: string | null
+          observacoes?: string | null
+          orcamento_id?: string | null
+          previsao_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["pedido_situacao"]
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          condicao_pagamento?: string | null
+          created_at?: string
+          deposito_id?: string
+          desconto?: number
+          empresa_id?: string | null
+          entrega_bairro?: string | null
+          entrega_cep?: string | null
+          entrega_cidade?: string | null
+          entrega_endereco?: string | null
+          entrega_estado?: string | null
+          entrega_numero?: string | null
+          estoque_reservado?: boolean
+          filial_id?: string | null
+          forma_pagamento?: string | null
+          frete?: number
+          id?: string
+          motivo_cancelamento?: string | null
+          numero?: number | null
+          obra_id?: string | null
+          observacoes?: string | null
+          orcamento_id?: string | null
+          previsao_entrega?: string | null
+          situacao?: Database["public"]["Enums"]["pedido_situacao"]
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_conversoes: {
         Row: {
           ativo: boolean
@@ -1031,6 +1619,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      converter_orcamento_em_pedido: {
+        Args: { p_deposito_id: string; p_orcamento_id: string }
+        Returns: string
+      }
       current_tenant_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1039,6 +1631,25 @@ export type Database = {
         }
         Returns: boolean
       }
+      pedido_avancar_status: {
+        Args: {
+          p_observacao?: string
+          p_pedido_id: string
+          p_situacao: Database["public"]["Enums"]["pedido_situacao"]
+        }
+        Returns: undefined
+      }
+      pedido_registrar_entrega: {
+        Args: {
+          p_itens: Json
+          p_observacao?: string
+          p_pedido_id: string
+          p_recebedor?: string
+        }
+        Returns: string
+      }
+      recalcular_orcamento: { Args: { p_id: string }; Returns: undefined }
+      recalcular_pedido: { Args: { p_id: string }; Returns: undefined }
       registrar_movimentacao: {
         Args: {
           p_deposito_destino_id?: string
@@ -1078,6 +1689,24 @@ export type Database = {
         | "pausada"
         | "concluida"
         | "cancelada"
+      orcamento_situacao:
+        | "rascunho"
+        | "enviado"
+        | "em_negociacao"
+        | "aprovado"
+        | "rejeitado"
+        | "expirado"
+      pedido_situacao:
+        | "aguardando_pagamento"
+        | "aprovado"
+        | "separacao"
+        | "separado"
+        | "conferencia"
+        | "pronto_entrega"
+        | "em_rota"
+        | "entregue"
+        | "concluido"
+        | "cancelado"
       pessoa_tipo: "PF" | "PJ"
     }
     CompositeTypes: {
@@ -1233,6 +1862,26 @@ export const Constants = {
         "pausada",
         "concluida",
         "cancelada",
+      ],
+      orcamento_situacao: [
+        "rascunho",
+        "enviado",
+        "em_negociacao",
+        "aprovado",
+        "rejeitado",
+        "expirado",
+      ],
+      pedido_situacao: [
+        "aguardando_pagamento",
+        "aprovado",
+        "separacao",
+        "separado",
+        "conferencia",
+        "pronto_entrega",
+        "em_rota",
+        "entregue",
+        "concluido",
+        "cancelado",
       ],
       pessoa_tipo: ["PF", "PJ"],
     },
