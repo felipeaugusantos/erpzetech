@@ -27,6 +27,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
+import { ZeLogo } from "@/components/app/ZeLogo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -162,9 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <span className="grid size-9 place-items-center rounded-md bg-sidebar-primary font-display text-base font-bold text-sidebar-primary-foreground">
-            ZO
-          </span>
+          <ZeLogo />
           <div className="min-w-0">
             <p className="truncate font-display text-sm font-bold tracking-wide">ZE OBRA</p>
             <p className="truncate text-[11px] text-sidebar-foreground/60">por Ze Tech</p>
