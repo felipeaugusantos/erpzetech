@@ -13,12 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — Enzova Build" },
+      { title: "Entrar — Ze Obra" },
       {
         name: "description",
-        content: "Acesse o Enzova Build para gerenciar clientes, produtos e estoque da sua loja.",
+        content: "Acesse o Ze Obra para gerenciar clientes, produtos e estoque da sua loja.",
       },
-      { property: "og:title", content: "Entrar no Enzova Build" },
+      { property: "og:title", content: "Entrar no Ze Obra" },
       { property: "og:description", content: "Acesso ao ERP da sua loja de materiais." },
     ],
   }),

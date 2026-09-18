@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Enzova Build — ERP para lojas de materiais de construção" },
+      { title: "Ze Obra — ERP para lojas de materiais de construção" },
       {
         name: "description",
         content:
-          "Enzova Build controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
+          "Ze Obra controla clientes, obras, produtos, conversão de unidades e estoque em múltiplos depósitos e filiais.",
       },
-      { property: "og:title", content: "Enzova Build — ERP para materiais de construção" },
+      { property: "og:title", content: "Ze Obra — ERP para materiais de construção" },
       {
         property: "og:description",
         content: "Do balcão ao depósito: clientes, obras, produtos e estoque em um só sistema.",
@@ -114,7 +114,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        Enzova Build • Multiempresa, multifilial e multidepósito
+        Ze Obra • Multiempresa, multifilial e multidepósito
       </footer>
     </div>
   );

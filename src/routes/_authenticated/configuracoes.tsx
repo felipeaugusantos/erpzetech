@@ -24,9 +24,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações — Enzova Build" },
+      { title: "Configurações — Ze Obra" },
       { name: "description", content: "Dados da empresa, filiais e preferências do usuário." },
-      { property: "og:title", content: "Configurações — Enzova Build" },
+      { property: "og:title", content: "Configurações — Ze Obra" },
       { property: "og:description", content: "Configure empresa e filiais do sistema." },
     ],
   }),

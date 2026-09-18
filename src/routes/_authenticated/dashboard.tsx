@@ -33,9 +33,9 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Enzova Build" },
+      { title: "Dashboard — Ze Obra" },
       { name: "description", content: "Indicadores de estoque, cadastros e movimentações da loja." },
-      { property: "og:title", content: "Dashboard — Enzova Build" },
+      { property: "og:title", content: "Dashboard — Ze Obra" },
       { property: "og:description", content: "Visão geral da operação da loja." },
     ],
   }),

@@ -20,12 +20,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({
     meta: [
-      { title: "Movimentações — Enzova Build" },
+      { title: "Movimentações — Ze Obra" },
       {
         name: "description",
         content: "Histórico permanente de entradas, saídas, ajustes, reservas e transferências.",
       },
-      { property: "og:title", content: "Movimentações — Enzova Build" },
+      { property: "og:title", content: "Movimentações — Ze Obra" },
       { property: "og:description", content: "Rastreabilidade completa do estoque." },
     ],
   }),
