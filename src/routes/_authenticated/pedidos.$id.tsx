@@ -505,6 +505,48 @@ function PedidoDetalhe() {
             )}
           </div>
 
+          {contasPedido.length > 0 && (
+            <div className="panel p-4">
+              <p className="font-display font-semibold">Parcelas a receber</p>
+              <div className="mt-3 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Forma</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Recebido</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contasPedido.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="text-numeric">
+                          {c.parcela}/{c.parcelas}
+                        </TableCell>
+                        <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
+                        <TableCell className="text-sm">{labelForma(formaReceber)}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(c.valor))}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(c.valor_recebido))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={corConta(c.situacao, c.vencimento)}>
+                            {labelConta(c.situacao, c.vencimento)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           {(data?.entregas ?? []).length > 0 && (
             <div className="panel p-4">
               <p className="font-display font-semibold">Entregas registradas</p>
