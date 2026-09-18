@@ -301,6 +301,7 @@ function DepositoDetalhe() {
                   <TableHead className="text-right">Físico</TableHead>
                   <TableHead className="text-right">Reservado</TableHead>
                   <TableHead className="text-right">Disponível</TableHead>
+                  <TableHead className="text-right">Custo neste depósito</TableHead>
                   <TableHead>Conversão</TableHead>
                   <TableHead />
                 </TableRow>
