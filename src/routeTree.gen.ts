@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
+import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -91,6 +92,12 @@ const AuthenticatedBalancoFiscalRoute =
   AuthenticatedBalancoFiscalRouteImport.update({
     id: '/balanco-fiscal',
     path: '/balanco-fiscal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBancoMovimentosRoute =
+  AuthenticatedBancoMovimentosRouteImport.update({
+    id: '/banco-movimentos',
+    path: '/banco-movimentos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCaixaRoute = AuthenticatedCaixaRouteImport.update({
@@ -387,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
+  '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/clientes': typeof AuthenticatedClientesRoute
@@ -446,6 +454,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
+  '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/clientes': typeof AuthenticatedClientesRoute
@@ -507,6 +516,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
+  '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/balanco-fiscal'
+    | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
     | '/clientes'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/balanco-fiscal'
+    | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
     | '/clientes'
@@ -687,6 +699,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/_authenticated/balanco-fiscal'
+    | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
     | '/_authenticated/categorias'
     | '/_authenticated/clientes'
@@ -784,6 +797,13 @@ declare module '@tanstack/react-router' {
       path: '/balanco-fiscal'
       fullPath: '/balanco-fiscal'
       preLoaderRoute: typeof AuthenticatedBalancoFiscalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/banco-movimentos': {
+      id: '/_authenticated/banco-movimentos'
+      path: '/banco-movimentos'
+      fullPath: '/banco-movimentos'
+      preLoaderRoute: typeof AuthenticatedBancoMovimentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/caixa': {
@@ -1162,6 +1182,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
+  AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
@@ -1219,6 +1240,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
+  AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
