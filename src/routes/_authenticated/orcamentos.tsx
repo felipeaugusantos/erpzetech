@@ -96,6 +96,7 @@ function Orcamentos() {
   const [filtro, setFiltro] = useState("todos");
   const [open, setOpen] = useState(false);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+  const [via, setVia] = useState(false);
   const [converter, setConverter] = useState<string | null>(null);
   const [depositoId, setDepositoId] = useState("");
 
