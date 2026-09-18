@@ -139,9 +139,17 @@ function Landing() {
           <ZeLogo />
           <span className="font-display text-base font-bold tracking-wide">ZE OBRA</span>
         </div>
-        <Button asChild size="sm">
-          <Link to="/auth">Entrar</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
+            <a href="#planos">Planos</a>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/contato">Contato</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/auth">Entrar</Link>
+          </Button>
+        </div>
       </header>
 
       <section className="mx-auto max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
