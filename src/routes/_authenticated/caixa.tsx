@@ -82,13 +82,16 @@ function Caixa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("caixa_movimentos")
-        .select("*")
+        .select("*, depositos(nome), pedidos(numero, origem)")
         .eq("caixa_id", caixaAtual?.id ?? "")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+
+  const nomeDeposito = (m: (typeof movimentos)[number]) =>
+    (m.depositos as unknown as { nome: string } | null)?.nome ?? null;
 
   const resumo = useMemo(() => {
     let entradas = 0;
@@ -111,6 +114,25 @@ function Caixa() {
     }
     return { entradas, saidas, dinheiro };
   }, [movimentos, caixaAtual]);
+
+  /** Vendas de balcão (PDV) lançadas neste caixa, separadas por depósito de saída. */
+  const vendasPdv = useMemo(() => {
+    const mapa = new Map<string, { deposito: string; vendas: number; valor: number }>();
+    let total = 0;
+    for (const m of movimentos) {
+      if (m.tipo !== "venda") continue;
+      const nome = nomeDeposito(m) ?? "Sem depósito informado";
+      const atual = mapa.get(nome) ?? { deposito: nome, vendas: 0, valor: 0 };
+      atual.vendas += 1;
+      atual.valor += Number(m.valor);
+      mapa.set(nome, atual);
+      total += Number(m.valor);
+    }
+    return {
+      total,
+      lista: [...mapa.values()].sort((a, b) => b.valor - a.valor),
+    };
+  }, [movimentos]);
 
   const abrir = useMutation({
     mutationFn: async () => {

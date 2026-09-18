@@ -96,7 +96,7 @@ function BalancoFiscal() {
         supabase
           .from("pedidos")
           .select(
-            "id, total, situacao, filial_id, created_at, pedido_itens(quantidade, custo_unitario, total)",
+            "id, total, situacao, filial_id, origem, created_at, depositos(nome, filial_id), pedido_itens(quantidade, custo_unitario, total)",
           )
           .neq("situacao", "cancelado")
           .gte("created_at", `${periodo.de}T00:00:00`)
