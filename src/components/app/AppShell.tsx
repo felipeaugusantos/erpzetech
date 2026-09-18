@@ -33,6 +33,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
+import { useSaasOperador } from "@/lib/saas";
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
