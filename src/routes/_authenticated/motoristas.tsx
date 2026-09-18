@@ -408,6 +408,44 @@ function Motoristas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={loginMotorista !== null} onOpenChange={(o) => !o && setLoginMotorista(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar login de {loginMotorista?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">
+              O motorista entra com este e-mail e senha e vê somente as entregas da própria rota.
+            </p>
+            <div>
+              <Label>E-mail do motorista</Label>
+              <Input
+                type="email"
+                value={loginEmail}
+                placeholder="motorista@email.com"
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Senha provisória</Label>
+              <Input
+                value={loginSenha}
+                placeholder="mínimo 8 caracteres"
+                onChange={(e) => setLoginSenha(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoginMotorista(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => criarLogin.mutate()} disabled={criarLogin.isPending}>
+              Criar login
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
