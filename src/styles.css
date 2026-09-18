@@ -204,4 +204,26 @@
     background: #fff;
     color: #000;
   }
+
+  /* Nota de entrada da compra: folha A4. */
+  body:has(#nota-impressa) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#nota-impressa) #nota-impressa,
+  body:has(#nota-impressa) #nota-impressa * {
+    visibility: visible !important;
+  }
+
+  body:has(#nota-impressa) #nota-impressa {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: 190mm;
+    padding: 8mm;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
 }

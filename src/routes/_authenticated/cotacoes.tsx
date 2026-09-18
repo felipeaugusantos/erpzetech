@@ -1,12 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, ShoppingCart, Trophy } from "lucide-react";
+import { Check, Download, Gauge, Plus, ShoppingCart, Trophy, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, num } from "@/lib/format";
+import {
+  avaliarPropostas,
+  baixarArquivo,
+  csvCotacao,
+  lerRespostaCotacao,
+  type ItemCotacao,
+} from "@/lib/cotacao";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,10 +43,13 @@ export const Route = createFileRoute("/_authenticated/cotacoes")({
       {
         name: "description",
         content:
-          "Compare os preços dos fornecedores e gere o pedido de compra com o custo atualizado do produto.",
+          "Envie a planilha de cotação ao fornecedor, importe a resposta e gere o pedido de compra com o melhor preço, prazo e condição de pagamento.",
       },
       { property: "og:title", content: "Cotações de compra — Ze Obra" },
-      { property: "og:description", content: "Comparativo de fornecedores e geração do pedido de compra." },
+      {
+        property: "og:description",
+        content: "Comparativo de fornecedores, planilha de cotação e geração do pedido de compra.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -59,6 +69,7 @@ type Cotacao = {
 };
 
 type CompraItem = {
+  id: string;
   produto_id: string;
   quantidade: number;
   unidade: string;
@@ -81,6 +92,8 @@ function Cotacoes() {
   const [prazo, setPrazo] = useState("");
   const [condicao, setCondicao] = useState("");
   const [obs, setObs] = useState("");
+  const [importarPara, setImportarPara] = useState<string | null>(null);
+  const arquivoRef = useRef<HTMLInputElement | null>(null);
 
   const { data: compras = [], isLoading } = useQuery({
     queryKey: ["compras-cotacao"],
@@ -88,7 +101,7 @@ function Cotacoes() {
       const { data, error } = await supabase
         .from("compras")
         .select(
-          "id, numero, situacao, subtotal, total, created_at, compra_itens(produto_id, quantidade, unidade, custo_unitario, total, produtos(descricao, codigo_interno, custo)), compra_cotacoes(id, fornecedor_id, valor_total, prazo_entrega_dias, condicao_pagamento, observacao, escolhida, fornecedores(nome_fantasia, razao_social))",
+          "id, numero, situacao, subtotal, total, created_at, compra_itens(id, produto_id, quantidade, unidade, custo_unitario, total, produtos(descricao, codigo_interno, custo)), compra_cotacoes(id, fornecedor_id, valor_total, prazo_entrega_dias, condicao_pagamento, observacao, escolhida, fornecedores(nome_fantasia, razao_social))",
         )
         .in("situacao", ["rascunho", "cotacao"])
         .order("numero", { ascending: false });
@@ -116,11 +129,102 @@ function Cotacoes() {
   );
 
   const itens = (compraAtual?.compra_itens ?? []) as unknown as CompraItem[];
-  const cotacoes = ((compraAtual?.compra_cotacoes ?? []) as unknown as Cotacao[])
-    .slice()
-    .sort((a, b) => Number(a.valor_total) - Number(b.valor_total));
-  const melhor = cotacoes[0];
+  const cotacoes = (compraAtual?.compra_cotacoes ?? []) as unknown as Cotacao[];
+
+  const { data: itensCotados = [] } = useQuery({
+    queryKey: ["cotacao-itens", compraAtual?.id],
+    enabled: Boolean(compraAtual?.id) && cotacoes.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("compra_cotacao_itens")
+        .select("id, cotacao_id, compra_item_id, produto_id, quantidade, custo_unitario, total")
+        .in(
+          "cotacao_id",
+          cotacoes.map((c) => c.id),
+        );
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const respondidosPorCotacao = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const i of itensCotados) {
+      if (Number(i.custo_unitario) > 0)
+        mapa.set(i.cotacao_id, (mapa.get(i.cotacao_id) ?? 0) + 1);
+    }
+    return mapa;
+  }, [itensCotados]);
+
+  const avaliadas = useMemo(
+    () =>
+      avaliarPropostas(
+        cotacoes.map((q) => ({
+          id: q.id,
+          fornecedor: nomeFornecedor(q.fornecedores),
+          valor_total: Number(q.valor_total),
+          prazo_entrega_dias: q.prazo_entrega_dias,
+          condicao_pagamento: q.condicao_pagamento,
+          itens_respondidos: respondidosPorCotacao.get(q.id) ?? 0,
+        })),
+      ),
+    [cotacoes, respondidosPorCotacao],
+  );
+
+  const recomendada = avaliadas.find((a) => a.recomendada);
   const baseItens = itens.reduce((s, i) => s + Number(i.total), 0);
+
+  const itensPlanilha: ItemCotacao[] = itens.map((i) => ({
+    compra_item_id: i.id,
+    codigo: i.produtos?.codigo_interno ?? "",
+    descricao: i.produtos?.descricao ?? "",
+    unidade: i.unidade || "UN",
+    quantidade: Number(i.quantidade),
+    custo_atual: Number(i.custo_unitario),
+  }));
+
+  const exportar = (nomeArquivo: string) => {
+    if (itensPlanilha.length === 0) {
+      toast.error("Inclua produtos na compra antes de exportar.");
+      return;
+    }
+    baixarArquivo(nomeArquivo, csvCotacao(itensPlanilha));
+    toast.success("Planilha gerada. Envie ao fornecedor e depois importe a resposta.");
+  };
+
+  const importar = useMutation({
+    mutationFn: async ({ cotacaoId, texto }: { cotacaoId: string; texto: string }) => {
+      const resposta = lerRespostaCotacao(texto, itensPlanilha);
+      if (resposta.itens.length === 0)
+        throw new Error("Nenhum preço válido encontrado na planilha importada.");
+      const { error } = await supabase.rpc("cotacao_registrar_itens", {
+        p_cotacao_id: cotacaoId,
+        p_itens: resposta.itens.map((i) => ({
+          compra_item_id: i.compra_item_id,
+          custo_unitario: i.custo_unitario,
+          observacao: i.observacao,
+        })),
+        ...(resposta.prazo_entrega_dias !== null
+          ? { p_prazo_entrega_dias: resposta.prazo_entrega_dias }
+          : {}),
+        ...(resposta.condicao_pagamento
+          ? { p_condicao_pagamento: resposta.condicao_pagamento }
+          : {}),
+      });
+      if (error) throw error;
+      return resposta;
+    },
+    onSuccess: (resposta) => {
+      toast.success(
+        `${resposta.itens.length} preço(s) importado(s).${
+          resposta.ignoradas > 0 ? ` ${resposta.ignoradas} linha(s) sem preço foram ignoradas.` : ""
+        }`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["compras-cotacao"] });
+      void queryClient.invalidateQueries({ queryKey: ["cotacao-itens"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const registrar = useMutation({
     mutationFn: async () => {
@@ -128,12 +232,11 @@ function Cotacoes() {
       if (!fornecedorId) throw new Error("Escolha o fornecedor");
       if (!tenantId) throw new Error("Usuário sem empresa vinculada");
       const v = Number(valor.replace(",", "."));
-      if (!(v > 0)) throw new Error("Informe o valor total da proposta");
       const { error } = await supabase.from("compra_cotacoes").insert({
         tenant_id: tenantId,
         compra_id: compraAtual.id,
         fornecedor_id: fornecedorId,
-        valor_total: v,
+        valor_total: v > 0 ? v : 0,
         prazo_entrega_dias: prazo ? Number(prazo) : null,
         condicao_pagamento: condicao || null,
         observacao: obs || null,
@@ -141,7 +244,7 @@ function Cotacoes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Proposta registrada.");
+      toast.success("Proposta registrada. Agora importe a planilha do fornecedor.");
       setNovaAberta(false);
       setFornecedorId("");
       setValor("");
@@ -167,13 +270,35 @@ function Cotacoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const custoNaProposta = (item: CompraItem, cotacaoId?: string) => {
+    if (cotacaoId) {
+      const encontrado = itensCotados.find(
+        (i) => i.cotacao_id === cotacaoId && i.compra_item_id === item.id,
+      );
+      if (encontrado && Number(encontrado.custo_unitario) > 0)
+        return Number(encontrado.custo_unitario);
+      const cot = cotacoes.find((c) => c.id === cotacaoId);
+      const fator =
+        cot && baseItens > 0 && Number(cot.valor_total) > 0
+          ? Number(cot.valor_total) / baseItens
+          : 1;
+      return Number(item.custo_unitario) * fator;
+    }
+    return Number(item.custo_unitario);
+  };
+
   return (
     <div>
       <PageHeader
         title="Cotações de compra"
-        description="Compare as propostas dos fornecedores e gere o pedido de compra com o custo já atualizado."
+        description="Gere a planilha para o fornecedor, importe a resposta com preços e prazos e feche com a melhor proposta."
         actions={
           <>
+            <Button variant="outline" asChild>
+              <Link to="/giro-estoque">
+                <Gauge className="size-4" /> Giro e sugestão
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/compras">Pedidos de compra</Link>
             </Button>
@@ -194,9 +319,9 @@ function Cotacoes() {
         />
         <StatCard
           label="Melhor proposta"
-          value={melhor ? brl(Number(melhor.valor_total)) : "—"}
-          hint={melhor ? nomeFornecedor(melhor.fornecedores) : "Registre uma proposta"}
-          tone={melhor ? "success" : "default"}
+          value={recomendada ? brl(recomendada.valor_total) : "—"}
+          hint={recomendada ? `${recomendada.fornecedor} · nota ${recomendada.pontos}/100` : "Registre uma proposta"}
+          tone={recomendada ? "success" : "default"}
         />
       </div>
 
@@ -205,7 +330,7 @@ function Cotacoes() {
       ) : compras.length === 0 ? (
         <EmptyState
           title="Nenhuma compra em cotação."
-          description="Crie um pedido de compra ou use a sugestão pelo estoque mínimo para começar a cotar."
+          description="Crie um pedido de compra ou use a sugestão pelo giro de estoque para começar a cotar."
           action={
             <Button asChild>
               <Link to="/compras">Ir para compras</Link>
@@ -230,11 +355,31 @@ function Cotacoes() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  exportar(
+                    `cotacao-${String(compraAtual?.numero ?? 0).padStart(4, "0")}.csv`,
+                  )
+                }
+              >
+                <Download className="size-4" /> Exportar planilha do pedido
+              </Button>
+              <p className="self-center text-xs text-muted-foreground">
+                Abre no Excel. O fornecedor preenche “preco_unitario”, “prazo_entrega_dias” e
+                “condicao_pagamento” e devolve o arquivo.
+              </p>
+            </div>
           </div>
 
           <div className="panel mb-5 p-4">
-            <h2 className="mb-3 font-display text-lg font-semibold">Comparativo de fornecedores</h2>
-            {cotacoes.length === 0 ? (
+            <h2 className="mb-1 font-display text-lg font-semibold">Comparativo de fornecedores</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              A nota considera preço (70%), prazo de entrega (15%) e prazo de pagamento (15%).
+            </p>
+            {avaliadas.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground">
                 Nenhuma proposta registrada para esta compra. Clique em “Nova proposta”.
               </p>
@@ -246,56 +391,95 @@ function Cotacoes() {
                       <TableHead>Fornecedor</TableHead>
                       <TableHead className="text-right">Valor total</TableHead>
                       <TableHead className="text-right">Diferença</TableHead>
-                      <TableHead>Prazo</TableHead>
+                      <TableHead>Entrega</TableHead>
                       <TableHead>Pagamento</TableHead>
+                      <TableHead className="text-right">Nota</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cotacoes.map((q, idx) => {
-                      const diff = Number(q.valor_total) - Number(melhor?.valor_total ?? 0);
+                    {avaliadas.map((q) => {
+                      const original = cotacoes.find((c) => c.id === q.id);
                       const pct =
-                        melhor && Number(melhor.valor_total) > 0
-                          ? (diff / Number(melhor.valor_total)) * 100
+                        recomendada && recomendada.valor_total > 0
+                          ? (q.diferenca / recomendada.valor_total) * 100
                           : 0;
                       return (
-                        <TableRow key={q.id}>
+                        <TableRow key={q.id} className={q.recomendada ? "bg-success/5" : undefined}>
                           <TableCell>
-                            <p className="font-medium">{nomeFornecedor(q.fornecedores)}</p>
-                            {idx === 0 && (
-                              <Badge className="mt-1 bg-success/15 text-success">Melhor preço</Badge>
-                            )}
-                            {q.escolhida && (
-                              <Badge className="ml-1 mt-1 bg-primary/15 text-primary">Escolhida</Badge>
-                            )}
-                            {q.observacao && (
-                              <p className="mt-1 text-xs text-muted-foreground">{q.observacao}</p>
+                            <p className="font-medium">{q.fornecedor}</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {q.recomendada && (
+                                <Badge className="bg-success/15 text-success">Melhor proposta</Badge>
+                              )}
+                              {q.melhorPreco && !q.recomendada && (
+                                <Badge className="bg-accent/15 text-accent-foreground">
+                                  Menor preço
+                                </Badge>
+                              )}
+                              {original?.escolhida && (
+                                <Badge className="bg-primary/15 text-primary">Escolhida</Badge>
+                              )}
+                              {q.itens_respondidos > 0 && (
+                                <Badge variant="outline">
+                                  {q.itens_respondidos}/{itens.length} itens
+                                </Badge>
+                              )}
+                            </div>
+                            {original?.observacao && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {original.observacao}
+                              </p>
                             )}
                           </TableCell>
                           <TableCell className="text-right text-numeric font-medium">
-                            {brl(Number(q.valor_total))}
+                            {q.valor_total > 0 ? brl(q.valor_total) : "aguardando"}
                           </TableCell>
                           <TableCell className="text-right text-numeric text-sm">
-                            {idx === 0 ? (
+                            {q.diferenca <= 0 ? (
                               <span className="text-success">—</span>
                             ) : (
                               <span className="text-destructive">
-                                +{brl(diff)} ({num(pct)}%)
+                                +{brl(q.diferenca)} ({num(pct)}%)
                               </span>
                             )}
                           </TableCell>
                           <TableCell className="text-sm">
                             {q.prazo_entrega_dias ? `${q.prazo_entrega_dias} dia(s)` : "—"}
+                            {q.melhorPrazoEntrega && (
+                              <span className="ml-1 text-xs text-success">mais rápido</span>
+                            )}
                           </TableCell>
-                          <TableCell className="text-sm">{q.condicao_pagamento ?? "—"}</TableCell>
+                          <TableCell className="text-sm">
+                            {q.condicao_pagamento ?? "—"}
+                            {q.melhorPagamento && q.condicao_pagamento && (
+                              <span className="ml-1 text-xs text-success">maior prazo</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-numeric font-medium">
+                            {q.pontos}
+                          </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              onClick={() => aplicar.mutate(q.id)}
-                              disabled={aplicar.isPending}
-                            >
-                              <Check className="size-4" /> Escolher e gerar pedido
-                            </Button>
+                            <div className="flex flex-wrap justify-end gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setImportarPara(q.id);
+                                  arquivoRef.current?.click();
+                                }}
+                                disabled={importar.isPending}
+                              >
+                                <Upload className="size-4" /> Importar resposta
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => aplicar.mutate(q.id)}
+                                disabled={aplicar.isPending || q.valor_total <= 0}
+                              >
+                                <Check className="size-4" /> Escolher e gerar pedido
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -307,10 +491,10 @@ function Cotacoes() {
           </div>
 
           <div className="panel p-4">
-            <h2 className="mb-1 font-display text-lg font-semibold">Custo por produto</h2>
+            <h2 className="mb-1 font-display text-lg font-semibold">Preço por produto</h2>
             <p className="mb-3 text-xs text-muted-foreground">
-              A coluna “Custo na proposta” mostra como ficará o custo de cada produto se a melhor
-              proposta for escolhida.
+              Cada coluna mostra o preço que o fornecedor respondeu na planilha; sem resposta item a
+              item, o sistema usa o valor total da proposta.
             </p>
             <div className="overflow-x-auto">
               <Table>
@@ -319,17 +503,21 @@ function Cotacoes() {
                     <TableHead>Produto</TableHead>
                     <TableHead className="text-right">Quantidade</TableHead>
                     <TableHead className="text-right">Custo atual</TableHead>
-                    <TableHead className="text-right">Custo na proposta</TableHead>
+                    {avaliadas.map((q) => (
+                      <TableHead key={q.id} className="text-right">
+                        {q.fornecedor}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {itens.map((i) => {
-                    const fator =
-                      melhor && baseItens > 0 ? Number(melhor.valor_total) / baseItens : 1;
-                    const novo = Number(i.custo_unitario) * fator;
-                    const atual = Number(i.produtos?.custo ?? 0);
+                    const precos = avaliadas.map((q) => custoNaProposta(i, q.id));
+                    const menor = precos.filter((p) => p > 0).length
+                      ? Math.min(...precos.filter((p) => p > 0))
+                      : 0;
                     return (
-                      <TableRow key={i.produto_id}>
+                      <TableRow key={i.id}>
                         <TableCell>
                           <p className="font-medium">{i.produtos?.descricao ?? "—"}</p>
                           <p className="text-xs text-muted-foreground text-numeric">
@@ -339,12 +527,16 @@ function Cotacoes() {
                         <TableCell className="text-right text-numeric">
                           {num(i.quantidade)} {i.unidade}
                         </TableCell>
-                        <TableCell className="text-right text-numeric">{brl(atual)}</TableCell>
                         <TableCell className="text-right text-numeric">
-                          <span className={novo > atual && atual > 0 ? "text-destructive" : "text-success"}>
-                            {brl(novo)}
-                          </span>
+                          {brl(Number(i.produtos?.custo ?? 0))}
                         </TableCell>
+                        {precos.map((p, idx) => (
+                          <TableCell key={idx} className="text-right text-numeric">
+                            <span className={p > 0 && p === menor ? "font-medium text-success" : ""}>
+                              {p > 0 ? brl(p) : "—"}
+                            </span>
+                          </TableCell>
+                        ))}
                       </TableRow>
                     );
                   })}
@@ -354,6 +546,21 @@ function Cotacoes() {
           </div>
         </>
       )}
+
+      <input
+        ref={arquivoRef}
+        type="file"
+        accept=".csv,text/csv,text/plain"
+        className="hidden"
+        onChange={async (e) => {
+          const arquivo = e.target.files?.[0];
+          e.target.value = "";
+          if (!arquivo || !importarPara) return;
+          const texto = await arquivo.text();
+          importar.mutate({ cotacaoId: importarPara, texto });
+          setImportarPara(null);
+        }}
+      />
 
       <Dialog open={novaAberta} onOpenChange={setNovaAberta}>
         <DialogContent>
@@ -377,7 +584,7 @@ function Cotacoes() {
               </Select>
             </div>
             <div>
-              <Label>Valor total</Label>
+              <Label>Valor total (opcional)</Label>
               <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
             </div>
             <div>
@@ -397,6 +604,10 @@ function Cotacoes() {
               <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Deixe o valor em branco se for importar a planilha respondida pelo fornecedor — o sistema
+            soma os preços item a item.
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNovaAberta(false)}>
               Cancelar

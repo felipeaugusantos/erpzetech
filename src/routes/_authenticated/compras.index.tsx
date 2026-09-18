@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Plus, Search, Sparkles } from "lucide-react";
+import { Gauge, ShoppingCart, Plus, Search, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -186,7 +186,17 @@ function Compras() {
         title="Compras"
         description="Necessidade → cotação → pedido de compra → recebimento no estoque."
         actions={
-          <>
+           <>
+            <Button variant="outline" asChild>
+              <Link to="/giro-estoque">
+                <Gauge className="size-4" /> Giro e sugestão
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/cotacoes">
+                <Trophy className="size-4" /> Cotações
+              </Link>
+            </Button>
             <Button
               variant="outline"
               onClick={() => {

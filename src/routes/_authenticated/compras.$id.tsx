@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, PackageCheck, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, PackageCheck, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import {
   hojeISO,
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { NotaEntrada, type NotaEntradaDados } from "@/components/app/NotaEntrada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +80,7 @@ function CompraDetalhe() {
   const [vencimento, setVencimento] = useState(somaDias(hojeISO(), 28));
   const [parcelas, setParcelas] = useState("1");
   const [recebItens, setRecebItens] = useState<RecebItem[]>([]);
+  const [nota, setNota] = useState<NotaEntradaDados | null>(null);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["compra", id] });
@@ -649,9 +651,56 @@ function CompraDetalhe() {
                   <p className="text-sm font-medium">
                     Recebimento nº {r.numero} {r.documento ? `· NF ${r.documento}` : ""}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {dateTimeBR(r.data_recebimento)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      {dateTimeBR(r.data_recebimento)}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNota({
+                          numero: String(r.numero),
+                          compra: `#${String(compra?.numero ?? 0).padStart(4, "0")}`,
+                          recebidoEm: r.data_recebimento,
+                          loja:
+                            session?.empresa?.nome_fantasia ??
+                            session?.empresa?.razao_social ??
+                            "Ze Obra",
+                          fornecedor:
+                            (compra?.fornecedores as { razao_social: string } | null)
+                              ?.razao_social ?? "—",
+                          documento: r.documento ?? "",
+                          deposito:
+                            (compra?.depositos as { nome: string } | null)?.nome ?? "—",
+                          condicaoPagamento: compra?.condicao_pagamento ?? "",
+                          itens: (
+                            (r.compra_recebimento_itens ?? []) as {
+                              quantidade: number;
+                              custo_unitario: number;
+                              divergencia: string | null;
+                              produtos: {
+                                codigo_interno: string;
+                                descricao: string;
+                              } | null;
+                            }[]
+                          ).map((it) => ({
+                            descricao: it.produtos?.descricao ?? "—",
+                            codigo: it.produtos?.codigo_interno ?? "",
+                            unidade: "",
+                            quantidade: Number(it.quantidade),
+                            custo: Number(it.custo_unitario),
+                            divergencia: it.divergencia
+                              ? divergencias.find((d) => d.value === it.divergencia)?.label ??
+                                it.divergencia
+                              : null,
+                          })),
+                        });
+                      }}
+                    >
+                      <Printer className="size-4" /> Nota de entrada
+                    </Button>
+                  </div>
                 </div>
                 <ul className="mt-2 space-y-1 text-sm">
                   {(
@@ -684,6 +733,24 @@ function CompraDetalhe() {
           </div>
         )}
       </div>
+
+      {nota && (
+        <div className="panel mt-5 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold">Nota de entrada</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setNota(null)}>
+                Fechar
+              </Button>
+              <Button size="sm" onClick={() => window.print()}>
+                <Printer className="size-4" /> Imprimir
+              </Button>
+            </div>
+          </div>
+          <NotaEntrada dados={nota} />
+        </div>
+      )}
+
 
       <Dialog open={cotacaoAberta} onOpenChange={setCotacaoAberta}>
         <DialogContent>
