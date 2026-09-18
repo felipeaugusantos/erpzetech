@@ -121,6 +121,7 @@ const groups: Group[] = [
     icon: Wallet,
     items: [
       { label: "Contas a receber", to: "/contas-receber", icon: Wallet },
+      { label: "Extrato a receber", to: "/extrato-receber", icon: Wallet },
       { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
       { label: "Caixa", to: "/caixa", icon: Wallet },
       { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },

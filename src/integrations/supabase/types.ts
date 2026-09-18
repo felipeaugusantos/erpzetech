@@ -1436,6 +1436,7 @@ export type Database = {
           inscricao_estadual: string | null
           nome_fantasia: string | null
           numero: string | null
+          ramo_atividade: string
           razao_social: string
           telefone: string | null
           tenant_id: string
@@ -1457,6 +1458,7 @@ export type Database = {
           inscricao_estadual?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          ramo_atividade?: string
           razao_social: string
           telefone?: string | null
           tenant_id: string
@@ -1478,6 +1480,7 @@ export type Database = {
           inscricao_estadual?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          ramo_atividade?: string
           razao_social?: string
           telefone?: string | null
           tenant_id?: string
@@ -3440,6 +3443,60 @@ export type Database = {
           },
           {
             foreignKeyName: "produto_conversoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_variacoes: {
+        Row: {
+          ativo: boolean
+          codigo_barras: string | null
+          cor: string | null
+          created_at: string
+          id: string
+          preco_venda: number | null
+          produto_id: string
+          tamanho: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_barras?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          preco_venda?: number | null
+          produto_id: string
+          tamanho: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_barras?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          preco_venda?: number | null
+          produto_id?: string
+          tamanho?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_variacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_variacoes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

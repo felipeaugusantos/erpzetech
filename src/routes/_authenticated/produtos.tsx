@@ -6,6 +6,9 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
+import { GradeTamanhos } from "@/components/app/GradeTamanhos";
+import { usaGradeTamanho } from "@/lib/ramo";
 import { brl, formatConverted, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -68,6 +71,7 @@ type Form = {
   altura: string;
   largura: string;
   comprimento: string;
+  imagem_url: string | null;
   ativo: boolean;
 };
 
@@ -94,6 +98,7 @@ const vazio: Form = {
   altura: "",
   largura: "",
   comprimento: "",
+  imagem_url: null,
   ativo: true,
 };
 
@@ -162,6 +167,7 @@ function Produtos() {
         altura: form.altura ? Number(form.altura) : null,
         largura: form.largura ? Number(form.largura) : null,
         comprimento: form.comprimento ? Number(form.comprimento) : null,
+        imagem_url: form.imagem_url,
         ativo: form.ativo,
       };
       const { error } = form.id
@@ -277,10 +283,15 @@ function Produtos() {
                   return (
                     <TableRow key={p.id}>
                       <TableCell>
-                        <p className="font-medium">{p.descricao}</p>
-                        <p className="text-numeric text-xs text-muted-foreground">
-                          {p.codigo_interno} • {p.marca ?? "sem marca"}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <MiniaturaProduto caminho={p.imagem_url} alt={p.descricao} />
+                          <div>
+                            <p className="font-medium">{p.descricao}</p>
+                            <p className="text-numeric text-xs text-muted-foreground">
+                              {p.codigo_interno} • {p.marca ?? "sem marca"}
+                            </p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         {(p.categorias as unknown as { nome: string } | null)?.nome ?? "—"}
@@ -343,6 +354,7 @@ function Produtos() {
                               altura: p.altura ? String(p.altura) : "",
                               largura: p.largura ? String(p.largura) : "",
                               comprimento: p.comprimento ? String(p.comprimento) : "",
+                              imagem_url: p.imagem_url ?? null,
                               ativo: p.ativo,
                             });
                             setOpen(true);
@@ -367,6 +379,16 @@ function Produtos() {
           </DialogHeader>
 
           <div className="space-y-4">
+            <ImagemProduto
+              caminho={form.imagem_url}
+              onChange={(c) => setForm({ ...form, imagem_url: c })}
+              tenantId={session?.profile?.tenant_id}
+            />
+
+            {usaGradeTamanho(session?.empresa?.ramo_atividade) && (
+              <GradeTamanhos produtoId={form.id} tenantId={session?.profile?.tenant_id} />
+            )}
+
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <Label htmlFor="p-cod">Código interno</Label>

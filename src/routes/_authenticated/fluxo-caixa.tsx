@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Store, TrendingUp } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { brl, dateBR } from "@/lib/format";
-import { hojeISO, somaDias } from "@/lib/financeiro";
+import { brl, dateBR, dateTimeBR } from "@/lib/format";
+import { entradaCaixa, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import { PageHeader, StatCard } from "@/components/app/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -73,10 +74,50 @@ function FluxoCaixa() {
     },
   });
 
+  const { data: movimentos = [] } = useQuery({
+    queryKey: ["fluxo-caixa-movimentos", de, ate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("caixa_movimentos")
+        .select(
+          "id, tipo, valor, forma_pagamento, descricao, created_at, deposito_id, pedido_id, depositos(nome), caixas(numero)",
+        )
+        .gte("created_at", `${de}T00:00:00`)
+        .lte("created_at", `${ate}T23:59:59`)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const recebido = baixas.reduce((s, b) => (b.conta_receber_id ? s + Number(b.valor) : s), 0);
   const pago = baixas.reduce((s, b) => (b.conta_pagar_id ? s + Number(b.valor) : s), 0);
   const aReceber = receber.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
   const aPagar = pagar.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0);
+
+  const entradasCaixa = movimentos.reduce(
+    (s, m) => (entradaCaixa(m.tipo) ? s + Number(m.valor) : s),
+    0,
+  );
+  const saidasCaixa = movimentos.reduce(
+    (s, m) => (entradaCaixa(m.tipo) ? s : s + Number(m.valor)),
+    0,
+  );
+  const vendasPdv = movimentos.filter((m) => m.tipo === "venda");
+  const totalPdv = vendasPdv.reduce((s, m) => s + Number(m.valor), 0);
+
+  const pdvPorDeposito = useMemo(() => {
+    const mapa = new Map<string, { nome: string; total: number; vendas: number }>();
+    for (const m of vendasPdv) {
+      const nome = (m.depositos as { nome: string } | null)?.nome ?? "Sem depósito";
+      const linha = mapa.get(nome) ?? { nome, total: 0, vendas: 0 };
+      linha.total += Number(m.valor);
+      linha.vendas += 1;
+      mapa.set(nome, linha);
+    }
+    return [...mapa.values()].sort((a, b) => b.total - a.total);
+  }, [vendasPdv]);
+
 
   const projecao = useMemo(() => {
     const mapa = new Map<string, Linha>();
@@ -96,7 +137,23 @@ function FluxoCaixa() {
     <div>
       <PageHeader
         title="Fluxo de caixa"
-        description="O que já entrou e saiu no período e a projeção pelas contas em aberto."
+        description="Entradas, saídas, vendas de balcão e projeção pelas contas em aberto."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/pdv">PDV — venda rápida</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/orcamentos">Orçamentos</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/extrato-receber">Extrato a receber</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/caixa">Caixa</Link>
+            </Button>
+          </div>
+        }
       />
 
       <div className="panel mb-5 flex flex-wrap items-end gap-3 p-3">
@@ -125,6 +182,111 @@ function FluxoCaixa() {
           hint={`A receber ${brl(aReceber)} · A pagar ${brl(aPagar)}`}
         />
       </div>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Entradas no caixa"
+          value={brl(entradasCaixa)}
+          tone="success"
+          icon={ArrowUpCircle}
+        />
+        <StatCard
+          label="Saídas do caixa"
+          value={brl(saidasCaixa)}
+          tone="danger"
+          icon={ArrowDownCircle}
+        />
+        <StatCard
+          label="Vendas de balcão (PDV)"
+          value={brl(totalPdv)}
+          hint={`${vendasPdv.length} venda(s)`}
+          tone="accent"
+          icon={Store}
+        />
+        <StatCard label="Saldo do caixa no período" value={brl(entradasCaixa - saidasCaixa)} />
+      </div>
+
+      {pdvPorDeposito.length > 0 && (
+        <div className="panel mb-5 p-4">
+          <h2 className="mb-3 font-display text-lg font-semibold">Vendas de balcão por depósito</h2>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Depósito</TableHead>
+                  <TableHead className="text-right">Vendas</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pdvPorDeposito.map((l) => (
+                  <TableRow key={l.nome}>
+                    <TableCell>{l.nome}</TableCell>
+                    <TableCell className="text-right text-numeric">{l.vendas}</TableCell>
+                    <TableCell className="text-right text-numeric font-semibold">
+                      {brl(l.total)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      <div className="panel mb-5 p-4">
+        <h2 className="mb-3 font-display text-lg font-semibold">Entradas e saídas do caixa</h2>
+        {movimentos.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum movimento de caixa no período selecionado.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-40">Data</TableHead>
+                  <TableHead>Movimento</TableHead>
+                  <TableHead>Depósito</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead className="text-right">Entrada</TableHead>
+                  <TableHead className="text-right">Saída</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movimentos.map((m) => {
+                  const entrada = entradaCaixa(m.tipo);
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell className="text-sm">{dateTimeBR(m.created_at)}</TableCell>
+                      <TableCell className="text-sm">
+                        <span className="capitalize">{m.tipo.replace("_", " ")}</span>
+                        <p className="text-xs text-muted-foreground">
+                          {m.descricao ?? "—"}
+                          {(m.caixas as { numero: number } | null)?.numero
+                            ? ` · caixa nº ${(m.caixas as { numero: number }).numero}`
+                            : ""}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {(m.depositos as { nome: string } | null)?.nome ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">{labelForma(m.forma_pagamento)}</TableCell>
+                      <TableCell className="text-right text-numeric text-success">
+                        {entrada ? brl(Number(m.valor)) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric text-destructive">
+                        {entrada ? "—" : brl(Number(m.valor))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
 
       <div className="panel p-4">
         <h2 className="mb-3 font-display text-lg font-semibold">Projeção por vencimento</h2>

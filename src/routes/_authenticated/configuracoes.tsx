@@ -20,6 +20,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ramos } from "@/lib/ramo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -49,6 +57,7 @@ function Configuracoes() {
     bairro: "",
     cidade: "",
     estado: "",
+    ramo_atividade: "construcao",
   });
   const [perfil, setPerfil] = useState({ nome: "", telefone: "" });
   const [openFilial, setOpenFilial] = useState(false);
@@ -81,6 +90,7 @@ function Configuracoes() {
         bairro: data.empresa.bairro ?? "",
         cidade: data.empresa.cidade ?? "",
         estado: data.empresa.estado ?? "",
+        ramo_atividade: data.empresa.ramo_atividade ?? "construcao",
       });
     }
     if (data?.perfil) {
@@ -185,6 +195,27 @@ function Configuracoes() {
                   value={empresa.nome_fantasia}
                   onChange={(e) => setEmpresa({ ...empresa, nome_fantasia: e.target.value })}
                 />
+              </div>
+              <div>
+                <Label htmlFor="e-ramo">Ramo de atividade</Label>
+                <Select
+                  value={empresa.ramo_atividade}
+                  onValueChange={(v) => setEmpresa({ ...empresa, ramo_atividade: v })}
+                >
+                  <SelectTrigger id="e-ramo" aria-label="Ramo de atividade">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ramos.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No ramo de roupas e calçados o cadastro de produto libera a grade de tamanhos.
+                </p>
               </div>
               <div>
                 <Label htmlFor="e-cnpj">CNPJ</Label>
