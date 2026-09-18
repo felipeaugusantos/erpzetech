@@ -260,9 +260,15 @@ function BalancoFiscal() {
         title="Balanço fiscal"
         description="Receita, custo, ICMS e lucro do período, apurados pelas notas emitidas."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link to="/fiscal">Fiscal (NCM e CFOP)</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/estoque-movimentos">Entradas e saídas</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/inventarios">Balanço de estoque</Link>
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               Imprimir / PDF
