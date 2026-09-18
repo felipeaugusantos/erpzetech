@@ -84,6 +84,51 @@ function Nfe() {
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [cfg, setCfg] = useState<Config | null>(null);
 
+  const transmitir = useServerFn(transmitirNfe);
+  const consultar = useServerFn(consultarNfe);
+  const pegarArquivos = useServerFn(arquivosNfe);
+
+  const enviarSefaz = useMutation({
+    mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
+    onSuccess: (r: { status: string; mensagem: string | null }) => {
+      if (r.status === "autorizado" || r.status === "autorizada") {
+        toast.success("Nota autorizada pela Receita");
+      } else {
+        toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
+      }
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const consultarSituacao = useMutation({
+    mutationFn: async (nfeId: string) => consultar({ data: { nfeId } }),
+    onSuccess: (r: { status: string }) => {
+      toast.info(`Situação na Receita: ${r.status}`);
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const baixarArquivos = useMutation({
+    mutationFn: async (nfeId: string) => pegarArquivos({ data: { nfeId } }),
+    onSuccess: (r: { pdf: string | null; xml: string | null }) => {
+      if (!r.pdf && !r.xml) {
+        toast.error("O emissor ainda não disponibilizou o DANFE e o XML.");
+        return;
+      }
+      if (r.pdf) window.open(r.pdf, "_blank");
+      if (r.xml) {
+        const a = document.createElement("a");
+        a.href = r.xml;
+        a.download = "nfe.xml";
+        a.click();
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const { data: config } = useQuery({
     queryKey: ["fiscal-config"],
     queryFn: async () => {
