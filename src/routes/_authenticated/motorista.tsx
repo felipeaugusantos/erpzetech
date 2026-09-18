@@ -440,6 +440,33 @@ function AppMotorista() {
         </div>
       )}
 
+      {finalizadas.length > 0 && (
+        <div className="panel mt-4 p-4">
+          <h2 className="font-display text-sm font-semibold">Entregas finalizadas e divergências</h2>
+          <ul className="mt-2 divide-y divide-border">
+            {finalizadas.map((f) => {
+              const cliente = (f.pedidos as unknown as { numero: number; clientes: { nome: string } | null } | null);
+              return (
+                <li key={f.id} className="py-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">{cliente?.clientes?.nome ?? "—"}</span>
+                    <Badge className={corEntrega(f.situacao)}>{labelEntrega(f.situacao)}</Badge>
+                  </div>
+                  <p className="text-numeric text-xs text-muted-foreground">
+                    Entrega #{String(f.numero).padStart(4, "0")}
+                    {f.recebedor ? ` · recebido por ${f.recebedor}` : ""}
+                  </p>
+                  {f.motivo_insucesso && (
+                    <p className="text-xs text-destructive">Motivo: {f.motivo_insucesso}</p>
+                  )}
+                  {f.observacao && <p className="text-xs text-muted-foreground">{f.observacao}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       <Dialog open={entregaId !== null} onOpenChange={(o) => !o && setEntregaId(null)}>
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
