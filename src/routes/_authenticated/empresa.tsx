@@ -79,6 +79,11 @@ function Empresa() {
   const { data: session } = useSessionData();
   const isAdmin = session?.roles.includes("administrador") ?? false;
   const [form, setForm] = useState(vazio);
+  /** Identidade visual da loja: logo e cor principal do sistema. */
+  const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
+    logo: null,
+    cor: COR_PADRAO,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
@@ -111,6 +116,7 @@ function Empresa() {
       estado: data.estado ?? "",
       codigo_municipio: data.codigo_municipio ?? "",
     });
+    setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
   }, [data]);
 
   const salvar = useMutation({
