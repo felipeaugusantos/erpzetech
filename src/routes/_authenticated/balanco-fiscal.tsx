@@ -84,7 +84,7 @@ function BalancoFiscal() {
   const { data, isLoading } = useQuery({
     queryKey: ["balanco-fiscal", periodo.de, periodo.ate],
     queryFn: async () => {
-      const [notas, pedidos] = await Promise.all([
+      const [notas, pedidos, movs] = await Promise.all([
         supabase
           .from("nfe")
           .select(
@@ -101,10 +101,20 @@ function BalancoFiscal() {
           .neq("situacao", "cancelado")
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`),
+        supabase
+          .from("estoque_movimentacoes")
+          .select(
+            "id, tipo, quantidade, custo_unitario, valor_total, created_at, depositos!estoque_movimentacoes_deposito_id_fkey(nome, filial_id)",
+          )
+          .in("tipo", ["entrada", "saida", "ajuste", "inventario"])
+          .gte("created_at", `${periodo.de}T00:00:00`)
+          .lte("created_at", `${periodo.ate}T23:59:59`)
+          .limit(2000),
       ]);
       if (notas.error) throw notas.error;
       if (pedidos.error) throw pedidos.error;
-      return { notas: notas.data ?? [], pedidos: pedidos.data ?? [] };
+      if (movs.error) throw movs.error;
+      return { notas: notas.data ?? [], pedidos: pedidos.data ?? [], movs: movs.data ?? [] };
     },
   });
 
