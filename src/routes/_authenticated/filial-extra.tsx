@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { useSaasOperador } from "@/lib/saas";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,8 @@ export const Route = createFileRoute("/_authenticated/filial-extra")({
 function FilialExtra() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
+  /** Abrir filial é operação exclusiva da equipe Ze Tech. */
+  const { data: operadorSaas } = useSaasOperador();
   const empresaId = session?.profile?.empresa_id ?? session?.empresa?.id ?? null;
   const tenantId = session?.profile?.tenant_id ?? null;
 
@@ -329,9 +332,11 @@ function FilialExtra() {
                 </SelectContent>
               </Select>
             )}
-            <Button variant="outline" onClick={() => setNovaAberta(true)}>
-              <Building2 className="mr-2 size-4" /> Nova filial
-            </Button>
+            {operadorSaas && (
+              <Button variant="outline" onClick={() => setNovaAberta(true)}>
+                <Building2 className="mr-2 size-4" /> Nova filial
+              </Button>
+            )}
           </>
         }
       />
@@ -341,8 +346,10 @@ function FilialExtra() {
       ) : !filial ? (
         <EmptyState
           title="Nenhuma filial cadastrada."
-          description="Crie a filial extra para montar o depósito, os custos e a numeração de nota dela."
-          action={<Button onClick={() => setNovaAberta(true)}>Nova filial</Button>}
+          description="A abertura de uma nova filial é feita pela equipe Ze Tech. Fale com a Ze Tech para liberar a filial extra."
+          action={
+            operadorSaas ? <Button onClick={() => setNovaAberta(true)}>Nova filial</Button> : undefined
+          }
         />
       ) : (
         <div className="space-y-6">

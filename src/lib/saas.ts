@@ -31,6 +31,31 @@ export type FaturaSaas = {
   forma_pagamento: string | null;
 };
 
+/** Loja (matriz ou filial) da rede de um cliente Ze Tech. */
+export type LojaSaas = {
+  id: string;
+  cliente_id: string;
+  nome: string;
+  apelido: string | null;
+  tipo: string;
+  documento: string | null;
+  responsavel: string | null;
+  telefone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  cep: string | null;
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  situacao: string;
+  implantacao_paga: boolean;
+  abertura: string | null;
+  observacoes: string | null;
+};
+
 export type ClienteSaas = {
   id: string;
   nome: string;

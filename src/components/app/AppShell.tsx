@@ -214,6 +214,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
 
+  /** Grupo exclusivo da equipe Ze Tech. */
+  const grupoZeTech: Group = {
+    label: "Ze Tech",
+    icon: LayoutGrid,
+    items: [
+      { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+      { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
+      { label: "Planos", to: "/ze-tech-planos", icon: Tag },
+      { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
+      { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
+    ],
+  };
+
+  /** Dentro da área Ze Tech o menu da loja não aparece. */
+  const naAreaZeTech = pathname.startsWith("/ze-tech");
+
   const menu: Group[] = somenteMotorista
     ? [
         {
@@ -223,19 +239,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         },
       ]
     : operadorSaas
-      ? [
-          ...groups,
-          {
-            label: "Ze Tech",
-            icon: LayoutGrid,
-            items: [
-              { label: "Painel de clientes", to: "/ze-tech", icon: Users },
-              { label: "Planos", to: "/ze-tech-planos", icon: Tag },
-              { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
-              { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
-            ],
-          },
-        ]
+      ? naAreaZeTech
+        ? [grupoZeTech]
+        : [...groups, grupoZeTech]
       : groups;
 
   useEffect(() => {
