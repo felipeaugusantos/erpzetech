@@ -191,6 +191,83 @@ function Landing() {
         </div>
       </section>
 
+      <section id="planos" className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+          <div className="text-center">
+            <h2 className="font-display text-3xl font-extrabold">Planos</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+              Escolha pelo tamanho da operação. Sem taxa por nota emitida e sem limite de produtos.
+              Teste grátis de 15 dias nos planos Loja e Rede.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            {planos.map((p) => (
+              <div
+                key={p.nome}
+                className={
+                  p.destaque
+                    ? "panel relative border-2 border-accent p-6 shadow-lg"
+                    : "panel p-6"
+                }
+              >
+                {p.destaque && (
+                  <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-foreground">
+                    Mais escolhido
+                  </span>
+                )}
+                <h3 className="font-display text-xl font-bold">{p.nome}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">{p.resumo}</p>
+                <p className="mt-4 font-display text-3xl font-extrabold">
+                  {p.preco}
+                  <span className="ml-1 text-sm font-medium text-muted-foreground">/mês</span>
+                </p>
+                {p.teste && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] font-semibold">
+                    <Check className="size-3" /> 15 dias grátis
+                  </p>
+                )}
+                <ul className="mt-5 space-y-2">
+                  {p.itens.map((i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 size-4 shrink-0 text-accent" />
+                      {i}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className="mt-6 w-full"
+                  variant={p.destaque ? "default" : "outline"}
+                >
+                  <Link to="/auth">{p.teste ? "Testar 15 dias" : "Começar agora"}</Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">
+            <div>
+              <p className="font-display text-sm font-semibold">Filial extra</p>
+              <p className="text-xs text-muted-foreground">
+                Para cada loja adicional no plano Rede
+              </p>
+            </div>
+            <p className="font-display text-lg font-bold">
+              R$ 390<span className="text-xs font-medium text-muted-foreground">/mês</span>
+            </p>
+            <div className="hidden h-8 w-px bg-border sm:block" />
+            <div>
+              <p className="font-display text-sm font-semibold">Implantação</p>
+              <p className="text-xs text-muted-foreground">
+                Cadastro inicial, importação de produtos e treinamento
+              </p>
+            </div>
+            <p className="font-display text-lg font-bold">R$ 1.500</p>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
         Ze Obra, um produto Ze Tech • Multiempresa, multifilial e multidepósito
       </footer>
