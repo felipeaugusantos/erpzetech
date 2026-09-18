@@ -31,10 +31,20 @@ function icmsDoItem(
   origem: number,
   vProd: number,
   aliquota = 0,
+  calc?: { vBC?: number; vICMS?: number; vBCST?: number; vST?: number },
 ) {
   const codigo = (cstCsosn ?? "").replace(/\D/g, "");
   const pST = arred(aliquota);
-  const vST = arred((vProd * pST) / 100);
+  // Usa os valores já calculados na nota quando existirem.
+  const base = arred(calc?.vBC && calc.vBC > 0 ? calc.vBC : vProd);
+  const baseST = arred(calc?.vBCST && calc.vBCST > 0 ? calc.vBCST : vProd);
+  const vST = arred(
+    calc?.vST && calc.vST > 0
+      ? calc.vST
+      : calc?.vICMS && calc.vICMS > 0
+        ? calc.vICMS
+        : (vProd * pST) / 100,
+  );
   if (codigo.length === 3) {
     // Simples Nacional (CSOSN)
     if (codigo === "101") {
@@ -46,14 +56,14 @@ function icmsDoItem(
         ICMSSN500: {
           orig: origem,
           CSOSN: "500",
-          ...(vST > 0 ? { vBCSTRet: vProd, pST, vICMSSTRet: vST } : {}),
+          ...(vST > 0 ? { vBCSTRet: baseST, pST, vICMSSTRet: vST } : {}),
         },
       };
     }
     if (codigo === "900") {
       return {
         ICMSSN900: {
-          orig: origem, CSOSN: "900", modBC: 3, vBC: vProd, pICMS: 0, vICMS: 0,
+          orig: origem, CSOSN: "900", modBC: 3, vBC: base, pICMS: pST, vICMS: vST,
         },
       };
     }
@@ -61,7 +71,7 @@ function icmsDoItem(
   }
   if (codigo === "00") {
     return {
-      ICMS00: { orig: origem, CST: "00", modBC: 3, vBC: vProd, pICMS: pST, vICMS: vST },
+      ICMS00: { orig: origem, CST: "00", modBC: 3, vBC: base, pICMS: pST, vICMS: vST },
     };
   }
   if (codigo === "40" || codigo === "41" || codigo === "50" || codigo === "51") {
@@ -72,7 +82,7 @@ function icmsDoItem(
       ICMS60: {
         orig: origem,
         CST: "60",
-        ...(vST > 0 ? { vBCSTRet: vProd, pST, vICMSSTRet: vST } : {}),
+        ...(vST > 0 ? { vBCSTRet: baseST, pST, vICMSSTRet: vST } : {}),
       },
     };
   }
@@ -84,7 +94,7 @@ async function carregarNota(supabase: any, nfeId: string) {
   const { data: nota, error } = await supabase
     .from("nfe")
     .select(
-      "id, tenant_id, empresa_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_produtos, valor_desconto, valor_frete, valor_total, cliente_id, pendencias, provider_id, provider_status, chave, protocolo, mensagem",
+      "id, tenant_id, empresa_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_produtos, valor_desconto, valor_frete, valor_total, valor_icms, valor_icms_st, valor_pis, valor_cofins, valor_iss, base_icms, base_icms_st, cliente_id, pendencias, provider_id, provider_status, chave, protocolo, mensagem",
     )
     .eq("id", nfeId)
     .maybeSingle();
@@ -223,9 +233,29 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             origem,
             num(quantidade * unitario),
             num(item.aliquota_icms ?? item.produtos?.aliquota_icms ?? 0),
+            {
+              vBC: num(item.base_icms),
+              vICMS: num(item.valor_icms),
+              vBCST: num(item.base_icms_st),
+              vST: num(item.valor_icms_st),
+            },
           ),
-          PIS: { PISOutr: { CST: "99", vBC: 0, pPIS: 0, vPIS: 0 } },
-          COFINS: { COFINSOutr: { CST: "99", vBC: 0, pCOFINS: 0, vCOFINS: 0 } },
+          PIS: {
+            PISOutr: {
+              CST: String(item.cst_pis ?? cfg.cst_pis ?? "99"),
+              vBC: totalItem,
+              pPIS: num(item.aliquota_pis ?? cfg.aliquota_pis ?? 0),
+              vPIS: num(item.valor_pis),
+            },
+          },
+          COFINS: {
+            COFINSOutr: {
+              CST: String(item.cst_cofins ?? cfg.cst_cofins ?? "99"),
+              vBC: totalItem,
+              pCOFINS: num(item.aliquota_cofins ?? cfg.aliquota_cofins ?? 0),
+              vCOFINS: num(item.valor_cofins),
+            },
+          },
         },
         ...(totalItem ? {} : {}),
       };
@@ -291,10 +321,11 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         det,
         total: {
           ICMSTot: {
-            vBC: 0, vICMS: 0, vICMSDeson: 0, vFCP: 0, vBCST: 0, vST: 0,
+            vBC: num(nota.base_icms), vICMS: num(nota.valor_icms), vICMSDeson: 0, vFCP: 0,
+            vBCST: num(nota.base_icms_st), vST: num(nota.valor_icms_st),
             vFCPST: 0, vFCPSTRet: 0, vProd: valorProdutos, vFrete: valorFrete,
             vSeg: 0, vDesc: valorDesconto, vII: 0, vIPI: 0, vIPIDevol: 0,
-            vPIS: 0, vCOFINS: 0, vOutro: 0, vNF: valorTotal,
+            vPIS: num(nota.valor_pis), vCOFINS: num(nota.valor_cofins), vOutro: 0, vNF: valorTotal,
           },
         },
         transp: { modFrete: valorFrete > 0 ? 0 : 9 },
