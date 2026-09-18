@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, FileText, Printer, Settings2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+  Printer,
+  RefreshCw,
+  Send,
+  Settings2,
+} from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
+import { arquivosNfe, consultarNfe, transmitirNfe } from "@/lib/nfe-fiscal.functions";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
