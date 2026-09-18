@@ -6,6 +6,7 @@ import {
   Boxes,
   ChevronDown,
   ClipboardList,
+  FileText,
   Gauge,
   HardHat,
   IdCard,
