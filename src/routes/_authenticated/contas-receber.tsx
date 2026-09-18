@@ -18,6 +18,7 @@ import {
   somaDias,
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
+import { HistoricoTitulo, type TituloHistorico } from "@/components/app/HistoricoTitulo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,7 @@ function ContasReceber() {
   const [credProf, setCredProf] = useState("");
   const [credValor, setCredValor] = useState("");
   const [credObs, setCredObs] = useState("");
+  const [historico, setHistorico] = useState<TituloHistorico | null>(null);
 
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-receber"],
@@ -463,9 +465,27 @@ function ContasReceber() {
                           <Button variant="ghost" size="sm" onClick={() => cancelar.mutate(c.id)}>
                             Cancelar
                           </Button>
-
                         </>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setHistorico({
+                            id: c.id,
+                            numero: c.numero,
+                            descricao: c.descricao,
+                            valor: Number(c.valor),
+                            quitado: Number(c.valor_recebido),
+                            vencimento: c.vencimento,
+                            pessoa: (c.clientes as { nome: string } | null)?.nome ?? "Cliente",
+                            parcela: c.parcela,
+                            parcelas: c.parcelas,
+                          })
+                        }
+                      >
+                        Histórico
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -681,6 +701,14 @@ function ContasReceber() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HistoricoTitulo
+        tipo="receber"
+        titulo={historico}
+        onOpenChange={(aberto) => {
+          if (!aberto) setHistorico(null);
+        }}
+      />
 
     </div>
   );
