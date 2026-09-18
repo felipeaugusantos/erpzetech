@@ -98,7 +98,7 @@ export function LogoEmpresa({ className }: { className?: string }) {
   const url = useLogoUrl(session?.empresa?.logo_path ?? null);
   const nome = session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech";
 
-  if (!url) return <ZeLogo className={className} />;
+  if (!url) return <ZeLogo {...(className ? { className } : {})} />;
 
   return (
     <span className={cn("grid size-9 shrink-0 place-items-center overflow-hidden", className)}>
