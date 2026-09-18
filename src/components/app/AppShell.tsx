@@ -166,6 +166,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ]
     : groups;
 
+  useEffect(() => {
+    if (somenteMotorista && pathname !== "/motorista") {
+      navigate({ to: "/motorista", replace: true });
+    }
+  }, [somenteMotorista, pathname, navigate]);
+
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
