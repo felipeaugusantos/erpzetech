@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/motorista")({
       },
     ],
   }),
-  component: AppMotorista;
+  component: AppMotorista,
 });
 
 type EntregaItem = {

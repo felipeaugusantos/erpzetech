@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Gauge,
   HardHat,
+  IdCard,
   LayoutGrid,
   LogOut,
   Menu,
