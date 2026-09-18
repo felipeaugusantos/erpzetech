@@ -218,7 +218,12 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           indTot: 1,
         },
         imposto: {
-          ICMS: icmsDoItem(item.cst_csosn, origem, num(quantidade * unitario)),
+          ICMS: icmsDoItem(
+            item.cst_csosn,
+            origem,
+            num(quantidade * unitario),
+            num(item.aliquota_icms ?? item.produtos?.aliquota_icms ?? 0),
+          ),
           PIS: { PISOutr: { CST: "99", vBC: 0, pPIS: 0, vPIS: 0 } },
           COFINS: { COFINSOutr: { CST: "99", vBC: 0, pCOFINS: 0, vCOFINS: 0 } },
         },
