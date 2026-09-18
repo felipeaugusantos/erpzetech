@@ -1117,7 +1117,94 @@ function PedidoDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CHECKOUT DE PAGAMENTO */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Receber pagamento</DialogTitle>
+            <DialogDescription>
+              Total do pedido: {brl(Number(pedido.total))}
+              {contasPedido.length > 0 && " · há parcelas em aberto neste pedido"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label htmlFor="ck-valor">Valor recebido (R$)</Label>
+              <Input
+                id="ck-valor"
+                inputMode="decimal"
+                value={checkoutValor}
+                onChange={(e) => setCheckoutValor(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select value={checkoutForma} onValueChange={setCheckoutForma}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {formasPagamento.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(checkoutForma === "crediario" ||
+              checkoutForma === "boleto" ||
+              Number(checkoutParcelas) > 1) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="ck-parc">Parcelas</Label>
+                  <Input
+                    id="ck-parc"
+                    inputMode="numeric"
+                    value={checkoutParcelas}
+                    onChange={(e) => setCheckoutParcelas(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ck-venc">1º vencimento</Label>
+                  <Input
+                    id="ck-venc"
+                    type="date"
+                    value={checkoutVencimento}
+                    onChange={(e) => setCheckoutVencimento(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              À vista, o valor entra no caixa aberto e dá baixa nas parcelas deste pedido. A prazo,
+              gera as parcelas em contas a receber.
+            </p>
+            {Number(checkoutParcelas) <= 1 && (
+              <div>
+                <Label htmlFor="ck-parc2">Parcelas</Label>
+                <Input
+                  id="ck-parc2"
+                  inputMode="numeric"
+                  value={checkoutParcelas}
+                  onChange={(e) => setCheckoutParcelas(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={() => checkout.mutate()} disabled={checkout.isPending}>
+              Confirmar recebimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+
 
   );
 }
