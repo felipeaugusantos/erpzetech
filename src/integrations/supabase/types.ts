@@ -1226,42 +1226,82 @@ export type Database = {
       }
       entregas: {
         Row: {
+          assinatura: string | null
           created_at: string
           data_entrega: string
+          data_saida: string | null
+          foto_url: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
+          motivo_insucesso: string | null
+          motorista_id: string | null
           numero: number | null
           observacao: string | null
           pedido_id: string
+          previsao_data: string | null
           recebedor: string | null
+          recebedor_documento: string | null
+          sequencia: number | null
           situacao: string
           tenant_id: string
           usuario_id: string | null
+          veiculo_id: string | null
         }
         Insert: {
+          assinatura?: string | null
           created_at?: string
           data_entrega?: string
+          data_saida?: string | null
+          foto_url?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
+          motivo_insucesso?: string | null
+          motorista_id?: string | null
           numero?: number | null
           observacao?: string | null
           pedido_id: string
+          previsao_data?: string | null
           recebedor?: string | null
+          recebedor_documento?: string | null
+          sequencia?: number | null
           situacao?: string
           tenant_id: string
           usuario_id?: string | null
+          veiculo_id?: string | null
         }
         Update: {
+          assinatura?: string | null
           created_at?: string
           data_entrega?: string
+          data_saida?: string | null
+          foto_url?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
+          motivo_insucesso?: string | null
+          motorista_id?: string | null
           numero?: number | null
           observacao?: string | null
           pedido_id?: string
+          previsao_data?: string | null
           recebedor?: string | null
+          recebedor_documento?: string | null
+          sequencia?: number | null
           situacao?: string
           tenant_id?: string
           usuario_id?: string | null
+          veiculo_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "entregas_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -1274,6 +1314,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -1626,6 +1673,82 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      motoristas: {
+        Row: {
+          ativo: boolean
+          categoria_cnh: string | null
+          cnh: string | null
+          created_at: string
+          empresa_id: string
+          filial_id: string | null
+          id: string
+          nome: string
+          observacao: string | null
+          telefone: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string | null
+          validade_cnh: string | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_cnh?: string | null
+          cnh?: string | null
+          created_at?: string
+          empresa_id: string
+          filial_id?: string | null
+          id?: string
+          nome: string
+          observacao?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+          validade_cnh?: string | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria_cnh?: string | null
+          cnh?: string | null
+          created_at?: string
+          empresa_id?: string
+          filial_id?: string | null
+          id?: string
+          nome?: string
+          observacao?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+          validade_cnh?: string | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motoristas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motoristas_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motoristas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -2510,6 +2633,69 @@ export type Database = {
           },
         ]
       }
+      veiculos: {
+        Row: {
+          ativo: boolean
+          capacidade_kg: number | null
+          capacidade_m3: number | null
+          created_at: string
+          descricao: string
+          empresa_id: string
+          filial_id: string | null
+          id: string
+          observacao: string | null
+          placa: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          created_at?: string
+          descricao: string
+          empresa_id: string
+          filial_id?: string | null
+          id?: string
+          observacao?: string | null
+          placa: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_kg?: number | null
+          capacidade_m3?: number | null
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          filial_id?: string | null
+          id?: string
+          observacao?: string | null
+          placa?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2562,6 +2748,28 @@ export type Database = {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
       }
+      entrega_concluir: {
+        Args: {
+          p_assinatura?: string
+          p_documento?: string
+          p_entrega_id: string
+          p_foto_url?: string
+          p_itens?: Json
+          p_latitude?: number
+          p_longitude?: number
+          p_observacao?: string
+          p_recebedor: string
+        }
+        Returns: undefined
+      }
+      entrega_iniciar_rota: {
+        Args: { p_entrega_id: string }
+        Returns: undefined
+      }
+      entrega_insucesso: {
+        Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
+        Returns: undefined
+      }
       fechar_caixa: {
         Args: {
           p_caixa_id: string
@@ -2604,6 +2812,18 @@ export type Database = {
           p_observacao?: string
           p_pedido_id: string
           p_recebedor?: string
+        }
+        Returns: string
+      }
+      planejar_entrega: {
+        Args: {
+          p_itens: Json
+          p_motorista_id?: string
+          p_observacao?: string
+          p_pedido_id: string
+          p_previsao?: string
+          p_sequencia?: number
+          p_veiculo_id?: string
         }
         Returns: string
       }
