@@ -3,6 +3,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
+  CalendarClock,
+  Hammer,
+  Wrench,
   Building2,
   Boxes,
   ChevronDown,
@@ -136,7 +139,21 @@ const groups: Group[] = [
       { label: "Impostos por filial", to: "/impostos-filial", icon: Percent },
       { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },
       { label: "Balanço fiscal", to: "/balanco-fiscal", icon: FileText },
+      { label: "Painel fiscal por loja", to: "/painel-fiscal", icon: Gauge },
       { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Assistência técnica",
+    icon: Wrench,
+    items: [{ label: "Ordens de serviço", to: "/assistencia", icon: Wrench }],
+  },
+  {
+    label: "Locação de equipamentos",
+    icon: Hammer,
+    items: [
+      { label: "Locações", to: "/locacoes", icon: CalendarClock },
+      { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
     ],
   },
   {
@@ -231,6 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
+      { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
   };
