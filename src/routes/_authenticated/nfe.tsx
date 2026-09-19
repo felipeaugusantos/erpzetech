@@ -233,6 +233,22 @@ function Nfe() {
     },
   });
 
+  /** Parcelas geradas pelos pedidos da nota, para mostrar a situação do título. */
+  const idsPedidosNota = (pedidosDaNota ?? []).map((v) => v.pedido_id);
+  const { data: titulos } = useQuery({
+    queryKey: ["nfe-titulos", detalhe, idsPedidosNota.join(",")],
+    enabled: !!detalhe && idsPedidosNota.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_receber")
+        .select("id, parcela, parcelas, vencimento, valor, valor_recebido, situacao, forma_pagamento")
+        .in("pedido_id", idsPedidosNota)
+        .order("vencimento");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const elegiveis = pedidos ?? [];
   const clientesComPedido = useMemo(() => {
     const mapa = new Map<string, { id: string; nome: string; qtd: number }>();
