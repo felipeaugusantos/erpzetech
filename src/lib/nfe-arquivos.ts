@@ -25,8 +25,8 @@ export type NotaArquivo = {
   valor_pis?: number | string | null;
   valor_cofins?: number | string | null;
   valor_iss?: number | string | null;
-  emitente: Record<string, unknown> | null;
-  destinatario: Record<string, unknown> | null;
+  emitente: unknown;
+  destinatario: unknown;
 };
 
 export type ItemArquivo = {
@@ -48,7 +48,8 @@ export type ItemArquivo = {
 };
 
 const n = (v: unknown) => Number(v ?? 0);
-const txt = (o: Record<string, unknown> | null, k: string) => String(o?.[k] ?? "");
+const txt = (o: unknown, k: string) =>
+  o && typeof o === "object" ? String((o as Record<string, unknown>)[k] ?? "") : "";
 
 function esc(valor: unknown) {
   return String(valor ?? "")
