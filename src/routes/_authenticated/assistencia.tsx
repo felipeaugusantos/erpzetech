@@ -97,6 +97,7 @@ const vazio: Form = {
   diagnostico: "",
   laudo: "",
   tecnico_nome: "",
+  tecnico_id: "",
   prioridade: "normal",
   situacao: "aberta",
   previsao: "",
@@ -158,6 +159,19 @@ function Assistencia() {
     },
   });
 
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ["tecnicos-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tecnicos")
+        .select("id, nome, especialidade")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: itens = [] } = useQuery({
     queryKey: ["os-itens", osAberta],
     enabled: !!osAberta,
@@ -209,6 +223,7 @@ function Assistencia() {
         diagnostico: form.diagnostico || null,
         laudo: form.laudo || null,
         tecnico_nome: form.tecnico_nome || null,
+        tecnico_id: form.tecnico_id || null,
         prioridade: form.prioridade,
         situacao: form.situacao as never,
         previsao: form.previsao || null,
@@ -431,6 +446,7 @@ function Assistencia() {
                             diagnostico: o.diagnostico ?? "",
                             laudo: o.laudo ?? "",
                             tecnico_nome: o.tecnico_nome ?? "",
+                            tecnico_id: o.tecnico_id ?? "",
                             prioridade: o.prioridade,
                             situacao: o.situacao,
                             previsao: o.previsao ?? "",
