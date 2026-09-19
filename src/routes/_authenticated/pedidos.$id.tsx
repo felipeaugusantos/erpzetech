@@ -29,7 +29,11 @@ import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
 import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
 import { PageHeader } from "@/components/app/PageHeader";
-import { Via80 } from "@/components/app/Via80";
+import {
+  DocumentoOuCupom,
+  SeletorFormato,
+  type FormatoDocumento,
+} from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -229,6 +233,7 @@ function PedidoDetalhe() {
   const [checkoutParcelas, setCheckoutParcelas] = useState("1");
   const [checkoutVencimento, setCheckoutVencimento] = useState(hojeISO());
   const [viaOpen, setViaOpen] = useState(false);
+  const [formato, setFormato] = useState<FormatoDocumento>("a4");
   const { data: session } = useSessionData();
   const queryClient = qc;
 
@@ -511,7 +516,7 @@ function PedidoDetalhe() {
               </Link>
             </Button>
             <Button variant="outline" onClick={() => setViaOpen(true)}>
-              <Printer className="mr-2 size-4" /> Imprimir 80 mm
+              <Printer className="mr-2 size-4" /> Imprimir pedido
             </Button>
             {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
               <Button variant="secondary" onClick={() => setContasOpen(true)}>
@@ -1196,16 +1201,20 @@ function PedidoDetalhe() {
         </DialogContent>
       </Dialog>
 
-      {/* VIA DO PEDIDO EM 80 MM */}
+      {/* VIA DO PEDIDO: A4, MEIA FOLHA OU 80 MM */}
       <Dialog open={viaOpen} onOpenChange={setViaOpen}>
-        <DialogContent className="max-h-[90vh] max-w-sm overflow-y-auto">
+        <DialogContent
+          className={`max-h-[90vh] overflow-y-auto ${formato === "80mm" ? "max-w-sm" : "max-w-4xl"}`}
+        >
           <DialogHeader>
-            <DialogTitle>Via do pedido — 80 mm</DialogTitle>
+            <DialogTitle>Via do pedido</DialogTitle>
             <DialogDescription>
-              Mesma impressora térmica do balcão usada no cupom do PDV.
+              Escolha o papel: folha A4, meia folha na horizontal ou a impressora térmica de 80 mm.
             </DialogDescription>
           </DialogHeader>
-          <Via80
+          <SeletorFormato valor={formato} onChange={setFormato} />
+          <DocumentoOuCupom
+            formato={formato}
             dados={{
               tipo: "Pedido",
               numero: String(pedido.numero).padStart(4, "0"),

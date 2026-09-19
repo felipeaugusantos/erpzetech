@@ -96,6 +96,14 @@ export function useTemaEmpresa() {
   }, [cor]);
 }
 
+/** Dados da loja e a logo já resolvida, para usar nas impressões. */
+export function useEmpresaImpressa() {
+  const { data: session } = useSessionData();
+  const empresa = session?.empresa ?? null;
+  const logoUrl = useLogoUrl(empresa?.logo_path ?? null);
+  return { empresa, logoUrl };
+}
+
 /** Mostra a logo da loja quando cadastrada; senão usa o ícone do ERP Ze Tech. */
 export function LogoEmpresa({ className }: { className?: string }) {
   const { data: session } = useSessionData();
