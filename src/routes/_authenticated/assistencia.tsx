@@ -77,6 +77,7 @@ type Form = {
   diagnostico: string;
   laudo: string;
   tecnico_nome: string;
+  tecnico_id: string;
   prioridade: string;
   situacao: string;
   previsao: string;
@@ -516,10 +517,33 @@ function Assistencia() {
             </div>
             <div>
               <Label>Técnico responsável</Label>
-              <Input
-                value={form.tecnico_nome}
-                onChange={(e) => setForm({ ...form, tecnico_nome: e.target.value })}
-              />
+              <Select
+                value={form.tecnico_id || "sem"}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    tecnico_id: v === "sem" ? "" : v,
+                    tecnico_nome:
+                      v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem técnico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sem">Sem técnico definido</SelectItem>
+                  {tecnicos.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome}
+                      {t.especialidade ? ` · ${t.especialidade}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cadastre os técnicos em Assistência técnica › Técnicos.
+              </p>
             </div>
             <div>
               <Label>Prioridade</Label>
