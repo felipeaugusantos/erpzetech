@@ -17,6 +17,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
 import { arquivosNfe, consultarNfe, statusEmissor, transmitirNfe } from "@/lib/nfe-fiscal.functions";
+import {
+  baixarTexto,
+  gerarPdfNota,
+  gerarXmlNota,
+  nomeArquivoNota,
+  type ItemArquivo,
+  type NotaArquivo,
+} from "@/lib/nfe-arquivos";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +318,32 @@ function Nfe() {
       toast.error("Não foi possível atualizar os dados", { description: e.message }),
   });
 
+  /** PDF da nota: o DANFE do emissor quando existir, senão o espelho gerado aqui. */
+  function baixarPdf(n: NotaArquivo & { pdf_url?: string | null }) {
+    if (n.pdf_url) {
+      window.open(n.pdf_url, "_blank");
+      return;
+    }
+    gerarPdfNota(n, (itensNota ?? []) as ItemArquivo[]);
+    toast.success("PDF da nota baixado");
+  }
+
+  /** XML da nota: o oficial autorizado quando existir, senão o gerado com os dados da nota. */
+  function baixarXml(n: NotaArquivo & { xml_url?: string | null }) {
+    if (n.xml_url) {
+      const a = document.createElement("a");
+      a.href = n.xml_url;
+      a.download = `${nomeArquivoNota(n)}.xml`;
+      a.click();
+      return;
+    }
+    baixarTexto(
+      `${nomeArquivoNota(n)}.xml`,
+      gerarXmlNota(n, (itensNota ?? []) as ItemArquivo[]),
+      "application/xml",
+    );
+    toast.success("XML da nota baixado");
+  }
 
 
   const salvarConfig = useMutation({
