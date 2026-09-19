@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   FileText,
   Printer,
   RefreshCw,
@@ -16,6 +17,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
 import { arquivosNfe, consultarNfe, statusEmissor, transmitirNfe } from "@/lib/nfe-fiscal.functions";
+import {
+  baixarTexto,
+  gerarPdfNota,
+  gerarXmlNota,
+  nomeArquivoNota,
+  type ItemArquivo,
+  type NotaArquivo,
+} from "@/lib/nfe-arquivos";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -176,7 +185,7 @@ function Nfe() {
       const { data, error } = await supabase
         .from("nfe")
         .select(
-          "id, numero, serie, situacao, ambiente, natureza_operacao, valor_total, valor_produtos, valor_frete, valor_desconto, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
+          "id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_total, valor_produtos, valor_frete, valor_desconto, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, pdf_url, xml_url, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -309,6 +318,32 @@ function Nfe() {
       toast.error("Não foi possível atualizar os dados", { description: e.message }),
   });
 
+  /** PDF da nota: o DANFE do emissor quando existir, senão o espelho gerado aqui. */
+  function baixarPdf(n: NotaArquivo & { pdf_url?: string | null }) {
+    if (n.pdf_url) {
+      window.open(n.pdf_url, "_blank");
+      return;
+    }
+    gerarPdfNota(n, (itensNota ?? []) as ItemArquivo[]);
+    toast.success("PDF da nota baixado");
+  }
+
+  /** XML da nota: o oficial autorizado quando existir, senão o gerado com os dados da nota. */
+  function baixarXml(n: NotaArquivo & { xml_url?: string | null }) {
+    if (n.xml_url) {
+      const a = document.createElement("a");
+      a.href = n.xml_url;
+      a.download = `${nomeArquivoNota(n)}.xml`;
+      a.click();
+      return;
+    }
+    baixarTexto(
+      `${nomeArquivoNota(n)}.xml`,
+      gerarXmlNota(n, (itensNota ?? []) as ItemArquivo[]),
+      "application/xml",
+    );
+    toast.success("XML da nota baixado");
+  }
 
 
   const salvarConfig = useMutation({
@@ -695,6 +730,16 @@ function Nfe() {
               <Printer className="mr-2 size-4" />
               Imprimir
             </Button>
+            {nota && (
+              <Button variant="outline" onClick={() => baixarPdf(nota)}>
+                <Download className="mr-2 size-4" /> Baixar PDF
+              </Button>
+            )}
+            {nota && (
+              <Button variant="outline" onClick={() => baixarXml(nota)}>
+                <Download className="mr-2 size-4" /> Baixar XML
+              </Button>
+            )}
             {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
               <Button
                 variant="outline"

@@ -4539,6 +4539,75 @@ export type Database = {
         }
         Relationships: []
       }
+      saas_contas_pagar: {
+        Row: {
+          categoria: string | null
+          cliente_id: string | null
+          created_at: string
+          descricao: string
+          forma_pagamento: string | null
+          fornecedor: string | null
+          id: string
+          loja_id: string | null
+          observacoes: string | null
+          pago_em: string | null
+          situacao: string
+          updated_at: string
+          valor: number
+          valor_pago: number
+          vencimento: string
+        }
+        Insert: {
+          categoria?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          descricao: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          pago_em?: string | null
+          situacao?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento: string
+        }
+        Update: {
+          categoria?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          pago_em?: string | null
+          situacao?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_contas_pagar_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saas_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_contas_pagar_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "saas_lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_faturas: {
         Row: {
           boleto_linha_digitavel: string | null

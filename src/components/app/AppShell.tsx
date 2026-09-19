@@ -245,9 +245,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     icon: LayoutGrid,
     items: [
       { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+      { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
+      { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
