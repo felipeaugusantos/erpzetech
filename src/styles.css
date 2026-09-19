@@ -205,6 +205,27 @@
     color: #000;
   }
 
+  /* Via do orçamento/pedido em folha (A4 ou meia folha na horizontal). */
+  body:has(#documento-impresso) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#documento-impresso) #documento-impresso,
+  body:has(#documento-impresso) #documento-impresso * {
+    visibility: visible !important;
+  }
+
+  body:has(#documento-impresso) #documento-impresso {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+
   /* Nota de entrada da compra: folha A4. */
   body:has(#nota-impressa) * {
     visibility: hidden !important;

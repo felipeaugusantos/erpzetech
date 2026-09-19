@@ -1,4 +1,5 @@
 import { brl, num } from "@/lib/format";
+import { useEmpresaImpressa } from "@/components/app/MarcaEmpresa";
 
 export type Via80Item = {
   descricao: string;
@@ -37,10 +38,15 @@ export type Via80Dados = {
  */
 export function Via80({ dados }: { dados: Via80Dados }) {
   const linha = "border-t border-dashed border-border my-2";
+  const { empresa, logoUrl } = useEmpresaImpressa();
   return (
     <div id="cupom-impresso" className="mx-auto w-full max-w-[320px] bg-card p-3 text-xs">
       <div className="text-center">
+        {logoUrl && (
+          <img src={logoUrl} alt={dados.loja} className="mx-auto mb-1 h-12 w-auto object-contain" />
+        )}
         <p className="font-display text-sm font-bold uppercase">{dados.loja}</p>
+        {empresa?.cnpj && <p className="text-muted-foreground">CNPJ {empresa.cnpj}</p>}
         <p className="text-muted-foreground">
           {dados.tipo} — não é documento fiscal
         </p>
