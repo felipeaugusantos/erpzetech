@@ -2399,6 +2399,157 @@ export type Database = {
           },
         ]
       }
+      locacao_equipamentos: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          codigo: string | null
+          created_at: string
+          filial_id: string | null
+          id: string
+          marca: string | null
+          modelo: string | null
+          nome: string
+          numero_serie: string | null
+          observacoes: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor_caucao: number
+          valor_diaria: number
+          valor_mensal: number
+          valor_semanal: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nome: string
+          numero_serie?: string | null
+          observacoes?: string | null
+          situacao?: string
+          tenant_id: string
+          updated_at?: string
+          valor_caucao?: number
+          valor_diaria?: number
+          valor_mensal?: number
+          valor_semanal?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          nome?: string
+          numero_serie?: string | null
+          observacoes?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_caucao?: number
+          valor_diaria?: number
+          valor_mensal?: number
+          valor_semanal?: number
+        }
+        Relationships: []
+      }
+      locacoes: {
+        Row: {
+          caucao: number
+          cliente_id: string | null
+          created_at: string
+          devolvido_em: string | null
+          dias: number
+          empresa_id: string | null
+          equipamento_id: string
+          filial_id: string | null
+          id: string
+          inicio: string
+          numero: number
+          obra_id: string | null
+          observacoes: string | null
+          previsao_devolucao: string | null
+          situacao: Database["public"]["Enums"]["locacao_situacao"]
+          tenant_id: string
+          updated_at: string
+          valor_diaria: number
+          valor_total: number
+        }
+        Insert: {
+          caucao?: number
+          cliente_id?: string | null
+          created_at?: string
+          devolvido_em?: string | null
+          dias?: number
+          empresa_id?: string | null
+          equipamento_id: string
+          filial_id?: string | null
+          id?: string
+          inicio?: string
+          numero?: number
+          obra_id?: string | null
+          observacoes?: string | null
+          previsao_devolucao?: string | null
+          situacao?: Database["public"]["Enums"]["locacao_situacao"]
+          tenant_id: string
+          updated_at?: string
+          valor_diaria?: number
+          valor_total?: number
+        }
+        Update: {
+          caucao?: number
+          cliente_id?: string | null
+          created_at?: string
+          devolvido_em?: string | null
+          dias?: number
+          empresa_id?: string | null
+          equipamento_id?: string
+          filial_id?: string | null
+          id?: string
+          inicio?: string
+          numero?: number
+          obra_id?: string | null
+          observacoes?: string | null
+          previsao_devolucao?: string | null
+          situacao?: Database["public"]["Enums"]["locacao_situacao"]
+          tenant_id?: string
+          updated_at?: string
+          valor_diaria?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacoes_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacoes_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modelo_negocio: {
         Row: {
           custo_equipe_mensal: number
@@ -3184,6 +3335,164 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_itens: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          os_id: string
+          preco_unitario: number
+          produto_id: string | null
+          quantidade: number
+          tenant_id: string
+          tipo: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          os_id: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id: string
+          tipo?: string
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          os_id?: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id?: string
+          tipo?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_itens_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "os_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_ordens: {
+        Row: {
+          abertura: string
+          acessorios: string | null
+          cliente_id: string | null
+          created_at: string
+          defeito_relatado: string | null
+          desconto: number
+          diagnostico: string | null
+          empresa_id: string | null
+          entregue_em: string | null
+          equipamento: string
+          filial_id: string | null
+          garantia_dias: number
+          id: string
+          laudo: string | null
+          marca: string | null
+          modelo: string | null
+          numero: number
+          numero_serie: string | null
+          observacoes: string | null
+          previsao: string | null
+          prioridade: string
+          situacao: Database["public"]["Enums"]["os_situacao"]
+          tecnico_id: string | null
+          tecnico_nome: string | null
+          tenant_id: string
+          updated_at: string
+          valor_pecas: number
+          valor_servicos: number
+          valor_total: number
+        }
+        Insert: {
+          abertura?: string
+          acessorios?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          defeito_relatado?: string | null
+          desconto?: number
+          diagnostico?: string | null
+          empresa_id?: string | null
+          entregue_em?: string | null
+          equipamento: string
+          filial_id?: string | null
+          garantia_dias?: number
+          id?: string
+          laudo?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero?: number
+          numero_serie?: string | null
+          observacoes?: string | null
+          previsao?: string | null
+          prioridade?: string
+          situacao?: Database["public"]["Enums"]["os_situacao"]
+          tecnico_id?: string | null
+          tecnico_nome?: string | null
+          tenant_id: string
+          updated_at?: string
+          valor_pecas?: number
+          valor_servicos?: number
+          valor_total?: number
+        }
+        Update: {
+          abertura?: string
+          acessorios?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          defeito_relatado?: string | null
+          desconto?: number
+          diagnostico?: string | null
+          empresa_id?: string | null
+          entregue_em?: string | null
+          equipamento?: string
+          filial_id?: string | null
+          garantia_dias?: number
+          id?: string
+          laudo?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero?: number
+          numero_serie?: string | null
+          observacoes?: string | null
+          previsao?: string | null
+          prioridade?: string
+          situacao?: Database["public"]["Enums"]["os_situacao"]
+          tecnico_id?: string | null
+          tecnico_nome?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valor_pecas?: number
+          valor_servicos?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_ordens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
@@ -5039,6 +5348,24 @@ export type Database = {
         Returns: Json
       }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
+      painel_fiscal_loja: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          cofins: number
+          entradas: number
+          filial: string
+          filial_id: string
+          icms: number
+          icms_st: number
+          impostos: number
+          iss: number
+          notas: number
+          pis: number
+          saidas: number
+          saldo_estoque: number
+          valor_notas: number
+        }[]
+      }
       pdv_venda: {
         Args: {
           p_cliente_id?: string
@@ -5151,6 +5478,22 @@ export type Database = {
         Args: { p_canal?: string; p_fatura_id: string }
         Returns: undefined
       }
+      saas_notas_por_cliente: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          autorizadas: number
+          canceladas: number
+          cliente: string
+          cliente_id: string
+          impostos: number
+          notas: number
+          plano: string
+          rascunhos: number
+          tenant_id: string
+          ultima_emissao: string
+          valor_total: number
+        }[]
+      }
       saas_registrar_cobranca: {
         Args: {
           p_boleto_url?: string
@@ -5240,6 +5583,7 @@ export type Database = {
         | "boleto"
         | "transferencia"
         | "crediario"
+      locacao_situacao: "reservada" | "em_andamento" | "devolvida" | "cancelada"
       mov_tipo:
         | "entrada"
         | "saida"
@@ -5262,6 +5606,15 @@ export type Database = {
         | "aprovado"
         | "rejeitado"
         | "expirado"
+      os_situacao:
+        | "aberta"
+        | "em_analise"
+        | "orcamento"
+        | "aprovada"
+        | "em_reparo"
+        | "pronta"
+        | "entregue"
+        | "cancelada"
       pedido_situacao:
         | "aguardando_pagamento"
         | "aprovado"
@@ -5444,6 +5797,7 @@ export const Constants = {
         "transferencia",
         "crediario",
       ],
+      locacao_situacao: ["reservada", "em_andamento", "devolvida", "cancelada"],
       mov_tipo: [
         "entrada",
         "saida",
@@ -5468,6 +5822,16 @@ export const Constants = {
         "aprovado",
         "rejeitado",
         "expirado",
+      ],
+      os_situacao: [
+        "aberta",
+        "em_analise",
+        "orcamento",
+        "aprovada",
+        "em_reparo",
+        "pronta",
+        "entregue",
+        "cancelada",
       ],
       pedido_situacao: [
         "aguardando_pagamento",
