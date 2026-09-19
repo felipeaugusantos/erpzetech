@@ -109,6 +109,7 @@ function Orcamentos() {
   const [open, setOpen] = useState(false);
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [via, setVia] = useState(false);
+  const [formato, setFormato] = useState<FormatoDocumento>("a4");
   const [converter, setConverter] = useState<string | null>(null);
   const [depositoId, setDepositoId] = useState("");
 
@@ -817,7 +818,7 @@ function Orcamentos() {
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setVia(true)}>
-              <Printer className="mr-2 size-4" /> Imprimir 80 mm
+              <Printer className="mr-2 size-4" /> Imprimir orçamento
             </Button>
             {orcamentoAtual && ["rascunho", "enviado", "em_negociacao"].includes(orcamentoAtual.situacao) && (
               <Select
@@ -881,15 +882,19 @@ function Orcamentos() {
 
       {/* VIA DO ORÇAMENTO EM 80 MM */}
       <Dialog open={via} onOpenChange={setVia}>
-        <DialogContent className="max-h-[90vh] max-w-sm overflow-y-auto">
+        <DialogContent
+          className={`max-h-[90vh] overflow-y-auto ${formato === "80mm" ? "max-w-sm" : "max-w-4xl"}`}
+        >
           <DialogHeader>
-            <DialogTitle>Via do orçamento — 80 mm</DialogTitle>
+            <DialogTitle>Via do orçamento</DialogTitle>
             <DialogDescription>
-              Mesma impressora térmica do balcão usada no cupom do PDV.
+              Escolha o papel: folha A4, meia folha na horizontal ou a impressora térmica de 80 mm.
             </DialogDescription>
           </DialogHeader>
+          <SeletorFormato valor={formato} onChange={setFormato} />
           {orcamentoAtual && (
-            <Via80
+            <DocumentoOuCupom
+              formato={formato}
               dados={{
                 tipo: "Orçamento",
                 numero: String(orcamentoAtual.numero).padStart(4, "0"),
