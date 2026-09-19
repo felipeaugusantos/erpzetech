@@ -11,3 +11,4 @@
 - [x] Impostos da nota calculados pela filial emitente (interna/interestadual pela UF)
 - [x] Contas a pagar no painel Ze Tech (`/ze-tech-contas-pagar`, tabela `saas_contas_pagar`)
 - [x] Botões de baixar a nota em PDF e XML (`src/lib/nfe-arquivos.ts`)
+- [x] Painel Ze Tech de assistência técnica (`/ze-tech-assistencia` + RPC `saas_assistencia_por_cliente`)
