@@ -294,6 +294,22 @@ function Nfe() {
     onError: (e: Error) => toast.error("Não foi possível gerar a nota", { description: e.message }),
   });
 
+  /** Recarrega cliente, documento e endereço direto do cadastro, sem digitação. */
+  const preencherDados = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("nfe_preencher_destinatario", { p_nfe_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dados do cliente atualizados na nota");
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível atualizar os dados", { description: e.message }),
+  });
+
+
+
   const salvarConfig = useMutation({
     mutationFn: async () => {
       if (!cfg) return;
