@@ -233,6 +233,22 @@ function Nfe() {
     },
   });
 
+  /** Parcelas geradas pelos pedidos da nota, para mostrar a situação do título. */
+  const idsPedidosNota = (pedidosDaNota ?? []).map((v) => v.pedido_id);
+  const { data: titulos } = useQuery({
+    queryKey: ["nfe-titulos", detalhe, idsPedidosNota.join(",")],
+    enabled: !!detalhe && idsPedidosNota.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_receber")
+        .select("id, parcela, parcelas, vencimento, valor, valor_recebido, situacao, forma_pagamento")
+        .in("pedido_id", idsPedidosNota)
+        .order("vencimento");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const elegiveis = pedidos ?? [];
   const clientesComPedido = useMemo(() => {
     const mapa = new Map<string, { id: string; nome: string; qtd: number }>();
@@ -277,6 +293,22 @@ function Nfe() {
     },
     onError: (e: Error) => toast.error("Não foi possível gerar a nota", { description: e.message }),
   });
+
+  /** Recarrega cliente, documento e endereço direto do cadastro, sem digitação. */
+  const preencherDados = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("nfe_preencher_destinatario", { p_nfe_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dados do cliente atualizados na nota");
+      qc.invalidateQueries({ queryKey: ["nfe"] });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível atualizar os dados", { description: e.message }),
+  });
+
+
 
   const salvarConfig = useMutation({
     mutationFn: async () => {
@@ -539,6 +571,61 @@ function Nfe() {
                   <Bloco dados={nota.destinatario as Record<string, string> | null} />
                 </div>
               </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs uppercase text-muted-foreground">Situação do título</p>
+                {(titulos ?? []).length === 0 ? (
+                  <p className="mt-1 text-muted-foreground">
+                    Nenhuma parcela lançada para os pedidos desta nota.
+                  </p>
+                ) : (
+                  <ul className="mt-1 space-y-1">
+                    {(titulos ?? []).map((t) => {
+                      const recebido = Number(t.valor_recebido ?? 0);
+                      const valor = Number(t.valor);
+                      const vencida =
+                        t.situacao !== "pago" &&
+                        t.situacao !== "cancelado" &&
+                        new Date(t.vencimento) < new Date(new Date().toDateString());
+                      return (
+                        <li key={t.id} className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">
+                            Parcela {t.parcela}/{t.parcelas}
+                          </span>
+                          <span className="text-muted-foreground">
+                            vence {new Date(t.vencimento).toLocaleDateString("pt-BR")}
+                          </span>
+                          <span className="text-numeric">{brl(valor)}</span>
+                          {recebido > 0 && recebido < valor && (
+                            <span className="text-muted-foreground">
+                              recebido {brl(recebido)} · falta {brl(valor - recebido)}
+                            </span>
+                          )}
+                          <Badge
+                            variant={
+                              t.situacao === "pago"
+                                ? "default"
+                                : vencida
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {t.situacao === "pago"
+                              ? "pago"
+                              : vencida
+                                ? "vencido"
+                                : String(t.situacao).replace(/_/g, " ")}
+                          </Badge>
+                          {t.forma_pagamento && (
+                            <span className="text-xs text-muted-foreground">
+                              {String(t.forma_pagamento).replace(/_/g, " ")}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
               <div className="rounded-lg border">
                 <Table>
                   <TableHeader>
@@ -600,6 +687,15 @@ function Nfe() {
               <Printer className="mr-2 size-4" />
               Imprimir
             </Button>
+            {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
+              <Button
+                variant="outline"
+                disabled={preencherDados.isPending}
+                onClick={() => preencherDados.mutate(nota.id)}
+              >
+                <RefreshCw className="mr-2 size-4" /> Atualizar dados do cliente
+              </Button>
+            )}
             {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
               <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>
                 <Send className="mr-2 size-4" /> Enviar à Receita
@@ -765,6 +861,7 @@ function Bloco({ dados }: { dados: Record<string, string> | null }) {
   if (!dados) return <p className="text-muted-foreground">—</p>;
   const linha2 = [dados["endereco"], dados["numero"]].filter(Boolean).join(", ");
   const linha3 = [dados["bairro"], dados["cidade"], dados["estado"]].filter(Boolean).join(" · ");
+  const contato = [dados["telefone"], dados["email"]].filter(Boolean).join(" · ");
   return (
     <div className="mt-1 space-y-0.5">
       <p className="font-medium">{dados["razao_social"] ?? dados["nome"]}</p>
@@ -777,6 +874,7 @@ function Bloco({ dados }: { dados: Record<string, string> | null }) {
         {linha3}
         {dados["cep"] ? ` · CEP ${dados["cep"]}` : ""}
       </p>
+      {contato && <p className="text-muted-foreground">{contato}</p>}
     </div>
   );
 }
