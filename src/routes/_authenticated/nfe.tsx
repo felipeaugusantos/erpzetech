@@ -583,8 +583,8 @@ function Nfe() {
                       const recebido = Number(t.valor_recebido ?? 0);
                       const valor = Number(t.valor);
                       const vencida =
-                        t.situacao !== "recebida" &&
-                        t.situacao !== "cancelada" &&
+                        t.situacao !== "pago" &&
+                        t.situacao !== "cancelado" &&
                         new Date(t.vencimento) < new Date(new Date().toDateString());
                       return (
                         <li key={t.id} className="flex flex-wrap items-center gap-2">
@@ -602,14 +602,14 @@ function Nfe() {
                           )}
                           <Badge
                             variant={
-                              t.situacao === "recebida"
+                              t.situacao === "pago"
                                 ? "default"
                                 : vencida
                                   ? "destructive"
                                   : "secondary"
                             }
                           >
-                            {t.situacao === "recebida"
+                            {t.situacao === "pago"
                               ? "pago"
                               : vencida
                                 ? "vencido"
