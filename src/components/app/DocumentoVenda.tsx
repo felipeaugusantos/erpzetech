@@ -21,7 +21,7 @@ export function DocumentoVenda({
   const endereco = [
     [empresa?.endereco, empresa?.numero].filter(Boolean).join(", "),
     empresa?.bairro,
-    [empresa?.cidade, empresa?.uf].filter(Boolean).join(" - "),
+    [empresa?.cidade, empresa?.estado].filter(Boolean).join(" - "),
     empresa?.cep,
   ]
     .filter((p) => p && String(p).trim().length > 0)
