@@ -5,3 +5,9 @@
 - [x] Módulo Assistência técnica: ordens de serviço com peças e mão de obra (`/assistencia`)
 - [x] Módulo Locação de equipamentos: equipamentos e contratos (`/locacao-equipamentos`, `/locacoes`)
 - [x] Menus novos no AppShell (Assistência técnica, Locação, Painel fiscal, Notas emitidas)
+
+## Rodada 2
+- [x] Tela de clientes da Ze Tech com histórico de cobranças, filiais e situação (`/ze-tech-clientes`)
+- [x] Impostos da nota calculados pela filial emitente (interna/interestadual pela UF)
+- [x] Contas a pagar no painel Ze Tech (`/ze-tech-contas-pagar`, tabela `saas_contas_pagar`)
+- [x] Botões de baixar a nota em PDF e XML (`src/lib/nfe-arquivos.ts`)
