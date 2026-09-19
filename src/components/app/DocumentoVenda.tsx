@@ -201,3 +201,34 @@ export function DocumentoOuCupom({
   if (formato === "80mm") return <Via80 dados={dados} />;
   return <DocumentoVenda dados={dados} formato={formato} />;
 }
+
+/** Cabeçalho com a logo e os dados da loja, para a nota fiscal impressa. */
+export function CabecalhoImpresso({ titulo }: { titulo: string }) {
+  const { empresa, logoUrl } = useEmpresaImpressa();
+  const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "ERP Ze Tech";
+  const endereco = [
+    [empresa?.endereco, empresa?.numero].filter(Boolean).join(", "),
+    empresa?.bairro,
+    [empresa?.cidade, empresa?.estado].filter(Boolean).join(" - "),
+    empresa?.cep,
+  ]
+    .filter((p) => p && String(p).trim().length > 0)
+    .join(" · ");
+
+  return (
+    <header className="flex items-start justify-between gap-4 border-b border-border pb-3">
+      <div className="flex items-start gap-3">
+        {logoUrl && <img src={logoUrl} alt={nome} className="h-14 w-auto object-contain" />}
+        <div className="text-xs">
+          <p className="font-display text-sm font-bold uppercase">{nome}</p>
+          {empresa?.cnpj && <p className="text-muted-foreground">CNPJ {empresa.cnpj}</p>}
+          {empresa?.inscricao_estadual && (
+            <p className="text-muted-foreground">IE {empresa.inscricao_estadual}</p>
+          )}
+          {endereco && <p className="text-muted-foreground">{endereco}</p>}
+        </div>
+      </div>
+      <p className="font-display text-sm font-bold">{titulo}</p>
+    </header>
+  );
+}

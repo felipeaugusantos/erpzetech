@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
+import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
 import { arquivosNfe, consultarNfe, statusEmissor, transmitirNfe } from "@/lib/nfe-fiscal.functions";
 import { brl, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
@@ -540,7 +541,7 @@ function Nfe() {
           </DialogHeader>
           {nota && (
             <div id="nota-impressa" className="space-y-4 bg-card text-sm">
-              <CabecalhoNota
+              <CabecalhoImpresso
                 titulo={
                   nota.numero
                     ? `NF-e nº ${String(nota.numero).padStart(6, "0")} · série ${nota.serie}`
