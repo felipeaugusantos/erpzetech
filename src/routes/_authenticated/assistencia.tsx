@@ -77,6 +77,7 @@ type Form = {
   diagnostico: string;
   laudo: string;
   tecnico_nome: string;
+  tecnico_id: string;
   prioridade: string;
   situacao: string;
   previsao: string;
@@ -96,6 +97,7 @@ const vazio: Form = {
   diagnostico: "",
   laudo: "",
   tecnico_nome: "",
+  tecnico_id: "",
   prioridade: "normal",
   situacao: "aberta",
   previsao: "",
@@ -157,6 +159,19 @@ function Assistencia() {
     },
   });
 
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ["tecnicos-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tecnicos")
+        .select("id, nome, especialidade")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: itens = [] } = useQuery({
     queryKey: ["os-itens", osAberta],
     enabled: !!osAberta,
@@ -208,6 +223,7 @@ function Assistencia() {
         diagnostico: form.diagnostico || null,
         laudo: form.laudo || null,
         tecnico_nome: form.tecnico_nome || null,
+        tecnico_id: form.tecnico_id || null,
         prioridade: form.prioridade,
         situacao: form.situacao as never,
         previsao: form.previsao || null,
@@ -430,6 +446,7 @@ function Assistencia() {
                             diagnostico: o.diagnostico ?? "",
                             laudo: o.laudo ?? "",
                             tecnico_nome: o.tecnico_nome ?? "",
+                            tecnico_id: o.tecnico_id ?? "",
                             prioridade: o.prioridade,
                             situacao: o.situacao,
                             previsao: o.previsao ?? "",
@@ -516,10 +533,33 @@ function Assistencia() {
             </div>
             <div>
               <Label>Técnico responsável</Label>
-              <Input
-                value={form.tecnico_nome}
-                onChange={(e) => setForm({ ...form, tecnico_nome: e.target.value })}
-              />
+              <Select
+                value={form.tecnico_id || "sem"}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    tecnico_id: v === "sem" ? "" : v,
+                    tecnico_nome:
+                      v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem técnico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sem">Sem técnico definido</SelectItem>
+                  {tecnicos.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome}
+                      {t.especialidade ? ` · ${t.especialidade}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cadastre os técnicos em Assistência técnica › Técnicos.
+              </p>
             </div>
             <div>
               <Label>Prioridade</Label>

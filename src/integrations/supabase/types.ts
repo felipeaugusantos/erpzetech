@@ -4837,6 +4837,84 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos: {
+        Row: {
+          admissao: string | null
+          ativo: boolean
+          cargo: string | null
+          comissao_percentual: number
+          created_at: string
+          custo_hora: number
+          demissao: string | null
+          documento: string | null
+          email: string | null
+          empresa_id: string | null
+          especialidade: string | null
+          filial_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          admissao?: string | null
+          ativo?: boolean
+          cargo?: string | null
+          comissao_percentual?: number
+          created_at?: string
+          custo_hora?: number
+          demissao?: string | null
+          documento?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          especialidade?: string | null
+          filial_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          admissao?: string | null
+          ativo?: boolean
+          cargo?: string | null
+          comissao_percentual?: number
+          created_at?: string
+          custo_hora?: number
+          demissao?: string | null
+          documento?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          especialidade?: string | null
+          filial_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tecnicos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tecnicos_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           ativo: boolean
@@ -5181,6 +5259,24 @@ export type Database = {
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
+      }
+      assistencia_por_filial: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          abertas: number
+          canceladas: number
+          codigo: string
+          em_reparo: number
+          encerradas: number
+          filial: string
+          filial_id: string
+          pendentes: number
+          ticket_medio: number
+          ultima_abertura: string
+          valor_pecas: number
+          valor_servicos: number
+          valor_total: number
+        }[]
       }
       atualizar_custo_medio: {
         Args: {
@@ -5601,6 +5697,28 @@ export type Database = {
       saas_sincronizar_filiais: {
         Args: { p_cliente_id: string }
         Returns: number
+      }
+      saas_tempo_real_por_cliente: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          impostos: number
+          notas: number
+          notas_autorizadas: number
+          os_abertas: number
+          os_custo: number
+          os_pendentes: number
+          pedidos: number
+          plano: string
+          situacao: string
+          tenant_id: string
+          ultima_nota: string
+          ultima_os: string
+          ultima_venda: string
+          valor_notas: number
+          valor_vendas: number
+        }[]
       }
       solicitar_autorizacao_credito: {
         Args: {
