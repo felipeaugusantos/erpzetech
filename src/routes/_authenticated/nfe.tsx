@@ -539,7 +539,14 @@ function Nfe() {
             </DialogTitle>
           </DialogHeader>
           {nota && (
-            <div className="space-y-4 text-sm">
+            <div id="nota-impressa" className="space-y-4 bg-card text-sm">
+              <CabecalhoNota
+                titulo={
+                  nota.numero
+                    ? `NF-e nº ${String(nota.numero).padStart(6, "0")} · série ${nota.serie}`
+                    : "NF-e em rascunho"
+                }
+              />
               {nota.pendencias.length > 0 && (
                 <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
                   <p className="font-medium">Pendências para poder transmitir</p>
