@@ -39,6 +39,7 @@ import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
+import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
@@ -236,6 +237,12 @@ const AuthenticatedImpostosRoute = AuthenticatedImpostosRouteImport.update({
   path: '/impostos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImpostosFilialRoute =
+  AuthenticatedImpostosFilialRouteImport.update({
+    id: '/impostos-filial',
+    path: '/impostos-filial',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImpostosNotaRoute =
   AuthenticatedImpostosNotaRouteImport.update({
     id: '/impostos-nota',
@@ -458,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
+  '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
@@ -524,6 +532,7 @@ export interface FileRoutesByTo {
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
+  '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lucro': typeof AuthenticatedLucroRoute
@@ -592,6 +601,7 @@ export interface FileRoutesById {
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
+  '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
@@ -660,6 +670,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/giro-estoque'
     | '/impostos'
+    | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
     | '/lucro'
@@ -726,6 +737,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/giro-estoque'
     | '/impostos'
+    | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
     | '/lucro'
@@ -793,6 +805,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fornecedores'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/impostos'
+    | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
     | '/_authenticated/lucro'
@@ -1048,6 +1061,13 @@ declare module '@tanstack/react-router' {
       path: '/impostos'
       fullPath: '/impostos'
       preLoaderRoute: typeof AuthenticatedImpostosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/impostos-filial': {
+      id: '/_authenticated/impostos-filial'
+      path: '/impostos-filial'
+      fullPath: '/impostos-filial'
+      preLoaderRoute: typeof AuthenticatedImpostosFilialRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/impostos-nota': {
@@ -1324,6 +1344,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
+  AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
@@ -1387,6 +1408,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
+  AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
