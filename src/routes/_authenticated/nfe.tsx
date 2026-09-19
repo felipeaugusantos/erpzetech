@@ -571,6 +571,61 @@ function Nfe() {
                   <Bloco dados={nota.destinatario as Record<string, string> | null} />
                 </div>
               </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs uppercase text-muted-foreground">Situação do título</p>
+                {(titulos ?? []).length === 0 ? (
+                  <p className="mt-1 text-muted-foreground">
+                    Nenhuma parcela lançada para os pedidos desta nota.
+                  </p>
+                ) : (
+                  <ul className="mt-1 space-y-1">
+                    {(titulos ?? []).map((t) => {
+                      const recebido = Number(t.valor_recebido ?? 0);
+                      const valor = Number(t.valor);
+                      const vencida =
+                        t.situacao !== "recebida" &&
+                        t.situacao !== "cancelada" &&
+                        new Date(t.vencimento) < new Date(new Date().toDateString());
+                      return (
+                        <li key={t.id} className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">
+                            Parcela {t.parcela}/{t.parcelas}
+                          </span>
+                          <span className="text-muted-foreground">
+                            vence {new Date(t.vencimento).toLocaleDateString("pt-BR")}
+                          </span>
+                          <span className="text-numeric">{brl(valor)}</span>
+                          {recebido > 0 && recebido < valor && (
+                            <span className="text-muted-foreground">
+                              recebido {brl(recebido)} · falta {brl(valor - recebido)}
+                            </span>
+                          )}
+                          <Badge
+                            variant={
+                              t.situacao === "recebida"
+                                ? "default"
+                                : vencida
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {t.situacao === "recebida"
+                              ? "pago"
+                              : vencida
+                                ? "vencido"
+                                : String(t.situacao).replace(/_/g, " ")}
+                          </Badge>
+                          {t.forma_pagamento && (
+                            <span className="text-xs text-muted-foreground">
+                              {String(t.forma_pagamento).replace(/_/g, " ")}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
               <div className="rounded-lg border">
                 <Table>
                   <TableHeader>
