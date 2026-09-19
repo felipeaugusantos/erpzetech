@@ -1,6 +1,7 @@
 import { brl, num } from "@/lib/format";
 import { useEmpresaImpressa } from "@/components/app/MarcaEmpresa";
-import type { Via80Dados } from "@/components/app/Via80";
+import { Via80, type Via80Dados } from "@/components/app/Via80";
+import { Button } from "@/components/ui/button";
 
 export type FormatoDocumento = "a4" | "meia" | "80mm";
 
@@ -157,4 +158,46 @@ function Total({ rotulo, valor }: { rotulo: string; valor: number }) {
       <span className="text-numeric">{brl(valor)}</span>
     </div>
   );
+}
+
+/** Escolha do papel: A4, meia folha horizontal ou 80 mm. */
+export function SeletorFormato({
+  valor,
+  onChange,
+}: {
+  valor: FormatoDocumento;
+  onChange: (f: FormatoDocumento) => void;
+}) {
+  const opcoes: { valor: FormatoDocumento; label: string }[] = [
+    { valor: "a4", label: "A4" },
+    { valor: "meia", label: "Meia folha (horizontal)" },
+    { valor: "80mm", label: "80 mm" },
+  ];
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opcoes.map((o) => (
+        <Button
+          key={o.valor}
+          type="button"
+          size="sm"
+          variant={valor === o.valor ? "default" : "outline"}
+          onClick={() => onChange(o.valor)}
+        >
+          {o.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/** Mostra a via no formato escolhido. */
+export function DocumentoOuCupom({
+  dados,
+  formato,
+}: {
+  dados: Via80Dados;
+  formato: FormatoDocumento;
+}) {
+  if (formato === "80mm") return <Via80 dados={dados} />;
+  return <DocumentoVenda dados={dados} formato={formato} />;
 }
