@@ -251,6 +251,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
+      { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
   };
