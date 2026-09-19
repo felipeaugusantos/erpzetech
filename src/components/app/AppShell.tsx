@@ -146,7 +146,11 @@ const groups: Group[] = [
   {
     label: "Assistência técnica",
     icon: Wrench,
-    items: [{ label: "Ordens de serviço", to: "/assistencia", icon: Wrench }],
+    items: [
+      { label: "Ordens de serviço", to: "/assistencia", icon: Wrench },
+      { label: "Técnicos", to: "/tecnicos", icon: IdCard },
+      { label: "Assistência por loja", to: "/assistencia-lojas", icon: Gauge },
+    ],
   },
   {
     label: "Locação de equipamentos",
@@ -245,6 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     icon: LayoutGrid,
     items: [
       { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+      { label: "Tempo real das lojas", to: "/ze-tech-tempo-real", icon: Gauge },
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
