@@ -29,7 +29,11 @@ import { brl, dateBR, dateTimeBR, num } from "@/lib/format";
 import { corSituacao, labelSituacao, proximas } from "@/lib/pedido";
 import { corConta, formasPagamento, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
 import { PageHeader } from "@/components/app/PageHeader";
-import { Via80 } from "@/components/app/Via80";
+import {
+  DocumentoOuCupom,
+  SeletorFormato,
+  type FormatoDocumento,
+} from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

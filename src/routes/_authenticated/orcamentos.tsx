@@ -8,7 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
-import { Via80 } from "@/components/app/Via80";
+import {
+  DocumentoOuCupom,
+  SeletorFormato,
+  type FormatoDocumento,
+} from "@/components/app/DocumentoVenda";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { CodigoPessoa } from "@/components/app/CodigoPessoa";
 import { Button } from "@/components/ui/button";
