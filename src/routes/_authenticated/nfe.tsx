@@ -765,6 +765,7 @@ function Bloco({ dados }: { dados: Record<string, string> | null }) {
   if (!dados) return <p className="text-muted-foreground">—</p>;
   const linha2 = [dados["endereco"], dados["numero"]].filter(Boolean).join(", ");
   const linha3 = [dados["bairro"], dados["cidade"], dados["estado"]].filter(Boolean).join(" · ");
+  const contato = [dados["telefone"], dados["email"]].filter(Boolean).join(" · ");
   return (
     <div className="mt-1 space-y-0.5">
       <p className="font-medium">{dados["razao_social"] ?? dados["nome"]}</p>
@@ -777,6 +778,7 @@ function Bloco({ dados }: { dados: Record<string, string> | null }) {
         {linha3}
         {dados["cep"] ? ` · CEP ${dados["cep"]}` : ""}
       </p>
+      {contato && <p className="text-muted-foreground">{contato}</p>}
     </div>
   );
 }
