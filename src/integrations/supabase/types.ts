@@ -5038,6 +5038,7 @@ export type Database = {
         }
         Returns: Json
       }
+      nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
       pdv_venda: {
         Args: {
           p_cliente_id?: string
