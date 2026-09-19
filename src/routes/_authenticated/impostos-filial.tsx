@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/impostos-filial")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ImpostosFilial;
+  component: ImpostosFilial,
 });
 
 const CST_PIS_COFINS = [
