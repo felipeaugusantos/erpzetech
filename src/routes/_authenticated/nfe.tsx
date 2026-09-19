@@ -688,6 +688,15 @@ function Nfe() {
               Imprimir
             </Button>
             {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
+              <Button
+                variant="outline"
+                disabled={preencherDados.isPending}
+                onClick={() => preencherDados.mutate(nota.id)}
+              >
+                <RefreshCw className="mr-2 size-4" /> Atualizar dados do cliente
+              </Button>
+            )}
+            {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
               <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>
                 <Send className="mr-2 size-4" /> Enviar à Receita
               </Button>
