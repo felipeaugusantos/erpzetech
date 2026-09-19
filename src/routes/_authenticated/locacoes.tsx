@@ -1,0 +1,514 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock, CheckCircle2, Plus, Search, Truck, XCircle } from "lucide-react";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useSessionData } from "@/hooks/useSessionData";
+import { brl, dateBR } from "@/lib/format";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+export const Route = createFileRoute("/_authenticated/locacoes")({
+  head: () => ({
+    meta: [
+      { title: "Locação de equipamentos — ERP Ze Tech" },
+      {
+        name: "description",
+        content:
+          "Contratos de locação: cliente, obra, equipamento, período, diária, caução e devolução.",
+      },
+      { property: "og:title", content: "Locação de equipamentos — ERP Ze Tech" },
+      {
+        property: "og:description",
+        content: "Reserve, entregue e receba de volta os equipamentos alugados.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: Locacoes,
+});
+
+const SITUACOES = [
+  { value: "reservada", label: "Reservada" },
+  { value: "em_andamento", label: "Em locação" },
+  { value: "devolvida", label: "Devolvida" },
+  { value: "cancelada", label: "Cancelada" },
+];
+
+type Form = {
+  cliente_id: string;
+  obra_id: string;
+  equipamento_id: string;
+  inicio: string;
+  previsao_devolucao: string;
+  valor_diaria: string;
+  dias: string;
+  caucao: string;
+  observacoes: string;
+};
+
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+
+const vazio = (): Form => ({
+  cliente_id: "",
+  obra_id: "",
+  equipamento_id: "",
+  inicio: hojeISO(),
+  previsao_devolucao: "",
+  valor_diaria: "0",
+  dias: "1",
+  caucao: "0",
+  observacoes: "",
+});
+
+function Locacoes() {
+  const { data: session } = useSessionData();
+  const profile = session?.profile;
+  const queryClient = useQueryClient();
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState("ativas");
+  const [aberto, setAberto] = useState(false);
+  const [form, setForm] = useState<Form>(vazio);
+
+  const { data: locacoes = [], isLoading } = useQuery({
+    queryKey: ["locacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("locacoes")
+        .select("*, clientes(nome), obras(nome), locacao_equipamentos(nome, codigo)")
+        .order("numero", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes-basico"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, cnpj, telefone")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: obras = [] } = useQuery({
+    queryKey: ["obras-locacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("obras").select("id, nome, cliente_id").order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: equipamentos = [] } = useQuery({
+    queryKey: ["locacao-equipamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("locacao_equipamentos")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const lista = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return locacoes.filter((l) => {
+      const okFiltro =
+        filtro === "todas"
+          ? true
+          : filtro === "ativas"
+            ? ["reservada", "em_andamento"].includes(l.situacao)
+            : l.situacao === filtro;
+      if (!okFiltro) return false;
+      if (!t) return true;
+      return [l.clientes?.nome, l.locacao_equipamentos?.nome, l.obras?.nome, String(l.numero)]
+        .filter(Boolean)
+        .some((x) => String(x).toLowerCase().includes(t));
+    });
+  }, [locacoes, busca, filtro]);
+
+  const emLocacao = locacoes.filter((l) => l.situacao === "em_andamento");
+  const atrasadas = emLocacao.filter(
+    (l) => l.previsao_devolucao && l.previsao_devolucao < hojeISO(),
+  );
+
+  const total = useMemo(
+    () => Number(form.valor_diaria.replace(",", ".") || 0) * Number(form.dias || 0),
+    [form.valor_diaria, form.dias],
+  );
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!profile?.tenant_id) throw new Error("Usuário sem empresa vinculada");
+      if (!form.cliente_id) throw new Error("Escolha o cliente");
+      if (!form.equipamento_id) throw new Error("Escolha o equipamento");
+      const dias = Number(form.dias || 0);
+      if (dias <= 0) throw new Error("Informe a quantidade de dias");
+      const { error } = await supabase.from("locacoes").insert({
+        tenant_id: profile.tenant_id,
+        empresa_id: profile.empresa_id ?? null,
+        filial_id: profile.filial_id ?? null,
+        cliente_id: form.cliente_id,
+        obra_id: form.obra_id || null,
+        equipamento_id: form.equipamento_id,
+        inicio: form.inicio,
+        previsao_devolucao: form.previsao_devolucao || null,
+        valor_diaria: Number(form.valor_diaria.replace(",", ".") || 0),
+        dias,
+        valor_total: Number(total.toFixed(2)),
+        caucao: Number(form.caucao.replace(",", ".") || 0),
+        situacao: "reservada" as never,
+        observacoes: form.observacoes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Locação registrada.");
+      setAberto(false);
+      setForm(vazio());
+      void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const mudarSituacao = useMutation({
+    mutationFn: async ({ id, situacao }: { id: string; situacao: string }) => {
+      const { error } = await supabase
+        .from("locacoes")
+        .update({
+          situacao: situacao as never,
+          devolvido_em: situacao === "devolvida" ? hojeISO() : null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const obrasDoCliente = obras.filter((o) => !form.cliente_id || o.cliente_id === form.cliente_id);
+
+  return (
+    <div>
+      <PageHeader
+        title="Locação de equipamentos"
+        description="Contratos de aluguel: cliente, obra, equipamento, período, caução e devolução."
+        actions={
+          <Button
+            onClick={() => {
+              setForm(vazio());
+              setAberto(true);
+            }}
+          >
+            <Plus className="size-4" /> Nova locação
+          </Button>
+        }
+      />
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Em locação" value={String(emLocacao.length)} icon={Truck} tone="accent" />
+        <StatCard
+          label="Reservadas"
+          value={String(locacoes.filter((l) => l.situacao === "reservada").length)}
+          icon={CalendarClock}
+        />
+        <StatCard label="Devolução atrasada" value={String(atrasadas.length)} tone="danger" />
+        <StatCard
+          label="Valor em locação"
+          value={brl(emLocacao.reduce((s, l) => s + Number(l.valor_total ?? 0), 0))}
+          tone="success"
+        />
+      </div>
+
+      <div className="panel mb-4 flex flex-wrap items-center gap-2 p-3">
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por número, cliente, obra ou equipamento"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+        <Select value={filtro} onValueChange={setFiltro}>
+          <SelectTrigger className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ativas">Reservadas e em locação</SelectItem>
+            <SelectItem value="todas">Todas</SelectItem>
+            {SITUACOES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
+      ) : lista.length === 0 ? (
+        <EmptyState
+          title="Nenhuma locação registrada."
+          description="Registre a primeira locação escolhendo o cliente, o equipamento e o período."
+          action={
+            <Button
+              onClick={() => {
+                setForm(vazio());
+                setAberto(true);
+              }}
+            >
+              <Plus className="size-4" /> Nova locação
+            </Button>
+          }
+        />
+      ) : (
+        <div className="panel overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nº</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Equipamento</TableHead>
+                <TableHead>Obra</TableHead>
+                <TableHead>Início</TableHead>
+                <TableHead>Previsão</TableHead>
+                <TableHead>Devolução</TableHead>
+                <TableHead className="text-right">Dias</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lista.map((l) => {
+                const atrasada =
+                  l.situacao === "em_andamento" &&
+                  !!l.previsao_devolucao &&
+                  l.previsao_devolucao < hojeISO();
+                return (
+                  <TableRow key={l.id}>
+                    <TableCell className="text-numeric font-semibold">{l.numero}</TableCell>
+                    <TableCell>{l.clientes?.nome ?? "—"}</TableCell>
+                    <TableCell>{l.locacao_equipamentos?.nome ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{l.obras?.nome ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{dateBR(l.inicio)}</TableCell>
+                    <TableCell className={atrasada ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                      {dateBR(l.previsao_devolucao)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{dateBR(l.devolvido_em)}</TableCell>
+                    <TableCell className="text-right text-numeric">{l.dias}</TableCell>
+                    <TableCell className="text-right text-numeric font-semibold">
+                      {brl(Number(l.valor_total ?? 0))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={l.situacao === "cancelada" ? "outline" : "secondary"}
+                        className={
+                          l.situacao === "devolvida"
+                            ? "bg-success/15 text-success"
+                            : atrasada
+                              ? "bg-destructive/15 text-destructive"
+                              : l.situacao === "em_andamento"
+                                ? "bg-primary/15 text-primary"
+                                : undefined
+                        }
+                      >
+                        {atrasada
+                          ? "Atrasada"
+                          : (SITUACOES.find((s) => s.value === l.situacao)?.label ?? l.situacao)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {l.situacao === "reservada" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              mudarSituacao.mutate({ id: l.id, situacao: "em_andamento" })
+                            }
+                          >
+                            <Truck className="size-4" /> Entregar
+                          </Button>
+                        )}
+                        {["reservada", "em_andamento"].includes(l.situacao) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                mudarSituacao.mutate({ id: l.id, situacao: "devolvida" })
+                              }
+                            >
+                              <CheckCircle2 className="size-4" /> Devolver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                mudarSituacao.mutate({ id: l.id, situacao: "cancelada" })
+                              }
+                            >
+                              <XCircle className="size-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova locação</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label>Cliente</Label>
+              <ClienteCombobox
+                clientes={clientes}
+                value={form.cliente_id}
+                onChange={(id) => setForm({ ...form, cliente_id: id, obra_id: "" })}
+              />
+            </div>
+            <div>
+              <Label>Obra (opcional)</Label>
+              <Select value={form.obra_id} onValueChange={(v) => setForm({ ...form, obra_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem obra" />
+                </SelectTrigger>
+                <SelectContent>
+                  {obrasDoCliente.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Equipamento</Label>
+              <Select
+                value={form.equipamento_id}
+                onValueChange={(v) => {
+                  const eq = equipamentos.find((x) => x.id === v);
+                  setForm({
+                    ...form,
+                    equipamento_id: v,
+                    valor_diaria: String(eq?.valor_diaria ?? 0),
+                    caucao: String(eq?.valor_caucao ?? 0),
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha o equipamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipamentos.map((e) => (
+                    <SelectItem key={e.id} value={e.id} disabled={e.situacao === "manutencao"}>
+                      {e.nome}
+                      {e.situacao === "locado" ? " (locado)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Início</Label>
+              <Input
+                type="date"
+                value={form.inicio}
+                onChange={(e) => setForm({ ...form, inicio: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Previsão de devolução</Label>
+              <Input
+                type="date"
+                value={form.previsao_devolucao}
+                onChange={(e) => setForm({ ...form, previsao_devolucao: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Valor da diária</Label>
+              <Input
+                value={form.valor_diaria}
+                onChange={(e) => setForm({ ...form, valor_diaria: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Dias</Label>
+              <Input value={form.dias} onChange={(e) => setForm({ ...form, dias: e.target.value })} />
+            </div>
+            <div>
+              <Label>Caução</Label>
+              <Input value={form.caucao} onChange={(e) => setForm({ ...form, caucao: e.target.value })} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Observações</Label>
+              <Input
+                value={form.observacoes}
+                onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+              />
+            </div>
+            <div className="rounded-md border border-border p-3 text-sm sm:col-span-2">
+              <div className="flex justify-between font-semibold">
+                <span>Total da locação</span>
+                <span className="text-numeric">{brl(total)}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAberto(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
