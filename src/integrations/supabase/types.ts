@@ -5533,6 +5533,25 @@ export type Database = {
         }
         Returns: string
       }
+      saas_assistencia_por_cliente: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          abertas: number
+          canceladas: number
+          cliente: string
+          cliente_id: string
+          em_reparo: number
+          encerradas: number
+          pendentes: number
+          plano: string
+          tenant_id: string
+          ticket_medio: number
+          ultima_abertura: string
+          valor_pecas: number
+          valor_servicos: number
+          valor_total: number
+        }[]
+      }
       saas_baixar_fatura: {
         Args: {
           p_data?: string
