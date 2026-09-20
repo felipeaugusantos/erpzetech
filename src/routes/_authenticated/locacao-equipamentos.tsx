@@ -300,6 +300,8 @@ function Equipamentos() {
                           valor_semanal: String(e.valor_semanal ?? 0),
                           valor_mensal: String(e.valor_mensal ?? 0),
                           valor_caucao: String(e.valor_caucao ?? 0),
+                          valor_aquisicao: String(e.valor_aquisicao ?? 0),
+                          custo_manutencao: String(e.custo_manutencao ?? 0),
                           situacao: e.situacao,
                           observacoes: e.observacoes ?? "",
                           ativo: e.ativo,
@@ -399,6 +401,20 @@ function Equipamentos() {
               <Input
                 value={form.valor_caucao}
                 onChange={(e) => setForm({ ...form, valor_caucao: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Valor de aquisição</Label>
+              <Input
+                value={form.valor_aquisicao}
+                onChange={(e) => setForm({ ...form, valor_aquisicao: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Custo de manutenção</Label>
+              <Input
+                value={form.custo_manutencao}
+                onChange={(e) => setForm({ ...form, custo_manutencao: e.target.value })}
               />
             </div>
             <div className="sm:col-span-2">
