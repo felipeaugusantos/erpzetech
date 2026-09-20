@@ -20,6 +20,7 @@ import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authen
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
+import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
@@ -59,6 +60,7 @@ import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
+import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
@@ -152,6 +154,12 @@ const AuthenticatedCategoriasRoute = AuthenticatedCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCertificadoNfseRoute =
+  AuthenticatedCertificadoNfseRouteImport.update({
+    id: '/certificado-nfse',
+    path: '/certificado-nfse',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -366,6 +374,12 @@ const AuthenticatedPainelFiscalRoute =
     path: '/painel-fiscal',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPainelLocacaoRoute =
+  AuthenticatedPainelLocacaoRouteImport.update({
+    id: '/painel-locacao',
+    path: '/painel-locacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
@@ -569,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
+  '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
@@ -608,6 +623,7 @@ export interface FileRoutesByFullPath {
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
+  '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
@@ -654,6 +670,7 @@ export interface FileRoutesByTo {
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
+  '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
@@ -693,6 +710,7 @@ export interface FileRoutesByTo {
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
+  '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
@@ -741,6 +759,7 @@ export interface FileRoutesById {
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
+  '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
@@ -780,6 +799,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
+  '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
@@ -828,6 +848,7 @@ export interface FileRouteTypes {
     | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
+    | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
@@ -867,6 +888,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/painel-filial'
     | '/painel-fiscal'
+    | '/painel-locacao'
     | '/pdv'
     | '/planos'
     | '/precos'
@@ -913,6 +935,7 @@ export interface FileRouteTypes {
     | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
+    | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
@@ -952,6 +975,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/painel-filial'
     | '/painel-fiscal'
+    | '/painel-locacao'
     | '/pdv'
     | '/planos'
     | '/precos'
@@ -999,6 +1023,7 @@ export interface FileRouteTypes {
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
     | '/_authenticated/categorias'
+    | '/_authenticated/certificado-nfse'
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/comissoes'
@@ -1038,6 +1063,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamentos'
     | '/_authenticated/painel-filial'
     | '/_authenticated/painel-fiscal'
+    | '/_authenticated/painel-locacao'
     | '/_authenticated/pdv'
     | '/_authenticated/planos'
     | '/_authenticated/precos'
@@ -1159,6 +1185,13 @@ declare module '@tanstack/react-router' {
       path: '/categorias'
       fullPath: '/categorias'
       preLoaderRoute: typeof AuthenticatedCategoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/certificado-nfse': {
+      id: '/_authenticated/certificado-nfse'
+      path: '/certificado-nfse'
+      fullPath: '/certificado-nfse'
+      preLoaderRoute: typeof AuthenticatedCertificadoNfseRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
@@ -1434,6 +1467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelFiscalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel-locacao': {
+      id: '/_authenticated/painel-locacao'
+      path: '/painel-locacao'
+      fullPath: '/painel-locacao'
+      preLoaderRoute: typeof AuthenticatedPainelLocacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pdv': {
       id: '/_authenticated/pdv'
       path: '/pdv'
@@ -1682,6 +1722,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
+  AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
@@ -1721,6 +1762,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
+  AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
@@ -1764,6 +1806,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
+  AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
@@ -1803,6 +1846,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,
+  AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,

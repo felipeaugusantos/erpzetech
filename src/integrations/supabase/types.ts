@@ -2283,6 +2283,9 @@ export type Database = {
           aliquota_pis: number
           ambiente: string
           certificado_nome: string | null
+          certificado_observacoes: string | null
+          certificado_tipo: string | null
+          certificado_titular: string | null
           certificado_validade: string | null
           cfop_padrao: string
           codigo_servico: string | null
@@ -2297,6 +2300,18 @@ export type Database = {
           informacoes_complementares: string | null
           item_lista_servico: string | null
           mva_st: number
+          nfse_codigo_municipio: string | null
+          nfse_codigo_tributacao: string | null
+          nfse_incentivador_cultural: boolean | null
+          nfse_iss_retido: boolean | null
+          nfse_observacoes: string | null
+          nfse_optante_simples: boolean | null
+          nfse_padrao: string | null
+          nfse_prefeitura: string | null
+          nfse_regime_especial: string | null
+          nfse_token: string | null
+          nfse_url: string | null
+          nfse_usuario: string | null
           proximo_numero: number
           proximo_numero_nfse: number | null
           reducao_base_icms: number
@@ -2318,6 +2333,9 @@ export type Database = {
           aliquota_pis?: number
           ambiente?: string
           certificado_nome?: string | null
+          certificado_observacoes?: string | null
+          certificado_tipo?: string | null
+          certificado_titular?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
           codigo_servico?: string | null
@@ -2332,6 +2350,18 @@ export type Database = {
           informacoes_complementares?: string | null
           item_lista_servico?: string | null
           mva_st?: number
+          nfse_codigo_municipio?: string | null
+          nfse_codigo_tributacao?: string | null
+          nfse_incentivador_cultural?: boolean | null
+          nfse_iss_retido?: boolean | null
+          nfse_observacoes?: string | null
+          nfse_optante_simples?: boolean | null
+          nfse_padrao?: string | null
+          nfse_prefeitura?: string | null
+          nfse_regime_especial?: string | null
+          nfse_token?: string | null
+          nfse_url?: string | null
+          nfse_usuario?: string | null
           proximo_numero?: number
           proximo_numero_nfse?: number | null
           reducao_base_icms?: number
@@ -2353,6 +2383,9 @@ export type Database = {
           aliquota_pis?: number
           ambiente?: string
           certificado_nome?: string | null
+          certificado_observacoes?: string | null
+          certificado_tipo?: string | null
+          certificado_titular?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
           codigo_servico?: string | null
@@ -2367,6 +2400,18 @@ export type Database = {
           informacoes_complementares?: string | null
           item_lista_servico?: string | null
           mva_st?: number
+          nfse_codigo_municipio?: string | null
+          nfse_codigo_tributacao?: string | null
+          nfse_incentivador_cultural?: boolean | null
+          nfse_iss_retido?: boolean | null
+          nfse_observacoes?: string | null
+          nfse_optante_simples?: boolean | null
+          nfse_padrao?: string | null
+          nfse_prefeitura?: string | null
+          nfse_regime_especial?: string | null
+          nfse_token?: string | null
+          nfse_url?: string | null
+          nfse_usuario?: string | null
           proximo_numero?: number
           proximo_numero_nfse?: number | null
           reducao_base_icms?: number
