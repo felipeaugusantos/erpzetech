@@ -3,6 +3,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
 import { Download, FileText, Package, Receipt } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +95,28 @@ function ZeTechRelatorioFiscal() {
     [linhas],
   );
 
+  /** Dez maiores lojas por movimento, para o gráfico e o resumo do PDF. */
+  const grafico = useMemo(
+    () =>
+      [...linhas]
+        .sort(
+          (a, b) =>
+            Number(b.entradas ?? 0) +
+            Number(b.saidas ?? 0) -
+            (Number(a.entradas ?? 0) + Number(a.saidas ?? 0)),
+        )
+        .slice(0, 10)
+        .map((l) => ({
+          nome: String(l.cliente ?? "—").slice(0, 14),
+          entradas: Number(l.entradas ?? 0),
+          saidas: Number(l.saidas ?? 0),
+          impostos: Number(l.impostos ?? 0),
+        })),
+    [linhas],
+  );
+
+
+
   function exportarPdf() {
     if (linhas.length === 0) {
       toast.error("Nenhum dado no período para exportar.");
@@ -161,6 +193,44 @@ function ZeTechRelatorioFiscal() {
       y,
     );
 
+    // Gráfico de barras das dez maiores lojas (entradas x saídas x impostos).
+    if (grafico.length > 0) {
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Movimento por loja — dez maiores", 14, 16);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Barras: entradas (escura), saídas (média) e impostos (clara)", 14, 22);
+
+      const base = 150;
+      const maximo = Math.max(
+        ...grafico.map((g) => Math.max(g.entradas, g.saidas, g.impostos)),
+        1,
+      );
+      const larguraGrupo = 26;
+      const larguraBarra = 7;
+      doc.line(14, base, 290, base);
+
+      grafico.forEach((g, i) => {
+        const x0 = 18 + i * larguraGrupo;
+        const series: [number, [number, number, number]][] = [
+          [g.entradas, [0, 96, 55]],
+          [g.saidas, [90, 150, 120]],
+          [g.impostos, [180, 205, 190]],
+        ];
+        series.forEach(([valor, cor], j) => {
+          const altura = Math.max((valor / maximo) * 100, valor > 0 ? 1 : 0);
+          doc.setFillColor(cor[0], cor[1], cor[2]);
+          doc.rect(x0 + j * (larguraBarra + 1), base - altura, larguraBarra, altura, "F");
+        });
+        doc.setFontSize(7);
+        doc.text(g.nome, x0, base + 5, { maxWidth: larguraGrupo - 2 });
+        doc.text(brl(g.entradas), x0, base + 10, { maxWidth: larguraGrupo - 2 });
+      });
+    }
+
+
     doc.save(`ze-tech-fiscal-${periodo.de}-a-${periodo.ate}.pdf`);
     toast.success("Relatório exportado em PDF.");
   }
@@ -217,6 +287,30 @@ function ZeTechRelatorioFiscal() {
           icon={Receipt}
         />
       </div>
+
+      {grafico.length > 0 && (
+        <div className="panel mb-5 p-4">
+          <p className="mb-3 font-display text-sm font-semibold">
+            Entradas, saídas e impostos por loja
+          </p>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={grafico}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="nome" fontSize={11} />
+                <YAxis fontSize={11} tickFormatter={(v) => brl(Number(v))} width={90} />
+                <Tooltip formatter={(v) => brl(Number(v))} />
+                <Legend />
+                <Bar dataKey="entradas" name="Entradas" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="saidas" name="Saídas" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="impostos" name="Impostos" fill="var(--muted-foreground)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>

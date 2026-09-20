@@ -67,6 +67,7 @@ type Form = {
   marca: string;
   modelo: string;
   numero_serie: string;
+  quantidade: string;
   valor_diaria: string;
   valor_semanal: string;
   valor_mensal: string;
@@ -85,6 +86,7 @@ const vazio: Form = {
   marca: "",
   modelo: "",
   numero_serie: "",
+  quantidade: "1",
   valor_diaria: "0",
   valor_semanal: "0",
   valor_mensal: "0",
@@ -139,6 +141,7 @@ function Equipamentos() {
         marca: form.marca || null,
         modelo: form.modelo || null,
         numero_serie: form.numero_serie || null,
+        quantidade: Math.max(Number(form.quantidade.replace(",", ".") || 1), 0),
         valor_diaria: Number(form.valor_diaria.replace(",", ".") || 0),
         valor_semanal: Number(form.valor_semanal.replace(",", ".") || 0),
         valor_mensal: Number(form.valor_mensal.replace(",", ".") || 0),
@@ -242,6 +245,7 @@ function Equipamentos() {
                 <TableHead>Equipamento</TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead className="text-right">Estoque</TableHead>
                 <TableHead className="text-right">Diária</TableHead>
                 <TableHead className="text-right">Semana</TableHead>
                 <TableHead className="text-right">Mês</TableHead>
@@ -263,6 +267,7 @@ function Equipamentos() {
                   </TableCell>
                   <TableCell className="text-numeric">{e.codigo ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.categoria ?? "—"}</TableCell>
+                  <TableCell className="text-right text-numeric">{Number(e.quantidade ?? 1)}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_diaria))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_semanal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_mensal))}</TableCell>
@@ -304,6 +309,7 @@ function Equipamentos() {
                           marca: e.marca ?? "",
                           modelo: e.modelo ?? "",
                           numero_serie: e.numero_serie ?? "",
+                          quantidade: String(e.quantidade ?? 1),
                           valor_diaria: String(e.valor_diaria ?? 0),
                           valor_semanal: String(e.valor_semanal ?? 0),
                           valor_mensal: String(e.valor_mensal ?? 0),
@@ -366,6 +372,13 @@ function Equipamentos() {
               <Input
                 value={form.numero_serie}
                 onChange={(e) => setForm({ ...form, numero_serie: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Quantidade em estoque</Label>
+              <Input
+                value={form.quantidade}
+                onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
               />
             </div>
             <div>
