@@ -90,6 +90,36 @@ function Empresa() {
     cor: COR_PADRAO,
   });
 
+  /** Busca o CNPJ na base pública da Receita e preenche o cadastro sozinho. */
+  const buscarCnpjFn = useServerFn(consultarCnpj);
+  const buscarCnpj = useMutation({
+    mutationFn: async () => await buscarCnpjFn({ data: { cnpj: form.cnpj } }),
+    onSuccess: (d) => {
+      setForm((atual) => ({
+        ...atual,
+        razao_social: d.razao_social || atual.razao_social,
+        nome_fantasia: d.nome_fantasia || atual.nome_fantasia,
+        cnae: d.cnae || atual.cnae,
+        cnae_secundarios: d.cnae_secundarios || atual.cnae_secundarios,
+        telefone: d.telefone || atual.telefone,
+        email: d.email || atual.email,
+        cep: d.cep || atual.cep,
+        endereco: d.endereco || atual.endereco,
+        numero: d.numero || atual.numero,
+        complemento: d.complemento || atual.complemento,
+        bairro: d.bairro || atual.bairro,
+        cidade: d.cidade || atual.cidade,
+        estado: d.estado || atual.estado,
+        codigo_municipio: d.codigo_municipio || atual.codigo_municipio,
+      }));
+      toast.success(`Dados encontrados: ${d.razao_social}`, {
+        description: [d.cnae_descricao, d.situacao].filter(Boolean).join(" · "),
+      });
+    },
+    onError: (e: Error) => toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
+  });
+
+
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
     queryFn: async () => {
