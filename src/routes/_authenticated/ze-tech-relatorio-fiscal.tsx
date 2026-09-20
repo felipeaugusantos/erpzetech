@@ -395,9 +395,20 @@ function ZeTechRelatorioFiscal() {
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.saldo_estoque ?? 0))}
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{num(Number(l.notas ?? 0), 0)}</TableCell>
                   <TableCell className="text-right text-numeric">
-                    {brl(Number(l.valor_notas ?? 0))}
+                    {num(Number(l.notas_venda ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_venda ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.notas_servico ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_servico ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.iss_servico ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(l.icms ?? 0))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(l.icms_st ?? 0))}</TableCell>
