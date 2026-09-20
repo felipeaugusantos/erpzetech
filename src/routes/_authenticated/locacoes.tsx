@@ -506,7 +506,7 @@ function Locacoes() {
                             onClick={() => gerarNota.mutate(l.id)}
                             disabled={gerarNota.isPending}
                           >
-                            <FileText className="size-4" /> Nota
+                            <FileText className="size-4" /> Nota de serviço
                           </Button>
                         )}
                         {["reservada", "em_andamento"].includes(l.situacao) && (
