@@ -245,6 +245,7 @@ function Equipamentos() {
                 <TableHead>Equipamento</TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead className="text-right">Estoque</TableHead>
                 <TableHead className="text-right">Diária</TableHead>
                 <TableHead className="text-right">Semana</TableHead>
                 <TableHead className="text-right">Mês</TableHead>
