@@ -141,6 +141,8 @@ const groups: Group[] = [
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
       { label: "Impostos por filial", to: "/impostos-filial", icon: Percent },
       { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },
+      { label: "Configuração de prefeitura", to: "/prefeitura", icon: Landmark },
+      { label: "Simulação de nota", to: "/nfe-simulacao", icon: Calculator },
       { label: "Balanço fiscal", to: "/balanco-fiscal", icon: FileText },
       { label: "Painel fiscal por loja", to: "/painel-fiscal", icon: Gauge },
       { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
