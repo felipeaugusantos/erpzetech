@@ -71,6 +71,8 @@ type Form = {
   valor_semanal: string;
   valor_mensal: string;
   valor_caucao: string;
+  valor_aquisicao: string;
+  custo_manutencao: string;
   situacao: string;
   observacoes: string;
   ativo: boolean;
@@ -87,6 +89,8 @@ const vazio: Form = {
   valor_semanal: "0",
   valor_mensal: "0",
   valor_caucao: "0",
+  valor_aquisicao: "0",
+  custo_manutencao: "0",
   situacao: "disponivel",
   observacoes: "",
   ativo: true,
@@ -139,6 +143,8 @@ function Equipamentos() {
         valor_semanal: Number(form.valor_semanal.replace(",", ".") || 0),
         valor_mensal: Number(form.valor_mensal.replace(",", ".") || 0),
         valor_caucao: Number(form.valor_caucao.replace(",", ".") || 0),
+        valor_aquisicao: Number(form.valor_aquisicao.replace(",", ".") || 0),
+        custo_manutencao: Number(form.custo_manutencao.replace(",", ".") || 0),
         situacao: form.situacao,
         observacoes: form.observacoes || null,
         ativo: form.ativo,
