@@ -150,6 +150,7 @@ const groups: Group[] = [
       { label: "Ordens de serviço", to: "/assistencia", icon: Wrench },
       { label: "Técnicos", to: "/tecnicos", icon: IdCard },
       { label: "Assistência por loja", to: "/assistencia-lojas", icon: Gauge },
+      { label: "Relatório em PDF", to: "/relatorio-assistencia", icon: FileText },
     ],
   },
   {
@@ -257,6 +258,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
+      { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
   };
