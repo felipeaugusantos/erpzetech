@@ -20,6 +20,7 @@ import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authen
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
+import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
@@ -153,6 +154,12 @@ const AuthenticatedCategoriasRoute = AuthenticatedCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCertificadoNfseRoute =
+  AuthenticatedCertificadoNfseRouteImport.update({
+    id: '/certificado-nfse',
+    path: '/certificado-nfse',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -576,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
+  '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
@@ -662,6 +670,7 @@ export interface FileRoutesByTo {
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
+  '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
@@ -750,6 +759,7 @@ export interface FileRoutesById {
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
+  '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
@@ -838,6 +848,7 @@ export interface FileRouteTypes {
     | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
+    | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
@@ -924,6 +935,7 @@ export interface FileRouteTypes {
     | '/banco-movimentos'
     | '/caixa'
     | '/categorias'
+    | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
@@ -1011,6 +1023,7 @@ export interface FileRouteTypes {
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
     | '/_authenticated/categorias'
+    | '/_authenticated/certificado-nfse'
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/comissoes'
@@ -1172,6 +1185,13 @@ declare module '@tanstack/react-router' {
       path: '/categorias'
       fullPath: '/categorias'
       preLoaderRoute: typeof AuthenticatedCategoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/certificado-nfse': {
+      id: '/_authenticated/certificado-nfse'
+      path: '/certificado-nfse'
+      fullPath: '/certificado-nfse'
+      preLoaderRoute: typeof AuthenticatedCertificadoNfseRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
@@ -1702,6 +1722,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
+  AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
@@ -1785,6 +1806,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
+  AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
