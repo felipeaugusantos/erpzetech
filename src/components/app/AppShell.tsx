@@ -33,6 +33,7 @@ import {
   Warehouse,
   X,
   CircleDollarSign,
+  Receipt,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
