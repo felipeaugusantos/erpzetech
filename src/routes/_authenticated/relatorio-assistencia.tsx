@@ -74,11 +74,13 @@ function RelatorioAssistencia() {
     queryKey: ["relatorio-assistencia", periodo.de, periodo.ate, filialId],
     enabled: modulos.assistencia,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("assistencia_ordens_relatorio", {
-        p_de: periodo.de,
-        p_ate: periodo.ate,
-        p_filial_id: filialId === "todas" ? undefined : filialId,
-      });
+      const args = { p_de: periodo.de, p_ate: periodo.ate } as {
+        p_de: string;
+        p_ate: string;
+        p_filial_id?: string;
+      };
+      if (filialId !== "todas") args.p_filial_id = filialId;
+      const { data, error } = await supabase.rpc("assistencia_ordens_relatorio", args);
       if (error) throw error;
       return data ?? [];
     },
@@ -209,7 +211,7 @@ function RelatorioAssistencia() {
       <PageHeader
         title="Relatório de assistência técnica"
         description="Ordens, reparos e custos da loja no período, com exportação em PDF para imprimir ou enviar."
-        action={
+        actions={
           <Button onClick={exportarPdf} disabled={linhas.length === 0}>
             <Download className="size-4" /> Exportar PDF
           </Button>

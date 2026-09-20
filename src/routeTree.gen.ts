@@ -62,6 +62,7 @@ import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
+import { Route as AuthenticatedRelatorioAssistenciaRouteImport } from './routes/_authenticated/relatorio-assistencia'
 import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_authenticated/relatorio-comissoes'
 import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_authenticated/relatorio-estoque'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
@@ -374,6 +375,12 @@ const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatorioAssistenciaRoute =
+  AuthenticatedRelatorioAssistenciaRouteImport.update({
+    id: '/relatorio-assistencia',
+    path: '/relatorio-assistencia',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRelatorioComissoesRoute =
   AuthenticatedRelatorioComissoesRouteImport.update({
     id: '/relatorio-comissoes',
@@ -570,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
@@ -649,6 +657,7 @@ export interface FileRoutesByTo {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
@@ -730,6 +739,7 @@ export interface FileRoutesById {
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
+  '/_authenticated/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/_authenticated/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/_authenticated/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
@@ -811,6 +821,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-assistencia'
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/rota'
@@ -890,6 +901,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-assistencia'
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/rota'
@@ -970,6 +982,7 @@ export interface FileRouteTypes {
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
+    | '/_authenticated/relatorio-assistencia'
     | '/_authenticated/relatorio-comissoes'
     | '/_authenticated/relatorio-estoque'
     | '/_authenticated/rota'
@@ -1378,6 +1391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorio-assistencia': {
+      id: '/_authenticated/relatorio-assistencia'
+      path: '/relatorio-assistencia'
+      fullPath: '/relatorio-assistencia'
+      preLoaderRoute: typeof AuthenticatedRelatorioAssistenciaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorio-comissoes': {
       id: '/_authenticated/relatorio-comissoes'
       path: '/relatorio-comissoes'
@@ -1605,6 +1625,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
+  AuthenticatedRelatorioAssistenciaRoute: typeof AuthenticatedRelatorioAssistenciaRoute
   AuthenticatedRelatorioComissoesRoute: typeof AuthenticatedRelatorioComissoesRoute
   AuthenticatedRelatorioEstoqueRoute: typeof AuthenticatedRelatorioEstoqueRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
@@ -1681,6 +1702,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
+  AuthenticatedRelatorioAssistenciaRoute:
+    AuthenticatedRelatorioAssistenciaRoute,
   AuthenticatedRelatorioComissoesRoute: AuthenticatedRelatorioComissoesRoute,
   AuthenticatedRelatorioEstoqueRoute: AuthenticatedRelatorioEstoqueRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
