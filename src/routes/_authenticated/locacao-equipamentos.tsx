@@ -373,6 +373,13 @@ function Equipamentos() {
               />
             </div>
             <div>
+              <Label>Quantidade em estoque</Label>
+              <Input
+                value={form.quantidade}
+                onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+              />
+            </div>
+            <div>
               <Label>Situação</Label>
               <Select value={form.situacao} onValueChange={(v) => setForm({ ...form, situacao: v })}>
                 <SelectTrigger>
