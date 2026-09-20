@@ -209,7 +209,13 @@ function ZeTechRelatorioFiscal() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(
-      `Entradas: ${brl(totais.entradas)}   Saídas: ${brl(totais.saidas)}   Saldo em estoque: ${brl(totais.saldo)}   Notas: ${num(totais.notas, 0)}   Faturado: ${brl(totais.valor)}   Impostos: ${brl(totais.impostos)}`,
+      `Entradas: ${brl(totais.entradas)}   Saídas: ${brl(totais.saidas)}   Saldo em estoque: ${brl(totais.saldo)}   Impostos: ${brl(totais.impostos)}`,
+      14,
+      y,
+    );
+    y += 5;
+    doc.text(
+      `NF-e de venda: ${num(totais.notasVenda, 0)} · ${brl(totais.valorVenda)}   NFS-e de serviço: ${num(totais.notasServico, 0)} · ${brl(totais.valorServico)} (ISS ${brl(totais.issServico)})`,
       14,
       y,
     );
