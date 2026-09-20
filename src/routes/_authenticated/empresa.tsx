@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
+import { ROTULO_MODULO, cnaesDaEmpresa, exemplosCnae, moduloLiberadoPorCnae } from "@/lib/cnae";
 import {
   COR_PADRAO,
   LogoEmpresaUpload,
@@ -57,6 +58,7 @@ const vazio = {
   inscricao_estadual: "",
   inscricao_municipal: "",
   cnae: "",
+  cnae_secundarios: "",
   regime_tributario: "simples",
   ramo_atividade: "construcao",
   telefone: "",
@@ -103,6 +105,7 @@ function Empresa() {
       inscricao_estadual: data.inscricao_estadual ?? "",
       inscricao_municipal: data.inscricao_municipal ?? "",
       cnae: data.cnae ?? "",
+      cnae_secundarios: data.cnae_secundarios ?? "",
       regime_tributario: data.regime_tributario ?? "simples",
       ramo_atividade: data.ramo_atividade ?? "construcao",
       telefone: data.telefone ?? "",
@@ -288,6 +291,48 @@ function Empresa() {
             {campo("cidade", "Cidade")}
             {campo("estado", "Estado", { maxLength: 2, upper: true })}
             {campo("codigo_municipio", "Código IBGE do município")}
+          </div>
+
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="font-display text-sm font-semibold">Atividades (CNAE)</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              O CNAE principal e os secundários liberam os módulos de Assistência técnica e Locação
+              de equipamentos. Separe os secundários por vírgula.
+            </p>
+            <div>
+              <Label htmlFor="emp-cnae-sec">CNAEs secundários</Label>
+              <Input
+                id="emp-cnae-sec"
+                value={form.cnae_secundarios}
+                disabled={!isAdmin}
+                placeholder="Ex.: 9511-8/00, 7732-2/01"
+                onChange={(e) => setForm({ ...form, cnae_secundarios: e.target.value })}
+              />
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(["assistencia", "locacao"] as const).map((m) => {
+                const liberado = moduloLiberadoPorCnae(
+                  cnaesDaEmpresa({ cnae: form.cnae, cnae_secundarios: form.cnae_secundarios }),
+                  m,
+                );
+                return (
+                  <div key={m} className="rounded-md border border-border p-3">
+                    <p className="text-sm font-semibold">
+                      {ROTULO_MODULO[m]}{" "}
+                      <span className={liberado ? "text-primary" : "text-muted-foreground"}>
+                        · {liberado ? "liberado" : "bloqueado"}
+                      </span>
+                    </p>
+                    <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      {exemplosCnae(m).map((ex) => (
+                        <li key={ex}>• {ex}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-6 border-t border-border pt-5">

@@ -5,6 +5,8 @@ import { ListChecks, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useModulosCnae } from "@/lib/cnae";
+import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
@@ -48,7 +50,7 @@ export const Route = createFileRoute("/_authenticated/assistencia")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Assistencia,
+  component: AssistenciaModulo,
 });
 
 /** Etapas da ordem de serviço, na ordem do atendimento. */
@@ -82,6 +84,7 @@ type Form = {
   situacao: string;
   previsao: string;
   garantia_dias: string;
+  horas_trabalhadas: string;
   desconto: string;
   observacoes: string;
 };
@@ -102,6 +105,7 @@ const vazio: Form = {
   situacao: "aberta",
   previsao: "",
   garantia_dias: "90",
+  horas_trabalhadas: "0",
   desconto: "0",
   observacoes: "",
 };
@@ -228,6 +232,7 @@ function Assistencia() {
         situacao: form.situacao as never,
         previsao: form.previsao || null,
         garantia_dias: Number(form.garantia_dias || 0),
+        horas_trabalhadas: Number(form.horas_trabalhadas.replace(",", ".") || 0),
         desconto: Number(form.desconto || 0),
         observacoes: form.observacoes || null,
         entregue_em: form.situacao === "entregue" ? new Date().toISOString() : null,
@@ -451,6 +456,7 @@ function Assistencia() {
                             situacao: o.situacao,
                             previsao: o.previsao ?? "",
                             garantia_dias: String(o.garantia_dias ?? 90),
+                            horas_trabalhadas: String(o.horas_trabalhadas ?? 0),
                             desconto: String(o.desconto ?? 0),
                             observacoes: o.observacoes ?? "",
                           });
@@ -602,6 +608,13 @@ function Assistencia() {
               <Input
                 value={form.garantia_dias}
                 onChange={(e) => setForm({ ...form, garantia_dias: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Horas trabalhadas</Label>
+              <Input
+                value={form.horas_trabalhadas}
+                onChange={(e) => setForm({ ...form, horas_trabalhadas: e.target.value })}
               />
             </div>
             <div>
@@ -779,4 +792,12 @@ function Assistencia() {
       </Dialog>
     </div>
   );
+}
+
+/** O módulo só abre quando o CNAE da empresa permite. */
+function AssistenciaModulo() {
+  const modulos = useModulosCnae();
+  if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
+  if (!modulos.assistencia) return <ModuloBloqueado modulo="assistencia" />;
+  return <Assistencia />;
 }

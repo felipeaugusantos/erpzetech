@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
+import { useModulosCnae } from "@/lib/cnae";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -150,6 +151,7 @@ const groups: Group[] = [
       { label: "Ordens de serviço", to: "/assistencia", icon: Wrench },
       { label: "Técnicos", to: "/tecnicos", icon: IdCard },
       { label: "Assistência por loja", to: "/assistencia-lojas", icon: Gauge },
+      { label: "Relatório em PDF", to: "/relatorio-assistencia", icon: FileText },
     ],
   },
   {
@@ -243,6 +245,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
 
+  /** Assistência técnica e locação dependem do CNAE informado no cadastro da empresa. */
+  const modulos = useModulosCnae();
+  const gruposLoja = useMemo(
+    () =>
+      groups.filter((g) => {
+        if (g.label === "Assistência técnica") return modulos.assistencia;
+        if (g.label === "Locação de equipamentos") return modulos.locacao;
+        return true;
+      }),
+    [modulos.assistencia, modulos.locacao],
+  );
+
   /** Grupo exclusivo da equipe Ze Tech. */
   const grupoZeTech: Group = {
     label: "Ze Tech",
@@ -257,6 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
+      { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
   };
@@ -275,8 +290,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     : operadorSaas
       ? naAreaZeTech
         ? [grupoZeTech]
-        : [...groups, grupoZeTech]
-      : groups;
+        : [...gruposLoja, grupoZeTech]
+      : gruposLoja;
 
   useEffect(() => {
     if (somenteMotorista && pathname !== "/motorista") {

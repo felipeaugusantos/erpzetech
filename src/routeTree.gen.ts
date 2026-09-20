@@ -62,6 +62,7 @@ import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
+import { Route as AuthenticatedRelatorioAssistenciaRouteImport } from './routes/_authenticated/relatorio-assistencia'
 import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_authenticated/relatorio-comissoes'
 import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_authenticated/relatorio-estoque'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
@@ -79,6 +80,7 @@ import { Route as AuthenticatedZeTechLojasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedZeTechNotasRouteImport } from './routes/_authenticated/ze-tech-notas'
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
 import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
+import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
@@ -373,6 +375,12 @@ const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatorioAssistenciaRoute =
+  AuthenticatedRelatorioAssistenciaRouteImport.update({
+    id: '/relatorio-assistencia',
+    path: '/relatorio-assistencia',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRelatorioComissoesRoute =
   AuthenticatedRelatorioComissoesRouteImport.update({
     id: '/relatorio-comissoes',
@@ -469,6 +477,12 @@ const AuthenticatedZeTechRelatoriosRoute =
     path: '/ze-tech-relatorios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechTecnicosRoute =
+  AuthenticatedZeTechTecnicosRouteImport.update({
+    id: '/ze-tech-tecnicos',
+    path: '/ze-tech-tecnicos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechTempoRealRoute =
   AuthenticatedZeTechTempoRealRouteImport.update({
     id: '/ze-tech-tempo-real',
@@ -563,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
@@ -580,6 +595,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
@@ -641,6 +657,7 @@ export interface FileRoutesByTo {
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/rota': typeof AuthenticatedRotaRoute
@@ -658,6 +675,7 @@ export interface FileRoutesByTo {
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
@@ -721,6 +739,7 @@ export interface FileRoutesById {
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
+  '/_authenticated/relatorio-assistencia': typeof AuthenticatedRelatorioAssistenciaRoute
   '/_authenticated/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/_authenticated/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
@@ -738,6 +757,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
@@ -801,6 +821,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-assistencia'
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/rota'
@@ -818,6 +839,7 @@ export interface FileRouteTypes {
     | '/ze-tech-notas'
     | '/ze-tech-planos'
     | '/ze-tech-relatorios'
+    | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/compras/$id'
     | '/depositos/$id'
@@ -879,6 +901,7 @@ export interface FileRouteTypes {
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
+    | '/relatorio-assistencia'
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/rota'
@@ -896,6 +919,7 @@ export interface FileRouteTypes {
     | '/ze-tech-notas'
     | '/ze-tech-planos'
     | '/ze-tech-relatorios'
+    | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/compras/$id'
     | '/depositos/$id'
@@ -958,6 +982,7 @@ export interface FileRouteTypes {
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
+    | '/_authenticated/relatorio-assistencia'
     | '/_authenticated/relatorio-comissoes'
     | '/_authenticated/relatorio-estoque'
     | '/_authenticated/rota'
@@ -975,6 +1000,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-notas'
     | '/_authenticated/ze-tech-planos'
     | '/_authenticated/ze-tech-relatorios'
+    | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
@@ -1365,6 +1391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorio-assistencia': {
+      id: '/_authenticated/relatorio-assistencia'
+      path: '/relatorio-assistencia'
+      fullPath: '/relatorio-assistencia'
+      preLoaderRoute: typeof AuthenticatedRelatorioAssistenciaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorio-comissoes': {
       id: '/_authenticated/relatorio-comissoes'
       path: '/relatorio-comissoes'
@@ -1484,6 +1517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechRelatoriosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-tecnicos': {
+      id: '/_authenticated/ze-tech-tecnicos'
+      path: '/ze-tech-tecnicos'
+      fullPath: '/ze-tech-tecnicos'
+      preLoaderRoute: typeof AuthenticatedZeTechTecnicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-tempo-real': {
       id: '/_authenticated/ze-tech-tempo-real'
       path: '/ze-tech-tempo-real'
@@ -1585,6 +1625,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
+  AuthenticatedRelatorioAssistenciaRoute: typeof AuthenticatedRelatorioAssistenciaRoute
   AuthenticatedRelatorioComissoesRoute: typeof AuthenticatedRelatorioComissoesRoute
   AuthenticatedRelatorioEstoqueRoute: typeof AuthenticatedRelatorioEstoqueRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
@@ -1602,6 +1643,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechNotasRoute: typeof AuthenticatedZeTechNotasRoute
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
   AuthenticatedZeTechRelatoriosRoute: typeof AuthenticatedZeTechRelatoriosRoute
+  AuthenticatedZeTechTecnicosRoute: typeof AuthenticatedZeTechTecnicosRoute
   AuthenticatedZeTechTempoRealRoute: typeof AuthenticatedZeTechTempoRealRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
@@ -1660,6 +1702,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
+  AuthenticatedRelatorioAssistenciaRoute:
+    AuthenticatedRelatorioAssistenciaRoute,
   AuthenticatedRelatorioComissoesRoute: AuthenticatedRelatorioComissoesRoute,
   AuthenticatedRelatorioEstoqueRoute: AuthenticatedRelatorioEstoqueRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
@@ -1677,6 +1721,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechNotasRoute: AuthenticatedZeTechNotasRoute,
   AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,
   AuthenticatedZeTechRelatoriosRoute: AuthenticatedZeTechRelatoriosRoute,
+  AuthenticatedZeTechTecnicosRoute: AuthenticatedZeTechTecnicosRoute,
   AuthenticatedZeTechTempoRealRoute: AuthenticatedZeTechTempoRealRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,

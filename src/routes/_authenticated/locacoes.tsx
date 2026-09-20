@@ -5,6 +5,8 @@ import { CalendarClock, CheckCircle2, Plus, Search, Truck, XCircle } from "lucid
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useModulosCnae } from "@/lib/cnae";
+import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR } from "@/lib/format";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
@@ -47,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/locacoes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Locacoes,
+  component: LocacoesModulo,
 });
 
 const SITUACOES = [
@@ -511,4 +513,12 @@ function Locacoes() {
       </Dialog>
     </div>
   );
+}
+
+/** O módulo só abre quando o CNAE da empresa permite. */
+function LocacoesModulo() {
+  const modulos = useModulosCnae();
+  if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
+  if (!modulos.locacao) return <ModuloBloqueado modulo="locacao" />;
+  return <Locacoes />;
 }

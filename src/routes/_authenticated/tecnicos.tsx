@@ -5,6 +5,8 @@ import { HardHat, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useModulosCnae } from "@/lib/cnae";
+import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
@@ -54,7 +56,7 @@ export const Route = createFileRoute("/_authenticated/tecnicos")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Tecnicos,
+  component: TecnicosModulo,
 });
 
 type Form = {
@@ -449,4 +451,12 @@ function Tecnicos() {
       </Dialog>
     </div>
   );
+}
+
+/** O módulo só abre quando o CNAE da empresa permite. */
+function TecnicosModulo() {
+  const modulos = useModulosCnae();
+  if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
+  if (!modulos.assistencia) return <ModuloBloqueado modulo="assistencia" />;
+  return <Tecnicos />;
 }
