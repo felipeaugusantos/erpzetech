@@ -30,7 +30,7 @@ export function useSessionData() {
           supabase
             .from("empresas")
             .select(
-              "id, razao_social, nome_fantasia, ramo_atividade, logo_path, cor_primaria, cnpj, inscricao_estadual, telefone, email, cep, endereco, numero, bairro, cidade, estado",
+              "id, razao_social, nome_fantasia, ramo_atividade, logo_path, cor_primaria, cnpj, inscricao_estadual, telefone, email, cep, endereco, numero, bairro, cidade, estado, cnae, cnae_secundarios",
             )
             .limit(1)
             .maybeSingle(),
