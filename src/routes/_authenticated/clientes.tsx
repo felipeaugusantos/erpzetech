@@ -105,6 +105,33 @@ function Clientes() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(vazio);
 
+  /** Preenche o cadastro do cliente pelo CNPJ, direto da base pública da Receita. */
+  const buscarCnpjFn = useServerFn(consultarCnpj);
+  const buscarCnpj = useMutation({
+    mutationFn: async () => await buscarCnpjFn({ data: { cnpj: form.cnpj } }),
+    onSuccess: (d) => {
+      setForm((atual) => ({
+        ...atual,
+        nome: d.razao_social || atual.nome,
+        nome_fantasia: d.nome_fantasia || atual.nome_fantasia,
+        telefone: d.telefone || atual.telefone,
+        email: d.email || atual.email,
+        cep: d.cep || atual.cep,
+        endereco: d.endereco || atual.endereco,
+        numero: d.numero || atual.numero,
+        complemento: d.complemento || atual.complemento,
+        bairro: d.bairro || atual.bairro,
+        cidade: d.cidade || atual.cidade,
+        estado: d.estado || atual.estado,
+      }));
+      toast.success(`Dados encontrados: ${d.razao_social}`, {
+        description: [d.cnae_descricao, d.situacao].filter(Boolean).join(" · "),
+      });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
