@@ -302,10 +302,23 @@ function ZeTechRelatorioFiscal() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Entradas" value={brl(totais.entradas)} icon={Package} />
         <StatCard label="Saídas" value={brl(totais.saidas)} tone="warning" icon={Package} />
         <StatCard label="Saldo em estoque" value={brl(totais.saldo)} tone="accent" icon={Package} />
+        <StatCard
+          label="Notas de venda"
+          value={brl(totais.valorVenda)}
+          hint={`${num(totais.notasVenda, 0)} NF-e no período`}
+          icon={FileText}
+        />
+        <StatCard
+          label="Notas de serviço"
+          value={brl(totais.valorServico)}
+          hint={`${num(totais.notasServico, 0)} NFS-e · ISS ${brl(totais.issServico)}`}
+          tone="accent"
+          icon={Wrench}
+        />
         <StatCard
           label="Impostos no período"
           value={brl(totais.impostos)}
