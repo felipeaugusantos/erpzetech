@@ -2408,6 +2408,7 @@ export type Database = {
           categoria: string | null
           codigo: string | null
           created_at: string
+          custo_manutencao: number
           filial_id: string | null
           id: string
           marca: string | null
@@ -2418,6 +2419,7 @@ export type Database = {
           situacao: string
           tenant_id: string
           updated_at: string
+          valor_aquisicao: number
           valor_caucao: number
           valor_diaria: number
           valor_mensal: number
@@ -2428,6 +2430,7 @@ export type Database = {
           categoria?: string | null
           codigo?: string | null
           created_at?: string
+          custo_manutencao?: number
           filial_id?: string | null
           id?: string
           marca?: string | null
@@ -2438,6 +2441,7 @@ export type Database = {
           situacao?: string
           tenant_id: string
           updated_at?: string
+          valor_aquisicao?: number
           valor_caucao?: number
           valor_diaria?: number
           valor_mensal?: number
@@ -2448,6 +2452,7 @@ export type Database = {
           categoria?: string | null
           codigo?: string | null
           created_at?: string
+          custo_manutencao?: number
           filial_id?: string | null
           id?: string
           marca?: string | null
@@ -2458,6 +2463,7 @@ export type Database = {
           situacao?: string
           tenant_id?: string
           updated_at?: string
+          valor_aquisicao?: number
           valor_caucao?: number
           valor_diaria?: number
           valor_mensal?: number
@@ -5709,6 +5715,26 @@ export type Database = {
           ultima_ordem: string
           valor_pecas: number
           valor_servicos: number
+        }[]
+      }
+      saas_fiscal_por_periodo: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          cliente: string
+          cliente_id: string
+          cofins: number
+          entradas: number
+          icms: number
+          icms_st: number
+          impostos: number
+          iss: number
+          notas: number
+          pis: number
+          plano: string
+          saidas: number
+          saldo_estoque: number
+          tenant_id: string
+          valor_notas: number
         }[]
       }
       saas_gerar_faturas: { Args: never; Returns: number }

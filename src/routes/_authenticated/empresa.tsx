@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react";
+import { Building2, Search } from "lucide-react";
 import { toast } from "sonner";
+
+import { consultarCnpj } from "@/lib/cnpj.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -86,6 +89,36 @@ function Empresa() {
     logo: null,
     cor: COR_PADRAO,
   });
+
+  /** Busca o CNPJ na base pública da Receita e preenche o cadastro sozinho. */
+  const buscarCnpjFn = useServerFn(consultarCnpj);
+  const buscarCnpj = useMutation({
+    mutationFn: async () => await buscarCnpjFn({ data: { cnpj: form.cnpj } }),
+    onSuccess: (d) => {
+      setForm((atual) => ({
+        ...atual,
+        razao_social: d.razao_social || atual.razao_social,
+        nome_fantasia: d.nome_fantasia || atual.nome_fantasia,
+        cnae: d.cnae || atual.cnae,
+        cnae_secundarios: d.cnae_secundarios || atual.cnae_secundarios,
+        telefone: d.telefone || atual.telefone,
+        email: d.email || atual.email,
+        cep: d.cep || atual.cep,
+        endereco: d.endereco || atual.endereco,
+        numero: d.numero || atual.numero,
+        complemento: d.complemento || atual.complemento,
+        bairro: d.bairro || atual.bairro,
+        cidade: d.cidade || atual.cidade,
+        estado: d.estado || atual.estado,
+        codigo_municipio: d.codigo_municipio || atual.codigo_municipio,
+      }));
+      toast.success(`Dados encontrados: ${d.razao_social}`, {
+        description: [d.cnae_descricao, d.situacao].filter(Boolean).join(" · "),
+      });
+    },
+    onError: (e: Error) => toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
+  });
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
@@ -233,7 +266,30 @@ function Empresa() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {campo("razao_social", "Razão social")}
             {campo("nome_fantasia", "Nome fantasia")}
-            {campo("cnpj", "CNPJ")}
+            <div>
+              <Label htmlFor="emp-cnpj">CNPJ</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="emp-cnpj"
+                  value={form.cnpj}
+                  disabled={!isAdmin}
+                  placeholder="00.000.000/0000-00"
+                  onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!isAdmin || buscarCnpj.isPending}
+                  onClick={() => buscarCnpj.mutate()}
+                >
+                  <Search className="size-4" />
+                  {buscarCnpj.isPending ? "Buscando…" : "Buscar"}
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Digite o CNPJ e clique em Buscar: nome, atividades (CNAE) e endereço vêm preenchidos.
+              </p>
+            </div>
             {campo("inscricao_estadual", "Inscrição estadual")}
             {campo("inscricao_municipal", "Inscrição municipal")}
             {campo("cnae", "CNAE principal")}

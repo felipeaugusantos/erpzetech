@@ -71,6 +71,8 @@ type Form = {
   valor_semanal: string;
   valor_mensal: string;
   valor_caucao: string;
+  valor_aquisicao: string;
+  custo_manutencao: string;
   situacao: string;
   observacoes: string;
   ativo: boolean;
@@ -87,6 +89,8 @@ const vazio: Form = {
   valor_semanal: "0",
   valor_mensal: "0",
   valor_caucao: "0",
+  valor_aquisicao: "0",
+  custo_manutencao: "0",
   situacao: "disponivel",
   observacoes: "",
   ativo: true,
@@ -139,6 +143,8 @@ function Equipamentos() {
         valor_semanal: Number(form.valor_semanal.replace(",", ".") || 0),
         valor_mensal: Number(form.valor_mensal.replace(",", ".") || 0),
         valor_caucao: Number(form.valor_caucao.replace(",", ".") || 0),
+        valor_aquisicao: Number(form.valor_aquisicao.replace(",", ".") || 0),
+        custo_manutencao: Number(form.custo_manutencao.replace(",", ".") || 0),
         situacao: form.situacao,
         observacoes: form.observacoes || null,
         ativo: form.ativo,
@@ -240,6 +246,8 @@ function Equipamentos() {
                 <TableHead className="text-right">Semana</TableHead>
                 <TableHead className="text-right">Mês</TableHead>
                 <TableHead className="text-right">Caução</TableHead>
+                <TableHead className="text-right">Aquisição</TableHead>
+                <TableHead className="text-right">Manutenção</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead />
               </TableRow>
@@ -259,6 +267,12 @@ function Equipamentos() {
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_semanal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_mensal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_caucao))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_aquisicao ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.custo_manutencao ?? 0))}
+                  </TableCell>
                   <TableCell>
                     {!e.ativo ? (
                       <Badge variant="outline">Inativo</Badge>
@@ -294,6 +308,8 @@ function Equipamentos() {
                           valor_semanal: String(e.valor_semanal ?? 0),
                           valor_mensal: String(e.valor_mensal ?? 0),
                           valor_caucao: String(e.valor_caucao ?? 0),
+                          valor_aquisicao: String(e.valor_aquisicao ?? 0),
+                          custo_manutencao: String(e.custo_manutencao ?? 0),
                           situacao: e.situacao,
                           observacoes: e.observacoes ?? "",
                           ativo: e.ativo,
@@ -393,6 +409,20 @@ function Equipamentos() {
               <Input
                 value={form.valor_caucao}
                 onChange={(e) => setForm({ ...form, valor_caucao: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Valor de aquisição</Label>
+              <Input
+                value={form.valor_aquisicao}
+                onChange={(e) => setForm({ ...form, valor_aquisicao: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Custo de manutenção</Label>
+              <Input
+                value={form.custo_manutencao}
+                onChange={(e) => setForm({ ...form, custo_manutencao: e.target.value })}
               />
             </div>
             <div className="sm:col-span-2">

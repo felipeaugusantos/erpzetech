@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { consultarCnpj } from "@/lib/cnpj.functions";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
@@ -102,6 +104,33 @@ function Clientes() {
   const [filtro, setFiltro] = useState("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(vazio);
+
+  /** Preenche o cadastro do cliente pelo CNPJ, direto da base pública da Receita. */
+  const buscarCnpjFn = useServerFn(consultarCnpj);
+  const buscarCnpj = useMutation({
+    mutationFn: async () => await buscarCnpjFn({ data: { cnpj: form.cnpj } }),
+    onSuccess: (d) => {
+      setForm((atual) => ({
+        ...atual,
+        nome: d.razao_social || atual.nome,
+        nome_fantasia: d.nome_fantasia || atual.nome_fantasia,
+        telefone: d.telefone || atual.telefone,
+        email: d.email || atual.email,
+        cep: d.cep || atual.cep,
+        endereco: d.endereco || atual.endereco,
+        numero: d.numero || atual.numero,
+        complemento: d.complemento || atual.complemento,
+        bairro: d.bairro || atual.bairro,
+        cidade: d.cidade || atual.cidade,
+        estado: d.estado || atual.estado,
+      }));
+      toast.success(`Dados encontrados: ${d.razao_social}`, {
+        description: [d.cnae_descricao, d.situacao].filter(Boolean).join(" · "),
+      });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["clientes"],
@@ -386,11 +415,26 @@ function Clientes() {
                 <>
                   <div>
                     <Label htmlFor="c-cnpj">CNPJ</Label>
-                    <Input
-                      id="c-cnpj"
-                      value={form.cnpj}
-                      onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="c-cnpj"
+                        value={form.cnpj}
+                        placeholder="00.000.000/0000-00"
+                        onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={buscarCnpj.isPending}
+                        onClick={() => buscarCnpj.mutate()}
+                      >
+                        <Search className="size-4" />
+                        {buscarCnpj.isPending ? "…" : "Buscar"}
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Informe o CNPJ e clique em Buscar para trazer nome e endereço automaticamente.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="c-ie">Inscrição estadual</Label>

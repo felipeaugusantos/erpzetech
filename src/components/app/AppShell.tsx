@@ -160,6 +160,7 @@ const groups: Group[] = [
     items: [
       { label: "Locações", to: "/locacoes", icon: CalendarClock },
       { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
+      { label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
     ],
   },
   {
@@ -270,6 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
+      { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
       { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
