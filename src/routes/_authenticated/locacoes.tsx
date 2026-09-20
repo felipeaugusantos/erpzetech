@@ -303,11 +303,13 @@ function Locacoes() {
 
   const gerarNota = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("locacao_gerar_nfe", { p_locacao_id: id });
+      const { error } = await supabase.rpc("locacao_gerar_nfse", { p_locacao_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Nota de locação gerada — confira em Fiscal › Notas fiscais.");
+      toast.success(
+        "Nota fiscal de serviço (NFS-e) gerada — confira em Fiscal › Notas fiscais.",
+      );
       recarregar();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -504,7 +506,7 @@ function Locacoes() {
                             onClick={() => gerarNota.mutate(l.id)}
                             disabled={gerarNota.isPending}
                           >
-                            <FileText className="size-4" /> Nota
+                            <FileText className="size-4" /> Nota de serviço
                           </Button>
                         )}
                         {["reservada", "em_andamento"].includes(l.situacao) && (

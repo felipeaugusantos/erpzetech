@@ -33,6 +33,7 @@ import {
   Warehouse,
   X,
   CircleDollarSign,
+  Receipt,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -159,6 +160,7 @@ const groups: Group[] = [
     label: "Locação de equipamentos",
     icon: Hammer,
     items: [
+      { label: "Balcão de locação", to: "/locacao-balcao", icon: Receipt },
       { label: "Locações", to: "/locacoes", icon: CalendarClock },
       { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
       { label: "Estoque de equipamentos", to: "/locacao-estoque", icon: Boxes },
