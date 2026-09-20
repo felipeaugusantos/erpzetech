@@ -134,7 +134,8 @@ function Simulacao() {
         const valorSt = baseSt * (aliqIcms / 100);
         const pis = total * (cfg.pis / 100);
         const cofins = total * (cfg.cofins / 100);
-        const iss = tipo === "servico" ? total * (cfg.iss / 100) : total * (cfg.iss / 100);
+        // A nota real também aplica ISS sobre o total do item, então a simulação segue a mesma regra.
+        const iss = total * (cfg.iss / 100);
         return { ...l, cst, total, baseIcms, valorIcms, baseSt, valorSt, pis, cofins, iss };
       }),
     [linhas, tipo, cfg, aliqIcms],
