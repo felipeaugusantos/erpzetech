@@ -1572,6 +1572,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnae: string | null
+          cnae_secundarios: string | null
           cnpj: string | null
           codigo_municipio: string | null
           complemento: string | null
@@ -1599,6 +1600,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnae?: string | null
+          cnae_secundarios?: string | null
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
@@ -1626,6 +1628,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnae?: string | null
+          cnae_secundarios?: string | null
           cnpj?: string | null
           codigo_municipio?: string | null
           complemento?: string | null
@@ -3407,6 +3410,7 @@ export type Database = {
           equipamento: string
           filial_id: string | null
           garantia_dias: number
+          horas_trabalhadas: number
           id: string
           laudo: string | null
           marca: string | null
@@ -3438,6 +3442,7 @@ export type Database = {
           equipamento: string
           filial_id?: string | null
           garantia_dias?: number
+          horas_trabalhadas?: number
           id?: string
           laudo?: string | null
           marca?: string | null
@@ -3469,6 +3474,7 @@ export type Database = {
           equipamento?: string
           filial_id?: string | null
           garantia_dias?: number
+          horas_trabalhadas?: number
           id?: string
           laudo?: string | null
           marca?: string | null
@@ -5260,6 +5266,31 @@ export type Database = {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
       }
+      assistencia_ordens_relatorio: {
+        Args: { p_ate: string; p_de: string; p_filial_id?: string }
+        Returns: {
+          abertura: string
+          cliente: string
+          defeito_relatado: string
+          desconto: number
+          entregue_em: string
+          equipamento: string
+          filial: string
+          filial_id: string
+          horas_trabalhadas: number
+          laudo: string
+          marca: string
+          modelo: string
+          numero: number
+          os_id: string
+          prioridade: string
+          situacao: string
+          tecnico: string
+          valor_pecas: number
+          valor_servicos: number
+          valor_total: number
+        }[]
+      }
       assistencia_por_filial: {
         Args: { p_ate: string; p_de: string }
         Returns: {
@@ -5656,6 +5687,29 @@ export type Database = {
           p_valor: number
         }
         Returns: undefined
+      }
+      saas_custo_por_tecnico: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          cargo: string
+          cliente: string
+          cliente_id: string
+          comissao: number
+          comissao_percentual: number
+          custo_hora: number
+          custo_mao_obra: number
+          custo_total: number
+          encerradas: number
+          especialidade: string
+          horas: number
+          ordens: number
+          tecnico: string
+          tecnico_id: string
+          tenant_id: string
+          ultima_ordem: string
+          valor_pecas: number
+          valor_servicos: number
+        }[]
       }
       saas_gerar_faturas: { Args: never; Returns: number }
       saas_marcar_enviada: {
