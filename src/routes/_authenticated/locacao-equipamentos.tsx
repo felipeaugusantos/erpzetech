@@ -246,6 +246,8 @@ function Equipamentos() {
                 <TableHead className="text-right">Semana</TableHead>
                 <TableHead className="text-right">Mês</TableHead>
                 <TableHead className="text-right">Caução</TableHead>
+                <TableHead className="text-right">Aquisição</TableHead>
+                <TableHead className="text-right">Manutenção</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead />
               </TableRow>
@@ -265,6 +267,12 @@ function Equipamentos() {
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_semanal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_mensal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_caucao))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_aquisicao ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.custo_manutencao ?? 0))}
+                  </TableCell>
                   <TableCell>
                     {!e.ativo ? (
                       <Badge variant="outline">Inativo</Badge>
