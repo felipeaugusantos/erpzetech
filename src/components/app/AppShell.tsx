@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
+import { useModulosCnae } from "@/lib/cnae";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -289,8 +290,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     : operadorSaas
       ? naAreaZeTech
         ? [grupoZeTech]
-        : [...groups, grupoZeTech]
-      : groups;
+        : [...gruposLoja, grupoZeTech]
+      : gruposLoja;
 
   useEffect(() => {
     if (somenteMotorista && pathname !== "/motorista") {
