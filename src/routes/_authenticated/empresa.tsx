@@ -266,7 +266,30 @@ function Empresa() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {campo("razao_social", "Razão social")}
             {campo("nome_fantasia", "Nome fantasia")}
-            {campo("cnpj", "CNPJ")}
+            <div>
+              <Label htmlFor="emp-cnpj">CNPJ</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="emp-cnpj"
+                  value={form.cnpj}
+                  disabled={!isAdmin}
+                  placeholder="00.000.000/0000-00"
+                  onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!isAdmin || buscarCnpj.isPending}
+                  onClick={() => buscarCnpj.mutate()}
+                >
+                  <Search className="size-4" />
+                  {buscarCnpj.isPending ? "Buscando…" : "Buscar"}
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Digite o CNPJ e clique em Buscar: nome, atividades (CNAE) e endereço vêm preenchidos.
+              </p>
+            </div>
             {campo("inscricao_estadual", "Inscrição estadual")}
             {campo("inscricao_municipal", "Inscrição municipal")}
             {campo("cnae", "CNAE principal")}
