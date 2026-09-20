@@ -95,6 +95,28 @@ function ZeTechRelatorioFiscal() {
     [linhas],
   );
 
+  /** Dez maiores lojas por movimento, para o gráfico e o resumo do PDF. */
+  const grafico = useMemo(
+    () =>
+      [...linhas]
+        .sort(
+          (a, b) =>
+            Number(b.entradas ?? 0) +
+            Number(b.saidas ?? 0) -
+            (Number(a.entradas ?? 0) + Number(a.saidas ?? 0)),
+        )
+        .slice(0, 10)
+        .map((l) => ({
+          nome: String(l.cliente ?? "—").slice(0, 14),
+          entradas: Number(l.entradas ?? 0),
+          saidas: Number(l.saidas ?? 0),
+          impostos: Number(l.impostos ?? 0),
+        })),
+    [linhas],
+  );
+
+
+
   function exportarPdf() {
     if (linhas.length === 0) {
       toast.error("Nenhum dado no período para exportar.");
