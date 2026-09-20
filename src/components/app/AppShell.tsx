@@ -244,6 +244,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
 
+  /** Assistência técnica e locação dependem do CNAE informado no cadastro da empresa. */
+  const modulos = useModulosCnae();
+  const gruposLoja = useMemo(
+    () =>
+      groups.filter((g) => {
+        if (g.label === "Assistência técnica") return modulos.assistencia;
+        if (g.label === "Locação de equipamentos") return modulos.locacao;
+        return true;
+      }),
+    [modulos.assistencia, modulos.locacao],
+  );
+
   /** Grupo exclusivo da equipe Ze Tech. */
   const grupoZeTech: Group = {
     label: "Ze Tech",
