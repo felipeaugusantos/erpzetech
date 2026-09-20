@@ -193,6 +193,44 @@ function ZeTechRelatorioFiscal() {
       y,
     );
 
+    // Gráfico de barras das dez maiores lojas (entradas x saídas x impostos).
+    if (grafico.length > 0) {
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Movimento por loja — dez maiores", 14, 16);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Barras: entradas (escura), saídas (média) e impostos (clara)", 14, 22);
+
+      const base = 150;
+      const maximo = Math.max(
+        ...grafico.map((g) => Math.max(g.entradas, g.saidas, g.impostos)),
+        1,
+      );
+      const larguraGrupo = 26;
+      const larguraBarra = 7;
+      doc.line(14, base, 290, base);
+
+      grafico.forEach((g, i) => {
+        const x0 = 18 + i * larguraGrupo;
+        const series: [number, [number, number, number]][] = [
+          [g.entradas, [0, 96, 55]],
+          [g.saidas, [90, 150, 120]],
+          [g.impostos, [180, 205, 190]],
+        ];
+        series.forEach(([valor, cor], j) => {
+          const altura = Math.max((valor / maximo) * 100, valor > 0 ? 1 : 0);
+          doc.setFillColor(cor[0], cor[1], cor[2]);
+          doc.rect(x0 + j * (larguraBarra + 1), base - altura, larguraBarra, altura, "F");
+        });
+        doc.setFontSize(7);
+        doc.text(g.nome, x0, base + 5, { maxWidth: larguraGrupo - 2 });
+        doc.text(brl(g.entradas), x0, base + 10, { maxWidth: larguraGrupo - 2 });
+      });
+    }
+
+
     doc.save(`ze-tech-fiscal-${periodo.de}-a-${periodo.ate}.pdf`);
     toast.success("Relatório exportado em PDF.");
   }
