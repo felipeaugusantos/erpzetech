@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
-import { Download, FileText, Package, Receipt } from "lucide-react";
+import { Download, FileText, Package, Receipt, Wrench } from "lucide-react";
 import {
   Bar,
   BarChart,
