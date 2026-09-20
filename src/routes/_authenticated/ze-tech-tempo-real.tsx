@@ -129,7 +129,7 @@ function TempoReal() {
         </p>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="Vendas no período"
           value={brl(totais.vendas)}
@@ -139,9 +139,16 @@ function TempoReal() {
         <StatCard
           label="Notas emitidas"
           value={num(totais.notas, 0)}
-          hint={brl(totais.valorNotas)}
+          hint={`${brl(totais.valorNotas)} · ${num(totais.notasServico, 0)} de serviço (${brl(totais.valorServico)})`}
           icon={FileText}
           tone="success"
+        />
+        <StatCard
+          label="Locações"
+          value={num(totais.locacoes, 0)}
+          hint={`${brl(totais.valorLocacoes)} · ${num(totais.locacoesAbertas, 0)} em aberto`}
+          icon={PackageOpen}
+          tone="accent"
         />
         <StatCard
           label="Impostos"
