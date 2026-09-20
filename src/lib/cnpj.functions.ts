@@ -25,7 +25,8 @@ const digitos = (v: string) => (v ?? "").replace(/\D/g, "");
 
 /** Formata o código CNAE no padrão 0000-0/00. */
 function formatarCnae(codigo: unknown): string {
-  const d = digitos(String(codigo ?? ""));
+  let d = digitos(String(codigo ?? ""));
+  if (d.length === 6) d = `0${d}`; // algumas fontes omitem o zero à esquerda
   if (d.length !== 7) return d;
   return `${d.slice(0, 4)}-${d.slice(4, 5)}/${d.slice(5)}`;
 }
