@@ -186,6 +186,11 @@ function TempoReal() {
                 <TableHead className="text-right">Notas</TableHead>
                 <TableHead className="text-right">Autorizadas</TableHead>
                 <TableHead className="text-right">Valor faturado</TableHead>
+                <TableHead className="text-right">Notas de serviço</TableHead>
+                <TableHead className="text-right">Valor serviço</TableHead>
+                <TableHead className="text-right">Locações</TableHead>
+                <TableHead className="text-right">Valor locações</TableHead>
+                <TableHead className="text-right">Em aberto</TableHead>
                 <TableHead className="text-right">Impostos</TableHead>
                 <TableHead className="text-right">Ordens</TableHead>
                 <TableHead className="text-right">Em andamento</TableHead>
