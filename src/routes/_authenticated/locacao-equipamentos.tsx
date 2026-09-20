@@ -86,6 +86,7 @@ const vazio: Form = {
   marca: "",
   modelo: "",
   numero_serie: "",
+  quantidade: "1",
   valor_diaria: "0",
   valor_semanal: "0",
   valor_mensal: "0",
