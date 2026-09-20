@@ -226,6 +226,21 @@ function TempoReal() {
                     {brl(Number(l.valor_notas ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">
+                    {num(Number(l.notas_servico ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_servico ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.locacoes ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_locacoes ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.locacoes_abertas ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
                     {brl(Number(l.impostos ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">
