@@ -141,6 +141,7 @@ function Equipamentos() {
         marca: form.marca || null,
         modelo: form.modelo || null,
         numero_serie: form.numero_serie || null,
+        quantidade: Math.max(Number(form.quantidade.replace(",", ".") || 1), 0),
         valor_diaria: Number(form.valor_diaria.replace(",", ".") || 0),
         valor_semanal: Number(form.valor_semanal.replace(",", ".") || 0),
         valor_mensal: Number(form.valor_mensal.replace(",", ".") || 0),
