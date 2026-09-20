@@ -301,6 +301,7 @@ function Locacoes() {
   const recarregar = () => {
     void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
     void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
+    void queryClient.invalidateQueries({ queryKey: ["locacao-notas-servico"] });
   };
 
   const acao = useMutation({
