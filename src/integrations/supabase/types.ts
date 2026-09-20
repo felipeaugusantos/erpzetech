@@ -6121,13 +6121,18 @@ export type Database = {
           icms_st: number
           impostos: number
           iss: number
+          iss_servico: number
           notas: number
+          notas_servico: number
+          notas_venda: number
           pis: number
           plano: string
           saidas: number
           saldo_estoque: number
           tenant_id: string
           valor_notas: number
+          valor_notas_servico: number
+          valor_notas_venda: number
         }[]
       }
       saas_gerar_faturas: { Args: never; Returns: number }
@@ -6177,8 +6182,11 @@ export type Database = {
           cliente: string
           cliente_id: string
           impostos: number
+          locacoes: number
+          locacoes_abertas: number
           notas: number
           notas_autorizadas: number
+          notas_servico: number
           os_abertas: number
           os_custo: number
           os_pendentes: number
@@ -6186,10 +6194,13 @@ export type Database = {
           plano: string
           situacao: string
           tenant_id: string
+          ultima_locacao: string
           ultima_nota: string
           ultima_os: string
           ultima_venda: string
+          valor_locacoes: number
           valor_notas: number
+          valor_notas_servico: number
           valor_vendas: number
         }[]
       }
