@@ -45,6 +45,7 @@ import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
+import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
@@ -287,6 +288,12 @@ const AuthenticatedInventariosRoute =
   AuthenticatedInventariosRouteImport.update({
     id: '/inventarios',
     path: '/inventarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLocacaoBalcaoRoute =
+  AuthenticatedLocacaoBalcaoRouteImport.update({
+    id: '/locacao-balcao',
+    path: '/locacao-balcao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLocacaoEquipamentosRoute =
@@ -587,6 +594,7 @@ export interface FileRoutesByFullPath {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
@@ -671,6 +679,7 @@ export interface FileRoutesByTo {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
@@ -757,6 +766,7 @@ export interface FileRoutesById {
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
+  '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
@@ -843,6 +853,7 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
@@ -927,6 +938,7 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
@@ -1012,6 +1024,7 @@ export interface FileRouteTypes {
     | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
+    | '/_authenticated/locacao-balcao'
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
     | '/_authenticated/locacoes'
@@ -1321,6 +1334,13 @@ declare module '@tanstack/react-router' {
       path: '/inventarios'
       fullPath: '/inventarios'
       preLoaderRoute: typeof AuthenticatedInventariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/locacao-balcao': {
+      id: '/_authenticated/locacao-balcao'
+      path: '/locacao-balcao'
+      fullPath: '/locacao-balcao'
+      preLoaderRoute: typeof AuthenticatedLocacaoBalcaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/locacao-equipamentos': {
@@ -1687,6 +1707,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
+  AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
@@ -1768,6 +1789,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
+  AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
