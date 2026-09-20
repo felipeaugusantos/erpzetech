@@ -306,6 +306,7 @@ function Equipamentos() {
                           marca: e.marca ?? "",
                           modelo: e.modelo ?? "",
                           numero_serie: e.numero_serie ?? "",
+                          quantidade: String(e.quantidade ?? 1),
                           valor_diaria: String(e.valor_diaria ?? 0),
                           valor_semanal: String(e.valor_semanal ?? 0),
                           valor_mensal: String(e.valor_mensal ?? 0),
