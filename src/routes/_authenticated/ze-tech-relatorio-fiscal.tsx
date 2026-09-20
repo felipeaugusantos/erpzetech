@@ -147,16 +147,18 @@ function ZeTechRelatorioFiscal() {
 
     const colunas: [string, number][] = [
       ["Loja cliente", 14],
-      ["Plano", 62],
-      ["Entradas", 92],
-      ["Saídas", 116],
-      ["Saldo estoque", 140],
-      ["Notas", 170],
-      ["Faturado", 186],
-      ["ICMS", 210],
-      ["ICMS ST", 230],
-      ["PIS", 250],
-      ["COFINS", 264],
+      ["Entradas", 58],
+      ["Saídas", 80],
+      ["Saldo estoque", 102],
+      ["NF-e", 130],
+      ["Venda", 142],
+      ["NFS-e", 166],
+      ["Serviço", 178],
+      ["ISS serv.", 202],
+      ["ICMS", 222],
+      ["ICMS ST", 240],
+      ["PIS", 256],
+      ["COFINS", 268],
       ["Impostos", 282],
     ];
 
@@ -178,13 +180,15 @@ function ZeTechRelatorioFiscal() {
         cabecalho();
       }
       const valores = [
-        String(l.cliente ?? "—").slice(0, 28),
-        String(l.plano ?? "—").slice(0, 16),
+        String(l.cliente ?? "—").slice(0, 26),
         brl(Number(l.entradas ?? 0)),
         brl(Number(l.saidas ?? 0)),
         brl(Number(l.saldo_estoque ?? 0)),
-        num(Number(l.notas ?? 0), 0),
-        brl(Number(l.valor_notas ?? 0)),
+        num(Number(l.notas_venda ?? 0), 0),
+        brl(Number(l.valor_notas_venda ?? 0)),
+        num(Number(l.notas_servico ?? 0), 0),
+        brl(Number(l.valor_notas_servico ?? 0)),
+        brl(Number(l.iss_servico ?? 0)),
         brl(Number(l.icms ?? 0)),
         brl(Number(l.icms_st ?? 0)),
         brl(Number(l.pis ?? 0)),
