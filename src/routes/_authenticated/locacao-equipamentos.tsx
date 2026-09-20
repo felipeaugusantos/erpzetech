@@ -67,6 +67,7 @@ type Form = {
   marca: string;
   modelo: string;
   numero_serie: string;
+  quantidade: string;
   valor_diaria: string;
   valor_semanal: string;
   valor_mensal: string;
