@@ -41,17 +41,37 @@ export const consultarCnpj = createServerFn({ method: "GET" })
     return { cnpj };
   })
   .handler(async ({ data }): Promise<DadosCnpj> => {
-    const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${data.cnpj}`, {
-      headers: { accept: "application/json" },
-    });
+    const cabecalhos = {
+      accept: "application/json",
+      "user-agent": "Mozilla/5.0 (compatible; ERPZeTech/1.0)",
+    };
 
-    if (resposta.status === 404) throw new Error("CNPJ não encontrado na base da Receita.");
-    if (!resposta.ok) {
-      const corpo = await resposta.text();
-      throw new Error(`Consulta de CNPJ indisponível agora [${resposta.status}]: ${corpo.slice(0, 200)}`);
+    // 1ª fonte: BrasilAPI. 2ª fonte: CNPJa aberto (usada quando a primeira bloqueia).
+    let j: Record<string, unknown> | null = null;
+    let falha = "";
+
+    const brasil = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${data.cnpj}`, {
+      headers: cabecalhos,
+    }).catch(() => null);
+
+    if (brasil?.status === 404) throw new Error("CNPJ não encontrado na base da Receita.");
+    if (brasil?.ok) {
+      j = (await brasil.json()) as Record<string, unknown>;
+    } else {
+      falha = `BrasilAPI [${brasil?.status ?? "sem resposta"}]`;
+      const cnpja = await fetch(`https://open.cnpja.com/office/${data.cnpj}`, {
+        headers: cabecalhos,
+      }).catch(() => null);
+
+      if (cnpja?.status === 404) throw new Error("CNPJ não encontrado na base da Receita.");
+      if (!cnpja?.ok) {
+        throw new Error(
+          `Consulta de CNPJ indisponível agora (${falha} · CNPJa [${cnpja?.status ?? "sem resposta"}]). Preencha os dados manualmente.`,
+        );
+      }
+      j = normalizarCnpja((await cnpja.json()) as Record<string, unknown>);
     }
 
-    const j = (await resposta.json()) as Record<string, unknown>;
     const secundarios = Array.isArray(j["cnaes_secundarios"])
       ? (j["cnaes_secundarios"] as Array<Record<string, unknown>>)
           .map((c) => formatarCnae(c["codigo"]))
@@ -82,3 +102,34 @@ export const consultarCnpj = createServerFn({ method: "GET" })
       situacao: String(j["descricao_situacao_cadastral"] ?? ""),
     };
   });
+
+/** Converte a resposta do CNPJa aberto no mesmo formato da BrasilAPI. */
+function normalizarCnpja(o: Record<string, unknown>): Record<string, unknown> {
+  const company = (o["company"] ?? {}) as Record<string, unknown>;
+  const address = (o["address"] ?? {}) as Record<string, unknown>;
+  const principal = (o["mainActivity"] ?? {}) as Record<string, unknown>;
+  const fones = Array.isArray(o["phones"]) ? (o["phones"] as Array<Record<string, unknown>>) : [];
+  const emails = Array.isArray(o["emails"]) ? (o["emails"] as Array<Record<string, unknown>>) : [];
+  const secundarias = Array.isArray(o["sideActivities"])
+    ? (o["sideActivities"] as Array<Record<string, unknown>>)
+    : [];
+
+  return {
+    razao_social: company["name"] ?? "",
+    nome_fantasia: o["alias"] ?? "",
+    cnae_fiscal: principal["id"] ?? "",
+    cnae_fiscal_descricao: principal["text"] ?? "",
+    cnaes_secundarios: secundarias.map((a) => ({ codigo: a["id"] })),
+    ddd_telefone_1: fones[0] ? `(${fones[0]["area"]}) ${fones[0]["number"]}` : "",
+    email: emails[0]?.["address"] ?? "",
+    cep: address["zip"] ?? "",
+    logradouro: address["street"] ?? "",
+    numero: address["number"] ?? "",
+    complemento: address["details"] ?? "",
+    bairro: address["district"] ?? "",
+    municipio: address["city"] ?? "",
+    uf: address["state"] ?? "",
+    codigo_municipio: address["municipality"] ?? "",
+    descricao_situacao_cadastral: ((o["status"] ?? {}) as Record<string, unknown>)["text"] ?? "",
+  };
+}
