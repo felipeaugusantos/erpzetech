@@ -212,7 +212,7 @@ function PainelLocacao() {
           label="Pendentes"
           value={num(pendencias.length, 0)}
           hint={`${num(pendencias.filter((p) => p.urgente).length, 0)} urgentes`}
-          tone={pendencias.some((p) => p.urgente) ? "warning" : undefined}
+          tone={pendencias.some((p) => p.urgente) ? "warning" : "default"}
           icon={AlertTriangle}
         />
         <StatCard
