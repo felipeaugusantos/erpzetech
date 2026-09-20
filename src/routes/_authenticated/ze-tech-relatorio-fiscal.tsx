@@ -369,8 +369,11 @@ function ZeTechRelatorioFiscal() {
                 <TableHead className="text-right">Entradas</TableHead>
                 <TableHead className="text-right">Saídas</TableHead>
                 <TableHead className="text-right">Saldo estoque</TableHead>
-                <TableHead className="text-right">Notas</TableHead>
-                <TableHead className="text-right">Faturado</TableHead>
+                <TableHead className="text-right">NF-e venda</TableHead>
+                <TableHead className="text-right">Faturado venda</TableHead>
+                <TableHead className="text-right">NFS-e serviço</TableHead>
+                <TableHead className="text-right">Faturado serviço</TableHead>
+                <TableHead className="text-right">ISS serviço</TableHead>
                 <TableHead className="text-right">ICMS</TableHead>
                 <TableHead className="text-right">ICMS ST</TableHead>
                 <TableHead className="text-right">PIS</TableHead>
