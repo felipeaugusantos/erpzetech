@@ -267,6 +267,7 @@ function Equipamentos() {
                   </TableCell>
                   <TableCell className="text-numeric">{e.codigo ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.categoria ?? "—"}</TableCell>
+                  <TableCell className="text-right text-numeric">{Number(e.quantidade ?? 1)}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_diaria))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_semanal))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(e.valor_mensal))}</TableCell>
