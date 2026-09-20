@@ -56,6 +56,7 @@ import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
+import { Route as AuthenticatedNfeSimulacaoRouteImport } from './routes/_authenticated/nfe-simulacao'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
@@ -64,6 +65,7 @@ import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
+import { Route as AuthenticatedPrefeituraRouteImport } from './routes/_authenticated/prefeitura'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
@@ -352,6 +354,12 @@ const AuthenticatedNfeEntradaRoute = AuthenticatedNfeEntradaRouteImport.update({
   path: '/nfe-entrada',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNfeSimulacaoRoute =
+  AuthenticatedNfeSimulacaoRouteImport.update({
+    id: '/nfe-simulacao',
+    path: '/nfe-simulacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedObrasRoute = AuthenticatedObrasRouteImport.update({
   id: '/obras',
   path: '/obras',
@@ -393,6 +401,11 @@ const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
 const AuthenticatedPrecosRoute = AuthenticatedPrecosRouteImport.update({
   id: '/precos',
   path: '/precos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPrefeituraRoute = AuthenticatedPrefeituraRouteImport.update({
+  id: '/prefeitura',
+  path: '/prefeitura',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
@@ -619,6 +632,7 @@ export interface FileRoutesByFullPath {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
@@ -627,6 +641,7 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof AuthenticatedPdvRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
+  '/prefeitura': typeof AuthenticatedPrefeituraRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -706,6 +721,7 @@ export interface FileRoutesByTo {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
@@ -714,6 +730,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof AuthenticatedPdvRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
+  '/prefeitura': typeof AuthenticatedPrefeituraRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -795,6 +812,7 @@ export interface FileRoutesById {
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/_authenticated/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
@@ -803,6 +821,7 @@ export interface FileRoutesById {
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
+  '/_authenticated/prefeitura': typeof AuthenticatedPrefeituraRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
@@ -884,6 +903,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/nfe'
     | '/nfe-entrada'
+    | '/nfe-simulacao'
     | '/obras'
     | '/orcamentos'
     | '/painel-filial'
@@ -892,6 +912,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/planos'
     | '/precos'
+    | '/prefeitura'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -971,6 +992,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/nfe'
     | '/nfe-entrada'
+    | '/nfe-simulacao'
     | '/obras'
     | '/orcamentos'
     | '/painel-filial'
@@ -979,6 +1001,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/planos'
     | '/precos'
+    | '/prefeitura'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -1059,6 +1082,7 @@ export interface FileRouteTypes {
     | '/_authenticated/movimentacoes'
     | '/_authenticated/nfe'
     | '/_authenticated/nfe-entrada'
+    | '/_authenticated/nfe-simulacao'
     | '/_authenticated/obras'
     | '/_authenticated/orcamentos'
     | '/_authenticated/painel-filial'
@@ -1067,6 +1091,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pdv'
     | '/_authenticated/planos'
     | '/_authenticated/precos'
+    | '/_authenticated/prefeitura'
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
@@ -1439,6 +1464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNfeEntradaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/nfe-simulacao': {
+      id: '/_authenticated/nfe-simulacao'
+      path: '/nfe-simulacao'
+      fullPath: '/nfe-simulacao'
+      preLoaderRoute: typeof AuthenticatedNfeSimulacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/obras': {
       id: '/_authenticated/obras'
       path: '/obras'
@@ -1493,6 +1525,13 @@ declare module '@tanstack/react-router' {
       path: '/precos'
       fullPath: '/precos'
       preLoaderRoute: typeof AuthenticatedPrecosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/prefeitura': {
+      id: '/_authenticated/prefeitura'
+      path: '/prefeitura'
+      fullPath: '/prefeitura'
+      preLoaderRoute: typeof AuthenticatedPrefeituraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/produtos': {
@@ -1758,6 +1797,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
+  AuthenticatedNfeSimulacaoRoute: typeof AuthenticatedNfeSimulacaoRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
@@ -1766,6 +1806,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
+  AuthenticatedPrefeituraRoute: typeof AuthenticatedPrefeituraRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
@@ -1842,6 +1883,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,
+  AuthenticatedNfeSimulacaoRoute: AuthenticatedNfeSimulacaoRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
@@ -1850,6 +1892,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
+  AuthenticatedPrefeituraRoute: AuthenticatedPrefeituraRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,

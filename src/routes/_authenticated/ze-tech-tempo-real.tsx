@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, FileText, Percent, Wrench } from "lucide-react";
+import { Activity, FileText, PackageOpen, Percent, Wrench } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateTimeBR, num } from "@/lib/format";
@@ -68,11 +68,29 @@ function TempoReal() {
           pedidos: acc.pedidos + Number(l.pedidos ?? 0),
           notas: acc.notas + Number(l.notas ?? 0),
           valorNotas: acc.valorNotas + Number(l.valor_notas ?? 0),
+          notasServico: acc.notasServico + Number(l.notas_servico ?? 0),
+          valorServico: acc.valorServico + Number(l.valor_notas_servico ?? 0),
+          locacoes: acc.locacoes + Number(l.locacoes ?? 0),
+          valorLocacoes: acc.valorLocacoes + Number(l.valor_locacoes ?? 0),
+          locacoesAbertas: acc.locacoesAbertas + Number(l.locacoes_abertas ?? 0),
           impostos: acc.impostos + Number(l.impostos ?? 0),
           os: acc.os + Number(l.os_abertas ?? 0),
           osCusto: acc.osCusto + Number(l.os_custo ?? 0),
         }),
-        { vendas: 0, pedidos: 0, notas: 0, valorNotas: 0, impostos: 0, os: 0, osCusto: 0 },
+        {
+          vendas: 0,
+          pedidos: 0,
+          notas: 0,
+          valorNotas: 0,
+          notasServico: 0,
+          valorServico: 0,
+          locacoes: 0,
+          valorLocacoes: 0,
+          locacoesAbertas: 0,
+          impostos: 0,
+          os: 0,
+          osCusto: 0,
+        },
       ),
     [linhas],
   );
@@ -111,7 +129,7 @@ function TempoReal() {
         </p>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="Vendas no período"
           value={brl(totais.vendas)}
@@ -121,9 +139,16 @@ function TempoReal() {
         <StatCard
           label="Notas emitidas"
           value={num(totais.notas, 0)}
-          hint={brl(totais.valorNotas)}
+          hint={`${brl(totais.valorNotas)} · ${num(totais.notasServico, 0)} de serviço (${brl(totais.valorServico)})`}
           icon={FileText}
           tone="success"
+        />
+        <StatCard
+          label="Locações"
+          value={num(totais.locacoes, 0)}
+          hint={`${brl(totais.valorLocacoes)} · ${num(totais.locacoesAbertas, 0)} em aberto`}
+          icon={PackageOpen}
+          tone="accent"
         />
         <StatCard
           label="Impostos"
@@ -161,6 +186,11 @@ function TempoReal() {
                 <TableHead className="text-right">Notas</TableHead>
                 <TableHead className="text-right">Autorizadas</TableHead>
                 <TableHead className="text-right">Valor faturado</TableHead>
+                <TableHead className="text-right">Notas de serviço</TableHead>
+                <TableHead className="text-right">Valor serviço</TableHead>
+                <TableHead className="text-right">Locações</TableHead>
+                <TableHead className="text-right">Valor locações</TableHead>
+                <TableHead className="text-right">Em aberto</TableHead>
                 <TableHead className="text-right">Impostos</TableHead>
                 <TableHead className="text-right">Ordens</TableHead>
                 <TableHead className="text-right">Em andamento</TableHead>
@@ -194,6 +224,21 @@ function TempoReal() {
                   </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.valor_notas ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.notas_servico ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_servico ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.locacoes ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_locacoes ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.locacoes_abertas ?? 0), 0)}
                   </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.impostos ?? 0))}

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
-import { Download, FileText, Package, Receipt } from "lucide-react";
+import { Download, FileText, Package, Receipt, Wrench } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -88,9 +88,26 @@ function ZeTechRelatorioFiscal() {
           saldo: acc.saldo + Number(l.saldo_estoque ?? 0),
           notas: acc.notas + Number(l.notas ?? 0),
           valor: acc.valor + Number(l.valor_notas ?? 0),
+          notasVenda: acc.notasVenda + Number(l.notas_venda ?? 0),
+          valorVenda: acc.valorVenda + Number(l.valor_notas_venda ?? 0),
+          notasServico: acc.notasServico + Number(l.notas_servico ?? 0),
+          valorServico: acc.valorServico + Number(l.valor_notas_servico ?? 0),
+          issServico: acc.issServico + Number(l.iss_servico ?? 0),
           impostos: acc.impostos + Number(l.impostos ?? 0),
         }),
-        { entradas: 0, saidas: 0, saldo: 0, notas: 0, valor: 0, impostos: 0 },
+        {
+          entradas: 0,
+          saidas: 0,
+          saldo: 0,
+          notas: 0,
+          valor: 0,
+          notasVenda: 0,
+          valorVenda: 0,
+          notasServico: 0,
+          valorServico: 0,
+          issServico: 0,
+          impostos: 0,
+        },
       ),
     [linhas],
   );
@@ -130,16 +147,18 @@ function ZeTechRelatorioFiscal() {
 
     const colunas: [string, number][] = [
       ["Loja cliente", 14],
-      ["Plano", 62],
-      ["Entradas", 92],
-      ["Saídas", 116],
-      ["Saldo estoque", 140],
-      ["Notas", 170],
-      ["Faturado", 186],
-      ["ICMS", 210],
-      ["ICMS ST", 230],
-      ["PIS", 250],
-      ["COFINS", 264],
+      ["Entradas", 58],
+      ["Saídas", 80],
+      ["Saldo estoque", 102],
+      ["NF-e", 130],
+      ["Venda", 142],
+      ["NFS-e", 166],
+      ["Serviço", 178],
+      ["ISS serv.", 202],
+      ["ICMS", 222],
+      ["ICMS ST", 240],
+      ["PIS", 256],
+      ["COFINS", 268],
       ["Impostos", 282],
     ];
 
@@ -161,13 +180,15 @@ function ZeTechRelatorioFiscal() {
         cabecalho();
       }
       const valores = [
-        String(l.cliente ?? "—").slice(0, 28),
-        String(l.plano ?? "—").slice(0, 16),
+        String(l.cliente ?? "—").slice(0, 26),
         brl(Number(l.entradas ?? 0)),
         brl(Number(l.saidas ?? 0)),
         brl(Number(l.saldo_estoque ?? 0)),
-        num(Number(l.notas ?? 0), 0),
-        brl(Number(l.valor_notas ?? 0)),
+        num(Number(l.notas_venda ?? 0), 0),
+        brl(Number(l.valor_notas_venda ?? 0)),
+        num(Number(l.notas_servico ?? 0), 0),
+        brl(Number(l.valor_notas_servico ?? 0)),
+        brl(Number(l.iss_servico ?? 0)),
         brl(Number(l.icms ?? 0)),
         brl(Number(l.icms_st ?? 0)),
         brl(Number(l.pis ?? 0)),
@@ -188,7 +209,13 @@ function ZeTechRelatorioFiscal() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(
-      `Entradas: ${brl(totais.entradas)}   Saídas: ${brl(totais.saidas)}   Saldo em estoque: ${brl(totais.saldo)}   Notas: ${num(totais.notas, 0)}   Faturado: ${brl(totais.valor)}   Impostos: ${brl(totais.impostos)}`,
+      `Entradas: ${brl(totais.entradas)}   Saídas: ${brl(totais.saidas)}   Saldo em estoque: ${brl(totais.saldo)}   Impostos: ${brl(totais.impostos)}`,
+      14,
+      y,
+    );
+    y += 5;
+    doc.text(
+      `NF-e de venda: ${num(totais.notasVenda, 0)} · ${brl(totais.valorVenda)}   NFS-e de serviço: ${num(totais.notasServico, 0)} · ${brl(totais.valorServico)} (ISS ${brl(totais.issServico)})`,
       14,
       y,
     );
@@ -275,10 +302,23 @@ function ZeTechRelatorioFiscal() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Entradas" value={brl(totais.entradas)} icon={Package} />
         <StatCard label="Saídas" value={brl(totais.saidas)} tone="warning" icon={Package} />
         <StatCard label="Saldo em estoque" value={brl(totais.saldo)} tone="accent" icon={Package} />
+        <StatCard
+          label="Notas de venda"
+          value={brl(totais.valorVenda)}
+          hint={`${num(totais.notasVenda, 0)} NF-e no período`}
+          icon={FileText}
+        />
+        <StatCard
+          label="Notas de serviço"
+          value={brl(totais.valorServico)}
+          hint={`${num(totais.notasServico, 0)} NFS-e · ISS ${brl(totais.issServico)}`}
+          tone="accent"
+          icon={Wrench}
+        />
         <StatCard
           label="Impostos no período"
           value={brl(totais.impostos)}
@@ -329,8 +369,11 @@ function ZeTechRelatorioFiscal() {
                 <TableHead className="text-right">Entradas</TableHead>
                 <TableHead className="text-right">Saídas</TableHead>
                 <TableHead className="text-right">Saldo estoque</TableHead>
-                <TableHead className="text-right">Notas</TableHead>
-                <TableHead className="text-right">Faturado</TableHead>
+                <TableHead className="text-right">NF-e venda</TableHead>
+                <TableHead className="text-right">Faturado venda</TableHead>
+                <TableHead className="text-right">NFS-e serviço</TableHead>
+                <TableHead className="text-right">Faturado serviço</TableHead>
+                <TableHead className="text-right">ISS serviço</TableHead>
                 <TableHead className="text-right">ICMS</TableHead>
                 <TableHead className="text-right">ICMS ST</TableHead>
                 <TableHead className="text-right">PIS</TableHead>
@@ -352,9 +395,20 @@ function ZeTechRelatorioFiscal() {
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.saldo_estoque ?? 0))}
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{num(Number(l.notas ?? 0), 0)}</TableCell>
                   <TableCell className="text-right text-numeric">
-                    {brl(Number(l.valor_notas ?? 0))}
+                    {num(Number(l.notas_venda ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_venda ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.notas_servico ?? 0), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.valor_notas_servico ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.iss_servico ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(l.icms ?? 0))}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(l.icms_st ?? 0))}</TableCell>
