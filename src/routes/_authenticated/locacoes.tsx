@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, CheckCircle2, Plus, Search, Truck, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  FileText,
+  Plus,
+  Receipt,
+  Search,
+  ThumbsUp,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +95,17 @@ const vazio = (): Form => ({
   observacoes: "",
 });
 
+type Cobranca = { id: string; numero: number; valor: number; forma: string; parcelas: string; vencimento: string };
+
+const cobrancaVazia: Cobranca = {
+  id: "",
+  numero: 0,
+  valor: 0,
+  forma: "dinheiro",
+  parcelas: "1",
+  vencimento: hojeISO(),
+};
+
 function Locacoes() {
   const { data: session } = useSessionData();
   const profile = session?.profile;
@@ -93,6 +114,21 @@ function Locacoes() {
   const [filtro, setFiltro] = useState("ativas");
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [cobranca, setCobranca] = useState<Cobranca>({ ...cobrancaVazia });
+
+  const { data: caixaAberto } = useQuery({
+    queryKey: ["caixa-aberto-locacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("caixas")
+        .select("id")
+        .eq("situacao", "aberto")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: locacoes = [], isLoading } = useQuery({
     queryKey: ["locacoes"],
@@ -203,20 +239,76 @@ function Locacoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const mudarSituacao = useMutation({
-    mutationFn: async ({ id, situacao }: { id: string; situacao: string }) => {
+  const recarregar = () => {
+    void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
+    void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
+  };
+
+  const acao = useMutation({
+    mutationFn: async ({ id, tipo }: { id: string; tipo: "aprovar" | "entregar" | "devolver" | "cancelar" }) => {
+      if (tipo === "aprovar") {
+        const { error } = await supabase.rpc("locacao_aprovar", { p_locacao_id: id });
+        if (error) throw error;
+        return "Solicitação aprovada.";
+      }
+      if (tipo === "entregar") {
+        const { error } = await supabase.rpc("locacao_entregar", { p_locacao_id: id, p_data: hojeISO() });
+        if (error) throw error;
+        return "Equipamento entregue ao cliente.";
+      }
+      if (tipo === "devolver") {
+        const { error } = await supabase.rpc("locacao_devolver", {
+          p_locacao_id: id,
+          p_data: hojeISO(),
+          p_observacao: "",
+          p_multa: 0,
+        });
+        if (error) throw error;
+        return "Devolução registrada — o valor foi recalculado pelos dias reais.";
+      }
       const { error } = await supabase
         .from("locacoes")
-        .update({
-          situacao: situacao as never,
-          devolvido_em: situacao === "devolvida" ? hojeISO() : null,
-        })
+        .update({ situacao: "cancelada" as never })
         .eq("id", id);
+      if (error) throw error;
+      return "Locação cancelada.";
+    },
+    onSuccess: (msg) => {
+      toast.success(msg);
+      recarregar();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const faturar = useMutation({
+    mutationFn: async () => {
+      if (!cobranca.id) throw new Error("Escolha a locação");
+      const { error } = await supabase.rpc("locacao_faturar", {
+        p_locacao_id: cobranca.id,
+        p_forma: cobranca.forma as never,
+        p_parcelas: Number(cobranca.parcelas || 1),
+        p_primeiro_vencimento: cobranca.vencimento,
+        ...(caixaAberto?.id ? { p_caixa_id: caixaAberto.id } : {}),
+      });
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
-      void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
+      toast.success("Locação faturada em contas a receber.");
+      setCobranca({ ...cobrancaVazia });
+      recarregar();
+      void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const gerarNota = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("locacao_gerar_nfe", { p_locacao_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Nota de locação gerada — confira em Fiscal › Notas fiscais.");
+      recarregar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -350,45 +442,79 @@ function Locacoes() {
                                 : undefined
                         }
                       >
-                        {atrasada
-                          ? "Atrasada"
-                          : (SITUACOES.find((s) => s.value === l.situacao)?.label ?? l.situacao)}
+                        {!l.aprovada && l.situacao === "reservada"
+                          ? "Solicitada"
+                          : atrasada
+                            ? "Atrasada"
+                            : (SITUACOES.find((s) => s.value === l.situacao)?.label ?? l.situacao)}
                       </Badge>
+                      {Number(l.valor_faturado ?? 0) > 0 && (
+                        <span className="ml-1 text-xs text-success">faturada</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {l.situacao === "reservada" && (
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {!l.aprovada && l.situacao !== "cancelada" && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              mudarSituacao.mutate({ id: l.id, situacao: "em_andamento" })
-                            }
+                            onClick={() => acao.mutate({ id: l.id, tipo: "aprovar" })}
+                          >
+                            <ThumbsUp className="size-4" /> Aprovar
+                          </Button>
+                        )}
+                        {l.aprovada && l.situacao === "reservada" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => acao.mutate({ id: l.id, tipo: "entregar" })}
                           >
                             <Truck className="size-4" /> Entregar
                           </Button>
                         )}
+                        {l.situacao === "em_andamento" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => acao.mutate({ id: l.id, tipo: "devolver" })}
+                          >
+                            <CheckCircle2 className="size-4" /> Devolver
+                          </Button>
+                        )}
+                        {l.situacao !== "cancelada" && Number(l.valor_faturado ?? 0) <= 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setCobranca({
+                                ...cobrancaVazia,
+                                id: l.id,
+                                numero: l.numero,
+                                valor: Number(l.valor_total ?? 0),
+                              })
+                            }
+                          >
+                            <Receipt className="size-4" /> Cobrar
+                          </Button>
+                        )}
+                        {l.situacao !== "cancelada" && !l.nfe_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => gerarNota.mutate(l.id)}
+                            disabled={gerarNota.isPending}
+                          >
+                            <FileText className="size-4" /> Nota
+                          </Button>
+                        )}
                         {["reservada", "em_andamento"].includes(l.situacao) && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                mudarSituacao.mutate({ id: l.id, situacao: "devolvida" })
-                              }
-                            >
-                              <CheckCircle2 className="size-4" /> Devolver
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                mudarSituacao.mutate({ id: l.id, situacao: "cancelada" })
-                              }
-                            >
-                              <XCircle className="size-4" />
-                            </Button>
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => acao.mutate({ id: l.id, tipo: "cancelar" })}
+                          >
+                            <XCircle className="size-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -507,6 +633,74 @@ function Locacoes() {
             </Button>
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!cobranca.id}
+        onOpenChange={(v) => !v && setCobranca({ ...cobrancaVazia })}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cobrar locação nº {cobranca.numero}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="rounded-md border border-border p-3 text-sm">
+              <div className="flex justify-between font-semibold">
+                <span>Valor a cobrar</span>
+                <span className="text-numeric">{brl(cobranca.valor)}</span>
+              </div>
+            </div>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <Select
+                value={cobranca.forma}
+                onValueChange={(v) => setCobranca({ ...cobranca, forma: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cartao_debito">Cartão de débito</SelectItem>
+                  <SelectItem value="cartao_credito">Cartão de crédito</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="crediario">Crediário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Parcelas</Label>
+                <Input
+                  value={cobranca.parcelas}
+                  onChange={(e) => setCobranca({ ...cobranca, parcelas: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Primeiro vencimento</Label>
+                <Input
+                  type="date"
+                  value={cobranca.vencimento}
+                  onChange={(e) => setCobranca({ ...cobranca, vencimento: e.target.value })}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Dinheiro, PIX e cartão de débito entram no caixa aberto na hora. As outras formas ficam
+              em contas a receber.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCobranca({ ...cobrancaVazia })}>
+              Cancelar
+            </Button>
+            <Button onClick={() => faturar.mutate()} disabled={faturar.isPending}>
+              Faturar
             </Button>
           </DialogFooter>
         </DialogContent>

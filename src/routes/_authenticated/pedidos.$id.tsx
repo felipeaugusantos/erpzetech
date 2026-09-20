@@ -518,6 +518,13 @@ function PedidoDetalhe() {
             <Button variant="outline" onClick={() => setViaOpen(true)}>
               <Printer className="mr-2 size-4" /> Imprimir pedido
             </Button>
+            {pedido.situacao !== "cancelado" && (
+              <Button asChild variant="outline">
+                <Link to="/devolucoes" search={{ pedido: pedido.id }}>
+                  <ArrowLeft className="mr-2 size-4" /> Devolver itens
+                </Link>
+              </Button>
+            )}
             {contasPedido.length === 0 && pedido.situacao !== "cancelado" && (
               <Button variant="secondary" onClick={() => setContasOpen(true)}>
                 <Wallet className="mr-2 size-4" /> Gerar contas a receber

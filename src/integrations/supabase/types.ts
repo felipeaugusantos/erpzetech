@@ -1565,6 +1565,167 @@ export type Database = {
           },
         ]
       }
+      devolucao_itens: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          devolucao_id: string
+          id: string
+          pedido_item_id: string | null
+          preco_unitario: number
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          devolucao_id: string
+          id?: string
+          pedido_item_id?: string | null
+          preco_unitario?: number
+          produto_id: string
+          quantidade: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          devolucao_id?: string
+          id?: string
+          pedido_item_id?: string | null
+          preco_unitario?: number
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_itens_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_itens_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucoes: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          deposito_id: string | null
+          empresa_id: string | null
+          filial_id: string | null
+          id: string
+          modo: string
+          motivo: string | null
+          nfe_id: string | null
+          numero: number
+          pedido_id: string
+          tenant_id: string
+          usuario_id: string | null
+          valor_abatido: number
+          valor_total: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          empresa_id?: string | null
+          filial_id?: string | null
+          id?: string
+          modo?: string
+          motivo?: string | null
+          nfe_id?: string | null
+          numero?: number
+          pedido_id: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor_abatido?: number
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          empresa_id?: string | null
+          filial_id?: string | null
+          id?: string
+          modo?: string
+          motivo?: string | null
+          nfe_id?: string | null
+          numero?: number
+          pedido_id?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor_abatido?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean
@@ -2476,66 +2637,96 @@ export type Database = {
       }
       locacoes: {
         Row: {
+          aprovada: boolean
+          aprovado_em: string | null
           caucao: number
           cliente_id: string | null
+          conta_receber_id: string | null
           created_at: string
           devolvido_em: string | null
           dias: number
+          dias_reais: number | null
           empresa_id: string | null
+          entregue_em: string | null
           equipamento_id: string
           filial_id: string | null
           id: string
           inicio: string
+          nfe_id: string | null
           numero: number
           obra_id: string | null
+          observacao_devolucao: string | null
           observacoes: string | null
           previsao_devolucao: string | null
           situacao: Database["public"]["Enums"]["locacao_situacao"]
+          solicitado_em: string
           tenant_id: string
           updated_at: string
           valor_diaria: number
+          valor_extras: number
+          valor_faturado: number
           valor_total: number
         }
         Insert: {
+          aprovada?: boolean
+          aprovado_em?: string | null
           caucao?: number
           cliente_id?: string | null
+          conta_receber_id?: string | null
           created_at?: string
           devolvido_em?: string | null
           dias?: number
+          dias_reais?: number | null
           empresa_id?: string | null
+          entregue_em?: string | null
           equipamento_id: string
           filial_id?: string | null
           id?: string
           inicio?: string
+          nfe_id?: string | null
           numero?: number
           obra_id?: string | null
+          observacao_devolucao?: string | null
           observacoes?: string | null
           previsao_devolucao?: string | null
           situacao?: Database["public"]["Enums"]["locacao_situacao"]
+          solicitado_em?: string
           tenant_id: string
           updated_at?: string
           valor_diaria?: number
+          valor_extras?: number
+          valor_faturado?: number
           valor_total?: number
         }
         Update: {
+          aprovada?: boolean
+          aprovado_em?: string | null
           caucao?: number
           cliente_id?: string | null
+          conta_receber_id?: string | null
           created_at?: string
           devolvido_em?: string | null
           dias?: number
+          dias_reais?: number | null
           empresa_id?: string | null
+          entregue_em?: string | null
           equipamento_id?: string
           filial_id?: string | null
           id?: string
           inicio?: string
+          nfe_id?: string | null
           numero?: number
           obra_id?: string | null
+          observacao_devolucao?: string | null
           observacoes?: string | null
           previsao_devolucao?: string | null
           situacao?: Database["public"]["Enums"]["locacao_situacao"]
+          solicitado_em?: string
           tenant_id?: string
           updated_at?: string
           valor_diaria?: number
+          valor_extras?: number
+          valor_faturado?: number
           valor_total?: number
         }
         Relationships: [
@@ -2547,10 +2738,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "locacoes_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "locacoes_equipamento_id_fkey"
             columns: ["equipamento_id"]
             isOneToOne: false
             referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacoes_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
             referencedColumns: ["id"]
           },
           {
@@ -2705,6 +2910,7 @@ export type Database = {
           filial_id: string | null
           id: string
           impostos_calculados_em: string | null
+          locacao_id: string | null
           mensagem: string | null
           motivo_cancelamento: string | null
           natureza_operacao: string
@@ -2751,6 +2957,7 @@ export type Database = {
           filial_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
+          locacao_id?: string | null
           mensagem?: string | null
           motivo_cancelamento?: string | null
           natureza_operacao?: string
@@ -2797,6 +3004,7 @@ export type Database = {
           filial_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
+          locacao_id?: string | null
           mensagem?: string | null
           motivo_cancelamento?: string | null
           natureza_operacao?: string
@@ -2852,6 +3060,13 @@ export type Database = {
             columns: ["filial_id"]
             isOneToOne: false
             referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_locacao_id_fkey"
+            columns: ["locacao_id"]
+            isOneToOne: false
+            referencedRelation: "locacoes"
             referencedColumns: ["id"]
           },
           {
@@ -5452,6 +5667,17 @@ export type Database = {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
       }
+      devolucao_registrar: {
+        Args: {
+          p_abater_receber?: boolean
+          p_deposito_id?: string
+          p_itens: Json
+          p_modo?: string
+          p_motivo?: string
+          p_pedido_id: string
+        }
+        Returns: string
+      }
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       entrega_concluir: {
@@ -5540,6 +5766,31 @@ export type Database = {
         Args: { p_contada: number; p_item_id: string; p_observacao?: string }
         Returns: undefined
       }
+      locacao_aprovar: { Args: { p_locacao_id: string }; Returns: undefined }
+      locacao_devolver: {
+        Args: {
+          p_data?: string
+          p_locacao_id: string
+          p_multa?: number
+          p_observacao?: string
+        }
+        Returns: number
+      }
+      locacao_entregar: {
+        Args: { p_data?: string; p_locacao_id: string }
+        Returns: undefined
+      }
+      locacao_faturar: {
+        Args: {
+          p_caixa_id?: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_locacao_id: string
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
+      locacao_gerar_nfe: { Args: { p_locacao_id: string }; Returns: string }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
