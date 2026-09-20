@@ -160,6 +160,7 @@ const groups: Group[] = [
     items: [
       { label: "Locações", to: "/locacoes", icon: CalendarClock },
       { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
+      { label: "Estoque de equipamentos", to: "/locacao-estoque", icon: Package },
       { label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
     ],
   },
