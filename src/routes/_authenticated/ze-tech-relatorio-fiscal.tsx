@@ -288,6 +288,30 @@ function ZeTechRelatorioFiscal() {
         />
       </div>
 
+      {grafico.length > 0 && (
+        <div className="panel mb-5 p-4">
+          <p className="mb-3 font-display text-sm font-semibold">
+            Entradas, saídas e impostos por loja
+          </p>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={grafico}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="nome" fontSize={11} />
+                <YAxis fontSize={11} tickFormatter={(v) => brl(Number(v))} width={90} />
+                <Tooltip formatter={(v) => brl(Number(v))} />
+                <Legend />
+                <Bar dataKey="entradas" name="Entradas" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="saidas" name="Saídas" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="impostos" name="Impostos" fill="var(--muted-foreground)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+
+
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
       ) : linhas.length === 0 ? (
