@@ -25,9 +25,17 @@ export type NotaArquivo = {
   valor_pis?: number | string | null;
   valor_cofins?: number | string | null;
   valor_iss?: number | string | null;
+  /** "nfse" para nota de serviço (locação); qualquer outro valor é nota de venda. */
+  modelo?: string | null;
+  codigo_servico?: string | null;
+  municipio_prestacao?: string | null;
+  iss_retido?: boolean | null;
   emitente: unknown;
   destinatario: unknown;
 };
+
+/** Nota de serviço (locação) tem documento e XML próprios. */
+export const ehServico = (nota: NotaArquivo) => String(nota.modelo ?? "nfe") === "nfse";
 
 export type ItemArquivo = {
   codigo: string | null;
@@ -45,6 +53,7 @@ export type ItemArquivo = {
   valor_pis?: number | string | null;
   valor_cofins?: number | string | null;
   valor_iss?: number | string | null;
+  aliquota_iss?: number | string | null;
 };
 
 const n = (v: unknown) => Number(v ?? 0);
@@ -61,9 +70,73 @@ function esc(valor: unknown) {
 
 /** Nome base do arquivo: chave da Receita quando houver, senão número da nota. */
 export function nomeArquivoNota(nota: NotaArquivo) {
-  if (nota.chave) return `NFe-${nota.chave}`;
-  if (nota.numero) return `NFe-${String(nota.numero).padStart(6, "0")}-serie-${nota.serie ?? 1}`;
-  return `NFe-rascunho-${nota.id.slice(0, 8)}`;
+  const sigla = ehServico(nota) ? "NFSe" : "NFe";
+  if (nota.chave) return `${sigla}-${nota.chave}`;
+  if (nota.numero) return `${sigla}-${String(nota.numero).padStart(6, "0")}-serie-${nota.serie ?? 1}`;
+  return `${sigla}-rascunho-${nota.id.slice(0, 8)}`;
+}
+
+/** XML da nota de serviço (RPS) com prestador, tomador, serviço e ISS. */
+export function gerarXmlNfse(nota: NotaArquivo, itens: ItemArquivo[]) {
+  const e = nota.emitente;
+  const d = nota.destinatario;
+  const discriminacao = itens.map((i) => `${i.descricao} — ${n(i.total).toFixed(2)}`).join(" | ");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<GerarNfseEnvio>
+  <Rps>
+    <InfDeclaracaoPrestacaoServico>
+      <Rps>
+        <IdentificacaoRps>
+          <Numero>${nota.numero ?? ""}</Numero>
+          <Serie>${nota.serie ?? ""}</Serie>
+          <Tipo>1</Tipo>
+        </IdentificacaoRps>
+        <DataEmissao>${esc(nota.created_at)}</DataEmissao>
+        <Situacao>${esc(nota.situacao)}</Situacao>
+      </Rps>
+      <Competencia>${esc(String(nota.created_at).slice(0, 10))}</Competencia>
+      <Servico>
+        <Valores>
+          <ValorServicos>${n(nota.valor_total).toFixed(2)}</ValorServicos>
+          <ValorDeducoes>0.00</ValorDeducoes>
+          <ValorPis>${n(nota.valor_pis).toFixed(2)}</ValorPis>
+          <ValorCofins>${n(nota.valor_cofins).toFixed(2)}</ValorCofins>
+          <ValorIcms>${n(nota.valor_icms).toFixed(2)}</ValorIcms>
+          <ValorIcmsSt>${n(nota.valor_icms_st).toFixed(2)}</ValorIcmsSt>
+          <ValorIss>${n(nota.valor_iss).toFixed(2)}</ValorIss>
+          <Aliquota>${n(itens[0]?.aliquota_iss).toFixed(2)}</Aliquota>
+        </Valores>
+        <IssRetido>${nota.iss_retido ? 1 : 2}</IssRetido>
+        <ItemListaServico>${esc(nota.codigo_servico)}</ItemListaServico>
+        <Discriminacao>${esc(discriminacao || nota.natureza_operacao)}</Discriminacao>
+        <MunicipioPrestacaoServico>${esc(nota.municipio_prestacao)}</MunicipioPrestacaoServico>
+      </Servico>
+      <Prestador>
+        <RazaoSocial>${esc(txt(e, "razao_social"))}</RazaoSocial>
+        <Cnpj>${esc(txt(e, "cnpj"))}</Cnpj>
+        <InscricaoMunicipal>${esc(txt(e, "inscricao_municipal"))}</InscricaoMunicipal>
+        <Endereco>${esc(`${txt(e, "endereco")} ${txt(e, "numero")}`.trim())}</Endereco>
+        <Bairro>${esc(txt(e, "bairro"))}</Bairro>
+        <Municipio>${esc(txt(e, "cidade"))}</Municipio>
+        <Uf>${esc(txt(e, "estado"))}</Uf>
+        <Cep>${esc(txt(e, "cep"))}</Cep>
+      </Prestador>
+      <Tomador>
+        <RazaoSocial>${esc(txt(d, "nome"))}</RazaoSocial>
+        <Cnpj>${esc(txt(d, "cnpj"))}</Cnpj>
+        <Cpf>${esc(txt(d, "cpf"))}</Cpf>
+        <Endereco>${esc(`${txt(d, "endereco")} ${txt(d, "numero")}`.trim())}</Endereco>
+        <Bairro>${esc(txt(d, "bairro"))}</Bairro>
+        <Municipio>${esc(txt(d, "cidade"))}</Municipio>
+        <Uf>${esc(txt(d, "estado"))}</Uf>
+        <Cep>${esc(txt(d, "cep"))}</Cep>
+        <Telefone>${esc(txt(d, "telefone"))}</Telefone>
+        <Email>${esc(txt(d, "email"))}</Email>
+      </Tomador>
+    </InfDeclaracaoPrestacaoServico>
+  </Rps>
+  <Protocolo>${esc(nota.protocolo ?? "")}</Protocolo>
+</GerarNfseEnvio>`;
 }
 
 /** Baixa um conteúdo de texto como arquivo. */
@@ -77,8 +150,9 @@ export function baixarTexto(nomeArquivo: string, conteudo: string, mime: string)
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-/** XML da nota com emitente, destinatário, itens e impostos. */
+/** XML da nota com emitente, destinatário, itens e impostos (serviço sai como RPS). */
 export function gerarXmlNota(nota: NotaArquivo, itens: ItemArquivo[]) {
+  if (ehServico(nota)) return gerarXmlNfse(nota, itens);
   const e = nota.emitente;
   const d = nota.destinatario;
   const linhas = itens
@@ -206,24 +280,36 @@ export function gerarPdfNota(nota: NotaArquivo, itens: ItemArquivo[]) {
     y,
   );
 
+  const servico = ehServico(nota);
+  const sigla = servico ? "NFS-e" : "NF-e";
+
   y += 7;
   doc.setFontSize(11).setFont("helvetica", "bold");
   doc.text(
     nota.numero
-      ? `NF-e nº ${String(nota.numero).padStart(6, "0")} · série ${nota.serie ?? 1}`
-      : "NF-e em rascunho",
+      ? `${sigla} nº ${String(nota.numero).padStart(6, "0")} · série ${nota.serie ?? 1}`
+      : `${sigla} em rascunho`,
     14,
     y,
   );
   doc.setFontSize(8).setFont("helvetica", "normal");
   doc.text(
-    `${nota.natureza_operacao ?? ""} · CFOP ${nota.cfop ?? "—"} · situação ${nota.situacao}`,
+    servico
+      ? [
+          nota.natureza_operacao ?? "",
+          nota.codigo_servico ? `serviço ${nota.codigo_servico}` : "",
+          nota.municipio_prestacao ? `prestação em ${nota.municipio_prestacao}` : "",
+          `situação ${nota.situacao}`,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : `${nota.natureza_operacao ?? ""} · CFOP ${nota.cfop ?? "—"} · situação ${nota.situacao}`,
     14,
     y + 4,
   );
   y += 11;
 
-  doc.setFont("helvetica", "bold").text("Destinatário", 14, y);
+  doc.setFont("helvetica", "bold").text(servico ? "Tomador do serviço" : "Destinatário", 14, y);
   doc.setFont("helvetica", "normal");
   y += 4;
   doc.text(
@@ -250,8 +336,8 @@ export function gerarPdfNota(nota: NotaArquivo, itens: ItemArquivo[]) {
 
   y += 8;
   doc.setFont("helvetica", "bold");
-  doc.text("Produto", 14, y);
-  doc.text("NCM", 96, y);
+  doc.text(servico ? "Serviço prestado" : "Produto", 14, y);
+  doc.text(servico ? "Cód." : "NCM", 96, y);
   doc.text("Qtd", 122, y, { align: "right" });
   doc.text("Unit.", 148, y, { align: "right" });
   doc.text("Total", 196, y, { align: "right" });
@@ -266,7 +352,7 @@ export function gerarPdfNota(nota: NotaArquivo, itens: ItemArquivo[]) {
       y = 16;
     }
     doc.text(String(i.descricao).slice(0, 48), 14, y);
-    doc.text(String(i.ncm ?? "—"), 96, y);
+    doc.text(String((servico ? nota.codigo_servico : i.ncm) ?? "—"), 96, y);
     doc.text(`${num(n(i.quantidade), 3)} ${i.unidade ?? ""}`, 122, y, { align: "right" });
     doc.text(brl(n(i.preco_unitario)), 148, y, { align: "right" });
     doc.text(brl(n(i.total)), 196, y, { align: "right" });
@@ -277,17 +363,27 @@ export function gerarPdfNota(nota: NotaArquivo, itens: ItemArquivo[]) {
   doc.line(14, y, 196, y);
   y += 5;
 
-  const linhasTotais: [string, string][] = [
-    ["Produtos", brl(n(nota.valor_produtos))],
-    ["Desconto", brl(n(nota.valor_desconto))],
-    ["Frete", brl(n(nota.valor_frete))],
-    ["Base ICMS", brl(n(nota.base_icms))],
-    ["ICMS", brl(n(nota.valor_icms))],
-    ["ICMS substituição", brl(n(nota.valor_icms_st))],
-    ["PIS", brl(n(nota.valor_pis))],
-    ["COFINS", brl(n(nota.valor_cofins))],
-    ["ISS", brl(n(nota.valor_iss))],
-  ];
+  const linhasTotais: [string, string][] = servico
+    ? [
+        ["Serviços", brl(n(nota.valor_produtos))],
+        ["ICMS", brl(n(nota.valor_icms))],
+        ["ICMS substituição", brl(n(nota.valor_icms_st))],
+        ["PIS", brl(n(nota.valor_pis))],
+        ["COFINS", brl(n(nota.valor_cofins))],
+        ["ISS", brl(n(nota.valor_iss))],
+        ["ISS retido", nota.iss_retido ? "Sim" : "Não"],
+      ]
+    : [
+        ["Produtos", brl(n(nota.valor_produtos))],
+        ["Desconto", brl(n(nota.valor_desconto))],
+        ["Frete", brl(n(nota.valor_frete))],
+        ["Base ICMS", brl(n(nota.base_icms))],
+        ["ICMS", brl(n(nota.valor_icms))],
+        ["ICMS substituição", brl(n(nota.valor_icms_st))],
+        ["PIS", brl(n(nota.valor_pis))],
+        ["COFINS", brl(n(nota.valor_cofins))],
+        ["ISS", brl(n(nota.valor_iss))],
+      ];
   for (const [rotulo, valor] of linhasTotais) {
     doc.text(rotulo, 140, y);
     doc.text(valor, 196, y, { align: "right" });
@@ -305,7 +401,9 @@ export function gerarPdfNota(nota: NotaArquivo, itens: ItemArquivo[]) {
   }
   if (nota.situacao !== "autorizada") {
     doc.text(
-      "Documento sem valor fiscal — espelho da nota antes da autorização pela Receita.",
+      servico
+        ? "Documento sem valor fiscal — espelho da nota de serviço antes da autorização pela prefeitura."
+        : "Documento sem valor fiscal — espelho da nota antes da autorização pela Receita.",
       14,
       y,
     );

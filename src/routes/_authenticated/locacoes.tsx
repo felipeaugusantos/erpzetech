@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
   CheckCircle2,
+  Code2,
+  Download,
   FileText,
   Plus,
   Receipt,
@@ -19,6 +21,14 @@ import { useModulosCnae } from "@/lib/cnae";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR } from "@/lib/format";
+import {
+  baixarTexto,
+  gerarPdfNota,
+  gerarXmlNota,
+  nomeArquivoNota,
+  type ItemArquivo,
+  type NotaArquivo,
+} from "@/lib/nfe-arquivos";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -141,6 +151,55 @@ function Locacoes() {
       return data;
     },
   });
+
+  /** Notas de serviço já geradas, com itens, para baixar em PDF e XML. */
+  const { data: notasServico = [] } = useQuery({
+    queryKey: ["locacao-notas-servico"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("nfe")
+        .select(
+          "id, locacao_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, modelo, codigo_servico, municipio_prestacao, iss_retido, valor_produtos, valor_desconto, valor_frete, valor_total, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, chave, protocolo, created_at, pdf_url, xml_url, emitente, destinatario, nfe_itens(*)",
+        )
+        .not("locacao_id", "is", null);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  /** Baixa o documento da nota de serviço: PDF da prefeitura quando houver, senão o espelho. */
+  function baixarNota(locacaoId: string, tipo: "pdf" | "xml") {
+    const nota = notasServico.find((n) => n.locacao_id === locacaoId);
+    if (!nota) {
+      toast.error("Gere a nota de serviço desta locação primeiro.");
+      return;
+    }
+    const itens = (nota.nfe_itens ?? []) as ItemArquivo[];
+    const dados = nota as unknown as NotaArquivo & {
+      pdf_url?: string | null;
+      xml_url?: string | null;
+    };
+    if (tipo === "pdf") {
+      if (dados.pdf_url) {
+        window.open(dados.pdf_url, "_blank");
+        return;
+      }
+      gerarPdfNota(dados, itens);
+      toast.success("PDF da nota de serviço baixado");
+      return;
+    }
+    if (dados.xml_url) {
+      const a = document.createElement("a");
+      a.href = dados.xml_url;
+      a.download = `${nomeArquivoNota(dados)}.xml`;
+      a.click();
+      return;
+    }
+    baixarTexto(`${nomeArquivoNota(dados)}.xml`, gerarXmlNota(dados, itens), "application/xml");
+    toast.success("XML da nota de serviço baixado");
+  }
+
+
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-basico"],
@@ -508,6 +567,16 @@ function Locacoes() {
                           >
                             <FileText className="size-4" /> Nota de serviço
                           </Button>
+                        )}
+                        {!!l.nfe_id && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => baixarNota(l.id, "pdf")}>
+                              <Download className="size-4" /> PDF
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => baixarNota(l.id, "xml")}>
+                              <Code2 className="size-4" /> XML
+                            </Button>
+                          </>
                         )}
                         {["reservada", "em_andamento"].includes(l.situacao) && (
                           <Button
