@@ -5,6 +5,8 @@ import { ListChecks, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useModulosCnae } from "@/lib/cnae";
+import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
@@ -48,7 +50,7 @@ export const Route = createFileRoute("/_authenticated/assistencia")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Assistencia,
+  component: AssistenciaModulo,
 });
 
 /** Etapas da ordem de serviço, na ordem do atendimento. */
@@ -790,4 +792,12 @@ function Assistencia() {
       </Dialog>
     </div>
   );
+}
+
+/** O módulo só abre quando o CNAE da empresa permite. */
+function AssistenciaModulo() {
+  const modulos = useModulosCnae();
+  if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
+  if (!modulos.assistencia) return <ModuloBloqueado modulo="assistencia" />;
+  return <Assistencia />;
 }
