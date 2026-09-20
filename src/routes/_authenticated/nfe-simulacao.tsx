@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/nfe-simulacao")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Simulacao;
+  component: Simulacao,
 });
 
 type Linha = {
