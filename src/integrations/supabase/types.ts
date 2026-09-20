@@ -2285,6 +2285,7 @@ export type Database = {
           certificado_nome: string | null
           certificado_validade: string | null
           cfop_padrao: string
+          codigo_servico: string | null
           conta_emissor: string | null
           created_at: string
           cst_cofins: string
@@ -2294,8 +2295,10 @@ export type Database = {
           filial_id: string | null
           id: string
           informacoes_complementares: string | null
+          item_lista_servico: string | null
           mva_st: number
           proximo_numero: number
+          proximo_numero_nfse: number | null
           reducao_base_icms: number
           regime_tributario: string
           responsavel_tecnico_cnpj: string | null
@@ -2303,6 +2306,7 @@ export type Database = {
           responsavel_tecnico_email: string | null
           responsavel_tecnico_fone: string | null
           serie: number
+          serie_nfse: number | null
           tenant_id: string
           updated_at: string
         }
@@ -2316,6 +2320,7 @@ export type Database = {
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
+          codigo_servico?: string | null
           conta_emissor?: string | null
           created_at?: string
           cst_cofins?: string
@@ -2325,8 +2330,10 @@ export type Database = {
           filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
+          item_lista_servico?: string | null
           mva_st?: number
           proximo_numero?: number
+          proximo_numero_nfse?: number | null
           reducao_base_icms?: number
           regime_tributario?: string
           responsavel_tecnico_cnpj?: string | null
@@ -2334,6 +2341,7 @@ export type Database = {
           responsavel_tecnico_email?: string | null
           responsavel_tecnico_fone?: string | null
           serie?: number
+          serie_nfse?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -2347,6 +2355,7 @@ export type Database = {
           certificado_nome?: string | null
           certificado_validade?: string | null
           cfop_padrao?: string
+          codigo_servico?: string | null
           conta_emissor?: string | null
           created_at?: string
           cst_cofins?: string
@@ -2356,8 +2365,10 @@ export type Database = {
           filial_id?: string | null
           id?: string
           informacoes_complementares?: string | null
+          item_lista_servico?: string | null
           mva_st?: number
           proximo_numero?: number
+          proximo_numero_nfse?: number | null
           reducao_base_icms?: number
           regime_tributario?: string
           responsavel_tecnico_cnpj?: string | null
@@ -2365,6 +2376,7 @@ export type Database = {
           responsavel_tecnico_email?: string | null
           responsavel_tecnico_fone?: string | null
           serie?: number
+          serie_nfse?: number | null
           tenant_id?: string
           updated_at?: string
         }
@@ -2635,6 +2647,57 @@ export type Database = {
         }
         Relationships: []
       }
+      locacao_itens: {
+        Row: {
+          created_at: string
+          dias: number
+          equipamento_id: string
+          id: string
+          locacao_id: string
+          quantidade: number
+          tenant_id: string
+          total: number
+          valor_diaria: number
+        }
+        Insert: {
+          created_at?: string
+          dias?: number
+          equipamento_id: string
+          id?: string
+          locacao_id: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          valor_diaria?: number
+        }
+        Update: {
+          created_at?: string
+          dias?: number
+          equipamento_id?: string
+          id?: string
+          locacao_id?: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          valor_diaria?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locacao_itens_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_itens_locacao_id_fkey"
+            columns: ["locacao_id"]
+            isOneToOne: false
+            referencedRelation: "locacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locacoes: {
         Row: {
           aprovada: boolean
@@ -2901,6 +2964,7 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
+          codigo_servico: string | null
           created_at: string
           deposito_id: string | null
           destinatario: Json | null
@@ -2910,9 +2974,12 @@ export type Database = {
           filial_id: string | null
           id: string
           impostos_calculados_em: string | null
+          iss_retido: boolean
           locacao_id: string | null
           mensagem: string | null
+          modelo: string
           motivo_cancelamento: string | null
+          municipio_prestacao: string | null
           natureza_operacao: string
           numero: number | null
           pdf_url: string | null
@@ -2948,6 +3015,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          codigo_servico?: string | null
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -2957,9 +3025,12 @@ export type Database = {
           filial_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
+          iss_retido?: boolean
           locacao_id?: string | null
           mensagem?: string | null
+          modelo?: string
           motivo_cancelamento?: string | null
+          municipio_prestacao?: string | null
           natureza_operacao?: string
           numero?: number | null
           pdf_url?: string | null
@@ -2995,6 +3066,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          codigo_servico?: string | null
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -3004,9 +3076,12 @@ export type Database = {
           filial_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
+          iss_retido?: boolean
           locacao_id?: string | null
           mensagem?: string | null
+          modelo?: string
           motivo_cancelamento?: string | null
+          municipio_prestacao?: string | null
           natureza_operacao?: string
           numero?: number | null
           pdf_url?: string | null
@@ -5767,6 +5842,24 @@ export type Database = {
         Returns: undefined
       }
       locacao_aprovar: { Args: { p_locacao_id: string }; Returns: undefined }
+      locacao_balcao_registrar: {
+        Args: {
+          p_caixa_id?: string
+          p_caucao?: number
+          p_cliente_id: string
+          p_dias?: number
+          p_entregar?: boolean
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_gerar_nfse?: boolean
+          p_inicio?: string
+          p_itens: Json
+          p_obra_id?: string
+          p_observacoes?: string
+          p_parcelas?: number
+          p_vencimento?: string
+        }
+        Returns: Json
+      }
       locacao_devolver: {
         Args: {
           p_data?: string
@@ -5791,6 +5884,7 @@ export type Database = {
         Returns: string
       }
       locacao_gerar_nfe: { Args: { p_locacao_id: string }; Returns: string }
+      locacao_gerar_nfse: { Args: { p_locacao_id: string }; Returns: string }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
