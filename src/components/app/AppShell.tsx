@@ -162,6 +162,7 @@ const groups: Group[] = [
     items: [
       { label: "Balcão de locação", to: "/locacao-balcao", icon: Receipt },
       { label: "Locações", to: "/locacoes", icon: CalendarClock },
+      { label: "Painel de locação", to: "/painel-locacao", icon: Gauge },
       { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
       { label: "Estoque de equipamentos", to: "/locacao-estoque", icon: Boxes },
       { label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
@@ -173,6 +174,7 @@ const groups: Group[] = [
     items: [
       { label: "Cadastro da empresa", to: "/empresa", icon: Building2 },
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
+      { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
