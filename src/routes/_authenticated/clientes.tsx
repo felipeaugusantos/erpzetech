@@ -415,11 +415,26 @@ function Clientes() {
                 <>
                   <div>
                     <Label htmlFor="c-cnpj">CNPJ</Label>
-                    <Input
-                      id="c-cnpj"
-                      value={form.cnpj}
-                      onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="c-cnpj"
+                        value={form.cnpj}
+                        placeholder="00.000.000/0000-00"
+                        onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={buscarCnpj.isPending}
+                        onClick={() => buscarCnpj.mutate()}
+                      >
+                        <Search className="size-4" />
+                        {buscarCnpj.isPending ? "…" : "Buscar"}
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Informe o CNPJ e clique em Buscar para trazer nome e endereço automaticamente.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="c-ie">Inscrição estadual</Label>
