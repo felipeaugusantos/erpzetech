@@ -81,7 +81,7 @@ function ZeTechTecnicos() {
           ordens: acc.ordens + Number(l.ordens ?? 0),
           horas: acc.horas + Number(l.horas ?? 0),
           mao: acc.mao + Number(l.custo_mao_obra ?? 0),
-          pecas: acc.pecas + Number(l.custo_pecas ?? 0),
+          pecas: acc.pecas + Number(l.valor_pecas ?? 0),
           comissao: acc.comissao + Number(l.comissao ?? 0),
           total: acc.total + Number(l.custo_total ?? 0),
         }),
@@ -198,7 +198,7 @@ function ZeTechTecnicos() {
                     {brl(Number(l.custo_mao_obra ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">
-                    {brl(Number(l.custo_pecas ?? 0))}
+                    {brl(Number(l.valor_pecas ?? 0))}
                   </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.comissao ?? 0))}
