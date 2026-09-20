@@ -75,7 +75,7 @@ const PADROES_NFSE = [
 type Form = {
   regime_tributario: string;
   nfse_prefeitura: string;
-  municipio_codigo: string;
+  nfse_codigo_municipio: string;
   nfse_padrao: string;
   codigo_servico: string;
   item_lista_servico: string;
@@ -100,7 +100,7 @@ function daConfig(c: Record<string, unknown> | null | undefined): Form {
   return {
     regime_tributario: String(c?.["regime_tributario"] ?? "simples"),
     nfse_prefeitura: String(c?.["nfse_prefeitura"] ?? ""),
-    municipio_codigo: String(c?.["municipio_codigo"] ?? ""),
+    nfse_codigo_municipio: String(c?.["nfse_codigo_municipio"] ?? ""),
     nfse_padrao: String(c?.["nfse_padrao"] ?? "abrasf"),
     codigo_servico: String(c?.["codigo_servico"] ?? ""),
     item_lista_servico: String(c?.["item_lista_servico"] ?? "3.05"),
@@ -161,7 +161,7 @@ function Prefeitura() {
       const payload = {
         regime_tributario: form.regime_tributario,
         nfse_prefeitura: form.nfse_prefeitura || null,
-        municipio_codigo: form.municipio_codigo || null,
+        nfse_codigo_municipio: form.nfse_codigo_municipio || null,
         nfse_padrao: form.nfse_padrao || null,
         codigo_servico: form.codigo_servico || null,
         item_lista_servico: form.item_lista_servico || null,
@@ -355,7 +355,7 @@ function Prefeitura() {
               {texto("nfse_prefeitura", "Prefeitura (município)", "Cidade onde o serviço é prestado.", {
                 placeholder: "Franca",
               })}
-              {texto("municipio_codigo", "Código IBGE do município", "Sete dígitos do município.", {
+              {texto("nfse_codigo_municipio", "Código IBGE do município", "Sete dígitos do município.", {
                 placeholder: "3516200",
               })}
               <div>
