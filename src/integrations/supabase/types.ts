@@ -2416,6 +2416,7 @@ export type Database = {
           nome: string
           numero_serie: string | null
           observacoes: string | null
+          quantidade: number
           situacao: string
           tenant_id: string
           updated_at: string
@@ -2438,6 +2439,7 @@ export type Database = {
           nome: string
           numero_serie?: string | null
           observacoes?: string | null
+          quantidade?: number
           situacao?: string
           tenant_id: string
           updated_at?: string
@@ -2460,6 +2462,7 @@ export type Database = {
           nome?: string
           numero_serie?: string | null
           observacoes?: string | null
+          quantidade?: number
           situacao?: string
           tenant_id?: string
           updated_at?: string
