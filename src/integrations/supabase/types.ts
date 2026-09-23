@@ -1748,6 +1748,7 @@ export type Database = {
           logo_path: string | null
           nome_fantasia: string | null
           numero: string | null
+          pdv_desconto_limite: number
           ramo_atividade: string
           razao_social: string
           regime_tributario: string
@@ -1776,6 +1777,7 @@ export type Database = {
           logo_path?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          pdv_desconto_limite?: number
           ramo_atividade?: string
           razao_social: string
           regime_tributario?: string
@@ -1804,6 +1806,7 @@ export type Database = {
           logo_path?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          pdv_desconto_limite?: number
           ramo_atividade?: string
           razao_social?: string
           regime_tributario?: string
@@ -2518,6 +2521,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gestor_autorizacoes: {
+        Row: {
+          acao: string
+          created_at: string
+          expira_em: string
+          gestor_id: string
+          id: string
+          operador_id: string | null
+          tenant_id: string
+          usado_em: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          expira_em?: string
+          gestor_id: string
+          id?: string
+          operador_id?: string | null
+          tenant_id: string
+          usado_em?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          expira_em?: string
+          gestor_id?: string
+          id?: string
+          operador_id?: string | null
+          tenant_id?: string
+          usado_em?: string | null
+        }
+        Relationships: []
       }
       inventario_itens: {
         Row: {
@@ -4021,6 +4057,9 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          autorizado_por: string | null
+          caixa_id: string | null
+          cancelado_por: string | null
           cliente_id: string
           condicao_pagamento: string | null
           created_at: string
@@ -4054,6 +4093,9 @@ export type Database = {
           vendedor_id: string | null
         }
         Insert: {
+          autorizado_por?: string | null
+          caixa_id?: string | null
+          cancelado_por?: string | null
           cliente_id: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -4087,6 +4129,9 @@ export type Database = {
           vendedor_id?: string | null
         }
         Update: {
+          autorizado_por?: string | null
+          caixa_id?: string | null
+          cancelado_por?: string | null
           cliente_id?: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -4120,6 +4165,13 @@ export type Database = {
           vendedor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_caixa_id_fkey"
+            columns: ["caixa_id"]
+            isOneToOne: false
+            referencedRelation: "caixas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedidos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -5747,6 +5799,10 @@ export type Database = {
         Args: { p_cotacao_id: string }
         Returns: undefined
       }
+      consumir_autorizacao: {
+        Args: { p_acao: string; p_id: string }
+        Returns: string
+      }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
@@ -5829,6 +5885,37 @@ export type Database = {
           p_valor_informado: number
         }
         Returns: number
+      }
+      frente_abrir_caixa: {
+        Args: { p_filial_id: string; p_valor_abertura?: number }
+        Returns: string
+      }
+      frente_caixa_atual: { Args: never; Returns: string }
+      frente_cancelar_venda: {
+        Args: { p_autorizacao: string; p_motivo: string; p_pedido_id: string }
+        Returns: undefined
+      }
+      frente_movimento: {
+        Args: {
+          p_autorizacao?: string
+          p_descricao: string
+          p_tipo: Database["public"]["Enums"]["caixa_mov_tipo"]
+          p_valor: number
+        }
+        Returns: string
+      }
+      frente_venda: {
+        Args: {
+          p_autorizacao?: string
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
       }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
@@ -6058,6 +6145,33 @@ export type Database = {
           p_tipo: Database["public"]["Enums"]["mov_tipo"]
         }
         Returns: string
+      }
+      relatorio_fechamento_operador: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          aberto_em: string
+          abertura: number
+          caixa_id: string
+          cancelamentos: number
+          cartao_credito: number
+          cartao_debito: number
+          diferenca: number
+          dinheiro: number
+          esperado: number
+          fechado_em: string
+          informado: number
+          numero: number
+          operador: string
+          operador_id: string
+          outras: number
+          pix: number
+          qtd_cancelamentos: number
+          qtd_vendas: number
+          sangrias: number
+          situacao: string
+          suprimentos: number
+          vendas: number
+        }[]
       }
       saas_assistencia_por_cliente: {
         Args: { p_ate: string; p_de: string }
