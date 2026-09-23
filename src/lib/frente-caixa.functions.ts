@@ -34,7 +34,7 @@ export const autorizarGestor = createServerFn({ method: "POST" })
       supabaseAdmin.from("user_roles").select("role").eq("user_id", gestorId),
     ]);
     const ehGestor = (papeis ?? []).some((p) => p.role === "gestor" || p.role === "administrador");
-    if (!perfilGestor || !perfilOperador || perfilGestor.tenant_id !== perfilOperador.tenant_id || !ehGestor)
+    if (!perfilGestor?.tenant_id || !perfilOperador || perfilGestor.tenant_id !== perfilOperador.tenant_id || !ehGestor)
       throw new Error("Este usuário não é gestor desta empresa");
 
     const { data: aut, error: e2 } = await supabaseAdmin
