@@ -86,6 +86,7 @@ const groups: Group[] = [
       { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
       { label: "Relatório de comissões", to: "/relatorio-comissoes", icon: Tag },
       { label: "PDV — venda rápida", to: "/pdv", icon: Store },
+      { label: "Frente de caixa (tela cheia)", to: "/frente-caixa", icon: Store },
     ],
   },
   {
@@ -135,6 +136,7 @@ const groups: Group[] = [
       { label: "Extrato a receber", to: "/extrato-receber", icon: Wallet },
       { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
       { label: "Caixa", to: "/caixa", icon: Wallet },
+      { label: "Fechamento por operador", to: "/fechamento-operador", icon: Wallet },
       { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
       { label: "Contas bancárias", to: "/contas-bancarias", icon: Building2 },
       { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
@@ -318,6 +320,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  if (pathname === "/frente-caixa") return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
