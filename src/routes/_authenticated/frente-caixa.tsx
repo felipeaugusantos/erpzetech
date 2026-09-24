@@ -93,7 +93,8 @@ function FrenteCaixa() {
     },
   });
   const produtos = base?.produtos ?? [];
-  const deposito = base?.depositos.find((d) => !session?.profile?.filial_id || d.filial_id === session.profile.filial_id) ?? base?.depositos[0];
+  const [depositoId, setDepositoId] = useState("");
+  const deposito = base?.depositos.find((d) => d.id === depositoId) ?? base?.depositos.find((d) => !session?.profile?.filial_id || d.filial_id === session.profile.filial_id) ?? base?.depositos[0];
   const caixa = base?.caixa ?? null;
 
   const { data: vendas = [] } = useQuery({
@@ -289,7 +290,9 @@ function FrenteCaixa() {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span>Operador: <b>{session?.profile?.nome ?? session?.user.email}</b></span>
           <span>{caixa ? `Caixa nº ${caixa.numero ?? "—"} aberto` : "Caixa fechado"}</span>
-          <span>{deposito?.nome}</span>
+          <select aria-label="Depósito" className="rounded bg-sidebar px-2 py-1 text-sm" value={deposito?.id ?? ""} onChange={(e) => setDepositoId(e.target.value)}>
+            {base?.depositos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+          </select>
           <Button size="sm" variant="secondary" onClick={() => setModal("operador")}>Trocar operador</Button>
           {caixa ? (
             <Button size="sm" variant="secondary" onClick={() => setModal("fechar")}>Fechar caixa</Button>
