@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/tef-painel")({
 type Tx = {
   id: string; created_at: string; credenciadora: string | null; forma: string | null; valor: number; parcelas: number;
   status: string; nsu: string | null; autorizacao: string | null; bandeira: string | null; motivo: string | null;
-  caixa_id: string | null; pedido_id: string | null; filial_id: string | null;
+  caixa_id: string | null; pedido_id: string | null; filial_id: string | null; operador_id: string | null;
 };
 
 const brl = (n: number) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
