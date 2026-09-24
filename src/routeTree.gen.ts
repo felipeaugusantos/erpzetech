@@ -78,6 +78,7 @@ import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_aut
 import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_authenticated/relatorio-locacoes'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
+import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authenticated/transferencias'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
@@ -478,6 +479,11 @@ const AuthenticatedTecnicosRoute = AuthenticatedTecnicosRouteImport.update({
   path: '/tecnicos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTefRoute = AuthenticatedTefRouteImport.update({
+  id: '/tef',
+  path: '/tef',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTransferenciasRoute =
   AuthenticatedTransferenciasRouteImport.update({
     id: '/transferencias',
@@ -674,6 +680,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
+  '/tef': typeof AuthenticatedTefRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -766,6 +773,7 @@ export interface FileRoutesByTo {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
+  '/tef': typeof AuthenticatedTefRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -860,6 +868,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
+  '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/transferencias': typeof AuthenticatedTransferenciasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
@@ -954,6 +963,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/tecnicos'
+    | '/tef'
     | '/transferencias'
     | '/usuarios'
     | '/veiculos'
@@ -1046,6 +1056,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/tecnicos'
+    | '/tef'
     | '/transferencias'
     | '/usuarios'
     | '/veiculos'
@@ -1139,6 +1150,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-locacoes'
     | '/_authenticated/rota'
     | '/_authenticated/tecnicos'
+    | '/_authenticated/tef'
     | '/_authenticated/transferencias'
     | '/_authenticated/usuarios'
     | '/_authenticated/veiculos'
@@ -1656,6 +1668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTecnicosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tef': {
+      id: '/_authenticated/tef'
+      path: '/tef'
+      fullPath: '/tef'
+      preLoaderRoute: typeof AuthenticatedTefRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/transferencias': {
       id: '/_authenticated/transferencias'
       path: '/transferencias'
@@ -1878,6 +1897,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioLocacoesRoute: typeof AuthenticatedRelatorioLocacoesRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
+  AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTransferenciasRoute: typeof AuthenticatedTransferenciasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
@@ -1968,6 +1988,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatorioLocacoesRoute: AuthenticatedRelatorioLocacoesRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
+  AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTransferenciasRoute: AuthenticatedTransferenciasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
