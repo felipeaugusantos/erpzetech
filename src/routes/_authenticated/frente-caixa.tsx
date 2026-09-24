@@ -261,7 +261,13 @@ function FrenteCaixa() {
         if (/fetch|network|failed/i.test(error.message)) return guardar();
         throw error;
       }
+      if (cartao && data) {
+        await supabase.rpc("frente_registrar_tef" as never, { p_pedido_id: data, p_credenciadora: tefCfg?.credenciadora ?? "manual", p_nsu: tef.nsu, p_autorizacao: tef.aut, p_bandeira: tef.bandeira } as never);
+      }
       return data as string;
+    },
+    onMutate: () => {
+      if (cartao && tefCfg?.exigir_nsu && !tef.nsu.trim()) throw new Error("Digite o código da transação (NSU) do comprovante da maquininha");
     },
     onSuccess: async (r) => {
       toast.success(r === "offline" ? "Sem internet: venda guardada e será enviada quando a conexão voltar" : `Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
@@ -282,7 +288,9 @@ function FrenteCaixa() {
         subtotal, desconto: descNum, total, forma,
         parcelas: Math.max(Number(parcelas) || 1, 1),
         ...(!aPrazo && forma === "dinheiro" ? { recebido: rec, troco } : {}),
+        ...(cartao ? { tef: { credenciadora: tefCfg?.credenciadora ?? "—", nsu: tef.nsu, autorizacao: tef.aut, bandeira: tef.bandeira } } : {}),
       });
+      setTef({ nsu: "", aut: "", bandeira: "" });
       setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal("cupom"); setForma("dinheiro"); setParcelas("1"); setCliente(null);
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
       setTimeout(() => buscaRef.current?.focus(), 50);
