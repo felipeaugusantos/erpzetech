@@ -271,8 +271,7 @@ function FrenteCaixa() {
         itens: linhas.map((l) => ({ descricao: l.descricao, unidade: l.unidade, quantidade: l.quantidade, preco: l.preco })),
         subtotal, desconto: descNum, total, forma,
         parcelas: Math.max(Number(parcelas) || 1, 1),
-        recebido: !aPrazo && forma === "dinheiro" ? rec : undefined,
-        troco: !aPrazo && forma === "dinheiro" ? troco : undefined,
+        ...(!aPrazo && forma === "dinheiro" ? { recebido: rec, troco } : {}),
       });
       setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal("cupom"); setForma("dinheiro"); setParcelas("1"); setCliente(null);
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
