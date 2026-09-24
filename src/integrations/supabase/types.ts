@@ -5412,6 +5412,63 @@ export type Database = {
           },
         ]
       }
+      tef_transacoes: {
+        Row: {
+          autorizacao: string | null
+          bandeira: string | null
+          caixa_id: string | null
+          created_at: string
+          credenciadora: string | null
+          filial_id: string | null
+          forma: string | null
+          id: string
+          motivo: string | null
+          nsu: string | null
+          operador_id: string | null
+          parcelas: number
+          pedido_id: string | null
+          status: string
+          tenant_id: string
+          valor: number
+        }
+        Insert: {
+          autorizacao?: string | null
+          bandeira?: string | null
+          caixa_id?: string | null
+          created_at?: string
+          credenciadora?: string | null
+          filial_id?: string | null
+          forma?: string | null
+          id?: string
+          motivo?: string | null
+          nsu?: string | null
+          operador_id?: string | null
+          parcelas?: number
+          pedido_id?: string | null
+          status: string
+          tenant_id: string
+          valor?: number
+        }
+        Update: {
+          autorizacao?: string | null
+          bandeira?: string | null
+          caixa_id?: string | null
+          created_at?: string
+          credenciadora?: string | null
+          filial_id?: string | null
+          forma?: string | null
+          id?: string
+          motivo?: string | null
+          nsu?: string | null
+          operador_id?: string | null
+          parcelas?: number
+          pedido_id?: string | null
+          status?: string
+          tenant_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           ativo: boolean
@@ -6433,6 +6490,18 @@ export type Database = {
           p_motivo?: string
           p_orcamento_id?: string
           p_pedido_id?: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      tef_registrar_negada: {
+        Args: {
+          p_bandeira: string
+          p_credenciadora: string
+          p_filial_id: string
+          p_forma: string
+          p_motivo: string
+          p_parcelas: number
           p_valor: number
         }
         Returns: string

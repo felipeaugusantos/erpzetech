@@ -184,6 +184,7 @@ const groups: Group[] = [
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
+      { label: "Painel da maquininha", to: "/tef-painel", icon: Wallet },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Painel da filial", to: "/painel-filial", icon: Gauge },
