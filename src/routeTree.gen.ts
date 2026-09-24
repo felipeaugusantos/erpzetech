@@ -60,6 +60,7 @@ import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nf
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
 import { Route as AuthenticatedNfeSimulacaoRouteImport } from './routes/_authenticated/nfe-simulacao'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
+import { Route as AuthenticatedOperadoresRouteImport } from './routes/_authenticated/operadores'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
@@ -379,6 +380,11 @@ const AuthenticatedObrasRoute = AuthenticatedObrasRouteImport.update({
   path: '/obras',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOperadoresRoute = AuthenticatedOperadoresRouteImport.update({
+  id: '/operadores',
+  path: '/operadores',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
@@ -650,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obras': typeof AuthenticatedObrasRoute
+  '/operadores': typeof AuthenticatedOperadoresRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
@@ -741,6 +748,7 @@ export interface FileRoutesByTo {
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obras': typeof AuthenticatedObrasRoute
+  '/operadores': typeof AuthenticatedOperadoresRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
@@ -834,6 +842,7 @@ export interface FileRoutesById {
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/_authenticated/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
+  '/_authenticated/operadores': typeof AuthenticatedOperadoresRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
@@ -927,6 +936,7 @@ export interface FileRouteTypes {
     | '/nfe-entrada'
     | '/nfe-simulacao'
     | '/obras'
+    | '/operadores'
     | '/orcamentos'
     | '/painel-filial'
     | '/painel-fiscal'
@@ -1018,6 +1028,7 @@ export interface FileRouteTypes {
     | '/nfe-entrada'
     | '/nfe-simulacao'
     | '/obras'
+    | '/operadores'
     | '/orcamentos'
     | '/painel-filial'
     | '/painel-fiscal'
@@ -1110,6 +1121,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nfe-entrada'
     | '/_authenticated/nfe-simulacao'
     | '/_authenticated/obras'
+    | '/_authenticated/operadores'
     | '/_authenticated/orcamentos'
     | '/_authenticated/painel-filial'
     | '/_authenticated/painel-fiscal'
@@ -1518,6 +1530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedObrasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/operadores': {
+      id: '/_authenticated/operadores'
+      path: '/operadores'
+      fullPath: '/operadores'
+      preLoaderRoute: typeof AuthenticatedOperadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/orcamentos': {
       id: '/_authenticated/orcamentos'
       path: '/orcamentos'
@@ -1841,6 +1860,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
   AuthenticatedNfeSimulacaoRoute: typeof AuthenticatedNfeSimulacaoRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
+  AuthenticatedOperadoresRoute: typeof AuthenticatedOperadoresRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
@@ -1929,6 +1949,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,
   AuthenticatedNfeSimulacaoRoute: AuthenticatedNfeSimulacaoRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
+  AuthenticatedOperadoresRoute: AuthenticatedOperadoresRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,

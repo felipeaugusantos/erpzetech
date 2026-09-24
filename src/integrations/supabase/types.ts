@@ -4609,6 +4609,8 @@ export type Database = {
           filial_id: string | null
           id: string
           nome: string
+          pode_abrir_caixa: boolean
+          pode_ver_fechamento: boolean
           telefone: string | null
           tenant_id: string | null
           updated_at: string
@@ -4626,6 +4628,8 @@ export type Database = {
           filial_id?: string | null
           id: string
           nome?: string
+          pode_abrir_caixa?: boolean
+          pode_ver_fechamento?: boolean
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
@@ -4643,6 +4647,8 @@ export type Database = {
           filial_id?: string | null
           id?: string
           nome?: string
+          pode_abrir_caixa?: boolean
+          pode_ver_fechamento?: boolean
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
@@ -6030,6 +6036,10 @@ export type Database = {
         Returns: Json
       }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
+      operador_definir_permissoes: {
+        Args: { p_abrir: boolean; p_user_id: string; p_ver: boolean }
+        Returns: undefined
+      }
       painel_fiscal_loja: {
         Args: { p_ate: string; p_de: string }
         Returns: {
