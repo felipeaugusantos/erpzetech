@@ -183,6 +183,7 @@ const groups: Group[] = [
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
+      { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Painel da filial", to: "/painel-filial", icon: Gauge },
