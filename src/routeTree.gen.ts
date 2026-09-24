@@ -79,6 +79,7 @@ import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_au
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
+import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
 import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authenticated/transferencias'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
@@ -484,6 +485,11 @@ const AuthenticatedTefRoute = AuthenticatedTefRouteImport.update({
   path: '/tef',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTefPainelRoute = AuthenticatedTefPainelRouteImport.update({
+  id: '/tef-painel',
+  path: '/tef-painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTransferenciasRoute =
   AuthenticatedTransferenciasRouteImport.update({
     id: '/transferencias',
@@ -681,6 +687,7 @@ export interface FileRoutesByFullPath {
   '/rota': typeof AuthenticatedRotaRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
+  '/tef-painel': typeof AuthenticatedTefPainelRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -774,6 +781,7 @@ export interface FileRoutesByTo {
   '/rota': typeof AuthenticatedRotaRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
+  '/tef-painel': typeof AuthenticatedTefPainelRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
@@ -869,6 +877,7 @@ export interface FileRoutesById {
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
+  '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
   '/_authenticated/transferencias': typeof AuthenticatedTransferenciasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
@@ -964,6 +973,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/tecnicos'
     | '/tef'
+    | '/tef-painel'
     | '/transferencias'
     | '/usuarios'
     | '/veiculos'
@@ -1057,6 +1067,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/tecnicos'
     | '/tef'
+    | '/tef-painel'
     | '/transferencias'
     | '/usuarios'
     | '/veiculos'
@@ -1151,6 +1162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rota'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
+    | '/_authenticated/tef-painel'
     | '/_authenticated/transferencias'
     | '/_authenticated/usuarios'
     | '/_authenticated/veiculos'
@@ -1675,6 +1687,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTefRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tef-painel': {
+      id: '/_authenticated/tef-painel'
+      path: '/tef-painel'
+      fullPath: '/tef-painel'
+      preLoaderRoute: typeof AuthenticatedTefPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/transferencias': {
       id: '/_authenticated/transferencias'
       path: '/transferencias'
@@ -1898,6 +1917,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
+  AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
   AuthenticatedTransferenciasRoute: typeof AuthenticatedTransferenciasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
@@ -1989,6 +2009,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
+  AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,
   AuthenticatedTransferenciasRoute: AuthenticatedTransferenciasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,

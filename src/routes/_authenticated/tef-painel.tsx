@@ -80,9 +80,9 @@ function TefPainel() {
         caixaIds.length ? supabase.from("caixas").select("id, numero").in("id", caixaIds) : { data: [] },
       ]);
       return {
-        pedidos: Object.fromEntries((p.data ?? []).map((x: { id: string; numero: number }) => [x.id, x.numero])),
-        notas: Object.fromEntries((n.data ?? []).map((x: { pedido_id: string; numero: number | null; situacao: string }) => [x.pedido_id, x])),
-        caixas: Object.fromEntries((c.data ?? []).map((x: { id: string; numero: number }) => [x.id, x.numero])),
+        pedidos: Object.fromEntries((p.data ?? []).map((x: { id: string; numero: number | null }) => [x.id, x.numero])),
+        notas: Object.fromEntries((n.data ?? []).map((x: { pedido_id: string | null; numero: number | null; situacao: string }) => [x.pedido_id, x])),
+        caixas: Object.fromEntries((c.data ?? []).map((x: { id: string; numero: number | null }) => [x.id, x.numero])),
       } as { pedidos: Record<string, number>; notas: Record<string, { numero: number | null; situacao: string }>; caixas: Record<string, number> };
     },
   });
@@ -105,7 +105,7 @@ function TefPainel() {
   });
 
   const sel = "h-9 w-full rounded-md border bg-background px-2 text-sm";
-  const guia = GUIAS[cred];
+  const guia = GUIAS[cred] ?? GUIAS["outra"]!;
 
   return (
     <div>
