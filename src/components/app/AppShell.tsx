@@ -182,6 +182,7 @@ const groups: Group[] = [
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Painel da filial", to: "/painel-filial", icon: Gauge },

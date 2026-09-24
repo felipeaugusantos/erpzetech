@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
 
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
@@ -58,7 +59,8 @@ function FrenteCaixa() {
   const [forma, setForma] = useState<FormaPagamento>("dinheiro");
   const [parcelas, setParcelas] = useState("1");
   const [recebido, setRecebido] = useState("");
-  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador" | "espera">(null);
+  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador" | "espera" | "cliente">(null);
+  const [cliente, setCliente] = useState<ClienteFrente | null>(null);
   const [gestor, setGestor] = useState<null | { acao: AcaoGestor; executar: (aut: string) => void }>(null);
   const [gEmail, setGEmail] = useState("");
   const [gSenha, setGSenha] = useState("");
@@ -228,6 +230,7 @@ function FrenteCaixa() {
       if (!caixa) throw new Error("Abra o seu caixa antes de vender");
       const params = {
         p_deposito_id: deposito.id,
+        ...(cliente ? { p_cliente_id: cliente.id } : {}),
         p_itens: linhas.map((l) => ({ produto_id: l.produto_id, quantidade: l.quantidade, preco_unitario: l.preco })),
         p_forma: forma,
         p_desconto: descNum,
@@ -250,7 +253,7 @@ function FrenteCaixa() {
     },
     onSuccess: (r) => {
       toast.success(r === "offline" ? "Sem internet: venda guardada e será enviada quando a conexão voltar" : `Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
-      setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal(null); setForma("dinheiro"); setParcelas("1");
+      setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal(null); setForma("dinheiro"); setParcelas("1"); setCliente(null);
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
       setTimeout(() => buscaRef.current?.focus(), 50);
     },
@@ -369,6 +372,7 @@ function FrenteCaixa() {
           <span>{caixa ? `Caixa nº ${caixa.numero ?? "—"} aberto` : "Caixa fechado"}</span>
           <span className={online ? "" : "font-semibold text-destructive"}>{online ? "Online" : "Sem internet"}{fila.length ? ` · ${fila.length} venda(s) a enviar` : ""}</span>
           <Button size="sm" variant="secondary" onClick={() => setModal("espera")}>Em espera ({esperas.length})</Button>
+          <Button size="sm" variant="secondary" onClick={() => setModal("cliente")}>F12 · Cliente: {cliente ? cliente.nome : "Consumidor final"}</Button>
           <select aria-label="Depósito" className="rounded bg-sidebar px-2 py-1 text-sm" value={deposito?.id ?? ""} onChange={(e) => setDepositoId(e.target.value)}>
             {base?.depositos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
           </select>
