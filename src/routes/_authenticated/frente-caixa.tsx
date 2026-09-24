@@ -58,7 +58,7 @@ function FrenteCaixa() {
   const [forma, setForma] = useState<FormaPagamento>("dinheiro");
   const [parcelas, setParcelas] = useState("1");
   const [recebido, setRecebido] = useState("");
-  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador">(null);
+  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador" | "espera">(null);
   const [gestor, setGestor] = useState<null | { acao: AcaoGestor; executar: (aut: string) => void }>(null);
   const [gEmail, setGEmail] = useState("");
   const [gSenha, setGSenha] = useState("");
@@ -69,6 +69,70 @@ function FrenteCaixa() {
   const [valorCaixa, setValorCaixa] = useState("");
   const [opEmail, setOpEmail] = useState("");
   const [opSenha, setOpSenha] = useState("");
+  const userId = session?.user.id ?? "";
+  const chaveEspera = `fc-espera-${userId}`;
+  const chaveFila = `fc-fila-${userId}`;
+  type Espera = { id: string; em: string; linhas: Linha[]; desconto: string };
+  type Pendente = { id: string; em: string; total: number; params: Record<string, unknown> };
+  const [esperas, setEsperas] = useState<Espera[]>([]);
+  const [fila, setFila] = useState<Pendente[]>([]);
+  const [online, setOnline] = useState(true);
+  const enviando = useRef(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      setEsperas(JSON.parse(localStorage.getItem(chaveEspera) ?? "[]"));
+      setFila(JSON.parse(localStorage.getItem(chaveFila) ?? "[]"));
+    } catch { /* ignora */ }
+    setOnline(navigator.onLine);
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const salvarEsperas = (v: Espera[]) => { setEsperas(v); localStorage.setItem(chaveEspera, JSON.stringify(v)); };
+  const salvarFila = (v: Pendente[]) => { setFila(v); localStorage.setItem(chaveFila, JSON.stringify(v)); };
+
+  function colocarEmEspera() {
+    if (!linhas.length) { toast.error("Carrinho vazio"); return; }
+    salvarEsperas([...esperas, { id: crypto.randomUUID(), em: new Date().toISOString(), linhas, desconto }]);
+    setLinhas([]); setDesconto("0"); setAutDesconto(null);
+    toast.success("Venda colocada em espera");
+    setTimeout(() => buscaRef.current?.focus(), 50);
+  }
+  function retomar(e: Espera) {
+    const resto = esperas.filter((x) => x.id !== e.id);
+    salvarEsperas(linhas.length ? [...resto, { id: crypto.randomUUID(), em: new Date().toISOString(), linhas, desconto }] : resto);
+    setLinhas(e.linhas); setDesconto(e.desconto); setAutDesconto(null); setModal(null);
+  }
+
+  async function enviarFila() {
+    if (enviando.current || !navigator.onLine || !userId) return;
+    let atual: Pendente[] = [];
+    try { atual = JSON.parse(localStorage.getItem(chaveFila) ?? "[]"); } catch { return; }
+    if (!atual.length) return;
+    enviando.current = true;
+    const restantes: Pendente[] = [];
+    let ok = 0;
+    for (const p of atual) {
+      const { error } = await supabase.rpc("frente_venda", p.params as never);
+      if (error) {
+        if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
+        else toast.error("Venda guardada recusada", { description: `${brl(p.total)} — ${error.message}` });
+      } else ok++;
+    }
+    salvarFila(restantes);
+    enviando.current = false;
+    if (ok) { toast.success(`${ok} venda(s) guardada(s) enviada(s)`); void qc.invalidateQueries({ queryKey: ["frente-vendas"] }); }
+  }
+
+  useEffect(() => {
+    const on = () => { setOnline(true); void enviarFila(); };
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    const t = setInterval(() => void enviarFila(), 30_000);
+    void enviarFila();
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); clearInterval(t); };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: base } = useQuery({
     queryKey: ["frente-base"],
@@ -161,7 +225,8 @@ function FrenteCaixa() {
     mutationFn: async () => {
       if (!deposito) throw new Error("Nenhum depósito ativo");
       if (!linhas.length) throw new Error("Inclua itens na venda");
-      const { data, error } = await supabase.rpc("frente_venda", {
+      if (!caixa) throw new Error("Abra o seu caixa antes de vender");
+      const params = {
         p_deposito_id: deposito.id,
         p_itens: linhas.map((l) => ({ produto_id: l.produto_id, quantidade: l.quantidade, preco_unitario: l.preco })),
         p_forma: forma,
@@ -169,12 +234,22 @@ function FrenteCaixa() {
         p_parcelas: Math.max(Number(parcelas) || 1, 1),
         ...(aPrazo ? { p_primeiro_vencimento: somaDias(hojeISO(), 30) } : {}),
         ...(autDesconto ? { p_autorizacao: autDesconto } : {}),
-      });
-      if (error) throw error;
+      };
+      const guardar = () => {
+        const atual: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
+        salvarFila([...atual, { id: crypto.randomUUID(), em: new Date().toISOString(), total, params }]);
+        return "offline";
+      };
+      if (!navigator.onLine) return guardar();
+      const { data, error } = await supabase.rpc("frente_venda", params);
+      if (error) {
+        if (/fetch|network|failed/i.test(error.message)) return guardar();
+        throw error;
+      }
       return data as string;
     },
-    onSuccess: () => {
-      toast.success(`Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
+    onSuccess: (r) => {
+      toast.success(r === "offline" ? "Sem internet: venda guardada e será enviada quando a conexão voltar" : `Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
       setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal(null); setForma("dinheiro"); setParcelas("1");
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
       setTimeout(() => buscaRef.current?.focus(), 50);
@@ -269,11 +344,13 @@ function FrenteCaixa() {
       const mapa: Record<string, () => void> = {
         F2: () => buscaRef.current?.focus(),
         F3: () => { setSugestoes(null); setModal("ia"); },
-        F4: () => { if (!linhas.length) toast.error("Carrinho vazio"); else setModal("pagamento"); },
+        F4: () => { if (!caixa) toast.error("Abra o seu caixa"); else if (!linhas.length) toast.error("Carrinho vazio"); else setModal("pagamento"); },
+        F5: () => colocarEmEspera(),
         F6: () => { setDescTexto(desconto); setModal("desconto"); },
         F7: () => setModal("vendas"),
         F8: () => setLinhas((a) => a.slice(0, -1)),
         F9: () => setModal("movimento"),
+        F11: () => setModal("espera"),
       };
       if (mapa[k]) { e.preventDefault(); mapa[k](); }
     };
@@ -290,6 +367,8 @@ function FrenteCaixa() {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span>Operador: <b>{session?.profile?.nome ?? session?.user.email}</b></span>
           <span>{caixa ? `Caixa nº ${caixa.numero ?? "—"} aberto` : "Caixa fechado"}</span>
+          <span className={online ? "" : "font-semibold text-destructive"}>{online ? "Online" : "Sem internet"}{fila.length ? ` · ${fila.length} venda(s) a enviar` : ""}</span>
+          <Button size="sm" variant="secondary" onClick={() => setModal("espera")}>Em espera ({esperas.length})</Button>
           <select aria-label="Depósito" className="rounded bg-sidebar px-2 py-1 text-sm" value={deposito?.id ?? ""} onChange={(e) => setDepositoId(e.target.value)}>
             {base?.depositos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
           </select>
@@ -366,7 +445,7 @@ function FrenteCaixa() {
               <div className="flex justify-between pt-2 font-display text-3xl font-bold text-primary"><span>Total</span><span className="text-numeric">{brl(total)}</span></div>
             </div>
             <div className="panel grid grid-cols-2 gap-1 p-3 text-xs">
-              {[["F2", "Buscar produto"], ["Enter", "Adicionar item"], ["F3", "Sugestão por IA"], ["F4", "Pagamento"], ["F6", "Desconto"], ["F7", "Vendas / cancelar"], ["F8", "Remover último item"], ["F9", "Sangria / suprimento"], ["F10", "Finalizar (no pagamento)"], ["Esc", "Fechar janela"]].map(([k, t]) => (
+              {[["F2", "Buscar produto"], ["Enter", "Adicionar item"], ["F3", "Sugestão por IA"], ["F4", "Pagamento"], ["F5", "Pôr venda em espera"], ["F11", "Vendas em espera"], ["F6", "Desconto"], ["F7", "Vendas / cancelar"], ["F8", "Remover último item"], ["F9", "Sangria / suprimento"], ["F10", "Finalizar (no pagamento)"], ["Esc", "Fechar janela"]].map(([k, t]) => (
                 <div key={k} className="flex gap-2"><kbd className="rounded border bg-muted px-1.5 font-mono">{k}</kbd><span>{t}</span></div>
               ))}
             </div>
