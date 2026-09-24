@@ -58,7 +58,8 @@ function TefPainel() {
   const [cred, setCred] = useState("stone");
   const [neg, setNeg] = useState({ valor: "", forma: "cartao_credito", parcelas: "1", bandeira: "", motivo: "Saldo insuficiente", credenciadora: "stone" });
 
-  const { data: txs = [] } = useQuery({
+  const [loja, setLoja] = useState("");
+  const { data: txsAll = [] } = useQuery({
     queryKey: ["tef-transacoes", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("tef_transacoes" as never).select("*")
@@ -67,6 +68,7 @@ function TefPainel() {
       return (data ?? []) as unknown as Tx[];
     },
   });
+  const txs = loja ? txsAll.filter((t) => t.filial_id === loja) : txsAll;
 
   const pedidoIds = useMemo(() => [...new Set(txs.map((t) => t.pedido_id).filter(Boolean))] as string[], [txs]);
   const caixaIds = useMemo(() => [...new Set(txs.map((t) => t.caixa_id).filter(Boolean))] as string[], [txs]);
@@ -87,6 +89,24 @@ function TefPainel() {
     },
   });
 
+  const operIds = useMemo(() => [...new Set(txsAll.map((t) => t.operador_id).filter(Boolean))] as string[], [txsAll]);
+  const { data: operadores = {} } = useQuery({
+    queryKey: ["tef-operadores", operIds],
+    enabled: operIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", operIds);
+      return Object.fromEntries((data ?? []).map((p) => [p.id, p.nome])) as Record<string, string>;
+    },
+  });
+  const { data: cfg } = useQuery({
+    queryKey: ["tef-config", loja],
+    enabled: !!loja,
+    queryFn: async () => {
+      const { data } = await supabase.from("tef_config" as never).select("*").eq("filial_id", loja).maybeSingle();
+      return data as unknown as { credenciadora: string | null; contrato: string | null; codigo_estabelecimento: string | null; terminal_id: string | null; modo: string | null; ativo: boolean } | null;
+    },
+  });
+  const nomeLoja = (id: string | null) => filiais.find((f) => f.id === id)?.nome ?? "—";
   const lista = status ? txs.filter((t) => t.status === status) : txs;
   const soma = (s: string) => txs.filter((t) => t.status === s);
   const aprov = soma("aprovada"), negadas = soma("negada"), canc = soma("cancelada");
