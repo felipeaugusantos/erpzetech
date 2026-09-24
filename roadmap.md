@@ -26,3 +26,9 @@
 - [x] Tabela locacao_itens e RPC locacao_balcao_registrar
 - [x] Nota fiscal de serviço (NFS-e) da locação: RPC locacao_gerar_nfse, modelo/código do serviço/ISS na nfe
 - [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e sair pronta
+
+## Rodada 5 — Frente de caixa
+- [x] Frente de caixa em tela cheia com atalhos (`/frente-caixa`)
+- [x] Sugestão de produtos por IA a partir de texto livre
+- [x] Caixa por operador, troca de operador, senha do gestor (cancelar, desconto acima do limite, sangria)
+- [x] Relatório de fechamento por operador (`/fechamento-operador`)
