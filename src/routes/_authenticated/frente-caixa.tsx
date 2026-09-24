@@ -573,6 +573,31 @@ function FrenteCaixa() {
         </DialogContent>
       </Dialog>
 
+      {/* Vendas em espera */}
+      <Dialog open={modal === "espera"} onOpenChange={(o) => !o && setModal(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Vendas em espera</DialogTitle></DialogHeader>
+          {esperas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma venda em espera. Use F5 para guardar a venda atual.</p>}
+          <div className="space-y-2">
+            {esperas.map((e) => (
+              <div key={e.id} className="flex items-center justify-between gap-2 rounded border p-2 text-sm">
+                <div>
+                  <b>{brl(e.linhas.reduce((s, l) => s + l.preco * l.quantidade, 0))}</b> · {e.linhas.length} item(ns)
+                  <p className="text-xs text-muted-foreground">{new Date(e.em).toLocaleTimeString("pt-BR")} — {e.linhas.slice(0, 2).map((l) => l.descricao).join(", ")}</p>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" onClick={() => retomar(e)}>Retomar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => salvarEsperas(esperas.filter((x) => x.id !== e.id))}><X className="size-4" /></Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {fila.length > 0 && (
+            <p className="text-xs text-muted-foreground">{fila.length} venda(s) finalizada(s) sem internet aguardando envio ({brl(fila.reduce((s, p) => s + p.total, 0))}). <Button size="sm" variant="link" onClick={() => void enviarFila()}>Enviar agora</Button></p>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Trocar operador */}
       <Dialog open={modal === "operador"} onOpenChange={(o) => !o && setModal(null)}>
         <DialogContent>
