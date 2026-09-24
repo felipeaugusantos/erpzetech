@@ -37,10 +37,12 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
+import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenticated/frente-caixa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
@@ -249,6 +251,12 @@ const AuthenticatedExtratoReceberRoute =
     path: '/extrato-receber',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFechamentoOperadorRoute =
+  AuthenticatedFechamentoOperadorRouteImport.update({
+    id: '/fechamento-operador',
+    path: '/fechamento-operador',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFilialExtraRoute =
   AuthenticatedFilialExtraRouteImport.update({
     id: '/filial-extra',
@@ -269,6 +277,12 @@ const AuthenticatedFornecedoresRoute =
   AuthenticatedFornecedoresRouteImport.update({
     id: '/fornecedores',
     path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFrenteCaixaRoute =
+  AuthenticatedFrenteCaixaRouteImport.update({
+    id: '/frente-caixa',
+    path: '/frente-caixa',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedGiroEstoqueRoute =
@@ -613,10 +627,12 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -702,10 +718,12 @@ export interface FileRoutesByTo {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -793,10 +811,12 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -884,10 +904,12 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/estoque-movimentos'
     | '/extrato-receber'
+    | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/frente-caixa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -973,10 +995,12 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/estoque-movimentos'
     | '/extrato-receber'
+    | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
+    | '/frente-caixa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -1063,10 +1087,12 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/estoque-movimentos'
     | '/_authenticated/extrato-receber'
+    | '/_authenticated/fechamento-operador'
     | '/_authenticated/filial-extra'
     | '/_authenticated/fiscal'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/frente-caixa'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/impostos'
     | '/_authenticated/impostos-filial'
@@ -1331,6 +1357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExtratoReceberRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fechamento-operador': {
+      id: '/_authenticated/fechamento-operador'
+      path: '/fechamento-operador'
+      fullPath: '/fechamento-operador'
+      preLoaderRoute: typeof AuthenticatedFechamentoOperadorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/filial-extra': {
       id: '/_authenticated/filial-extra'
       path: '/filial-extra'
@@ -1357,6 +1390,13 @@ declare module '@tanstack/react-router' {
       path: '/fornecedores'
       fullPath: '/fornecedores'
       preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frente-caixa': {
+      id: '/_authenticated/frente-caixa'
+      path: '/frente-caixa'
+      fullPath: '/frente-caixa'
+      preLoaderRoute: typeof AuthenticatedFrenteCaixaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/giro-estoque': {
@@ -1778,10 +1818,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
+  AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedFrenteCaixaRoute: typeof AuthenticatedFrenteCaixaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
@@ -1864,10 +1906,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
+  AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedFrenteCaixaRoute: AuthenticatedFrenteCaixaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,

@@ -120,7 +120,10 @@ function FrenteCaixa() {
   const aPrazo = forma === "crediario" || forma === "boleto";
 
   function adicionar(p: { id: string; descricao: string; unidade: string | null; unidade_venda: string | null; preco_venda: number | null }, q: number) {
-    if (q <= 0) return toast.error("Quantidade inválida");
+    if (q <= 0) {
+      toast.error("Quantidade inválida");
+      return;
+    }
     setLinhas((a) => {
       const e = a.find((l) => l.produto_id === p.id);
       if (e) return a.map((l) => (l.produto_id === p.id ? { ...l, quantidade: Math.round((l.quantidade + q) * 1000) / 1000 } : l));
