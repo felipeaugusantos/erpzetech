@@ -187,6 +187,16 @@ function FrenteCaixa() {
   const limiteValor = Math.round(subtotal * (base?.limite ?? 5)) / 100;
   const troco = Math.max((Number(recebido.replace(",", ".")) || 0) - total, 0);
   const aPrazo = forma === "crediario" || forma === "boleto";
+  const cartao = forma === "cartao_credito" || forma === "cartao_debito";
+  const [tef, setTef] = useState({ nsu: "", aut: "", bandeira: "" });
+  const { data: tefCfg } = useQuery({
+    queryKey: ["tef-config", deposito?.filial_id],
+    enabled: !!deposito?.filial_id,
+    queryFn: async () => {
+      const { data } = await supabase.from("tef_config" as never).select("credenciadora, exigir_nsu, ativo").eq("filial_id", deposito!.filial_id!).maybeSingle();
+      return data as { credenciadora: string; exigir_nsu: boolean; ativo: boolean } | null;
+    },
+  });
 
   function adicionar(p: { id: string; descricao: string; unidade: string | null; unidade_venda: string | null; preco_venda: number | null }, q: number) {
     if (q <= 0) {
@@ -251,7 +261,13 @@ function FrenteCaixa() {
         if (/fetch|network|failed/i.test(error.message)) return guardar();
         throw error;
       }
+      if (cartao && data) {
+        await supabase.rpc("frente_registrar_tef" as never, { p_pedido_id: data, p_credenciadora: tefCfg?.credenciadora ?? "manual", p_nsu: tef.nsu, p_autorizacao: tef.aut, p_bandeira: tef.bandeira } as never);
+      }
       return data as string;
+    },
+    onMutate: () => {
+      if (cartao && tefCfg?.exigir_nsu && !tef.nsu.trim()) throw new Error("Digite o código da transação (NSU) do comprovante da maquininha");
     },
     onSuccess: async (r) => {
       toast.success(r === "offline" ? "Sem internet: venda guardada e será enviada quando a conexão voltar" : `Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
@@ -272,7 +288,9 @@ function FrenteCaixa() {
         subtotal, desconto: descNum, total, forma,
         parcelas: Math.max(Number(parcelas) || 1, 1),
         ...(!aPrazo && forma === "dinheiro" ? { recebido: rec, troco } : {}),
+        ...(cartao ? { tef: { credenciadora: tefCfg?.credenciadora ?? "—", nsu: tef.nsu, autorizacao: tef.aut, bandeira: tef.bandeira } } : {}),
       });
+      setTef({ nsu: "", aut: "", bandeira: "" });
       setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal("cupom"); setForma("dinheiro"); setParcelas("1"); setCliente(null);
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
       setTimeout(() => buscaRef.current?.focus(), 50);
@@ -495,6 +513,14 @@ function FrenteCaixa() {
               <Input autoFocus className="text-lg" value={recebido} onChange={(e) => setRecebido(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") finalizar.mutate(); }} />
               <p className="mt-2 font-display text-2xl font-bold">Troco: {brl(troco)}</p>
+            </div>
+          )}
+          {cartao && (
+            <div className="grid grid-cols-3 gap-2 rounded border p-2">
+              <p className="col-span-3 text-xs text-muted-foreground">Maquininha {tefCfg?.credenciadora ?? "(não configurada)"} — passe o cartão e digite o comprovante.</p>
+              <div><Label>Código (NSU)</Label><Input value={tef.nsu} onChange={(e) => setTef({ ...tef, nsu: e.target.value })} /></div>
+              <div><Label>Autorização</Label><Input value={tef.aut} onChange={(e) => setTef({ ...tef, aut: e.target.value })} /></div>
+              <div><Label>Bandeira</Label><Input value={tef.bandeira} placeholder="Visa" onChange={(e) => setTef({ ...tef, bandeira: e.target.value })} /></div>
             </div>
           )}
           <DialogFooter>

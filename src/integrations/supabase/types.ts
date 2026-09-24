@@ -4087,6 +4087,10 @@ export type Database = {
           profissional_id: string | null
           situacao: Database["public"]["Enums"]["pedido_situacao"]
           subtotal: number
+          tef_autorizacao: string | null
+          tef_bandeira: string | null
+          tef_credenciadora: string | null
+          tef_nsu: string | null
           tenant_id: string
           total: number
           updated_at: string
@@ -4123,6 +4127,10 @@ export type Database = {
           profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
+          tef_autorizacao?: string | null
+          tef_bandeira?: string | null
+          tef_credenciadora?: string | null
+          tef_nsu?: string | null
           tenant_id: string
           total?: number
           updated_at?: string
@@ -4159,6 +4167,10 @@ export type Database = {
           profissional_id?: string | null
           situacao?: Database["public"]["Enums"]["pedido_situacao"]
           subtotal?: number
+          tef_autorizacao?: string | null
+          tef_bandeira?: string | null
+          tef_credenciadora?: string | null
+          tef_nsu?: string | null
           tenant_id?: string
           total?: number
           updated_at?: string
@@ -5323,6 +5335,83 @@ export type Database = {
           },
         ]
       }
+      tef_config: {
+        Row: {
+          ativo: boolean
+          cnpj_credenciadora: string | null
+          codigo_estabelecimento: string | null
+          contrato: string | null
+          created_at: string
+          credenciadora: string
+          exigir_nsu: boolean
+          filial_id: string | null
+          id: string
+          modo: string
+          observacoes: string | null
+          parcelas_max: number
+          parcelas_sem_juros: number
+          ponte_url: string | null
+          taxa_credito: number
+          taxa_debito: number
+          taxa_parcelado: number
+          tenant_id: string
+          terminal_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj_credenciadora?: string | null
+          codigo_estabelecimento?: string | null
+          contrato?: string | null
+          created_at?: string
+          credenciadora?: string
+          exigir_nsu?: boolean
+          filial_id?: string | null
+          id?: string
+          modo?: string
+          observacoes?: string | null
+          parcelas_max?: number
+          parcelas_sem_juros?: number
+          ponte_url?: string | null
+          taxa_credito?: number
+          taxa_debito?: number
+          taxa_parcelado?: number
+          tenant_id?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj_credenciadora?: string | null
+          codigo_estabelecimento?: string | null
+          contrato?: string | null
+          created_at?: string
+          credenciadora?: string
+          exigir_nsu?: boolean
+          filial_id?: string | null
+          id?: string
+          modo?: string
+          observacoes?: string | null
+          parcelas_max?: number
+          parcelas_sem_juros?: number
+          ponte_url?: string | null
+          taxa_credito?: number
+          taxa_debito?: number
+          taxa_parcelado?: number
+          tenant_id?: string
+          terminal_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tef_config_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           ativo: boolean
@@ -5909,6 +5998,16 @@ export type Database = {
           p_valor: number
         }
         Returns: string
+      }
+      frente_registrar_tef: {
+        Args: {
+          p_autorizacao: string
+          p_bandeira: string
+          p_credenciadora: string
+          p_nsu: string
+          p_pedido_id: string
+        }
+        Returns: undefined
       }
       frente_venda: {
         Args: {
