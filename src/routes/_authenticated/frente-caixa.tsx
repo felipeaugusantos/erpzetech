@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
+import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
@@ -59,8 +60,9 @@ function FrenteCaixa() {
   const [forma, setForma] = useState<FormaPagamento>("dinheiro");
   const [parcelas, setParcelas] = useState("1");
   const [recebido, setRecebido] = useState("");
-  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador" | "espera" | "cliente">(null);
+  const [modal, setModal] = useState<null | "pagamento" | "ia" | "desconto" | "movimento" | "vendas" | "abrir" | "fechar" | "operador" | "espera" | "cliente" | "cupom">(null);
   const [cliente, setCliente] = useState<ClienteFrente | null>(null);
+  const [cupom, setCupom] = useState<CupomDados | null>(null);
   const [gestor, setGestor] = useState<null | { acao: AcaoGestor; executar: (aut: string) => void }>(null);
   const [gEmail, setGEmail] = useState("");
   const [gSenha, setGSenha] = useState("");
@@ -251,9 +253,27 @@ function FrenteCaixa() {
       }
       return data as string;
     },
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(r === "offline" ? "Sem internet: venda guardada e será enviada quando a conexão voltar" : `Venda concluída${!aPrazo && troco > 0 ? ` — troco ${brl(troco)}` : ""}`);
-      setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal(null); setForma("dinheiro"); setParcelas("1"); setCliente(null);
+      let numero = "pendente de envio";
+      if (r !== "offline" && r) {
+        const { data: p } = await supabase.from("pedidos").select("numero").eq("id", r).maybeSingle();
+        if (p?.numero != null) numero = String(p.numero);
+      }
+      const rec = Number(recebido.replace(",", ".")) || 0;
+      setCupom({
+        numero,
+        emitidoEm: new Date().toLocaleString("pt-BR"),
+        loja: session?.empresa?.nome_fantasia || session?.empresa?.razao_social || "Loja",
+        deposito: deposito?.nome ?? "—",
+        cliente: cliente?.nome ?? "Consumidor",
+        vendedor: session?.profile?.nome ?? "—",
+        itens: linhas.map((l) => ({ descricao: l.descricao, unidade: l.unidade, quantidade: l.quantidade, preco: l.preco })),
+        subtotal, desconto: descNum, total, forma,
+        parcelas: Math.max(Number(parcelas) || 1, 1),
+        ...(!aPrazo && forma === "dinheiro" ? { recebido: rec, troco } : {}),
+      });
+      setLinhas([]); setDesconto("0"); setRecebido(""); setAutDesconto(null); setModal("cupom"); setForma("dinheiro"); setParcelas("1"); setCliente(null);
       void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
       setTimeout(() => buscaRef.current?.focus(), 50);
     },
@@ -548,6 +568,17 @@ function FrenteCaixa() {
       </Dialog>
 
       {/* Vendas do caixa */}
+      <Dialog open={modal === "cupom"} onOpenChange={(o) => { if (!o) { setModal(null); setTimeout(() => buscaRef.current?.focus(), 50); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cupom da venda (80 mm)</DialogTitle></DialogHeader>
+          {cupom && modal === "cupom" && <div className="max-h-[60vh] overflow-auto rounded border"><CupomFiscal dados={cupom} /></div>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModal(null)}>Fechar (Esc)</Button>
+            <Button autoFocus onClick={() => window.print()}>Imprimir cupom</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={modal === "vendas"} onOpenChange={(o) => !o && setModal(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Vendas deste caixa</DialogTitle></DialogHeader>
