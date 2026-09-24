@@ -138,6 +138,10 @@ function TefPainel() {
       {aba === "painel" ? (
         <>
           <div className="panel mb-4 grid gap-3 p-4 md:grid-cols-4">
+            <div><Label>Loja</Label>
+              <select className={sel} value={loja} onChange={(e) => setLoja(e.target.value)}>
+                <option value="">Todas as lojas</option>{filiais.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select></div>
             <div><Label>De</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
             <div><Label>Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
             <div><Label>Situação</Label>
@@ -145,6 +149,18 @@ function TefPainel() {
                 <option value="">Todas</option><option value="aprovada">Aprovadas</option><option value="negada">Negadas</option><option value="cancelada">Canceladas</option>
               </select></div>
           </div>
+          {loja && (
+            <div className="panel mb-4 p-4 text-sm">
+              <p className="font-display font-semibold">Maquininha da {nomeLoja(loja)}</p>
+              {cfg ? (
+                <p className="mt-1 text-muted-foreground">
+                  {nomeCred(cfg.credenciadora)} · Contrato {cfg.contrato || "—"} · Estabelecimento {cfg.codigo_estabelecimento || "—"} · Terminal {cfg.terminal_id || "—"} · {cfg.ativo ? "ativa" : "inativa"}
+                </p>
+              ) : (
+                <p className="mt-1 text-muted-foreground">Esta loja ainda não tem maquininha cadastrada. <Link to="/tef" className="text-primary underline">Cadastrar</Link></p>
+              )}
+            </div>
+          )}
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Aprovadas" value={brl(aprov.reduce((s, t) => s + Number(t.valor), 0))} hint={`${aprov.length} transações`} icon={CheckCircle2} tone="success" />
             <StatCard label="Negadas" value={String(negadas.length)} hint={brl(negadas.reduce((s, t) => s + Number(t.valor), 0))} icon={XCircle} tone="danger" />
@@ -156,7 +172,7 @@ function TefPainel() {
             <div className="panel mb-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>{["Data", "Situação", "Credenciadora", "Forma", "Valor", "Código (NSU)", "Autorização", "Bandeira", "Caixa", "Venda", "Nota", "Motivo"].map((h) => <th key={h} className="px-3 py-2">{h}</th>)}</tr>
+                  <tr>{["Data", "Situação", "Loja", "Operador", "Credenciadora", "Forma", "Valor", "Código (NSU)", "Autorização", "Bandeira", "Caixa", "Venda", "Nota", "Motivo"].map((h) => <th key={h} className="px-3 py-2">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {lista.map((t) => {
@@ -165,6 +181,8 @@ function TefPainel() {
                       <tr key={t.id} className="border-t">
                         <td className="px-3 py-2 whitespace-nowrap">{new Date(t.created_at).toLocaleString("pt-BR")}</td>
                         <td className="px-3 py-2"><span className={t.status === "aprovada" ? "text-success" : t.status === "negada" ? "text-destructive" : "text-warning-foreground"}>{t.status}</span></td>
+                        <td className="px-3 py-2">{nomeLoja(t.filial_id)}</td>
+                        <td className="px-3 py-2">{t.operador_id ? operadores[t.operador_id] ?? "…" : "—"}</td>
                         <td className="px-3 py-2">{nomeCred(t.credenciadora)}</td>
                         <td className="px-3 py-2">{nomeForma(t.forma)}{t.parcelas > 1 ? ` ${t.parcelas}x` : ""}</td>
                         <td className="px-3 py-2 text-numeric">{brl(t.valor)}</td>
