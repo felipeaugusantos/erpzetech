@@ -321,6 +321,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
+  if (pathname === "/frente-caixa") return <>{children}</>;
+
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
       {mobileOpen && (
