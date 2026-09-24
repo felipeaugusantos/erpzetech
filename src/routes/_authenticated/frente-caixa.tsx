@@ -283,7 +283,7 @@ function FrenteCaixa() {
   useEffect(() => { buscaRef.current?.focus(); }, [caixa?.id]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <header className="flex items-center justify-between gap-3 border-b bg-sidebar px-4 py-2 text-sidebar-foreground">
         <div className="font-display text-lg font-semibold">Frente de caixa</div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
