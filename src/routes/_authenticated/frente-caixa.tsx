@@ -193,7 +193,7 @@ function FrenteCaixa() {
     queryKey: ["tef-config", deposito?.filial_id],
     enabled: !!deposito?.filial_id,
     queryFn: async () => {
-      const { data } = await supabase.from("tef_config" as never).select("credenciadora, exigir_nsu, ativo").eq("filial_id", deposito!.filial_id).maybeSingle();
+      const { data } = await supabase.from("tef_config" as never).select("credenciadora, exigir_nsu, ativo").eq("filial_id", deposito!.filial_id!).maybeSingle();
       return data as { credenciadora: string; exigir_nsu: boolean; ativo: boolean } | null;
     },
   });
