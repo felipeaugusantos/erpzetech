@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Aplica todas as migrations num Postgres vazio e roda os testes de segurança (RLS e
+  # funções SECURITY DEFINER) em supabase/ci/smoke.sql.
+  migrations:
+    name: Migrations e segurança
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cliente psql
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Aplicar migrations e rodar testes
+        run: supabase/ci/run.sh
+
+  # Typecheck e build do app. As dependências vêm do npm público: o bun.lock aponta para um
+  # cache privado do Lovable, que não é acessível fora dele.
+  app:
+    name: Typecheck e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund --ignore-scripts
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npx vite build
+
+  # Só informativo por enquanto: o código ainda não foi formatado com as regras do Prettier
+  # do projeto (milhares de avisos de formatação) e há alguns erros de lint antigos.
+  lint:
+    name: Lint (informativo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund --ignore-scripts
+      - name: ESLint
+        run: npx eslint .
