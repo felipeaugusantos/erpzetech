@@ -60,7 +60,10 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
 
     const papel = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: novoId, role: "motorista" }, { onConflict: "user_id,role" });
+      .upsert(
+        { user_id: novoId, role: "motorista", tenant_id: motorista.tenant_id },
+        { onConflict: "user_id,role" },
+      );
     if (papel.error) throw papel.error;
 
     // O motorista deve ter somente o perfil de motorista (o cadastro novo nasce como administrador).
