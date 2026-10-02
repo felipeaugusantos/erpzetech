@@ -37,7 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/ze-tech")({
@@ -229,14 +236,24 @@ function PainelZeTech() {
       />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Clientes" value={String(kpis.total)} hint={`${kpis.ativos} ativo(s)`} icon={Users} />
+        <StatCard
+          label="Clientes"
+          value={String(kpis.total)}
+          hint={`${kpis.ativos} ativo(s)`}
+          icon={Users}
+        />
         <StatCard
           label="Receita recorrente"
           value={brl(kpis.recorrente)}
           hint="Mensalidades + filiais extras"
           icon={CircleDollarSign}
         />
-        <StatCard label="Em aberto" value={brl(kpis.aberto)} hint="Cobranças não pagas" icon={Wallet} />
+        <StatCard
+          label="Em aberto"
+          value={brl(kpis.aberto)}
+          hint="Cobranças não pagas"
+          icon={Wallet}
+        />
         <StatCard
           label="Em atraso"
           value={brl(kpis.atrasado)}
@@ -262,7 +279,9 @@ function PainelZeTech() {
                   <strong>{a.cliente}</strong>
                   <span className="text-muted-foreground">{a.texto}</span>
                 </span>
-                <Badge variant={a.tom === "atraso" ? "destructive" : "secondary"}>{brl(a.valor)}</Badge>
+                <Badge variant={a.tom === "atraso" ? "destructive" : "secondary"}>
+                  {brl(a.valor)}
+                </Badge>
               </li>
             ))}
           </ul>
@@ -325,15 +344,15 @@ function PainelZeTech() {
                         </Badge>
                         {r.diasTeste !== null && r.cliente.situacao === "teste" && (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {r.diasTeste >= 0 ? `${r.diasTeste} dia(s) de teste` : "teste encerrado"}
+                            {r.diasTeste >= 0
+                              ? `${r.diasTeste} dia(s) de teste`
+                              : "teste encerrado"}
                           </p>
                         )}
                       </TableCell>
                       <TableCell>
                         <span className={r.diasRestantes < 0 ? "text-destructive" : ""}>
-                          {r.diasRestantes < 0
-                            ? "vencido"
-                            : `${r.diasRestantes} dia(s)`}
+                          {r.diasRestantes < 0 ? "vencido" : `${r.diasRestantes} dia(s)`}
                         </span>
                         <p className="text-xs text-muted-foreground">até {dateBR(r.fim)}</p>
                       </TableCell>
@@ -401,7 +420,9 @@ function PainelZeTech() {
                       const atrasada = saldo > 0 && diasEntre(f.vencimento) < 0;
                       return (
                         <TableRow key={f.id} className="align-middle">
-                          <TableCell className="font-medium">{cliente?.cliente.nome ?? "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            {cliente?.cliente.nome ?? "—"}
+                          </TableCell>
                           <TableCell>{f.descricao}</TableCell>
                           <TableCell>{TIPO_FATURA_SAAS[f.tipo] ?? f.tipo}</TableCell>
                           <TableCell className={atrasada ? "text-destructive" : ""}>
@@ -626,12 +647,18 @@ function ClienteDialog({
     >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{cliente ? "Editar cliente assinante" : "Novo cliente assinante"}</DialogTitle>
+          <DialogTitle>
+            {cliente ? "Editar cliente assinante" : "Novo cliente assinante"}
+          </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5 sm:col-span-2">
             <Label htmlFor="c-nome">Nome da loja</Label>
-            <Input id="c-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+            <Input
+              id="c-nome"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-doc">CNPJ ou CPF</Label>
@@ -651,7 +678,11 @@ function ClienteDialog({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-mail">E-mail</Label>
-            <Input id="c-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input
+              id="c-mail"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-zap">WhatsApp</Label>
@@ -671,7 +702,11 @@ function ClienteDialog({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-uf">UF</Label>
-            <Input id="c-uf" value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value })} />
+            <Input
+              id="c-uf"
+              value={form.uf}
+              onChange={(e) => setForm({ ...form, uf: e.target.value })}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-plano">Plano</Label>

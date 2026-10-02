@@ -389,16 +389,19 @@ function ClientesObras() {
                 </div>
                 <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
-                    ["Contato", [cliente.whatsapp, cliente.telefone, cliente.email].filter(Boolean).join(" · ") || "—"],
+                    [
+                      "Contato",
+                      [cliente.whatsapp, cliente.telefone, cliente.email]
+                        .filter(Boolean)
+                        .join(" · ") || "—",
+                    ],
                     [
                       "Endereço",
-                      [cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ") ||
-                        "—",
+                      [cliente.endereco, cliente.numero, cliente.bairro]
+                        .filter(Boolean)
+                        .join(", ") || "—",
                     ],
-                    [
-                      "Cidade",
-                      [cliente.cidade, cliente.estado].filter(Boolean).join(" / ") || "—",
-                    ],
+                    ["Cidade", [cliente.cidade, cliente.estado].filter(Boolean).join(" / ") || "—"],
                     ["Limite de crédito", brl(Number(cliente.limite_credito))],
                     ["Saldo utilizado", brl(Number(cliente.saldo_utilizado))],
                     [
@@ -436,8 +439,9 @@ function ClientesObras() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{o.nome}</p>
                           <p className="truncate text-xs text-muted-foreground">
-                            {[o.endereco, o.numero, o.bairro, o.cidade].filter(Boolean).join(", ") ||
-                              "sem endereço"}
+                            {[o.endereco, o.numero, o.bairro, o.cidade]
+                              .filter(Boolean)
+                              .join(", ") || "sem endereço"}
                             {o.responsavel ? ` · resp. ${o.responsavel}` : ""}
                             {o.previsao_termino ? ` · previsão ${dateBR(o.previsao_termino)}` : ""}
                           </p>

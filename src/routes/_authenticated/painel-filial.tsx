@@ -272,7 +272,12 @@ function PainelFilial() {
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => brl(Number(v))} />
                     <Legend />
-                    <Bar dataKey="receita" name="Receita" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="receita"
+                      name="Receita"
+                      fill="var(--chart-1)"
+                      radius={[4, 4, 0, 0]}
+                    />
                     <Bar dataKey="custo" name="Custo" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="lucro" name="Lucro" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -319,7 +324,9 @@ function PainelFilial() {
                             série {n.serie} · {n.ambiente}
                           </div>
                         </TableCell>
-                        <TableCell>{(n.clientes as { nome: string } | null)?.nome ?? "—"}</TableCell>
+                        <TableCell>
+                          {(n.clientes as { nome: string } | null)?.nome ?? "—"}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             className={

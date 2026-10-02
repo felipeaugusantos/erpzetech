@@ -72,7 +72,8 @@ function esc(valor: unknown) {
 export function nomeArquivoNota(nota: NotaArquivo) {
   const sigla = ehServico(nota) ? "NFSe" : "NFe";
   if (nota.chave) return `${sigla}-${nota.chave}`;
-  if (nota.numero) return `${sigla}-${String(nota.numero).padStart(6, "0")}-serie-${nota.serie ?? 1}`;
+  if (nota.numero)
+    return `${sigla}-${String(nota.numero).padStart(6, "0")}-serie-${nota.serie ?? 1}`;
   return `${sigla}-rascunho-${nota.id.slice(0, 8)}`;
 }
 

@@ -79,7 +79,11 @@ function Impostos() {
   const { data: config, isLoading } = useQuery({
     queryKey: ["fiscal-config-impostos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("fiscal_config").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("fiscal_config")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -140,12 +144,7 @@ function Impostos() {
     onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
   });
 
-  const campo = (
-    id: keyof typeof vazio,
-    label: string,
-    ajuda: string,
-    sufixo: "%" | "" = "%",
-  ) => (
+  const campo = (id: keyof typeof vazio, label: string, ajuda: string, sufixo: "%" | "" = "%") => (
     <div>
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
@@ -234,13 +233,21 @@ function Impostos() {
               <p className="font-display text-sm font-semibold">PIS, COFINS e ISS</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {campo("aliquota_pis", "PIS", "0,65% no regime cumulativo e 1,65% no não cumulativo.")}
+              {campo(
+                "aliquota_pis",
+                "PIS",
+                "0,65% no regime cumulativo e 1,65% no não cumulativo.",
+              )}
               {campo(
                 "aliquota_cofins",
                 "COFINS",
                 "3% no regime cumulativo e 7,6% no não cumulativo.",
               )}
-              {campo("aliquota_iss", "ISS (serviços)", "Só para serviços, como entrega ou montagem.")}
+              {campo(
+                "aliquota_iss",
+                "ISS (serviços)",
+                "Só para serviços, como entrega ou montagem.",
+              )}
               <div>
                 <Label htmlFor="cst_pis">Situação do PIS</Label>
                 <Select

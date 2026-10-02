@@ -221,9 +221,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function alternarGrupo(label: string) {
     setFechados((atual) => {
-      const proximo = atual.includes(label)
-        ? atual.filter((l) => l !== label)
-        : [...atual, label];
+      const proximo = atual.includes(label) ? atual.filter((l) => l !== label) : [...atual, label];
       try {
         localStorage.setItem("zeobra:menu-fechados", JSON.stringify(proximo));
       } catch {
@@ -316,7 +314,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [somenteMotorista, pathname, navigate]);
 
-
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -367,44 +364,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {menu.map((group) => {
             const aberto = !fechados.includes(group.label);
             return (
-            <div key={group.label}>
-              <button
-                onClick={() => alternarGrupo(group.label)}
-                aria-expanded={aberto}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              >
-                <group.icon className="size-3.5 shrink-0" />
-                <span className="flex-1 text-left">{group.label}</span>
-                <ChevronDown
-                  className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")}
-                />
-              </button>
-              <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
-                {group.items.map((item) => (
-                  <li key={item.label}>
-                    {item.to && !item.soon ? (
-                      <Link
-                        to={item.to}
-                        className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        activeProps={{
-                          className:
-                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[inset_3px_0_0_0_var(--sidebar-primary)]",
-                        }}
-                      >
-                        <item.icon className="size-4 shrink-0" />
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <span className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/35">
-                        <item.icon className="size-4 shrink-0" />
-                        {item.label}
-                        <span className="ml-auto text-[9px] uppercase tracking-wider">fase 2</span>
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
+              <div key={group.label}>
+                <button
+                  onClick={() => alternarGrupo(group.label)}
+                  aria-expanded={aberto}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                  <group.icon className="size-3.5 shrink-0" />
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <ChevronDown
+                    className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")}
+                  />
+                </button>
+                <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
+                  {group.items.map((item) => (
+                    <li key={item.label}>
+                      {item.to && !item.soon ? (
+                        <Link
+                          to={item.to}
+                          className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          activeProps={{
+                            className:
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[inset_3px_0_0_0_var(--sidebar-primary)]",
+                          }}
+                        >
+                          <item.icon className="size-4 shrink-0" />
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <span className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/35">
+                          <item.icon className="size-4 shrink-0" />
+                          {item.label}
+                          <span className="ml-auto text-[9px] uppercase tracking-wider">
+                            fase 2
+                          </span>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             );
           })}
         </nav>

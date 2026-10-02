@@ -150,7 +150,8 @@ function Contato() {
                 </span>
                 <p className="font-display text-base font-semibold">Contato enviado!</p>
                 <p className="text-sm text-muted-foreground">
-                  Vamos responder pelo canal que você informou. Se preferir, chame no WhatsApp agora.
+                  Vamos responder pelo canal que você informou. Se preferir, chame no WhatsApp
+                  agora.
                 </p>
                 <Button asChild>
                   <a

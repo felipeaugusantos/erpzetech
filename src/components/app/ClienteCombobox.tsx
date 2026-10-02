@@ -52,9 +52,7 @@ export function ClienteCombobox({
   );
 
   const rotulo =
-    balcaoValue !== undefined && value === balcaoValue
-      ? balcaoLabel
-      : (selecionado?.nome ?? "");
+    balcaoValue !== undefined && value === balcaoValue ? balcaoLabel : (selecionado?.nome ?? "");
 
   function escolher(id: string) {
     onChange(id);

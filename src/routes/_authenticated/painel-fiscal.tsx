@@ -9,7 +9,14 @@ import { usePeriodo } from "@/lib/periodo";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/painel-fiscal")({
   head: () => ({
@@ -143,20 +150,36 @@ function PainelFiscal() {
               {lojas.map((l) => (
                 <TableRow key={l.filial_id}>
                   <TableCell className="font-medium">{l.filial}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.entradas ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.saidas ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.entradas ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.saidas ?? 0))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.saldo_estoque ?? 0))}
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{num(Number(l.notas ?? 0), 0)}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {num(Number(l.notas ?? 0), 0)}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.valor_notas ?? 0))}
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.icms ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.icms_st ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.pis ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.cofins ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.iss ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.icms ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.icms_st ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.pis ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.cofins ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.iss ?? 0))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric font-semibold">
                     {brl(Number(l.impostos ?? 0))}
                   </TableCell>

@@ -86,7 +86,7 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
   const total = infNFe.getElementsByTagName("ICMSTot")[0] ?? null;
 
   const emissaoBruta = texto(ide, "dhEmi") ?? texto(ide, "dEmi");
-  const emissao = emissaoBruta ? (emissaoBruta.slice(0, 10) || null) : null;
+  const emissao = emissaoBruta ? emissaoBruta.slice(0, 10) || null : null;
 
   const endEmit = emit?.getElementsByTagName("enderEmit")[0] ?? null;
 

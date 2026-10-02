@@ -83,8 +83,7 @@ function RelatorioLocacoes() {
     },
   });
 
-  const nomeFilial = (id: string | null) =>
-    session?.filiais.find((f) => f.id === id)?.nome ?? "—";
+  const nomeFilial = (id: string | null) => session?.filiais.find((f) => f.id === id)?.nome ?? "—";
 
   const linhas = useMemo(
     () =>
@@ -271,7 +270,12 @@ function RelatorioLocacoes() {
           hint={`${num(totais.devolvidas, 0)} devolvidos`}
           icon={CalendarClock}
         />
-        <StatCard label="Devolução atrasada" value={num(totais.atrasadas, 0)} tone="danger" icon={Truck} />
+        <StatCard
+          label="Devolução atrasada"
+          value={num(totais.atrasadas, 0)}
+          tone="danger"
+          icon={Truck}
+        />
         <StatCard
           label="Custo de manutenção"
           value={brl(totais.custo)}

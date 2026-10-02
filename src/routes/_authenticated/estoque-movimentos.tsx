@@ -147,7 +147,15 @@ function EstoqueMovimentos() {
         const fisico = Number(s.quantidade);
         const reservado = Number(s.reservado);
         const custo = Number(s.custo_medio) > 0 ? Number(s.custo_medio) : Number(p?.custo ?? 0);
-        return { s, p, fisico, reservado, custo, disponivel: fisico - reservado, valor: fisico * custo };
+        return {
+          s,
+          p,
+          fisico,
+          reservado,
+          custo,
+          disponivel: fisico - reservado,
+          valor: fisico * custo,
+        };
       })
       .filter((l) => {
         if (!l.p) return false;
@@ -166,7 +174,8 @@ function EstoqueMovimentos() {
           Number(m.custo_unitario) > 0
             ? Number(m.custo_unitario)
             : (custoDoProduto.get(String((m as { produto_id?: string }).produto_id ?? "")) ?? 0);
-        const valor = Number(m.valor_total) > 0 ? Number(m.valor_total) : Number(m.quantidade) * custo;
+        const valor =
+          Number(m.valor_total) > 0 ? Number(m.valor_total) : Number(m.quantidade) * custo;
         return { m, custo, valor };
       }),
     [data?.movs, custoDoProduto],

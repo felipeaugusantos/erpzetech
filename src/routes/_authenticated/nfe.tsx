@@ -16,7 +16,12 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
-import { arquivosNfe, consultarNfe, statusEmissor, transmitirNfe } from "@/lib/nfe-fiscal.functions";
+import {
+  arquivosNfe,
+  consultarNfe,
+  statusEmissor,
+  transmitirNfe,
+} from "@/lib/nfe-fiscal.functions";
 import {
   baixarTexto,
   gerarPdfNota,
@@ -166,7 +171,6 @@ function Nfe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   const { data: config } = useQuery({
     queryKey: ["fiscal-config"],
     queryFn: async () => {
@@ -251,7 +255,9 @@ function Nfe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_receber")
-        .select("id, parcela, parcelas, vencimento, valor, valor_recebido, situacao, forma_pagamento")
+        .select(
+          "id, parcela, parcelas, vencimento, valor, valor_recebido, situacao, forma_pagamento",
+        )
         .in("pedido_id", idsPedidosNota)
         .order("vencimento");
       if (error) throw error;
@@ -344,7 +350,6 @@ function Nfe() {
     );
     toast.success("XML da nota baixado");
   }
-
 
   const salvarConfig = useMutation({
     mutationFn: async () => {
@@ -474,8 +479,7 @@ function Nfe() {
                       {p.situacao.replace(/_/g, " ")}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      Depósito:{" "}
-                      {(p.depositos as { nome: string } | null)?.nome ?? "—"}
+                      Depósito: {(p.depositos as { nome: string } | null)?.nome ?? "—"}
                       {(p.depositos as { filiais: { nome: string } | null } | null)?.filiais?.nome
                         ? ` · loja ${(p.depositos as { filiais: { nome: string } | null }).filiais?.nome}`
                         : ""}
@@ -496,9 +500,7 @@ function Nfe() {
         )}
 
         {elegiveis.length === 0 && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Todos os pedidos já têm nota gerada.
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">Todos os pedidos já têm nota gerada.</p>
         )}
       </div>
 
@@ -706,10 +708,12 @@ function Nfe() {
               </div>
               <div className="flex flex-wrap justify-end gap-6">
                 <span className="text-muted-foreground">
-                  Produtos <strong className="text-foreground">{brl(Number(nota.valor_produtos))}</strong>
+                  Produtos{" "}
+                  <strong className="text-foreground">{brl(Number(nota.valor_produtos))}</strong>
                 </span>
                 <span className="text-muted-foreground">
-                  Desconto <strong className="text-foreground">{brl(Number(nota.valor_desconto))}</strong>
+                  Desconto{" "}
+                  <strong className="text-foreground">{brl(Number(nota.valor_desconto))}</strong>
                 </span>
                 <span className="text-muted-foreground">
                   Frete <strong className="text-foreground">{brl(Number(nota.valor_frete))}</strong>
@@ -887,7 +891,10 @@ function Nfe() {
                       Certificados digitais enviados:{" "}
                       {statusConta.certificados.length > 0
                         ? statusConta.certificados
-                            .map((c) => `${c.nome}${c.validade ? ` (até ${c.validade.slice(0, 10)})` : ""}`)
+                            .map(
+                              (c) =>
+                                `${c.nome}${c.validade ? ` (até ${c.validade.slice(0, 10)})` : ""}`,
+                            )
                             .join(", ")
                         : "nenhum ainda"}
                     </p>
@@ -919,7 +926,11 @@ function Bloco({ dados }: { dados: Record<string, string> | null }) {
     <div className="mt-1 space-y-0.5">
       <p className="font-medium">{dados["razao_social"] ?? dados["nome"]}</p>
       <p className="text-muted-foreground">
-        {dados["cnpj"] ? `CNPJ ${dados["cnpj"]}` : dados["cpf"] ? `CPF ${dados["cpf"]}` : "sem documento"}
+        {dados["cnpj"]
+          ? `CNPJ ${dados["cnpj"]}`
+          : dados["cpf"]
+            ? `CPF ${dados["cpf"]}`
+            : "sem documento"}
         {dados["inscricao_estadual"] ? ` · IE ${dados["inscricao_estadual"]}` : ""}
       </p>
       <p className="text-muted-foreground">{linha2 || "endereço não informado"}</p>

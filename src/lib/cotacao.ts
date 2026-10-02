@@ -125,10 +125,12 @@ const semAcento = (t: string) =>
 export function lerRespostaCotacao(texto: string, itens: ItemCotacao[]): RespostaImportada {
   const conteudo = texto.replace(/^\uFEFF/, "");
   const linhas = conteudo.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (linhas.length < 2) return { itens: [], prazo_entrega_dias: null, condicao_pagamento: "", ignoradas: 0 };
+  if (linhas.length < 2)
+    return { itens: [], prazo_entrega_dias: null, condicao_pagamento: "", ignoradas: 0 };
 
   const primeira = linhas[0] ?? "";
-  const sep = (primeira.match(/;/g)?.length ?? 0) >= (primeira.match(/,/g)?.length ?? 0) ? ";" : ",";
+  const sep =
+    (primeira.match(/;/g)?.length ?? 0) >= (primeira.match(/,/g)?.length ?? 0) ? ";" : ",";
   const cabecalho = separarLinha(primeira, sep).map(semAcento);
   const indice = (...nomes: string[]) =>
     cabecalho.findIndex((c) => nomes.some((n) => c === semAcento(n) || c.includes(semAcento(n))));

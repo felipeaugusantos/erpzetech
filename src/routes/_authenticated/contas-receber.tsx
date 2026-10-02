@@ -39,7 +39,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/contas-receber")({
   head: () => ({
@@ -147,7 +154,6 @@ function ContasReceber() {
     },
   });
 
-
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return contas.filter((c) => {
@@ -160,10 +166,7 @@ function ContasReceber() {
   }, [contas, filtro, busca]);
 
   const abertas = contas.filter((c) => ["aberto", "parcial"].includes(c.situacao));
-  const saldoAberto = abertas.reduce(
-    (s, c) => s + (Number(c.valor) - Number(c.valor_recebido)),
-    0,
-  );
+  const saldoAberto = abertas.reduce((s, c) => s + (Number(c.valor) - Number(c.valor_recebido)), 0);
   const vencidas = abertas.filter((c) => estaVencida(c.situacao, c.vencimento));
   const venceHoje = abertas.filter((c) => c.vencimento === hojeISO());
   const proximos7 = abertas.filter(
@@ -264,7 +267,8 @@ function ContasReceber() {
     : 0;
 
   function abrirCredito(conta: (typeof contas)[number], saldo: number) {
-    const prof = (conta.clientes as { profissional_id: string | null } | null)?.profissional_id ?? "";
+    const prof =
+      (conta.clientes as { profissional_id: string | null } | null)?.profissional_id ?? "";
     const sugerido = prof && creditoPorProfissional.has(prof) ? prof : (creditos[0]?.id ?? "");
     const disponivel = sugerido ? (creditoPorProfissional.get(sugerido)?.saldo ?? 0) : 0;
     setContaId(conta.id);
@@ -299,7 +303,6 @@ function ContasReceber() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   return (
     <div>
       <PageHeader
@@ -316,10 +319,7 @@ function ContasReceber() {
                     toast.error("Nenhuma conta em aberto para abater.");
                     return;
                   }
-                  abrirCredito(
-                    primeira,
-                    Number(primeira.valor) - Number(primeira.valor_recebido),
-                  );
+                  abrirCredito(primeira, Number(primeira.valor) - Number(primeira.valor_recebido));
                 }}
               >
                 <BadgePercent className="size-4" /> Usar crédito do profissional
@@ -330,7 +330,6 @@ function ContasReceber() {
             </Button>
           </div>
         }
-
       />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -428,7 +427,9 @@ function ContasReceber() {
                     </TableCell>
                     <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
                     <TableCell className="text-sm">{labelForma(c.forma_pagamento)}</TableCell>
-                    <TableCell className="text-right text-numeric">{brl(Number(c.valor))}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(Number(c.valor))}
+                    </TableCell>
                     <TableCell className="text-right text-numeric">{brl(saldo)}</TableCell>
                     <TableCell>
                       <Badge className={corConta(c.situacao, c.vencimento)}>
@@ -509,7 +510,11 @@ function ContasReceber() {
               </div>
               <div>
                 <Label>Data</Label>
-                <Input type="date" value={dataBaixa} onChange={(e) => setDataBaixa(e.target.value)} />
+                <Input
+                  type="date"
+                  value={dataBaixa}
+                  onChange={(e) => setDataBaixa(e.target.value)}
+                />
               </div>
             </div>
             <div>
@@ -660,8 +665,9 @@ function ContasReceber() {
                 <SelectContent>
                   {abertas.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      nº {c.numero} · {(c.clientes as { nome: string } | null)?.nome ?? "Sem cliente"} ·
-                      saldo {brl(Number(c.valor) - Number(c.valor_recebido))} · vence{" "}
+                      nº {c.numero} ·{" "}
+                      {(c.clientes as { nome: string } | null)?.nome ?? "Sem cliente"} · saldo{" "}
+                      {brl(Number(c.valor) - Number(c.valor_recebido))} · vence{" "}
                       {dateBR(c.vencimento)}
                     </SelectItem>
                   ))}
@@ -709,7 +715,6 @@ function ContasReceber() {
           if (!aberto) setHistorico(null);
         }}
       />
-
     </div>
   );
 }

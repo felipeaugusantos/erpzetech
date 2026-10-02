@@ -12,7 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export type TituloHistorico = {
   id: string;
@@ -69,9 +76,7 @@ export function HistoricoTitulo({
           quando: b.created_at,
           valor: Number(b.valor),
           forma: labelForma(b.forma_pagamento),
-          descricao: [b.observacao, caixa ? `caixa nº ${caixa}` : null]
-            .filter(Boolean)
-            .join(" · "),
+          descricao: [b.observacao, caixa ? `caixa nº ${caixa}` : null].filter(Boolean).join(" · "),
           tipo: "pagamento",
         };
       });
@@ -90,10 +95,7 @@ export function HistoricoTitulo({
             quando: a.created_at,
             valor: Number(a.valor),
             forma: "Crédito do profissional",
-            descricao: [
-              (a.profissionais as { nome: string } | null)?.nome,
-              a.observacao,
-            ]
+            descricao: [(a.profissionais as { nome: string } | null)?.nome, a.observacao]
               .filter(Boolean)
               .join(" · "),
             tipo: "credito",
@@ -195,9 +197,7 @@ export function HistoricoTitulo({
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(restante > 0 ? restante : 0)}
-                        {restante <= 0 && (
-                          <p className="text-xs text-muted-foreground">quitado</p>
-                        )}
+                        {restante <= 0 && <p className="text-xs text-muted-foreground">quitado</p>}
                       </TableCell>
                     </TableRow>
                   );

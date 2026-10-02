@@ -52,14 +52,19 @@ export function diasParaEntrega(previsao: string | null, hoje = hojeISO()): numb
 
 export function rotuloUrgencia(dias: number) {
   if (dias === 999) return { label: "Sem data", classe: "bg-secondary text-secondary-foreground" };
-  if (dias < 0) return { label: `Atrasada ${Math.abs(dias)}d`, classe: "bg-destructive/15 text-destructive" };
+  if (dias < 0)
+    return { label: `Atrasada ${Math.abs(dias)}d`, classe: "bg-destructive/15 text-destructive" };
   if (dias === 0) return { label: "Para hoje", classe: "bg-warning/20 text-warning-foreground" };
   if (dias <= 2) return { label: `Em ${dias}d`, classe: "bg-info/15 text-info" };
   return { label: `Em ${dias}d`, classe: "bg-secondary text-secondary-foreground" };
 }
 
 /** Volume em m³ a partir de dimensões em centímetros. */
-export function volumeM3(altura?: number | null, largura?: number | null, comprimento?: number | null) {
+export function volumeM3(
+  altura?: number | null,
+  largura?: number | null,
+  comprimento?: number | null,
+) {
   const a = Number(altura ?? 0);
   const l = Number(largura ?? 0);
   const c = Number(comprimento ?? 0);

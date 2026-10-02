@@ -22,7 +22,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/fornecedores")({
   head: () => ({
@@ -110,10 +117,7 @@ function Fornecedores() {
   const { data: fornecedores = [], isLoading } = useQuery({
     queryKey: ["fornecedores"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("fornecedores")
-        .select("*")
-        .order("razao_social");
+      const { data, error } = await supabase.from("fornecedores").select("*").order("razao_social");
       if (error) throw error;
       return data;
     },
@@ -279,7 +283,9 @@ function Fornecedores() {
                         {f.nome_fantasia ?? "—"} {f.cnpj ? `· ${f.cnpj}` : ""}
                       </p>
                       {!f.ativo && (
-                        <Badge className="mt-1 bg-secondary text-secondary-foreground">Inativo</Badge>
+                        <Badge className="mt-1 bg-secondary text-secondary-foreground">
+                          Inativo
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
@@ -359,7 +365,10 @@ function Fornecedores() {
             </div>
             <div>
               <Label>CNPJ</Label>
-              <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+              <Input
+                value={form.cnpj}
+                onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+              />
             </div>
             <div>
               <Label>Contato</Label>
@@ -500,9 +509,10 @@ function Fornecedores() {
                         <TableRow key={c.id}>
                           <TableCell>
                             #
-                            {String(
-                              (c.compras as { numero: number } | null)?.numero ?? 0,
-                            ).padStart(4, "0")}
+                            {String((c.compras as { numero: number } | null)?.numero ?? 0).padStart(
+                              4,
+                              "0",
+                            )}
                             {c.escolhida && (
                               <Badge className="ml-2 bg-success/15 text-success">Fechada</Badge>
                             )}
@@ -525,7 +535,9 @@ function Fornecedores() {
               <div>
                 <h3 className="mb-2 font-display font-semibold">Compras</h3>
                 {historico.compras.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma compra com este fornecedor.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma compra com este fornecedor.
+                  </p>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -571,7 +583,13 @@ function Fornecedores() {
                 {(() => {
                   const precos = new Map<
                     string,
-                    { descricao: string; codigo: string; unidade: string; custo: number; data: string }
+                    {
+                      descricao: string;
+                      codigo: string;
+                      unidade: string;
+                      custo: number;
+                      data: string;
+                    }
                   >();
                   for (const c of historico.compras) {
                     for (const i of (c.compra_itens ?? []) as unknown as {
@@ -616,7 +634,9 @@ function Fornecedores() {
                                 {p.codigo} {p.unidade ? `· ${p.unidade}` : ""}
                               </p>
                             </TableCell>
-                            <TableCell className="text-right text-numeric">{brl(p.custo)}</TableCell>
+                            <TableCell className="text-right text-numeric">
+                              {brl(p.custo)}
+                            </TableCell>
                             <TableCell className="text-sm">{dateBR(p.data)}</TableCell>
                           </TableRow>
                         ))}

@@ -83,7 +83,9 @@ function LoginZeTech() {
             <CardTitle className="flex items-center gap-2 text-base">
               <ShieldCheck className="size-4 text-primary" /> Entrar na área restrita
             </CardTitle>
-            <CardDescription>Use a conta da equipe Ze Tech, separada da conta da loja.</CardDescription>
+            <CardDescription>
+              Use a conta da equipe Ze Tech, separada da conta da loja.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form

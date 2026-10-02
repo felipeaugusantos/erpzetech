@@ -176,9 +176,7 @@ function Fiscal() {
             ...(mudanca.ncm !== undefined ? { ncm: mudanca.ncm || null } : {}),
             ...(mudanca.cfop !== undefined ? { cfop: mudanca.cfop || null } : {}),
             ...(mudanca.cest !== undefined ? { cest: mudanca.cest || null } : {}),
-            ...(mudanca.cst_csosn !== undefined
-              ? { cst_csosn: mudanca.cst_csosn || null }
-              : {}),
+            ...(mudanca.cst_csosn !== undefined ? { cst_csosn: mudanca.cst_csosn || null } : {}),
             ...(mudanca.origem_mercadoria !== undefined
               ? { origem_mercadoria: mudanca.origem_mercadoria || null }
               : {}),
@@ -250,7 +248,12 @@ function Fiscal() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Produtos ativos" value={num(totais.total, 0)} icon={CheckCircle2} />
-        <StatCard label="Sem NCM" value={num(totais.semNcm, 0)} icon={AlertTriangle} tone="warning" />
+        <StatCard
+          label="Sem NCM"
+          value={num(totais.semNcm, 0)}
+          icon={AlertTriangle}
+          tone="warning"
+        />
         <StatCard
           label="Sem CST/CSOSN"
           value={num(totais.semCst, 0)}

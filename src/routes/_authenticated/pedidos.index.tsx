@@ -162,10 +162,7 @@ function Pedidos() {
     (s, i) => s + (i.quantidade * i.preco_unitario - i.desconto),
     0,
   );
-  const totalNovo = Math.max(
-    0,
-    subtotalNovo - Number(desconto || 0) + Number(frete || 0),
-  );
+  const totalNovo = Math.max(0, subtotalNovo - Number(desconto || 0) + Number(frete || 0));
 
   function limpar() {
     setClienteId("");
@@ -317,13 +314,19 @@ function Pedidos() {
 
   const totais = useMemo(() => {
     const l = data ?? [];
-    const emAberto = l.filter(
-      (p) => !["entregue", "concluido", "cancelado"].includes(p.situacao),
-    );
+    const emAberto = l.filter((p) => !["entregue", "concluido", "cancelado"].includes(p.situacao));
     const valor = emAberto.reduce((s, p) => s + Number(p.total), 0);
-    const separacao = l.filter((p) => ["separacao", "separado", "conferencia"].includes(p.situacao));
+    const separacao = l.filter((p) =>
+      ["separacao", "separado", "conferencia"].includes(p.situacao),
+    );
     const entrega = l.filter((p) => ["pronto_entrega", "em_rota"].includes(p.situacao));
-    return { total: l.length, emAberto: emAberto.length, valor, separacao: separacao.length, entrega: entrega.length };
+    return {
+      total: l.length,
+      emAberto: emAberto.length,
+      valor,
+      separacao: separacao.length,
+      entrega: entrega.length,
+    };
   }, [data]);
 
   return (
@@ -424,7 +427,9 @@ function Pedidos() {
                       {(p.depositos as unknown as { nome: string } | null)?.nome ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm">{dateBR(p.previsao_entrega)}</TableCell>
-                    <TableCell className="text-right font-semibold">{brl(Number(p.total))}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {brl(Number(p.total))}
+                    </TableCell>
                     <TableCell>
                       <span
                         className={`rounded-md px-2 py-1 text-xs font-medium ${corSituacao(p.situacao)}`}
@@ -802,7 +807,9 @@ function Pedidos() {
                           </span>
                         )}
                       </span>
-                      <span className="text-numeric text-sm font-semibold">{brl(Number(o.total))}</span>
+                      <span className="text-numeric text-sm font-semibold">
+                        {brl(Number(o.total))}
+                      </span>
                     </label>
                   );
                 })}
@@ -827,9 +834,7 @@ function Pedidos() {
 
             {convSelecao.length > 0 && (
               <div className="flex items-center justify-between rounded-lg bg-secondary px-4 py-3 text-sm">
-                <span>
-                  {convSelecao.length} orçamento(s) selecionado(s)
-                </span>
+                <span>{convSelecao.length} orçamento(s) selecionado(s)</span>
                 <span>
                   Total <strong className="ml-1 text-lg">{brl(convTotal)}</strong>
                 </span>

@@ -62,8 +62,8 @@ jobs:
       - name: Build
         run: npx vite build
 
-  # Só informativo por enquanto: o código ainda não foi formatado com as regras do Prettier
-  # do projeto (milhares de avisos de formatação) e há alguns erros de lint antigos.
+  # Informativo: o código está limpo (0 erros), mas o editor do Lovable gera código sem passar
+  # pelo Prettier, então um lint bloqueante ficaria vermelho a cada alteração dele.
   lint:
     name: Lint (informativo)
     runs-on: ubuntu-latest

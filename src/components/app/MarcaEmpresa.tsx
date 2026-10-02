@@ -63,8 +63,7 @@ function ajustar(cor: string, fator: number) {
 /** Texto legível sobre a cor escolhida. */
 function contraste(cor: string) {
   const n = parseInt(cor.slice(1), 16);
-  const lum =
-    (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return lum > 0.6 ? "#0b1f14" : "#ffffff";
 }
 
@@ -196,7 +195,11 @@ export function LogoEmpresaUpload({
           disabled={!podeEditar || enviando}
           onClick={() => input.current?.click()}
         >
-          {enviando ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+          {enviando ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ImagePlus className="size-4" />
+          )}
           {caminho ? "Trocar logo" : "Enviar logo"}
         </Button>
         {caminho && (

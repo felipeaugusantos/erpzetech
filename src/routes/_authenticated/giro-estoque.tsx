@@ -18,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/giro-estoque")({
   head: () => ({
@@ -32,7 +39,8 @@ export const Route = createFileRoute("/_authenticated/giro-estoque")({
       { property: "og:title", content: "Giro de estoque e sugestão de compra — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Veja o giro de cada produto e a quantidade sugerida de compra para 15, 30 e 60 dias.",
+        content:
+          "Veja o giro de cada produto e a quantidade sugerida de compra para 15, 30 e 60 dias.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -76,10 +84,7 @@ function GiroEstoque() {
   const qc = useQueryClient();
 
   const dias = Number(janela);
-  const desde = useMemo(
-    () => new Date(Date.now() - dias * 86400000).toISOString(),
-    [dias],
-  );
+  const desde = useMemo(() => new Date(Date.now() - dias * 86400000).toISOString(), [dias]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["giro-estoque", janela],
@@ -120,75 +125,76 @@ function GiroEstoque() {
   /** Calcula o giro de um depósito específico, ou de todos juntos quando "todos". */
   const calcular = useCallback(
     (alvo: string): Linha[] => {
-    const produtos = data?.produtos ?? [];
-    const vendas = new Map<string, { qtd: number; receita: number }>();
-    for (const i of data?.itens ?? []) {
-      const dep = (i.pedidos as unknown as { deposito_id: string | null } | null)?.deposito_id ?? "";
-      if (alvo !== "todos" && dep !== alvo) continue;
-      const atual = vendas.get(i.produto_id) ?? { qtd: 0, receita: 0 };
-      atual.qtd += Number(i.quantidade ?? 0);
-      atual.receita += Number(i.total ?? 0);
-      vendas.set(i.produto_id, atual);
-    }
+      const produtos = data?.produtos ?? [];
+      const vendas = new Map<string, { qtd: number; receita: number }>();
+      for (const i of data?.itens ?? []) {
+        const dep =
+          (i.pedidos as unknown as { deposito_id: string | null } | null)?.deposito_id ?? "";
+        if (alvo !== "todos" && dep !== alvo) continue;
+        const atual = vendas.get(i.produto_id) ?? { qtd: 0, receita: 0 };
+        atual.qtd += Number(i.quantidade ?? 0);
+        atual.receita += Number(i.total ?? 0);
+        vendas.set(i.produto_id, atual);
+      }
 
-    const saldo = new Map<string, { disponivel: number; custo: number }>();
-    for (const e of data?.estoques ?? []) {
-      if (alvo !== "todos" && e.deposito_id !== alvo) continue;
-      const atual = saldo.get(e.produto_id) ?? { disponivel: 0, custo: 0 };
-      atual.disponivel += Number(e.quantidade ?? 0) - Number(e.reservado ?? 0);
-      atual.custo = Math.max(atual.custo, Number(e.custo_medio ?? 0));
-      saldo.set(e.produto_id, atual);
-    }
+      const saldo = new Map<string, { disponivel: number; custo: number }>();
+      for (const e of data?.estoques ?? []) {
+        if (alvo !== "todos" && e.deposito_id !== alvo) continue;
+        const atual = saldo.get(e.produto_id) ?? { disponivel: 0, custo: 0 };
+        atual.disponivel += Number(e.quantidade ?? 0) - Number(e.reservado ?? 0);
+        atual.custo = Math.max(atual.custo, Number(e.custo_medio ?? 0));
+        saldo.set(e.produto_id, atual);
+      }
 
-    const receitaTotal = [...vendas.values()].reduce((s, v) => s + v.receita, 0);
+      const receitaTotal = [...vendas.values()].reduce((s, v) => s + v.receita, 0);
 
-    /** Curva ABC clássica: A até 80% do faturamento, B até 95%, C o resto. */
-    const ordenados = produtos
-      .map((p) => {
-        const v = vendas.get(p.id) ?? { qtd: 0, receita: 0 };
-        const s = saldo.get(p.id) ?? { disponivel: 0, custo: 0 };
+      /** Curva ABC clássica: A até 80% do faturamento, B até 95%, C o resto. */
+      const ordenados = produtos
+        .map((p) => {
+          const v = vendas.get(p.id) ?? { qtd: 0, receita: 0 };
+          const s = saldo.get(p.id) ?? { disponivel: 0, custo: 0 };
+          return {
+            p,
+            vendido: v.qtd,
+            receita: v.receita,
+            disponivel: s.disponivel,
+            custo: s.custo > 0 ? s.custo : Number(p.custo ?? 0),
+          };
+        })
+        .sort((a, b) => b.receita - a.receita);
+
+      let acumuladoValor = 0;
+      return ordenados.map((r) => {
+        const participacao = receitaTotal > 0 ? (r.receita / receitaTotal) * 100 : 0;
+        acumuladoValor += participacao;
+        const classeItem: "A" | "B" | "C" =
+          r.receita <= 0 ? "C" : acumuladoValor <= 80 ? "A" : acumuladoValor <= 95 ? "B" : "C";
+        const mediaDia = r.vendido / dias;
+        const folga = folgaPorClasse[classeItem];
+        const minimo = Number(r.p.estoque_minimo ?? 0);
+        const necessidade = (d: number) =>
+          Math.max(Math.max(mediaDia * d * folga, minimo) - r.disponivel, 0);
         return {
-          p,
-          vendido: v.qtd,
-          receita: v.receita,
-          disponivel: s.disponivel,
-          custo: s.custo > 0 ? s.custo : Number(p.custo ?? 0),
+          produto_id: r.p.id,
+          descricao: r.p.descricao,
+          codigo: r.p.codigo_interno ?? "",
+          unidade: r.p.unidade ?? "UN",
+          unidadeCompra: r.p.unidade_compra ?? null,
+          fator: Number(r.p.fator_conversao ?? 1) || 1,
+          custo: r.custo,
+          vendido: r.vendido,
+          receita: r.receita,
+          disponivel: r.disponivel,
+          mediaDia,
+          cobertura: mediaDia > 0 ? r.disponivel / mediaDia : Infinity,
+          classe: classeItem,
+          participacao,
+          acumulado: acumuladoValor,
+          comprar15: necessidade(15),
+          comprar30: necessidade(30),
+          comprar60: necessidade(60),
         };
-      })
-      .sort((a, b) => b.receita - a.receita);
-
-    let acumuladoValor = 0;
-    return ordenados.map((r) => {
-      const participacao = receitaTotal > 0 ? (r.receita / receitaTotal) * 100 : 0;
-      acumuladoValor += participacao;
-      const classeItem: "A" | "B" | "C" =
-        r.receita <= 0 ? "C" : acumuladoValor <= 80 ? "A" : acumuladoValor <= 95 ? "B" : "C";
-      const mediaDia = r.vendido / dias;
-      const folga = folgaPorClasse[classeItem];
-      const minimo = Number(r.p.estoque_minimo ?? 0);
-      const necessidade = (d: number) =>
-        Math.max(Math.max(mediaDia * d * folga, minimo) - r.disponivel, 0);
-      return {
-        produto_id: r.p.id,
-        descricao: r.p.descricao,
-        codigo: r.p.codigo_interno ?? "",
-        unidade: r.p.unidade ?? "UN",
-        unidadeCompra: r.p.unidade_compra ?? null,
-        fator: Number(r.p.fator_conversao ?? 1) || 1,
-        custo: r.custo,
-        vendido: r.vendido,
-        receita: r.receita,
-        disponivel: r.disponivel,
-        mediaDia,
-        cobertura: mediaDia > 0 ? r.disponivel / mediaDia : Infinity,
-        classe: classeItem,
-        participacao,
-        acumulado: acumuladoValor,
-        comprar15: necessidade(15),
-        comprar30: necessidade(30),
-        comprar60: necessidade(60),
-      };
-    });
+      });
     },
     [data, dias],
   );
@@ -263,7 +269,6 @@ function GiroEstoque() {
     onError: (e: Error) =>
       toast.error("Não foi possível gerar a compra", { description: e.message }),
   });
-
 
   return (
     <>
@@ -391,8 +396,8 @@ function GiroEstoque() {
           <div>
             <h2 className="text-base font-semibold">Giro por depósito</h2>
             <p className="text-sm text-muted-foreground">
-              Cada depósito com o giro das suas próprias vendas, a sugestão de compra e o atalho para
-              cotar com os fornecedores.
+              Cada depósito com o giro das suas próprias vendas, a sugestão de compra e o atalho
+              para cotar com os fornecedores.
             </p>
           </div>
           {depositoId !== "todos" && (
@@ -430,9 +435,7 @@ function GiroEstoque() {
                     <dd className="text-numeric font-semibold">{r.classeA} produtos</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">
-                      Comprar ({horizonte} dias)
-                    </dt>
+                    <dt className="text-xs text-muted-foreground">Comprar ({horizonte} dias)</dt>
                     <dd className="text-numeric font-semibold">{r.itens} itens</dd>
                   </div>
                   <div>
@@ -467,8 +470,6 @@ function GiroEstoque() {
           })}
         </div>
       </div>
-
-
 
       {isLoading ? (
         <div className="panel h-72 animate-pulse" />
@@ -509,7 +510,10 @@ function GiroEstoque() {
                       <span className="block text-xs text-muted-foreground">
                         {l.codigo || "sem código"} · {l.unidade}
                         {l.unidadeCompra && l.fator > 1 && (
-                          <> · compra em {l.unidadeCompra} de {num(l.fator, 2)} {l.unidade}</>
+                          <>
+                            {" "}
+                            · compra em {l.unidadeCompra} de {num(l.fator, 2)} {l.unidade}
+                          </>
                         )}
                         {" · "}
                         {num(l.participacao, 1)}% do faturamento
@@ -529,7 +533,9 @@ function GiroEstoque() {
                       <span className="block text-xs text-muted-foreground">{brl(l.receita)}</span>
                     </TableCell>
                     <TableCell className="text-right text-numeric">{num(l.mediaDia, 2)}</TableCell>
-                    <TableCell className="text-right text-numeric">{num(l.disponivel, 2)}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {num(l.disponivel, 2)}
+                    </TableCell>
                     <TableCell className="text-right text-numeric">
                       {l.mediaDia <= 0 ? (
                         <span className="text-muted-foreground">sem giro</span>
@@ -543,10 +549,18 @@ function GiroEstoque() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{emCompra(l.comprar15)}</TableCell>
-                    <TableCell className="text-right text-numeric">{emCompra(l.comprar30)}</TableCell>
-                    <TableCell className="text-right text-numeric">{emCompra(l.comprar60)}</TableCell>
-                    <TableCell className="text-right text-numeric">{brl(comprar * l.custo)}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {emCompra(l.comprar15)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {emCompra(l.comprar30)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {emCompra(l.comprar60)}
+                    </TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(comprar * l.custo)}
+                    </TableCell>
                   </TableRow>
                 );
               })}

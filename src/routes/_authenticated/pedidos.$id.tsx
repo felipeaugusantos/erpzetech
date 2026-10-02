@@ -164,8 +164,7 @@ function PedidoDetalhe() {
   });
 
   const cancelarNota = useMutation({
-    mutationFn: async (nfeId: string) =>
-      cancelarSefaz({ data: { nfeId, justificativa } }),
+    mutationFn: async (nfeId: string) => cancelarSefaz({ data: { nfeId, justificativa } }),
     onSuccess: async (_r, nfeId) => {
       toast.success("Nota cancelada na Receita");
       setJustificativa("");
@@ -243,7 +242,9 @@ function PedidoDetalhe() {
       const [pedido, itens, historico, entregas] = await Promise.all([
         supabase
           .from("pedidos")
-          .select("*, clientes(id, nome, telefone, limite_credito), obras(nome, endereco, numero, bairro, cidade), depositos(nome)")
+          .select(
+            "*, clientes(id, nome, telefone, limite_credito), obras(nome, endereco, numero, bairro, cidade), depositos(nome)",
+          )
           .eq("id", id)
           .single(),
         supabase
@@ -273,9 +274,12 @@ function PedidoDetalhe() {
 
   const pedido = data?.pedido;
   const itens = data?.itens ?? [];
-  const clienteRel = pedido?.clientes as unknown as
-    | { id: string; nome: string; telefone: string | null; limite_credito: number | null }
-    | null;
+  const clienteRel = pedido?.clientes as unknown as {
+    id: string;
+    nome: string;
+    telefone: string | null;
+    limite_credito: number | null;
+  } | null;
 
   const { data: financeiro } = useQuery({
     queryKey: ["pedido-financeiro", id, clienteRel?.id ?? ""],
@@ -293,7 +297,9 @@ function PedidoDetalhe() {
               .select("valor, valor_recebido, vencimento")
               .eq("cliente_id", clienteRel.id)
               .in("situacao", ["aberto", "parcial"])
-          : Promise.resolve({ data: [] as { valor: number; valor_recebido: number; vencimento: string }[] }),
+          : Promise.resolve({
+              data: [] as { valor: number; valor_recebido: number; vencimento: string }[],
+            }),
       ]);
       const abertas = doCliente.data ?? [];
       const usado = abertas.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
@@ -381,10 +387,7 @@ function PedidoDetalhe() {
     setDivergencias(Object.fromEntries(itens.map((i) => [i.id, i.divergencia ?? ""])));
     setEntregaQtd(
       Object.fromEntries(
-        itens.map((i) => [
-          i.id,
-          String(Number(i.quantidade) - Number(i.quantidade_entregue)),
-        ]),
+        itens.map((i) => [i.id, String(Number(i.quantidade) - Number(i.quantidade_entregue))]),
       ),
     );
   }, [data]);
@@ -453,7 +456,8 @@ function PedidoDetalhe() {
       const payload = itens
         .map((i) => ({ pedido_item_id: i.id, quantidade: Number(entregaQtd[i.id] ?? 0) }))
         .filter((x) => x.quantidade > 0);
-      if (payload.length === 0) throw new Error("Informe a quantidade entregue de pelo menos um item");
+      if (payload.length === 0)
+        throw new Error("Informe a quantidade entregue de pelo menos um item");
       const { error } = await supabase.rpc("pedido_registrar_entrega", {
         p_pedido_id: id,
         p_itens: payload as never,
@@ -673,9 +677,7 @@ function PedidoDetalhe() {
                             min="0"
                             step="0.001"
                             value={separado[i.id] ?? ""}
-                            onChange={(e) =>
-                              setSeparado((p) => ({ ...p, [i.id]: e.target.value }))
-                            }
+                            onChange={(e) => setSeparado((p) => ({ ...p, [i.id]: e.target.value }))}
                           />
                         ) : (
                           num(Number(i.quantidade_separada))
@@ -705,10 +707,14 @@ function PedidoDetalhe() {
                           num(Number(i.quantidade_conferida))
                         )}
                       </TableCell>
-                      <TableCell className="text-right">{num(Number(i.quantidade_entregue))}</TableCell>
+                      <TableCell className="text-right">
+                        {num(Number(i.quantidade_entregue))}
+                      </TableCell>
                       <TableCell className="text-right">
                         {pendente > 0 ? (
-                          <span className="font-medium text-warning-foreground">{num(pendente)}</span>
+                          <span className="font-medium text-warning-foreground">
+                            {num(pendente)}
+                          </span>
                         ) : (
                           <span className="text-success">0</span>
                         )}
@@ -716,7 +722,9 @@ function PedidoDetalhe() {
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {Number(i.custo_unitario) > 0 ? (
                           <>
-                            <span className="text-numeric block">{brl(Number(i.custo_unitario))}</span>
+                            <span className="text-numeric block">
+                              {brl(Number(i.custo_unitario))}
+                            </span>
                             <span>
                               margem{" "}
                               {num(
@@ -743,7 +751,10 @@ function PedidoDetalhe() {
             {(emSeparacao || emConferencia) && (
               <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
                 {emSeparacao && (
-                  <Button onClick={() => salvarSeparacao.mutate()} disabled={salvarSeparacao.isPending}>
+                  <Button
+                    onClick={() => salvarSeparacao.mutate()}
+                    disabled={salvarSeparacao.isPending}
+                  >
                     Salvar separação
                   </Button>
                 )}
@@ -817,10 +828,12 @@ function PedidoDetalhe() {
                       )}
                     </div>
                     <ul className="mt-1 text-xs text-muted-foreground">
-                      {((e.entrega_itens ?? []) as unknown as {
-                        quantidade: number;
-                        produtos: { descricao: string } | null;
-                      }[]).map((ei, idx) => (
+                      {(
+                        (e.entrega_itens ?? []) as unknown as {
+                          quantidade: number;
+                          produtos: { descricao: string } | null;
+                        }[]
+                      ).map((ei, idx) => (
                         <li key={idx}>
                           {num(Number(ei.quantidade))} × {ei.produtos?.descricao}
                         </li>
@@ -927,11 +940,19 @@ function PedidoDetalhe() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="ent-rec">Quem recebeu</Label>
-              <Input id="ent-rec" value={recebedor} onChange={(e) => setRecebedor(e.target.value)} />
+              <Input
+                id="ent-rec"
+                value={recebedor}
+                onChange={(e) => setRecebedor(e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="ent-obs">Observação</Label>
-              <Input id="ent-obs" value={obsEntrega} onChange={(e) => setObsEntrega(e.target.value)} />
+              <Input
+                id="ent-obs"
+                value={obsEntrega}
+                onChange={(e) => setObsEntrega(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -1005,14 +1026,16 @@ function PedidoDetalhe() {
             <Button variant="outline" onClick={() => setNotaGerada(null)}>
               Fechar
             </Button>
-            {notaGerada && notaGerada.situacao !== "autorizada" && notaGerada.situacao !== "cancelada" && (
-              <Button
-                disabled={enviarSefaz.isPending}
-                onClick={() => enviarSefaz.mutate(notaGerada.id)}
-              >
-                <Send className="mr-2 size-4" /> Enviar à Receita
-              </Button>
-            )}
+            {notaGerada &&
+              notaGerada.situacao !== "autorizada" &&
+              notaGerada.situacao !== "cancelada" && (
+                <Button
+                  disabled={enviarSefaz.isPending}
+                  onClick={() => enviarSefaz.mutate(notaGerada.id)}
+                >
+                  <Send className="mr-2 size-4" /> Enviar à Receita
+                </Button>
+              )}
             {notaGerada?.provider_id && (
               <Button
                 variant="secondary"
@@ -1077,8 +1100,7 @@ function PedidoDetalhe() {
             <DialogTitle>Gerar contas a receber</DialogTitle>
             <DialogDescription>
               Total do pedido: {brl(Number(pedido.total))}
-              {limiteCliente > 0 &&
-                ` · Crédito disponível do cliente: ${brl(disponivelCliente)}`}
+              {limiteCliente > 0 && ` · Crédito disponível do cliente: ${brl(disponivelCliente)}`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
@@ -1173,24 +1195,24 @@ function PedidoDetalhe() {
               </Select>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="ck-parc">Parcelas</Label>
-                  <Input
-                    id="ck-parc"
-                    inputMode="numeric"
-                    value={checkoutParcelas}
-                    onChange={(e) => setCheckoutParcelas(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ck-venc">1º vencimento</Label>
-                  <Input
-                    id="ck-venc"
-                    type="date"
-                    value={checkoutVencimento}
-                    onChange={(e) => setCheckoutVencimento(e.target.value)}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="ck-parc">Parcelas</Label>
+                <Input
+                  id="ck-parc"
+                  inputMode="numeric"
+                  value={checkoutParcelas}
+                  onChange={(e) => setCheckoutParcelas(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="ck-venc">1º vencimento</Label>
+                <Input
+                  id="ck-venc"
+                  type="date"
+                  value={checkoutVencimento}
+                  onChange={(e) => setCheckoutVencimento(e.target.value)}
+                />
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
               À vista, o valor entra no caixa aberto e dá baixa nas parcelas deste pedido. A prazo,
@@ -1226,7 +1248,8 @@ function PedidoDetalhe() {
               tipo: "Pedido",
               numero: String(pedido.numero).padStart(4, "0"),
               emitidoEm: dateTimeBR(pedido.created_at),
-              loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
+              loja:
+                session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
               deposito: (pedido.depositos as unknown as { nome: string } | null)?.nome ?? null,
               cliente: cliente?.nome ?? "Consumidor final",
               obra: obra?.nome ?? null,
@@ -1258,8 +1281,5 @@ function PedidoDetalhe() {
         </DialogContent>
       </Dialog>
     </>
-
-
-
   );
 }

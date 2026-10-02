@@ -94,12 +94,15 @@ export function mensagemDeErro(json: unknown, status?: number): string {
     for (const item of lista) {
       if (typeof item === "string") partes.push(item);
       else if (item && typeof item === "object") {
-        const m = (item as Record<string, unknown>)["mensagem"] ?? (item as Record<string, unknown>)["message"];
+        const m =
+          (item as Record<string, unknown>)["mensagem"] ??
+          (item as Record<string, unknown>)["message"];
         if (typeof m === "string") partes.push(m);
       }
     }
   }
-  if (partes.length === 0) partes.push(`O emissor fiscal recusou a requisição${status ? ` (${status})` : ""}.`);
+  if (partes.length === 0)
+    partes.push(`O emissor fiscal recusou a requisição${status ? ` (${status})` : ""}.`);
   return partes.join(" · ").slice(0, 900);
 }
 
@@ -127,9 +130,33 @@ export async function codigoMunicipioPorCep(
 }
 
 export const CODIGO_UF: Record<string, number> = {
-  AC: 12, AL: 27, AP: 16, AM: 13, BA: 29, CE: 23, DF: 53, ES: 32, GO: 52,
-  MA: 21, MT: 51, MS: 50, MG: 31, PA: 15, PB: 25, PR: 41, PE: 26, PI: 22,
-  RJ: 33, RN: 24, RS: 43, RO: 11, RR: 14, SC: 42, SP: 35, SE: 28, TO: 17,
+  AC: 12,
+  AL: 27,
+  AP: 16,
+  AM: 13,
+  BA: 29,
+  CE: 23,
+  DF: 53,
+  ES: 32,
+  GO: 52,
+  MA: 21,
+  MT: 51,
+  MS: 50,
+  MG: 31,
+  PA: 15,
+  PB: 25,
+  PR: 41,
+  PE: 26,
+  PI: 22,
+  RJ: 33,
+  RN: 24,
+  RS: 43,
+  RO: 11,
+  RR: 14,
+  SC: 42,
+  SP: 35,
+  SE: 28,
+  TO: 17,
 };
 
 export function so(valor: unknown): string {

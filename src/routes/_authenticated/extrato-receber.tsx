@@ -13,7 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/extrato-receber")({
   head: () => ({
@@ -97,8 +104,12 @@ function ExtratoReceber() {
     >();
     for (const c of abertas) {
       const chave = c.cliente_id ?? "sem-cliente";
-      const linha =
-        mapa.get(chave) ?? { nome: c.clientes?.nome ?? "Sem cliente", saldo: 0, vencido: 0, contas: 0 };
+      const linha = mapa.get(chave) ?? {
+        nome: c.clientes?.nome ?? "Sem cliente",
+        saldo: 0,
+        vencido: 0,
+        contas: 0,
+      };
       linha.saldo += saldoDe(c);
       if (estaVencida(c.situacao, c.vencimento)) linha.vencido += saldoDe(c);
       linha.contas += 1;
@@ -194,7 +205,10 @@ function ExtratoReceber() {
                 <TableBody>
                   {abertas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="py-6 text-center text-sm text-muted-foreground"
+                      >
                         Nenhuma conta em aberto.
                       </TableCell>
                     </TableRow>
@@ -211,7 +225,9 @@ function ExtratoReceber() {
                           </p>
                         </TableCell>
                         <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
-                        <TableCell className="text-right text-numeric">{brl(Number(c.valor))}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(c.valor))}
+                        </TableCell>
                         <TableCell className="text-right text-numeric">
                           {brl(Number(c.valor_recebido))}
                         </TableCell>
@@ -248,7 +264,10 @@ function ExtratoReceber() {
                 <TableBody>
                   {porCliente.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={4}
+                        className="py-6 text-center text-sm text-muted-foreground"
+                      >
                         Nenhuma conta em aberto.
                       </TableCell>
                     </TableRow>
@@ -286,7 +305,10 @@ function ExtratoReceber() {
                 <TableBody>
                   {baixas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">
+                      <TableCell
+                        colSpan={5}
+                        className="py-6 text-center text-sm text-muted-foreground"
+                      >
                         Nenhum recebimento no período.
                       </TableCell>
                     </TableRow>
@@ -299,7 +321,9 @@ function ExtratoReceber() {
                         <TableCell className="text-sm text-muted-foreground">
                           {b.observacao ?? "—"}
                         </TableCell>
-                        <TableCell className="text-right text-numeric">{brl(Number(b.valor))}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(Number(b.valor))}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}

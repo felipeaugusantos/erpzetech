@@ -28,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -103,7 +110,8 @@ function Caixa() {
       if (m.tipo === "abertura") temAbertura = true;
       if (entradaCaixa(m.tipo)) {
         if (m.tipo !== "abertura") entradas += v;
-        if ((m.forma_pagamento ?? "dinheiro") === "dinheiro") dinheiro += m.tipo === "abertura" ? 0 : v;
+        if ((m.forma_pagamento ?? "dinheiro") === "dinheiro")
+          dinheiro += m.tipo === "abertura" ? 0 : v;
       } else {
         saidas += v;
         if ((m.forma_pagamento ?? "dinheiro") === "dinheiro") dinheiro -= v;
@@ -192,9 +200,7 @@ function Caixa() {
     },
     onSuccess: (dif) => {
       toast.success(
-        dif === 0
-          ? "Caixa fechado sem diferença."
-          : `Caixa fechado com diferença de ${brl(dif)}.`,
+        dif === 0 ? "Caixa fechado sem diferença." : `Caixa fechado com diferença de ${brl(dif)}.`,
       );
       setFecharAberto(false);
       setValorInformado("");
@@ -260,8 +266,18 @@ function Caixa() {
               hint={dateTimeBR(caixaAtual.aberto_em)}
               icon={Wallet}
             />
-            <StatCard label="Entradas" value={brl(resumo.entradas)} tone="success" icon={ArrowUpCircle} />
-            <StatCard label="Saídas" value={brl(resumo.saidas)} tone="danger" icon={ArrowDownCircle} />
+            <StatCard
+              label="Entradas"
+              value={brl(resumo.entradas)}
+              tone="success"
+              icon={ArrowUpCircle}
+            />
+            <StatCard
+              label="Saídas"
+              value={brl(resumo.saidas)}
+              tone="danger"
+              icon={ArrowDownCircle}
+            />
             <StatCard label="Saldo em dinheiro" value={brl(resumo.dinheiro)} tone="accent" />
           </div>
 

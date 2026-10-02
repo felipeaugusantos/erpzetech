@@ -87,7 +87,11 @@ function ImpostosNota() {
   const { data: config } = useQuery({
     queryKey: ["fiscal-config-impostos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("fiscal_config").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("fiscal_config")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -112,10 +116,7 @@ function ImpostosNota() {
     if (!notaId && (notas ?? []).length) setNotaId(notas![0]!.id);
   }, [notas, notaId]);
 
-  const nota = useMemo(
-    () => (notas ?? []).find((n: any) => n.id === notaId) ?? null,
-    [notas, notaId],
-  );
+  const nota = useMemo(() => (notas ?? []).find((n) => n.id === notaId) ?? null, [notas, notaId]);
   const editavel = nota ? ["rascunho", "pronta"].includes(String(nota.situacao)) : false;
 
   const { data: itens } = useQuery({
@@ -161,7 +162,7 @@ function ImpostosNota() {
         p_aplicar_icms_em_todos: todos,
       });
       if (error) throw error;
-      return data as any;
+      return data;
     },
     onSuccess: () => {
       toast.success("Impostos calculados", {
@@ -226,7 +227,7 @@ function ImpostosNota() {
                     <SelectValue placeholder="Escolha a nota" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(notas ?? []).map((n: any) => (
+                    {(notas ?? []).map((n) => (
                       <SelectItem key={n.id} value={n.id}>
                         {`${n.numero ? `nº ${n.numero}` : "sem número"} · ${
                           n.clientes?.nome ?? "Consumidor final"
@@ -252,7 +253,11 @@ function ImpostosNota() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="ICMS" value={brl(num(nota?.valor_icms))} icon={Percent} />
-            <StatCard label="ICMS substituição" value={brl(num(nota?.valor_icms_st))} icon={Percent} />
+            <StatCard
+              label="ICMS substituição"
+              value={brl(num(nota?.valor_icms_st))}
+              icon={Percent}
+            />
             <StatCard label="PIS" value={brl(num(nota?.valor_pis))} icon={Percent} />
             <StatCard label="COFINS" value={brl(num(nota?.valor_cofins))} icon={Percent} />
             <StatCard label="ISS" value={brl(num(nota?.valor_iss))} icon={Percent} />
@@ -368,9 +373,7 @@ function ImpostosNota() {
                         className="h-8 w-20 text-right"
                         disabled={!editavel}
                         value={edicoes[i.id] ?? String(num(i.aliquota_icms))}
-                        onChange={(e) =>
-                          setEdicoes((m) => ({ ...m, [i.id]: e.target.value }))
-                        }
+                        onChange={(e) => setEdicoes((m) => ({ ...m, [i.id]: e.target.value }))}
                       />
                     </TableCell>
                     <TableCell className="text-right">{brl(num(i.base_icms))}</TableCell>

@@ -233,7 +233,8 @@ function Inventarios() {
       });
       qc.invalidateQueries({ queryKey: ["inventario-itens", inventarioId] });
     },
-    onError: (e: Error) => toast.error("Não foi possível salvar a contagem", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível salvar a contagem", { description: e.message }),
   });
 
   const aplicar = useMutation({
@@ -246,7 +247,9 @@ function Inventarios() {
     },
     onSuccess: (n) => {
       toast.success(
-        n > 0 ? `Balanço aplicado — ${n} produto(s) ajustado(s)` : "Balanço aplicado sem diferenças",
+        n > 0
+          ? `Balanço aplicado — ${n} produto(s) ajustado(s)`
+          : "Balanço aplicado sem diferenças",
       );
       invalidar();
     },
@@ -369,7 +372,8 @@ function Inventarios() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="font-display text-sm font-semibold">
-                      {(inventario.depositos as unknown as { nome: string } | null)?.nome ?? "Depósito"}
+                      {(inventario.depositos as unknown as { nome: string } | null)?.nome ??
+                        "Depósito"}
                       {inventario.descricao ? ` — ${inventario.descricao}` : ""}
                     </h2>
                     <p className="text-xs text-muted-foreground">
@@ -489,7 +493,9 @@ function Inventarios() {
                                 ? "—"
                                 : `${l.diferenca > 0 ? "+" : ""}${num(l.diferenca)}`}
                             </TableCell>
-                            <TableCell className="text-numeric text-right">{brl(l.custo)}</TableCell>
+                            <TableCell className="text-numeric text-right">
+                              {brl(l.custo)}
+                            </TableCell>
                             <TableCell
                               className={`text-numeric text-right ${
                                 l.valorDiferenca < 0 ? "text-destructive" : ""

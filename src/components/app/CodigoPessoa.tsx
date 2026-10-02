@@ -32,9 +32,7 @@ export function CodigoPessoa({
   function mudar(v: string) {
     onCodigo(v);
     const t = v.trim().toLowerCase();
-    const p = t
-      ? (pessoas.find((x) => (x.codigo ?? "").trim().toLowerCase() === t) ?? null)
-      : null;
+    const p = t ? (pessoas.find((x) => (x.codigo ?? "").trim().toLowerCase() === t) ?? null) : null;
     onResolver?.(p?.id ?? null);
   }
 

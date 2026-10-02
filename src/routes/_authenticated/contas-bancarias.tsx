@@ -28,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/contas-bancarias")({
   head: () => ({
@@ -129,9 +136,7 @@ function ContasBancarias() {
     return mapa;
   }, [contas, data]);
 
-  const total = contas
-    .filter((c) => c.ativa)
-    .reduce((s, c) => s + (saldos.get(c.id) ?? 0), 0);
+  const total = contas.filter((c) => c.ativa).reduce((s, c) => s + (saldos.get(c.id) ?? 0), 0);
 
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState<Conta | null>(null);
@@ -206,11 +211,15 @@ function ContasBancarias() {
 
       // só uma conta pode ser o destino padrão do dinheiro
       if (form.padrao) {
-        const { data: todas } = await supabase.from("contas_bancarias").select("id").eq("padrao", true);
+        const { data: todas } = await supabase
+          .from("contas_bancarias")
+          .select("id")
+          .eq("padrao", true);
         const manter = editando?.id;
         for (const c of todas ?? []) {
           if (c.id !== manter && !editando) continue;
-          if (c.id !== manter) await supabase.from("contas_bancarias").update({ padrao: false }).eq("id", c.id);
+          if (c.id !== manter)
+            await supabase.from("contas_bancarias").update({ padrao: false }).eq("id", c.id);
         }
       }
     },
@@ -293,7 +302,9 @@ function ContasBancarias() {
                   </TableCell>
                   <TableCell>
                     {c.banco_nome ?? "—"}
-                    <span className="block text-xs text-muted-foreground">{c.banco_codigo ?? ""}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {c.banco_codigo ?? ""}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {c.agencia ?? "—"} / {c.conta ?? "—"}
@@ -329,7 +340,9 @@ function ContasBancarias() {
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editando ? `Editar ${editando.apelido}` : "Nova conta bancária"}</DialogTitle>
+            <DialogTitle>
+              {editando ? `Editar ${editando.apelido}` : "Nova conta bancária"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5 sm:col-span-2">
@@ -410,7 +423,10 @@ function ContasBancarias() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="b-filial">Loja dona da conta</Label>
-              <Select value={form.filial_id} onValueChange={(v) => setForm({ ...form, filial_id: v })}>
+              <Select
+                value={form.filial_id}
+                onValueChange={(v) => setForm({ ...form, filial_id: v })}
+              >
                 <SelectTrigger id="b-filial">
                   <SelectValue placeholder="Escolha a loja" />
                 </SelectTrigger>
@@ -450,7 +466,11 @@ function ContasBancarias() {
               <Label htmlFor="b-padrao">Conta padrão (recebe PIX, boleto e transferência)</Label>
             </div>
             <div className="flex items-center gap-2">
-              <Switch id="b-ativa" checked={form.ativa} onCheckedChange={(v) => setForm({ ...form, ativa: v })} />
+              <Switch
+                id="b-ativa"
+                checked={form.ativa}
+                onCheckedChange={(v) => setForm({ ...form, ativa: v })}
+              />
               <Label htmlFor="b-ativa">Conta ativa</Label>
             </div>
             <div className="grid gap-1.5 sm:col-span-2">

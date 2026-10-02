@@ -22,11 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
 import { ROTULO_MODULO, cnaesDaEmpresa, exemplosCnae, moduloLiberadoPorCnae } from "@/lib/cnae";
-import {
-  COR_PADRAO,
-  LogoEmpresaUpload,
-  aplicarCorEmpresa,
-} from "@/components/app/MarcaEmpresa";
+import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
@@ -116,9 +112,9 @@ function Empresa() {
         description: [d.cnae_descricao, d.situacao].filter(Boolean).join(" · "),
       });
     },
-    onError: (e: Error) => toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
   });
-
 
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
@@ -287,7 +283,8 @@ function Empresa() {
                 </Button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Digite o CNPJ e clique em Buscar: nome, atividades (CNAE) e endereço vêm preenchidos.
+                Digite o CNPJ e clique em Buscar: nome, atividades (CNAE) e endereço vêm
+                preenchidos.
               </p>
             </div>
             {campo("inscricao_estadual", "Inscrição estadual")}
@@ -459,7 +456,6 @@ function Empresa() {
               </div>
             </div>
           </div>
-
 
           <div className="mt-5">
             <Button

@@ -9,13 +9,7 @@ export type FormatoDocumento = "a4" | "meia" | "80mm";
  * Via do orçamento/pedido em folha: A4 em pé ou meia folha na horizontal
  * (A5 deitado). A logo e os dados da loja vêm do cadastro da empresa.
  */
-export function DocumentoVenda({
-  dados,
-  formato,
-}: {
-  dados: Via80Dados;
-  formato: "a4" | "meia";
-}) {
+export function DocumentoVenda({ dados, formato }: { dados: Via80Dados; formato: "a4" | "meia" }) {
   const { empresa, logoUrl } = useEmpresaImpressa();
   const meia = formato === "meia";
 
@@ -77,9 +71,7 @@ export function DocumentoVenda({
           </div>
         </header>
 
-        <section
-          className={`mt-3 grid gap-x-6 gap-y-1 ${meia ? "grid-cols-3" : "grid-cols-2"}`}
-        >
+        <section className={`mt-3 grid gap-x-6 gap-y-1 ${meia ? "grid-cols-3" : "grid-cols-2"}`}>
           <Linha rotulo="Cliente" valor={dados.cliente} />
           {dados.obra && <Linha rotulo="Obra" valor={dados.obra} />}
           {dados.deposito && <Linha rotulo="Depósito" valor={dados.deposito} />}

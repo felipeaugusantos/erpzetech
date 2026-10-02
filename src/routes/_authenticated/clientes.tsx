@@ -31,7 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -318,10 +325,13 @@ function Clientes() {
                       <TableCell>
                         <p className="font-medium">{c.nome}</p>
                         <p className="text-xs text-muted-foreground">
-                          {c.nome_fantasia ?? (c.tipo === "PF" ? "Pessoa física" : "Pessoa jurídica")}
+                          {c.nome_fantasia ??
+                            (c.tipo === "PF" ? "Pessoa física" : "Pessoa jurídica")}
                         </p>
                       </TableCell>
-                      <TableCell className="text-numeric text-sm">{c.cpf || c.cnpj || "—"}</TableCell>
+                      <TableCell className="text-numeric text-sm">
+                        {c.cpf || c.cnpj || "—"}
+                      </TableCell>
                       <TableCell className="text-sm">
                         <p>{c.telefone ?? "—"}</p>
                         <p className="text-xs text-muted-foreground">{c.email ?? ""}</p>
@@ -345,7 +355,12 @@ function Clientes() {
                         {data?.obrasPorCliente.get(c.id) ?? 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => editar(c)} aria-label="Editar">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => editar(c)}
+                          aria-label="Editar"
+                        >
                           <Pencil className="size-4" />
                         </Button>
                       </TableCell>
@@ -382,7 +397,9 @@ function Clientes() {
                 </Select>
               </div>
               <div className="sm:col-span-2">
-                <Label htmlFor="c-nome">{form.tipo === "PF" ? "Nome completo" : "Razão social"}</Label>
+                <Label htmlFor="c-nome">
+                  {form.tipo === "PF" ? "Nome completo" : "Razão social"}
+                </Label>
                 <Input
                   id="c-nome"
                   value={form.nome}
@@ -599,7 +616,10 @@ function Clientes() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => salvar.mutate()} disabled={!form.nome.trim() || salvar.isPending}>
+            <Button
+              onClick={() => salvar.mutate()}
+              disabled={!form.nome.trim() || salvar.isPending}
+            >
               Salvar cliente
             </Button>
           </DialogFooter>

@@ -30,7 +30,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/assistencia")({
   head: () => ({
@@ -110,8 +117,20 @@ const vazio: Form = {
   observacoes: "",
 };
 
-type ItemForm = { tipo: string; produto_id: string; descricao: string; quantidade: string; preco: string };
-const itemVazio: ItemForm = { tipo: "peca", produto_id: "", descricao: "", quantidade: "1", preco: "0" };
+type ItemForm = {
+  tipo: string;
+  produto_id: string;
+  descricao: string;
+  quantidade: string;
+  preco: string;
+};
+const itemVazio: ItemForm = {
+  tipo: "peca",
+  produto_id: "",
+  descricao: "",
+  quantidade: "1",
+  preco: "0",
+};
 
 function Assistencia() {
   const { data: session } = useSessionData();
@@ -258,9 +277,7 @@ function Assistencia() {
     mutationFn: async () => {
       if (!profile?.tenant_id || !osAberta) throw new Error("Abra uma ordem de serviço");
       const descricao =
-        item.descricao.trim() ||
-        produtos.find((p) => p.id === item.produto_id)?.descricao ||
-        "";
+        item.descricao.trim() || produtos.find((p) => p.id === item.produto_id)?.descricao || "";
       if (!descricao) throw new Error("Informe a peça ou o serviço");
       const quantidade = Number(item.quantidade.replace(",", ".") || 0);
       const preco = Number(item.preco.replace(",", ".") || 0);
@@ -423,7 +440,9 @@ function Assistencia() {
                       {rotuloSituacao(o.situacao)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(o.valor_pecas ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(o.valor_pecas ?? 0))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(o.valor_servicos ?? 0))}
                   </TableCell>
@@ -477,7 +496,9 @@ function Assistencia() {
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{form.id ? "Editar ordem de serviço" : "Nova ordem de serviço"}</DialogTitle>
+            <DialogTitle>
+              {form.id ? "Editar ordem de serviço" : "Nova ordem de serviço"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
@@ -498,11 +519,17 @@ function Assistencia() {
             </div>
             <div>
               <Label>Marca</Label>
-              <Input value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+              <Input
+                value={form.marca}
+                onChange={(e) => setForm({ ...form, marca: e.target.value })}
+              />
             </div>
             <div>
               <Label>Modelo</Label>
-              <Input value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
+              <Input
+                value={form.modelo}
+                onChange={(e) => setForm({ ...form, modelo: e.target.value })}
+              />
             </div>
             <div>
               <Label>Número de série</Label>
@@ -535,7 +562,10 @@ function Assistencia() {
             </div>
             <div className="sm:col-span-2">
               <Label>Laudo / serviço executado</Label>
-              <Textarea value={form.laudo} onChange={(e) => setForm({ ...form, laudo: e.target.value })} />
+              <Textarea
+                value={form.laudo}
+                onChange={(e) => setForm({ ...form, laudo: e.target.value })}
+              />
             </div>
             <div>
               <Label>Técnico responsável</Label>
@@ -545,8 +575,7 @@ function Assistencia() {
                   setForm({
                     ...form,
                     tecnico_id: v === "sem" ? "" : v,
-                    tecnico_nome:
-                      v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
+                    tecnico_nome: v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
                   })
                 }
               >
@@ -569,7 +598,10 @@ function Assistencia() {
             </div>
             <div>
               <Label>Prioridade</Label>
-              <Select value={form.prioridade} onValueChange={(v) => setForm({ ...form, prioridade: v })}>
+              <Select
+                value={form.prioridade}
+                onValueChange={(v) => setForm({ ...form, prioridade: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -582,7 +614,10 @@ function Assistencia() {
             </div>
             <div>
               <Label>Situação</Label>
-              <Select value={form.situacao} onValueChange={(v) => setForm({ ...form, situacao: v })}>
+              <Select
+                value={form.situacao}
+                onValueChange={(v) => setForm({ ...form, situacao: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -710,7 +745,10 @@ function Assistencia() {
             </div>
             <div className="sm:col-span-2">
               <Label>Preço unitário</Label>
-              <Input value={item.preco} onChange={(e) => setItem({ ...item, preco: e.target.value })} />
+              <Input
+                value={item.preco}
+                onChange={(e) => setItem({ ...item, preco: e.target.value })}
+              />
             </div>
             <div className="flex items-end sm:col-span-2">
               <Button
@@ -752,7 +790,9 @@ function Assistencia() {
                     <TableCell className="text-right text-numeric">
                       {brl(Number(i.preco_unitario))}
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{brl(Number(i.total))}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(Number(i.total))}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => removerItem.mutate(i.id)}>
                         <Trash2 className="size-4" />

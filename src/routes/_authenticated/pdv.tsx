@@ -95,7 +95,9 @@ function Pdv() {
         supabase.from("depositos").select("id, nome, filial_id").eq("ativo", true).order("nome"),
         supabase
           .from("produtos")
-          .select("id, descricao, codigo_interno, codigo_barras, unidade, unidade_venda, preco_venda")
+          .select(
+            "id, descricao, codigo_interno, codigo_barras, unidade, unidade_venda, preco_venda",
+          )
           .eq("ativo", true)
           .order("descricao"),
         supabase
@@ -141,8 +143,7 @@ function Pdv() {
 
   const disponivelPorProduto = useMemo(() => {
     const m = new Map<string, number>();
-    for (const e of estoque)
-      m.set(e.produto_id, Number(e.quantidade) - Number(e.reservado));
+    for (const e of estoque) m.set(e.produto_id, Number(e.quantidade) - Number(e.reservado));
     return m;
   }, [estoque]);
 
@@ -194,13 +195,13 @@ function Pdv() {
       produtos.find((p) => (p.codigo_interno ?? "").toLowerCase() === t) ??
       (sugestoes.length === 1 ? sugestoes[0] : null);
     if (exato) adicionar(exato);
-    else toast.error("Produto não encontrado", { description: "Confira o código ou busque pelo nome." });
+    else
+      toast.error("Produto não encontrado", {
+        description: "Confira o código ou busque pelo nome.",
+      });
   }
 
-  const subtotal = useMemo(
-    () => linhas.reduce((s, l) => s + l.quantidade * l.preco, 0),
-    [linhas],
-  );
+  const subtotal = useMemo(() => linhas.reduce((s, l) => s + l.quantidade * l.preco, 0), [linhas]);
   const descontoNum = Math.max(Number(desconto.replace(",", ".")) || 0, 0);
   const total = Math.max(subtotal - descontoNum, 0);
   const recebidoNum = Number(recebido.replace(",", ".")) || 0;
@@ -273,8 +274,7 @@ function Pdv() {
         emitidoEm: dateTimeBR(pedido?.created_at ?? new Date().toISOString()),
         loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
         deposito: nomeDeposito,
-        cliente:
-          (pedido?.clientes as { nome: string } | null)?.nome ?? nomeCliente,
+        cliente: (pedido?.clientes as { nome: string } | null)?.nome ?? nomeCliente,
         vendedor: session?.profile?.nome ?? session?.user.email ?? "—",
         itens: linhas.map((l) => ({
           descricao: l.descricao,
@@ -490,9 +490,7 @@ function Pdv() {
                           size="icon"
                           variant="outline"
                           className="size-10"
-                          onClick={() =>
-                            alterarQtd(l.produto_id, (q) => Math.max(q - 1, 0.001))
-                          }
+                          onClick={() => alterarQtd(l.produto_id, (q) => Math.max(q - 1, 0.001))}
                         >
                           <Minus className="size-4" />
                         </Button>

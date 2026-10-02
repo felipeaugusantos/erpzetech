@@ -352,12 +352,22 @@ function Prefeitura() {
                   Simples usa CSOSN; Presumido e Real usam CST na nota de venda.
                 </p>
               </div>
-              {texto("nfse_prefeitura", "Prefeitura (município)", "Cidade onde o serviço é prestado.", {
-                placeholder: "Franca",
-              })}
-              {texto("nfse_codigo_municipio", "Código IBGE do município", "Sete dígitos do município.", {
-                placeholder: "3516200",
-              })}
+              {texto(
+                "nfse_prefeitura",
+                "Prefeitura (município)",
+                "Cidade onde o serviço é prestado.",
+                {
+                  placeholder: "Franca",
+                },
+              )}
+              {texto(
+                "nfse_codigo_municipio",
+                "Código IBGE do município",
+                "Sete dígitos do município.",
+                {
+                  placeholder: "3516200",
+                },
+              )}
               <div>
                 <Label htmlFor="nfse_padrao">Padrão do sistema da prefeitura</Label>
                 <Select
@@ -390,7 +400,11 @@ function Prefeitura() {
               {texto("codigo_servico", "Código do serviço", "Código usado pela prefeitura.", {
                 placeholder: "0703",
               })}
-              {texto("item_lista_servico", "Item da lista de serviço", "3.05 é locação de bens móveis.")}
+              {texto(
+                "item_lista_servico",
+                "Item da lista de serviço",
+                "3.05 é locação de bens móveis.",
+              )}
               {texto(
                 "nfse_codigo_tributacao",
                 "Código de tributação do município",
@@ -432,9 +446,14 @@ function Prefeitura() {
               <p className="font-display text-sm font-semibold">ICMS, PIS e COFINS</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {texto("aliquota_icms_interna", "ICMS dentro do estado", "Usado nas notas de venda.", {
-                sufixo: "%",
-              })}
+              {texto(
+                "aliquota_icms_interna",
+                "ICMS dentro do estado",
+                "Usado nas notas de venda.",
+                {
+                  sufixo: "%",
+                },
+              )}
               {texto(
                 "aliquota_icms_interestadual",
                 "ICMS para outro estado",
@@ -457,7 +476,11 @@ function Prefeitura() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {texto("serie_nfse", "Série da nota de serviço", "Cada loja usa a própria série.")}
-              {texto("proximo_numero_nfse", "Próximo número", "Numeração da próxima nota de serviço.")}
+              {texto(
+                "proximo_numero_nfse",
+                "Próximo número",
+                "Numeração da próxima nota de serviço.",
+              )}
             </div>
 
             <div className="mt-5">
@@ -473,15 +496,17 @@ function Prefeitura() {
                 Como a nota de serviço usa esses dados
               </p>
               <ul className="list-disc space-y-1 pl-4">
-                <li>A nota de locação sai como nota de serviço, com ISS em vez de CFOP de venda.</li>
+                <li>
+                  A nota de locação sai como nota de serviço, com ISS em vez de CFOP de venda.
+                </li>
                 <li>Se a loja tem configuração própria, ela vale; senão, a da empresa.</li>
                 <li>
                   O módulo de locação aparece porque o CNAE da empresa permite aluguel de máquinas e
                   equipamentos.
                 </li>
                 <li>
-                  Falta a inscrição municipal, o código do serviço ou a alíquota de ISS? A nota fica em
-                  rascunho mostrando a pendência.
+                  Falta a inscrição municipal, o código do serviço ou a alíquota de ISS? A nota fica
+                  em rascunho mostrando a pendência.
                 </li>
               </ul>
             </div>

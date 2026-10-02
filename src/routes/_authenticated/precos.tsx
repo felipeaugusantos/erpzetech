@@ -11,7 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/precos")({
   head: () => ({
@@ -30,7 +37,8 @@ export const Route = createFileRoute("/_authenticated/precos")({
 
 type Edicao = { custo: string; preco: string };
 
-const margemPct = (custo: number, preco: number) => (preco > 0 ? ((preco - custo) / preco) * 100 : 0);
+const margemPct = (custo: number, preco: number) =>
+  preco > 0 ? ((preco - custo) / preco) * 100 : 0;
 
 function Precos() {
   const queryClient = useQueryClient();
@@ -43,7 +51,9 @@ function Precos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, codigo_interno, descricao, unidade, custo, preco_venda, ativo, categorias(nome)")
+        .select(
+          "id, codigo_interno, descricao, unidade, custo, preco_venda, ativo, categorias(nome)",
+        )
         .order("descricao");
       if (error) throw error;
       return data;
@@ -54,7 +64,9 @@ function Precos() {
     const t = busca.trim().toLowerCase();
     if (!t) return produtos;
     return produtos.filter((p) =>
-      [p.descricao, p.codigo_interno].filter(Boolean).some((x) => String(x).toLowerCase().includes(t)),
+      [p.descricao, p.codigo_interno]
+        .filter(Boolean)
+        .some((x) => String(x).toLowerCase().includes(t)),
     );
   }, [produtos, busca]);
 
@@ -64,7 +76,12 @@ function Precos() {
     return String(original);
   };
 
-  const setValor = (id: string, campo: keyof Edicao, valor: string, p: { custo: number; preco: number }) => {
+  const setValor = (
+    id: string,
+    campo: keyof Edicao,
+    valor: string,
+    p: { custo: number; preco: number },
+  ) => {
     setEdicoes((atual) => {
       const base = atual[id] ?? { custo: String(p.custo), preco: String(p.preco) };
       return { ...atual, [id]: { ...base, [campo]: valor } };
@@ -141,7 +158,10 @@ function Precos() {
         title="Preços e margens"
         description="Coloque aqui o custo de aquisição e o preço de venda reais da sua loja. O custo alimenta o fluxo de caixa e a cotação de compras."
         actions={
-          <Button onClick={() => salvar.mutate()} disabled={alterados.length === 0 || salvar.isPending}>
+          <Button
+            onClick={() => salvar.mutate()}
+            disabled={alterados.length === 0 || salvar.isPending}
+          >
             <Save className="size-4" /> Salvar {alterados.length > 0 ? `(${alterados.length})` : ""}
           </Button>
         }
@@ -149,9 +169,22 @@ function Precos() {
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Produtos" value={String(produtos.length)} icon={Tag} />
-        <StatCard label="Margem média" value={`${num(margemMedia, 1)}%`} icon={Percent} tone="accent" />
-        <StatCard label="Sem custo informado" value={String(semCusto)} tone={semCusto > 0 ? "warning" : "default"} />
-        <StatCard label="Sem preço de venda" value={String(semPreco)} tone={semPreco > 0 ? "danger" : "default"} />
+        <StatCard
+          label="Margem média"
+          value={`${num(margemMedia, 1)}%`}
+          icon={Percent}
+          tone="accent"
+        />
+        <StatCard
+          label="Sem custo informado"
+          value={String(semCusto)}
+          tone={semCusto > 0 ? "warning" : "default"}
+        />
+        <StatCard
+          label="Sem preço de venda"
+          value={String(semPreco)}
+          tone={semPreco > 0 ? "danger" : "default"}
+        />
       </div>
 
       <div className="panel mb-4 flex flex-wrap items-end gap-3 p-3">
@@ -177,7 +210,10 @@ function Precos() {
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
       ) : lista.length === 0 ? (
-        <EmptyState title="Nenhum produto encontrado." description="Cadastre produtos para definir preços." />
+        <EmptyState
+          title="Nenhum produto encontrado."
+          description="Cadastre produtos para definir preços."
+        />
       ) : (
         <div className="panel overflow-x-auto">
           <Table>

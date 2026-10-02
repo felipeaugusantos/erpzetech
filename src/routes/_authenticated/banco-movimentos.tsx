@@ -26,7 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/banco-movimentos")({
   head: () => ({
@@ -93,7 +100,8 @@ function BancoMovimentos() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
   const podeLancar =
-    session?.roles.some((r) => ["administrador", "gestor", "financeiro", "caixa"].includes(r)) ?? false;
+    session?.roles.some((r) => ["administrador", "gestor", "financeiro", "caixa"].includes(r)) ??
+    false;
   const podeConciliar =
     session?.roles.some((r) => ["administrador", "gestor", "financeiro"].includes(r)) ?? false;
 
@@ -105,7 +113,10 @@ function BancoMovimentos() {
     queryKey: ["banco-extrato", de, ate],
     queryFn: async () => {
       const [contasRes, movRes, anterioresRes] = await Promise.all([
-        supabase.from("contas_bancarias").select("id, apelido, banco_nome, saldo_inicial, ativa").order("apelido"),
+        supabase
+          .from("contas_bancarias")
+          .select("id, apelido, banco_nome, saldo_inicial, ativa")
+          .order("apelido"),
         supabase
           .from("banco_movimentos")
           .select("*")
@@ -239,7 +250,10 @@ function BancoMovimentos() {
 
   const conciliar = useMutation({
     mutationFn: async ({ id, valor }: { id: string; valor: boolean }) => {
-      const { error } = await supabase.rpc("banco_conciliar", { p_mov_id: id, p_conciliado: valor });
+      const { error } = await supabase.rpc("banco_conciliar", {
+        p_mov_id: id,
+        p_conciliado: valor,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -271,7 +285,10 @@ function BancoMovimentos() {
                 </Button>
                 <Button
                   onClick={() => {
-                    setLf({ ...lf, conta_id: contaFiltro !== "todas" ? contaFiltro : (contas[0]?.id ?? "") });
+                    setLf({
+                      ...lf,
+                      conta_id: contaFiltro !== "todas" ? contaFiltro : (contas[0]?.id ?? ""),
+                    });
                     setLanc(true);
                   }}
                 >
@@ -311,8 +328,18 @@ function BancoMovimentos() {
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Saldo anterior" value={brl(saldoAnterior)} hint={`antes de ${dateBR(de)}`} icon={Landmark} />
-        <StatCard label="Entradas" value={brl(resumo.entradas)} hint="No período" icon={TrendingUp} />
+        <StatCard
+          label="Saldo anterior"
+          value={brl(saldoAnterior)}
+          hint={`antes de ${dateBR(de)}`}
+          icon={Landmark}
+        />
+        <StatCard
+          label="Entradas"
+          value={brl(resumo.entradas)}
+          hint="No período"
+          icon={TrendingUp}
+        />
         <StatCard label="Saídas" value={brl(resumo.saidas)} hint="No período" icon={TrendingDown} />
         <StatCard
           label="Saldo final"

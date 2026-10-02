@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- payloads dinâmicos do emissor fiscal (ACBr) e cliente Supabase sem tipos */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -63,7 +64,12 @@ function icmsDoItem(
     if (codigo === "900") {
       return {
         ICMSSN900: {
-          orig: origem, CSOSN: "900", modBC: 3, vBC: base, pICMS: pST, vICMS: vST,
+          orig: origem,
+          CSOSN: "900",
+          modBC: 3,
+          vBC: base,
+          pICMS: pST,
+          vICMS: vST,
         },
       };
     }
@@ -109,8 +115,7 @@ async function configDaNota(supabase: any, nota: any) {
     .select("*")
     .eq("tenant_id", nota.tenant_id);
   if (error) throw error;
-  const cfg =
-    (cfgs ?? []).find((c: any) => c.empresa_id === nota.empresa_id) ?? (cfgs ?? [])[0];
+  const cfg = (cfgs ?? []).find((c: any) => c.empresa_id === nota.empresa_id) ?? (cfgs ?? [])[0];
   if (!cfg) throw new Error("Configuração fiscal não encontrada. Preencha a configuração fiscal.");
   return cfg;
 }
@@ -156,7 +161,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     if (!itens || itens.length === 0) throw new Error("A nota não tem itens");
 
     const cnpjEmitente = so(empresa.cnpj);
-    if (cnpjEmitente.length !== 14) throw new Error("CNPJ da empresa emitente inválido ou ausente.");
+    if (cnpjEmitente.length !== 14)
+      throw new Error("CNPJ da empresa emitente inválido ou ausente.");
     if (!empresa.inscricao_estadual) throw new Error("Inscrição estadual da empresa ausente.");
 
     // Código IBGE do emitente e do destinatário (busca pelo CEP quando faltar).
@@ -165,7 +171,10 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const achado = await codigoMunicipioPorCep(ambiente, empresa.cep ?? "");
       if (achado) {
         cMunEmit = achado.codigo;
-        await supabase.from("empresas").update({ codigo_municipio: achado.codigo }).eq("id", empresa.id);
+        await supabase
+          .from("empresas")
+          .update({ codigo_municipio: achado.codigo })
+          .eq("id", empresa.id);
       }
     }
     let cMunDest = cliente.codigo_municipio as string | null;
@@ -173,11 +182,20 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const achado = await codigoMunicipioPorCep(ambiente, cliente.cep ?? "");
       if (achado) {
         cMunDest = achado.codigo;
-        await supabase.from("clientes").update({ codigo_municipio: achado.codigo }).eq("id", cliente.id);
+        await supabase
+          .from("clientes")
+          .update({ codigo_municipio: achado.codigo })
+          .eq("id", cliente.id);
       }
     }
-    if (!cMunEmit) throw new Error("Não foi possível identificar o município da empresa. Confira o CEP no cadastro.");
-    if (!cMunDest) throw new Error("Não foi possível identificar o município do cliente. Confira o CEP do cliente.");
+    if (!cMunEmit)
+      throw new Error(
+        "Não foi possível identificar o município da empresa. Confira o CEP no cadastro.",
+      );
+    if (!cMunDest)
+      throw new Error(
+        "Não foi possível identificar o município do cliente. Confira o CEP do cliente.",
+      );
 
     const ufEmit = String(empresa.estado ?? "").toUpperCase();
     const ufDest = String(cliente.estado ?? "").toUpperCase();
@@ -321,11 +339,25 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         det,
         total: {
           ICMSTot: {
-            vBC: num(nota.base_icms), vICMS: num(nota.valor_icms), vICMSDeson: 0, vFCP: 0,
-            vBCST: num(nota.base_icms_st), vST: num(nota.valor_icms_st),
-            vFCPST: 0, vFCPSTRet: 0, vProd: valorProdutos, vFrete: valorFrete,
-            vSeg: 0, vDesc: valorDesconto, vII: 0, vIPI: 0, vIPIDevol: 0,
-            vPIS: num(nota.valor_pis), vCOFINS: num(nota.valor_cofins), vOutro: 0, vNF: valorTotal,
+            vBC: num(nota.base_icms),
+            vICMS: num(nota.valor_icms),
+            vICMSDeson: 0,
+            vFCP: 0,
+            vBCST: num(nota.base_icms_st),
+            vST: num(nota.valor_icms_st),
+            vFCPST: 0,
+            vFCPSTRet: 0,
+            vProd: valorProdutos,
+            vFrete: valorFrete,
+            vSeg: 0,
+            vDesc: valorDesconto,
+            vII: 0,
+            vIPI: 0,
+            vIPIDevol: 0,
+            vPIS: num(nota.valor_pis),
+            vCOFINS: num(nota.valor_cofins),
+            vOutro: 0,
+            vNF: valorTotal,
           },
         },
         transp: { modFrete: valorFrete > 0 ? 0 : 9 },
@@ -458,7 +490,8 @@ export const cancelarNfeSefaz = createServerFn({ method: "POST" })
       supabase.rpc("has_role", { _user_id: userId, _role: "administrador" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "gestor" }),
     ]);
-    if (!ehAdmin && !ehGestor) throw new Error("Somente administrador ou gestor pode cancelar a nota.");
+    if (!ehAdmin && !ehGestor)
+      throw new Error("Somente administrador ou gestor pode cancelar a nota.");
 
     const nota = await carregarNota(supabase, data.nfeId);
     if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada à Receita.");

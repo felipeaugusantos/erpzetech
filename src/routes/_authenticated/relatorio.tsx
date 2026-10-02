@@ -50,7 +50,10 @@ export const Route = createFileRoute("/_authenticated/relatorio")({
           "Resumo executivo da operação e o modelo de negócio do ERP Ze Tech com os valores reais.",
       },
       { property: "og:title", content: "Relatório do sócio — ERP Ze Tech" },
-      { property: "og:description", content: "Resumo executivo e modelo de negócio do ERP Ze Tech." },
+      {
+        property: "og:description",
+        content: "Resumo executivo e modelo de negócio do ERP Ze Tech.",
+      },
     ],
   }),
   component: Relatorio,
@@ -115,8 +118,7 @@ function Relatorio() {
       toast.success("Modelo de negócio salvo");
       qc.invalidateQueries({ queryKey: ["modelo-negocio"] });
     },
-    onError: (e: Error) =>
-      toast.error("Não foi possível salvar", { description: e.message }),
+    onError: (e: Error) => toast.error("Não foi possível salvar", { description: e.message }),
   });
 
   const { data, isLoading } = useQuery({
@@ -204,24 +206,27 @@ function Relatorio() {
     return anos.map((a) => {
       const receita = a.clientes * preco * 12 + a.clientes * Number(form.preco_implantacao);
       const custo = custoMensal * 12;
-      return { nome: a.nome, receita: Math.round(receita), custo: Math.round(custo), resultado: Math.round(receita - custo) };
+      return {
+        nome: a.nome,
+        receita: Math.round(receita),
+        custo: Math.round(custo),
+        resultado: Math.round(receita - custo),
+      };
     });
   }, [form, custoMensal]);
 
   const mrrAno1 = Number(form.meta_clientes_ano1) * Number(form.preco_mensal_loja);
   const mrrAno2 = Number(form.meta_clientes_ano2) * Number(form.preco_mensal_loja);
   const clientesEquilibrio =
-    Number(form.preco_mensal_loja) > 0 ? Math.ceil(custoMensal / Number(form.preco_mensal_loja)) : 0;
+    Number(form.preco_mensal_loja) > 0
+      ? Math.ceil(custoMensal / Number(form.preco_mensal_loja))
+      : 0;
   const mesesRetorno =
     mrrAno1 - custoMensal > 0
       ? Math.ceil(Number(form.investimento_realizado) / (mrrAno1 - custoMensal))
       : 0;
 
-  const campo = (
-    label: string,
-    chave: keyof Modelo,
-    dica?: string,
-  ) => (
+  const campo = (label: string, chave: keyof Modelo, dica?: string) => (
     <div>
       <Label>{label}</Label>
       <Input
@@ -283,7 +288,12 @@ function Relatorio() {
           hint={`${num(op.produtos, 0)} produtos cadastrados`}
         />
         <StatCard label="A receber em aberto" value={brl(op.aReceber)} icon={LineChartIcon} />
-        <StatCard label="A pagar em aberto" value={brl(op.aPagar)} icon={LineChartIcon} tone="warning" />
+        <StatCard
+          label="A pagar em aberto"
+          value={brl(op.aPagar)}
+          icon={LineChartIcon}
+          tone="warning"
+        />
         <StatCard label="Clientes" value={num(op.clientes, 0)} icon={Users} />
         <StatCard label="Obras acompanhadas" value={num(op.obras, 0)} icon={Target} />
       </div>
@@ -317,8 +327,19 @@ function Relatorio() {
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Receita recorrente — ano 1" value={brl(mrrAno1)} hint="por mês" icon={Coins} />
-        <StatCard label="Receita recorrente — ano 2" value={brl(mrrAno2)} hint="por mês" icon={Coins} tone="accent" />
+        <StatCard
+          label="Receita recorrente — ano 1"
+          value={brl(mrrAno1)}
+          hint="por mês"
+          icon={Coins}
+        />
+        <StatCard
+          label="Receita recorrente — ano 2"
+          value={brl(mrrAno2)}
+          hint="por mês"
+          icon={Coins}
+          tone="accent"
+        />
         <StatCard
           label="Custo mensal do negócio"
           value={brl(custoMensal)}

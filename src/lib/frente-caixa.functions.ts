@@ -16,9 +16,13 @@ export const autorizarGestor = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { createClient } = await import("@supabase/supabase-js");
-    const verificador = createClient(process.env["SUPABASE_URL"]!, process.env["SUPABASE_PUBLISHABLE_KEY"]!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const verificador = createClient(
+      process.env["SUPABASE_URL"]!,
+      process.env["SUPABASE_PUBLISHABLE_KEY"]!,
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+      },
+    );
     const { data: login, error } = await verificador.auth.signInWithPassword({
       email: data.email,
       password: data.senha,
@@ -34,12 +38,22 @@ export const autorizarGestor = createServerFn({ method: "POST" })
       supabaseAdmin.from("user_roles").select("role").eq("user_id", gestorId),
     ]);
     const ehGestor = (papeis ?? []).some((p) => p.role === "gestor" || p.role === "administrador");
-    if (!perfilGestor?.tenant_id || !perfilOperador || perfilGestor.tenant_id !== perfilOperador.tenant_id || !ehGestor)
+    if (
+      !perfilGestor?.tenant_id ||
+      !perfilOperador ||
+      perfilGestor.tenant_id !== perfilOperador.tenant_id ||
+      !ehGestor
+    )
       throw new Error("Este usuário não é gestor desta empresa");
 
     const { data: aut, error: e2 } = await supabaseAdmin
       .from("gestor_autorizacoes")
-      .insert({ tenant_id: perfilGestor.tenant_id, gestor_id: gestorId, operador_id: context.userId, acao: data.acao })
+      .insert({
+        tenant_id: perfilGestor.tenant_id,
+        gestor_id: gestorId,
+        operador_id: context.userId,
+        acao: data.acao,
+      })
       .select("id")
       .single();
     if (e2) throw new Error(e2.message);
@@ -74,7 +88,10 @@ export const sugerirProdutos = createServerFn({ method: "POST" })
     if (!produtos?.length) return { itens: [], observacao: "Nenhum produto cadastrado." };
 
     const catalogo = produtos
-      .map((p, i) => `P${i}|${p.descricao}|${p.unidade_venda ?? p.unidade ?? "UN"}|${Number(p.preco_venda ?? 0).toFixed(2)}`)
+      .map(
+        (p, i) =>
+          `P${i}|${p.descricao}|${p.unidade_venda ?? p.unidade ?? "UN"}|${Number(p.preco_venda ?? 0).toFixed(2)}`,
+      )
       .join("\n");
 
     const { streamText, Output } = await import("ai");
@@ -119,7 +136,8 @@ export const sugerirProdutos = createServerFn({ method: "POST" })
       return { itens, observacao: out.observacao };
     } catch (e) {
       const status = (e as { statusCode?: number }).statusCode;
-      if (status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
+      if (status === 402)
+        throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
       if (status === 429) throw new Error("Muitas consultas seguidas. Aguarde alguns segundos.");
       throw new Error("Não foi possível consultar a IA agora.");
     }

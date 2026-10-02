@@ -147,13 +147,13 @@ function BalancoFiscal() {
     const itensPedidos = (data?.pedidos ?? [])
       .filter((p) => filialSel === "todas" || p.filial_id === filialSel)
       .flatMap(
-      (p) =>
-        (p.pedido_itens ?? []) as Array<{
-          quantidade: number;
-          custo_unitario: number;
-          total: number;
-        }>,
-    );
+        (p) =>
+          (p.pedido_itens ?? []) as Array<{
+            quantidade: number;
+            custo_unitario: number;
+            total: number;
+          }>,
+      );
     const receitaVendas = itensPedidos.reduce((s, i) => s + Number(i.total), 0);
     const custoVendas = itensPedidos.reduce(
       (s, i) => s + Number(i.quantidade) * Number(i.custo_unitario),
@@ -213,8 +213,13 @@ function BalancoFiscal() {
       const d = m.depositos as unknown as { nome: string; filial_id: string | null } | null;
       if (filialSel !== "todas" && d?.filial_id !== filialSel) continue;
       const nome = d?.nome ?? "Sem depósito";
-      const atual =
-        porDeposito.get(nome) ?? { nome, entradas: 0, saidas: 0, ajustes: 0, ajusteQtd: 0 };
+      const atual = porDeposito.get(nome) ?? {
+        nome,
+        entradas: 0,
+        saidas: 0,
+        ajustes: 0,
+        ajusteQtd: 0,
+      };
       const valor = Number(m.valor_total ?? 0);
       if (m.tipo === "entrada") {
         atual.entradas += valor;
@@ -273,7 +278,6 @@ function BalancoFiscal() {
       lista: [...mapa.values()].sort((a, b) => b.receita - a.receita),
     };
   }, [data?.pedidos, filialSel]);
-
 
   const linhas = [
     { conta: "1. Receita de notas emitidas", valor: contas.receitaNotas, tipo: "receita" },
@@ -343,14 +347,19 @@ function BalancoFiscal() {
           </Select>
         </div>
         <p className="text-xs text-muted-foreground sm:pb-2">
-          É o mesmo período do painel e do relatório de lucro — mudou aqui, muda lá. A loja considera
-          o depósito de onde a mercadoria saiu.
+          É o mesmo período do painel e do relatório de lucro — mudou aqui, muda lá. A loja
+          considera o depósito de onde a mercadoria saiu.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Receita em notas" value={brl(contas.receitaNotas)} icon={Receipt} />
-        <StatCard label="Custo das mercadorias" value={brl(contas.custoNotas)} icon={Coins} tone="warning" />
+        <StatCard
+          label="Custo das mercadorias"
+          value={brl(contas.custoNotas)}
+          icon={Coins}
+          tone="warning"
+        />
         <StatCard
           label="ICMS do período"
           value={brl(contas.icms + contas.icmsST)}
@@ -467,7 +476,9 @@ function BalancoFiscal() {
         </div>
 
         <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Receita, custo, ICMS e lucro por mês</h2>
+          <h2 className="font-display text-sm font-semibold">
+            Receita, custo, ICMS e lucro por mês
+          </h2>
           {porMes.length === 0 ? (
             <EmptyState
               className="mt-4 border-0 shadow-none"
@@ -483,10 +494,25 @@ function BalancoFiscal() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => brl(Number(v))} />
                   <Legend />
-                  <Bar dataKey="receita" name="Receita" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="receita"
+                    name="Receita"
+                    fill="var(--chart-1)"
+                    radius={[4, 4, 0, 0]}
+                  />
                   <Bar dataKey="custo" name="Custo" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="icms" name="ICMS próprio" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="icmsST" name="ICMS ST" fill="var(--chart-5)" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="icms"
+                    name="ICMS próprio"
+                    fill="var(--chart-3)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="icmsST"
+                    name="ICMS ST"
+                    fill="var(--chart-5)"
+                    radius={[4, 4, 0, 0]}
+                  />
                   <Bar dataKey="lucro" name="Lucro" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

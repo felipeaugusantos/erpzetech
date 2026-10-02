@@ -35,7 +35,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/depositos/$id")({
   head: () => ({
@@ -43,7 +50,8 @@ export const Route = createFileRoute("/_authenticated/depositos/$id")({
       { title: "Depósito — ERP Ze Tech" },
       {
         name: "description",
-        content: "Estoque físico, reservado e disponível por produto no depósito, com transferência e ajuste.",
+        content:
+          "Estoque físico, reservado e disponível por produto no depósito, com transferência e ajuste.",
       },
       { property: "og:title", content: "Depósito — ERP Ze Tech" },
       {
@@ -166,8 +174,7 @@ function DepositoDetalhe() {
       setTransf({ ...transf, aberto: false, quantidade: "", motivo: "", documento: "" });
       invalidar();
     },
-    onError: (e: Error) =>
-      toast.error("Não foi possível transferir", { description: e.message }),
+    onError: (e: Error) => toast.error("Não foi possível transferir", { description: e.message }),
   });
 
   const ajustar = useMutation({
@@ -204,7 +211,8 @@ function DepositoDetalhe() {
       invalidar();
       qc.invalidateQueries({ queryKey: ["precos-produtos"] });
     },
-    onError: (e: Error) => toast.error("Não foi possível salvar o custo", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível salvar o custo", { description: e.message }),
   });
 
   const totalFisico = linhas.reduce((s, l) => s + l.fisico, 0);
@@ -244,7 +252,12 @@ function DepositoDetalhe() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Físico" value={num(totalFisico)} icon={Boxes} />
-        <StatCard label="Reservado" value={num(totalReservado)} icon={ArrowLeftRight} tone="warning" />
+        <StatCard
+          label="Reservado"
+          value={num(totalReservado)}
+          icon={ArrowLeftRight}
+          tone="warning"
+        />
         <StatCard
           label="Disponível"
           value={num(totalFisico - totalReservado)}
@@ -548,7 +561,9 @@ function DepositoDetalhe() {
             </Button>
             <Button
               onClick={() => ajustar.mutate()}
-              disabled={ajuste.quantidade === "" || Number(ajuste.quantidade) < 0 || ajustar.isPending}
+              disabled={
+                ajuste.quantidade === "" || Number(ajuste.quantidade) < 0 || ajustar.isPending
+              }
             >
               Confirmar ajuste
             </Button>

@@ -27,7 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -35,7 +42,8 @@ export const Route = createFileRoute("/_authenticated/estoque")({
       { title: "Estoque — ERP Ze Tech" },
       {
         name: "description",
-        content: "Estoque físico, reservado e disponível por produto e depósito, com movimentações.",
+        content:
+          "Estoque físico, reservado e disponível por produto e depósito, com movimentações.",
       },
       { property: "og:title", content: "Estoque — ERP Ze Tech" },
       { property: "og:description", content: "Controle de saldo por depósito com reserva." },
@@ -107,7 +115,14 @@ function Estoque() {
         const d = e.depositos as unknown as { nome: string } | null;
         const fisico = Number(e.quantidade);
         const reservado = Number(e.reservado);
-        return { e, p, deposito: d?.nome ?? "—", fisico, reservado, disponivel: fisico - reservado };
+        return {
+          e,
+          p,
+          deposito: d?.nome ?? "—",
+          fisico,
+          reservado,
+          disponivel: fisico - reservado,
+        };
       })
       .filter((l) => {
         if (!l.p) return false;
@@ -166,9 +181,25 @@ function Estoque() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Quantidade física" value={num(totalFisico)} icon={Boxes} />
-        <StatCard label="Reservado" value={num(totalReservado)} icon={ArrowLeftRight} tone="warning" />
-        <StatCard label="Disponível" value={num(totalFisico - totalReservado)} icon={TrendingDown} tone="success" />
-        <StatCard label="Sem disponibilidade" value={num(zerados, 0)} icon={PackageX} tone="danger" hint={`Valor total ${brl(totalValor)}`} />
+        <StatCard
+          label="Reservado"
+          value={num(totalReservado)}
+          icon={ArrowLeftRight}
+          tone="warning"
+        />
+        <StatCard
+          label="Disponível"
+          value={num(totalFisico - totalReservado)}
+          icon={TrendingDown}
+          tone="success"
+        />
+        <StatCard
+          label="Sem disponibilidade"
+          value={num(zerados, 0)}
+          icon={PackageX}
+          tone="danger"
+          hint={`Valor total ${brl(totalValor)}`}
+        />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -256,7 +287,12 @@ function Estoque() {
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {formatConverted(l.fisico, l.p.unidade, l.p.unidade_compra, Number(l.p.fator_conversao))}
+                      {formatConverted(
+                        l.fisico,
+                        l.p.unidade,
+                        l.p.unidade_compra,
+                        Number(l.p.fator_conversao),
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -313,7 +349,10 @@ function Estoque() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>Depósito de origem</Label>
-                <Select value={mov.deposito_id} onValueChange={(v) => setMov({ ...mov, deposito_id: v })}>
+                <Select
+                  value={mov.deposito_id}
+                  onValueChange={(v) => setMov({ ...mov, deposito_id: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -329,7 +368,10 @@ function Estoque() {
               {mov.tipo === "transferencia_saida" && (
                 <div>
                   <Label>Depósito de destino</Label>
-                  <Select value={mov.destino_id} onValueChange={(v) => setMov({ ...mov, destino_id: v })}>
+                  <Select
+                    value={mov.destino_id}
+                    onValueChange={(v) => setMov({ ...mov, destino_id: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>

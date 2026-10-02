@@ -12,7 +12,9 @@ type Entrada = { clienteId: string; email: string; senha: string };
 export const criarAdminCliente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Entrada) => {
-    const email = String(input.email ?? "").trim().toLowerCase();
+    const email = String(input.email ?? "")
+      .trim()
+      .toLowerCase();
     const senha = String(input.senha ?? "");
     if (!input.clienteId) throw new Error("Cliente não informado");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("E-mail inválido");
@@ -33,7 +35,8 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
       .maybeSingle();
     if (erroCliente) throw erroCliente;
     if (!cliente) throw new Error("Cliente não encontrado");
-    if (cliente.admin_user_id) throw new Error("Este cliente já possui um administrador cadastrado");
+    if (cliente.admin_user_id)
+      throw new Error("Este cliente já possui um administrador cadastrado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

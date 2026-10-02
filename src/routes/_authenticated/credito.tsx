@@ -18,7 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/credito")({
   head: () => ({
@@ -85,7 +92,9 @@ function Credito() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id, numero, total, situacao, created_at, cliente_id, clientes(nome, limite_credito)")
+        .select(
+          "id, numero, total, situacao, created_at, cliente_id, clientes(nome, limite_credito)",
+        )
         .eq("forma_pagamento", "crediario")
         .not("situacao", "in", "(cancelado,concluido)")
         .order("numero", { ascending: false });
@@ -305,13 +314,13 @@ function Credito() {
                 {autorizacoes.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell className="text-sm">{dateTimeBR(a.created_at)}</TableCell>
-                    <TableCell>
-                      {(a.clientes as { nome: string } | null)?.nome ?? "—"}
-                    </TableCell>
+                    <TableCell>{(a.clientes as { nome: string } | null)?.nome ?? "—"}</TableCell>
                     <TableCell className="text-numeric">
                       {(a.pedidos as { numero: number } | null)?.numero ?? "—"}
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{brl(Number(a.valor))}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(Number(a.valor))}
+                    </TableCell>
                     <TableCell className="text-sm">{a.motivo ?? "—"}</TableCell>
                     <TableCell>
                       <Badge

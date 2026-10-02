@@ -27,7 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
@@ -114,8 +121,7 @@ const SITUACAO_LABEL: Record<string, string> = {
 function Planos() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
-  const podeEditar =
-    session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
+  const podeEditar = session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
   /** Implantar filial extra é operação exclusiva da equipe Ze Tech. */
   const { data: operadorSaas } = useSaasOperador();
 
@@ -416,7 +422,8 @@ function Planos() {
                 <TableBody>
                   {faturas.map((f) => {
                     const falta = Math.max(Number(f.valor) - Number(f.valor_pago), 0);
-                    const atrasada = falta > 0 && f.vencimento < new Date().toISOString().slice(0, 10);
+                    const atrasada =
+                      falta > 0 && f.vencimento < new Date().toISOString().slice(0, 10);
                     return (
                       <TableRow key={f.id}>
                         <TableCell className="max-w-[18rem] truncate">{f.descricao}</TableCell>

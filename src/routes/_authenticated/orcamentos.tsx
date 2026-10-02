@@ -154,11 +154,7 @@ function Orcamentos() {
             .order("descricao"),
           supabase.from("depositos").select("id, nome").eq("ativo", true).order("nome"),
           supabase.from("profiles").select("id, nome, codigo").eq("ativo", true).order("nome"),
-          supabase
-            .from("profissionais")
-            .select("id, nome, codigo")
-            .eq("ativo", true)
-            .order("nome"),
+          supabase.from("profissionais").select("id, nome, codigo").eq("ativo", true).order("nome"),
         ]);
       return {
         orcamentos: orcamentos.data ?? [],
@@ -212,10 +208,7 @@ function Orcamentos() {
     [data, clienteId],
   );
 
-  const subtotal = itens.reduce(
-    (s, i) => s + (i.quantidade * i.preco_unitario - i.desconto),
-    0,
-  );
+  const subtotal = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario - i.desconto), 0);
   const total = Math.max(0, subtotal - Number(desconto || 0) + Number(frete || 0));
 
   function limpar() {
@@ -289,8 +282,8 @@ function Orcamentos() {
     mutationFn: async ({ id, situacao }: { id: string; situacao: string }) => {
       const patch: Record<string, unknown> = { situacao };
       if (situacao === "aprovado") {
-        patch['aprovado_em'] = new Date().toISOString();
-        patch['aprovado_por'] = session?.user.id ?? null;
+        patch["aprovado_em"] = new Date().toISOString();
+        patch["aprovado_por"] = session?.user.id ?? null;
       }
       const { error } = await supabase
         .from("orcamentos")
@@ -320,18 +313,23 @@ function Orcamentos() {
       qc.invalidateQueries({ queryKey: ["orcamentos"] });
       navigate({ to: "/pedidos/$id", params: { id: pedidoId } });
     },
-    onError: (e: Error) => toast.error("Não foi possível gerar o pedido", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível gerar o pedido", { description: e.message }),
   });
 
   const totais = useMemo(() => {
     const l = data?.orcamentos ?? [];
-    const abertos = l.filter((o) =>
-      ["rascunho", "enviado", "em_negociacao"].includes(o.situacao),
-    );
+    const abertos = l.filter((o) => ["rascunho", "enviado", "em_negociacao"].includes(o.situacao));
     const aprovados = l.filter((o) => o.situacao === "aprovado");
     const valorAberto = abertos.reduce((s, o) => s + Number(o.total), 0);
     const ticket = l.length ? l.reduce((s, o) => s + Number(o.total), 0) / l.length : 0;
-    return { total: l.length, abertos: abertos.length, aprovados: aprovados.length, valorAberto, ticket };
+    return {
+      total: l.length,
+      abertos: abertos.length,
+      aprovados: aprovados.length,
+      valorAberto,
+      ticket,
+    };
   }, [data]);
 
   const orcamentoAtual = (data?.orcamentos ?? []).find((o) => o.id === detalhe);
@@ -430,7 +428,9 @@ function Orcamentos() {
                       {(o.obras as unknown as { nome: string } | null)?.nome ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm">{dateBR(o.validade)}</TableCell>
-                    <TableCell className="text-right font-semibold">{brl(Number(o.total))}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {brl(Number(o.total))}
+                    </TableCell>
                     <TableCell>
                       <span
                         className={`rounded-md px-2 py-1 text-xs font-medium ${cores[o.situacao] ?? "bg-secondary"}`}
@@ -454,7 +454,9 @@ function Orcamentos() {
                               variant="ghost"
                               size="icon"
                               aria-label="Aprovar"
-                              onClick={() => mudarSituacao.mutate({ id: o.id, situacao: "aprovado" })}
+                              onClick={() =>
+                                mudarSituacao.mutate({ id: o.id, situacao: "aprovado" })
+                              }
                             >
                               <Check className="size-4 text-success" />
                             </Button>
@@ -462,7 +464,9 @@ function Orcamentos() {
                               variant="ghost"
                               size="icon"
                               aria-label="Rejeitar"
-                              onClick={() => mudarSituacao.mutate({ id: o.id, situacao: "rejeitado" })}
+                              onClick={() =>
+                                mudarSituacao.mutate({ id: o.id, situacao: "rejeitado" })
+                              }
                             >
                               <X className="size-4 text-destructive" />
                             </Button>
@@ -611,7 +615,9 @@ function Orcamentos() {
                         <TableRow key={`${i.produto_id}-${idx}`}>
                           <TableCell className="text-sm">
                             {i.descricao}
-                            <span className="ml-1 text-xs text-muted-foreground">({i.unidade})</span>
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              ({i.unidade})
+                            </span>
                           </TableCell>
                           <TableCell>
                             <Input
@@ -639,7 +645,9 @@ function Orcamentos() {
                               onChange={(e) =>
                                 setItens((prev) =>
                                   prev.map((x, j) =>
-                                    j === idx ? { ...x, preco_unitario: Number(e.target.value) } : x,
+                                    j === idx
+                                      ? { ...x, preco_unitario: Number(e.target.value) }
+                                      : x,
                                   ),
                                 )
                               }
@@ -814,34 +822,39 @@ function Orcamentos() {
               Frete <strong className="ml-1">{brl(Number(orcamentoAtual?.frete ?? 0))}</strong>
             </span>
             <span>
-              Desconto <strong className="ml-1">{brl(Number(orcamentoAtual?.desconto ?? 0))}</strong>
+              Desconto{" "}
+              <strong className="ml-1">{brl(Number(orcamentoAtual?.desconto ?? 0))}</strong>
             </span>
             <span>
-              Total <strong className="ml-1 text-lg">{brl(Number(orcamentoAtual?.total ?? 0))}</strong>
+              Total{" "}
+              <strong className="ml-1 text-lg">{brl(Number(orcamentoAtual?.total ?? 0))}</strong>
             </span>
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setVia(true)}>
               <Printer className="mr-2 size-4" /> Imprimir orçamento
             </Button>
-            {orcamentoAtual && ["rascunho", "enviado", "em_negociacao"].includes(orcamentoAtual.situacao) && (
-              <Select
-                onValueChange={(v) => mudarSituacao.mutate({ id: orcamentoAtual.id, situacao: v })}
-              >
-                <SelectTrigger className="w-52">
-                  <SelectValue placeholder="Alterar situação" />
-                </SelectTrigger>
-                <SelectContent>
-                  {situacoes
-                    .filter((s) => s.value !== orcamentoAtual.situacao)
-                    .map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
+            {orcamentoAtual &&
+              ["rascunho", "enviado", "em_negociacao"].includes(orcamentoAtual.situacao) && (
+                <Select
+                  onValueChange={(v) =>
+                    mudarSituacao.mutate({ id: orcamentoAtual.id, situacao: v })
+                  }
+                >
+                  <SelectTrigger className="w-52">
+                    <SelectValue placeholder="Alterar situação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {situacoes
+                      .filter((s) => s.value !== orcamentoAtual.situacao)
+                      .map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
             <Button variant="outline" onClick={() => setDetalhe(null)}>
               Fechar
             </Button>
@@ -877,7 +890,10 @@ function Orcamentos() {
             <Button variant="outline" onClick={() => setConverter(null)}>
               Cancelar
             </Button>
-            <Button onClick={() => gerarPedido.mutate()} disabled={!depositoId || gerarPedido.isPending}>
+            <Button
+              onClick={() => gerarPedido.mutate()}
+              disabled={!depositoId || gerarPedido.isPending}
+            >
               Gerar pedido e reservar
             </Button>
           </DialogFooter>
@@ -904,13 +920,14 @@ function Orcamentos() {
                 numero: String(orcamentoAtual.numero).padStart(4, "0"),
                 emitidoEm: dateBR(orcamentoAtual.created_at),
                 loja:
-                  session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
+                  session?.empresa?.nome_fantasia ??
+                  session?.empresa?.razao_social ??
+                  "ERP Ze Tech",
                 cliente:
                   (orcamentoAtual.clientes as unknown as { nome: string } | null)?.nome ??
                   "Consumidor final",
                 obra: (orcamentoAtual.obras as unknown as { nome: string } | null)?.nome ?? null,
-                situacao:
-                  situacoes.find((s) => s.value === orcamentoAtual.situacao)?.label ?? null,
+                situacao: situacoes.find((s) => s.value === orcamentoAtual.situacao)?.label ?? null,
                 validade: orcamentoAtual.validade ? dateBR(orcamentoAtual.validade) : null,
                 condicao: orcamentoAtual.condicao_pagamento,
                 prazo: orcamentoAtual.prazo_entrega,

@@ -280,13 +280,22 @@ function NfeEntrada() {
       ) : (
         <>
           <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Fornecedor" value={lida.fornecedor.razao_social} hint={lida.fornecedor.cnpj ?? ""} />
+            <StatCard
+              label="Fornecedor"
+              value={lida.fornecedor.razao_social}
+              hint={lida.fornecedor.cnpj ?? ""}
+            />
             <StatCard
               label="Nota"
               value={`nº ${lida.nota.numero ?? "—"}`}
               hint={lida.nota.emissao ? dateBR(lida.nota.emissao) : arquivo}
             />
-            <StatCard label="Itens" value={String(resumo.itens)} hint={`${resumo.novos} produto(s) novo(s)`} tone="warning" />
+            <StatCard
+              label="Itens"
+              value={String(resumo.itens)}
+              hint={`${resumo.novos} produto(s) novo(s)`}
+              tone="warning"
+            />
             <StatCard label="Valor dos produtos" value={brl(resumo.total)} tone="accent" />
           </div>
 
@@ -380,8 +389,12 @@ function NfeEntrada() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-numeric">{num(item.quantidade)}</TableCell>
-                      <TableCell className="text-right text-numeric">{brl(item.custo_unitario)}</TableCell>
+                      <TableCell className="text-right text-numeric">
+                        {num(item.quantidade)}
+                      </TableCell>
+                      <TableCell className="text-right text-numeric">
+                        {brl(item.custo_unitario)}
+                      </TableCell>
                       <TableCell className="text-right text-numeric">{brl(item.total)}</TableCell>
                     </TableRow>
                   );
@@ -419,14 +432,20 @@ function NfeEntrada() {
               {(importadas ?? []).map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <Link className="font-medium underline-offset-2 hover:underline" to="/compras/$id" params={{ id: c.id }}>
+                    <Link
+                      className="font-medium underline-offset-2 hover:underline"
+                      to="/compras/$id"
+                      params={{ id: c.id }}
+                    >
                       nº {c.numero}
                     </Link>
                   </TableCell>
                   <TableCell>{c.fornecedores?.razao_social ?? "—"}</TableCell>
                   <TableCell>{c.nfe_numero ?? "—"}</TableCell>
                   <TableCell>{c.nfe_emissao ? dateBR(c.nfe_emissao) : "—"}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(c.total ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(c.total ?? 0))}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

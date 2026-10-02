@@ -70,6 +70,19 @@ export function usePeriodo() {
 
 export function rotuloMes(mes: string) {
   const [ano, m] = mes.split("-");
-  const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const nomes = [
+    "jan",
+    "fev",
+    "mar",
+    "abr",
+    "mai",
+    "jun",
+    "jul",
+    "ago",
+    "set",
+    "out",
+    "nov",
+    "dez",
+  ];
   return `${nomes[Number(m) - 1] ?? m}/${String(ano).slice(2)}`;
 }

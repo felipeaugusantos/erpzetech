@@ -23,7 +23,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +50,10 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
     meta: [
       { title: "Usuários e perfis — ERP Ze Tech" },
-      { name: "description", content: "Usuários da empresa, perfis de acesso e permissões por módulo." },
+      {
+        name: "description",
+        content: "Usuários da empresa, perfis de acesso e permissões por módulo.",
+      },
       { property: "og:title", content: "Usuários e perfis — ERP Ze Tech" },
       { property: "og:description", content: "Controle de acesso da equipe." },
     ],
@@ -63,7 +73,6 @@ const formVazio = {
   perfis: ["vendedor"] as string[],
 };
 
-
 function Usuarios() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
@@ -73,10 +82,7 @@ function Usuarios() {
     queryKey: ["usuarios"],
     queryFn: async () => {
       const [perfilsRes, rolesRes, permsRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, nome, codigo, email, ativo, filial_id")
-          .order("nome"),
+        supabase.from("profiles").select("id, nome, codigo, email, ativo, filial_id").order("nome"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("role_permissoes").select("*").order("modulo"),
       ]);
@@ -213,7 +219,6 @@ function Usuarios() {
 
   const modulos = [...new Set((data?.permissoes ?? []).map((p) => p.modulo))];
 
-
   return (
     <>
       <PageHeader
@@ -236,7 +241,6 @@ function Usuarios() {
             </div>
           )}
           {isLoading ? (
-
             <div className="panel h-52 animate-pulse" />
           ) : (data?.usuarios.length ?? 0) === 0 ? (
             <EmptyState title="Nenhum usuário encontrado." />
@@ -252,7 +256,6 @@ function Usuarios() {
                     <TableHead className="w-40">Filial</TableHead>
                     <TableHead className="w-28 text-center">Situação</TableHead>
                     <TableHead className="w-28 text-right">Ações</TableHead>
-
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -358,7 +361,6 @@ function Usuarios() {
             O administrador cadastra os operadores com e-mail e senha provisória, escolhe os perfis
             de acesso e pode ativar, inativar ou trocar a senha quando precisar.
           </p>
-
         </TabsContent>
 
         <TabsContent value="permissoes" className="mt-4">
@@ -615,6 +617,5 @@ function Usuarios() {
         </DialogContent>
       </Dialog>
     </>
-
   );
 }
