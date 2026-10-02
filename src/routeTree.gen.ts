@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
+import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
@@ -120,6 +121,11 @@ const AuthRoute = AuthRouteImport.update({
 const ContatoRoute = ContatoRouteImport.update({
   id: '/contato',
   path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoasVindasRoute = BoasVindasRouteImport.update({
+  id: '/boas-vindas',
+  path: '/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
@@ -622,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -716,6 +723,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -812,6 +820,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -908,6 +917,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/ze-tech-login'
+    | '/boas-vindas'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1002,6 +1012,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/ze-tech-login'
+    | '/boas-vindas'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1097,6 +1108,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contato'
     | '/ze-tech-login'
+    | '/boas-vindas'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/balanco-fiscal'
@@ -1193,6 +1205,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContatoRoute: typeof ContatoRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  BoasVindasRoute: typeof BoasVindasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1230,6 +1243,13 @@ declare module '@tanstack/react-router' {
       path: '/ze-tech-login'
       fullPath: '/ze-tech-login'
       preLoaderRoute: typeof ZeTechLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/boas-vindas': {
+      id: '/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof BoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/assistencia': {
@@ -2044,6 +2064,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContatoRoute: ContatoRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  BoasVindasRoute: BoasVindasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
