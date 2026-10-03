@@ -1,3 +1,5 @@
+import { FUSO_HORARIO } from "./fuso.ts";
+
 export const brl = (value: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value ?? 0));
 
@@ -17,12 +19,13 @@ export const dateBR = (value: string | null | undefined) => {
   if (!value) return "—";
   const dia = SOMENTE_DATA.exec(value);
   if (dia) return `${dia[3]}/${dia[2]}/${dia[1]}`;
-  return new Date(value).toLocaleDateString("pt-BR");
+  return new Date(value).toLocaleDateString("pt-BR", { timeZone: FUSO_HORARIO });
 };
 
 export const dateTimeBR = (value: string | null | undefined) =>
   value
     ? new Date(value).toLocaleString("pt-BR", {
+        timeZone: FUSO_HORARIO,
         day: "2-digit",
         month: "2-digit",
         year: "2-digit",

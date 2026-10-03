@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-// Os usuários estão no Brasil: as datas precisam sair certas no fuso de Brasília.
-process.env["TZ"] = "America/Sao_Paulo";
+// O servidor e outros aparelhos podem estar em outro fuso: as datas saem sempre no de Brasília.
+process.env["TZ"] = "UTC";
 
 import { brl, dateBR, dateTimeBR, formatConverted, initials, num } from "../src/lib/format.ts";
 

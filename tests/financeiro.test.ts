@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 
-// Os usuários estão no Brasil: "hoje" é a data de Brasília, não a de Greenwich.
-process.env["TZ"] = "America/Sao_Paulo";
+// Roda em UTC (como o servidor): "hoje" continua sendo a data de Brasília.
+process.env["TZ"] = "UTC";
 
 import {
   corConta,
