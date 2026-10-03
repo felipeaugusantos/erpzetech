@@ -132,8 +132,6 @@ function ZeTechRelatorioFiscal() {
     [linhas],
   );
 
-
-
   function exportarPdf() {
     if (linhas.length === 0) {
       toast.error("Nenhum dado no período para exportar.");
@@ -231,10 +229,7 @@ function ZeTechRelatorioFiscal() {
       doc.text("Barras: entradas (escura), saídas (média) e impostos (clara)", 14, 22);
 
       const base = 150;
-      const maximo = Math.max(
-        ...grafico.map((g) => Math.max(g.entradas, g.saidas, g.impostos)),
-        1,
-      );
+      const maximo = Math.max(...grafico.map((g) => Math.max(g.entradas, g.saidas, g.impostos)), 1);
       const larguraGrupo = 26;
       const larguraBarra = 7;
       doc.line(14, base, 290, base);
@@ -256,7 +251,6 @@ function ZeTechRelatorioFiscal() {
         doc.text(brl(g.entradas), x0, base + 10, { maxWidth: larguraGrupo - 2 });
       });
     }
-
 
     doc.save(`ze-tech-fiscal-${periodo.de}-a-${periodo.ate}.pdf`);
     toast.success("Relatório exportado em PDF.");
@@ -341,16 +335,24 @@ function ZeTechRelatorioFiscal() {
                 <YAxis fontSize={11} tickFormatter={(v) => brl(Number(v))} width={90} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Legend />
-                <Bar dataKey="entradas" name="Entradas" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="entradas"
+                  name="Entradas"
+                  fill="var(--primary)"
+                  radius={[4, 4, 0, 0]}
+                />
                 <Bar dataKey="saidas" name="Saídas" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="impostos" name="Impostos" fill="var(--muted-foreground)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="impostos"
+                  name="Impostos"
+                  fill="var(--muted-foreground)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       )}
-
-
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
@@ -390,8 +392,12 @@ function ZeTechRelatorioFiscal() {
                     {l.cliente}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{l.plano ?? "—"}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.entradas ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.saidas ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.entradas ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.saidas ?? 0))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.saldo_estoque ?? 0))}
                   </TableCell>
@@ -410,11 +416,21 @@ function ZeTechRelatorioFiscal() {
                   <TableCell className="text-right text-numeric">
                     {brl(Number(l.iss_servico ?? 0))}
                   </TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.icms ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.icms_st ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.pis ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.cofins ?? 0))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(l.iss ?? 0))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.icms ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.icms_st ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.pis ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.cofins ?? 0))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(l.iss ?? 0))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric font-semibold">
                     {brl(Number(l.impostos ?? 0))}
                   </TableCell>

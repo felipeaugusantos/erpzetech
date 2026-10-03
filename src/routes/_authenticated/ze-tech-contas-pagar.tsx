@@ -20,8 +20,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-contas-pagar")({
   head: () => ({
@@ -334,7 +347,9 @@ function ContasPagarZeTech() {
                 <TableRow key={c.id}>
                   <TableCell
                     className={
-                      c.status === "atrasada" ? "font-semibold text-destructive" : "text-muted-foreground"
+                      c.status === "atrasada"
+                        ? "font-semibold text-destructive"
+                        : "text-muted-foreground"
                     }
                   >
                     {dateBR(c.vencimento)}
@@ -345,12 +360,18 @@ function ContasPagarZeTech() {
                       {CATEGORIAS.find((k) => k.value === c.categoria)?.label ?? c.categoria ?? "—"}
                     </p>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{nomeCliente(c.cliente_id)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {nomeCliente(c.cliente_id)}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{nomeLoja(c.loja_id)}</TableCell>
                   <TableCell className="text-muted-foreground">{c.fornecedor ?? "—"}</TableCell>
                   <TableCell className="text-right text-numeric">{brl(Number(c.valor))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(c.valor_pago))}</TableCell>
-                  <TableCell className="text-right text-numeric font-semibold">{brl(c.saldo)}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(c.valor_pago))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric font-semibold">
+                    {brl(c.saldo)}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       className={
@@ -361,7 +382,11 @@ function ContasPagarZeTech() {
                             : "bg-warning/15 text-warning-foreground"
                       }
                     >
-                      {c.status === "paga" ? "Paga" : c.status === "atrasada" ? "Vencida" : "A vencer"}
+                      {c.status === "paga"
+                        ? "Paga"
+                        : c.status === "atrasada"
+                          ? "Vencida"
+                          : "A vencer"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -457,7 +482,10 @@ function ContasPagarZeTech() {
             </div>
             <div>
               <Label>Categoria</Label>
-              <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
+              <Select
+                value={form.categoria}
+                onValueChange={(v) => setForm({ ...form, categoria: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -487,7 +515,10 @@ function ContasPagarZeTech() {
             </div>
             <div>
               <Label>Valor</Label>
-              <Input value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
+              <Input
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+              />
             </div>
             <div>
               <Label>Forma de pagamento</Label>

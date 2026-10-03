@@ -1,23 +1,28 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, CircleDollarSign, Users, Wallet } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { brl, dateBR } from "@/lib/format";
 import { usePeriodo } from "@/lib/periodo";
-import { SITUACAO_SAAS, TIPO_FATURA_SAAS, diasEntre, useSaasDados, useSaasOperador } from "@/lib/saas";
+import {
+  SITUACAO_SAAS,
+  TIPO_FATURA_SAAS,
+  diasEntre,
+  useSaasDados,
+  useSaasOperador,
+} from "@/lib/saas";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-relatorios")({
@@ -162,7 +167,9 @@ function RelatoriosZeTech() {
 
           <TabsContent value="planos" className="mt-4 grid gap-4">
             <div className="panel p-4">
-              <p className="mb-3 font-display text-sm font-semibold">Receita recorrente por plano</p>
+              <p className="mb-3 font-display text-sm font-semibold">
+                Receita recorrente por plano
+              </p>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={porPlano}>

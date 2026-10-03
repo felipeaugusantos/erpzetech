@@ -27,7 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/filial-extra")({
   head: () => ({
@@ -66,7 +73,9 @@ function FilialExtra() {
         supabase.from("depositos").select("*").order("nome"),
         supabase
           .from("produtos")
-          .select("id, codigo_interno, descricao, unidade, custo, preco_venda, ncm, cfop, cst_csosn")
+          .select(
+            "id, codigo_interno, descricao, unidade, custo, preco_venda, ncm, cfop, cst_csosn",
+          )
           .eq("ativo", true)
           .order("descricao"),
         supabase.from("fiscal_config").select("*"),
@@ -348,7 +357,9 @@ function FilialExtra() {
           title="Nenhuma filial cadastrada."
           description="A abertura de uma nova filial é feita pela equipe Ze Tech. Fale com a Ze Tech para liberar a filial extra."
           action={
-            operadorSaas ? <Button onClick={() => setNovaAberta(true)}>Nova filial</Button> : undefined
+            operadorSaas ? (
+              <Button onClick={() => setNovaAberta(true)}>Nova filial</Button>
+            ) : undefined
           }
         />
       ) : (
@@ -375,7 +386,9 @@ function FilialExtra() {
             />
             <StatCard
               label="NF-e da filial"
-              value={fiscal ? `Série ${fiscal.serie} · nº ${fiscal.proximo_numero}` : "não configurada"}
+              value={
+                fiscal ? `Série ${fiscal.serie} · nº ${fiscal.proximo_numero}` : "não configurada"
+              }
               hint={fiscal?.ambiente === "producao" ? "Ambiente real" : "Ambiente de teste"}
               icon={FileText}
               tone={semFiscal > 0 ? "warning" : "success"}
@@ -457,9 +470,7 @@ function FilialExtra() {
                       <TableCell className="text-right text-numeric">
                         {brl(Number(l.produto.preco_venda))}
                       </TableCell>
-                      <TableCell className="text-right text-numeric">
-                        {num(l.margem, 1)}%
-                      </TableCell>
+                      <TableCell className="text-right text-numeric">{num(l.margem, 1)}%</TableCell>
                       <TableCell>
                         {l.fiscalOk ? (
                           <Badge variant="outline">OK</Badge>

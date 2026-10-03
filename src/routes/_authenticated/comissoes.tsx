@@ -27,7 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
@@ -63,8 +70,7 @@ function Comissoes() {
   const { data: session } = useSessionData();
   const tenantId = session?.profile?.tenant_id ?? null;
   const empresaId = session?.profile?.empresa_id ?? session?.empresa?.id ?? null;
-  const podeAprovar =
-    session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
+  const podeAprovar = session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
 
   const { periodo, setDe, setAte } = usePeriodo();
   const [depositoId, setDepositoId] = useState("todos");
@@ -103,9 +109,7 @@ function Comissoes() {
   /** Filtro por depósito de saída da mercadoria do pedido. */
   const comissoes = useMemo(
     () =>
-      depositoId === "todos"
-        ? todas
-        : todas.filter((c) => c.pedidos?.deposito_id === depositoId),
+      depositoId === "todos" ? todas : todas.filter((c) => c.pedidos?.deposito_id === depositoId),
     [todas, depositoId],
   );
 
@@ -130,14 +134,13 @@ function Comissoes() {
     >();
     for (const c of comissoes) {
       if (c.situacao === "cancelada") continue;
-      const atual =
-        mapa.get(c.vendedor_id) ?? {
-          nome: c.profiles?.nome ?? "Vendedor",
-          vendas: 0,
-          aPagar: 0,
-          pago: 0,
-          pedidos: 0,
-        };
+      const atual = mapa.get(c.vendedor_id) ?? {
+        nome: c.profiles?.nome ?? "Vendedor",
+        vendas: 0,
+        aPagar: 0,
+        pago: 0,
+        pedidos: 0,
+      };
       atual.vendas += Number(c.valor_venda);
       atual.pedidos += 1;
       if (c.situacao === "paga") atual.pago += Number(c.valor);
@@ -225,9 +228,7 @@ function Comissoes() {
     },
     onSuccess: (qtd) => {
       toast.success(
-        qtd > 0
-          ? `${qtd} comissão(ões) lançada(s)`
-          : "Nenhum pedido entregue sem comissão lançada",
+        qtd > 0 ? `${qtd} comissão(ões) lançada(s)` : "Nenhum pedido entregue sem comissão lançada",
       );
       qc.invalidateQueries({ queryKey: ["comissoes"] });
     },
@@ -548,9 +549,7 @@ function Comissoes() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() =>
-                                alternarAtivo.mutate({ id: r.id, ativo: !r.ativo })
-                              }
+                              onClick={() => alternarAtivo.mutate({ id: r.id, ativo: !r.ativo })}
                             >
                               {r.ativo ? "Desativar" : "Ativar"}
                             </Button>

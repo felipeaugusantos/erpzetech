@@ -41,10 +41,12 @@ export function somenteDigitos(valor: string) {
 }
 
 /** Lê o CNAE principal e os secundários informados no cadastro da empresa. */
-export function cnaesDaEmpresa(empresa?: {
-  cnae?: string | null;
-  cnae_secundarios?: string | null;
-} | null) {
+export function cnaesDaEmpresa(
+  empresa?: {
+    cnae?: string | null;
+    cnae_secundarios?: string | null;
+  } | null,
+) {
   const bruto = [empresa?.cnae ?? "", empresa?.cnae_secundarios ?? ""].join(",");
   return bruto
     .split(/[,;\n|]+/)

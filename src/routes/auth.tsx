@@ -98,7 +98,9 @@ function AuthPage() {
             disponível em múltiplos depósitos — em um único sistema.
           </p>
         </div>
-        <p className="text-xs text-sidebar-foreground/50">Multiempresa • Multifilial • Multidepósito</p>
+        <p className="text-xs text-sidebar-foreground/50">
+          Multiempresa • Multifilial • Multidepósito
+        </p>
       </div>
 
       <div className="flex items-center justify-center p-6">
@@ -192,7 +194,12 @@ function AuthPage() {
             <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
           </div>
 
-          <Button variant="outline" className="w-full" onClick={google} disabled={loading === "google"}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={google}
+            disabled={loading === "google"}
+          >
             {loading === "google" && <Loader2 className="mr-2 size-4 animate-spin" />}
             Continuar com Google
           </Button>

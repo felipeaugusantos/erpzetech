@@ -21,8 +21,7 @@ const coresCompra: Record<string, string> = {
 };
 
 export const corCompra = (s: string) => coresCompra[s] ?? "bg-secondary text-secondary-foreground";
-export const labelCompra = (s: string) =>
-  situacoesCompra.find((x) => x.value === s)?.label ?? s;
+export const labelCompra = (s: string) => situacoesCompra.find((x) => x.value === s)?.label ?? s;
 
 /** Próximas situações permitidas — espelha a regra aplicada no banco. */
 export function proximasCompra(s: string): CompraSituacao[] {

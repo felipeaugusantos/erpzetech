@@ -30,7 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({
@@ -114,9 +121,15 @@ function Produtos() {
     queryKey: ["produtos"],
     queryFn: async () => {
       const [prod, cats, forn, est] = await Promise.all([
-        supabase.from("produtos").select("*, categorias(nome), fornecedores(nome_fantasia)").order("descricao"),
+        supabase
+          .from("produtos")
+          .select("*, categorias(nome), fornecedores(nome_fantasia)")
+          .order("descricao"),
         supabase.from("categorias").select("id, nome").eq("ativo", true).order("nome"),
-        supabase.from("fornecedores").select("id, nome_fantasia, razao_social").order("razao_social"),
+        supabase
+          .from("fornecedores")
+          .select("id, nome_fantasia, razao_social")
+          .order("razao_social"),
         supabase.from("estoques").select("produto_id, quantidade, reservado"),
       ]);
       const saldo = new Map<string, { fisico: number; reservado: number }>();
@@ -126,7 +139,12 @@ function Produtos() {
         s.reservado += Number(e.reservado);
         saldo.set(e.produto_id, s);
       }
-      return { produtos: prod.data ?? [], categorias: cats.data ?? [], fornecedores: forn.data ?? [], saldo };
+      return {
+        produtos: prod.data ?? [],
+        categorias: cats.data ?? [],
+        fornecedores: forn.data ?? [],
+        saldo,
+      };
     },
   });
 
@@ -212,7 +230,12 @@ function Produtos() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Produtos" value={num(data?.produtos.length ?? 0, 0)} />
         <StatCard label="Categorias" value={num(data?.categorias.length ?? 0, 0)} />
-        <StatCard label="Com conversão de unidade" value={num((data?.produtos ?? []).filter((p) => Number(p.fator_conversao) > 1).length, 0)} icon={Ruler} tone="accent" />
+        <StatCard
+          label="Com conversão de unidade"
+          value={num((data?.produtos ?? []).filter((p) => Number(p.fator_conversao) > 1).length, 0)}
+          icon={Ruler}
+          tone="accent"
+        />
         <StatCard label="Valor em estoque (custo)" value={brl(valorEstoque)} />
       </div>
 
@@ -307,19 +330,29 @@ function Produtos() {
                         )}
                       </TableCell>
                       <TableCell className="text-numeric text-right">{brl(p.custo)}</TableCell>
-                      <TableCell className="text-numeric text-right">{brl(p.preco_venda)}</TableCell>
+                      <TableCell className="text-numeric text-right">
+                        {brl(p.preco_venda)}
+                      </TableCell>
                       <TableCell className="text-numeric text-right">
                         {num(margem(Number(p.custo), Number(p.preco_venda)), 1)}%
                       </TableCell>
                       <TableCell>
                         <p className="text-numeric text-sm">
-                          {formatConverted(fisico, p.unidade, p.unidade_compra, Number(p.fator_conversao))}
+                          {formatConverted(
+                            fisico,
+                            p.unidade,
+                            p.unidade_compra,
+                            Number(p.fator_conversao),
+                          )}
                         </p>
                         <p className="text-numeric text-xs text-muted-foreground">
                           disponível {num(disponivel)} {p.unidade}
                         </p>
                         {abaixo && (
-                          <Badge variant={disponivel <= 0 ? "destructive" : "secondary"} className="mt-1">
+                          <Badge
+                            variant={disponivel <= 0 ? "destructive" : "secondary"}
+                            className="mt-1"
+                          >
                             {disponivel <= 0 ? "Sem estoque" : "Abaixo do mínimo"}
                           </Badge>
                         )}
@@ -509,7 +542,9 @@ function Produtos() {
                   <Input
                     id="p-unc"
                     value={form.unidade_compra}
-                    onChange={(e) => setForm({ ...form, unidade_compra: e.target.value.toUpperCase() })}
+                    onChange={(e) =>
+                      setForm({ ...form, unidade_compra: e.target.value.toUpperCase() })
+                    }
                   />
                 </div>
                 <div>
@@ -517,7 +552,9 @@ function Produtos() {
                   <Input
                     id="p-unv"
                     value={form.unidade_venda}
-                    onChange={(e) => setForm({ ...form, unidade_venda: e.target.value.toUpperCase() })}
+                    onChange={(e) =>
+                      setForm({ ...form, unidade_venda: e.target.value.toUpperCase() })
+                    }
                   />
                 </div>
                 <div>

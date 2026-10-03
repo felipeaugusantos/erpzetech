@@ -24,8 +24,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-clientes")({
   head: () => ({
@@ -210,7 +223,11 @@ function ClientesZeTech() {
                               : "bg-warning/15 text-warning-foreground"
                         }
                       >
-                        {r.status === "pago" ? "Em dia" : r.status === "aberto" ? "A vencer" : "Atrasado"}
+                        {r.status === "pago"
+                          ? "Em dia"
+                          : r.status === "aberto"
+                            ? "A vencer"
+                            : "Atrasado"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -254,9 +271,7 @@ function ClientesZeTech() {
                 <div className="rounded-md border border-border p-3">
                   <p className="text-xs text-muted-foreground">Em aberto</p>
                   <p className="font-semibold">{brl(detalhe.aberto)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Atrasado {brl(detalhe.atrasado)}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Atrasado {brl(detalhe.atrasado)}</p>
                 </div>
                 <div className="rounded-md border border-border p-3">
                   <p className="text-xs text-muted-foreground">Já pago</p>

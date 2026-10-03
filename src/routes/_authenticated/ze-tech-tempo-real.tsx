@@ -45,7 +45,11 @@ function TempoReal() {
   const { data: operador, isLoading: carregandoAcesso } = useSaasOperador();
   const { periodo, setDe, setAte } = usePeriodo();
 
-  const { data: linhas = [], isLoading, dataUpdatedAt } = useQuery({
+  const {
+    data: linhas = [],
+    isLoading,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ["saas-tempo-real", periodo.de, periodo.ate],
     enabled: operador === true,
     refetchInterval: 30_000,
@@ -150,12 +154,7 @@ function TempoReal() {
           icon={PackageOpen}
           tone="accent"
         />
-        <StatCard
-          label="Impostos"
-          value={brl(totais.impostos)}
-          icon={Percent}
-          tone="warning"
-        />
+        <StatCard label="Impostos" value={brl(totais.impostos)} icon={Percent} tone="warning" />
         <StatCard
           label="Assistência técnica"
           value={num(totais.os, 0)}

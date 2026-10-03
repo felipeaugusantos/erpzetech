@@ -39,7 +39,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/contas-pagar")({
   head: () => ({
@@ -362,7 +369,9 @@ function ContasPagar() {
                     </TableCell>
                     <TableCell className="text-sm">{dateBR(c.vencimento)}</TableCell>
                     <TableCell className="text-sm">{labelForma(c.forma_pagamento)}</TableCell>
-                    <TableCell className="text-right text-numeric">{brl(Number(c.valor))}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {brl(Number(c.valor))}
+                    </TableCell>
                     <TableCell className="text-right text-numeric">{brl(saldo)}</TableCell>
                     <TableCell>
                       <Badge className={corConta(c.situacao, c.vencimento)}>
@@ -436,7 +445,11 @@ function ContasPagar() {
               </div>
               <div>
                 <Label>Data</Label>
-                <Input type="date" value={dataBaixa} onChange={(e) => setDataBaixa(e.target.value)} />
+                <Input
+                  type="date"
+                  value={dataBaixa}
+                  onChange={(e) => setDataBaixa(e.target.value)}
+                />
               </div>
             </div>
             <div>

@@ -28,7 +28,11 @@ export function NotificationsMenu() {
 
       const alertas: Alerta[] = [];
       for (const e of estoques ?? []) {
-        const p = e.produtos as { descricao: string; estoque_minimo: number; unidade: string } | null;
+        const p = e.produtos as {
+          descricao: string;
+          estoque_minimo: number;
+          unidade: string;
+        } | null;
         if (!p) continue;
         const disponivel = Number(e.quantidade) - Number(e.reservado);
         if (disponivel <= 0) {
@@ -48,7 +52,10 @@ export function NotificationsMenu() {
         }
       }
       for (const c of clientes ?? []) {
-        if (Number(c.limite_credito) > 0 && Number(c.saldo_utilizado) >= Number(c.limite_credito) * 0.9) {
+        if (
+          Number(c.limite_credito) > 0 &&
+          Number(c.saldo_utilizado) >= Number(c.limite_credito) * 0.9
+        ) {
           alertas.push({
             id: `c-${c.id}`,
             titulo: c.nome,

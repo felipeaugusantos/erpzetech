@@ -49,7 +49,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/locacoes")({
   head: () => ({
@@ -105,7 +112,14 @@ const vazio = (): Form => ({
   observacoes: "",
 });
 
-type Cobranca = { id: string; numero: number; valor: number; forma: string; parcelas: string; vencimento: string };
+type Cobranca = {
+  id: string;
+  numero: number;
+  valor: number;
+  forma: string;
+  parcelas: string;
+  vencimento: string;
+};
 
 const cobrancaVazia: Cobranca = {
   id: "",
@@ -199,8 +213,6 @@ function Locacoes() {
     toast.success("XML da nota de serviço baixado");
   }
 
-
-
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-basico"],
     queryFn: async () => {
@@ -217,7 +229,10 @@ function Locacoes() {
   const { data: obras = [] } = useQuery({
     queryKey: ["obras-locacao"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("obras").select("id, nome, cliente_id").order("nome");
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome, cliente_id")
+        .order("nome");
       if (error) throw error;
       return data;
     },
@@ -305,14 +320,23 @@ function Locacoes() {
   };
 
   const acao = useMutation({
-    mutationFn: async ({ id, tipo }: { id: string; tipo: "aprovar" | "entregar" | "devolver" | "cancelar" }) => {
+    mutationFn: async ({
+      id,
+      tipo,
+    }: {
+      id: string;
+      tipo: "aprovar" | "entregar" | "devolver" | "cancelar";
+    }) => {
       if (tipo === "aprovar") {
         const { error } = await supabase.rpc("locacao_aprovar", { p_locacao_id: id });
         if (error) throw error;
         return "Solicitação aprovada.";
       }
       if (tipo === "entregar") {
-        const { error } = await supabase.rpc("locacao_entregar", { p_locacao_id: id, p_data: hojeISO() });
+        const { error } = await supabase.rpc("locacao_entregar", {
+          p_locacao_id: id,
+          p_data: hojeISO(),
+        });
         if (error) throw error;
         return "Equipamento entregue ao cliente.";
       }
@@ -367,9 +391,7 @@ function Locacoes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(
-        "Nota fiscal de serviço (NFS-e) gerada — confira em Fiscal › Notas fiscais.",
-      );
+      toast.success("Nota fiscal de serviço (NFS-e) gerada — confira em Fiscal › Notas fiscais.");
       recarregar();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -483,10 +505,16 @@ function Locacoes() {
                     <TableCell>{l.locacao_equipamentos?.nome ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{l.obras?.nome ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{dateBR(l.inicio)}</TableCell>
-                    <TableCell className={atrasada ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                    <TableCell
+                      className={
+                        atrasada ? "font-semibold text-destructive" : "text-muted-foreground"
+                      }
+                    >
                       {dateBR(l.previsao_devolucao)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{dateBR(l.devolvido_em)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {dateBR(l.devolvido_em)}
+                    </TableCell>
                     <TableCell className="text-right text-numeric">{l.dias}</TableCell>
                     <TableCell className="text-right text-numeric font-semibold">
                       {brl(Number(l.valor_total ?? 0))}
@@ -571,10 +599,18 @@ function Locacoes() {
                         )}
                         {!!l.nfe_id && (
                           <>
-                            <Button variant="ghost" size="sm" onClick={() => baixarNota(l.id, "pdf")}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => baixarNota(l.id, "pdf")}
+                            >
                               <Download className="size-4" /> PDF
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => baixarNota(l.id, "xml")}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => baixarNota(l.id, "xml")}
+                            >
                               <Code2 className="size-4" /> XML
                             </Button>
                           </>
@@ -679,11 +715,17 @@ function Locacoes() {
             </div>
             <div>
               <Label>Dias</Label>
-              <Input value={form.dias} onChange={(e) => setForm({ ...form, dias: e.target.value })} />
+              <Input
+                value={form.dias}
+                onChange={(e) => setForm({ ...form, dias: e.target.value })}
+              />
             </div>
             <div>
               <Label>Caução</Label>
-              <Input value={form.caucao} onChange={(e) => setForm({ ...form, caucao: e.target.value })} />
+              <Input
+                value={form.caucao}
+                onChange={(e) => setForm({ ...form, caucao: e.target.value })}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label>Observações</Label>
@@ -710,10 +752,7 @@ function Locacoes() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={!!cobranca.id}
-        onOpenChange={(v) => !v && setCobranca({ ...cobrancaVazia })}
-      >
+      <Dialog open={!!cobranca.id} onOpenChange={(v) => !v && setCobranca({ ...cobrancaVazia })}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Cobrar locação nº {cobranca.numero}</DialogTitle>
@@ -763,8 +802,8 @@ function Locacoes() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Dinheiro, PIX e cartão de débito entram no caixa aberto na hora. As outras formas ficam
-              em contas a receber.
+              Dinheiro, PIX e cartão de débito entram no caixa aberto na hora. As outras formas
+              ficam em contas a receber.
             </p>
           </div>
           <DialogFooter>

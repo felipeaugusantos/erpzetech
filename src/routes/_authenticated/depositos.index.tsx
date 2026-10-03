@@ -60,7 +60,10 @@ function Depositos() {
         supabase.from("depositos").select("*, filiais(nome)").order("nome"),
         supabase.from("estoques").select("deposito_id, quantidade, reservado, produtos(custo)"),
       ]);
-      const resumo = new Map<string, { itens: number; qtd: number; valor: number; reservado: number }>();
+      const resumo = new Map<
+        string,
+        { itens: number; qtd: number; valor: number; reservado: number }
+      >();
       for (const e of est.data ?? []) {
         const r = resumo.get(e.deposito_id) ?? { itens: 0, qtd: 0, valor: 0, reservado: 0 };
         const custo = Number((e.produtos as unknown as { custo: number } | null)?.custo ?? 0);
@@ -123,10 +126,7 @@ function Depositos() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Tipo</Label>
-                    <Select
-                      value={form.tipo}
-                      onValueChange={(v) => setForm({ ...form, tipo: v })}
-                    >
+                    <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -178,7 +178,10 @@ function Depositos() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={() => criar.mutate()} disabled={!form.nome.trim() || criar.isPending}>
+                <Button
+                  onClick={() => criar.mutate()}
+                  disabled={!form.nome.trim() || criar.isPending}
+                >
                   Salvar
                 </Button>
               </DialogFooter>
@@ -194,7 +197,10 @@ function Depositos() {
           ))}
         </div>
       ) : (data?.depositos.length ?? 0) === 0 ? (
-        <EmptyState title="Nenhum depósito encontrado." description="Cadastre o primeiro depósito." />
+        <EmptyState
+          title="Nenhum depósito encontrado."
+          description="Cadastre o primeiro depósito."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data!.depositos.map((d) => {

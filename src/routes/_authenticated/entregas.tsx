@@ -1,12 +1,26 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, MapPin, Play, Route as RouteIcon, Search, Truck, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  MapPin,
+  Play,
+  Route as RouteIcon,
+  Search,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
-import { corEntrega, enderecoPedido, labelEntrega, motivosInsucesso, situacoesEntrega } from "@/lib/entrega";
+import {
+  corEntrega,
+  enderecoPedido,
+  labelEntrega,
+  motivosInsucesso,
+  situacoesEntrega,
+} from "@/lib/entrega";
 import {
   diasParaEntrega,
   hojeISO,
@@ -36,7 +50,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/entregas")({
   head: () => ({
@@ -244,9 +265,10 @@ function Entregas() {
       if (filtro === "abertas" && !["planejada", "em_rota"].includes(e.situacao)) return false;
       if (filtro !== "abertas" && filtro !== "todas" && e.situacao !== filtro) return false;
       if (!t) return true;
-      const pedido = e.pedidos as unknown as
-        | { numero: number; clientes: { nome: string } | null }
-        | null;
+      const pedido = e.pedidos as unknown as {
+        numero: number;
+        clientes: { nome: string } | null;
+      } | null;
       return [
         String(e.numero),
         String(pedido?.numero ?? ""),
@@ -264,7 +286,10 @@ function Entregas() {
     planejadas: entregas.filter((e) => e.situacao === "planejada").length,
     rota: entregas.filter((e) => e.situacao === "em_rota").length,
     entreguesHoje: entregas.filter(
-      (e) => e.situacao === "entregue" && e.data_entrega && new Date(e.data_entrega).toDateString() === hoje,
+      (e) =>
+        e.situacao === "entregue" &&
+        e.data_entrega &&
+        new Date(e.data_entrega).toDateString() === hoje,
     ).length,
     insucesso: entregas.filter((e) => e.situacao === "insucesso").length,
   };
@@ -420,18 +445,19 @@ function Entregas() {
             </TableHeader>
             <TableBody>
               {lista.map((e) => {
-                const pedido = e.pedidos as unknown as
-                  | {
-                      numero: number;
-                      entrega_endereco: string | null;
-                      entrega_numero: string | null;
-                      entrega_bairro: string | null;
-                      entrega_cidade: string | null;
-                      entrega_estado: string | null;
-                      clientes: { nome: string } | null;
-                    }
-                  | null;
-                const veiculo = e.veiculos as unknown as { placa: string; descricao: string } | null;
+                const pedido = e.pedidos as unknown as {
+                  numero: number;
+                  entrega_endereco: string | null;
+                  entrega_numero: string | null;
+                  entrega_bairro: string | null;
+                  entrega_cidade: string | null;
+                  entrega_estado: string | null;
+                  clientes: { nome: string } | null;
+                } | null;
+                const veiculo = e.veiculos as unknown as {
+                  placa: string;
+                  descricao: string;
+                } | null;
                 const motorista = e.motoristas as unknown as { nome: string } | null;
                 const itens = (e.entrega_itens ?? []) as unknown as {
                   quantidade: number;
@@ -440,7 +466,9 @@ function Entregas() {
                 return (
                   <TableRow key={e.id}>
                     <TableCell>
-                      <p className="font-medium text-numeric">#{String(e.numero).padStart(4, "0")}</p>
+                      <p className="font-medium text-numeric">
+                        #{String(e.numero).padStart(4, "0")}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {itens.length} {itens.length === 1 ? "produto" : "produtos"}
                         {e.data_entrega ? ` · ${dateTimeBR(e.data_entrega)}` : ""}
@@ -552,10 +580,7 @@ function Entregas() {
             </div>
             <div>
               <Label>Veículo</Label>
-              <Select
-                value={veiculoId}
-                onValueChange={(v) => setVeiculoId(v)}
-              >
+              <Select value={veiculoId} onValueChange={(v) => setVeiculoId(v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Escolha o veículo" />
                 </SelectTrigger>

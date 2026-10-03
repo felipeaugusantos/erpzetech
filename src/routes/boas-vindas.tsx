@@ -13,7 +13,9 @@ import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/boas-vindas")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Boas-vindas — ERP Ze Tech" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Boas-vindas — ERP Ze Tech" }, { name: "robots", content: "noindex" }],
+  }),
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
@@ -43,7 +45,8 @@ function BoasVindas() {
       toast.success("Espaço criado", { description: "Agora complete os dados da empresa." });
       navigate({ to: "/empresa" });
     },
-    onError: (e: Error) => toast.error("Não foi possível criar o espaço", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível criar o espaço", { description: e.message }),
   });
 
   async function sair() {
@@ -59,8 +62,8 @@ function BoasVindas() {
           <ZeLogo />
           <CardTitle>Bem-vindo ao ERP Ze Tech</CardTitle>
           <CardDescription>
-            Sua conta ainda não está vinculada a uma empresa. Crie o seu espaço para começar. Se você
-            foi convidado por uma empresa, peça ao administrador para vincular o seu acesso.
+            Sua conta ainda não está vinculada a uma empresa. Crie o seu espaço para começar. Se
+            você foi convidado por uma empresa, peça ao administrador para vincular o seu acesso.
           </CardDescription>
         </CardHeader>
         <CardContent>

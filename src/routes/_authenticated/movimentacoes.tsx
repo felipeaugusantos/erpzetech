@@ -15,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({
@@ -136,11 +143,16 @@ function Movimentacoes() {
               </TableHeader>
               <TableBody>
                 {lista.map((m) => {
-                  const p = m.produtos as unknown as { descricao: string; codigo_interno: string } | null;
+                  const p = m.produtos as unknown as {
+                    descricao: string;
+                    codigo_interno: string;
+                  } | null;
                   const d = m.depositos as unknown as { nome: string } | null;
                   return (
                     <TableRow key={m.id}>
-                      <TableCell className="whitespace-nowrap text-sm">{dateTimeBR(m.created_at)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {dateTimeBR(m.created_at)}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -163,8 +175,12 @@ function Movimentacoes() {
                       <TableCell className="text-numeric text-right">
                         {num(m.quantidade)} {m.unidade ?? ""}
                       </TableCell>
-                      <TableCell className="text-numeric text-right">{num(m.saldo_anterior)}</TableCell>
-                      <TableCell className="text-numeric text-right">{num(m.saldo_posterior)}</TableCell>
+                      <TableCell className="text-numeric text-right">
+                        {num(m.saldo_anterior)}
+                      </TableCell>
+                      <TableCell className="text-numeric text-right">
+                        {num(m.saldo_posterior)}
+                      </TableCell>
                       <TableCell className="text-sm">{m.documento ?? "—"}</TableCell>
                       <TableCell className="text-sm">
                         {m.usuario_id ? (data?.nomes.get(m.usuario_id) ?? "—") : "Sistema"}

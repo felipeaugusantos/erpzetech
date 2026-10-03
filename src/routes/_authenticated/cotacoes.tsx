@@ -34,7 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/cotacoes")({
   head: () => ({
@@ -150,8 +157,7 @@ function Cotacoes() {
   const respondidosPorCotacao = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const i of itensCotados) {
-      if (Number(i.custo_unitario) > 0)
-        mapa.set(i.cotacao_id, (mapa.get(i.cotacao_id) ?? 0) + 1);
+      if (Number(i.custo_unitario) > 0) mapa.set(i.cotacao_id, (mapa.get(i.cotacao_id) ?? 0) + 1);
     }
     return mapa;
   }, [itensCotados]);
@@ -320,7 +326,11 @@ function Cotacoes() {
         <StatCard
           label="Melhor proposta"
           value={recomendada ? brl(recomendada.valor_total) : "—"}
-          hint={recomendada ? `${recomendada.fornecedor} · nota ${recomendada.pontos}/100` : "Registre uma proposta"}
+          hint={
+            recomendada
+              ? `${recomendada.fornecedor} · nota ${recomendada.pontos}/100`
+              : "Registre uma proposta"
+          }
           tone={recomendada ? "success" : "default"}
         />
       </div>
@@ -360,9 +370,7 @@ function Cotacoes() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  exportar(
-                    `cotacao-${String(compraAtual?.numero ?? 0).padStart(4, "0")}.csv`,
-                  )
+                  exportar(`cotacao-${String(compraAtual?.numero ?? 0).padStart(4, "0")}.csv`)
                 }
               >
                 <Download className="size-4" /> Exportar planilha do pedido
@@ -410,7 +418,9 @@ function Cotacoes() {
                             <p className="font-medium">{q.fornecedor}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
                               {q.recomendada && (
-                                <Badge className="bg-success/15 text-success">Melhor proposta</Badge>
+                                <Badge className="bg-success/15 text-success">
+                                  Melhor proposta
+                                </Badge>
                               )}
                               {q.melhorPreco && !q.recomendada && (
                                 <Badge className="bg-accent/15 text-accent-foreground">
@@ -532,7 +542,9 @@ function Cotacoes() {
                         </TableCell>
                         {precos.map((p, idx) => (
                           <TableCell key={idx} className="text-right text-numeric">
-                            <span className={p > 0 && p === menor ? "font-medium text-success" : ""}>
+                            <span
+                              className={p > 0 && p === menor ? "font-medium text-success" : ""}
+                            >
                               {p > 0 ? brl(p) : "—"}
                             </span>
                           </TableCell>
@@ -605,8 +617,8 @@ function Cotacoes() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Deixe o valor em branco se for importar a planilha respondida pelo fornecedor — o sistema
-            soma os preços item a item.
+            Deixe o valor em branco se for importar a planilha respondida pelo fornecedor — o
+            sistema soma os preços item a item.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNovaAberta(false)}>

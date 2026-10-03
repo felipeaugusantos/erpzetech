@@ -19,7 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -61,7 +68,13 @@ function Configuracoes() {
   });
   const [perfil, setPerfil] = useState({ nome: "", telefone: "" });
   const [openFilial, setOpenFilial] = useState(false);
-  const [filial, setFilial] = useState({ nome: "", codigo: "", telefone: "", cidade: "", estado: "" });
+  const [filial, setFilial] = useState({
+    nome: "",
+    codigo: "",
+    telefone: "",
+    cidade: "",
+    estado: "",
+  });
 
   const { data } = useQuery({
     queryKey: ["configuracoes"],
@@ -69,7 +82,11 @@ function Configuracoes() {
       const [emp, fil, prof] = await Promise.all([
         supabase.from("empresas").select("*").limit(1).maybeSingle(),
         supabase.from("filiais").select("*").order("nome"),
-        supabase.from("profiles").select("*").eq("id", (await supabase.auth.getUser()).data.user!.id).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", (await supabase.auth.getUser()).data.user!.id)
+          .maybeSingle(),
       ]);
       return { empresa: emp.data, filiais: fil.data ?? [], perfil: prof.data };
     },
@@ -100,10 +117,7 @@ function Configuracoes() {
 
   const salvarEmpresa = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("empresas")
-        .update(empresa)
-        .eq("id", data!.empresa!.id);
+      const { error } = await supabase.from("empresas").update(empresa).eq("id", data!.empresa!.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -116,10 +130,7 @@ function Configuracoes() {
 
   const salvarPerfil = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("profiles")
-        .update(perfil)
-        .eq("id", session!.user.id);
+      const { error } = await supabase.from("profiles").update(perfil).eq("id", session!.user.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -314,7 +325,10 @@ function Configuracoes() {
             </Button>
           </div>
           {(data?.filiais.length ?? 0) === 0 ? (
-            <EmptyState title="Nenhuma filial encontrada." description="Cadastre a primeira filial." />
+            <EmptyState
+              title="Nenhuma filial encontrada."
+              description="Cadastre a primeira filial."
+            />
           ) : (
             <div className="panel overflow-x-auto">
               <Table>
@@ -335,7 +349,11 @@ function Configuracoes() {
                       <TableCell>{f.telefone ?? "—"}</TableCell>
                       <TableCell>{f.cidade ? `${f.cidade}/${f.estado ?? ""}` : "—"}</TableCell>
                       <TableCell>
-                        {f.ativo ? <Badge variant="secondary">Ativa</Badge> : <Badge variant="outline">Inativa</Badge>}
+                        {f.ativo ? (
+                          <Badge variant="secondary">Ativa</Badge>
+                        ) : (
+                          <Badge variant="outline">Inativa</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -439,7 +457,10 @@ function Configuracoes() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => criarFilial.mutate()} disabled={!filial.nome.trim() || criarFilial.isPending}>
+            <Button
+              onClick={() => criarFilial.mutate()}
+              disabled={!filial.nome.trim() || criarFilial.isPending}
+            >
               Salvar filial
             </Button>
           </DialogFooter>

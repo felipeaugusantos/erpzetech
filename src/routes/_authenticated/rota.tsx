@@ -30,7 +30,10 @@ export const Route = createFileRoute("/_authenticated/rota")({
           "Lista de entregas do dia por motorista e veículo, com endereço, produtos e ordem da rota.",
       },
       { property: "og:title", content: "Rota do dia — ERP Ze Tech" },
-      { property: "og:description", content: "Entregas do dia para consulta no celular ou no computador." },
+      {
+        property: "og:description",
+        content: "Entregas do dia para consulta no celular ou no computador.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

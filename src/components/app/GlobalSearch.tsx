@@ -43,9 +43,7 @@ export function GlobalSearch({
         supabase
           .from("produtos")
           .select("id, descricao, codigo_interno, codigo_barras")
-          .or(
-            `descricao.ilike.${like},codigo_interno.ilike.${like},codigo_barras.ilike.${like}`,
-          )
+          .or(`descricao.ilike.${like},codigo_interno.ilike.${like},codigo_barras.ilike.${like}`)
           .limit(5),
         supabase.from("obras").select("id, nome").ilike("nome", like).limit(5),
       ]);
@@ -79,7 +77,11 @@ export function GlobalSearch({
         {!!data?.clientes.length && (
           <CommandGroup heading="Clientes">
             {data.clientes.map((c) => (
-              <CommandItem key={c.id} value={`cli-${c.id}-${c.nome}`} onSelect={() => go("/clientes")}>
+              <CommandItem
+                key={c.id}
+                value={`cli-${c.id}-${c.nome}`}
+                onSelect={() => go("/clientes")}
+              >
                 <Users className="mr-2 size-4" />
                 {c.nome}
                 <span className="ml-auto text-xs text-muted-foreground">
@@ -107,7 +109,11 @@ export function GlobalSearch({
         {!!data?.obras.length && (
           <CommandGroup heading="Obras">
             {data.obras.map((o) => (
-              <CommandItem key={o.id} value={`obra-${o.id}-${o.nome}`} onSelect={() => go("/obras")}>
+              <CommandItem
+                key={o.id}
+                value={`obra-${o.id}-${o.nome}`}
+                onSelect={() => go("/obras")}
+              >
                 <HardHat className="mr-2 size-4" />
                 {o.nome}
               </CommandItem>

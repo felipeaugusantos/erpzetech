@@ -98,9 +98,7 @@ function Tecnicos() {
   const { data: session } = useSessionData();
   const profile = session?.profile;
   const filiais = session?.filiais ?? [];
-  const podeEditar = (session?.roles ?? []).some((r) =>
-    ["administrador", "gestor"].includes(r),
-  );
+  const podeEditar = (session?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -189,11 +187,7 @@ function Tecnicos() {
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label="Técnicos ativos" value={String(ativos.length)} icon={HardHat} />
-        <StatCard
-          label="Inativos"
-          value={String(tecnicos.length - ativos.length)}
-          tone="warning"
-        />
+        <StatCard label="Inativos" value={String(tecnicos.length - ativos.length)} tone="warning" />
         <StatCard
           label="Valor médio da hora"
           value={brl(
@@ -258,12 +252,8 @@ function Tecnicos() {
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.nome}</TableCell>
                   <TableCell className="text-muted-foreground">{t.cargo ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {t.especialidade ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {t.filiais?.nome ?? "—"}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{t.especialidade ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{t.filiais?.nome ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {[t.telefone, t.email].filter(Boolean).join(" · ") || "—"}
                   </TableCell>

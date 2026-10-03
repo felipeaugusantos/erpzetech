@@ -57,7 +57,13 @@ const FORMAS = [
 
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 
-type ItemCarrinho = { equipamento_id: string; nome: string; codigo: string; quantidade: number; valor_diaria: number };
+type ItemCarrinho = {
+  equipamento_id: string;
+  nome: string;
+  codigo: string;
+  quantidade: number;
+  valor_diaria: number;
+};
 
 function Balcao() {
   const queryClient = useQueryClient();
@@ -118,7 +124,10 @@ function Balcao() {
   const { data: obras = [] } = useQuery({
     queryKey: ["obras-locacao"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("obras").select("id, nome, cliente_id").order("nome");
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome, cliente_id")
+        .order("nome");
       if (error) throw error;
       return data;
     },
@@ -350,11 +359,19 @@ function Balcao() {
                         {brl(i.valor_diaria)}/dia × {numeroDias} dia(s)
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => mudarQtd(i.equipamento_id, -1)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => mudarQtd(i.equipamento_id, -1)}
+                    >
                       <Minus className="size-4" />
                     </Button>
                     <span className="w-6 text-center text-numeric">{i.quantidade}</span>
-                    <Button variant="ghost" size="icon" onClick={() => mudarQtd(i.equipamento_id, 1)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => mudarQtd(i.equipamento_id, 1)}
+                    >
                       <Plus className="size-4" />
                     </Button>
                     <span className="w-24 text-right text-numeric font-semibold">
@@ -401,7 +418,11 @@ function Balcao() {
             </div>
             <div>
               <Label>1º vencimento</Label>
-              <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+              <Input
+                type="date"
+                value={vencimento}
+                onChange={(e) => setVencimento(e.target.value)}
+              />
             </div>
             <div>
               <Label>Caução</Label>

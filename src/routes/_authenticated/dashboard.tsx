@@ -46,13 +46,22 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
           "Pedidos em andamento, orçamentos expirados, contas a receber e a pagar, alertas de vencimento e estoque.",
       },
       { property: "og:title", content: "Dashboard — ERP Ze Tech" },
-      { property: "og:description", content: "Visão geral comercial, financeira e de estoque da loja." },
+      {
+        property: "og:description",
+        content: "Visão geral comercial, financeira e de estoque da loja.",
+      },
     ],
   }),
   component: Dashboard,
 });
 
-const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+const chartColors = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
 
 const emAndamento = [
   "aguardando_pagamento",
@@ -74,14 +83,31 @@ function Dashboard() {
     queryFn: async () => {
       const [pedidos, orcamentos, receber, pagar, entregas, estoques, produtosCount] =
         await Promise.all([
-          supabase.from("pedidos").select("id, numero, situacao, total, previsao_entrega, created_at, clientes(nome), pedido_itens(quantidade, custo_unitario, total)"),
-          supabase.from("orcamentos").select("id, numero, situacao, validade, total, clientes(nome)").is("deleted_at", null),
-          supabase.from("contas_receber").select("id, numero, descricao, vencimento, valor, valor_recebido, situacao, clientes(nome)"),
-          supabase.from("contas_pagar").select("id, numero, descricao, vencimento, valor, valor_pago, situacao, fornecedores(nome_fantasia, razao_social)"),
+          supabase
+            .from("pedidos")
+            .select(
+              "id, numero, situacao, total, previsao_entrega, created_at, clientes(nome), pedido_itens(quantidade, custo_unitario, total)",
+            ),
+          supabase
+            .from("orcamentos")
+            .select("id, numero, situacao, validade, total, clientes(nome)")
+            .is("deleted_at", null),
+          supabase
+            .from("contas_receber")
+            .select(
+              "id, numero, descricao, vencimento, valor, valor_recebido, situacao, clientes(nome)",
+            ),
+          supabase
+            .from("contas_pagar")
+            .select(
+              "id, numero, descricao, vencimento, valor, valor_pago, situacao, fornecedores(nome_fantasia, razao_social)",
+            ),
           supabase.from("entregas").select("id, situacao, previsao_data"),
           supabase
             .from("estoques")
-            .select("quantidade, reservado, produtos(id, descricao, custo, preco_venda, estoque_minimo, unidade, categorias(nome))"),
+            .select(
+              "quantidade, reservado, produtos(id, descricao, custo, preco_venda, estoque_minimo, unidade, categorias(nome))",
+            ),
           supabase.from("produtos").select("id", { count: "exact", head: true }),
         ]);
       return {
@@ -142,10 +168,18 @@ function Dashboard() {
     return p.situacao !== "cancelado" && d >= periodo.de && d <= periodo.ate;
   });
   const itensPeriodo = noPeriodo.flatMap(
-    (p) => (p.pedido_itens ?? []) as Array<{ quantidade: number; custo_unitario: number; total: number }>,
+    (p) =>
+      (p.pedido_itens ?? []) as Array<{
+        quantidade: number;
+        custo_unitario: number;
+        total: number;
+      }>,
   );
   const receitaPeriodo = itensPeriodo.reduce((s, i) => s + Number(i.total), 0);
-  const custoPeriodo = itensPeriodo.reduce((s, i) => s + Number(i.quantidade) * Number(i.custo_unitario), 0);
+  const custoPeriodo = itensPeriodo.reduce(
+    (s, i) => s + Number(i.quantidade) * Number(i.custo_unitario),
+    0,
+  );
   const lucroPeriodo = receitaPeriodo - custoPeriodo;
   const margemPeriodo = receitaPeriodo > 0 ? (lucroPeriodo / receitaPeriodo) * 100 : 0;
 
@@ -155,19 +189,28 @@ function Dashboard() {
   const pedidosAndamento = data.pedidos.filter((p) => emAndamento.includes(p.situacao));
   const valorAndamento = pedidosAndamento.reduce((s, p) => s + Number(p.total), 0);
   const orcamentosExpirados = data.orcamentos.filter(
-    (o) => o.situacao === "expirado" || (["enviado", "em_negociacao"].includes(o.situacao) && o.validade && o.validade < hoje),
+    (o) =>
+      o.situacao === "expirado" ||
+      (["enviado", "em_negociacao"].includes(o.situacao) && o.validade && o.validade < hoje),
   );
-  const orcamentosAbertos = data.orcamentos.filter((o) => ["enviado", "em_negociacao"].includes(o.situacao));
+  const orcamentosAbertos = data.orcamentos.filter((o) =>
+    ["enviado", "em_negociacao"].includes(o.situacao),
+  );
 
   // Financeiro
   const abertoReceber = data.receber.filter((c) => ["aberto", "parcial"].includes(c.situacao));
   const abertoPagar = data.pagar.filter((c) => ["aberto", "parcial"].includes(c.situacao));
-  const saldoReceber = abertoReceber.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
+  const saldoReceber = abertoReceber.reduce(
+    (s, c) => s + Number(c.valor) - Number(c.valor_recebido),
+    0,
+  );
   const saldoPagar = abertoPagar.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0);
   const receberVencidas = abertoReceber.filter((c) => c.vencimento < hoje);
   const pagarVencidas = abertoPagar.filter((c) => c.vencimento < hoje);
   const venceHoje = [...abertoReceber, ...abertoPagar].filter((c) => c.vencimento === hoje);
-  const prox7 = [...abertoReceber, ...abertoPagar].filter((c) => c.vencimento > hoje && c.vencimento <= em7);
+  const prox7 = [...abertoReceber, ...abertoPagar].filter(
+    (c) => c.vencimento > hoje && c.vencimento <= em7,
+  );
 
   // Estoque
   type Prod = {
@@ -212,9 +255,19 @@ function Dashboard() {
       .reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0),
   }));
 
-  const situacoesOrc = ["rascunho", "enviado", "em_negociacao", "aprovado", "rejeitado", "expirado"];
+  const situacoesOrc = [
+    "rascunho",
+    "enviado",
+    "em_negociacao",
+    "aprovado",
+    "rejeitado",
+    "expirado",
+  ];
   const orcData = situacoesOrc
-    .map((s) => ({ nome: s.replace(/_/g, " "), valor: data.orcamentos.filter((o) => o.situacao === s).length }))
+    .map((s) => ({
+      nome: s.replace(/_/g, " "),
+      valor: data.orcamentos.filter((o) => o.situacao === s).length,
+    }))
     .filter((x) => x.valor > 0);
 
   const alertas = [
@@ -262,21 +315,21 @@ function Dashboard() {
       <div className="panel mb-4 p-4">
         <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <div>
-          <Label>De</Label>
-          <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
-        </div>
-        <div>
-          <Label>Até</Label>
-          <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
-          custo {brl(custoPeriodo)} · lucro{" "}
-          <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
-            {brl(lucroPeriodo)}
-          </strong>{" "}
-          ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
+          <div>
+            <Label>De</Label>
+            <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+          </div>
+          <div>
+            <Label>Até</Label>
+            <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
+            custo {brl(custoPeriodo)} · lucro{" "}
+            <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
+              {brl(lucroPeriodo)}
+            </strong>{" "}
+            ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
           </p>
         </div>
       </div>
@@ -339,7 +392,9 @@ function Dashboard() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="panel p-4 lg:col-span-2">
-          <h2 className="font-display text-sm font-semibold">Caixa projetado (7 dias para trás e 7 para frente)</h2>
+          <h2 className="font-display text-sm font-semibold">
+            Caixa projetado (7 dias para trás e 7 para frente)
+          </h2>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={serieCaixa}>
@@ -348,8 +403,20 @@ function Dashboard() {
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="receber" name="A receber" stroke="var(--chart-1)" strokeWidth={2} />
-                <Line type="monotone" dataKey="pagar" name="A pagar" stroke="var(--chart-4)" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="receber"
+                  name="A receber"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pagar"
+                  name="A pagar"
+                  stroke="var(--chart-4)"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -363,7 +430,13 @@ function Dashboard() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={orcData} dataKey="valor" nameKey="nome" innerRadius={45} outerRadius={80}>
+                  <Pie
+                    data={orcData}
+                    dataKey="valor"
+                    nameKey="nome"
+                    innerRadius={45}
+                    outerRadius={80}
+                  >
                     {orcData.map((_, i) => (
                       <Cell key={i} fill={chartColors[i % chartColors.length]} />
                     ))}
@@ -436,7 +509,9 @@ function Dashboard() {
 
         <div className="mt-3 grid gap-4 lg:grid-cols-2">
           <div>
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground">Notas emitidas</h3>
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Notas emitidas
+            </h3>
             {(fiscal?.notas ?? []).length === 0 ? (
               <EmptyState
                 className="mt-3 border-0 shadow-none"
@@ -475,7 +550,9 @@ function Dashboard() {
                       <span className="text-xs text-muted-foreground">
                         {envio ? `enviada ${dateBR(String(envio).slice(0, 10))}` : "não enviada"}
                       </span>
-                      <span className="text-numeric font-semibold">{brl(Number(n.valor_total))}</span>
+                      <span className="text-numeric font-semibold">
+                        {brl(Number(n.valor_total))}
+                      </span>
                     </li>
                   );
                 })}
@@ -516,7 +593,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="panel p-4">
@@ -565,7 +641,8 @@ function Dashboard() {
                   <li key={l.prod.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                     <span className="min-w-0 flex-1 truncate">{l.prod.descricao}</span>
                     <span className="text-numeric text-xs text-muted-foreground">
-                      disponível {num(disponivel)} {l.prod.unidade} · mínimo {num(l.prod.estoque_minimo)}
+                      disponível {num(disponivel)} {l.prod.unidade} · mínimo{" "}
+                      {num(l.prod.estoque_minimo)}
                     </span>
                   </li>
                 );

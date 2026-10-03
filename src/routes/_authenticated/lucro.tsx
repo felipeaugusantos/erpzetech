@@ -91,7 +91,14 @@ function Lucro() {
   });
 
   const linhas = useMemo(() => {
-    type L = { chave: string; nome: string; detalhe: string; qtd: number; receita: number; custo: number };
+    type L = {
+      chave: string;
+      nome: string;
+      detalhe: string;
+      qtd: number;
+      receita: number;
+      custo: number;
+    };
     const mapa = new Map<string, L>();
     for (const p of data ?? []) {
       const dep = (p.depositos as { nome: string } | null)?.nome ?? "—";
@@ -103,8 +110,7 @@ function Lucro() {
         produtos: { descricao: string; codigo_interno: string; unidade: string } | null;
       }>) {
         const mes = String(p.created_at).slice(0, 7);
-        const chave =
-          agrupar === "produto" ? i.produto_id : agrupar === "deposito" ? dep : mes;
+        const chave = agrupar === "produto" ? i.produto_id : agrupar === "deposito" ? dep : mes;
         const nome =
           agrupar === "produto"
             ? (i.produtos?.descricao ?? "produto removido")
@@ -112,9 +118,12 @@ function Lucro() {
               ? dep
               : mes.split("-").reverse().join("/");
         const detalhe =
-          agrupar === "produto" ? (i.produtos?.codigo_interno ?? "") : agrupar === "deposito" ? "depósito" : "mês";
-        const atual =
-          mapa.get(chave) ?? { chave, nome, detalhe, qtd: 0, receita: 0, custo: 0 };
+          agrupar === "produto"
+            ? (i.produtos?.codigo_interno ?? "")
+            : agrupar === "deposito"
+              ? "depósito"
+              : "mês";
+        const atual = mapa.get(chave) ?? { chave, nome, detalhe, qtd: 0, receita: 0, custo: 0 };
         atual.qtd += Number(i.quantidade);
         atual.receita += Number(i.total);
         atual.custo += Number(i.quantidade) * Number(i.custo_unitario);
@@ -221,8 +230,18 @@ function Lucro() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Receita das vendas" value={brl(totais.receita)} icon={Coins} tone="accent" />
-        <StatCard label="Custo de aquisição" value={brl(totais.custo)} icon={HandCoins} tone="warning" />
+        <StatCard
+          label="Receita das vendas"
+          value={brl(totais.receita)}
+          icon={Coins}
+          tone="accent"
+        />
+        <StatCard
+          label="Custo de aquisição"
+          value={brl(totais.custo)}
+          icon={HandCoins}
+          tone="warning"
+        />
         <StatCard label="Lucro bruto" value={brl(totais.lucro)} icon={TrendingUp} tone="success" />
         <StatCard label="Margem média" value={`${num(totais.margem, 1)}%`} icon={Percent} />
       </div>
@@ -240,9 +259,27 @@ function Lucro() {
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="receita" name="Receita" stroke="var(--chart-1)" strokeWidth={2} />
-                <Line type="monotone" dataKey="custo" name="Custo" stroke="var(--chart-4)" strokeWidth={2} />
-                <Line type="monotone" dataKey="lucro" name="Lucro" stroke="var(--chart-2)" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="receita"
+                  name="Receita"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="custo"
+                  name="Custo"
+                  stroke="var(--chart-4)"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="lucro"
+                  name="Lucro"
+                  stroke="var(--chart-2)"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -286,7 +323,13 @@ function Lucro() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={grafico}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="nome" tick={{ fontSize: 10 }} interval={0} angle={-20} height={50} />
+                <XAxis
+                  dataKey="nome"
+                  tick={{ fontSize: 10 }}
+                  interval={0}
+                  angle={-20}
+                  height={50}
+                />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Bar dataKey="lucro" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
@@ -308,7 +351,9 @@ function Lucro() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{agrupar === "produto" ? "Produto" : agrupar === "deposito" ? "Depósito" : "Mês"}</TableHead>
+                <TableHead>
+                  {agrupar === "produto" ? "Produto" : agrupar === "deposito" ? "Depósito" : "Mês"}
+                </TableHead>
                 <TableHead className="text-right">Quantidade</TableHead>
                 <TableHead className="text-right">Receita</TableHead>
                 <TableHead className="text-right">Custo</TableHead>

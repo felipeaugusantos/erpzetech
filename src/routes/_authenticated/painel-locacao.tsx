@@ -124,7 +124,12 @@ function PainelLocacao() {
       const valor = Number(c.valor_total ?? 0);
       const base = { id: c.id, numero: c.numero, cliente, equipamento, valor };
       if (!c.aprovada && c.situacao === "reservada") {
-        lista.push({ ...base, passo: "Aprovar", detalhe: "Solicitação aguardando aprovação", urgente: false });
+        lista.push({
+          ...base,
+          passo: "Aprovar",
+          detalhe: "Solicitação aguardando aprovação",
+          urgente: false,
+        });
         continue;
       }
       if (c.aprovada && c.situacao === "reservada") {
@@ -147,11 +152,21 @@ function PainelLocacao() {
         continue;
       }
       if (Number(c.valor_faturado ?? 0) <= 0 && valor > 0) {
-        lista.push({ ...base, passo: "Cobrar", detalhe: "Contrato devolvido e ainda sem cobrança", urgente: true });
+        lista.push({
+          ...base,
+          passo: "Cobrar",
+          detalhe: "Contrato devolvido e ainda sem cobrança",
+          urgente: true,
+        });
         continue;
       }
       if (!c.nfe_id && valor > 0) {
-        lista.push({ ...base, passo: "Nota de serviço", detalhe: "Locação cobrada e sem NFS-e", urgente: false });
+        lista.push({
+          ...base,
+          passo: "Nota de serviço",
+          detalhe: "Locação cobrada e sem NFS-e",
+          urgente: false,
+        });
       }
     }
     return lista;
@@ -204,7 +219,9 @@ function PainelLocacao() {
         <StatCard
           label="Locados agora"
           value={num(totais.emLocacao, 0)}
-          hint={totais.atrasados > 0 ? `${num(totais.atrasados, 0)} com devolução atrasada` : "Em dia"}
+          hint={
+            totais.atrasados > 0 ? `${num(totais.atrasados, 0)} com devolução atrasada` : "Em dia"
+          }
           tone={totais.atrasados > 0 ? "warning" : "accent"}
           icon={PackageCheck}
         />
@@ -262,7 +279,11 @@ function PainelLocacao() {
                     <TableCell>{p.cliente}</TableCell>
                     <TableCell className="text-muted-foreground">{p.equipamento}</TableCell>
                     <TableCell
-                      className={p.urgente ? "text-sm font-medium text-destructive" : "text-sm text-muted-foreground"}
+                      className={
+                        p.urgente
+                          ? "text-sm font-medium text-destructive"
+                          : "text-sm text-muted-foreground"
+                      }
                     >
                       {p.detalhe}
                     </TableCell>
@@ -314,7 +335,9 @@ function PainelLocacao() {
                         {[l.e.codigo, l.e.marca, l.e.modelo].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{num(l.quantidade, 0)}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {num(l.quantidade, 0)}
+                    </TableCell>
                     <TableCell className="text-right text-numeric">{num(l.locados, 0)}</TableCell>
                     <TableCell className="text-right text-numeric">
                       {l.e.situacao === "manutencao" ? (

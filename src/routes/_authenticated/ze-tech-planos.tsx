@@ -21,7 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-planos")({
   head: () => ({
@@ -188,16 +195,24 @@ function PlanosZeTech() {
                   <p className="font-display text-lg font-bold">{p.nome}</p>
                   <p className="text-xs text-muted-foreground">{p.resumo ?? "—"}</p>
                 </div>
-                <Badge variant={p.ativo ? "default" : "secondary"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>
+                <Badge variant={p.ativo ? "default" : "secondary"}>
+                  {p.ativo ? "Ativo" : "Inativo"}
+                </Badge>
               </div>
-              <p className="font-display text-2xl font-bold">{brl(p.valor_mensal)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
+              <p className="font-display text-2xl font-bold">
+                {brl(p.valor_mensal)}
+                <span className="text-sm font-normal text-muted-foreground">/mês</span>
+              </p>
               <p className="text-xs text-muted-foreground">
-                Prazo {p.prazo_meses} meses · {p.dias_teste > 0 ? `${p.dias_teste} dias de teste` : "sem teste"} ·
-                filial extra {brl(p.valor_filial_extra)} · implantação {brl(p.valor_implantacao)}
+                Prazo {p.prazo_meses} meses ·{" "}
+                {p.dias_teste > 0 ? `${p.dias_teste} dias de teste` : "sem teste"} · filial extra{" "}
+                {brl(p.valor_filial_extra)} · implantação {brl(p.valor_implantacao)}
               </p>
               <ul className="grid gap-1 text-sm">
                 {(p.recursos ?? []).map((r) => (
-                  <li key={r} className="text-muted-foreground">• {r}</li>
+                  <li key={r} className="text-muted-foreground">
+                    • {r}
+                  </li>
                 ))}
               </ul>
               <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3 text-sm">
@@ -267,7 +282,11 @@ function PlanosZeTech() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="p-nome">Nome</Label>
-              <Input id="p-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              <Input
+                id="p-nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="p-codigo">Código interno</Label>

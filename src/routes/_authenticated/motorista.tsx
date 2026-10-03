@@ -52,11 +52,7 @@ type EntregaItem = {
   produtos: { descricao: string; codigo_interno: string } | null;
 };
 
-function Assinatura({
-  onChange,
-}: {
-  onChange: (dataUrl: string | null) => void;
-}) {
+function Assinatura({ onChange }: { onChange: (dataUrl: string | null) => void }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const desenhando = useRef(false);
 
@@ -345,18 +341,16 @@ function AppMotorista() {
       ) : (
         <div className="grid gap-3">
           {entregas.map((e) => {
-            const pedido = e.pedidos as unknown as
-              | {
-                  numero: number;
-                  observacoes: string | null;
-                  entrega_endereco: string | null;
-                  entrega_numero: string | null;
-                  entrega_bairro: string | null;
-                  entrega_cidade: string | null;
-                  entrega_estado: string | null;
-                  clientes: { nome: string; telefone: string | null } | null;
-                }
-              | null;
+            const pedido = e.pedidos as unknown as {
+              numero: number;
+              observacoes: string | null;
+              entrega_endereco: string | null;
+              entrega_numero: string | null;
+              entrega_bairro: string | null;
+              entrega_cidade: string | null;
+              entrega_estado: string | null;
+              clientes: { nome: string; telefone: string | null } | null;
+            } | null;
             const veiculo = e.veiculos as unknown as { placa: string; descricao: string } | null;
             const itens = (e.entrega_itens ?? []) as unknown as EntregaItem[];
             return (
@@ -442,14 +436,21 @@ function AppMotorista() {
 
       {finalizadas.length > 0 && (
         <div className="panel mt-4 p-4">
-          <h2 className="font-display text-sm font-semibold">Entregas finalizadas e divergências</h2>
+          <h2 className="font-display text-sm font-semibold">
+            Entregas finalizadas e divergências
+          </h2>
           <ul className="mt-2 divide-y divide-border">
             {finalizadas.map((f) => {
-              const cliente = (f.pedidos as unknown as { numero: number; clientes: { nome: string } | null } | null);
+              const cliente = f.pedidos as unknown as {
+                numero: number;
+                clientes: { nome: string } | null;
+              } | null;
               return (
                 <li key={f.id} className="py-2 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate">{cliente?.clientes?.nome ?? "—"}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {cliente?.clientes?.nome ?? "—"}
+                    </span>
                     <Badge className={corEntrega(f.situacao)}>{labelEntrega(f.situacao)}</Badge>
                   </div>
                   <p className="text-numeric text-xs text-muted-foreground">
@@ -531,7 +532,9 @@ function AppMotorista() {
                     onChange={(ev) => setFoto(ev.target.files?.[0] ?? null)}
                   />
                 </label>
-                {foto && <span className="truncate text-xs text-muted-foreground">{foto.name}</span>}
+                {foto && (
+                  <span className="truncate text-xs text-muted-foreground">{foto.name}</span>
+                )}
               </div>
             </div>
 
@@ -583,7 +586,11 @@ function AppMotorista() {
             </div>
             <div>
               <Label>O que aconteceu</Label>
-              <Textarea value={motivoObs} rows={3} onChange={(ev) => setMotivoObs(ev.target.value)} />
+              <Textarea
+                value={motivoObs}
+                rows={3}
+                onChange={(ev) => setMotivoObs(ev.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>

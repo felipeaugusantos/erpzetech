@@ -18,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/locacao-estoque")({
   head: () => ({
@@ -137,7 +144,9 @@ function LocacaoEstoque() {
         <StatCard
           label="Em locação agora"
           value={num(totais.locados, 0)}
-          hint={totais.atrasados > 0 ? `${num(totais.atrasados, 0)} com devolução atrasada` : "Em dia"}
+          hint={
+            totais.atrasados > 0 ? `${num(totais.atrasados, 0)} com devolução atrasada` : "Em dia"
+          }
           tone={totais.atrasados > 0 ? "warning" : "accent"}
           icon={PackageCheck}
         />
@@ -243,7 +252,8 @@ function LocacaoEstoque() {
                         <p
                           className={`text-xs ${l.atrasado ? "font-medium text-destructive" : "text-muted-foreground"}`}
                         >
-                          Nº {l.atual.numero} · devolver {dateBR(String(l.atual.previsao_devolucao))}
+                          Nº {l.atual.numero} · devolver{" "}
+                          {dateBR(String(l.atual.previsao_devolucao))}
                           {l.atrasado ? " (atrasado)" : ""}
                         </p>
                       </div>

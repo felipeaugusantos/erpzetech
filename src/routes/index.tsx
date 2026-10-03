@@ -9,7 +9,6 @@ import {
   Receipt,
   Ruler,
   ScanBarcode,
-
   ShieldCheck,
   Truck,
   Wallet,
@@ -40,7 +39,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
-
 
 const features = [
   {
@@ -150,7 +148,6 @@ function Landing() {
         <div className="flex items-center gap-2">
           <ZeLogo />
           <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
-
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
@@ -231,9 +228,7 @@ function Landing() {
               <div
                 key={p.nome}
                 className={
-                  p.destaque
-                    ? "panel relative border-2 border-accent p-6 shadow-lg"
-                    : "panel p-6"
+                  p.destaque ? "panel relative border-2 border-accent p-6 shadow-lg" : "panel p-6"
                 }
               >
                 {p.destaque && (

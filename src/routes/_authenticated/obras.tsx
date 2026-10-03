@@ -28,13 +28,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/obras")({
   head: () => ({
     meta: [
       { title: "Obras — ERP Ze Tech" },
-      { name: "description", content: "Obras vinculadas aos clientes, com responsável e situação." },
+      {
+        name: "description",
+        content: "Obras vinculadas aos clientes, com responsável e situação.",
+      },
       { property: "og:title", content: "Obras — ERP Ze Tech" },
       { property: "og:description", content: "Acompanhe as obras atendidas pela loja." },
     ],
@@ -320,7 +330,11 @@ function Obras() {
             <div className="grid gap-3 sm:grid-cols-4">
               <div>
                 <Label htmlFor="o-cep">CEP</Label>
-                <Input id="o-cep" value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} />
+                <Input
+                  id="o-cep"
+                  value={form.cep}
+                  onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                />
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="o-end">Endereço</Label>
@@ -405,7 +419,10 @@ function Obras() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label>Situação</Label>
-                <Select value={form.situacao} onValueChange={(v) => setForm({ ...form, situacao: v })}>
+                <Select
+                  value={form.situacao}
+                  onValueChange={(v) => setForm({ ...form, situacao: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

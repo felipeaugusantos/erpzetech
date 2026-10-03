@@ -10,7 +10,9 @@ type Entrada = { motoristaId: string; email: string; senha: string };
 export const criarLoginMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Entrada) => {
-    const email = String(input.email ?? "").trim().toLowerCase();
+    const email = String(input.email ?? "")
+      .trim()
+      .toLowerCase();
     const senha = String(input.senha ?? "");
     if (!input.motoristaId) throw new Error("Motorista não informado");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("E-mail inválido");
@@ -24,7 +26,8 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
       supabase.rpc("has_role", { _user_id: userId, _role: "administrador" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "gestor" }),
     ]);
-    if (!ehAdmin && !ehGestor) throw new Error("Somente administrador ou gestor pode criar o login do motorista");
+    if (!ehAdmin && !ehGestor)
+      throw new Error("Somente administrador ou gestor pode criar o login do motorista");
 
     const { data: motorista, error: erroMotorista } = await supabase
       .from("motoristas")

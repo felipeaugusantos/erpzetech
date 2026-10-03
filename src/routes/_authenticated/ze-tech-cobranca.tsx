@@ -34,7 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-cobranca")({
@@ -238,7 +245,8 @@ function CobrancaZeTech() {
       `Valor: ${brl(f.valor)} · Vencimento: ${dateBR(f.vencimento)}`,
     ];
     if (f.pix_copia_cola) linhas.push("", "PIX copia e cola:", f.pix_copia_cola);
-    if (f.boleto_linha_digitavel) linhas.push("", "Linha digitável do boleto:", f.boleto_linha_digitavel);
+    if (f.boleto_linha_digitavel)
+      linhas.push("", "Linha digitável do boleto:", f.boleto_linha_digitavel);
     if (f.boleto_url) linhas.push("", `Boleto em PDF: ${f.boleto_url}`);
     if (config?.instrucoes) linhas.push("", config.instrucoes);
     return linhas.join("\n");
@@ -346,16 +354,36 @@ function CobrancaZeTech() {
       />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Em aberto" value={brl(resumo.aberto)} hint="Cobranças não quitadas" icon={Wallet} />
-        <StatCard label="Em atraso" value={brl(resumo.atrasado)} hint="Vencidas e não pagas" icon={FileText} />
-        <StatCard label="A enviar" value={String(resumo.aEnviar)} hint="Cobranças sem envio" icon={Send} />
-        <StatCard label="Já recebido" value={brl(resumo.recebido)} hint="Total pago pelas lojas" icon={QrCode} />
+        <StatCard
+          label="Em aberto"
+          value={brl(resumo.aberto)}
+          hint="Cobranças não quitadas"
+          icon={Wallet}
+        />
+        <StatCard
+          label="Em atraso"
+          value={brl(resumo.atrasado)}
+          hint="Vencidas e não pagas"
+          icon={FileText}
+        />
+        <StatCard
+          label="A enviar"
+          value={String(resumo.aEnviar)}
+          hint="Cobranças sem envio"
+          icon={Send}
+        />
+        <StatCard
+          label="Já recebido"
+          value={brl(resumo.recebido)}
+          hint="Total pago pelas lojas"
+          icon={QrCode}
+        />
       </div>
 
       {!config?.chave_pix && (
         <p className="panel mb-5 p-4 text-sm text-muted-foreground">
-          Cadastre a sua chave PIX em <strong>Dados de cobrança</strong> para o sistema gerar o PIX copia
-          e cola de cada mensalidade.
+          Cadastre a sua chave PIX em <strong>Dados de cobrança</strong> para o sistema gerar o PIX
+          copia e cola de cada mensalidade.
         </p>
       )}
 
@@ -394,7 +422,10 @@ function CobrancaZeTech() {
                       saldo <= 0
                         ? { texto: "Paga", variante: "default" as const }
                         : dias < 0
-                          ? { texto: `${Math.abs(dias)}d em atraso`, variante: "destructive" as const }
+                          ? {
+                              texto: `${Math.abs(dias)}d em atraso`,
+                              variante: "destructive" as const,
+                            }
                           : { texto: "Em aberto", variante: "secondary" as const };
                     return (
                       <TableRow key={f.id} className="align-middle">
@@ -403,7 +434,9 @@ function CobrancaZeTech() {
                           <p>{f.descricao}</p>
                           <p className="text-xs text-muted-foreground">
                             {TIPO_FATURA_SAAS[f.tipo] ?? f.tipo}
-                            {f.forma_cobranca ? ` · ${f.forma_cobranca === "pix" ? "PIX" : "Boleto"}` : ""}
+                            {f.forma_cobranca
+                              ? ` · ${f.forma_cobranca === "pix" ? "PIX" : "Boleto"}`
+                              : ""}
                           </p>
                         </TableCell>
                         <TableCell>{dateBR(f.vencimento)}</TableCell>
@@ -445,7 +478,9 @@ function CobrancaZeTech() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copiar(f.boleto_linha_digitavel!, "Linha digitável copiada.")}
+                                onClick={() =>
+                                  copiar(f.boleto_linha_digitavel!, "Linha digitável copiada.")
+                                }
                               >
                                 <Copy className="size-3.5" /> Boleto
                               </Button>
@@ -616,8 +651,8 @@ function CobrancaZeTech() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  O boleto é emitido pelo seu banco; cole aqui a linha digitável e o link para enviar à
-                  loja.
+                  O boleto é emitido pelo seu banco; cole aqui a linha digitável e o link para
+                  enviar à loja.
                 </p>
               </>
             )}

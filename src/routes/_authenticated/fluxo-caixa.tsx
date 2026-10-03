@@ -10,7 +10,14 @@ import { PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
@@ -118,7 +125,6 @@ function FluxoCaixa() {
     return [...mapa.values()].sort((a, b) => b.total - a.total);
   }, [vendasPdv]);
 
-
   const projecao = useMemo(() => {
     const mapa = new Map<string, Linha>();
     const add = (data: string, campo: "receber" | "pagar", v: number) => {
@@ -126,7 +132,8 @@ function FluxoCaixa() {
       linha[campo] += v;
       mapa.set(data, linha);
     };
-    for (const c of receber) add(c.vencimento, "receber", Number(c.valor) - Number(c.valor_recebido));
+    for (const c of receber)
+      add(c.vencimento, "receber", Number(c.valor) - Number(c.valor_recebido));
     for (const c of pagar) add(c.vencimento, "pagar", Number(c.valor) - Number(c.valor_pago));
     return [...mapa.values()].sort((a, b) => a.data.localeCompare(b.data));
   }, [receber, pagar]);
@@ -286,7 +293,6 @@ function FluxoCaixa() {
           </div>
         )}
       </div>
-
 
       <div className="panel p-4">
         <h2 className="mb-3 font-display text-lg font-semibold">Projeção por vencimento</h2>

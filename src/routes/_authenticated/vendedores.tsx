@@ -28,7 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/vendedores")({
   head: () => ({
@@ -121,9 +128,7 @@ function Vendedores() {
         .filter((r) => r.role === "vendedor" || r.role === "gestor" || r.role === "administrador")
         .map((r) => r.user_id),
     );
-    return pessoas
-      .filter((p) => ids.has(p.id))
-      .filter((p) => (somenteAtivos ? p.ativo : true));
+    return pessoas.filter((p) => ids.has(p.id)).filter((p) => (somenteAtivos ? p.ativo : true));
   }, [data, somenteAtivos]);
 
   function regraDe(id: string) {

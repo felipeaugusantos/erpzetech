@@ -47,9 +47,7 @@ export function Via80({ dados }: { dados: Via80Dados }) {
         )}
         <p className="font-display text-sm font-bold uppercase">{dados.loja}</p>
         {empresa?.cnpj && <p className="text-muted-foreground">CNPJ {empresa.cnpj}</p>}
-        <p className="text-muted-foreground">
-          {dados.tipo} — não é documento fiscal
-        </p>
+        <p className="text-muted-foreground">{dados.tipo} — não é documento fiscal</p>
       </div>
       <div className={linha} />
       <div className="space-y-0.5">

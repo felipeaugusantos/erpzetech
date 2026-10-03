@@ -86,7 +86,11 @@ function CertificadoNfse() {
   const { data: config, isLoading } = useQuery({
     queryKey: ["fiscal-config-certificado"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("fiscal_config").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("fiscal_config")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -170,7 +174,8 @@ function CertificadoNfse() {
     setForm((f) => ({ ...f, [campo]: valor }));
 
   const vencido =
-    !!form.certificado_validade && form.certificado_validade < new Date().toISOString().slice(0, 10);
+    !!form.certificado_validade &&
+    form.certificado_validade < new Date().toISOString().slice(0, 10);
 
   return (
     <div>
@@ -198,8 +203,8 @@ function CertificadoNfse() {
             <ShieldCheck className="size-4 text-primary" /> Certificado digital
           </h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            O A1 é um arquivo instalado no servidor de emissão; o A3 fica em cartão ou token e precisa
-            estar conectado na máquina que emite.
+            O A1 é um arquivo instalado no servidor de emissão; o A3 fica em cartão ou token e
+            precisa estar conectado na máquina que emite.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -247,7 +252,11 @@ function CertificadoNfse() {
             </div>
             <div>
               <Label>Ambiente de emissão</Label>
-              <Select value={form.ambiente} onValueChange={(v) => set("ambiente", v)} disabled={!isAdmin}>
+              <Select
+                value={form.ambiente}
+                onValueChange={(v) => set("ambiente", v)}
+                disabled={!isAdmin}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -283,8 +292,8 @@ function CertificadoNfse() {
               <Badge variant="secondary">Validade não informada</Badge>
             )}
             <span className="text-muted-foreground">
-              O arquivo e a senha do certificado ficam com o emissor autorizado — aqui guardamos só os
-              dados de controle.
+              O arquivo e a senha do certificado ficam com o emissor autorizado — aqui guardamos só
+              os dados de controle.
             </span>
           </div>
         </div>
@@ -294,8 +303,8 @@ function CertificadoNfse() {
             <Building2 className="size-4 text-primary" /> Nota de serviço por prefeitura
           </h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            Cada prefeitura tem seu próprio sistema de NFS-e. Informe o município, o padrão e o acesso
-            que a prefeitura liberou para a empresa.
+            Cada prefeitura tem seu próprio sistema de NFS-e. Informe o município, o padrão e o
+            acesso que a prefeitura liberou para a empresa.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -318,7 +327,11 @@ function CertificadoNfse() {
             </div>
             <div>
               <Label>Padrão do sistema</Label>
-              <Select value={form.nfse_padrao} onValueChange={(v) => set("nfse_padrao", v)} disabled={!isAdmin}>
+              <Select
+                value={form.nfse_padrao}
+                onValueChange={(v) => set("nfse_padrao", v)}
+                disabled={!isAdmin}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -437,8 +450,8 @@ function CertificadoNfse() {
         </h2>
         <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
           <li>
-            A locação de equipamento sai como NFS-e de serviço; a venda de produto continua saindo como
-            NF-e.
+            A locação de equipamento sai como NFS-e de serviço; a venda de produto continua saindo
+            como NF-e.
           </li>
           <li>
             O código do serviço e a alíquota de ISS vêm de{" "}
@@ -452,8 +465,8 @@ function CertificadoNfse() {
             — a loja emitente tem prioridade.
           </li>
           <li>
-            Sem certificado válido, inscrição municipal e código do serviço, a nota fica em rascunho e o
-            sistema mostra a pendência.
+            Sem certificado válido, inscrição municipal e código do serviço, a nota fica em rascunho
+            e o sistema mostra a pendência.
           </li>
         </ul>
       </div>

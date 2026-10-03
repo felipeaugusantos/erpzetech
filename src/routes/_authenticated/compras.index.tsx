@@ -29,7 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/compras/")({
   head: () => ({
@@ -122,7 +129,9 @@ function Compras() {
     ["aprovado", "pedido_enviado", "parcialmente_recebido"].includes(c.situacao),
   );
   const recebidasMes = compras.filter(
-    (c) => c.situacao === "recebido" && (c.updated_at ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7),
+    (c) =>
+      c.situacao === "recebido" &&
+      (c.updated_at ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7),
   );
 
   const criar = useMutation({
@@ -186,7 +195,7 @@ function Compras() {
         title="Compras"
         description="Necessidade → cotação → pedido de compra → recebimento no estoque."
         actions={
-           <>
+          <>
             <Button variant="outline" asChild>
               <Link to="/giro-estoque">
                 <Gauge className="size-4" /> Giro e sugestão

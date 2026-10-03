@@ -26,7 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/profissionais")({
@@ -71,8 +78,7 @@ function Profissionais() {
   const { data: session } = useSessionData();
   const tenantId = session?.profile?.tenant_id ?? null;
   const empresaId = session?.profile?.empresa_id ?? session?.empresa?.id ?? null;
-  const podeAprovar =
-    session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
+  const podeAprovar = session?.roles.some((r) => ["administrador", "gestor"].includes(r)) ?? false;
 
   const { data, isLoading } = useQuery({
     queryKey: ["profissionais"],
@@ -90,7 +96,9 @@ function Profissionais() {
           .order("created_at", { ascending: false }),
         supabase
           .from("contas_receber")
-          .select("id, numero, descricao, valor, valor_recebido, vencimento, cliente_id, clientes(nome)")
+          .select(
+            "id, numero, descricao, valor, valor_recebido, vencimento, cliente_id, clientes(nome)",
+          )
           .in("situacao", ["aberto", "parcial"])
           .order("vencimento"),
       ]);
@@ -138,8 +146,7 @@ function Profissionais() {
     >();
     for (const p of premiacoes) {
       if (!p.profissional_id) continue;
-      const atual =
-        mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0, usado: 0 };
+      const atual = mapa.get(p.profissional_id) ?? { aReceber: 0, pago: 0, vendas: 0, usado: 0 };
       if (p.situacao === "paga") atual.pago += Number(p.valor);
       else if (p.situacao !== "cancelada") atual.aReceber += Number(p.valor);
       if (p.situacao !== "cancelada") atual.vendas += Number(p.valor_base);
@@ -353,8 +360,6 @@ function Profissionais() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
-
-
   return (
     <>
       <PageHeader
@@ -457,7 +462,6 @@ function Profissionais() {
             </div>
           )}
         </TabsContent>
-
 
         <TabsContent value="premiacoes" className="mt-4">
           {isLoading ? (
@@ -586,69 +590,75 @@ function Profissionais() {
                 </TableHeader>
                 <TableBody>
                   {profissionais.map((p) => {
-                    const saldo =
-                      saldoPorProf.get(p.id) ?? { aReceber: 0, pago: 0, vendas: 0, usado: 0 };
+                    const saldo = saldoPorProf.get(p.id) ?? {
+                      aReceber: 0,
+                      pago: 0,
+                      vendas: 0,
+                      usado: 0,
+                    };
                     return (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-sm font-medium">{p.nome}</TableCell>
-                      <TableCell className="text-sm capitalize">
-                        {p.tipo.replace(/_/g, " ")}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {[p.whatsapp || p.telefone, p.email].filter(Boolean).join(" · ") || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {p.chave_pix || "—"}
-                      </TableCell>
-                      <TableCell className="text-right text-numeric">
-                        {num(Number(p.percentual_premio), 1)}%
-                      </TableCell>
-                      <TableCell className="text-right text-numeric">
-                        {indicacoesPorProf.get(p.id) ?? 0}
-                      </TableCell>
-                      <TableCell className="text-right text-numeric">{brl(saldo.vendas)}</TableCell>
-                      <TableCell className="text-right text-numeric font-semibold">
-                        {brl(saldo.aReceber)}
-                      </TableCell>
-                      <TableCell className="text-right text-numeric text-muted-foreground">
-                        {brl(saldo.usado)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {p.cliente_id ? (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="default">Sim</Badge>
+                      <TableRow key={p.id}>
+                        <TableCell className="text-sm font-medium">{p.nome}</TableCell>
+                        <TableCell className="text-sm capitalize">
+                          {p.tipo.replace(/_/g, " ")}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {[p.whatsapp || p.telefone, p.email].filter(Boolean).join(" · ") || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {p.chave_pix || "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {num(Number(p.percentual_premio), 1)}%
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {indicacoesPorProf.get(p.id) ?? 0}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(saldo.vendas)}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric font-semibold">
+                          {brl(saldo.aReceber)}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric text-muted-foreground">
+                          {brl(saldo.usado)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {p.cliente_id ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="default">Sim</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => desvincularCliente.mutate(p.id)}
+                              >
+                                Só profissional
+                              </Button>
+                            </div>
+                          ) : (
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={() => desvincularCliente.mutate(p.id)}
+                              variant="outline"
+                              disabled={converterCliente.isPending}
+                              onClick={() => converterCliente.mutate(p.id)}
                             >
-                              Só profissional
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={converterCliente.isPending}
-                            onClick={() => converterCliente.mutate(p.id)}
-                          >
-                            Converter em cliente
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {saldo.aReceber > 0 && (
-                            <Button size="sm" onClick={() => abrirCredito(p.id)}>
-                              Usar crédito
+                              Converter em cliente
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" onClick={() => editar(p)}>
-                            Editar
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {saldo.aReceber > 0 && (
+                              <Button size="sm" onClick={() => abrirCredito(p.id)}>
+                                Usar crédito
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => editar(p)}>
+                              Editar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>
@@ -852,7 +862,9 @@ function Profissionais() {
                   variant="outline"
                   onClick={() =>
                     setCredValor(
-                      String(Math.min(saldoCredProf, saldoContaEscolhida || saldoCredProf).toFixed(2)),
+                      String(
+                        Math.min(saldoCredProf, saldoContaEscolhida || saldoCredProf).toFixed(2),
+                      ),
                     )
                   }
                   disabled={!credProf || !credConta}

@@ -28,7 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/veiculos")({
   head: () => ({
@@ -105,13 +112,16 @@ function Veiculos() {
     const t = busca.trim().toLowerCase();
     if (!t) return veiculos;
     return veiculos.filter((v) =>
-      [v.placa, v.descricao, v.tipo].filter(Boolean).some((x) => String(x).toLowerCase().includes(t)),
+      [v.placa, v.descricao, v.tipo]
+        .filter(Boolean)
+        .some((x) => String(x).toLowerCase().includes(t)),
     );
   }, [veiculos, busca]);
 
   const salvar = useMutation({
     mutationFn: async () => {
-      if (!profile?.tenant_id || !profile?.empresa_id) throw new Error("Usuário sem empresa vinculada");
+      if (!profile?.tenant_id || !profile?.empresa_id)
+        throw new Error("Usuário sem empresa vinculada");
       if (!form.placa.trim()) throw new Error("Informe a placa");
       if (!form.descricao.trim()) throw new Error("Informe a descrição do veículo");
       const payload = {

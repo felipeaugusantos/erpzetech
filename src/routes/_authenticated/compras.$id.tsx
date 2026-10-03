@@ -37,7 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/compras/$id")({
   head: () => ({
@@ -336,10 +343,7 @@ function CompraDetalhe() {
   });
 
   const pendentes = useMemo(
-    () =>
-      itens.filter(
-        (i) => Number(i.quantidade) - Number(i.quantidade_recebida) > 0.001,
-      ),
+    () => itens.filter((i) => Number(i.quantidade) - Number(i.quantidade_recebida) > 0.001),
     [itens],
   );
 
@@ -417,7 +421,9 @@ function CompraDetalhe() {
         </div>
         <div className="text-right">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Total</p>
-          <p className="font-display text-2xl font-bold text-numeric">{brl(Number(compra.total))}</p>
+          <p className="font-display text-2xl font-bold text-numeric">
+            {brl(Number(compra.total))}
+          </p>
         </div>
       </div>
 
@@ -671,8 +677,7 @@ function CompraDetalhe() {
                             (compra?.fornecedores as { razao_social: string } | null)
                               ?.razao_social ?? "—",
                           documento: r.documento ?? "",
-                          deposito:
-                            (compra?.depositos as { nome: string } | null)?.nome ?? "—",
+                          deposito: (compra?.depositos as { nome: string } | null)?.nome ?? "—",
                           condicaoPagamento: compra?.condicao_pagamento ?? "",
                           itens: (
                             (r.compra_recebimento_itens ?? []) as {
@@ -691,8 +696,8 @@ function CompraDetalhe() {
                             quantidade: Number(it.quantidade),
                             custo: Number(it.custo_unitario),
                             divergencia: it.divergencia
-                              ? divergencias.find((d) => d.value === it.divergencia)?.label ??
-                                it.divergencia
+                              ? (divergencias.find((d) => d.value === it.divergencia)?.label ??
+                                it.divergencia)
                               : null,
                           })),
                         });
@@ -750,7 +755,6 @@ function CompraDetalhe() {
           <NotaEntrada dados={nota} />
         </div>
       )}
-
 
       <Dialog open={cotacaoAberta} onOpenChange={setCotacaoAberta}>
         <DialogContent>
@@ -866,9 +870,7 @@ function CompraDetalhe() {
                   {recebItens.map((r, idx) => {
                     const item = pendentes.find((p) => p.id === r.compra_item_id);
                     const prod = item?.produtos as
-                      | { codigo_interno: string; descricao: string }
-                      | null
-                      | undefined;
+                      { codigo_interno: string; descricao: string } | null | undefined;
                     return (
                       <TableRow key={r.compra_item_id}>
                         <TableCell>

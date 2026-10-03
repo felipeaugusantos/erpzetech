@@ -106,10 +106,7 @@ function ImpostosFilial() {
   });
 
   /** Configuração padrão da empresa, usada quando a filial não tem a própria. */
-  const padrao = useMemo(
-    () => (configs ?? []).find((c) => !c.filial_id) ?? null,
-    [configs],
-  );
+  const padrao = useMemo(() => (configs ?? []).find((c) => !c.filial_id) ?? null, [configs]);
   const daFilial = useMemo(
     () => (configs ?? []).find((c) => c.filial_id === filialId) ?? null,
     [configs, filialId],
@@ -309,7 +306,11 @@ function ImpostosFilial() {
             <div className="grid gap-4 sm:grid-cols-2">
               {campo("aliquota_pis", "PIS", "0,65% no cumulativo e 1,65% no não cumulativo.")}
               {campo("aliquota_cofins", "COFINS", "3% no cumulativo e 7,6% no não cumulativo.")}
-              {campo("aliquota_iss", "ISS (serviços)", "Só para serviços, como entrega ou montagem.")}
+              {campo(
+                "aliquota_iss",
+                "ISS (serviços)",
+                "Só para serviços, como entrega ou montagem.",
+              )}
               <div>
                 <Label htmlFor="cst_pis">Situação do PIS</Label>
                 <Select
@@ -355,9 +356,19 @@ function ImpostosFilial() {
               <p className="font-display text-sm font-semibold">Nota fiscal da loja</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              {campo("cfop_padrao", "CFOP padrão da venda", "Usado quando o produto não tem CFOP.", "")}
+              {campo(
+                "cfop_padrao",
+                "CFOP padrão da venda",
+                "Usado quando o produto não tem CFOP.",
+                "",
+              )}
               {campo("serie", "Série da nota", "Cada loja costuma usar uma série própria.", "")}
-              {campo("proximo_numero", "Próximo número", "Numeração da próxima nota desta loja.", "")}
+              {campo(
+                "proximo_numero",
+                "Próximo número",
+                "Numeração da próxima nota desta loja.",
+                "",
+              )}
             </div>
 
             <div className="mt-5">

@@ -345,8 +345,7 @@ function Simulacao() {
             <span className="font-semibold">{brl(impostos)}</span>
             <span className="text-muted-foreground">
               {" "}
-              · total com impostos destacados{" "}
-              {brl(totais.total + totais.st)}
+              · total com impostos destacados {brl(totais.total + totais.st)}
             </span>
           </p>
         </div>

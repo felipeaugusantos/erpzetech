@@ -25,7 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/devolucoes")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -176,7 +183,8 @@ function Devolucoes() {
           quantidade: Number((itens[i.id]?.quantidade ?? "0").replace(",", ".") || 0),
         }))
         .filter((i) => i.quantidade > 0);
-      if (payload.length === 0) throw new Error("Informe a quantidade devolvida de pelo menos um item");
+      if (payload.length === 0)
+        throw new Error("Informe a quantidade devolvida de pelo menos um item");
       const { error } = await supabase.rpc("devolucao_registrar", {
         p_pedido_id: pedidoId,
         p_itens: payload,
@@ -202,7 +210,9 @@ function Devolucoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const doMes = devolucoes.filter((d) => String(d.created_at).slice(0, 7) === hojeISO().slice(0, 7));
+  const doMes = devolucoes.filter(
+    (d) => String(d.created_at).slice(0, 7) === hojeISO().slice(0, 7),
+  );
 
   return (
     <div>
@@ -289,7 +299,9 @@ function Devolucoes() {
                   <TableCell className="text-muted-foreground">{dateBR(d.created_at)}</TableCell>
                   <TableCell className="text-numeric">{d.pedidos?.numero ?? "—"}</TableCell>
                   <TableCell>{d.clientes?.nome ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{d.depositos?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {d.depositos?.nome ?? "—"}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {d.devolucao_itens?.length ?? 0}
                   </TableCell>

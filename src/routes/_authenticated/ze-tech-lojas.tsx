@@ -21,8 +21,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/ze-tech-lojas")({
   head: () => ({
@@ -36,7 +49,8 @@ export const Route = createFileRoute("/_authenticated/ze-tech-lojas")({
       { property: "og:title", content: "Lojas da rede — Painel Ze Tech" },
       {
         property: "og:description",
-        content: "Matriz e filiais de cada cliente, com endereço, contato, plano e situação de implantação.",
+        content:
+          "Matriz e filiais de cada cliente, com endereço, contato, plano e situação de implantação.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -148,7 +162,10 @@ function LojasZeTech() {
 
   function abrirNova() {
     setEditando(null);
-    setForm({ ...vazio, cliente_id: filtroCliente !== "todos" ? filtroCliente : (clientes[0]?.id ?? "") });
+    setForm({
+      ...vazio,
+      cliente_id: filtroCliente !== "todos" ? filtroCliente : (clientes[0]?.id ?? ""),
+    });
     setAberto(true);
   }
 
@@ -335,7 +352,9 @@ function LojasZeTech() {
           title="Nenhuma loja cadastrada."
           description="Cadastre a matriz de cada cliente e depois as filiais da rede."
           action={
-            clientes.length > 0 ? <Button onClick={abrirNova}>Cadastrar primeira loja</Button> : undefined
+            clientes.length > 0 ? (
+              <Button onClick={abrirNova}>Cadastrar primeira loja</Button>
+            ) : undefined
           }
         />
       ) : (
@@ -389,7 +408,11 @@ function LojasZeTech() {
                     <TableCell className="text-center">
                       <Badge
                         variant={
-                          l.situacao === "ativa" ? "default" : l.situacao === "inativa" ? "secondary" : "outline"
+                          l.situacao === "ativa"
+                            ? "default"
+                            : l.situacao === "inativa"
+                              ? "secondary"
+                              : "outline"
                         }
                       >
                         {SITUACAO_LOJA[l.situacao] ?? l.situacao}
@@ -442,7 +465,10 @@ function LojasZeTech() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5 sm:col-span-2">
               <Label>Cliente dono da loja</Label>
-              <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+              <Select
+                value={form.cliente_id}
+                onValueChange={(v) => setForm({ ...form, cliente_id: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Escolha o cliente" />
                 </SelectTrigger>
@@ -457,7 +483,11 @@ function LojasZeTech() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-nome">Nome da loja</Label>
-              <Input id="l-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              <Input
+                id="l-nome"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-apelido">Apelido interno</Label>
@@ -522,7 +552,11 @@ function LojasZeTech() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-cep">CEP</Label>
-              <Input id="l-cep" value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} />
+              <Input
+                id="l-cep"
+                value={form.cep}
+                onChange={(e) => setForm({ ...form, cep: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5 sm:col-span-2">
               <Label htmlFor="l-end">Endereço</Label>
@@ -534,7 +568,11 @@ function LojasZeTech() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-num">Número</Label>
-              <Input id="l-num" value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} />
+              <Input
+                id="l-num"
+                value={form.numero}
+                onChange={(e) => setForm({ ...form, numero: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-comp">Complemento</Label>
@@ -546,11 +584,19 @@ function LojasZeTech() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-bairro">Bairro</Label>
-              <Input id="l-bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
+              <Input
+                id="l-bairro"
+                value={form.bairro}
+                onChange={(e) => setForm({ ...form, bairro: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-cidade">Cidade</Label>
-              <Input id="l-cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+              <Input
+                id="l-cidade"
+                value={form.cidade}
+                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="l-uf">UF</Label>
@@ -572,7 +618,10 @@ function LojasZeTech() {
             </div>
             <div className="grid gap-1.5">
               <Label>Situação</Label>
-              <Select value={form.situacao} onValueChange={(v) => setForm({ ...form, situacao: v })}>
+              <Select
+                value={form.situacao}
+                onValueChange={(v) => setForm({ ...form, situacao: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

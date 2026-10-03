@@ -23,7 +23,12 @@ export type CupomDados = {
   parcelas?: number;
   recebido?: number;
   troco?: number;
-  nfe?: { numero: string | null; serie: string | null; situacao: string; chave?: string | null } | null;
+  nfe?: {
+    numero: string | null;
+    serie: string | null;
+    situacao: string;
+    chave?: string | null;
+  } | null;
   tef?: { credenciadora: string; nsu: string; autorizacao: string; bandeira: string };
 };
 
@@ -106,7 +111,9 @@ export function CupomFiscal({ dados }: { dados: CupomDados }) {
           <div className={linha} />
           <div className="space-y-0.5">
             <p className="font-semibold">Transação cartão — {dados.tef.credenciadora}</p>
-            <p>NSU: {dados.tef.nsu || "—"} · Aut.: {dados.tef.autorizacao || "—"}</p>
+            <p>
+              NSU: {dados.tef.nsu || "—"} · Aut.: {dados.tef.autorizacao || "—"}
+            </p>
             {dados.tef.bandeira && <p>Bandeira: {dados.tef.bandeira}</p>}
           </div>
         </>

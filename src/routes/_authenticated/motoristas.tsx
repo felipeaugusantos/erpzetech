@@ -28,7 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/motoristas")({
   head: () => ({
@@ -135,7 +142,8 @@ function Motoristas() {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      if (!profile?.tenant_id || !profile?.empresa_id) throw new Error("Usuário sem empresa vinculada");
+      if (!profile?.tenant_id || !profile?.empresa_id)
+        throw new Error("Usuário sem empresa vinculada");
       if (!form.nome.trim()) throw new Error("Informe o nome do motorista");
       const payload = {
         tenant_id: profile.tenant_id,
@@ -243,9 +251,10 @@ function Motoristas() {
             </TableHeader>
             <TableBody>
               {lista.map((m) => {
-                const veiculo = m.veiculos as unknown as
-                  | { placa: string; descricao: string }
-                  | null;
+                const veiculo = m.veiculos as unknown as {
+                  placa: string;
+                  descricao: string;
+                } | null;
                 const vencida = m.validade_cnh
                   ? new Date(m.validade_cnh).getTime() < Date.now()
                   : false;

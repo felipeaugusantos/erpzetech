@@ -497,9 +497,7 @@ function Transferencias() {
                       inputMode="decimal"
                       onChange={(e) =>
                         setLinhas((atual) =>
-                          atual.map((x, i) =>
-                            i === idx ? { ...x, qtdTexto: e.target.value } : x,
-                          ),
+                          atual.map((x, i) => (i === idx ? { ...x, qtdTexto: e.target.value } : x)),
                         )
                       }
                       className="w-28 text-right"
@@ -562,7 +560,8 @@ function Transferencias() {
                   {labelSituacao[aberta.situacao] ?? aberta.situacao}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  Valor: <strong className="text-foreground">{brl(Number(aberta.valor_total))}</strong>
+                  Valor:{" "}
+                  <strong className="text-foreground">{brl(Number(aberta.valor_total))}</strong>
                 </span>
                 {aberta.observacao && (
                   <span className="text-sm text-muted-foreground">{aberta.observacao}</span>

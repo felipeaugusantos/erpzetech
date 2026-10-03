@@ -26,7 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/relatorio-estoque")({
@@ -41,7 +48,8 @@ export const Route = createFileRoute("/_authenticated/relatorio-estoque")({
       { property: "og:title", content: "Relatório de estoque por depósito — ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Entradas, saídas e saldo por depósito e por produto, com as transferências do período.",
+        content:
+          "Entradas, saídas e saldo por depósito e por produto, com as transferências do período.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -132,8 +140,7 @@ function RelatorioEstoque() {
   }, [data?.estoques]);
 
   const movsFiltradas = useMemo(
-    () =>
-      (data?.movs ?? []).filter((m) => depositoId === "todos" || m.deposito_id === depositoId),
+    () => (data?.movs ?? []).filter((m) => depositoId === "todos" || m.deposito_id === depositoId),
     [data?.movs, depositoId],
   );
 
@@ -198,7 +205,12 @@ function RelatorioEstoque() {
   }, [movsFiltradas, depositos, depositoId, saldoPorDeposito, custoRef]);
 
   const porProduto = useMemo(() => {
-    type Item = Acumulado & { descricao: string; codigo: string; unidade: string; produto_id: string };
+    type Item = Acumulado & {
+      descricao: string;
+      codigo: string;
+      unidade: string;
+      produto_id: string;
+    };
     const mapa = new Map<string, Item>();
     for (const m of movsFiltradas) {
       const p = m.produtos as { descricao: string; codigo_interno: string; unidade: string } | null;
@@ -223,11 +235,7 @@ function RelatorioEstoque() {
     const termo = busca.trim().toLowerCase();
     return [...mapa.values()]
       .map((i) => ({ ...i, saldo: saldoProd.get(i.produto_id) ?? 0 }))
-      .filter(
-        (i) =>
-          !termo ||
-          `${i.descricao} ${i.codigo}`.toLowerCase().includes(termo),
-      )
+      .filter((i) => !termo || `${i.descricao} ${i.codigo}`.toLowerCase().includes(termo))
       .sort((a, b) => b.saiValor - a.saiValor);
   }, [movsFiltradas, data?.estoques, depositoId, busca, custoRef]);
 
@@ -365,17 +373,27 @@ function RelatorioEstoque() {
                     {porDeposito.map((d) => (
                       <TableRow key={d.id}>
                         <TableCell className="font-medium">
-                          <Link to="/depositos/$id" params={{ id: d.id }} className="hover:underline">
+                          <Link
+                            to="/depositos/$id"
+                            params={{ id: d.id }}
+                            className="hover:underline"
+                          >
                             {d.nome}
                           </Link>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{d.loja}</TableCell>
-                        <TableCell className="text-right text-numeric">{num(d.acc.entQtd)}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {num(d.acc.entQtd)}
+                        </TableCell>
                         <TableCell className="text-right text-numeric text-success-foreground">
                           {brl(d.acc.entValor)}
                         </TableCell>
-                        <TableCell className="text-right text-numeric">{num(d.acc.saiQtd)}</TableCell>
-                        <TableCell className="text-right text-numeric">{brl(d.acc.saiValor)}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {num(d.acc.saiQtd)}
+                        </TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {brl(d.acc.saiValor)}
+                        </TableCell>
                         <TableCell className="text-right text-numeric">
                           {num(d.acc.transfEntQtd)}
                         </TableCell>
@@ -434,7 +452,9 @@ function RelatorioEstoque() {
                         <TableCell className="text-right text-numeric">
                           {num(i.transfEntQtd + i.transfSaiQtd)}
                         </TableCell>
-                        <TableCell className="text-right text-numeric">{num(i.ajusteQtd)}</TableCell>
+                        <TableCell className="text-right text-numeric">
+                          {num(i.ajusteQtd)}
+                        </TableCell>
                         <TableCell className="text-right text-numeric font-medium">
                           {num(i.saldo)} {i.unidade}
                         </TableCell>
@@ -476,7 +496,9 @@ function RelatorioEstoque() {
                     {transferencias.map((t) => (
                       <TableRow key={t.id}>
                         <TableCell className="text-numeric">{t.numero}</TableCell>
-                        <TableCell className="text-sm">{dateBR(String(t.created_at).slice(0, 10))}</TableCell>
+                        <TableCell className="text-sm">
+                          {dateBR(String(t.created_at).slice(0, 10))}
+                        </TableCell>
                         <TableCell className="text-sm">
                           {(t.origem as { nome: string } | null)?.nome ?? "—"}
                         </TableCell>

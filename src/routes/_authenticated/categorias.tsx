@@ -25,7 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/categorias")({
   head: () => ({
@@ -132,10 +139,7 @@ function Categorias() {
                 </div>
               </div>
               <DialogFooter>
-                <Button
-                  onClick={() => criar.mutate()}
-                  disabled={!nome.trim() || criar.isPending}
-                >
+                <Button onClick={() => criar.mutate()} disabled={!nome.trim() || criar.isPending}>
                   Salvar
                 </Button>
               </DialogFooter>

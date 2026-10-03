@@ -48,6 +48,7 @@ function validaPerfis(perfis: unknown): Perfil[] {
 /** Confirma que quem chama é administrador e devolve o tenant/empresa dele. */
 async function contextoAdmin(supabase: {
   rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- query builder do Supabase
   from: (t: string) => any;
   auth: { getUser: () => Promise<{ data: { user: { id: string } | null } }> };
 }) {
@@ -79,7 +80,9 @@ export const criarUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: CriarEntrada) => {
     const nome = String(input.nome ?? "").trim();
-    const email = String(input.email ?? "").trim().toLowerCase();
+    const email = String(input.email ?? "")
+      .trim()
+      .toLowerCase();
     const senha = String(input.senha ?? "");
     if (nome.length < 3) throw new Error("Informe o nome do operador");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("E-mail inválido");
@@ -125,9 +128,9 @@ export const criarUsuario = createServerFn({ method: "POST" })
     const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", novoId);
     if (limpeza.error) throw limpeza.error;
 
-    const papeis = await supabaseAdmin.from("user_roles").insert(
-      data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })),
-    );
+    const papeis = await supabaseAdmin
+      .from("user_roles")
+      .insert(data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })));
     if (papeis.error) throw papeis.error;
 
     return { ok: true, id: novoId, email: data.email };
@@ -189,9 +192,11 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
       }
       const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
       if (limpeza.error) throw limpeza.error;
-      const papeis = await supabaseAdmin.from("user_roles").insert(
-        data.perfis.map((role) => ({ user_id: data.userId, role, tenant_id: ctx.tenantId })),
-      );
+      const papeis = await supabaseAdmin
+        .from("user_roles")
+        .insert(
+          data.perfis.map((role) => ({ user_id: data.userId, role, tenant_id: ctx.tenantId })),
+        );
       if (papeis.error) throw papeis.error;
     }
 
@@ -221,7 +226,9 @@ export const redefinirSenhaUsuario = createServerFn({ method: "POST" })
       throw new Error("Usuário não pertence à sua empresa");
     }
 
-    const upd = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.senha });
+    const upd = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.senha,
+    });
     if (upd.error) throw upd.error;
     return { ok: true };
   });

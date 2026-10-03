@@ -29,7 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/locacao-equipamentos")({
   head: () => ({
@@ -109,10 +116,7 @@ function Equipamentos() {
   const { data: equipamentos = [], isLoading } = useQuery({
     queryKey: ["locacao-equipamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("locacao_equipamentos")
-        .select("*")
-        .order("nome");
+      const { data, error } = await supabase.from("locacao_equipamentos").select("*").order("nome");
       if (error) throw error;
       return data;
     },
@@ -267,11 +271,21 @@ function Equipamentos() {
                   </TableCell>
                   <TableCell className="text-numeric">{e.codigo ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.categoria ?? "—"}</TableCell>
-                  <TableCell className="text-right text-numeric">{Number(e.quantidade ?? 1)}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(e.valor_diaria))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(e.valor_semanal))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(e.valor_mensal))}</TableCell>
-                  <TableCell className="text-right text-numeric">{brl(Number(e.valor_caucao))}</TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {Number(e.quantidade ?? 1)}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_diaria))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_semanal))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_mensal))}
+                  </TableCell>
+                  <TableCell className="text-right text-numeric">
+                    {brl(Number(e.valor_caucao))}
+                  </TableCell>
                   <TableCell className="text-right text-numeric">
                     {brl(Number(e.valor_aquisicao ?? 0))}
                   </TableCell>
@@ -349,7 +363,10 @@ function Equipamentos() {
             </div>
             <div>
               <Label>Código</Label>
-              <Input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
+              <Input
+                value={form.codigo}
+                onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+              />
             </div>
             <div>
               <Label>Categoria</Label>
@@ -361,11 +378,17 @@ function Equipamentos() {
             </div>
             <div>
               <Label>Marca</Label>
-              <Input value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+              <Input
+                value={form.marca}
+                onChange={(e) => setForm({ ...form, marca: e.target.value })}
+              />
             </div>
             <div>
               <Label>Modelo</Label>
-              <Input value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
+              <Input
+                value={form.modelo}
+                onChange={(e) => setForm({ ...form, modelo: e.target.value })}
+              />
             </div>
             <div>
               <Label>Número de série</Label>
@@ -383,7 +406,10 @@ function Equipamentos() {
             </div>
             <div>
               <Label>Situação</Label>
-              <Select value={form.situacao} onValueChange={(v) => setForm({ ...form, situacao: v })}>
+              <Select
+                value={form.situacao}
+                onValueChange={(v) => setForm({ ...form, situacao: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -446,7 +472,10 @@ function Equipamentos() {
               />
             </div>
             <div className="flex items-center gap-3 sm:col-span-2">
-              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
+              <Switch
+                checked={form.ativo}
+                onCheckedChange={(v) => setForm({ ...form, ativo: v })}
+              />
               <span className="text-sm">Equipamento ativo</span>
             </div>
           </div>
