@@ -58,6 +58,7 @@ DECLARE
   gest   constant uuid := 'a0000000-0000-0000-0000-000000000005';
   tenant_b uuid;
   cli_b uuid; dep_b uuid; ped_b uuid; t uuid;
+  prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES
     (adm, 'adm@ci'), (vend, 'vend@ci'), (moto, 'moto@ci'), (novo, 'novo@ci'), (gest, 'gest@ci');
@@ -133,4 +134,46 @@ BEGIN
 
   -- 10. escrita direta em movimentações de estoque negada
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO estoque_movimentacoes (tenant_id, produto_id, deposito_id, tipo, quantidade) VALUES (%L, gen_random_uuid(), gen_random_uuid(), 'entrada', 1)$c$, demo), 'insert direto em estoque_movimentacoes');
+
+  -- 11. auditoria ligada: preço, desconto e custo registram quem alterou e o que mudou
+  SELECT id INTO prod FROM produtos WHERE tenant_id = demo LIMIT 1;
+  PERFORM ci.exige(prod IS NOT NULL, 'há produto de demonstração para testar');
+  PERFORM ci.entrar(adm);
+  UPDATE produtos SET preco_venda = coalesce(preco_venda, 0) + 1 WHERE id = prod;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM auditoria
+                     WHERE entidade = 'produtos' AND entidade_id = prod AND usuario_id = adm
+                       AND valor_novo ? 'preco_venda' AND valor_anterior ? 'preco_venda') = 1,
+                   'alteração de preço de venda é auditada com o usuário');
+  PERFORM ci.entrar(adm);
+  UPDATE produtos SET descricao = descricao || ' ' WHERE id = prod;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM auditoria WHERE entidade = 'produtos' AND entidade_id = prod) = 1,
+                   'campo fora da lista não gera auditoria');
+  UPDATE pedidos SET desconto = 10 WHERE id = ped_b;
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'pedidos' AND entidade_id = ped_b
+                            AND valor_novo ? 'desconto'), 'alteração de desconto do pedido é auditada');
+
+  -- 12. estoque: saldo só muda pelas RPCs; custo médio e inserção com saldo são auditados
+  SELECT id, deposito_id, produto_id INTO est, dep_est, prod FROM estoques WHERE tenant_id = demo LIMIT 1;
+  PERFORM ci.exige(est IS NOT NULL, 'há estoque de demonstração para testar');
+  PERFORM ci.deve_falhar(adm, format('UPDATE estoques SET quantidade = quantidade + 1000 WHERE id = %L', est), 'update direto de saldo em estoques');
+  PERFORM ci.deve_falhar(adm, format('UPDATE estoques SET reservado = 0 WHERE id = %L', est), 'update direto de reserva em estoques');
+  PERFORM ci.entrar(adm);
+  UPDATE estoques SET custo_medio = coalesce(custo_medio, 0) + 1 WHERE id = est;
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'estoques' AND entidade_id = est
+                            AND valor_novo ? 'custo_medio'), 'alteração de custo médio é auditada');
+  SELECT quantidade INTO qtd_antes FROM estoques WHERE id = est;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep_est, 'entrada'::mov_tipo, 5, 'ci', 'ci');
+  PERFORM ci.sair();
+  SELECT quantidade INTO qtd_depois FROM estoques WHERE id = est;
+  PERFORM ci.exige(qtd_depois = qtd_antes + 5, 'RPC de movimentação continua alterando o saldo');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'ci-estoque') RETURNING id INTO dep_novo;
+  PERFORM ci.entrar(adm);
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade) VALUES (demo, prod, dep_novo, 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'estoques' AND operacao = 'insert'
+                            AND valor_novo ->> 'quantidade' = '7.000'), 'criação de estoque com saldo é auditada');
 END $$;
