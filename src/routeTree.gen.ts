@@ -12,9 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
-import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
@@ -103,6 +103,7 @@ import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,14 +119,14 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ContatoRoute = ContatoRouteImport.update({
-  id: '/contato',
-  path: '/contato',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BoasVindasRoute = BoasVindasRouteImport.update({
   id: '/boas-vindas',
   path: '/boas-vindas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
@@ -622,13 +623,19 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicWebhooksProvedorRoute =
+  ApiPublicWebhooksProvedorRouteImport.update({
+    id: '/api/public/webhooks/$provedor',
+    path: '/api/public/webhooks/$provedor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
-  '/boas-vindas': typeof BoasVindasRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -717,13 +724,14 @@ export interface FileRoutesByFullPath {
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
-  '/boas-vindas': typeof BoasVindasRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -812,15 +820,16 @@ export interface FileRoutesByTo {
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
-  '/boas-vindas': typeof BoasVindasRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -909,15 +918,16 @@ export interface FileRoutesById {
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
-    | '/boas-vindas'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1006,13 +1016,14 @@ export interface FileRouteTypes {
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
+    | '/api/public/webhooks/$provedor'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
-    | '/boas-vindas'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1101,14 +1112,15 @@ export interface FileRouteTypes {
     | '/compras'
     | '/depositos'
     | '/pedidos'
+    | '/api/public/webhooks/$provedor'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
-    | '/boas-vindas'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/balanco-fiscal'
@@ -1197,15 +1209,17 @@ export interface FileRouteTypes {
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
+    | '/api/public/webhooks/$provedor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
-  BoasVindasRoute: typeof BoasVindasRoute
+  ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1231,6 +1245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/boas-vindas': {
+      id: '/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof BoasVindasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contato': {
       id: '/contato'
       path: '/contato'
@@ -1243,13 +1264,6 @@ declare module '@tanstack/react-router' {
       path: '/ze-tech-login'
       fullPath: '/ze-tech-login'
       preLoaderRoute: typeof ZeTechLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/boas-vindas': {
-      id: '/boas-vindas'
-      path: '/boas-vindas'
-      fullPath: '/boas-vindas'
-      preLoaderRoute: typeof BoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/assistencia': {
@@ -1868,6 +1882,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/webhooks/$provedor': {
+      id: '/api/public/webhooks/$provedor'
+      path: '/api/public/webhooks/$provedor'
+      fullPath: '/api/public/webhooks/$provedor'
+      preLoaderRoute: typeof ApiPublicWebhooksProvedorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -2062,9 +2083,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
-  BoasVindasRoute: BoasVindasRoute,
+  ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
