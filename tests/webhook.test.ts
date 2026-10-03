@@ -9,6 +9,7 @@ import {
   verificarAssinatura,
   type DepsWebhook,
   type ProvedorWebhook,
+  type RegistroWebhook,
 } from "../src/lib/webhook.ts";
 
 // Vetor de teste do RFC 4231 (caso 2) para HMAC-SHA256.
@@ -71,7 +72,8 @@ const SEGREDO = "segredo-de-teste";
 type Chamada = { tipo: "registrar" | "concluir" | "processar"; dados: unknown };
 
 function montar(opcoes?: {
-  registro?: "novo" | "reprocessar" | "duplicado";
+  registro?: RegistroWebhook["resultado"];
+  concluir?: (dados: Record<string, unknown>) => Promise<boolean>;
   processar?: () => Promise<"processado" | "ignorado">;
   segredo?: string | undefined;
   maxBytes?: number;
@@ -94,10 +96,11 @@ function montar(opcoes?: {
     provedores: { teste: provedor },
     registrar: async (dados) => {
       chamadas.push({ tipo: "registrar", dados });
-      return opcoes?.registro ?? "novo";
+      return { resultado: opcoes?.registro ?? "novo", tentativa: 7 };
     },
     concluir: async (dados) => {
       chamadas.push({ tipo: "concluir", dados });
+      return opcoes?.concluir ? opcoes.concluir({ ...dados }) : true;
     },
     ...(opcoes?.maxBytes ? { maxBytes: opcoes.maxBytes } : {}),
   };
@@ -170,6 +173,7 @@ test("erro ao processar: 500 e o evento é marcado com erro", async () => {
   assert.deepEqual(ultima?.dados, {
     provedor: "teste",
     eventId: "evt_1",
+    tentativa: 7,
     status: "erro",
     erro: "falhou",
   });
@@ -216,4 +220,79 @@ test("JSON inválido ou sem identificador: 400", async () => {
   assert.equal(invalido.status, 400);
   const semId = await tratarWebhook(await requisicao(JSON.stringify({ x: 1 })), "teste", deps);
   assert.equal(semId.status, 400);
+});
+
+test("falha ao gravar a conclusão depois de processar NÃO marca erro nem devolve 500", async () => {
+  const { deps, chamadas } = montar({
+    concluir: async () => {
+      throw new Error("banco indisponível");
+    },
+  });
+  const r = await tratarWebhook(await requisicao(EVENTO), "teste", deps);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { status: "processado" });
+  const conclusoes = chamadas.filter((c) => c.tipo === "concluir");
+  assert.equal(conclusoes.length, 3, "tenta gravar a conclusão 3 vezes");
+  assert.ok(conclusoes.every((c) => (c.dados as { status: string }).status === "processado"));
+  assert.equal(chamadas.filter((c) => c.tipo === "processar").length, 1, "processa uma única vez");
+});
+
+test("falha transitória ao gravar a conclusão é repetida e o evento fecha como processado", async () => {
+  let falhas = 1;
+  const { deps, chamadas } = montar({
+    concluir: async () => {
+      if (falhas-- > 0) throw new Error("timeout");
+      return true;
+    },
+  });
+  const r = await tratarWebhook(await requisicao(EVENTO), "teste", deps);
+  assert.equal(r.status, 200);
+  assert.equal(chamadas.filter((c) => c.tipo === "concluir").length, 2);
+});
+
+test("conclusão descartada (outra tentativa assumiu o evento) segue como 200", async () => {
+  const { deps } = montar({ concluir: async () => false });
+  const r = await tratarWebhook(await requisicao(EVENTO), "teste", deps);
+  assert.equal(r.status, 200);
+});
+
+test("erro ao processar e falha ao registrar o erro: ainda 500", async () => {
+  const { deps } = montar({
+    processar: async () => {
+      throw new Error("falhou");
+    },
+    concluir: async () => {
+      throw new Error("banco indisponível");
+    },
+  });
+  const r = await tratarWebhook(await requisicao(EVENTO), "teste", deps);
+  assert.equal(r.status, 500);
+});
+
+test("corpo em fluxo sem Content-Length acima do limite: 413 e a leitura é interrompida", async () => {
+  const { deps, chamadas } = montar({ maxBytes: 10 });
+  let lidos = 0;
+  const fluxo = new ReadableStream<Uint8Array>({
+    pull(controle) {
+      lidos++;
+      if (lidos > 100) {
+        controle.close();
+        return;
+      }
+      controle.enqueue(new TextEncoder().encode("123456"));
+    },
+  });
+  const r = await tratarWebhook(
+    new Request("https://app.test/api/public/webhooks/teste", {
+      method: "POST",
+      headers: { "x-assinatura": "00" },
+      body: fluxo,
+      duplex: "half",
+    } as RequestInit),
+    "teste",
+    deps,
+  );
+  assert.equal(r.status, 413);
+  assert.equal(chamadas.length, 0);
+  assert.ok(lidos < 10, `a leitura devia parar logo após estourar o limite (leu ${lidos} blocos)`);
 });

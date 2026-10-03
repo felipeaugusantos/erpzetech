@@ -113,6 +113,12 @@ export type ProvedorWebhook = {
   processar: (evento: EventoWebhook) => Promise<"processado" | "ignorado">;
 };
 
+export type RegistroWebhook = {
+  resultado: "novo" | "reprocessar" | "duplicado";
+  /** Número da tentativa que reivindicou o evento; a conclusão só vale para ela. */
+  tentativa: number;
+};
+
 export type DepsWebhook = {
   provedores: Record<string, ProvedorWebhook>;
   registrar: (p: {
@@ -120,16 +126,46 @@ export type DepsWebhook = {
     eventId: string;
     tenantId: string | null;
     payload: unknown;
-  }) => Promise<"novo" | "reprocessar" | "duplicado">;
+  }) => Promise<RegistroWebhook>;
+  /** Devolve false quando outra tentativa já assumiu o evento (esta ficou desatualizada). */
   concluir: (p: {
     provedor: string;
     eventId: string;
+    tentativa: number;
     status: "processado" | "ignorado" | "erro";
     erro?: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   /** Tamanho máximo do corpo em bytes. Padrão: 1 MiB. */
   maxBytes?: number;
 };
+
+/**
+ * Lê o corpo respeitando o limite durante a leitura (não só pelo Content-Length, que o cliente pode
+ * omitir ou mentir). Devolve null se o corpo passar do limite; a leitura é interrompida na hora.
+ */
+export async function lerCorpoLimitado(request: Request, maxBytes: number): Promise<string | null> {
+  if (!request.body) return "";
+  const leitor = request.body.getReader();
+  const partes: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await leitor.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await leitor.cancel().catch(() => undefined);
+      return null;
+    }
+    partes.push(value);
+  }
+  const inteiro = new Uint8Array(total);
+  let posicao = 0;
+  for (const parte of partes) {
+    inteiro.set(parte, posicao);
+    posicao += parte.byteLength;
+  }
+  return new TextDecoder().decode(inteiro);
+}
 
 function resposta(status: number, corpo: Record<string, unknown>): Response {
   return new Response(JSON.stringify(corpo), {
@@ -161,9 +197,8 @@ export async function tratarWebhook(
   if (Number.isFinite(declarado) && declarado > maxBytes) {
     return resposta(413, { erro: "Corpo grande demais" });
   }
-  const corpo = await request.text();
-  if (encoder.encode(corpo).length > maxBytes)
-    return resposta(413, { erro: "Corpo grande demais" });
+  const corpo = await lerCorpoLimitado(request, maxBytes);
+  if (corpo === null) return resposta(413, { erro: "Corpo grande demais" });
 
   const assinado = provedor.textoAssinado ? provedor.textoAssinado(corpo, request.headers) : corpo;
   const valida = await verificarAssinatura(
@@ -190,27 +225,50 @@ export async function tratarWebhook(
     tenantId,
     payload,
   });
-  if (registro === "duplicado") return resposta(200, { status: "duplicado" });
+  if (registro.resultado === "duplicado") return resposta(200, { status: "duplicado" });
+  const identificacao = {
+    provedor: provedor.nome,
+    eventId: extraido.id,
+    tentativa: registro.tentativa,
+  };
 
+  let resultado: "processado" | "ignorado";
   try {
-    const resultado = await provedor.processar({
+    resultado = await provedor.processar({
       provedor: provedor.nome,
       id: extraido.id,
       tenantId,
       payload,
     });
-    await deps.concluir({ provedor: provedor.nome, eventId: extraido.id, status: resultado });
-    return resposta(200, { status: resultado });
   } catch (e) {
     const mensagem = e instanceof Error ? e.message : String(e);
     console.error(`[webhook] erro ao processar ${provedor.nome}/${extraido.id}: ${mensagem}`);
-    await deps.concluir({
-      provedor: provedor.nome,
-      eventId: extraido.id,
-      status: "erro",
-      erro: mensagem,
-    });
+    try {
+      await deps.concluir({ ...identificacao, status: "erro", erro: mensagem });
+    } catch (falha) {
+      console.error(`[webhook] não foi possível registrar o erro: ${String(falha)}`);
+    }
     // 500 faz o provedor tentar de novo; o registro permite reprocessar.
     return resposta(500, { erro: "Falha ao processar" });
   }
+
+  // O efeito do evento já aconteceu. Uma falha ao gravar a conclusão NÃO pode virar "erro" nem 500:
+  // isso admitiria uma nova entrega e repetiria o efeito (baixa de pagamento, nota emitida...).
+  // Tenta de novo algumas vezes; se não conseguir, só registra no log e responde 200.
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    try {
+      const vigente = await deps.concluir({ ...identificacao, status: resultado });
+      if (!vigente) {
+        console.warn(
+          `[webhook] conclusão de ${provedor.nome}/${extraido.id} descartada: outra tentativa assumiu o evento`,
+        );
+      }
+      break;
+    } catch (falha) {
+      console.error(
+        `[webhook] falha ao gravar conclusão de ${provedor.nome}/${extraido.id} (tentativa ${tentativa}): ${String(falha)}`,
+      );
+    }
+  }
+  return resposta(200, { status: resultado });
 }

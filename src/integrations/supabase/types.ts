@@ -6502,12 +6502,18 @@ export type Database = {
         Returns: undefined;
       };
       webhook_concluir: {
-        Args: { p_erro?: string; p_event_id: string; p_provedor: string; p_status: string };
-        Returns: undefined;
+        Args: {
+          p_erro?: string;
+          p_event_id: string;
+          p_provedor: string;
+          p_status: string;
+          p_tentativa: number;
+        };
+        Returns: boolean;
       };
       webhook_registrar: {
         Args: { p_event_id: string; p_payload?: Json; p_provedor: string; p_tenant_id?: string };
-        Returns: string;
+        Returns: Json;
       };
     };
     Enums: {

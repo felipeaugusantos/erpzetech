@@ -25,22 +25,25 @@ ALTER TABLE public.webhook_eventos ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.webhook_eventos FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.webhook_eventos TO service_role;
 
--- Registra o evento. Devolve:
+-- Registra o evento e devolve {"resultado": ..., "tentativa": n}. Resultado:
 --   'novo'         primeira vez que o evento chega: processar;
 --   'reprocessar'  já existia mas falhou, ou ficou preso em 'recebido' há mais de 5 minutos: processar de novo;
 --   'duplicado'    já processado (ou em processamento agora): não processar.
 -- A atualização de recebido_em funciona como trava: duas entregas simultâneas do mesmo evento não
--- processam em paralelo.
+-- processam em paralelo. `tentativa` identifica quem reivindicou o evento; webhook_concluir só
+-- vale para a tentativa vigente (um processamento antigo e lento não sobrescreve o mais novo).
 CREATE OR REPLACE FUNCTION public.webhook_registrar(
   p_provedor text,
   p_event_id text,
   p_tenant_id uuid DEFAULT NULL,
   p_payload jsonb DEFAULT '{}'::jsonb
-) RETURNS text
+) RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_tentativa integer;
 BEGIN
   IF coalesce(btrim(p_provedor), '') = '' OR coalesce(btrim(p_event_id), '') = '' THEN
     RAISE EXCEPTION 'Provedor e id do evento são obrigatórios';
@@ -48,8 +51,11 @@ BEGIN
 
   INSERT INTO public.webhook_eventos (provedor, event_id, tenant_id, payload)
   VALUES (p_provedor, p_event_id, p_tenant_id, p_payload)
-  ON CONFLICT (provedor, event_id) DO NOTHING;
-  IF FOUND THEN RETURN 'novo'; END IF;
+  ON CONFLICT (provedor, event_id) DO NOTHING
+  RETURNING tentativas INTO v_tentativa;
+  IF FOUND THEN
+    RETURN jsonb_build_object('resultado', 'novo', 'tentativa', v_tentativa);
+  END IF;
 
   UPDATE public.webhook_eventos
      SET status = 'recebido',
@@ -58,19 +64,26 @@ BEGIN
          recebido_em = now()
    WHERE provedor = p_provedor
      AND event_id = p_event_id
-     AND (status = 'erro' OR (status = 'recebido' AND recebido_em < now() - interval '5 minutes'));
-  IF FOUND THEN RETURN 'reprocessar'; END IF;
+     AND (status = 'erro' OR (status = 'recebido' AND recebido_em < now() - interval '5 minutes'))
+  RETURNING tentativas INTO v_tentativa;
+  IF FOUND THEN
+    RETURN jsonb_build_object('resultado', 'reprocessar', 'tentativa', v_tentativa);
+  END IF;
 
-  RETURN 'duplicado';
+  SELECT tentativas INTO v_tentativa
+    FROM public.webhook_eventos WHERE provedor = p_provedor AND event_id = p_event_id;
+  RETURN jsonb_build_object('resultado', 'duplicado', 'tentativa', v_tentativa);
 END;
 $$;
 
+-- Grava o desfecho da tentativa. Devolve false (e não altera nada) se outra tentativa já assumiu o evento.
 CREATE OR REPLACE FUNCTION public.webhook_concluir(
   p_provedor text,
   p_event_id text,
+  p_tentativa integer,
   p_status text,
   p_erro text DEFAULT NULL
-) RETURNS void
+) RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -84,11 +97,12 @@ BEGIN
      SET status = p_status,
          erro = CASE WHEN p_status = 'erro' THEN left(coalesce(p_erro, 'erro sem mensagem'), 1000) ELSE NULL END,
          processado_em = CASE WHEN p_status = 'erro' THEN NULL ELSE now() END
-   WHERE provedor = p_provedor AND event_id = p_event_id;
+   WHERE provedor = p_provedor AND event_id = p_event_id AND tentativas = p_tentativa;
+  RETURN FOUND;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.webhook_registrar(text, text, uuid, jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.webhook_concluir(text, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.webhook_concluir(text, text, integer, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.webhook_registrar(text, text, uuid, jsonb) TO service_role;
-GRANT EXECUTE ON FUNCTION public.webhook_concluir(text, text, text, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.webhook_concluir(text, text, integer, text, text) TO service_role;

@@ -7,6 +7,10 @@
  *  3. informe ao provedor a URL  https://<app>/api/public/webhooks/<nome>.
  * O endpoint confere a assinatura, grava o evento uma única vez e chama `processar`. Se `processar`
  * lançar erro, o provedor recebe 500 e tenta de novo; o evento é reprocessado.
+ *
+ * IMPORTANTE: `processar` deve ser idempotente (usar o id do evento como chave de qualquer baixa ou
+ * emissão). Se o processamento terminar mas a gravação da conclusão falhar, o evento fica como
+ * "recebido" e, passados 5 minutos, uma nova entrega do provedor o reprocessa.
  */
 import type { Json } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -38,18 +42,26 @@ export const depsWebhook: DepsWebhook = {
       p_payload: payload as Json,
     });
     if (error) throw error;
-    if (data !== "novo" && data !== "reprocessar" && data !== "duplicado") {
-      throw new Error(`Resposta inesperada de webhook_registrar: ${String(data)}`);
+    const registro = data as { resultado?: unknown; tentativa?: unknown } | null;
+    const resultado = registro?.resultado;
+    const tentativa = registro?.tentativa;
+    if (
+      (resultado !== "novo" && resultado !== "reprocessar" && resultado !== "duplicado") ||
+      typeof tentativa !== "number"
+    ) {
+      throw new Error(`Resposta inesperada de webhook_registrar: ${JSON.stringify(data)}`);
     }
-    return data;
+    return { resultado, tentativa };
   },
-  concluir: async ({ provedor, eventId, status, erro }) => {
-    const { error } = await supabaseAdmin.rpc("webhook_concluir", {
+  concluir: async ({ provedor, eventId, tentativa, status, erro }) => {
+    const { data, error } = await supabaseAdmin.rpc("webhook_concluir", {
       p_provedor: provedor,
       p_event_id: eventId,
+      p_tentativa: tentativa,
       p_status: status,
       ...(erro ? { p_erro: erro } : {}),
     });
     if (error) throw error;
+    return data === true;
   },
 };
