@@ -7,8 +7,18 @@ export const num = (value: number | null | undefined, digits = 2) =>
     maximumFractionDigits: digits,
   }).format(Number(value ?? 0));
 
-export const dateBR = (value: string | null | undefined) =>
-  value ? new Date(value).toLocaleDateString("pt-BR") : "—";
+const SOMENTE_DATA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Data sem hora (coluna `date` do banco, ex.: vencimento) é um dia do calendário, não um instante:
+ * `new Date("2026-10-03")` vale meia-noite em UTC e, no Brasil, apareceria como dia 02.
+ */
+export const dateBR = (value: string | null | undefined) => {
+  if (!value) return "—";
+  const dia = SOMENTE_DATA.exec(value);
+  if (dia) return `${dia[3]}/${dia[2]}/${dia[1]}`;
+  return new Date(value).toLocaleDateString("pt-BR");
+};
 
 export const dateTimeBR = (value: string | null | undefined) =>
   value

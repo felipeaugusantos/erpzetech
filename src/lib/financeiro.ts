@@ -71,7 +71,13 @@ export const situacoesConta = [
   { value: "cancelado", label: "Cancelado" },
 ] as const;
 
-export const hojeISO = () => new Date().toISOString().slice(0, 10);
+const doisDigitos = (n: number) => String(n).padStart(2, "0");
+
+/** Data local (AAAA-MM-DD). Em UTC, à noite no Brasil já seria o dia seguinte. */
+const isoLocal = (d: Date) =>
+  `${d.getFullYear()}-${doisDigitos(d.getMonth() + 1)}-${doisDigitos(d.getDate())}`;
+
+export const hojeISO = () => isoLocal(new Date());
 
 export const estaVencida = (situacao: string, vencimento: string) =>
   (situacao === "aberto" || situacao === "parcial") && vencimento < hojeISO();
@@ -105,5 +111,5 @@ export const entradaCaixa = (tipo: string) =>
 export const somaDias = (iso: string, dias: number) => {
   const d = new Date(`${iso}T12:00:00`);
   d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  return isoLocal(d);
 };
