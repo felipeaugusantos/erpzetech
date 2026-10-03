@@ -171,9 +171,11 @@ BEGIN
   SELECT quantidade INTO qtd_depois FROM estoques WHERE id = est;
   PERFORM ci.exige(qtd_depois = qtd_antes + 5, 'RPC de movimentação continua alterando o saldo');
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'ci-estoque') RETURNING id INTO dep_novo;
+  PERFORM ci.deve_falhar(adm, format('INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade) VALUES (%L, %L, %L, 7)', demo, prod, dep_novo), 'insert direto de estoque com saldo');
+  PERFORM ci.deve_falhar(adm, format('INSERT INTO estoques (tenant_id, produto_id, deposito_id, reservado) VALUES (%L, %L, %L, 7)', demo, prod, dep_novo), 'insert direto de estoque com reserva');
   PERFORM ci.entrar(adm);
-  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade) VALUES (demo, prod, dep_novo, 7);
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, custo_medio) VALUES (demo, prod, dep_novo, 3);
   PERFORM ci.sair();
-  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'estoques' AND operacao = 'insert'
-                            AND valor_novo ->> 'quantidade' = '7.000'), 'criação de estoque com saldo é auditada');
+  PERFORM ci.exige((SELECT quantidade = 0 AND reservado = 0 FROM estoques WHERE produto_id = prod AND deposito_id = dep_novo),
+                   'estoque criado pelo cliente nasce com saldo e reserva zerados');
 END $$;

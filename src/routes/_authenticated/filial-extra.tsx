@@ -288,7 +288,6 @@ function FilialExtra() {
           tenant_id: tenantId,
           produto_id: produtoId,
           deposito_id: deposito.id,
-          quantidade: 0,
           custo_medio: custo,
         });
         if (error) throw error;
