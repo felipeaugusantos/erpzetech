@@ -62,13 +62,12 @@ jobs:
       - name: Build
         run: npx vite build
 
-  # Informativo: o código está limpo (0 erros), mas o editor do Lovable gera código sem passar
-  # pelo Prettier, então um lint bloqueante ficaria vermelho a cada alteração dele.
+  # Bloqueante: erros do ESLint (inclui formatação do Prettier) reprovam a CI. Avisos não reprovam.
+  # Para corrigir formatação: `npx eslint . --fix`.
   lint:
-    name: Lint (informativo)
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
