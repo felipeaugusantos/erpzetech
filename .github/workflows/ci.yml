@@ -56,8 +56,11 @@ jobs:
           node-version: 22
       - run: npm test
 
-  # Typecheck e build do app. As dependências vêm do npm público: o bun.lock aponta para um
-  # cache privado do Lovable, que não é acessível fora dele.
+  # Typecheck e build do app. As dependências vêm do npm público e são instaladas pelo
+  # package-lock.json (mesmas versões diretas do bun.lock, que aponta para um cache privado do
+  # Lovable inacessível fora dele). Se o package.json mudar sem o lock, a CI avisa e instala sem
+  # trava de versões; para regenerar: `npm install --package-lock-only --ignore-scripts`.
+
   app:
     name: Typecheck e build
     runs-on: ubuntu-latest
@@ -68,7 +71,10 @@ jobs:
         with:
           node-version: 22
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund --ignore-scripts
+        run: >-
+          npm ci --ignore-scripts --no-audit --no-fund ||
+          (echo "::warning::package-lock.json fora de sincronia com o package.json; instalando sem o lock. Regenere com 'npm install --package-lock-only --ignore-scripts'." &&
+          npm install --ignore-scripts --no-audit --no-fund)
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Build
@@ -86,6 +92,9 @@ jobs:
         with:
           node-version: 22
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund --ignore-scripts
+        run: >-
+          npm ci --ignore-scripts --no-audit --no-fund ||
+          (echo "::warning::package-lock.json fora de sincronia com o package.json; instalando sem o lock. Regenere com 'npm install --package-lock-only --ignore-scripts'." &&
+          npm install --ignore-scripts --no-audit --no-fund)
       - name: ESLint
         run: npx eslint .
