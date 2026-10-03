@@ -32,3 +32,41 @@
 - [x] Sugestão de produtos por IA a partir de texto livre
 - [x] Caixa por operador, troca de operador, senha do gestor (cancelar, desconto acima do limite, sangria)
 - [x] Relatório de fechamento por operador (`/fechamento-operador`)
+
+## Rodada 6 — Segurança, qualidade e paridade com ERPs de mercado
+Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/Olist, Omie, Conta Azul, TOTVS, Linx, Sankhya). O comparativo vem de conhecimento geral dos produtos; confirmar antes de investir. O que consta como ausente é o que não foi encontrado no código.
+
+### Segurança e qualidade (concluído)
+- [x] Cadastro público deixa de dar administrador do primeiro tenant; perfil nasce sem tenant e sem papel
+- [x] Onboarding de quem se cadastra sozinho (`/boas-vindas` + RPC `onboarding_criar_espaco`)
+- [x] `has_role` considera o tenant do perfil; papéis sem tenant herdam o do perfil
+- [x] `recalcular_*` e `banco_conta_padrao` sem acesso entre tenants; `anon` fora das funções SECURITY DEFINER
+- [x] `caixas`, `caixa_movimentos`, `auditoria` e `estoque_movimentacoes` sem escrita direta pelo cliente
+- [x] CI no GitHub Actions: migrations com testes de segurança (`supabase/ci`), typecheck, build e lint bloqueante
+- [x] Lint limpo (0 erros)
+
+### Prioridade alta — recebimento e fiscal no balcão
+- [ ] NFC-e no PDV e na frente de caixa (hoje só NF-e modelo 55 e NFS-e; o cupom do PDV não é fiscal)
+- [ ] Boleto registrado e Pix com cobrança automática e baixa automática (hoje boleto é só forma de pagamento; a cobrança Ze Tech usa link e linha digitável informados à mão)
+- [ ] Importação de extrato bancário (OFX ou API) na conciliação
+- [ ] TEF integrado à maquininha (hoje há cadastro de credenciadora e painel, sem integração com a maquininha)
+
+### Prioridade média
+- [ ] SPED Fiscal e Contribuições e exportação de arquivos para a contabilidade
+- [ ] Importação em massa por planilha: produtos, clientes e saldos de estoque (hoje só cotações)
+- [ ] Integrações: e-commerce e marketplaces, WhatsApp automático, API pública e webhooks
+- [ ] PDV offline com fila de vendas (hoje o service worker só mostra página de "sem internet")
+- [ ] CT-e e MDF-e para clientes com frota e transporte de terceiros
+- [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e (item pendente da Rodada 4)
+
+### Prioridade baixa
+- [ ] Auditoria ligada: registrar quem alterou preço, desconto e estoque (a tabela `auditoria` existe, mas nada grava nela)
+- [ ] Relatórios: filtros salvos, exportação para planilha em todas as telas e painéis por meta
+- [ ] Diferenciais de construção: cálculo de quantidade (m² de piso, sacos de cimento) e lista de materiais por obra
+
+### Dívida técnica
+- [ ] Testes automatizados do front, começando pelo cálculo de impostos, XML da NF-e e fluxo de caixa
+- [ ] Lockfile reproduzível na CI (o `bun.lock` aponta para um registro privado do Lovable; a CI instala sem trava de versões)
+- [ ] Quebrar as telas maiores (`pedidos.$id.tsx` e `compras.$id.tsx`) em componentes
+- [ ] 60 avisos de lint (`react-hooks/exhaustive-deps`, `react-refresh/only-export-components`)
+- [ ] Medir o custo de `has_role` nas policies com dados reais
