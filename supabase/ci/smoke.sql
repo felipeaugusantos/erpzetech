@@ -58,7 +58,7 @@ DECLARE
   gest   constant uuid := 'a0000000-0000-0000-0000-000000000005';
   tenant_b uuid;
   cli_b uuid; dep_b uuid; ped_b uuid; t uuid;
-  prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
+  v_res text; prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES
     (adm, 'adm@ci'), (vend, 'vend@ci'), (moto, 'moto@ci'), (novo, 'novo@ci'), (gest, 'gest@ci');
@@ -178,4 +178,36 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT quantidade = 0 AND reservado = 0 FROM estoques WHERE produto_id = prod AND deposito_id = dep_novo),
                    'estoque criado pelo cliente nasce com saldo e reserva zerados');
+
+  -- 13. webhooks: tabela e funções só para o service_role; idempotência e reprocessamento
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM webhook_eventos', 'usuário lê webhook_eventos');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM webhook_eventos', 'anon lê webhook_eventos');
+  PERFORM ci.deve_falhar(adm, $c$SELECT webhook_registrar('pix', 'x')$c$, 'usuário executa webhook_registrar');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT webhook_concluir('pix', 'x', 'processado')$c$, 'anon executa webhook_concluir');
+
+  EXECUTE 'SET ROLE service_role';
+  SELECT webhook_registrar('pix', 'evt-1', NULL, '{"a":1}'::jsonb) INTO v_res;
+  PERFORM ci.exige(v_res = 'novo', 'primeiro registro do evento é novo');
+  SELECT webhook_registrar('pix', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'duplicado', 'evento em processamento é duplicado');
+  SELECT webhook_registrar('boleto', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'novo', 'mesmo id em outro provedor é outro evento');
+  PERFORM webhook_concluir('pix', 'evt-1', 'erro', 'falhou');
+  SELECT webhook_registrar('pix', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'reprocessar', 'evento com erro pode ser reprocessado');
+  PERFORM webhook_concluir('pix', 'evt-1', 'processado');
+  SELECT webhook_registrar('pix', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'duplicado', 'evento processado não é reprocessado');
+  EXECUTE 'RESET ROLE';
+  PERFORM ci.exige((SELECT tentativas FROM webhook_eventos WHERE provedor = 'pix' AND event_id = 'evt-1') = 2,
+                   'tentativas contam o reprocessamento');
+
+  UPDATE webhook_eventos SET recebido_em = now() - interval '10 minutes'
+   WHERE provedor = 'boleto' AND event_id = 'evt-1';
+  EXECUTE 'SET ROLE service_role';
+  SELECT webhook_registrar('boleto', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'reprocessar', 'evento preso em recebido há mais de 5 minutos é reprocessado');
+  SELECT webhook_registrar('boleto', 'evt-1') INTO v_res;
+  PERFORM ci.exige(v_res = 'duplicado', 'a trava impede processamento em paralelo');
+  EXECUTE 'RESET ROLE';
 END $$;

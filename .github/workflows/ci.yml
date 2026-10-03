@@ -44,6 +44,18 @@ jobs:
       - name: Aplicar migrations e rodar testes
         run: supabase/ci/run.sh
 
+  # Testes unitários (node:test, sem dependências): rodam direto com o Node, sem npm install.
+  testes:
+    name: Testes unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
   # Typecheck e build do app. As dependências vêm do npm público: o bun.lock aponta para um
   # cache privado do Lovable, que não é acessível fora dele.
   app:
