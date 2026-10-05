@@ -1,3 +1,5 @@
+import { isoBrasilia } from "./fuso.ts";
+
 export const situacoesCompra = [
   { value: "rascunho", label: "Rascunho" },
   { value: "cotacao", label: "Cotação" },
@@ -71,7 +73,8 @@ export const situacoesConta = [
   { value: "cancelado", label: "Cancelado" },
 ] as const;
 
-export const hojeISO = () => new Date().toISOString().slice(0, 10);
+/** "Hoje" no fuso de Brasília (AAAA-MM-DD), qualquer que seja o fuso de quem executa. */
+export const hojeISO = () => isoBrasilia();
 
 export const estaVencida = (situacao: string, vencimento: string) =>
   (situacao === "aberto" || situacao === "parcial") && vencimento < hojeISO();
@@ -102,8 +105,9 @@ export const tiposCaixaMov = [
 export const entradaCaixa = (tipo: string) =>
   ["abertura", "entrada", "suprimento", "venda", "recebimento"].includes(tipo);
 
+/** Soma dias a uma data AAAA-MM-DD. É aritmética de calendário: não depende de fuso nem de horário de verão. */
 export const somaDias = (iso: string, dias: number) => {
-  const d = new Date(`${iso}T12:00:00`);
-  d.setDate(d.getDate() + dias);
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
   return d.toISOString().slice(0, 10);
 };
