@@ -70,3 +70,23 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [ ] Quebrar as telas maiores (`pedidos.$id.tsx` e `compras.$id.tsx`) em componentes
 - [ ] 60 avisos de lint (`react-hooks/exhaustive-deps`, `react-refresh/only-export-components`)
 - [ ] Medir o custo de `has_role` nas policies com dados reais
+
+## Rodada 7 — Restaurante e lanchonete (novo ramo)
+Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empresa, estoque, financeiro e fiscal), com telas próprias para salão e cozinha. Primeira versão: à la carte e lanchonete com mesas e comandas, sem delivery.
+
+### Etapa R1 — Salão
+- [x] Banco: cardápio (categorias, itens, grupos de opções com obrigatório e máximo, opções com acréscimo), mesas e comandas
+- [x] Perfis `garcom` e `cozinha`; ramo "Restaurante e lanchonete"
+- [x] Regras no banco (RPCs): abrir comanda, lançar item com opções, enviar à cozinha, andamento do preparo, cancelar item (garçom antes do envio; gestão depois, com motivo), transferir de mesa, cancelar comanda, fechar com serviço, couvert, desconto só da gestão, pagamento dividido e lançamento no caixa
+- [x] Testes de segurança do banco (permissões por perfil, isolamento entre empresas, escrita direta negada, numeração sequencial)
+- [ ] Tela de cadastro do cardápio e das mesas
+- [ ] Tela do salão (mesas) e lançamento de pedido pelo garçom no celular
+- [ ] Tela da cozinha em tempo real
+- [ ] Tela de fechamento de conta (divisão, serviço, couvert)
+- [ ] Liberar o módulo pelo ramo/CNAE 56.xx no menu
+
+### Etapas seguintes
+- [ ] R2 — Ficha técnica: baixa de insumos por prato e custo do prato
+- [ ] R3 — Delivery e iFood
+- [ ] R4 — Impressão térmica, balcão e garçom em tablet
+- [ ] NFC-e (depende da Fase 2): obrigatória para operar restaurante

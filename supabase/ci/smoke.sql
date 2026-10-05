@@ -58,6 +58,11 @@ DECLARE
   gest   constant uuid := 'a0000000-0000-0000-0000-000000000005';
   tenant_b uuid;
   cli_b uuid; dep_b uuid; ped_b uuid; t uuid;
+  gar constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  mesa1 uuid; mesa2 uuid; cat_r uuid; it_prato uuid; it_lata uuid; gr_ponto uuid; gr_add uuid;
+  o_mal uuid; o_ponto uuid; o_bacon uuid; o_ovo uuid; o_queijo uuid;
+  c1 uuid; c2 uuid; c3 uuid; c4 uuid; c5 uuid; i1 uuid; i2 uuid; i3 uuid; i4 uuid; caixa_r uuid; n_r bigint;
   v_json jsonb; prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES
@@ -214,4 +219,179 @@ BEGIN
   EXECUTE 'RESET ROLE';
   PERFORM ci.exige((SELECT status FROM webhook_eventos WHERE provedor = 'boleto' AND event_id = 'evt-1') = 'recebido',
                    'evento da tentativa nova segue em recebido');
+
+  -- 14. restaurante: cardápio, salão, cozinha e fechamento de conta
+  INSERT INTO auth.users (id, email) VALUES (gar, 'garcom@ci'), (coz, 'cozinha@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (gar, coz);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (gar, demo, 'garcom'), (coz, demo, 'cozinha');
+
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (%L, 'x')$c$, demo), 'garçom cadastra cardápio');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO mesas (tenant_id, numero) VALUES (%L, '99')$c$, demo), 'garçom cadastra mesa');
+  PERFORM ci.entrar(adm);
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Pratos') RETURNING id INTO cat_r;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao)
+    VALUES (demo, cat_r, 'Hambúrguer', 40, 'cozinha') RETURNING id INTO it_prato;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao)
+    VALUES (demo, cat_r, 'Refrigerante lata', 8, 'nenhuma') RETURNING id INTO it_lata;
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome, obrigatorio, max_escolhas)
+    VALUES (demo, it_prato, 'Ponto da carne', true, 1) RETURNING id INTO gr_ponto;
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome, obrigatorio, max_escolhas)
+    VALUES (demo, it_prato, 'Adicionais', false, 2) RETURNING id INTO gr_add;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr_ponto, 'Mal passado', 0) RETURNING id INTO o_mal;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr_ponto, 'Ao ponto', 0) RETURNING id INTO o_ponto;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr_add, 'Bacon', 5) RETURNING id INTO o_bacon;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr_add, 'Ovo', 3) RETURNING id INTO o_ovo;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr_add, 'Queijo extra', 4) RETURNING id INTO o_queijo;
+  INSERT INTO mesas (tenant_id, numero, capacidade) VALUES (demo, '1', 4) RETURNING id INTO mesa1;
+  INSERT INTO mesas (tenant_id, numero, capacidade) VALUES (demo, '2', 4) RETURNING id INTO mesa2;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO mesas (tenant_id, numero) VALUES (%L, '1')$c$, demo), 'mesa com número repetido');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM cardapio_itens') = 2, 'garçom lê o cardápio');
+
+  -- abrir comanda: só quem opera o salão; uma comanda aberta por mesa
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_abrir_comanda(%L, 2)$c$, mesa1), 'vendedor abre comanda');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_abrir_comanda(%L, 2)$c$, mesa1), 'cozinha abre comanda');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT restaurante_abrir_comanda(NULL, 2)$c$, 'anon abre comanda');
+  PERFORM ci.entrar(gar);
+  c1 := restaurante_abrir_comanda(mesa1, 2, 'Cliente CI', 10, 5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT numero FROM comandas WHERE id = c1) = 1, 'primeira comanda da empresa tem o número 1');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_abrir_comanda(%L, 2)$c$, mesa1), 'segunda comanda na mesma mesa');
+
+  -- lançar itens: opções obrigatórias, limite de escolhas, opção alheia, quantidade
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, c1, it_prato), 'item sem a opção obrigatória');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1, ARRAY[%L, %L, %L, %L]::uuid[])$c$, c1, it_prato, o_ponto, o_bacon, o_ovo, o_queijo), 'mais escolhas que o limite do grupo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1, ARRAY[%L, %L]::uuid[])$c$, c1, it_prato, o_mal, o_ponto), 'duas opções em grupo de escolha única');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1, ARRAY[gen_random_uuid()])$c$, c1, it_prato), 'opção que não existe');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1, ARRAY[%L, %L]::uuid[])$c$, c1, it_lata, o_ponto, o_bacon), 'opção de outro item');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 0)$c$, c1, it_lata), 'quantidade zero');
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(c1, it_prato, 2, ARRAY[o_ponto, o_bacon, o_ovo]::uuid[], 'sem cebola');
+  i2 := restaurante_lancar_item(c1, it_lata, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_unitario = 48 AND total = 96 AND estacao = 'cozinha' AND situacao = 'pendente'
+                      AND jsonb_array_length(opcoes) = 3 FROM comanda_itens WHERE id = i1),
+                   'preço do item soma os adicionais e guarda a cópia das opções');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb)$c$, c1), 'fechar com itens ainda não enviados');
+
+  -- cozinha
+  PERFORM ci.entrar(gar);
+  n_r := restaurante_enviar_cozinha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_r = 2, 'envio à cozinha marca os dois itens');
+  PERFORM ci.exige((SELECT situacao FROM comanda_itens WHERE id = i1) = 'enviado'
+               AND (SELECT situacao FROM comanda_itens WHERE id = i2) = 'entregue',
+                   'item sem estação (lata) já sai entregue');
+  PERFORM ci.exige(ci.contar(gar, format($c$SELECT restaurante_enviar_cozinha(%L)$c$, c1)) = 0, 'reenvio não repete itens');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_atualizar_item(%L, 'preparando')$c$, i1), 'garçom marca preparo');
+  PERFORM ci.entrar(coz);
+  PERFORM restaurante_atualizar_item(i1, 'preparando');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_atualizar_item(%L, 'entregue')$c$, i1), 'pular etapas do preparo');
+  PERFORM ci.entrar(coz);
+  PERFORM restaurante_atualizar_item(i1, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_atualizar_item(%L, 'preparando')$c$, i1), 'voltar etapa do preparo');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_atualizar_item(i1, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM comanda_itens WHERE id = i1) = 'entregue', 'garçom entrega o item pronto');
+
+  -- cancelamento: pendente é do garçom; depois de enviado, só a gestão e com motivo
+  PERFORM ci.entrar(gar);
+  i3 := restaurante_lancar_item(c1, it_lata, 1);
+  PERFORM restaurante_cancelar_item(i3);
+  i4 := restaurante_lancar_item(c1, it_prato, 1, ARRAY[o_mal]::uuid[]);
+  PERFORM restaurante_enviar_cozinha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM comanda_itens WHERE id = i3) = 'cancelado', 'garçom cancela item ainda não enviado');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_cancelar_item(%L, 'cliente desistiu')$c$, i4), 'garçom cancela item já enviado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT restaurante_cancelar_item(%L)$c$, i4), 'cancelar item enviado sem motivo');
+  PERFORM ci.entrar(gest);
+  PERFORM restaurante_cancelar_item(i4, 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cancelado_por = gest AND motivo_cancelamento = 'cliente desistiu' FROM comanda_itens WHERE id = i4),
+                   'gestão cancela item enviado e o motivo fica registrado');
+
+  -- fechamento: 96 + 8 = 104; couvert 2 x 5 = 10; serviço 10% = 10,40; total 124,40
+  PERFORM ci.entrar(adm);
+  caixa_r := abrir_caixa(filial, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, caixa_r), 'pagamentos que não fecham a conta');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":124.40}]'::jsonb)$c$, c1), 'fechar sem caixa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"crediario","valor":124.40}]'::jsonb, %L)$c$, c1, caixa_r), 'crediário na comanda');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":114.40}]'::jsonb, %L, 10)$c$, c1, caixa_r), 'desconto dado pelo garçom');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb)$c$, c1), 'cozinha fecha conta');
+  PERFORM ci.entrar(gar);
+  v_json := restaurante_fechar_comanda(c1,
+    '[{"forma":"pix","valor":70,"pagante":"Ana"},{"forma":"dinheiro","valor":54.40,"pagante":"Bia"}]'::jsonb, caixa_r);
+  PERFORM ci.sair();
+  PERFORM ci.exige((v_json ->> 'subtotal')::numeric = 104 AND (v_json ->> 'couvert')::numeric = 10
+                   AND (v_json ->> 'taxa_servico')::numeric = 10.40 AND (v_json ->> 'total')::numeric = 124.40,
+                   'fechamento calcula subtotal, couvert, serviço e total');
+  PERFORM ci.exige((SELECT situacao = 'fechada' AND total = 124.40 AND caixa_id = caixa_r FROM comandas WHERE id = c1), 'comanda fica fechada');
+  PERFORM ci.exige((SELECT count(*) = 2 AND sum(valor) = 124.40 FROM comanda_pagamentos WHERE comanda_id = c1), 'pagamentos divididos ficam registrados');
+  PERFORM ci.exige((SELECT count(*) = 2 AND sum(valor) = 124.40 FROM caixa_movimentos WHERE caixa_id = caixa_r AND tipo = 'venda'),
+                   'cada pagamento é lançado no caixa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb, %L)$c$, c1, caixa_r), 'fechar comanda já fechada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, c1, it_lata), 'lançar item em comanda fechada');
+
+  -- desconto pela gestão, sem couvert e sem serviço
+  PERFORM ci.entrar(gar);
+  c2 := restaurante_abrir_comanda(mesa2, NULL, NULL, 10, 0);
+  PERFORM restaurante_lancar_item(c2, it_lata, 1);
+  PERFORM restaurante_enviar_cozinha(c2);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  v_json := restaurante_fechar_comanda(c2, '[{"forma":"dinheiro","valor":8.00}]'::jsonb, caixa_r, 0.80);
+  PERFORM ci.sair();
+  PERFORM ci.exige((v_json ->> 'taxa_servico')::numeric = 0.80 AND (v_json ->> 'total')::numeric = 8.00,
+                   'gestão fecha com desconto');
+
+  -- cancelar comanda e transferir de mesa
+  PERFORM ci.entrar(gar);
+  c3 := restaurante_abrir_comanda(mesa1, 2);
+  PERFORM restaurante_lancar_item(c3, it_lata, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_cancelar_comanda(%L, 'teste')$c$, c3), 'garçom cancela comanda');
+  PERFORM ci.entrar(gest);
+  PERFORM restaurante_cancelar_comanda(c3, 'cliente foi embora');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM comandas WHERE id = c3)
+               AND NOT EXISTS (SELECT 1 FROM comanda_itens WHERE comanda_id = c3 AND situacao <> 'cancelado'),
+                   'cancelar comanda cancela os itens');
+  PERFORM ci.entrar(gar);
+  c4 := restaurante_abrir_comanda(mesa1, 2);
+  c5 := restaurante_abrir_comanda(NULL, 1, 'Balcão');
+  PERFORM restaurante_transferir_mesa(c4, mesa2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT mesa_id FROM comandas WHERE id = c4) = mesa2, 'comanda muda de mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_transferir_mesa(%L, %L)$c$, c5, mesa2), 'transferir para mesa ocupada');
+
+  -- isolamento e permissões de leitura
+  PERFORM ci.exige(ci.contar(novo, 'SELECT count(*) FROM comandas') = 0, 'outra empresa não vê comandas');
+  PERFORM ci.exige(ci.contar(novo, 'SELECT count(*) FROM cardapio_itens') = 0, 'outra empresa não vê o cardápio');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, c4, it_lata), 'lançar em comanda de outra empresa');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT restaurante_atualizar_item(%L, 'preparando')$c$, i1), 'mexer em item de outra empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM comandas') = 0, 'vendedor não lê comandas');
+  PERFORM ci.exige(ci.contar(moto, 'SELECT count(*) FROM comandas') = 0, 'motorista não lê comandas');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM comanda_itens') > 0, 'cozinha lê os itens');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM comanda_pagamentos') = 0, 'cozinha não lê pagamentos');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM comanda_pagamentos') = 3, 'gestão lê os pagamentos');
+
+  -- a escrita direta nas comandas é negada
+  PERFORM ci.deve_falhar(gar, format('UPDATE comandas SET total = 0 WHERE id = %L', c4), 'update direto em comandas');
+  PERFORM ci.deve_falhar(adm, format('UPDATE comanda_itens SET total = 0 WHERE id = %L', i1), 'update direto em comanda_itens');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO comanda_pagamentos (tenant_id, comanda_id, forma, valor) VALUES (%L, %L, 'pix', 1)$c$, demo, c4), 'insert direto em comanda_pagamentos');
+  PERFORM ci.deve_falhar(adm, format('DELETE FROM comandas WHERE id = %L', c4), 'delete direto em comandas');
+
+  -- alteração de preço do cardápio é auditada
+  PERFORM ci.entrar(gest);
+  UPDATE cardapio_itens SET preco = 42 WHERE id = it_prato;
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'cardapio_itens' AND entidade_id = it_prato
+                            AND usuario_id = gest AND valor_novo ? 'preco'), 'preço do cardápio é auditado');
+  PERFORM ci.exige((SELECT preco_unitario FROM comanda_itens WHERE id = i1) = 48, 'mudar o preço não altera item já lançado');
+  PERFORM ci.exige((SELECT count(DISTINCT numero) = count(*) AND min(numero) = 1 AND max(numero) = count(*)
+                      FROM comandas WHERE tenant_id = demo), 'numeração das comandas é sequencial e sem repetição');
 END $$;

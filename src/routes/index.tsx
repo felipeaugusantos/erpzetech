@@ -90,7 +90,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Multiempresa e permissões",
-    text: "Empresas, filiais e depósitos com nove perfis, permissões por módulo e auditoria.",
+    text: "Empresas, filiais e depósitos com onze perfis, permissões por módulo e auditoria.",
   },
 ];
 
