@@ -32,6 +32,18 @@ BEGIN
 END $$;
 
 -- executa o comando como o usuário e devolve o número inteiro retornado
+-- executa o comando como o dono do banco (sem RLS) e exige que FALHE: testa chaves e restrições
+CREATE FUNCTION ci.deve_falhar_dono(cmd text, descricao text) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE falhou boolean := false;
+BEGIN
+  BEGIN
+    EXECUTE cmd;
+  EXCEPTION WHEN OTHERS THEN
+    falhou := true;
+  END;
+  IF NOT falhou THEN RAISE EXCEPTION 'FALHA: esperava erro em "%"', descricao; END IF;
+END $$;
+
 CREATE FUNCTION ci.contar(uid uuid, cmd text) RETURNS bigint LANGUAGE plpgsql AS $$
 DECLARE n bigint;
 BEGIN
@@ -62,6 +74,7 @@ DECLARE
   coz constant uuid := 'a0000000-0000-0000-0000-000000000007';
   mesa1 uuid; mesa2 uuid; cat_r uuid; it_prato uuid; it_lata uuid; gr_ponto uuid; gr_add uuid;
   o_mal uuid; o_ponto uuid; o_bacon uuid; o_ovo uuid; o_queijo uuid;
+  mesa3 uuid; c6 uuid; i5 uuid; i6 uuid; filial2 uuid; caixa2 uuid;
   c1 uuid; c2 uuid; c3 uuid; c4 uuid; c5 uuid; i1 uuid; i2 uuid; i3 uuid; i4 uuid; caixa_r uuid; n_r bigint;
   v_json jsonb; prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
 BEGIN
@@ -394,4 +407,37 @@ BEGIN
   PERFORM ci.exige((SELECT preco_unitario FROM comanda_itens WHERE id = i1) = 48, 'mudar o preço não altera item já lançado');
   PERFORM ci.exige((SELECT count(DISTINCT numero) = count(*) AND min(numero) = 1 AND max(numero) = count(*)
                       FROM comandas WHERE tenant_id = demo), 'numeração das comandas é sequencial e sem repetição');
+
+  -- cadastros de uma empresa não apontam para os de outra (chaves compostas com a empresa)
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (%L, %L, 'x')$c$, tenant_b, it_prato), 'grupo de uma empresa em item de outra');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome) VALUES (%L, %L, 'x')$c$, tenant_b, gr_ponto), 'opção de uma empresa em grupo de outra');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco) VALUES (%L, %L, 'x', 1)$c$, tenant_b, cat_r), 'item de uma empresa em categoria de outra');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO mesas (tenant_id, filial_id, numero) VALUES (%L, %L, 'x')$c$, tenant_b, filial), 'mesa de uma empresa em filial de outra');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO comanda_itens (tenant_id, comanda_id, cardapio_item_id, nome, estacao, quantidade, preco_unitario, total) VALUES (%L, %L, %L, 'x', 'cozinha', 1, 1, 1)$c$, tenant_b, c4, it_lata), 'item de comanda de uma empresa em comanda de outra');
+
+  -- fechar a conta: nada pode ficar em preparo, e o caixa precisa ser da filial da comanda
+  PERFORM ci.entrar(adm);
+  INSERT INTO mesas (tenant_id, filial_id, numero, capacidade) VALUES (demo, filial, '3', 4) RETURNING id INTO mesa3;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, '22222222-2222-2222-2222-222222222222', 'Filial CI 2') RETURNING id INTO filial2;
+  caixa2 := abrir_caixa(filial2, 0);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gar);
+  c6 := restaurante_abrir_comanda(mesa3);
+  i5 := restaurante_lancar_item(c6, it_prato, 1, ARRAY[o_ponto]::uuid[]);
+  i6 := restaurante_lancar_item(c6, it_lata, 1);
+  PERFORM restaurante_enviar_cozinha(c6);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT filial_id FROM comandas WHERE id = c6) = filial, 'comanda da mesa herda a filial da mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":55}]'::jsonb, %L)$c$, c6, caixa_r), 'fechar com item ainda na cozinha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_atualizar_item(%L, 'entregue')$c$, i5), 'garçom entrega item que ainda não ficou pronto');
+  PERFORM ci.entrar(gest);
+  PERFORM restaurante_atualizar_item(i5, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM comanda_itens WHERE id = i5) = 'entregue', 'gestão resolve item esquecido na cozinha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":55}]'::jsonb, %L)$c$, c6, caixa2), 'receber em caixa de outra filial');
+  PERFORM ci.entrar(gar);
+  v_json := restaurante_fechar_comanda(c6, '[{"forma":"pix","valor":55}]'::jsonb, caixa_r);
+  PERFORM ci.sair();
+  PERFORM ci.exige((v_json ->> 'subtotal')::numeric = 50 AND (v_json ->> 'total')::numeric = 55,
+                   'conta fecha no caixa da própria filial (50 + 10% de serviço)');
 END $$;

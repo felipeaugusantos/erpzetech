@@ -223,7 +223,7 @@ function Usuarios() {
     <>
       <PageHeader
         title="Usuários e perfis"
-        description="Onze perfis operacionais com permissões configuráveis por módulo."
+        description="Nove perfis operacionais com permissões configuráveis por módulo."
       />
 
       <Tabs defaultValue="usuarios">

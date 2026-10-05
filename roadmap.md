@@ -76,7 +76,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 ### Etapa R1 — Salão
 - [x] Banco: cardápio (categorias, itens, grupos de opções com obrigatório e máximo, opções com acréscimo), mesas e comandas
-- [x] Perfis `garcom` e `cozinha`; ramo "Restaurante e lanchonete"
+- [x] Perfis `garcom` e `cozinha` no banco; ramo "Restaurante e lanchonete". **Ainda não atribuíveis pela tela de usuários**: hoje as políticas das demais tabelas (clientes, produtos, contas...) valem para qualquer usuário da empresa, então um garçom ou cozinheiro veria dados que não deve
+- [ ] Isolamento dos perfis do salão (políticas restritivas no banco, como o motorista, e menu próprio) e só então liberá-los em `PERFIS`
 - [x] Regras no banco (RPCs): abrir comanda, lançar item com opções, enviar à cozinha, andamento do preparo, cancelar item (garçom antes do envio; gestão depois, com motivo), transferir de mesa, cancelar comanda, fechar com serviço, couvert, desconto só da gestão, pagamento dividido e lançamento no caixa
 - [x] Testes de segurança do banco (permissões por perfil, isolamento entre empresas, escrita direta negada, numeração sequencial)
 - [ ] Tela de cadastro do cardápio e das mesas

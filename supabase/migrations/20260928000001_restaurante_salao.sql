@@ -23,9 +23,9 @@ CREATE TABLE public.cardapio_categorias (
 CREATE TABLE public.cardapio_itens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  categoria_id uuid REFERENCES public.cardapio_categorias (id) ON DELETE SET NULL,
+  categoria_id uuid,
   -- ligação com o cadastro de produtos: usada depois para ficha técnica, estoque e fiscal
-  produto_id uuid REFERENCES public.produtos (id) ON DELETE SET NULL,
+  produto_id uuid,
   nome text NOT NULL CHECK (btrim(nome) <> ''),
   descricao text,
   preco numeric(14,2) NOT NULL DEFAULT 0 CHECK (preco >= 0),
@@ -41,7 +41,7 @@ CREATE TABLE public.cardapio_itens (
 CREATE TABLE public.cardapio_grupos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  item_id uuid NOT NULL REFERENCES public.cardapio_itens (id) ON DELETE CASCADE,
+  item_id uuid NOT NULL,
   nome text NOT NULL CHECK (btrim(nome) <> ''),
   obrigatorio boolean NOT NULL DEFAULT false,
   max_escolhas integer NOT NULL DEFAULT 1 CHECK (max_escolhas >= 1)
@@ -50,7 +50,7 @@ CREATE TABLE public.cardapio_grupos (
 CREATE TABLE public.cardapio_opcoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  grupo_id uuid NOT NULL REFERENCES public.cardapio_grupos (id) ON DELETE CASCADE,
+  grupo_id uuid NOT NULL,
   nome text NOT NULL CHECK (btrim(nome) <> ''),
   preco_adicional numeric(14,2) NOT NULL DEFAULT 0 CHECK (preco_adicional >= 0),
   ativo boolean NOT NULL DEFAULT true
@@ -60,7 +60,7 @@ CREATE TABLE public.cardapio_opcoes (
 CREATE TABLE public.mesas (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  filial_id uuid REFERENCES public.filiais (id) ON DELETE SET NULL,
+  filial_id uuid,
   numero text NOT NULL CHECK (btrim(numero) <> ''),
   capacidade integer CHECK (capacidade IS NULL OR capacidade > 0),
   ativa boolean NOT NULL DEFAULT true,
@@ -72,9 +72,9 @@ CREATE UNIQUE INDEX mesas_numero_uk
 CREATE TABLE public.comandas (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  filial_id uuid REFERENCES public.filiais (id) ON DELETE SET NULL,
+  filial_id uuid,
   numero bigint NOT NULL,
-  mesa_id uuid REFERENCES public.mesas (id) ON DELETE SET NULL,
+  mesa_id uuid,
   situacao text NOT NULL DEFAULT 'aberta' CHECK (situacao IN ('aberta', 'fechada', 'cancelada')),
   garcom_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
   cliente_nome text,
@@ -87,7 +87,7 @@ CREATE TABLE public.comandas (
   desconto numeric(14,2) NOT NULL DEFAULT 0 CHECK (desconto >= 0),
   total numeric(14,2) NOT NULL DEFAULT 0,
   observacao text,
-  caixa_id uuid REFERENCES public.caixas (id) ON DELETE SET NULL,
+  caixa_id uuid,
   aberta_em timestamptz NOT NULL DEFAULT now(),
   fechada_em timestamptz,
   fechada_por uuid,
@@ -104,8 +104,8 @@ CREATE INDEX comandas_tenant_situacao_idx ON public.comandas (tenant_id, situaca
 CREATE TABLE public.comanda_itens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  comanda_id uuid NOT NULL REFERENCES public.comandas (id) ON DELETE CASCADE,
-  cardapio_item_id uuid NOT NULL REFERENCES public.cardapio_itens (id) ON DELETE RESTRICT,
+  comanda_id uuid NOT NULL,
+  cardapio_item_id uuid NOT NULL,
   -- cópia do que foi vendido, para o histórico não mudar se o cardápio mudar
   nome text NOT NULL,
   estacao text NOT NULL,
@@ -132,7 +132,7 @@ CREATE INDEX comanda_itens_fila_idx ON public.comanda_itens (tenant_id, situacao
 CREATE TABLE public.comanda_pagamentos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
-  comanda_id uuid NOT NULL REFERENCES public.comandas (id) ON DELETE CASCADE,
+  comanda_id uuid NOT NULL,
   forma public.forma_pagamento NOT NULL,
   valor numeric(14,2) NOT NULL CHECK (valor > 0),
   pagante text,
@@ -140,6 +140,48 @@ CREATE TABLE public.comanda_pagamentos (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX comanda_pagamentos_comanda_idx ON public.comanda_pagamentos (comanda_id);
+
+-- ===== Chaves que amarram tudo à mesma empresa =====
+-- Uma referência simples só confere que o registro existe, não que é da mesma empresa. Com a chave
+-- composta (id, tenant_id), um cadastro de uma empresa não consegue apontar para o de outra.
+ALTER TABLE public.filiais ADD CONSTRAINT filiais_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.produtos ADD CONSTRAINT produtos_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.caixas ADD CONSTRAINT caixas_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.cardapio_categorias ADD CONSTRAINT cardapio_categorias_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.cardapio_itens ADD CONSTRAINT cardapio_itens_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.cardapio_grupos ADD CONSTRAINT cardapio_grupos_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.mesas ADD CONSTRAINT mesas_id_tenant_uk UNIQUE (id, tenant_id);
+ALTER TABLE public.comandas ADD CONSTRAINT comandas_id_tenant_uk UNIQUE (id, tenant_id);
+
+ALTER TABLE public.cardapio_itens
+  ADD CONSTRAINT cardapio_itens_categoria_fk FOREIGN KEY (categoria_id, tenant_id)
+    REFERENCES public.cardapio_categorias (id, tenant_id) ON DELETE SET NULL (categoria_id),
+  ADD CONSTRAINT cardapio_itens_produto_fk FOREIGN KEY (produto_id, tenant_id)
+    REFERENCES public.produtos (id, tenant_id) ON DELETE SET NULL (produto_id);
+ALTER TABLE public.cardapio_grupos
+  ADD CONSTRAINT cardapio_grupos_item_fk FOREIGN KEY (item_id, tenant_id)
+    REFERENCES public.cardapio_itens (id, tenant_id) ON DELETE CASCADE;
+ALTER TABLE public.cardapio_opcoes
+  ADD CONSTRAINT cardapio_opcoes_grupo_fk FOREIGN KEY (grupo_id, tenant_id)
+    REFERENCES public.cardapio_grupos (id, tenant_id) ON DELETE CASCADE;
+ALTER TABLE public.mesas
+  ADD CONSTRAINT mesas_filial_fk FOREIGN KEY (filial_id, tenant_id)
+    REFERENCES public.filiais (id, tenant_id) ON DELETE SET NULL (filial_id);
+ALTER TABLE public.comandas
+  ADD CONSTRAINT comandas_mesa_fk FOREIGN KEY (mesa_id, tenant_id)
+    REFERENCES public.mesas (id, tenant_id) ON DELETE SET NULL (mesa_id),
+  ADD CONSTRAINT comandas_filial_fk FOREIGN KEY (filial_id, tenant_id)
+    REFERENCES public.filiais (id, tenant_id) ON DELETE SET NULL (filial_id),
+  ADD CONSTRAINT comandas_caixa_fk FOREIGN KEY (caixa_id, tenant_id)
+    REFERENCES public.caixas (id, tenant_id) ON DELETE SET NULL (caixa_id);
+ALTER TABLE public.comanda_itens
+  ADD CONSTRAINT comanda_itens_comanda_fk FOREIGN KEY (comanda_id, tenant_id)
+    REFERENCES public.comandas (id, tenant_id) ON DELETE CASCADE,
+  ADD CONSTRAINT comanda_itens_cardapio_fk FOREIGN KEY (cardapio_item_id, tenant_id)
+    REFERENCES public.cardapio_itens (id, tenant_id) ON DELETE RESTRICT;
+ALTER TABLE public.comanda_pagamentos
+  ADD CONSTRAINT comanda_pagamentos_comanda_fk FOREIGN KEY (comanda_id, tenant_id)
+    REFERENCES public.comandas (id, tenant_id) ON DELETE CASCADE;
 
 CREATE TRIGGER trg_cardapio_itens_touch BEFORE UPDATE ON public.cardapio_itens
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
@@ -351,7 +393,8 @@ BEGIN
   END IF;
 
   -- grupos obrigatórios e limite de escolhas
-  FOR v_grupo IN SELECT id, nome, obrigatorio, max_escolhas FROM public.cardapio_grupos WHERE item_id = v_item.id LOOP
+  FOR v_grupo IN SELECT id, nome, obrigatorio, max_escolhas FROM public.cardapio_grupos
+                   WHERE item_id = v_item.id AND tenant_id = v_tenant LOOP
     SELECT count(*) INTO v_escolhidas
       FROM public.cardapio_opcoes op WHERE op.grupo_id = v_grupo.id AND op.id = ANY (p_opcoes);
     IF v_grupo.obrigatorio AND v_escolhidas = 0 THEN
@@ -421,7 +464,9 @@ BEGIN
 
   IF NOT ((v_atual = 'enviado' AND p_situacao IN ('preparando', 'pronto'))
        OR (v_atual = 'preparando' AND p_situacao = 'pronto')
-       OR (v_atual = 'pronto' AND p_situacao = 'entregue')) THEN
+       OR (v_atual = 'pronto' AND p_situacao = 'entregue')
+       -- a gestão resolve item esquecido na cozinha, para a conta poder fechar
+       OR (v_atual IN ('enviado', 'preparando') AND p_situacao = 'entregue' AND public.restaurante_gestao())) THEN
     RAISE EXCEPTION 'Não é possível passar o item de "%" para "%"', v_atual, p_situacao;
   END IF;
 
@@ -523,12 +568,18 @@ DECLARE
   v_pag jsonb;
   v_forma public.forma_pagamento;
   v_valor numeric(14,2);
+  v_caixa_filial uuid;
 BEGIN
   SELECT * INTO v_cmd FROM public.comandas WHERE id = p_comanda_id AND tenant_id = v_tenant FOR UPDATE;
   IF NOT FOUND OR v_cmd.situacao <> 'aberta' THEN RAISE EXCEPTION 'Comanda não encontrada ou já encerrada'; END IF;
 
+  -- depois de fechada, a comanda não aceita mais andamento: nenhum item pode ficar pelo caminho
   IF EXISTS (SELECT 1 FROM public.comanda_itens WHERE comanda_id = p_comanda_id AND situacao = 'pendente') THEN
     RAISE EXCEPTION 'Há itens ainda não enviados à cozinha: envie ou cancele antes de fechar';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.comanda_itens
+              WHERE comanda_id = p_comanda_id AND situacao IN ('enviado', 'preparando', 'pronto')) THEN
+    RAISE EXCEPTION 'Há itens ainda não entregues à mesa: entregue ou cancele antes de fechar';
   END IF;
 
   p_desconto := coalesce(p_desconto, 0);
@@ -567,8 +618,13 @@ BEGIN
 
   IF v_total > 0 THEN
     IF p_caixa_id IS NULL THEN RAISE EXCEPTION 'Informe o caixa aberto para receber a conta'; END IF;
-    PERFORM 1 FROM public.caixas WHERE id = p_caixa_id AND tenant_id = v_tenant AND situacao = 'aberto';
+    SELECT filial_id INTO v_caixa_filial FROM public.caixas
+     WHERE id = p_caixa_id AND tenant_id = v_tenant AND situacao = 'aberto';
     IF NOT FOUND THEN RAISE EXCEPTION 'Caixa não encontrado ou já fechado'; END IF;
+    -- o dinheiro entra no caixa da mesma filial da comanda (comanda sem filial aceita qualquer caixa da empresa)
+    IF v_cmd.filial_id IS NOT NULL AND v_caixa_filial IS DISTINCT FROM v_cmd.filial_id THEN
+      RAISE EXCEPTION 'O caixa informado é de outra filial';
+    END IF;
 
     FOR v_pag IN SELECT * FROM jsonb_array_elements(p_pagamentos) LOOP
       v_forma := (v_pag ->> 'forma')::public.forma_pagamento;
