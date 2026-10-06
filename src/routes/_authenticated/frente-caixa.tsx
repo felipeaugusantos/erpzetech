@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, num } from "@/lib/format";
+import {
+  CREDENCIADORA_SIMULADA,
+  MOTIVO_RECUSA_SIMULADA,
+  gerarRespostaSimulada,
+} from "@/lib/tef-simulado";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import type { FormaPagamento } from "@/lib/financeiro";
 import { autorizarGestor, sugerirProdutos } from "@/lib/frente-caixa.functions";
@@ -303,12 +308,39 @@ function FrenteCaixa() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tef_config" as never)
-        .select("credenciadora, exigir_nsu, ativo")
+        .select("credenciadora, exigir_nsu, ativo, modo")
         .eq("filial_id", deposito!.filial_id!)
         .maybeSingle();
-      return data as { credenciadora: string; exigir_nsu: boolean; ativo: boolean } | null;
+      return data as {
+        credenciadora: string;
+        exigir_nsu: boolean;
+        ativo: boolean;
+        modo: string;
+      } | null;
     },
   });
+
+  const simulado = cartao && !!tefCfg?.ativo && tefCfg.modo === "simulado";
+
+  async function simularRecusa() {
+    const { error } = await supabase.rpc(
+      "tef_registrar_negada" as never,
+      {
+        p_filial_id: deposito?.filial_id ?? null,
+        p_credenciadora: CREDENCIADORA_SIMULADA,
+        p_forma: forma,
+        p_valor: total,
+        p_parcelas: Math.max(Number(parcelas) || 1, 1),
+        p_bandeira: "Visa",
+        p_motivo: MOTIVO_RECUSA_SIMULADA,
+      } as never,
+    );
+    if (error) toast.error(error.message);
+    else {
+      setTef({ nsu: "", aut: "", bandeira: "" });
+      toast.info("Recusa simulada registrada — a venda não foi concluída");
+    }
+  }
 
   function adicionar(
     p: {
@@ -421,7 +453,9 @@ function FrenteCaixa() {
           "frente_registrar_tef" as never,
           {
             p_pedido_id: data,
-            p_credenciadora: tefCfg?.credenciadora ?? "manual",
+            p_credenciadora: simulado
+              ? CREDENCIADORA_SIMULADA
+              : (tefCfg?.credenciadora ?? "manual"),
             p_nsu: tef.nsu,
             p_autorizacao: tef.aut,
             p_bandeira: tef.bandeira,
@@ -431,6 +465,11 @@ function FrenteCaixa() {
       return data as string;
     },
     onMutate: () => {
+      // A resposta simulada não entra na fila offline (ela só guarda os parâmetros de frente_venda).
+      if (simulado && !navigator.onLine)
+        throw new Error("Modo de teste: a maquininha simulada precisa de internet");
+      if (simulado && !tef.nsu)
+        throw new Error("Modo de teste: clique em “Simular aprovação” antes de finalizar");
       if (cartao && tefCfg?.exigir_nsu && !tef.nsu.trim())
         throw new Error("Digite o código da transação (NSU) do comprovante da maquininha");
     },
@@ -472,10 +511,11 @@ function FrenteCaixa() {
         ...(cartao
           ? {
               tef: {
-                credenciadora: tefCfg?.credenciadora ?? "—",
+                credenciadora: simulado ? CREDENCIADORA_SIMULADA : (tefCfg?.credenciadora ?? "—"),
                 nsu: tef.nsu,
                 autorizacao: tef.aut,
                 bandeira: tef.bandeira,
+                simulado,
               },
             }
           : {}),
@@ -926,7 +966,42 @@ function FrenteCaixa() {
               <p className="mt-2 font-display text-2xl font-bold">Troco: {brl(troco)}</p>
             </div>
           )}
-          {cartao && (
+          {simulado && (
+            <div className="space-y-2 rounded border border-amber-500 bg-amber-50 p-2 text-amber-950">
+              <p className="text-xs font-semibold">
+                MODO DE TESTE — nenhuma cobrança real. A venda grava NSU e autorização de exemplo.
+              </p>
+              {tef.nsu ? (
+                <p className="text-sm">
+                  Aprovada · NSU {tef.nsu} · Aut. {tef.aut} · {tef.bandeira}
+                </p>
+              ) : (
+                <p className="text-sm">Simule a resposta da maquininha e depois finalize.</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const r = gerarRespostaSimulada();
+                    setTef({ nsu: r.nsu, aut: r.autorizacao, bandeira: r.bandeira });
+                  }}
+                >
+                  Simular aprovação
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void simularRecusa()}
+                >
+                  Simular recusa
+                </Button>
+              </div>
+            </div>
+          )}
+          {cartao && !simulado && (
             <div className="grid grid-cols-3 gap-2 rounded border p-2">
               <p className="col-span-3 text-xs text-muted-foreground">
                 Maquininha {tefCfg?.credenciadora ?? "(não configurada)"} — passe o cartão e digite

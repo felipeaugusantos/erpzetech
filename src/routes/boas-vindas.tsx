@@ -37,7 +37,12 @@ function BoasVindas() {
   const criar = useMutation({
     mutationFn: async () => {
       if (nome.trim().length < 2) throw new Error("Informe o nome da empresa");
-      const { error } = await supabase.rpc("onboarding_criar_espaco" as never, { p_nome: nome.trim() });
+      const { error } = await supabase.rpc(
+        "onboarding_criar_espaco" as never,
+        {
+          p_nome: nome.trim(),
+        } as never,
+      );
       if (error) throw error;
     },
     onSuccess: async () => {
