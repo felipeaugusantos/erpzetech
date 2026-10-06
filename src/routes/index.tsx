@@ -4,6 +4,7 @@ import {
   BarChart3,
   Boxes,
   Check,
+  Hammer,
   HardHat,
   LayoutGrid,
   Receipt,
@@ -13,6 +14,7 @@ import {
   Truck,
   Wallet,
   Warehouse,
+  Wrench,
 } from "lucide-react";
 
 import { ZeLogo } from "@/components/app/ZeLogo";
@@ -78,15 +80,24 @@ const features = [
   },
   {
     icon: ScanBarcode,
-    title: "PDV de venda rápida",
-    text: "Leitor de código de barras, troco na tela, cupom de 80 mm, baixa de estoque e caixa.",
+    title: "PDV e frente de caixa",
+    text: "Leitor de código de barras, atalhos de teclado, caixa por operador, troco na tela e cupom de 80 mm.",
+  },
+  {
+    icon: Wrench,
+    title: "Assistência técnica",
+    text: "Ordens de serviço com peças e mão de obra, cadastro de técnicos e custo por técnico.",
+  },
+  {
+    icon: Hammer,
+    title: "Locação de equipamentos",
+    text: "Equipamentos e contratos, balcão de locação com vários itens e nota de serviço da locação.",
   },
   {
     icon: BarChart3,
     title: "Painel e relatórios",
     text: "Pedidos em andamento, pendências fiscais, lucro por produto, depósito e mês.",
   },
-
   {
     icon: ShieldCheck,
     title: "Multiempresa e permissões",
@@ -144,13 +155,18 @@ const planos = [
 function Landing() {
   return (
     <div className="min-h-screen">
-      <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
-        <div className="flex items-center gap-2">
+      <header className="flex h-16 items-center justify-between gap-2 border-b border-border px-4 sm:px-8">
+        <div className="flex min-w-0 items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
+          <span className="whitespace-nowrap font-display text-sm font-bold tracking-wide sm:text-base">
+            ERP ZE TECH
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
+        <nav className="flex items-center gap-1.5 sm:gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <a href="#recursos">Recursos</a>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <a href="#planos">Planos</a>
           </Button>
           <Button asChild variant="outline" size="sm">
@@ -159,13 +175,13 @@ function Landing() {
           <Button asChild size="sm">
             <Link to="/auth">Entrar</Link>
           </Button>
-        </div>
+        </nav>
       </header>
 
       <section className="mx-auto max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-          <LayoutGrid className="size-3.5" /> PDV, comercial, estoque, compras, logística,
-          financeiro e fiscal
+        <span className="inline-flex max-w-full items-start gap-2 rounded-2xl border border-border bg-secondary px-3 py-1.5 text-left text-xs font-medium leading-snug sm:items-center sm:rounded-full sm:text-center">
+          <LayoutGrid className="mt-0.5 size-3.5 shrink-0 sm:mt-0" /> PDV, comercial, estoque,
+          compras, logística, financeiro e fiscal
         </span>
         <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
           O <span className="text-accent">ERP Ze Tech</span> para quem vende produto e controla
@@ -174,24 +190,28 @@ function Landing() {
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
           Da venda no balcão à entrega e ao financeiro, com estoque por depósito, custo de aquisição
           real, caixa, nota fiscal e relatórios. Nasceu nas lojas de material de construção e atende
-          também autopeças, agro, elétrica, hidráulica, distribuidoras e papelaria.
+          também autopeças, agro, elétrica, hidráulica, distribuidoras e papelaria, com módulos de
+          assistência técnica e locação de equipamentos.
         </p>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild size="lg" className="w-full sm:w-auto">
             <Link to="/auth">
               Acessar demonstração <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
+          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+            <a href="#planos">Ver planos</a>
+          </Button>
         </div>
-        <dl className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-4">
+        <dl className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {[
             { k: "Fluxo completo", v: "Orçamento → pedido → entrega → financeiro" },
             { k: "Depósitos", v: "Estoque e custo médio separados" },
             { k: "Logística", v: "Rota do dia e tela do motorista" },
             { k: "Fiscal", v: "NCM, CFOP, NF-e e balanço" },
           ].map((i) => (
-            <div key={i.k} className="panel p-4 text-left">
+            <div key={i.k} className="panel p-3 text-left sm:p-4">
               <dt className="font-display text-sm font-semibold">{i.k}</dt>
               <dd className="mt-1 text-xs text-muted-foreground">{i.v}</dd>
             </div>
@@ -199,21 +219,23 @@ function Landing() {
         </dl>
       </section>
 
-      <section className="border-t border-border bg-card">
-        <div className="mx-auto grid max-w-6xl gap-5 px-5 py-16 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
+      <section id="recursos" className="scroll-mt-16 border-t border-border bg-card">
+        <div className="mx-auto grid max-w-6xl gap-3 px-4 py-12 sm:grid-cols-2 sm:gap-5 sm:px-8 sm:py-16 lg:grid-cols-3">
           {features.map((f) => (
-            <div key={f.title} className="panel p-5">
-              <span className="grid size-9 place-items-center rounded-md bg-accent/15 text-accent-foreground">
+            <div key={f.title} className="panel flex gap-4 p-4 sm:block sm:p-5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent/15 text-accent-foreground">
                 <f.icon className="size-4.5" />
               </span>
-              <h3 className="mt-3 font-display text-base font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
+              <div>
+                <h3 className="font-display text-base font-semibold sm:mt-3">{f.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="planos" className="border-t border-border">
+      <section id="planos" className="scroll-mt-16 border-t border-border">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
           <div className="text-center">
             <h2 className="font-display text-3xl font-extrabold">Planos</h2>
@@ -228,7 +250,9 @@ function Landing() {
               <div
                 key={p.nome}
                 className={
-                  p.destaque ? "panel relative border-2 border-accent p-6 shadow-lg" : "panel p-6"
+                  p.destaque
+                    ? "panel relative flex flex-col border-2 border-accent p-6 shadow-lg"
+                    : "panel flex flex-col p-6"
                 }
               >
                 {p.destaque && (
@@ -247,7 +271,7 @@ function Landing() {
                     <Check className="size-3" /> 15 dias grátis
                   </p>
                 )}
-                <ul className="mt-5 space-y-2">
+                <ul className="mt-5 flex-1 space-y-2">
                   {p.itens.map((i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 size-4 shrink-0 text-accent" />
