@@ -320,7 +320,7 @@ function FrenteCaixa() {
     },
   });
 
-  const simulado = cartao && tefCfg?.modo === "simulado";
+  const simulado = cartao && !!tefCfg?.ativo && tefCfg.modo === "simulado";
 
   async function simularRecusa() {
     const { error } = await supabase.rpc(
@@ -336,7 +336,10 @@ function FrenteCaixa() {
       } as never,
     );
     if (error) toast.error(error.message);
-    else toast.info("Recusa simulada registrada — a venda não foi concluída");
+    else {
+      setTef({ nsu: "", aut: "", bandeira: "" });
+      toast.info("Recusa simulada registrada — a venda não foi concluída");
+    }
   }
 
   function adicionar(
@@ -462,6 +465,9 @@ function FrenteCaixa() {
       return data as string;
     },
     onMutate: () => {
+      // A resposta simulada não entra na fila offline (ela só guarda os parâmetros de frente_venda).
+      if (simulado && !navigator.onLine)
+        throw new Error("Modo de teste: a maquininha simulada precisa de internet");
       if (simulado && !tef.nsu)
         throw new Error("Modo de teste: clique em “Simular aprovação” antes de finalizar");
       if (cartao && tefCfg?.exigir_nsu && !tef.nsu.trim())
