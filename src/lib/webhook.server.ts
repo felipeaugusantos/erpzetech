@@ -35,7 +35,7 @@ const PROVEDORES: Record<string, ProvedorWebhook> = {
 export const depsWebhook: DepsWebhook = {
   provedores: PROVEDORES,
   registrar: async ({ provedor, eventId, tenantId, payload }) => {
-    const { data, error } = await supabaseAdmin.rpc("webhook_registrar", {
+    const { data, error } = await supabaseAdmin.rpc("webhook_registrar" as never, {
       p_provedor: provedor,
       p_event_id: eventId,
       ...(tenantId ? { p_tenant_id: tenantId } : {}),
@@ -54,7 +54,7 @@ export const depsWebhook: DepsWebhook = {
     return { resultado, tentativa };
   },
   concluir: async ({ provedor, eventId, tentativa, status, erro }) => {
-    const { data, error } = await supabaseAdmin.rpc("webhook_concluir", {
+    const { data, error } = await supabaseAdmin.rpc("webhook_concluir" as never, {
       p_provedor: provedor,
       p_event_id: eventId,
       p_tentativa: tentativa,
