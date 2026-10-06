@@ -25,7 +25,7 @@ export function gerarRespostaSimulada(
     autorizacao: seis(sorteio() * 1_000_000),
     bandeira:
       opcoes.bandeira ||
-      BANDEIRAS_SIMULADAS[Math.floor(sorteio() * BANDEIRAS_SIMULADAS.length) % 3],
+      (BANDEIRAS_SIMULADAS[Math.floor(sorteio() * BANDEIRAS_SIMULADAS.length) % 3] ?? "Visa"),
     simulada: true,
   };
 }
