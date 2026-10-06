@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Ruler, Search } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Pencil, Plus, Ruler, ScanSearch, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
+import { consultarGtin } from "@/lib/gtin.functions";
+import { gtinValido } from "@/lib/gtin";
 import { usaGradeTamanho } from "@/lib/ramo";
 import { brl, formatConverted, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
@@ -147,6 +150,45 @@ function Produtos() {
       };
     },
   });
+
+  const buscarGtin = useServerFn(consultarGtin);
+  const [buscandoGtin, setBuscandoGtin] = useState(false);
+
+  // Preenche nome, marca e NCM a partir do código de barras, sem sobrescrever o que já foi digitado.
+  async function preencherPeloCodigo() {
+    const cod = form.codigo_barras.trim();
+    if (!cod) return;
+    const igual = (data?.produtos ?? []).find((p) => p.codigo_barras === cod && p.id !== form.id);
+    if (igual) {
+      toast.warning(`Este código de barras já está no produto "${igual.descricao}"`);
+      return;
+    }
+    if (!gtinValido(cod)) {
+      toast.error("Código de barras inválido (confira os números)");
+      return;
+    }
+    setBuscandoGtin(true);
+    try {
+      const r = await buscarGtin({ data: { gtin: cod } });
+      if (r.status === "ok") {
+        setForm((f) => ({
+          ...f,
+          descricao: f.descricao || r.produto.descricao,
+          marca: f.marca || r.produto.marca,
+          ncm: f.ncm || r.produto.ncm,
+        }));
+        toast.success("Dados preenchidos pelo código de barras. Confira antes de salvar.");
+      } else if (r.status === "nao_encontrado") toast.info("Código não encontrado na base");
+      else if (r.status === "sem_token")
+        toast.error("Consulta por código de barras não configurada (COSMOS_TOKEN)");
+      else if (r.status === "limite") toast.error("Limite diário de consultas atingido");
+      else toast.error("Não foi possível consultar agora. Tente de novo.");
+    } catch {
+      toast.error("Não foi possível consultar agora. Tente de novo.");
+    } finally {
+      setBuscandoGtin(false);
+    }
+  }
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -433,11 +475,30 @@ function Produtos() {
               </div>
               <div>
                 <Label htmlFor="p-barras">Código de barras</Label>
-                <Input
-                  id="p-barras"
-                  value={form.codigo_barras}
-                  onChange={(e) => setForm({ ...form, codigo_barras: e.target.value })}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="p-barras"
+                    value={form.codigo_barras}
+                    placeholder="Bipe o código e tecle Enter"
+                    onChange={(e) => setForm({ ...form, codigo_barras: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void preencherPeloCodigo();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Buscar nome pelo código de barras"
+                    disabled={buscandoGtin || !form.codigo_barras.trim()}
+                    onClick={() => void preencherPeloCodigo()}
+                  >
+                    <ScanSearch className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="p-ncm">NCM</Label>
