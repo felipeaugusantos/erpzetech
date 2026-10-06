@@ -35,12 +35,15 @@ const PROVEDORES: Record<string, ProvedorWebhook> = {
 export const depsWebhook: DepsWebhook = {
   provedores: PROVEDORES,
   registrar: async ({ provedor, eventId, tenantId, payload }) => {
-    const { data, error } = await supabaseAdmin.rpc("webhook_registrar" as never, {
-      p_provedor: provedor,
-      p_event_id: eventId,
-      ...(tenantId ? { p_tenant_id: tenantId } : {}),
-      p_payload: payload as Json,
-    });
+    const { data, error } = await supabaseAdmin.rpc(
+      "webhook_registrar" as never,
+      {
+        p_provedor: provedor,
+        p_event_id: eventId,
+        ...(tenantId ? { p_tenant_id: tenantId } : {}),
+        p_payload: payload as Json,
+      } as never,
+    );
     if (error) throw error;
     const registro = data as { resultado?: unknown; tentativa?: unknown } | null;
     const resultado = registro?.resultado;
@@ -54,13 +57,16 @@ export const depsWebhook: DepsWebhook = {
     return { resultado, tentativa };
   },
   concluir: async ({ provedor, eventId, tentativa, status, erro }) => {
-    const { data, error } = await supabaseAdmin.rpc("webhook_concluir" as never, {
-      p_provedor: provedor,
-      p_event_id: eventId,
-      p_tentativa: tentativa,
-      p_status: status,
-      ...(erro ? { p_erro: erro } : {}),
-    });
+    const { data, error } = await supabaseAdmin.rpc(
+      "webhook_concluir" as never,
+      {
+        p_provedor: provedor,
+        p_event_id: eventId,
+        p_tentativa: tentativa,
+        p_status: status,
+        ...(erro ? { p_erro: erro } : {}),
+      } as never,
+    );
     if (error) throw error;
     return data === true;
   },
