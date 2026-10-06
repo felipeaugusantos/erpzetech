@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { interpretarBusca } from "@/lib/busca-pdv";
 import { brl, num } from "@/lib/format";
 import {
   CREDENCIADORA_SIMULADA,
@@ -282,7 +283,7 @@ function FrenteCaixa() {
   });
 
   const achados = useMemo(() => {
-    const t = busca.trim().toLowerCase();
+    const t = interpretarBusca(busca).termo.toLowerCase();
     if (!t) return [];
     return produtos
       .filter(
@@ -382,18 +383,20 @@ function FrenteCaixa() {
   }
 
   function onEnter() {
-    const t = busca.trim();
-    if (!t) return;
-    // "3*789..." multiplica a quantidade
-    const m = t.match(/^(\d+(?:[.,]\d+)?)\*(.+)$/);
-    const q = m ? parseNum(m[1]!) : parseNum(qtd);
-    const termo = (m ? m[2]! : t).toLowerCase();
+    const { quantidade, termo: texto } = interpretarBusca(busca);
+    if (!busca.trim()) return;
+    if (!texto) {
+      toast.error("Digite o produto depois do multiplicador (ex.: 3*cimento)");
+      return;
+    }
+    const q = quantidade ?? parseNum(qtd);
+    const termo = texto.toLowerCase();
     const exato = produtos.find(
       (p) =>
         (p.codigo_barras ?? "").toLowerCase() === termo ||
         (p.codigo_interno ?? "").toLowerCase() === termo,
     );
-    const p = exato ?? (m ? null : achados[sel]);
+    const p = exato ?? achados[sel];
     if (p) adicionar(p, q);
     else toast.error("Produto não encontrado");
   }
@@ -783,7 +786,7 @@ function FrenteCaixa() {
                 <Input
                   ref={buscaRef}
                   className="h-12 text-lg"
-                  placeholder="F2 — código de barras, código ou nome (ex.: 3*7891234)"
+                  placeholder="F2 — código de barras, código ou nome (ex.: 3*cimento)"
                   value={busca}
                   onChange={(e) => {
                     setBusca(e.target.value);
