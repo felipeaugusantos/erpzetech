@@ -91,3 +91,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] R3 — Delivery e iFood
 - [ ] R4 — Impressão térmica, balcão e garçom em tablet
 - [ ] NFC-e (depende da Fase 2): obrigatória para operar restaurante
+
+## Maquininha simulada (teste antes da ponte real)
+- [x] Modo `simulado` na configuração do TEF: a frente de caixa mostra o painel "MODO DE TESTE" com "Simular aprovação" (NSU `SIM-…`, autorização e bandeira de exemplo) e "Simular recusa"; a venda segue o mesmo caminho do TEF real (`frente_venda` + `frente_registrar_tef`) e o cupom sai marcado como simulado
+- [x] Teste de segurança do banco com a venda completa (transação, caixa, estoque, recusa, isolamento entre empresas, cancelamento e estorno)
+- [x] Correção: cancelar venda de balcão com lançamento no caixa falhava por tipo de `forma_pagamento`

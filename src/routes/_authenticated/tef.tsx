@@ -214,6 +214,7 @@ function TefPage() {
             <option value="manual">Maquininha separada (digitar o código da transação)</option>
             <option value="ponte">Programa de ponte no computador (TEF)</option>
             <option value="nuvem">Maquininha ligada pela internet</option>
+            <option value="simulado">Simulado (teste, sem cobrança real)</option>
           </select>
         </div>
         {campo("contrato", "Número do contrato")}

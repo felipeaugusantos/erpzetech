@@ -74,6 +74,7 @@ DECLARE
   coz constant uuid := 'a0000000-0000-0000-0000-000000000007';
   mesa1 uuid; mesa2 uuid; cat_r uuid; it_prato uuid; it_lata uuid; gr_ponto uuid; gr_add uuid;
   o_mal uuid; o_ponto uuid; o_bacon uuid; o_ovo uuid; o_queijo uuid;
+  ped_t uuid; ped_t2 uuid; aut_t uuid; est_antes numeric; est_depois numeric; tef_cfg uuid; caixa_t uuid;
   mesa3 uuid; c6 uuid; i5 uuid; i6 uuid; filial2 uuid; caixa2 uuid;
   c1 uuid; c2 uuid; c3 uuid; c4 uuid; c5 uuid; i1 uuid; i2 uuid; i3 uuid; i4 uuid; caixa_r uuid; n_r bigint;
   v_json jsonb; prod uuid; est uuid; dep_est uuid; dep_novo uuid; qtd_antes numeric; qtd_depois numeric;
@@ -440,4 +441,55 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((v_json ->> 'subtotal')::numeric = 50 AND (v_json ->> 'total')::numeric = 55,
                    'conta fecha no caixa da própria filial (50 + 10% de serviço)');
+
+  -- 15. maquininha simulada: venda de cartão de ponta a ponta, com NSU e autorização de exemplo
+  PERFORM ci.entrar(adm);
+  INSERT INTO tef_config (tenant_id, filial_id, credenciadora, modo) VALUES (demo, filial, 'stone', 'simulado') RETURNING id INTO tef_cfg;
+  PERFORM ci.sair();
+  PERFORM ci.exige(tef_cfg IS NOT NULL, 'configuração da maquininha aceita o modo simulado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE tef_config SET modo = 'inexistente' WHERE id = %L$c$, tef_cfg), 'modo de maquininha inválido');
+
+  SELECT quantidade INTO est_antes FROM estoques WHERE produto_id = prod AND deposito_id = dep_est;
+  PERFORM ci.entrar(adm);
+  ped_t := frente_venda(dep_est, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 100)),
+                        'cartao_credito', NULL, 0, 3);
+  PERFORM frente_registrar_tef(ped_t, 'simulado', 'SIM-000123', 'AUT456', 'Visa');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tef_credenciadora = 'simulado' AND tef_nsu = 'SIM-000123' AND tef_autorizacao = 'AUT456'
+                      AND tef_bandeira = 'Visa' AND forma_pagamento = 'cartao_credito' AND total = 200
+                      FROM pedidos WHERE id = ped_t), 'venda no cartão guarda credenciadora, NSU, autorização e bandeira');
+  PERFORM ci.exige((SELECT status = 'aprovada' AND valor = 200 AND nsu = 'SIM-000123' AND credenciadora = 'simulado'
+                      FROM tef_transacoes WHERE pedido_id = ped_t), 'transação aprovada fica registrada com o valor da venda');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 200 FROM caixa_movimentos
+                     WHERE pedido_id = ped_t AND tipo = 'venda' AND forma_pagamento = 'cartao_credito'),
+                   'venda no cartão entra no caixa');
+  SELECT quantidade INTO est_depois FROM estoques WHERE produto_id = prod AND deposito_id = dep_est;
+  PERFORM ci.exige(est_depois = est_antes - 2, 'venda no cartão baixa o estoque');
+
+  -- recusa da maquininha: fica registrada sem venda
+  PERFORM ci.entrar(adm);
+  PERFORM tef_registrar_negada(filial, 'simulado', 'cartao_credito', 50, 1, 'Mastercard', 'Simulação: cartão recusado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM tef_transacoes WHERE status = 'negada' AND credenciadora = 'simulado'
+                      AND pedido_id IS NULL AND valor = 50 AND motivo = 'Simulação: cartão recusado'),
+                   'recusa da maquininha fica registrada sem criar venda');
+
+  -- só a empresa dona da venda registra o TEF; ninguém grava direto na tabela de transações
+  PERFORM ci.deve_falhar(novo, format($c$SELECT frente_registrar_tef(%L, 'simulado', 'SIM-1', 'A', 'Visa')$c$, ped_t), 'registrar TEF em venda de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tef_transacoes (tenant_id, valor, status) VALUES (%L, 1, 'aprovada')$c$, demo), 'gravar transação TEF direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE tef_transacoes SET status = 'aprovada' WHERE pedido_id = %L$c$, ped_t), 'alterar transação TEF direto');
+
+  -- cancelamento da venda com a senha do gestor: devolve estoque, estorna o caixa e marca o TEF como cancelado
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut_t;
+  PERFORM ci.entrar(adm);
+  PERFORM frente_cancelar_venda(ped_t, aut_t, 'Teste da maquininha simulada');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelado' FROM pedidos WHERE id = ped_t), 'venda cancelada');
+  PERFORM ci.exige((SELECT status = 'cancelada' FROM tef_transacoes WHERE pedido_id = ped_t), 'cancelar a venda marca a transação TEF como cancelada');
+  SELECT quantidade INTO est_depois FROM estoques WHERE produto_id = prod AND deposito_id = dep_est;
+  PERFORM ci.exige(est_depois = est_antes, 'cancelar a venda devolve o estoque');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 200 FROM caixa_movimentos
+                     WHERE pedido_id = ped_t AND tipo = 'saida' AND forma_pagamento = 'cartao_credito'),
+                   'cancelar a venda estorna o caixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT frente_cancelar_venda(%L, %L, 'de novo')$c$, ped_t, aut_t), 'cancelar de novo a mesma venda');
 END $$;
