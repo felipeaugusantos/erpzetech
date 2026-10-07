@@ -8,7 +8,7 @@ export type ResultadoGtin =
 
 /**
  * Busca nome, marca e NCM de um código de barras no Cosmos (Bluesoft).
- * O token fica só no servidor, na variável de ambiente COSMOS_TOKEN.
+ * O token fica só no servidor (COSMOS_TOKEN); COSMOS_USER_AGENT é opcional.
  */
 export const consultarGtin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -22,7 +22,8 @@ export const consultarGtin = createServerFn({ method: "GET" })
         headers: {
           "X-Cosmos-Token": token,
           "Content-Type": "application/json",
-          "User-Agent": "Cosmos-API-Request",
+          // O Cosmos pode exigir o User-Agent exibido junto com o token da conta.
+          "User-Agent": process.env["COSMOS_USER_AGENT"] || "Cosmos-API-Request",
         },
         signal: AbortSignal.timeout(8000),
       });

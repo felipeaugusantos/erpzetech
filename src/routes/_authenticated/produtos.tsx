@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -153,6 +153,12 @@ function Produtos() {
 
   const buscarGtin = useServerFn(consultarGtin);
   const [buscandoGtin, setBuscandoGtin] = useState(false);
+  // Identifica o formulário e o código atuais, para descartar respostas de uma consulta antiga.
+  const chaveForm = `${open}|${form.id}|${form.codigo_barras.trim()}`;
+  const chaveFormRef = useRef(chaveForm);
+  useEffect(() => {
+    chaveFormRef.current = chaveForm;
+  }, [chaveForm]);
 
   // Preenche nome, marca e NCM a partir do código de barras, sem sobrescrever o que já foi digitado.
   async function preencherPeloCodigo() {
@@ -167,9 +173,11 @@ function Produtos() {
       toast.error("Código de barras inválido (confira os números)");
       return;
     }
+    const chave = chaveForm;
     setBuscandoGtin(true);
     try {
       const r = await buscarGtin({ data: { gtin: cod } });
+      if (chaveFormRef.current !== chave) return; // o código ou o produto mudou durante a consulta
       if (r.status === "ok") {
         setForm((f) => ({
           ...f,

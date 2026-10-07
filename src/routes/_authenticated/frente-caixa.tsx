@@ -813,7 +813,9 @@ function FrenteCaixa() {
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => adicionar(p, parseNum(qtd))}
+                        onClick={() =>
+                          adicionar(p, interpretarBusca(busca).quantidade ?? parseNum(qtd))
+                        }
                         className={`flex w-full justify-between px-3 py-2 text-left text-sm ${i === sel ? "bg-accent/30" : ""}`}
                       >
                         <span>{p.descricao}</span>
