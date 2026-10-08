@@ -240,7 +240,7 @@ function Nfe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("nfe_pedidos")
-        .select("pedido_id, pedidos(numero, total)")
+        .select("pedido_id, pedidos(numero, total, tef_credenciadora, tef_nsu, tef_autorizacao, tef_bandeira)" as never)
         .eq("nfe_id", detalhe!);
       if (error) throw error;
       return data ?? [];
@@ -616,6 +616,20 @@ function Nfe() {
                   <Bloco dados={nota.destinatario as Record<string, string> | null} />
                 </div>
               </div>
+              {(pedidosDaNota ?? []).some((v) => (v.pedidos as unknown as { tef_nsu?: string | null } | null)?.tef_nsu) && (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Transação cartão</p>
+                  {(pedidosDaNota ?? []).map((v) => {
+                    const pd = v.pedidos as unknown as { numero: number | null; tef_credenciadora: string | null; tef_nsu: string | null; tef_autorizacao: string | null; tef_bandeira: string | null } | null;
+                    if (!pd?.tef_nsu) return null;
+                    return (
+                      <p key={v.pedido_id} className="mt-1">
+                        Venda nº {pd.numero ?? "—"} · {pd.tef_credenciadora ?? "—"} · NSU <strong>{pd.tef_nsu}</strong> · Aut. <strong>{pd.tef_autorizacao || "—"}</strong>{pd.tef_bandeira ? ` · ${pd.tef_bandeira}` : ""}
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
               <div className="rounded-lg border p-3">
                 <p className="text-xs uppercase text-muted-foreground">Situação do título</p>
                 {(titulos ?? []).length === 0 ? (
