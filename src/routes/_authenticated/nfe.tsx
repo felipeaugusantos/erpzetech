@@ -240,10 +240,10 @@ function Nfe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("nfe_pedidos")
-        .select("pedido_id, pedidos(numero, total, tef_credenciadora, tef_nsu, tef_autorizacao, tef_bandeira)" as never)
+        .select("pedido_id, pedidos(numero, total, tef_credenciadora, tef_nsu, tef_autorizacao, tef_bandeira)")
         .eq("nfe_id", detalhe!);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as { pedido_id: string; pedidos: { numero: number | null; total: number } | null }[];
     },
   });
 
