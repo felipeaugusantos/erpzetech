@@ -24,6 +24,7 @@ import {
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
+import { useRelogio } from "@/hooks/useRelogio";
 import { brl } from "@/lib/format";
 import {
   ROTULO_SITUACAO_ITEM,
@@ -55,6 +56,7 @@ type Props = {
 export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }: Props) {
   const qc = useQueryClient();
   const gestao = ehGestaoSalao(roles);
+  const agora = useRelogio();
   const [categoria, setCategoria] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [escolhendo, setEscolhendo] = useState<CardapioItem | null>(null);
@@ -209,7 +211,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                 nº {comanda?.numero ?? "—"}
                 {comanda?.pessoas ? ` · ${comanda.pessoas} pessoas` : ""}
                 {comanda?.cliente_nome ? ` · ${comanda.cliente_nome}` : ""}
-                {comanda ? ` · aberta há ${minutosDesde(comanda.aberta_em)} min` : ""}
+                {comanda ? ` · aberta há ${minutosDesde(comanda.aberta_em, agora)} min` : ""}
               </span>
               {comanda && comanda.situacao !== "aberta" && (
                 <Badge variant="secondary">{comanda.situacao}</Badge>

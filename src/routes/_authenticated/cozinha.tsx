@@ -8,6 +8,7 @@ import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
+import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
 import { ROTULO_ESTACAO, minutosDesde, proximoPreparo } from "@/lib/restaurante";
@@ -43,6 +44,7 @@ function Cozinha() {
   const modulos = useModulosCnae();
   const [estacao, setEstacao] = useState("todas");
   const roles = session?.roles ?? [];
+  const agora = useRelogio();
 
   useRealtimeTabelas(["comanda_itens", "comandas"], () =>
     qc.invalidateQueries({ queryKey: [CHAVE_REST] }),
@@ -51,8 +53,6 @@ function Cozinha() {
   const { data, isLoading } = useQuery({
     queryKey: [CHAVE_REST, "cozinha"],
     enabled: modulos.restaurante,
-    // além do tempo real: os minutos de espera precisam andar mesmo sem novidade
-    refetchInterval: 60_000,
     queryFn: async () => {
       const itens = await tabela("comanda_itens")
         .select("*")
@@ -142,7 +142,7 @@ function Cozinha() {
                   <p className="py-6 text-center text-sm text-muted-foreground">Nada por aqui.</p>
                 )}
                 {lista.map((i) => {
-                  const espera = minutosDesde(i.enviado_em);
+                  const espera = minutosDesde(i.enviado_em, agora);
                   const prox = proximoPreparo(i.situacao);
                   const atrasado = i.situacao !== "pronto" && espera >= 20;
                   return (

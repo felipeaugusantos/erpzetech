@@ -9,6 +9,7 @@ import { AbrirComandaDialog } from "@/components/restaurante/AbrirComandaDialog"
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
 import { Button } from "@/components/ui/button";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
+import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl } from "@/lib/format";
 import { useModulosCnae } from "@/lib/cnae";
@@ -38,6 +39,7 @@ function Salao() {
   const { data: session } = useSessionData();
   const modulos = useModulosCnae();
   const roles = session?.roles ?? [];
+  const agora = useRelogio();
   const [abrindo, setAbrindo] = useState<{ mesa: Mesa | null } | null>(null);
   const [comandaAberta, setComandaAberta] = useState<string | null>(null);
 
@@ -155,7 +157,8 @@ function Salao() {
                 <div className="mt-2 space-y-0.5 text-sm">
                   <p className="font-medium">{brl(r.total)}</p>
                   <p className="text-xs text-muted-foreground">
-                    há {minutosDesde(c.aberta_em)} min{c.pessoas ? ` · ${c.pessoas} pessoas` : ""}
+                    há {minutosDesde(c.aberta_em, agora)} min
+                    {c.pessoas ? ` · ${c.pessoas} pessoas` : ""}
                   </p>
                   {r.prontos > 0 && (
                     <p className="flex items-center gap-1 text-xs font-semibold text-amber-700">

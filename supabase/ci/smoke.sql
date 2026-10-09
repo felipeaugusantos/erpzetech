@@ -72,6 +72,7 @@ DECLARE
   cli_b uuid; dep_b uuid; ped_b uuid; t uuid;
   gar constant uuid := 'a0000000-0000-0000-0000-000000000006';
   coz constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cxa constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
   mesa1 uuid; mesa2 uuid; cat_r uuid; it_prato uuid; it_lata uuid; gr_ponto uuid; gr_add uuid;
   o_mal uuid; o_ponto uuid; o_bacon uuid; o_ovo uuid; o_queijo uuid;
   ped_t uuid; ped_t2 uuid; aut_t uuid; est_antes numeric; est_depois numeric; tef_cfg uuid; caixa_t uuid;
@@ -238,6 +239,9 @@ BEGIN
   INSERT INTO auth.users (id, email) VALUES (gar, 'garcom@ci'), (coz, 'cozinha@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (gar, coz);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (gar, demo, 'garcom'), (coz, demo, 'cozinha');
+  INSERT INTO auth.users (id, email) VALUES (cxa, 'caixa-restaurante@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = cxa;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (cxa, demo, 'caixa');
 
   PERFORM ci.deve_falhar(gar, format($c$INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (%L, 'x')$c$, demo), 'garçom cadastra cardápio');
   PERFORM ci.deve_falhar(gar, format($c$INSERT INTO mesas (tenant_id, numero) VALUES (%L, '99')$c$, demo), 'garçom cadastra mesa');
@@ -334,9 +338,10 @@ BEGIN
   PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, caixa_r), 'pagamentos que não fecham a conta');
   PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":124.40}]'::jsonb)$c$, c1), 'fechar sem caixa');
   PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"crediario","valor":124.40}]'::jsonb, %L)$c$, c1, caixa_r), 'crediário na comanda');
-  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":114.40}]'::jsonb, %L, 10)$c$, c1, caixa_r), 'desconto dado pelo garçom');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":114.40}]'::jsonb, %L, 10)$c$, c1, caixa_r), 'desconto dado pelo caixa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":124.40}]'::jsonb, %L)$c$, c1, caixa_r), 'garçom recebe a conta (só gestão e caixa)');
   PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb)$c$, c1), 'cozinha fecha conta');
-  PERFORM ci.entrar(gar);
+  PERFORM ci.entrar(cxa);
   v_json := restaurante_fechar_comanda(c1,
     '[{"forma":"pix","valor":70,"pagante":"Ana"},{"forma":"dinheiro","valor":54.40,"pagante":"Bia"}]'::jsonb, caixa_r);
   PERFORM ci.sair();
@@ -436,7 +441,7 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao FROM comanda_itens WHERE id = i5) = 'entregue', 'gestão resolve item esquecido na cozinha');
   PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":55}]'::jsonb, %L)$c$, c6, caixa2), 'receber em caixa de outra filial');
-  PERFORM ci.entrar(gar);
+  PERFORM ci.entrar(cxa);
   v_json := restaurante_fechar_comanda(c6, '[{"forma":"pix","valor":55}]'::jsonb, caixa_r);
   PERFORM ci.sair();
   PERFORM ci.exige((v_json ->> 'subtotal')::numeric = 50 AND (v_json ->> 'total')::numeric = 55,
@@ -568,5 +573,23 @@ BEGIN
   PERFORM ci.exige(ci.contar(gar_cx, 'SELECT count(*) FROM produtos') > 0, 'garçom que também é vendedor segue com o acesso de vendedor');
   PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM produtos') > 0, 'vendedor segue lendo produtos');
   PERFORM ci.exige(NOT (SELECT eh_salao_restrito()), 'eh_salao_restrito é falso para quem não tem usuário logado');
+
+  -- item de categoria desativada não pode ser lançado
+  DECLARE
+    cat_off uuid; item_off uuid; mesa_off uuid; cmd_off uuid;
+  BEGIN
+    INSERT INTO cardapio_categorias (tenant_id, nome, ativo) VALUES (demo, 'Fora do cardápio', false) RETURNING id INTO cat_off;
+    INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco) VALUES (demo, cat_off, 'Prato fantasma', 10) RETURNING id INTO item_off;
+    INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'categoria-off') RETURNING id INTO mesa_off;
+    PERFORM ci.entrar(gar);
+    cmd_off := restaurante_abrir_comanda(mesa_off, 1);
+    PERFORM ci.sair();
+    PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, cmd_off, item_off), 'lançar item de categoria desativada');
+    UPDATE cardapio_categorias SET ativo = true WHERE id = cat_off;
+    PERFORM ci.entrar(gar);
+    PERFORM restaurante_lancar_item(cmd_off, item_off, 1);
+    PERFORM ci.sair();
+    PERFORM ci.exige(true, 'com a categoria reativada o item pode ser lançado');
+  END;
 END $$;
 

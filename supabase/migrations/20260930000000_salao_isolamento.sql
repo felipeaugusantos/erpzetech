@@ -38,10 +38,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- app.salao_interno: as funções do restaurante marcam, dentro da transação e para o próprio usuário,
-  -- a chamada interna a uma função travada (ex.: lançar o recebimento da conta no caixa)
-  IF public.eh_salao_restrito()
-     AND coalesce(current_setting('app.salao_interno', true), '') <> coalesce(auth.uid()::text, '-') THEN
+  IF public.eh_salao_restrito() THEN
     RAISE EXCEPTION 'Seu perfil não tem acesso a esta operação';
   END IF;
 END $$;
@@ -106,21 +103,32 @@ BEGIN
   END LOOP;
 END $$;
 
--- Fechar a conta recebe no caixa: a chamada a caixa_lancar é interna e legítima para o perfil do salão.
+-- Receber a conta é do caixa e da gestão (a tela já era assim): o garçom não fecha comanda nem lança no caixa.
+-- Sem isso, o perfil do salão chegaria às funções de caixa por dentro de restaurante_fechar_comanda.
 DO $$
 DECLARE
   def text := pg_get_functiondef('public.restaurante_fechar_comanda(uuid, jsonb, uuid, numeric, boolean)'::regprocedure);
   novo text;
 BEGIN
-  novo := replace(def, 'PERFORM public.caixa_lancar(',
-    $q$PERFORM set_config('app.salao_interno', auth.uid()::text, true);
-      PERFORM public.caixa_lancar($q$);
-  novo := replace(novo, E'v_forma, NULL, NULL);\n    END LOOP;',
-    $q$v_forma, NULL, NULL);
-      PERFORM set_config('app.salao_interno', '', true);
-    END LOOP;$q$);
-  IF novo = def OR novo NOT LIKE '%set_config(''app.salao_interno'', '''', true)%' THEN
-    RAISE EXCEPTION 'Não foi possível marcar a chamada interna em restaurante_fechar_comanda';
+  novo := replace(def, $q$ARRAY['administrador', 'gestor', 'garcom', 'caixa']$q$, $q$ARRAY['administrador', 'gestor', 'caixa']$q$);
+  IF novo = def THEN
+    RAISE EXCEPTION 'Não foi possível restringir restaurante_fechar_comanda a gestão e caixa';
+  END IF;
+  EXECUTE novo;
+END $$;
+
+-- Item de categoria desativada não pode ser lançado (a tela já o esconde do cardápio).
+DO $$
+DECLARE
+  def text := pg_get_functiondef('public.restaurante_lancar_item(uuid, uuid, numeric, uuid[], text)'::regprocedure);
+  novo text;
+BEGIN
+  novo := replace(def, 'WHERE id = p_cardapio_item_id AND tenant_id = v_tenant AND ativo;',
+    $q$WHERE id = p_cardapio_item_id AND tenant_id = v_tenant AND ativo
+     AND (categoria_id IS NULL
+          OR EXISTS (SELECT 1 FROM public.cardapio_categorias cc WHERE cc.id = categoria_id AND cc.ativo));$q$);
+  IF novo = def THEN
+    RAISE EXCEPTION 'Não foi possível filtrar categoria inativa em restaurante_lancar_item';
   END IF;
   EXECUTE novo;
 END $$;
