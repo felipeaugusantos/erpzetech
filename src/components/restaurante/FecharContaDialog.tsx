@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,35 +13,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PagamentosForm } from "@/components/restaurante/PagamentosForm";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  linhaInicial,
+  pagamentosParaEnvio,
+  paraNumero,
+  somaPagamentos,
+  type LinhaPagamento,
+} from "@/lib/restaurante-pagamentos";
 import { brl } from "@/lib/format";
-import { formasPagamento } from "@/lib/financeiro";
-import { calcularConta, dividirConta, ehGestaoSalao } from "@/lib/restaurante";
+import { calcularConta, ehGestaoSalao } from "@/lib/restaurante";
 import { CHAVE_REST, rpcRestaurante, type Comanda } from "@/lib/restaurante-dados";
 
-type Linha = { forma: string; valor: string; pagante: string };
-
-const paraNumero = (v: string) => Number(v.replace(",", ".")) || 0;
-const paraTexto = (n: number) => n.toFixed(2).replace(".", ",");
-// só formas que entram na hora: boleto e crediário são a prazo e não passam pelo caixa
-const formas = formasPagamento.filter((f) => f.value !== "crediario" && f.value !== "boleto");
-
-/** Fecha a conta: serviço, desconto (gestão), divisão entre pagantes e recebimento no caixa. */
+/** Fecha a conta: serviço, desconto (gestão) e recebimento do saldo, depois de eventuais baixas parciais. */
 export function FecharContaDialog({
   comanda,
   subtotalItens,
+  jaPago,
   roles,
   onFechar,
   onFechada,
 }: {
   comanda: Comanda;
   subtotalItens: number;
+  jaPago: number;
   roles: string[];
   onFechar: () => void;
   onFechada: () => void;
@@ -53,8 +46,7 @@ export function FecharContaDialog({
   const [cobrarServico, setCobrarServico] = useState(true);
   const [desconto, setDesconto] = useState("0");
   const [caixaId, setCaixaId] = useState("");
-  const [partes, setPartes] = useState("2");
-  const [linhas, setLinhas] = useState<Linha[]>([{ forma: "dinheiro", valor: "", pagante: "" }]);
+  const [linhas, setLinhas] = useState<LinhaPagamento[]>([linhaInicial()]);
 
   const conta = useMemo(
     () =>
@@ -65,58 +57,28 @@ export function FecharContaDialog({
         taxaServicoPercentual: Number(comanda.taxa_servico_percentual),
         cobrarServico,
         desconto: gestao ? paraNumero(desconto) : 0,
+        jaPago,
       }),
-    [subtotalItens, comanda, cobrarServico, desconto, gestao],
+    [subtotalItens, comanda, cobrarServico, desconto, gestao, jaPago],
   );
-
-  // com um único pagamento, o valor acompanha o total
-  useEffect(() => {
-    setLinhas((l) => (l.length === 1 ? [{ ...l[0]!, valor: paraTexto(conta.total) }] : l));
-  }, [conta.total]);
-
-  const { data: caixas = [] } = useQuery({
-    queryKey: [CHAVE_REST, "caixas-abertos", comanda.filial_id],
-    queryFn: async () => {
-      // o banco só aceita o caixa da mesma filial da comanda (comanda sem filial aceita qualquer um)
-      let consulta = supabase
-        .from("caixas")
-        .select("id, numero, filial_id")
-        .eq("situacao", "aberto")
-        .order("aberto_em", { ascending: false });
-      if (comanda.filial_id) consulta = consulta.eq("filial_id", comanda.filial_id);
-      const { data, error } = await consulta;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  useEffect(() => {
-    if (!caixaId && caixas.length === 1) setCaixaId(caixas[0]!.id);
-  }, [caixas, caixaId]);
-
-  const pago = Math.round(linhas.reduce((s, l) => s + paraNumero(l.valor), 0) * 100) / 100;
-  const diferenca = Math.round((conta.total - pago) * 100) / 100;
 
   const fechar = useMutation({
     mutationFn: async () => {
       if (conta.descontoExcede)
         throw new Error(`O desconto não pode passar do total da conta (${brl(conta.bruto)})`);
-      if (conta.total > 0) {
+      if (conta.pagoExcede)
+        throw new Error(
+          `Já foram recebidos ${brl(conta.jaPago)}, mais do que o total da conta (${brl(conta.total)})`,
+        );
+      if (conta.restante > 0) {
         if (!caixaId) throw new Error("Escolha o caixa que vai receber a conta");
-        if (diferenca !== 0) throw new Error("Os pagamentos precisam fechar o total da conta");
+        if (somaPagamentos(linhas) !== conta.restante)
+          throw new Error("Os pagamentos precisam fechar o saldo da conta");
       }
       return rpcRestaurante("restaurante_fechar_comanda", {
         p_comanda_id: comanda.id,
-        p_pagamentos:
-          conta.total > 0
-            ? linhas
-                .filter((l) => paraNumero(l.valor) > 0)
-                .map((l) => ({
-                  forma: l.forma,
-                  valor: paraNumero(l.valor),
-                  pagante: l.pagante.trim() || null,
-                }))
-            : [],
-        p_caixa_id: conta.total > 0 ? caixaId : null,
+        p_pagamentos: conta.restante > 0 ? pagamentosParaEnvio(linhas) : [],
+        p_caixa_id: conta.restante > 0 ? caixaId : null,
         p_desconto: conta.desconto,
         p_cobrar_servico: cobrarServico,
       });
@@ -129,15 +91,6 @@ export function FecharContaDialog({
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  function dividir() {
-    const n = Math.max(Math.floor(Number(partes)) || 1, 1);
-    const valores = dividirConta(conta.total, n);
-    setLinhas(valores.map((v) => ({ forma: "dinheiro", valor: paraTexto(v), pagante: "" })));
-  }
-
-  const alterar = (i: number, parcial: Partial<Linha>) =>
-    setLinhas((l) => l.map((x, j) => (j === i ? { ...x, ...parcial } : x)));
 
   return (
     <Dialog open onOpenChange={(o) => !o && onFechar()}>
@@ -173,118 +126,33 @@ export function FecharContaDialog({
               O desconto passa do total da conta ({brl(conta.bruto)}).
             </p>
           )}
-          <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-lg font-bold">
-            <span>Total</span>
+          <div className="mt-2 flex items-center justify-between border-t pt-2 font-semibold">
+            <span>Total da conta</span>
             <span>{brl(conta.total)}</span>
+          </div>
+          {conta.jaPago > 0 && (
+            <Resumo rotulo="Já recebido em baixas parciais" valor={-conta.jaPago} />
+          )}
+          {conta.pagoExcede && (
+            <p className="text-right text-xs text-destructive">
+              O já recebido passa do total da conta. Reduza o desconto ou ative o serviço.
+            </p>
+          )}
+          <div className="mt-1 flex items-center justify-between font-display text-lg font-bold">
+            <span>{conta.jaPago > 0 ? "Falta receber" : "A receber"}</span>
+            <span>{brl(conta.restante)}</span>
           </div>
         </div>
 
-        {conta.total > 0 && (
-          <div className="grid gap-3">
-            <div>
-              <Label>Caixa que recebe</Label>
-              <Select value={caixaId} onValueChange={setCaixaId}>
-                <SelectTrigger aria-label="Caixa que recebe">
-                  <SelectValue
-                    placeholder={caixas.length ? "Escolha o caixa" : "Nenhum caixa aberto"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {caixas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      Caixa {c.numero}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end gap-2">
-              <div className="w-24">
-                <Label htmlFor="partes">Dividir por</Label>
-                <Input
-                  id="partes"
-                  inputMode="numeric"
-                  value={partes}
-                  onChange={(e) => setPartes(e.target.value)}
-                />
-              </div>
-              <Button type="button" variant="outline" onClick={dividir}>
-                Dividir igualmente
-              </Button>
-            </div>
-
-            {linhas.map((l, i) => (
-              <div key={i} className="grid grid-cols-[1fr_6.5rem_1fr_auto] items-end gap-2">
-                <div>
-                  <Label className="text-xs">Forma</Label>
-                  <Select value={l.forma} onValueChange={(v) => alterar(i, { forma: v })}>
-                    <SelectTrigger aria-label="Forma de pagamento">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formas.map((f) => (
-                        <SelectItem key={f.value} value={f.value}>
-                          {f.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Valor</Label>
-                  <Input
-                    inputMode="decimal"
-                    value={l.valor}
-                    onChange={(e) => alterar(i, { valor: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Quem paga</Label>
-                  <Input
-                    value={l.pagante}
-                    onChange={(e) => alterar(i, { pagante: e.target.value })}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Remover pagamento"
-                  disabled={linhas.length === 1}
-                  onClick={() => setLinhas((x) => x.filter((_, j) => j !== i))}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            ))}
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setLinhas((l) => [
-                    ...l,
-                    { forma: "pix", valor: diferenca > 0 ? paraTexto(diferenca) : "", pagante: "" },
-                  ])
-                }
-              >
-                <Plus className="mr-1 size-4" /> Outro pagamento
-              </Button>
-              <span
-                className={
-                  diferenca === 0 ? "text-sm text-emerald-700" : "text-sm text-destructive"
-                }
-              >
-                {diferenca === 0
-                  ? "Pagamentos conferem"
-                  : diferenca > 0
-                    ? `Faltam ${brl(diferenca)}`
-                    : `Passou ${brl(-diferenca)}`}
-              </span>
-            </div>
-          </div>
+        {conta.restante > 0 && (
+          <PagamentosForm
+            alvo={conta.restante}
+            linhas={linhas}
+            onLinhas={setLinhas}
+            caixaId={caixaId}
+            onCaixa={setCaixaId}
+            filialId={comanda.filial_id}
+          />
         )}
 
         <DialogFooter>

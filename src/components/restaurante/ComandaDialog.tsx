@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Check, ChefHat, MoreHorizontal, Send, X } from "lucide-react";
+import { ArrowRightLeft, Check, ChefHat, HandCoins, MoreHorizontal, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BaixaParcialDialog } from "@/components/restaurante/BaixaParcialDialog";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
@@ -42,6 +43,7 @@ import {
   type Comanda,
   type ComandaItem,
   type Mesa,
+  type PagamentoComanda,
 } from "@/lib/restaurante-dados";
 
 type Props = {
@@ -64,6 +66,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const [transferindo, setTransferindo] = useState(false);
   const [destino, setDestino] = useState("");
   const [fechando, setFechando] = useState(false);
+  const [baixando, setBaixando] = useState(false);
 
   const { data: cardapio } = useCardapio();
 
@@ -90,6 +93,21 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
       return (data ?? []) as unknown as ComandaItem[];
     },
   });
+
+  // só quem recebe a conta lê os pagamentos (o banco recusa para garçom e cozinha)
+  const { data: pagamentos = [] } = useQuery({
+    queryKey: [CHAVE_REST, "comanda-pagamentos", comandaId],
+    enabled: recebeConta(roles),
+    queryFn: async () => {
+      const { data, error } = await tabela("comanda_pagamentos")
+        .select("*")
+        .eq("comanda_id", comandaId)
+        .order("created_at");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown as PagamentoComanda[];
+    },
+  });
+  const jaPago = Math.round(pagamentos.reduce((s, p) => s + Number(p.valor), 0) * 100) / 100;
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
   const erro = (e: Error) => toast.error(e.message);
@@ -176,6 +194,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
         taxaServicoPercentual: Number(comanda.taxa_servico_percentual),
         cobrarServico: true,
         desconto: 0,
+        jaPago,
       })
     : null;
 
@@ -320,6 +339,11 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       <Badge variant={i.situacao === "pronto" ? "default" : "secondary"}>
                         {ROTULO_SITUACAO_ITEM[i.situacao]}
                       </Badge>
+                      {i.pago_em && (
+                        <Badge variant="outline" className="border-emerald-600 text-emerald-700">
+                          Pago{i.pagante ? ` · ${i.pagante}` : ""}
+                        </Badge>
+                      )}
                       {aberta && (
                         <div className="flex gap-1">
                           {i.situacao === "pronto" && (
@@ -332,6 +356,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                             </Button>
                           )}
                           {i.situacao !== "cancelado" &&
+                            !i.pago_em &&
                             (i.situacao === "pendente" ||
                               (gestao && i.situacao !== "entregue")) && (
                               <Button
@@ -374,6 +399,15 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                     <span>Total</span>
                     <span>{brl(conta.total)}</span>
                   </div>
+                  {conta.jaPago > 0 && (
+                    <>
+                      <Linha rotulo="Já recebido" valor={-conta.jaPago} />
+                      <div className="flex justify-between font-semibold">
+                        <span>Falta receber</span>
+                        <span>{brl(conta.restante)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -393,11 +427,25 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       </Button>
                     )}
                     {gestao && (
-                      <Button variant="outline" onClick={() => setCancelando("comanda")}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setCancelando("comanda")}
+                        disabled={jaPago > 0}
+                        title={jaPago > 0 ? "Já houve recebimento: feche a conta" : undefined}
+                      >
                         Cancelar comanda
                       </Button>
                     )}
                   </div>
+                  {recebeConta(roles) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setBaixando(true)}
+                      disabled={!conta || conta.restante <= 0}
+                    >
+                      <HandCoins className="mr-2 size-4" /> Receber uma parte
+                    </Button>
+                  )}
                   {recebeConta(roles) ? (
                     <Button
                       variant="secondary"
@@ -489,12 +537,24 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
         <FecharContaDialog
           comanda={comanda}
           subtotalItens={subtotal}
+          jaPago={jaPago}
           roles={roles}
           onFechar={() => setFechando(false)}
           onFechada={() => {
             setFechando(false);
             onFechar();
           }}
+        />
+      )}
+
+      {baixando && comanda && (
+        <BaixaParcialDialog
+          comanda={comanda}
+          itens={itens}
+          subtotalItens={subtotal}
+          jaPago={jaPago}
+          onFechar={() => setBaixando(false)}
+          onConcluida={() => setBaixando(false)}
         />
       )}
     </>

@@ -595,3 +595,102 @@ BEGIN
   END;
 END $$;
 
+
+-- 17. baixa parcial da comanda (alguém da mesa vai embora)
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  cat uuid; it_a uuid; it_b uuid; it_c uuid; mesa uuid; cmd uuid; cmd2 uuid; cx uuid; i_a uuid; i_b uuid; i_c uuid;
+  r jsonb; itens jsonb; pg_total numeric; n_cmd bigint;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Parcial') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Cerveja', 20, 'nenhuma') RETURNING id INTO it_a;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Porção', 12.5, 'nenhuma') RETURNING id INTO it_b;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato', 30, 'cozinha') RETURNING id INTO it_c;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'parcial-1') RETURNING id INTO mesa;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- 4 pessoas, serviço 10%, couvert R$ 5; 3 cervejas (60) + 2 porções (25) = 85; couvert 20; serviço 8,50; conta 113,50
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(mesa, 4, NULL, 10, 5);
+  i_a := restaurante_lancar_item(cmd, it_a, 3);
+  i_b := restaurante_lancar_item(cmd, it_b, 2);
+  PERFORM restaurante_enviar_cozinha(cmd);
+  PERFORM ci.sair();
+  itens := jsonb_build_array(jsonb_build_object('id', i_a, 'quantidade', 1), jsonb_build_object('id', i_b));
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":54.50}]'::jsonb, %L, %L::jsonb, 1)$c$, cmd, cx, itens), 'garçom faz baixa parcial');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":50}]'::jsonb, %L, %L::jsonb, 1)$c$, cmd, cx, itens), 'baixa por itens com valor que não confere');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"boleto","valor":54.50}]'::jsonb, %L, %L::jsonb, 1)$c$, cmd, cx, itens), 'boleto na baixa parcial');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":54.50}]'::jsonb, %L, %L::jsonb, 5)$c$, cmd, cx, itens), 'mais pessoas do que a mesa tem');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":54.50}]'::jsonb, %L, %L::jsonb, 1)$c$, cmd, cx, jsonb_build_array(jsonb_build_object('id', i_a, 'quantidade', 4))), 'mais unidades do que o item tem');
+
+  -- item que ainda não foi entregue não se paga
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, 1, NULL, 10, 0);
+  i_c := restaurante_lancar_item(cmd2, it_c, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":33}]'::jsonb, %L, %L::jsonb)$c$, cmd2, cx, jsonb_build_array(jsonb_build_object('id', i_c))), 'pagar item ainda não entregue');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd2, 'teste da baixa parcial');
+  PERFORM ci.sair();
+
+  -- baixa por itens: 1 cerveja (20) + 2 porções (25) = 45; serviço 4,50; couvert de 1 pessoa 5 → 54,50
+  PERFORM ci.entrar(cxa);
+  r := restaurante_receber_parcial(cmd, '[{"forma":"pix","valor":54.50,"pagante":"Ana"}]'::jsonb, cx, itens, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'recebido')::numeric = 54.5 AND (r ->> 'saldo')::numeric = 59, 'baixa por itens recebe 54,50 e deixa saldo de 59');
+  PERFORM ci.exige((SELECT quantidade = 2 AND total = 40 AND pago_em IS NULL FROM comanda_itens WHERE id = i_a),
+                   'as 2 cervejas restantes seguem na conta');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(total) = 20 AND bool_and(pagante = 'Ana') FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Cerveja' AND pago_em IS NOT NULL),
+                   'a cerveja paga vira uma linha própria, com quem pagou');
+  PERFORM ci.exige((SELECT pago_em IS NOT NULL FROM comanda_itens WHERE id = i_b), 'a porção inteira ficou paga');
+  PERFORM ci.exige((SELECT pessoas_pagas = 1 FROM comandas WHERE id = cmd), 'couvert da pessoa que saiu registrado');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(parcial) FROM comanda_pagamentos WHERE comanda_id = cmd), 'pagamento gravado como parcial');
+  PERFORM ci.exige((SELECT sum(valor) = 54.5 FROM caixa_movimentos WHERE caixa_id = cx AND descricao = 'Comanda ' || (SELECT numero FROM comandas WHERE id = cmd) || ' (parcial)'),
+                   'a baixa parcial entra no caixa');
+  PERFORM ci.exige((SELECT count(*) = 3 FROM comanda_itens WHERE comanda_id = cmd AND situacao <> 'cancelado'), 'a comanda segue aberta com os itens');
+
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":25}]'::jsonb, %L, %L::jsonb)$c$, cmd, cx, jsonb_build_array(jsonb_build_object('id', i_b))), 'pagar de novo um item já pago');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_cancelar_item(%L, 'não pode')$c$, i_b), 'cancelar item já pago');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_cancelar_comanda(%L, 'não pode')$c$, cmd), 'cancelar comanda que já recebeu');
+
+  -- baixa por valor livre: 30 do saldo de 59; 40 passaria do que sobra (29)
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"dinheiro","valor":60}]'::jsonb, %L)$c$, cmd, cx), 'baixa por valor acima do saldo');
+  PERFORM ci.entrar(cxa);
+  r := restaurante_receber_parcial(cmd, '[{"forma":"dinheiro","valor":30,"pagante":"Beto"}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'saldo')::numeric = 29, 'baixa por valor deixa saldo de 29');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"dinheiro","valor":40}]'::jsonb, %L)$c$, cmd, cx), 'segunda baixa acima do saldo');
+
+  -- o fechamento cobra só o saldo
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_fechar_comanda(%L, '[{"forma":"pix","valor":113.50}]'::jsonb, %L)$c$, cmd, cx), 'fechar cobrando a conta inteira de novo');
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(cmd, '[{"forma":"pix","valor":29}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 113.5 AND (r ->> 'recebido_antes')::numeric = 84.5 AND (r ->> 'restante')::numeric = 29,
+                   'fechamento devolve total, recebido antes e saldo');
+  SELECT sum(valor) INTO pg_total FROM comanda_pagamentos WHERE comanda_id = cmd;
+  PERFORM ci.exige(pg_total = 113.5, 'a soma dos pagamentos fecha o total da conta');
+  SELECT numero INTO n_cmd FROM comandas WHERE id = cmd;
+  PERFORM ci.exige((SELECT sum(valor) = 113.5 FROM caixa_movimentos WHERE tipo = 'venda' AND descricao LIKE 'Comanda ' || n_cmd || '%'),
+                   'o caixa recebeu a conta inteira, em partes');
+  PERFORM ci.exige((SELECT situacao = 'fechada' AND total = 113.5 FROM comandas WHERE id = cmd), 'comanda fechada com o total cheio');
+
+  -- conta toda paga em baixas: fechar sem novos pagamentos
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  PERFORM restaurante_lancar_item(cmd2, it_b, 2);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_receber_parcial(cmd2, '[{"forma":"pix","valor":25}]'::jsonb, cx);
+  r := restaurante_fechar_comanda(cmd2, '[]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'restante')::numeric = 0 AND (SELECT situacao = 'fechada' FROM comandas WHERE id = cmd2),
+                   'conta já paga em baixas fecha sem novo pagamento');
+END $$;
