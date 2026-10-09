@@ -54,23 +54,31 @@ export type ContaEntrada = {
 
 const arredonda = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-/** Mesma conta do banco (restaurante_fechar_comanda). */
+// A conta é feita em centavos inteiros: com números decimais, 40,15 × 10% dá 4,0149999... e arredonda
+// para 4,01, enquanto o numeric do PostgreSQL (round) dá 4,02 e recusaria o fechamento.
+const centavos = (reais: number) => Math.round((reais + Number.EPSILON) * 100);
+const reais = (c: number) => c / 100;
+
+/** Mesma conta do banco (restaurante_fechar_comanda), com o mesmo arredondamento (meio centavo para cima). */
 export function calcularConta(e: ContaEntrada) {
-  const couvert = arredonda((e.pessoas ?? 0) * e.couvertPorPessoa);
-  const servico = e.cobrarServico ? arredonda((e.subtotal * e.taxaServicoPercentual) / 100) : 0;
-  const bruto = arredonda(e.subtotal + couvert + servico);
-  const desconto = Math.max(e.desconto || 0, 0);
+  const subtotal = centavos(e.subtotal);
+  const couvert = (e.pessoas ?? 0) * centavos(e.couvertPorPessoa);
+  // percentual em centésimos (10% = 1000): subtotal × percentual ÷ 10000, arredondado para cima no meio
+  const pontos = Math.round(e.taxaServicoPercentual * 100);
+  const servico = e.cobrarServico ? Math.floor((subtotal * pontos + 5000) / 10000) : 0;
+  const bruto = subtotal + couvert + servico;
+  const desconto = Math.max(centavos(e.desconto || 0), 0);
   // o banco recusa desconto acima do total da conta: a tela avisa em vez de fechar em silêncio
   const descontoExcede = desconto > bruto;
-  const total = arredonda(bruto - Math.min(desconto, bruto));
+  const total = bruto - Math.min(desconto, bruto);
   return {
-    subtotal: arredonda(e.subtotal),
-    couvert,
-    servico,
-    bruto,
-    desconto,
+    subtotal: reais(subtotal),
+    couvert: reais(couvert),
+    servico: reais(servico),
+    bruto: reais(bruto),
+    desconto: reais(desconto),
     descontoExcede,
-    total,
+    total: reais(total),
   };
 }
 

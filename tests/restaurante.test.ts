@@ -115,3 +115,27 @@ test("minutos de espera", () => {
   assert.equal(minutosDesde(null, agora), 0);
   assert.equal(minutosDesde("2026-10-09T13:00:00Z", agora), 0);
 });
+
+test("meio centavo arredonda para cima, como o numeric do banco", () => {
+  const c = calcularConta({
+    subtotal: 40.15,
+    pessoas: null,
+    couvertPorPessoa: 0,
+    taxaServicoPercentual: 10,
+    cobrarServico: true,
+    desconto: 0,
+  });
+  assert.equal(c.servico, 4.02);
+  assert.equal(c.total, 44.17);
+  const d = calcularConta({
+    subtotal: 10.05,
+    pessoas: 3,
+    couvertPorPessoa: 2.5,
+    taxaServicoPercentual: 12.5,
+    cobrarServico: true,
+    desconto: 0.3,
+  });
+  assert.equal(d.couvert, 7.5);
+  assert.equal(d.servico, 1.26);
+  assert.equal(d.total, 18.51);
+});

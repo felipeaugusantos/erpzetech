@@ -8,6 +8,7 @@ import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
+import { useCardapio } from "@/hooks/useCardapio";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
@@ -45,6 +46,9 @@ function Cozinha() {
   const [estacao, setEstacao] = useState("todas");
   const roles = session?.roles ?? [];
   const agora = useRelogio();
+  // tempo de preparo configurado no cardápio; sem ele, o prato é considerado atrasado depois de 20 minutos
+  const { data: cardapio } = useCardapio(true);
+  const tempoPorItem = new Map((cardapio?.itens ?? []).map((i) => [i.id, i.tempo_preparo_min]));
 
   useRealtimeTabelas(["comanda_itens", "comandas"], () =>
     qc.invalidateQueries({ queryKey: [CHAVE_REST] }),
@@ -144,7 +148,8 @@ function Cozinha() {
                 {lista.map((i) => {
                   const espera = minutosDesde(i.enviado_em, agora);
                   const prox = proximoPreparo(i.situacao);
-                  const atrasado = i.situacao !== "pronto" && espera >= 20;
+                  const limite = tempoPorItem.get(i.cardapio_item_id) || 20;
+                  const atrasado = i.situacao !== "pronto" && espera >= limite;
                   return (
                     <article
                       key={i.id}
