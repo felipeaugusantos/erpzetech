@@ -5,6 +5,8 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { EstoqueRestaurante } from "@/components/restaurante/EstoqueRestaurante";
+import { FichaEditor } from "@/components/restaurante/FichaEditor";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,6 +86,7 @@ function Cardapio() {
           <TabsTrigger value="itens">Itens</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="mesas">Mesas</TabsTrigger>
+          <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
         </TabsList>
         <TabsContent value="itens">
           <Itens tenantId={session?.profile?.tenant_id ?? ""} />
@@ -93,6 +96,9 @@ function Cardapio() {
         </TabsContent>
         <TabsContent value="mesas">
           <Mesas tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
+        <TabsContent value="estoque">
+          <EstoqueRestaurante tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
       </Tabs>
     </>
@@ -574,7 +580,14 @@ function Itens({ tenantId }: { tenantId: string }) {
             </div>
 
             {form.id ? (
-              <OpcoesDoItem itemId={form.id} tenantId={tenantId} />
+              <>
+                <FichaEditor
+                  alvo={{ tipo: "item", id: form.id }}
+                  tenantId={tenantId}
+                  preco={dinheiro(form.preco)}
+                />
+                <OpcoesDoItem itemId={form.id} tenantId={tenantId} />
+              </>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Salve o item para cadastrar as opções (ponto da carne, adicionais...).
@@ -699,6 +712,7 @@ function GrupoOpcoes({
   const qc = useQueryClient();
   const [nome, setNome] = useState("");
   const [extra, setExtra] = useState("");
+  const [fichaAberta, setFichaAberta] = useState<string | null>(null);
 
   const nova = useMutation({
     mutationFn: async () => {
@@ -739,21 +753,38 @@ function GrupoOpcoes({
       </div>
       <ul className="mt-1 space-y-1 text-sm">
         {opcoes.map((o) => (
-          <li key={o.id} className="flex items-center justify-between">
-            <span>
-              {o.nome}
-              {Number(o.preco_adicional) > 0 && (
-                <span className="text-muted-foreground"> · + {brl(o.preco_adicional)}</span>
-              )}
-            </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={`Apagar ${o.nome}`}
-              onClick={() => onApagarOpcao(o.id)}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+          <li key={o.id}>
+            <div className="flex items-center justify-between">
+              <span>
+                {o.nome}
+                {Number(o.preco_adicional) > 0 && (
+                  <span className="text-muted-foreground"> · + {brl(o.preco_adicional)}</span>
+                )}
+              </span>
+              <span className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Insumos de ${o.nome}`}
+                  onClick={() => setFichaAberta(fichaAberta === o.id ? null : o.id)}
+                >
+                  Insumos
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Apagar ${o.nome}`}
+                  onClick={() => onApagarOpcao(o.id)}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </span>
+            </div>
+            {fichaAberta === o.id && (
+              <div className="mt-1">
+                <FichaEditor alvo={{ tipo: "opcao", id: o.id }} tenantId={tenantId} />
+              </div>
+            )}
           </li>
         ))}
       </ul>

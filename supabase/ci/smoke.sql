@@ -793,3 +793,144 @@ BEGIN
   PERFORM ci.exige((SELECT count(*) = 1 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND ativa AND numero ~ '^[0-9]+$'), 'zero desativa tudo, menos a mesa ocupada');
   PERFORM ci.exige((SELECT count(*) = 0 FROM mesas WHERE tenant_id <> demo AND numero ~ '^[0-9]+$' AND NOT ativa), 'outra empresa não é afetada');
 END $$;
+
+-- 19. ficha técnica: baixa de insumos, custo e devolução
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  dep uuid; carne uuid; pao uuid; bacon uuid; lata uuid; outro_tenant uuid; produto_alheio uuid;
+  cat uuid; it_burger uuid; it_refri uuid; gr uuid; op_bacon uuid;
+  cmd uuid; cmd2 uuid; i_burger uuid; i_refri uuid; i2 uuid; i3 uuid; n_cmd bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'Cozinha CI', false) RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'FT-CARNE', 'Carne moída CI', 'kg', 40) RETURNING id INTO carne;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'FT-PÃO', 'Pão CI', 'un', 1.5) RETURNING id INTO pao;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'FT-BACON', 'Bacon CI', 'kg', 60) RETURNING id INTO bacon;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'FT-LATA', 'Lata CI', 'un', 3) RETURNING id INTO lata;
+
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Ficha CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Burger ficha', 30, 'cozinha') RETURNING id INTO it_burger;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, produto_id) VALUES (demo, cat, 'Refri lata', 6, 'nenhuma', lata) RETURNING id INTO it_refri;
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (demo, it_burger, 'Extras') RETURNING id INTO gr;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, gr, 'Bacon extra', 5) RETURNING id INTO op_bacon;
+
+  -- permissões: só a gestão cadastra e lê a ficha
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (%L, %L, %L, 1)$c$, demo, it_burger, pao), 'garçom cadastra ficha técnica');
+  PERFORM ci.deve_falhar(cxa, format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (%L, %L, %L, 1)$c$, demo, it_burger, pao), 'caixa cadastra ficha técnica');
+  PERFORM ci.entrar(adm);
+  INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade, perda_percentual) VALUES (demo, it_burger, carne, 0.15, 10);
+  INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (demo, it_burger, pao, 1);
+  INSERT INTO cardapio_ficha (tenant_id, opcao_id, produto_id, quantidade) VALUES (demo, op_bacon, bacon, 0.03);
+  PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM cardapio_ficha') = 3, 'gestão lê a ficha técnica');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM cardapio_ficha') = 0, 'garçom não lê a ficha técnica');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM cardapio_ficha') = 0, 'cozinha não lê a ficha técnica');
+  PERFORM ci.exige(ci.contar(cxa, 'SELECT count(*) FROM cardapio_ficha') = 0, 'caixa não lê a ficha técnica');
+
+  -- restrições da ficha
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (%L, %L, %L, 1)$c$, demo, it_burger, carne), 'mesmo insumo duas vezes na ficha do item');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, produto_id, quantidade) VALUES (%L, %L, 1)$c$, demo, carne), 'ficha sem item nem opção');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, opcao_id, produto_id, quantidade) VALUES (%L, %L, %L, %L, 1)$c$, demo, it_burger, op_bacon, lata), 'ficha com item e opção ao mesmo tempo');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (%L, %L, %L, 0)$c$, demo, it_refri, lata), 'quantidade zero na ficha');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade, perda_percentual) VALUES (%L, %L, %L, 1, 95)$c$, demo, it_refri, lata), 'perda de 95%');
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade) VALUES (outro_tenant, 'FT-ALHEIO', 'Insumo de outra empresa', 'kg') RETURNING id INTO produto_alheio;
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade) VALUES (%L, %L, %L, 1)$c$, demo, it_refri, produto_alheio), 'insumo de outra empresa na ficha');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_config (tenant_id, baixa_estoque) VALUES (%L, true)$c$, outro_tenant), 'baixa de estoque sem depósito');
+
+  -- estoque inicial (entrada pelo fluxo normal) e configuração do restaurante
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(carne, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci', NULL, 40);
+  PERFORM registrar_movimentacao(pao, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci', NULL, 1.5);
+  PERFORM registrar_movimentacao(bacon, dep, 'entrada'::mov_tipo, 2, 'ci', 'ci', NULL, 60);
+  PERFORM registrar_movimentacao(lata, dep, 'entrada'::mov_tipo, 24, 'ci', 'ci', NULL, 3);
+  PERFORM ci.sair();
+  INSERT INTO restaurante_config (tenant_id, baixa_estoque, deposito_id) VALUES (demo, true, dep);
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_config') = 0, 'garçom não lê a configuração de estoque do restaurante');
+  PERFORM ci.exige(ci.contar(gar, 'WITH u AS (UPDATE restaurante_config SET baixa_estoque = false RETURNING 1) SELECT count(*) FROM u') = 0, 'garçom não altera a configuração de estoque (nenhuma linha)');
+  PERFORM ci.exige((SELECT baixa_estoque FROM restaurante_config WHERE tenant_id = demo), 'a configuração segue ligada');
+
+  -- 1. enviar à cozinha baixa os insumos: 2 burgers com bacon extra + 3 refrigerantes
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  i_burger := restaurante_lancar_item(cmd, it_burger, 2, ARRAY[op_bacon]);
+  i_refri := restaurante_lancar_item(cmd, it_refri, 3);
+  PERFORM ci.exige((SELECT opcoes -> 0 ? 'id' FROM comanda_itens WHERE id = i_burger), 'a comanda guarda o id da opção escolhida');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = carne AND deposito_id = dep) = 10, 'lançar o item ainda não baixa o estoque');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_enviar_cozinha(cmd);
+  PERFORM ci.sair();
+  SELECT numero INTO n_cmd FROM comandas WHERE id = cmd;
+  -- carne: 2 × 0,15 ÷ 0,90 = 0,333; pão: 2; bacon: 2 × 0,03 = 0,06; lata (revenda, sem ficha): 3
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = carne AND deposito_id = dep) = 9.667, 'a carne baixa com a perda de preparo');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = 48, 'o pão baixa pela ficha');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = bacon AND deposito_id = dep) = 1.94, 'a opção escolhida baixa o próprio insumo');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = lata AND deposito_id = dep) = 21, 'bebida de revenda baixa 1 unidade por unidade vendida');
+  PERFORM ci.exige((SELECT count(*) = 4 AND bool_and(tipo = 'saida') AND bool_and(documento = 'COMANDA-' || n_cmd) FROM estoque_movimentacoes WHERE documento = 'COMANDA-' || n_cmd),
+                   'cada insumo gera uma movimentação de saída com o número da comanda');
+
+  -- 2. cancelar o item ainda na fila da cozinha devolve os insumos; o que já foi entregue não volta
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_item(i_burger, 'cliente desistiu');
+  PERFORM restaurante_cancelar_item(i_refri, 'refri já entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = carne AND deposito_id = dep) = 10, 'cancelar na fila devolve a carne');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = bacon AND deposito_id = dep) = 2, 'cancelar na fila devolve o bacon');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = lata AND deposito_id = dep) = 21, 'item já entregue não devolve o estoque');
+
+  -- 3. depois de iniciado o preparo, o insumo foi consumido e não volta
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  i2 := restaurante_lancar_item(cmd2, it_burger, 1);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(coz);
+  PERFORM restaurante_atualizar_item(i2, 'preparando');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_item(i2, 'queimou no preparo');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = carne AND deposito_id = dep) = 9.833, 'item cancelado já em preparo não devolve a carne');
+
+  -- 4. cancelar a comanda devolve o que ainda estava na fila
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  PERFORM restaurante_lancar_item(cmd2, it_burger, 3);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = 46, 'a comanda enviada baixou 3 pães');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd2, 'mesa foi embora');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = 49, 'cancelar a comanda devolve os 3 pães');
+
+  -- 5. falta de insumo recusa o envio (depósito sem saldo negativo) e nada fica pela metade
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  i3 := restaurante_lancar_item(cmd2, it_burger, 100);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_enviar_cozinha(%L)$c$, cmd2), 'enviar pedido sem insumo suficiente');
+  PERFORM ci.exige((SELECT situacao = 'pendente' FROM comanda_itens WHERE id = i3), 'o envio recusado deixa o item pendente');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = 49, 'o envio recusado não mexe no estoque');
+
+  -- 6. com saldo negativo permitido, o envio passa e o estoque fica negativo
+  UPDATE depositos SET permite_negativo = true WHERE id = dep;
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = -51, 'depósito que permite negativo fica negativo');
+
+  -- 7. com a baixa desligada, o estoque não muda
+  UPDATE restaurante_config SET baixa_estoque = false WHERE tenant_id = demo;
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  PERFORM restaurante_lancar_item(cmd2, it_burger, 1);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = -51, 'com a baixa desligada o estoque não muda');
+END $$;

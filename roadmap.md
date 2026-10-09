@@ -89,7 +89,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Módulo liberado pelo ramo "restaurante" ou CNAE 56.xx, com menu "Restaurante"
 
 ### Etapas seguintes
-- [ ] R2 — Ficha técnica: baixa de insumos por prato e custo do prato
+- [x] R2 — Ficha técnica: insumos por prato e por opção (ex.: bacon extra), com perda de preparo; custo, lucro e CMV de cada prato; baixa de estoque ao enviar à cozinha (depósito da cozinha configurável); bebida de revenda ligada a um produto baixa 1 unidade; cancelar na fila devolve os insumos, depois de iniciado o preparo não volta. Pendente: conversão de unidades (g ↔ kg), produção de preparos (molhos, bases) e relatório de perdas
 - [ ] R3 — Delivery e iFood
 - [ ] R4 — Impressão térmica, balcão e garçom em tablet
 - [ ] NFC-e (depende da Fase 2): obrigatória para operar restaurante
