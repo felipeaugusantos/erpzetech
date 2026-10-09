@@ -5805,6 +5805,53 @@ export type Database = {
           },
         ]
       }
+      webhook_eventos: {
+        Row: {
+          erro: string | null
+          event_id: string
+          id: string
+          payload: Json
+          processado_em: string | null
+          provedor: string
+          recebido_em: string
+          status: string
+          tenant_id: string | null
+          tentativas: number
+        }
+        Insert: {
+          erro?: string | null
+          event_id: string
+          id?: string
+          payload: Json
+          processado_em?: string | null
+          provedor: string
+          recebido_em?: string
+          status?: string
+          tenant_id?: string | null
+          tentativas?: number
+        }
+        Update: {
+          erro?: string | null
+          event_id?: string
+          id?: string
+          payload?: Json
+          processado_em?: string | null
+          provedor?: string
+          recebido_em?: string
+          status?: string
+          tenant_id?: string | null
+          tentativas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_eventos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -6524,6 +6571,25 @@ export type Database = {
       transferencia_receber: {
         Args: { p_id: string; p_itens?: Json; p_observacao?: string }
         Returns: undefined
+      }
+      webhook_concluir: {
+        Args: {
+          p_erro?: string
+          p_event_id: string
+          p_provedor: string
+          p_status: string
+          p_tentativa: number
+        }
+        Returns: boolean
+      }
+      webhook_registrar: {
+        Args: {
+          p_event_id: string
+          p_payload?: Json
+          p_provedor: string
+          p_tenant_id?: string
+        }
+        Returns: Json
       }
     }
     Enums: {

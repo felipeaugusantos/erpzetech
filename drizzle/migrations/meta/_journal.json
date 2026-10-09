@@ -50,6 +50,13 @@
       "when": 1791567847815,
       "tag": "0006_estoques_insert_sem_saldo",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791567879490,
+      "tag": "0007_webhook_eventos",
+      "breakpoints": true
     }
   ]
 }
