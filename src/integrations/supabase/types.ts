@@ -6545,6 +6545,7 @@ export type Database = {
       }
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
+      eh_salao_restrito: { Args: never; Returns: boolean }
       entrega_concluir: {
         Args: {
           p_assinatura?: string
@@ -6567,6 +6568,7 @@ export type Database = {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
         Returns: undefined
       }
+      exige_nao_salao: { Args: never; Returns: undefined }
       fechar_caixa: {
         Args: {
           p_caixa_id: string

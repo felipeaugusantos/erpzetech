@@ -78,6 +78,13 @@
       "when": 1791568110143,
       "tag": "0010_tef_modo_simulado",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791568167933,
+      "tag": "0011_salao_isolamento",
+      "breakpoints": true
     }
   ]
 }
