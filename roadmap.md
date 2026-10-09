@@ -77,14 +77,14 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 ### Etapa R1 — Salão
 - [x] Banco: cardápio (categorias, itens, grupos de opções com obrigatório e máximo, opções com acréscimo), mesas e comandas
 - [x] Perfis `garcom` e `cozinha` no banco; ramo "Restaurante e lanchonete". **Ainda não atribuíveis pela tela de usuários**: hoje as políticas das demais tabelas (clientes, produtos, contas...) valem para qualquer usuário da empresa, então um garçom ou cozinheiro veria dados que não deve
-- [ ] Isolamento dos perfis do salão (políticas restritivas no banco, como o motorista, e menu próprio) e só então liberá-los em `PERFIS`
+- [x] Isolamento dos perfis do salão: política restritiva `salao_restrito` em toda tabela com RLS (fora da lista liberada: sessão, cardápio, mesas e comandas), trava `exige_nao_salao()` nas funções chamáveis, menu e redirecionamento próprios; `garcom` e `cozinha` liberados em `PERFIS`. O `smoke.sql` falha se surgir tabela ou função nova sem a proteção
 - [x] Regras no banco (RPCs): abrir comanda, lançar item com opções, enviar à cozinha, andamento do preparo, cancelar item (garçom antes do envio; gestão depois, com motivo), transferir de mesa, cancelar comanda, fechar com serviço, couvert, desconto só da gestão, pagamento dividido e lançamento no caixa
 - [x] Testes de segurança do banco (permissões por perfil, isolamento entre empresas, escrita direta negada, numeração sequencial)
-- [ ] Tela de cadastro do cardápio e das mesas
-- [ ] Tela do salão (mesas) e lançamento de pedido pelo garçom no celular
-- [ ] Tela da cozinha em tempo real
-- [ ] Tela de fechamento de conta (divisão, serviço, couvert)
-- [ ] Liberar o módulo pelo ramo/CNAE 56.xx no menu
+- [x] Tela de cadastro do cardápio, das opções dos pratos e das mesas (`/cardapio`, só gestão)
+- [x] Tela do salão (`/salao`): mesas, comandas, lançamento de itens com opções, envio à cozinha, entrega, troca de mesa e cancelamento. Falta validar no celular e no uso real
+- [x] Tela da cozinha em tempo real (`/cozinha`), com filtro cozinha/bar e alerta de atraso
+- [x] Fechamento de conta (serviço, couvert, desconto da gestão, divisão entre pagantes, vários pagamentos e caixa)
+- [x] Módulo liberado pelo ramo "restaurante" ou CNAE 56.xx, com menu "Restaurante"
 
 ### Etapas seguintes
 - [ ] R2 — Ficha técnica: baixa de insumos por prato e custo do prato

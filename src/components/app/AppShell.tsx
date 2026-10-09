@@ -4,6 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   Calculator,
+  ChefHat,
+  ConciergeBell,
+  UtensilsCrossed,
   Landmark,
   CalendarClock,
   Hammer,
@@ -43,6 +46,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
+import { ehGestaoSalao, ehSalaoRestrito } from "@/lib/restaurante";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -153,6 +157,15 @@ const groups: Group[] = [
     ],
   },
   {
+    label: "Restaurante",
+    icon: UtensilsCrossed,
+    items: [
+      { label: "Salão e comandas", to: "/salao", icon: ConciergeBell },
+      { label: "Cozinha", to: "/cozinha", icon: ChefHat },
+      { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
+    ],
+  },
+  {
     label: "Assistência técnica",
     icon: Wrench,
     items: [
@@ -256,6 +269,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }, [data]);
 
+  /** Garçom e cozinha puros só enxergam as telas do salão (o banco também os isola). */
+  const somenteSalao = useMemo(() => ehSalaoRestrito(data?.roles ?? []), [data]);
+
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
 
@@ -266,10 +282,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       groups.filter((g) => {
         if (g.label === "Assistência técnica") return modulos.assistencia;
         if (g.label === "Locação de equipamentos") return modulos.locacao;
+        if (g.label === "Restaurante") return modulos.restaurante;
         return true;
       }),
-    [modulos.assistencia, modulos.locacao],
+    [modulos.assistencia, modulos.locacao, modulos.restaurante],
   );
+
+  /** Telas do restaurante que o perfil pode abrir. */
+  const itensSalao = useMemo(() => {
+    const roles = data?.roles ?? [];
+    const gestao = ehGestaoSalao(roles);
+    return [
+      { label: "Salão e comandas", to: "/salao", icon: ConciergeBell },
+      { label: "Cozinha", to: "/cozinha", icon: ChefHat },
+    ].filter((i) =>
+      i.to === "/salao"
+        ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
+        : gestao || roles.includes("cozinha"),
+    );
+  }, [data]);
 
   /** Grupo exclusivo da equipe Ze Tech. */
   const grupoZeTech: Group = {
@@ -294,25 +325,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Dentro da área Ze Tech o menu da loja não aparece. */
   const naAreaZeTech = pathname.startsWith("/ze-tech");
 
-  const menu: Group[] = somenteMotorista
-    ? [
-        {
-          label: "Minha rota",
-          icon: Truck,
-          items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
-        },
-      ]
-    : operadorSaas
-      ? naAreaZeTech
-        ? [grupoZeTech]
-        : [...gruposLoja, grupoZeTech]
-      : gruposLoja;
+  const menu: Group[] = somenteSalao
+    ? [{ label: "Restaurante", icon: UtensilsCrossed, items: itensSalao }]
+    : somenteMotorista
+      ? [
+          {
+            label: "Minha rota",
+            icon: Truck,
+            items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
+          },
+        ]
+      : operadorSaas
+        ? naAreaZeTech
+          ? [grupoZeTech]
+          : [...gruposLoja, grupoZeTech]
+        : gruposLoja;
 
   useEffect(() => {
     if (somenteMotorista && pathname !== "/motorista") {
       navigate({ to: "/motorista", replace: true });
     }
   }, [somenteMotorista, pathname, navigate]);
+
+  useEffect(() => {
+    if (!somenteSalao || itensSalao.length === 0) return;
+    if (!itensSalao.some((i) => i.to === pathname)) {
+      navigate({ to: itensSalao[0]!.to as "/salao", replace: true });
+    }
+  }, [somenteSalao, itensSalao, pathname, navigate]);
 
   async function signOut() {
     await queryClient.cancelQueries();
