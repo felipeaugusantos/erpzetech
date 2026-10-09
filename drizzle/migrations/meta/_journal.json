@@ -1,0 +1,118 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791567675972,
+      "tag": "0000_hardening_security_definer_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791567703301,
+      "tag": "0001_profiles_vinculo_sem_autoatribuicao",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791567729332,
+      "tag": "0002_onboarding_autocadastro",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791567755790,
+      "tag": "0003_has_role_por_tenant",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791567776607,
+      "tag": "0004_caixas_auditoria_politicas",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791567828865,
+      "tag": "0005_auditoria_ligada",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791567847815,
+      "tag": "0006_estoques_insert_sem_saldo",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791567879490,
+      "tag": "0007_webhook_eventos",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791567895704,
+      "tag": "0008_restaurante_papeis",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791568072060,
+      "tag": "0009_restaurante_salao",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791568110143,
+      "tag": "0010_tef_modo_simulado",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791568167933,
+      "tag": "0011_salao_isolamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791568277682,
+      "tag": "0012_restaurante_baixa_parcial",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791568315095,
+      "tag": "0013_restaurante_quantidade_mesas",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791568399613,
+      "tag": "0014_restaurante_ficha_tecnica",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791568478087,
+      "tag": "0015_restaurante_delivery",
+      "breakpoints": true
+    }
+  ]
+}
