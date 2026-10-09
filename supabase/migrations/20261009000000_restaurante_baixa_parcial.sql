@@ -43,6 +43,7 @@ DECLARE
   v_valor_itens numeric(14,2) := 0;
   v_servico numeric(14,2) := 0;
   v_couvert numeric(14,2) := 0;
+  v_base_antes numeric(14,2) := 0;
   v_devido numeric(14,2);
   v_pag jsonb;
   v_forma public.forma_pagamento;
@@ -72,6 +73,10 @@ BEGIN
   v_modo_itens := jsonb_array_length(coalesce(p_itens, '[]'::jsonb)) > 0 OR p_pessoas > 0;
 
   IF v_modo_itens THEN
+    -- itens já pagos em baixas anteriores: base do serviço acumulado
+    SELECT coalesce(sum(total), 0) INTO v_base_antes
+      FROM public.comanda_itens WHERE comanda_id = p_comanda_id AND pago_em IS NOT NULL AND situacao <> 'cancelado';
+
     FOR v_el IN SELECT * FROM jsonb_array_elements(coalesce(p_itens, '[]'::jsonb)) LOOP
       BEGIN
         v_id := (v_el ->> 'id')::uuid;
@@ -114,7 +119,12 @@ BEGIN
       END IF;
     END LOOP;
 
-    IF p_cobrar_servico THEN v_servico := round(v_valor_itens * v_cmd.taxa_servico_percentual / 100, 2); END IF;
+    -- serviço acumulado: cada baixa leva a diferença entre o serviço do total pago até agora e o do total pago
+    -- antes, então a soma das baixas é exatamente o serviço calculado uma vez sobre todos os itens
+    IF p_cobrar_servico THEN
+      v_servico := round((v_base_antes + v_valor_itens) * v_cmd.taxa_servico_percentual / 100, 2)
+                   - round(v_base_antes * v_cmd.taxa_servico_percentual / 100, 2);
+    END IF;
     v_couvert := round(p_pessoas * v_cmd.couvert_por_pessoa, 2);
     v_devido := v_valor_itens + v_servico + v_couvert;
     IF v_devido <= 0 THEN RAISE EXCEPTION 'Não há valor a receber nesta baixa'; END IF;
@@ -294,14 +304,33 @@ DECLARE
   v_tenant uuid := public.restaurante_contexto(ARRAY['administrador', 'gestor', 'garcom', 'caixa']::public.app_role[]);
   v_atual text;
   v_pago_em timestamptz;
+  v_comanda_id uuid;
+  v_cmd public.comandas;
+  v_recebido numeric(14,2);
+  v_subtotal_depois numeric(14,2);
+  v_bruto_depois numeric(14,2);
 BEGIN
-  SELECT i.situacao, i.pago_em INTO v_atual, v_pago_em
+  SELECT i.situacao, i.pago_em, i.comanda_id INTO v_atual, v_pago_em, v_comanda_id
     FROM public.comanda_itens i JOIN public.comandas c ON c.id = i.comanda_id
    WHERE i.id = p_item_id AND i.tenant_id = v_tenant AND c.situacao = 'aberta'
    FOR UPDATE OF i;
   IF NOT FOUND THEN RAISE EXCEPTION 'Item não encontrado ou comanda já encerrada'; END IF;
   IF v_atual = 'cancelado' THEN RAISE EXCEPTION 'Item já cancelado'; END IF;
   IF v_pago_em IS NOT NULL THEN RAISE EXCEPTION 'Item já pago em baixa parcial: não pode ser cancelado'; END IF;
+
+  -- depois de uma baixa (por itens ou por valor), o cancelamento não pode deixar a conta abaixo do que já foi
+  -- recebido: o fechamento ficaria impossível e não há estorno
+  SELECT coalesce(sum(valor), 0) INTO v_recebido FROM public.comanda_pagamentos WHERE comanda_id = v_comanda_id;
+  IF v_recebido > 0 THEN
+    SELECT * INTO v_cmd FROM public.comandas WHERE id = v_comanda_id;
+    SELECT coalesce(sum(total), 0) INTO v_subtotal_depois
+      FROM public.comanda_itens WHERE comanda_id = v_comanda_id AND situacao <> 'cancelado' AND id <> p_item_id;
+    v_bruto_depois := v_subtotal_depois + round(coalesce(v_cmd.pessoas, 0) * v_cmd.couvert_por_pessoa, 2)
+                      + round(v_subtotal_depois * v_cmd.taxa_servico_percentual / 100, 2);
+    IF v_recebido > v_bruto_depois THEN
+      RAISE EXCEPTION 'O cancelamento deixaria a conta (%) abaixo do que já foi recebido (%)', v_bruto_depois, v_recebido;
+    END IF;
+  END IF;
 
   IF v_atual <> 'pendente' THEN
     IF NOT public.restaurante_gestao() THEN

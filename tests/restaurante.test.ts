@@ -199,3 +199,27 @@ test("baixa por itens: unidades, serviço e couvert de quem sai (mesma conta do 
     4.02,
   );
 });
+
+test("serviço acumulado: duas baixas somam o serviço da conta inteira (sem perder centavo)", () => {
+  const base = { pessoas: 0, couvertPorPessoa: 0, taxaServicoPercentual: 10, cobrarServico: true };
+  // dois itens de R$ 10,05: o serviço da conta é 2,01; separado seria 1,01 + 1,01 = 2,02
+  const primeira = calcularBaixa({ ...base, linhas: [{ preco: 10.05, quantidade: 1 }] });
+  assert.deepEqual(primeira, { itens: 10.05, servico: 1.01, couvert: 0, total: 11.06 });
+  const segunda = calcularBaixa({
+    ...base,
+    linhas: [{ preco: 10.05, quantidade: 1 }],
+    baseAnterior: 10.05,
+  });
+  assert.deepEqual(segunda, { itens: 10.05, servico: 1, couvert: 0, total: 11.05 });
+  assert.equal(
+    primeira.total + segunda.total,
+    calcularConta({
+      subtotal: 20.1,
+      pessoas: null,
+      couvertPorPessoa: 0,
+      taxaServicoPercentual: 10,
+      cobrarServico: true,
+      desconto: 0,
+    }).total,
+  );
+});

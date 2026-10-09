@@ -98,6 +98,9 @@ export function BaixaParcialDialog({
     couvertPorPessoa: Number(comanda.couvert_por_pessoa),
     taxaServicoPercentual: Number(comanda.taxa_servico_percentual),
     cobrarServico,
+    baseAnterior: itens
+      .filter((i) => i.pago_em && i.situacao !== "cancelado")
+      .reduce((soma, i) => soma + Number(i.total), 0),
   });
 
   const alvo = modo === "itens" ? baixa.total : paraNumero(valorLivre);

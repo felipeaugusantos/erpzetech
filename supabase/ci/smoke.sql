@@ -604,13 +604,15 @@ DECLARE
   adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
   gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
   cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
-  cat uuid; it_a uuid; it_b uuid; it_c uuid; mesa uuid; cmd uuid; cmd2 uuid; cx uuid; i_a uuid; i_b uuid; i_c uuid;
+  cat uuid; it_a uuid; it_b uuid; it_c uuid; it_d uuid; it_e uuid; mesa uuid; cmd uuid; cmd2 uuid; cmd3 uuid; cx uuid; i_a uuid; i_b uuid; i_c uuid;
   r jsonb; itens jsonb; pg_total numeric; n_cmd bigint;
 BEGIN
   INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Parcial') RETURNING id INTO cat;
   INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Cerveja', 20, 'nenhuma') RETURNING id INTO it_a;
   INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Porção', 12.5, 'nenhuma') RETURNING id INTO it_b;
   INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato', 30, 'cozinha') RETURNING id INTO it_c;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Suco', 10.05, 'nenhuma') RETURNING id INTO it_d;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Rodízio', 50, 'nenhuma') RETURNING id INTO it_e;
   INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'parcial-1') RETURNING id INTO mesa;
   SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
 
@@ -693,6 +695,43 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((r ->> 'restante')::numeric = 0 AND (SELECT situacao = 'fechada' FROM comandas WHERE id = cmd2),
                    'conta já paga em baixas fecha sem novo pagamento');
+
+  -- serviço acumulado: dois itens de 10,05 com 10% de serviço; a conta é 22,11 e as baixas somam 11,06 + 11,05
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 10, 0);
+  i_a := restaurante_lancar_item(cmd2, it_d, 1);
+  i_b := restaurante_lancar_item(cmd2, it_d, 1);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_receber_parcial(%L, '[{"forma":"pix","valor":11.05}]'::jsonb, %L, %L::jsonb)$c$, cmd2, cx, jsonb_build_array(jsonb_build_object('id', i_a))), 'primeira baixa com o serviço arredondado errado');
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_receber_parcial(cmd2, '[{"forma":"pix","valor":11.06}]'::jsonb, cx, jsonb_build_array(jsonb_build_object('id', i_a)));
+  PERFORM restaurante_receber_parcial(cmd2, '[{"forma":"pix","valor":11.05}]'::jsonb, cx, jsonb_build_array(jsonb_build_object('id', i_b)));
+  r := restaurante_fechar_comanda(cmd2, '[]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 22.11 AND (r ->> 'restante')::numeric = 0, 'as baixas por itens somam exatamente o total da conta');
+
+  -- cancelar item depois de baixa por valor não pode deixar a conta abaixo do que já foi recebido
+  PERFORM ci.entrar(gar);
+  cmd2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  i_a := restaurante_lancar_item(cmd2, it_e, 1);
+  i_b := restaurante_lancar_item(cmd2, it_e, 1);
+  PERFORM restaurante_enviar_cozinha(cmd2);
+  cmd3 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  i_c := restaurante_lancar_item(cmd3, it_e, 1);
+  PERFORM restaurante_lancar_item(cmd3, it_e, 1);
+  PERFORM restaurante_enviar_cozinha(cmd3);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_receber_parcial(cmd2, '[{"forma":"dinheiro","valor":90}]'::jsonb, cx);
+  PERFORM restaurante_receber_parcial(cmd3, '[{"forma":"dinheiro","valor":40}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_cancelar_item(%L, 'cancelar depois da baixa')$c$, i_a), 'cancelar item deixando a conta abaixo do recebido');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_item(i_c, 'cancelar com folga no recebido');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelado' FROM comanda_itens WHERE id = i_c),
+                   'cancelar item continua permitido quando a conta fica acima do recebido');
 END $$;
 
 -- 18. quantidade de mesas do restaurante

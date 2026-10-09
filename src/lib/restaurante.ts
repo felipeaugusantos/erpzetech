@@ -135,13 +135,18 @@ export function calcularBaixa(e: {
   couvertPorPessoa: number;
   taxaServicoPercentual: number;
   cobrarServico: boolean;
+  /** soma dos itens já pagos em baixas anteriores (base do serviço acumulado) */
+  baseAnterior?: number;
 }) {
   const itens = e.linhas.reduce(
     (s, l) => s + Math.round((l.quantidade * l.preco + Number.EPSILON) * 100),
     0,
   );
   const pontos = Math.round(e.taxaServicoPercentual * 100);
-  const servico = e.cobrarServico ? Math.floor((itens * pontos + 5000) / 10000) : 0;
+  // serviço acumulado, como no banco: o do total pago até agora menos o do total pago antes
+  const antes = centavos(e.baseAnterior ?? 0);
+  const meio = (c: number) => Math.floor((c * pontos + 5000) / 10000);
+  const servico = e.cobrarServico ? meio(antes + itens) - meio(antes) : 0;
   const couvert = Math.max(Math.floor(e.pessoas), 0) * centavos(e.couvertPorPessoa);
   return {
     itens: reais(itens),
