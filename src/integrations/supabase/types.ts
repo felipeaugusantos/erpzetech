@@ -548,6 +548,7 @@ export type Database = {
           descricao: string | null
           estacao: string
           id: string
+          interno: boolean
           nome: string
           ordem: number
           preco: number
@@ -563,6 +564,7 @@ export type Database = {
           descricao?: string | null
           estacao?: string
           id?: string
+          interno?: boolean
           nome: string
           ordem?: number
           preco?: number
@@ -578,6 +580,7 @@ export type Database = {
           descricao?: string | null
           estacao?: string
           id?: string
+          interno?: boolean
           nome?: string
           ordem?: number
           preco?: number
@@ -977,11 +980,22 @@ export type Database = {
         Row: {
           aberta_em: string
           caixa_id: string | null
+          canal: string
           cliente_nome: string | null
+          codigo_externo: string | null
           couvert: number
           couvert_por_pessoa: number
           created_at: string
           desconto: number
+          entrega_bairro: string | null
+          entrega_endereco: string | null
+          entrega_pagamento: string | null
+          entrega_referencia: string | null
+          entrega_situacao: string | null
+          entrega_telefone: string | null
+          entrega_troco_para: number | null
+          entregador: string | null
+          entregue_cliente_em: string | null
           fechada_em: string | null
           fechada_por: string | null
           filial_id: string | null
@@ -993,22 +1007,35 @@ export type Database = {
           observacao: string | null
           pessoas: number | null
           pessoas_pagas: number
+          saiu_em: string | null
           situacao: string
           subtotal: number
           taxa_servico: number
           taxa_servico_percentual: number
           tenant_id: string
+          tipo: string
           total: number
           updated_at: string
         }
         Insert: {
           aberta_em?: string
           caixa_id?: string | null
+          canal?: string
           cliente_nome?: string | null
+          codigo_externo?: string | null
           couvert?: number
           couvert_por_pessoa?: number
           created_at?: string
           desconto?: number
+          entrega_bairro?: string | null
+          entrega_endereco?: string | null
+          entrega_pagamento?: string | null
+          entrega_referencia?: string | null
+          entrega_situacao?: string | null
+          entrega_telefone?: string | null
+          entrega_troco_para?: number | null
+          entregador?: string | null
+          entregue_cliente_em?: string | null
           fechada_em?: string | null
           fechada_por?: string | null
           filial_id?: string | null
@@ -1020,22 +1047,35 @@ export type Database = {
           observacao?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
+          saiu_em?: string | null
           situacao?: string
           subtotal?: number
           taxa_servico?: number
           taxa_servico_percentual?: number
           tenant_id: string
+          tipo?: string
           total?: number
           updated_at?: string
         }
         Update: {
           aberta_em?: string
           caixa_id?: string | null
+          canal?: string
           cliente_nome?: string | null
+          codigo_externo?: string | null
           couvert?: number
           couvert_por_pessoa?: number
           created_at?: string
           desconto?: number
+          entrega_bairro?: string | null
+          entrega_endereco?: string | null
+          entrega_pagamento?: string | null
+          entrega_referencia?: string | null
+          entrega_situacao?: string | null
+          entrega_telefone?: string | null
+          entrega_troco_para?: number | null
+          entregador?: string | null
+          entregue_cliente_em?: string | null
           fechada_em?: string | null
           fechada_por?: string | null
           filial_id?: string | null
@@ -1047,11 +1087,13 @@ export type Database = {
           observacao?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
+          saiu_em?: string | null
           situacao?: string
           subtotal?: number
           taxa_servico?: number
           taxa_servico_percentual?: number
           tenant_id?: string
+          tipo?: string
           total?: number
           updated_at?: string
         }
@@ -5368,6 +5410,41 @@ export type Database = {
           },
         ]
       }
+      restaurante_zonas_entrega: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          taxa: number
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          taxa?: number
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          taxa?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurante_zonas_entrega_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissoes: {
         Row: {
           id: string
@@ -6999,6 +7076,20 @@ export type Database = {
         }
         Returns: string
       }
+      restaurante_abrir_delivery: {
+        Args: {
+          p_bairro?: string
+          p_cliente: string
+          p_endereco: string
+          p_observacao?: string
+          p_pagamento?: string
+          p_referencia?: string
+          p_taxa?: number
+          p_telefone: string
+          p_troco_para?: number
+        }
+        Returns: string
+      }
       restaurante_atualizar_item: {
         Args: { p_item_id: string; p_situacao: string }
         Returns: undefined
@@ -7019,6 +7110,18 @@ export type Database = {
         Args: { p_filial_id?: string; p_quantidade: number }
         Returns: Json
       }
+      restaurante_delivery_avancar: {
+        Args: {
+          p_comanda_id: string
+          p_entregador?: string
+          p_situacao: string
+        }
+        Returns: undefined
+      }
+      restaurante_delivery_taxa: {
+        Args: { p_comanda_id: string; p_taxa: number }
+        Returns: undefined
+      }
       restaurante_enviar_cozinha: {
         Args: { p_comanda_id: string }
         Returns: number
@@ -7034,6 +7137,10 @@ export type Database = {
         Returns: Json
       }
       restaurante_gestao: { Args: never; Returns: boolean }
+      restaurante_item_taxa_entrega: {
+        Args: { p_tenant: string }
+        Returns: string
+      }
       restaurante_lancar_item: {
         Args: {
           p_cardapio_item_id: string
