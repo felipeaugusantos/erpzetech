@@ -401,6 +401,195 @@ export type Database = {
           },
         ]
       }
+      cardapio_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardapio_categorias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cardapio_grupos: {
+        Row: {
+          id: string
+          item_id: string
+          max_escolhas: number
+          nome: string
+          obrigatorio: boolean
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          max_escolhas?: number
+          nome: string
+          obrigatorio?: boolean
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          max_escolhas?: number
+          nome?: string
+          obrigatorio?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardapio_grupos_item_fk"
+            columns: ["item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_itens"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_grupos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cardapio_itens: {
+        Row: {
+          ativo: boolean
+          categoria_id: string | null
+          created_at: string
+          descricao: string | null
+          estacao: string
+          id: string
+          nome: string
+          ordem: number
+          preco: number
+          produto_id: string | null
+          tempo_preparo_min: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          estacao?: string
+          id?: string
+          nome: string
+          ordem?: number
+          preco?: number
+          produto_id?: string | null
+          tempo_preparo_min?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          estacao?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          preco?: number
+          produto_id?: string | null
+          tempo_preparo_min?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardapio_itens_categoria_fk"
+            columns: ["categoria_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_categorias"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_itens_produto_fk"
+            columns: ["produto_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cardapio_opcoes: {
+        Row: {
+          ativo: boolean
+          grupo_id: string
+          id: string
+          nome: string
+          preco_adicional: number
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          grupo_id: string
+          id?: string
+          nome: string
+          preco_adicional?: number
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean
+          grupo_id?: string
+          id?: string
+          nome?: string
+          preco_adicional?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardapio_opcoes_grupo_fk"
+            columns: ["grupo_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_grupos"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_opcoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           ativo: boolean
@@ -567,6 +756,262 @@ export type Database = {
           },
           {
             foreignKeyName: "clientes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comanda_itens: {
+        Row: {
+          cancelado_em: string | null
+          cancelado_por: string | null
+          cardapio_item_id: string
+          comanda_id: string
+          created_at: string
+          entregue_em: string | null
+          enviado_em: string | null
+          estacao: string
+          id: string
+          lancado_por: string | null
+          motivo_cancelamento: string | null
+          nome: string
+          observacao: string | null
+          opcoes: Json
+          preco_unitario: number
+          pronto_em: string | null
+          quantidade: number
+          situacao: string
+          tenant_id: string
+          total: number
+        }
+        Insert: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          cardapio_item_id: string
+          comanda_id: string
+          created_at?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          estacao: string
+          id?: string
+          lancado_por?: string | null
+          motivo_cancelamento?: string | null
+          nome: string
+          observacao?: string | null
+          opcoes?: Json
+          preco_unitario: number
+          pronto_em?: string | null
+          quantidade: number
+          situacao?: string
+          tenant_id: string
+          total: number
+        }
+        Update: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          cardapio_item_id?: string
+          comanda_id?: string
+          created_at?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          estacao?: string
+          id?: string
+          lancado_por?: string | null
+          motivo_cancelamento?: string | null
+          nome?: string
+          observacao?: string | null
+          opcoes?: Json
+          preco_unitario?: number
+          pronto_em?: string | null
+          quantidade?: number
+          situacao?: string
+          tenant_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comanda_itens_cardapio_fk"
+            columns: ["cardapio_item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_itens"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comanda_itens_comanda_fk"
+            columns: ["comanda_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "comandas"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comanda_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comanda_pagamentos: {
+        Row: {
+          comanda_id: string
+          created_at: string
+          forma: Database["public"]["Enums"]["forma_pagamento"]
+          id: string
+          pagante: string | null
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          comanda_id: string
+          created_at?: string
+          forma: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          pagante?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          comanda_id?: string
+          created_at?: string
+          forma?: Database["public"]["Enums"]["forma_pagamento"]
+          id?: string
+          pagante?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comanda_pagamentos_comanda_fk"
+            columns: ["comanda_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "comandas"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comanda_pagamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comandas: {
+        Row: {
+          aberta_em: string
+          caixa_id: string | null
+          cliente_nome: string | null
+          couvert: number
+          couvert_por_pessoa: number
+          created_at: string
+          desconto: number
+          fechada_em: string | null
+          fechada_por: string | null
+          filial_id: string | null
+          garcom_id: string | null
+          id: string
+          mesa_id: string | null
+          motivo_cancelamento: string | null
+          numero: number
+          observacao: string | null
+          pessoas: number | null
+          situacao: string
+          subtotal: number
+          taxa_servico: number
+          taxa_servico_percentual: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          aberta_em?: string
+          caixa_id?: string | null
+          cliente_nome?: string | null
+          couvert?: number
+          couvert_por_pessoa?: number
+          created_at?: string
+          desconto?: number
+          fechada_em?: string | null
+          fechada_por?: string | null
+          filial_id?: string | null
+          garcom_id?: string | null
+          id?: string
+          mesa_id?: string | null
+          motivo_cancelamento?: string | null
+          numero: number
+          observacao?: string | null
+          pessoas?: number | null
+          situacao?: string
+          subtotal?: number
+          taxa_servico?: number
+          taxa_servico_percentual?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          aberta_em?: string
+          caixa_id?: string | null
+          cliente_nome?: string | null
+          couvert?: number
+          couvert_por_pessoa?: number
+          created_at?: string
+          desconto?: number
+          fechada_em?: string | null
+          fechada_por?: string | null
+          filial_id?: string | null
+          garcom_id?: string | null
+          id?: string
+          mesa_id?: string | null
+          motivo_cancelamento?: string | null
+          numero?: number
+          observacao?: string | null
+          pessoas?: number | null
+          situacao?: string
+          subtotal?: number
+          taxa_servico?: number
+          taxa_servico_percentual?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comandas_caixa_fk"
+            columns: ["caixa_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "caixas"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comandas_filial_fk"
+            columns: ["filial_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comandas_garcom_id_fkey"
+            columns: ["garcom_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comandas_mesa_fk"
+            columns: ["mesa_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "mesas"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "comandas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2907,6 +3352,51 @@ export type Database = {
             columns: ["obra_id"]
             isOneToOne: false
             referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mesas: {
+        Row: {
+          ativa: boolean
+          capacidade: number | null
+          created_at: string
+          filial_id: string | null
+          id: string
+          numero: string
+          tenant_id: string
+        }
+        Insert: {
+          ativa?: boolean
+          capacidade?: number | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          numero: string
+          tenant_id: string
+        }
+        Update: {
+          ativa?: boolean
+          capacidade?: number | null
+          created_at?: string
+          filial_id?: string | null
+          id?: string
+          numero?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mesas_filial_fk"
+            columns: ["filial_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "mesas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -6386,6 +6876,62 @@ export type Database = {
           suprimentos: number
           vendas: number
         }[]
+      }
+      restaurante_abrir_comanda: {
+        Args: {
+          p_cliente_nome?: string
+          p_couvert?: number
+          p_mesa_id?: string
+          p_pessoas?: number
+          p_taxa_servico?: number
+        }
+        Returns: string
+      }
+      restaurante_atualizar_item: {
+        Args: { p_item_id: string; p_situacao: string }
+        Returns: undefined
+      }
+      restaurante_cancelar_comanda: {
+        Args: { p_comanda_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      restaurante_cancelar_item: {
+        Args: { p_item_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      restaurante_contexto: {
+        Args: { p_perfis: Database["public"]["Enums"]["app_role"][] }
+        Returns: string
+      }
+      restaurante_enviar_cozinha: {
+        Args: { p_comanda_id: string }
+        Returns: number
+      }
+      restaurante_fechar_comanda: {
+        Args: {
+          p_caixa_id?: string
+          p_cobrar_servico?: boolean
+          p_comanda_id: string
+          p_desconto?: number
+          p_pagamentos?: Json
+        }
+        Returns: Json
+      }
+      restaurante_gestao: { Args: never; Returns: boolean }
+      restaurante_lancar_item: {
+        Args: {
+          p_cardapio_item_id: string
+          p_comanda_id: string
+          p_observacao?: string
+          p_opcoes?: string[]
+          p_quantidade?: number
+        }
+        Returns: string
+      }
+      restaurante_operador: { Args: never; Returns: boolean }
+      restaurante_transferir_mesa: {
+        Args: { p_comanda_id: string; p_mesa_destino: string }
+        Returns: undefined
       }
       saas_assistencia_por_cliente: {
         Args: { p_ate: string; p_de: string }

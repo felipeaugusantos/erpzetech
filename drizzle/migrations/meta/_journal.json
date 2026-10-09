@@ -64,6 +64,13 @@
       "when": 1791567895704,
       "tag": "0008_restaurante_papeis",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791568072060,
+      "tag": "0009_restaurante_salao",
+      "breakpoints": true
     }
   ]
 }
