@@ -694,3 +694,63 @@ BEGIN
   PERFORM ci.exige((r ->> 'restante')::numeric = 0 AND (SELECT situacao = 'fechada' FROM comandas WHERE id = cmd2),
                    'conta já paga em baixas fecha sem novo pagamento');
 END $$;
+
+-- 18. quantidade de mesas do restaurante
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gest   constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  r jsonb; mesa4 uuid; cmd uuid; fm uuid;
+BEGIN
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, '22222222-2222-2222-2222-222222222222', 'Filial das mesas') RETURNING id INTO fm;
+  -- numeração própria desta filial; mesa com nome (não numérica) não é tocada
+  INSERT INTO mesas (tenant_id, filial_id, numero) VALUES (demo, fm, 'Varanda');
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_definir_mesas(5, %L)$c$, fm), 'garçom define a quantidade de mesas');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_definir_mesas(5, %L)$c$, fm), 'caixa define a quantidade de mesas');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT restaurante_definir_mesas(-1, %L)$c$, fm), 'quantidade negativa de mesas');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT restaurante_definir_mesas(501, %L)$c$, fm), 'mais de 500 mesas');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT restaurante_definir_mesas(3, %L)$c$, gen_random_uuid()), 'fm que não existe');
+
+  PERFORM ci.entrar(gest);
+  r := restaurante_definir_mesas(5, fm);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'criadas')::int = 5 AND (r ->> 'desativadas')::int = 0, 'cria as mesas de 1 a 5');
+  PERFORM ci.exige((SELECT count(*) = 5 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND ativa AND numero ~ '^[0-9]+$'), 'ficam 5 mesas numeradas ativas');
+
+  -- repetir não duplica
+  PERFORM ci.entrar(gest);
+  r := restaurante_definir_mesas(5, fm);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'criadas')::int = 0 AND (r ->> 'reativadas')::int = 0, 'repetir a mesma quantidade não cria mesas');
+
+  -- a mesa 4 está ocupada: reduzir para 2 desativa a 3 e a 5, mas mantém a 4
+  SELECT id INTO mesa4 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND numero = '4';
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(mesa4, 2);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  r := restaurante_definir_mesas(2, fm);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'desativadas')::int = 2 AND (r ->> 'mantidas_ocupadas')::int = 1, 'reduzir desativa as livres e mantém a ocupada');
+  PERFORM ci.exige((SELECT ativa FROM mesas WHERE id = mesa4), 'mesa com comanda aberta segue ativa');
+  PERFORM ci.exige((SELECT ativa FROM mesas WHERE tenant_id = demo AND filial_id = fm AND numero = 'Varanda'), 'mesa com nome próprio não é tocada');
+  PERFORM ci.exige((SELECT count(*) = 3 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND ativa AND numero ~ '^[0-9]+$'), 'ficam as mesas 1, 2 e a ocupada 4');
+
+  -- aumentar reativa as desativadas em vez de duplicar
+  PERFORM ci.entrar(gest);
+  r := restaurante_definir_mesas(5, fm);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'reativadas')::int = 2 AND (r ->> 'criadas')::int = 0, 'aumentar reativa as mesas desativadas');
+  PERFORM ci.exige((SELECT count(*) = 5 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND numero ~ '^[0-9]+$'), 'continuam 5 mesas, sem duplicar');
+
+  -- zero desativa todas as livres; outra empresa não é afetada
+  PERFORM ci.entrar(gest);
+  r := restaurante_definir_mesas(0, fm);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM mesas WHERE tenant_id = demo AND filial_id = fm AND ativa AND numero ~ '^[0-9]+$'), 'zero desativa tudo, menos a mesa ocupada');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM mesas WHERE tenant_id <> demo AND numero ~ '^[0-9]+$' AND NOT ativa), 'outra empresa não é afetada');
+END $$;

@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Check, ChefHat, HandCoins, MoreHorizontal, Send, X } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Check,
+  ChefHat,
+  HandCoins,
+  MoreHorizontal,
+  Printer,
+  Send,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +35,8 @@ import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
 import { useRelogio } from "@/hooks/useRelogio";
+import { useSessionData } from "@/hooks/useSessionData";
+import { htmlEtiquetaComanda } from "@/lib/etiqueta-comanda";
 import { brl } from "@/lib/format";
 import {
   ROTULO_SITUACAO_ITEM,
@@ -59,6 +70,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const qc = useQueryClient();
   const gestao = ehGestaoSalao(roles);
   const agora = useRelogio();
+  const { data: sessao } = useSessionData();
   const [categoria, setCategoria] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [escolhendo, setEscolhendo] = useState<CardapioItem | null>(null);
@@ -211,6 +223,27 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
     const grupos = (cardapio?.grupos ?? []).filter((g) => g.item_id === item.id);
     if (grupos.length > 0) setEscolhendo(item);
     else lancar.mutate({ item: item.id, qtd: 1, opcoes: [], obs: "" });
+  }
+
+  /** Etiqueta com o código de barras da comanda: depois é só bipar no leitor do PDV. */
+  function imprimirEtiqueta() {
+    if (!comanda) return;
+    const janela = window.open("", "_blank", "width=420,height=560");
+    if (!janela) {
+      toast.error("O navegador bloqueou a janela de impressão");
+      return;
+    }
+    janela.document.write(
+      htmlEtiquetaComanda({
+        numero: comanda.numero,
+        mesa: mesa?.numero ?? null,
+        cliente: comanda.cliente_nome,
+        loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+      }),
+    );
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => janela.print(), 300);
   }
 
   function pedirCancelamentoItem(i: ComandaItem) {
@@ -421,6 +454,9 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                     Enviar à cozinha{pendentes.length ? ` (${pendentes.length})` : ""}
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={imprimirEtiqueta}>
+                      <Printer className="mr-1 size-4" /> Imprimir comanda
+                    </Button>
                     {mesa && (
                       <Button variant="outline" onClick={() => setTransferindo(true)}>
                         <ArrowRightLeft className="mr-1 size-4" /> Mudar de mesa
