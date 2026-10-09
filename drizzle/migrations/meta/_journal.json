@@ -92,6 +92,13 @@
       "when": 1791568277682,
       "tag": "0012_restaurante_baixa_parcial",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791568315095,
+      "tag": "0013_restaurante_quantidade_mesas",
+      "breakpoints": true
     }
   ]
 }

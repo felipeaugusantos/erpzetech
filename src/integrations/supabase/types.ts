@@ -6917,6 +6917,10 @@ export type Database = {
         Args: { p_perfis: Database["public"]["Enums"]["app_role"][] }
         Returns: string
       }
+      restaurante_definir_mesas: {
+        Args: { p_filial_id?: string; p_quantidade: number }
+        Returns: Json
+      }
       restaurante_enviar_cozinha: {
         Args: { p_comanda_id: string }
         Returns: number
