@@ -310,6 +310,7 @@ BEGIN
   PERFORM restaurante_atualizar_item(i1, 'pronto');
   PERFORM ci.sair();
   PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_atualizar_item(%L, 'preparando')$c$, i1), 'voltar etapa do preparo');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_atualizar_item(%L, 'entregue')$c$, i1), 'cozinha marca o item como entregue');
   PERFORM ci.entrar(gar);
   PERFORM restaurante_atualizar_item(i1, 'entregue');
   PERFORM ci.sair();

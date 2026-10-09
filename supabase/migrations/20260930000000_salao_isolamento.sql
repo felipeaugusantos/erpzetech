@@ -147,3 +147,25 @@ BEGIN
   END IF;
   EXECUTE novo;
 END $$;
+
+-- Entregar à mesa é do salão: a cozinha só prepara. O comentário da função já dizia isso, mas a checagem
+-- só cobria 'preparando' e 'pronto', então a cozinha podia marcar 'entregue' e liberar o fechamento da conta.
+DO $$
+DECLARE
+  def text := pg_get_functiondef('public.restaurante_atualizar_item(uuid, text)'::regprocedure);
+  novo text;
+BEGIN
+  novo := replace(def, $q$  UPDATE public.comanda_itens
+     SET situacao = p_situacao,$q$,
+    $q$  IF p_situacao = 'entregue' AND NOT (public.restaurante_gestao() OR public.has_role(auth.uid(), 'garcom')
+                                          OR public.has_role(auth.uid(), 'caixa')) THEN
+    RAISE EXCEPTION 'Somente o salão marca o item como entregue';
+  END IF;
+
+  UPDATE public.comanda_itens
+     SET situacao = p_situacao,$q$);
+  IF novo = def THEN
+    RAISE EXCEPTION 'Não foi possível restringir a entrega em restaurante_atualizar_item';
+  END IF;
+  EXECUTE novo;
+END $$;
