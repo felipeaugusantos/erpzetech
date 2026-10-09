@@ -29,7 +29,9 @@ export function useCardapio(incluirInativos = false) {
         incluirInativos || !i.categoria_id || idsAtivos.has(i.categoria_id);
       return {
         categorias,
-        itens: ativos((itens.data ?? []) as unknown as CardapioItem[]).filter(doCardapio),
+        itens: ativos((itens.data ?? []) as unknown as CardapioItem[])
+          .filter((i) => !i.interno) // itens do sistema (taxa de entrega) não aparecem no cardápio
+          .filter(doCardapio),
         grupos: (grupos.data ?? []) as unknown as CardapioGrupo[],
         opcoes: ativos((opcoes.data ?? []) as unknown as CardapioOpcao[]),
       };

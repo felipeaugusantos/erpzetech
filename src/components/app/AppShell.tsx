@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftRight,
   Calculator,
+  Bike,
   ChefHat,
   ConciergeBell,
   UtensilsCrossed,
@@ -161,6 +162,7 @@ const groups: Group[] = [
     icon: UtensilsCrossed,
     items: [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
+      { label: "Delivery", to: "/delivery", icon: Bike },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
     ],
@@ -294,9 +296,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const gestao = ehGestaoSalao(roles);
     return [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
+      { label: "Delivery", to: "/delivery", icon: Bike },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
     ].filter((i) =>
-      i.to === "/salao"
+      i.to === "/salao" || i.to === "/delivery"
         ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
         : gestao || roles.includes("cozinha"),
     );

@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BaixaParcialDialog } from "@/components/restaurante/BaixaParcialDialog";
+import { DeliveryPainel } from "@/components/restaurante/DeliveryPainel";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
@@ -120,6 +121,21 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
     },
   });
   const jaPago = Math.round(pagamentos.reduce((s, p) => s + Number(p.valor), 0) * 100) / 100;
+
+  // a taxa de entrega é um item interno escondido do cardápio; a tela do delivery a trata à parte
+  const { data: taxaItemId = null } = useQuery({
+    queryKey: [CHAVE_REST, "taxa-entrega-item"],
+    enabled: comanda?.tipo === "delivery",
+    queryFn: async () => {
+      const { data, error } = await tabela("cardapio_itens")
+        .select("id")
+        .eq("interno", true)
+        .eq("nome", "Taxa de entrega")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data as unknown as { id: string } | null)?.id ?? null;
+    },
+  });
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
   const erro = (e: Error) => toast.error(e.message);
@@ -258,7 +274,11 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
         <DialogContent className="max-h-[92vh] max-w-6xl overflow-hidden p-0">
           <DialogHeader className="border-b px-5 py-3">
             <DialogTitle className="flex flex-wrap items-center gap-2">
-              {mesa ? `Mesa ${mesa.numero}` : "Comanda avulsa"}
+              {mesa
+                ? `Mesa ${mesa.numero}`
+                : comanda?.tipo === "delivery"
+                  ? "Delivery"
+                  : "Comanda avulsa"}
               <span className="text-sm font-normal text-muted-foreground">
                 nº {comanda?.numero ?? "—"}
                 {comanda?.pessoas ? ` · ${comanda.pessoas} pessoas` : ""}
@@ -340,6 +360,14 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
             {/* Pedido e conta */}
             <section className="flex min-h-0 flex-col p-4">
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {comanda?.tipo === "delivery" && (
+                  <DeliveryPainel
+                    comanda={comanda}
+                    itens={itens}
+                    total={conta?.total ?? 0}
+                    taxaItemId={taxaItemId}
+                  />
+                )}
                 {itens.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     Nenhum item lançado.
@@ -454,9 +482,11 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                     Enviar à cozinha{pendentes.length ? ` (${pendentes.length})` : ""}
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" onClick={imprimirEtiqueta}>
-                      <Printer className="mr-1 size-4" /> Imprimir comanda
-                    </Button>
+                    {comanda?.tipo !== "delivery" && (
+                      <Button variant="outline" onClick={imprimirEtiqueta}>
+                        <Printer className="mr-1 size-4" /> Imprimir comanda
+                      </Button>
+                    )}
                     {mesa && (
                       <Button variant="outline" onClick={() => setTransferindo(true)}>
                         <ArrowRightLeft className="mr-1 size-4" /> Mudar de mesa
