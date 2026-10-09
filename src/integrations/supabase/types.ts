@@ -436,6 +436,68 @@ export type Database = {
           },
         ]
       }
+      cardapio_ficha: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          opcao_id: string | null
+          perda_percentual: number
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          opcao_id?: string | null
+          perda_percentual?: number
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          opcao_id?: string | null
+          perda_percentual?: number
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cardapio_ficha_item_fk"
+            columns: ["item_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_itens"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_ficha_opcao_fk"
+            columns: ["opcao_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "cardapio_opcoes"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_ficha_produto_fk"
+            columns: ["produto_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "cardapio_ficha_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cardapio_grupos: {
         Row: {
           id: string
@@ -5270,6 +5332,42 @@ export type Database = {
           },
         ]
       }
+      restaurante_config: {
+        Row: {
+          baixa_estoque: boolean
+          deposito_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baixa_estoque?: boolean
+          deposito_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          baixa_estoque?: boolean
+          deposito_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurante_config_deposito_fk"
+            columns: ["deposito_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "restaurante_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissoes: {
         Row: {
           id: string
@@ -6945,6 +7043,10 @@ export type Database = {
           p_quantidade?: number
         }
         Returns: string
+      }
+      restaurante_movimentar_insumos: {
+        Args: { p_item_ids: string[]; p_sentido: string }
+        Returns: undefined
       }
       restaurante_operador: { Args: never; Returns: boolean }
       restaurante_receber_parcial: {

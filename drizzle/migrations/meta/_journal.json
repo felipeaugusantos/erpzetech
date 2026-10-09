@@ -99,6 +99,13 @@
       "when": 1791568315095,
       "tag": "0013_restaurante_quantidade_mesas",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791568399613,
+      "tag": "0014_restaurante_ficha_tecnica",
+      "breakpoints": true
     }
   ]
 }
