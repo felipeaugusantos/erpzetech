@@ -8,6 +8,13 @@
       "when": 1791567675972,
       "tag": "0000_hardening_security_definer_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791567703301,
+      "tag": "0001_profiles_vinculo_sem_autoatribuicao",
+      "breakpoints": true
     }
   ]
 }
