@@ -61,11 +61,27 @@ export type PagamentoComanda = {
   created_at: string;
 };
 
+export type FichaTecnica = {
+  id: string;
+  item_id: string | null;
+  opcao_id: string | null;
+  produto_id: string;
+  quantidade: number;
+  perda_percentual: number;
+};
+
+export type RestauranteConfig = {
+  tenant_id: string;
+  baixa_estoque: boolean;
+  deposito_id: string | null;
+};
+
 export type CardapioCategoria = { id: string; nome: string; ordem: number; ativo: boolean };
 
 export type CardapioItem = {
   id: string;
   categoria_id: string | null;
+  produto_id: string | null;
   nome: string;
   descricao: string | null;
   preco: number;
