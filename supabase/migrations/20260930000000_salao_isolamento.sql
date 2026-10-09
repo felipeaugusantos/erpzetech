@@ -132,3 +132,18 @@ BEGIN
   END IF;
   EXECUTE novo;
 END $$;
+
+-- Boleto e crediário são pagamento a prazo: lançá-los no caixa como recebimento imediato inflaria o saldo
+-- sem gerar conta a receber. A comanda só aceita formas que entram na hora.
+DO $$
+DECLARE
+  def text := pg_get_functiondef('public.restaurante_fechar_comanda(uuid, jsonb, uuid, numeric, boolean)'::regprocedure);
+  novo text;
+BEGIN
+  novo := replace(def, $q$IF v_forma = 'crediario' THEN RAISE EXCEPTION 'Crediário não é aceito na comanda'; END IF;$q$,
+    $q$IF v_forma IN ('crediario', 'boleto') THEN RAISE EXCEPTION 'Crediário e boleto não são aceitos na comanda'; END IF;$q$);
+  IF novo = def THEN
+    RAISE EXCEPTION 'Não foi possível recusar boleto em restaurante_fechar_comanda';
+  END IF;
+  EXECUTE novo;
+END $$;

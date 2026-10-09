@@ -15,6 +15,7 @@ export type Comanda = {
   id: string;
   numero: number;
   mesa_id: string | null;
+  filial_id: string | null;
   situacao: "aberta" | "fechada" | "cancelada";
   cliente_nome: string | null;
   pessoas: number | null;

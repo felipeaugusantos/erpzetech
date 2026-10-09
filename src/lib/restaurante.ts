@@ -60,8 +60,18 @@ export function calcularConta(e: ContaEntrada) {
   const servico = e.cobrarServico ? arredonda((e.subtotal * e.taxaServicoPercentual) / 100) : 0;
   const bruto = arredonda(e.subtotal + couvert + servico);
   const desconto = Math.max(e.desconto || 0, 0);
+  // o banco recusa desconto acima do total da conta: a tela avisa em vez de fechar em silêncio
+  const descontoExcede = desconto > bruto;
   const total = arredonda(bruto - Math.min(desconto, bruto));
-  return { subtotal: arredonda(e.subtotal), couvert, servico, bruto, desconto, total };
+  return {
+    subtotal: arredonda(e.subtotal),
+    couvert,
+    servico,
+    bruto,
+    desconto,
+    descontoExcede,
+    total,
+  };
 }
 
 /** Divide o total igualmente entre as pessoas; a última recebe a diferença dos centavos. */

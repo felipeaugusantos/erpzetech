@@ -31,7 +31,8 @@ type Linha = { forma: string; valor: string; pagante: string };
 
 const paraNumero = (v: string) => Number(v.replace(",", ".")) || 0;
 const paraTexto = (n: number) => n.toFixed(2).replace(".", ",");
-const formas = formasPagamento.filter((f) => f.value !== "crediario");
+// só formas que entram na hora: boleto e crediário são a prazo e não passam pelo caixa
+const formas = formasPagamento.filter((f) => f.value !== "crediario" && f.value !== "boleto");
 
 /** Fecha a conta: serviço, desconto (gestão), divisão entre pagantes e recebimento no caixa. */
 export function FecharContaDialog({
@@ -74,13 +75,16 @@ export function FecharContaDialog({
   }, [conta.total]);
 
   const { data: caixas = [] } = useQuery({
-    queryKey: [CHAVE_REST, "caixas-abertos"],
+    queryKey: [CHAVE_REST, "caixas-abertos", comanda.filial_id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // o banco só aceita o caixa da mesma filial da comanda (comanda sem filial aceita qualquer um)
+      let consulta = supabase
         .from("caixas")
         .select("id, numero, filial_id")
         .eq("situacao", "aberto")
         .order("aberto_em", { ascending: false });
+      if (comanda.filial_id) consulta = consulta.eq("filial_id", comanda.filial_id);
+      const { data, error } = await consulta;
       if (error) throw error;
       return data ?? [];
     },
@@ -94,6 +98,8 @@ export function FecharContaDialog({
 
   const fechar = useMutation({
     mutationFn: async () => {
+      if (conta.descontoExcede)
+        throw new Error(`O desconto não pode passar do total da conta (${brl(conta.bruto)})`);
       if (conta.total > 0) {
         if (!caixaId) throw new Error("Escolha o caixa que vai receber a conta");
         if (diferenca !== 0) throw new Error("Os pagamentos precisam fechar o total da conta");
@@ -161,6 +167,11 @@ export function FecharContaDialog({
                 onChange={(e) => setDesconto(e.target.value)}
               />
             </div>
+          )}
+          {conta.descontoExcede && (
+            <p className="text-right text-xs text-destructive">
+              O desconto passa do total da conta ({brl(conta.bruto)}).
+            </p>
           )}
           <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-lg font-bold">
             <span>Total</span>

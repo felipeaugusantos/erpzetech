@@ -49,6 +49,7 @@ test("conta com serviço de 10% e couvert", () => {
     servico: 9.6,
     bruto: 115.6,
     desconto: 0,
+    descontoExcede: false,
     total: 115.6,
   });
 });
@@ -65,6 +66,7 @@ test("conta sem serviço e com desconto limitado ao total", () => {
   assert.equal(c.couvert, 0);
   assert.equal(c.servico, 0);
   assert.equal(c.total, 0);
+  assert.equal(c.descontoExcede, true);
 });
 
 test("arredondamento do serviço em centavos", () => {
