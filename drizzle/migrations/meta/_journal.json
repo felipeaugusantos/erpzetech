@@ -43,6 +43,13 @@
       "when": 1791567828865,
       "tag": "0005_auditoria_ligada",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791567847815,
+      "tag": "0006_estoques_insert_sem_saldo",
+      "breakpoints": true
     }
   ]
 }
