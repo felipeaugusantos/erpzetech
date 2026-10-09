@@ -1,10 +1,19 @@
 import { useSessionData } from "@/hooks/useSessionData";
 
 /** Módulos que só ficam disponíveis quando a atividade da empresa permite. */
-export type ModuloCnae = "assistencia" | "locacao";
+export type ModuloCnae = "assistencia" | "locacao" | "restaurante";
 
 /** Grupos de CNAE que liberam cada módulo (comparação pelo início do código). */
 const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
+  restaurante: {
+    prefixos: ["56"],
+    exemplos: [
+      "56.11-2 — Restaurantes e similares",
+      "56.11-2/03 — Lanchonetes, casas de chá, de sucos e similares",
+      "56.12-1 — Serviços ambulantes de alimentação",
+      "56.20-1 — Serviços de alimentação para eventos e catering",
+    ],
+  },
   assistencia: {
     prefixos: ["95", "3314", "3319", "4520", "4543"],
     exemplos: [
@@ -29,6 +38,7 @@ const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
 export const ROTULO_MODULO: Record<ModuloCnae, string> = {
   assistencia: "Assistência técnica",
   locacao: "Locação de equipamentos",
+  restaurante: "Restaurante e lanchonete",
 };
 
 export function exemplosCnae(modulo: ModuloCnae) {
@@ -64,6 +74,7 @@ export function useModulosCnae() {
   const empresa = (data?.empresa ?? null) as {
     cnae?: string | null;
     cnae_secundarios?: string | null;
+    ramo_atividade?: string | null;
   } | null;
   const cnaes = cnaesDaEmpresa(empresa);
   return {
@@ -71,5 +82,8 @@ export function useModulosCnae() {
     cnaes,
     assistencia: moduloLiberadoPorCnae(cnaes, "assistencia"),
     locacao: moduloLiberadoPorCnae(cnaes, "locacao"),
+    // o ramo escolhido no cadastro da empresa também libera o salão, sem depender do CNAE
+    restaurante:
+      empresa?.ramo_atividade === "restaurante" || moduloLiberadoPorCnae(cnaes, "restaurante"),
   };
 }

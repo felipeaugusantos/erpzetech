@@ -12,6 +12,8 @@ export const PERFIS = [
   "financeiro",
   "logistica",
   "motorista",
+  "garcom",
+  "cozinha",
 ] as const;
 
 export type Perfil = (typeof PERFIS)[number];
@@ -130,7 +132,10 @@ export const criarUsuario = createServerFn({ method: "POST" })
 
     const papeis = await supabaseAdmin
       .from("user_roles")
-      .insert(data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })));
+      // garcom e cozinha entram nos tipos gerados quando o Lovable os atualizar depois da migration
+      .insert(
+        data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })) as never,
+      );
     if (papeis.error) throw papeis.error;
 
     return { ok: true, id: novoId, email: data.email };
@@ -192,11 +197,13 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
       }
       const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
       if (limpeza.error) throw limpeza.error;
-      const papeis = await supabaseAdmin
-        .from("user_roles")
-        .insert(
-          data.perfis.map((role) => ({ user_id: data.userId, role, tenant_id: ctx.tenantId })),
-        );
+      const papeis = await supabaseAdmin.from("user_roles").insert(
+        data.perfis.map((role) => ({
+          user_id: data.userId,
+          role,
+          tenant_id: ctx.tenantId,
+        })) as never,
+      );
       if (papeis.error) throw papeis.error;
     }
 

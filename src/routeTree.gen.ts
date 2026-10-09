@@ -20,6 +20,7 @@ import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_aut
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
+import { Route as AuthenticatedCardapioRouteImport } from './routes/_authenticated/cardapio'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
 import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_auth
 import { Route as AuthenticatedContasPagarRouteImport } from './routes/_authenticated/contas-pagar'
 import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
 import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticated/cotacoes'
+import { Route as AuthenticatedCozinhaRouteImport } from './routes/_authenticated/cozinha'
 import { Route as AuthenticatedCreditoRouteImport } from './routes/_authenticated/credito'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
@@ -78,6 +80,7 @@ import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_a
 import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_authenticated/relatorio-estoque'
 import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_authenticated/relatorio-locacoes'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
+import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
@@ -163,6 +166,11 @@ const AuthenticatedCaixaRoute = AuthenticatedCaixaRouteImport.update({
   path: '/caixa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCardapioRoute = AuthenticatedCardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCategoriasRoute = AuthenticatedCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -217,6 +225,11 @@ const AuthenticatedContasReceberRoute =
 const AuthenticatedCotacoesRoute = AuthenticatedCotacoesRouteImport.update({
   id: '/cotacoes',
   path: '/cotacoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCozinhaRoute = AuthenticatedCozinhaRouteImport.update({
+  id: '/cozinha',
+  path: '/cozinha',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCreditoRoute = AuthenticatedCreditoRouteImport.update({
@@ -482,6 +495,11 @@ const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
   path: '/rota',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSalaoRoute = AuthenticatedSalaoRouteImport.update({
+  id: '/salao',
+  path: '/salao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTecnicosRoute = AuthenticatedTecnicosRouteImport.update({
   id: '/tecnicos',
   path: '/tecnicos',
@@ -641,6 +659,7 @@ export interface FileRoutesByFullPath {
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
+  '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
@@ -651,6 +670,7 @@ export interface FileRoutesByFullPath {
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -699,6 +719,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
+  '/salao': typeof AuthenticatedSalaoRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -737,6 +758,7 @@ export interface FileRoutesByTo {
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
+  '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
@@ -747,6 +769,7 @@ export interface FileRoutesByTo {
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -795,6 +818,7 @@ export interface FileRoutesByTo {
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
+  '/salao': typeof AuthenticatedSalaoRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -835,6 +859,7 @@ export interface FileRoutesById {
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
+  '/_authenticated/cardapio': typeof AuthenticatedCardapioRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
@@ -845,6 +870,7 @@ export interface FileRoutesById {
   '/_authenticated/contas-pagar': typeof AuthenticatedContasPagarRoute
   '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
   '/_authenticated/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/_authenticated/cozinha': typeof AuthenticatedCozinhaRoute
   '/_authenticated/credito': typeof AuthenticatedCreditoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -893,6 +919,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/_authenticated/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
+  '/_authenticated/salao': typeof AuthenticatedSalaoRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -933,6 +960,7 @@ export interface FileRouteTypes {
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
+    | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
     | '/clientes'
@@ -943,6 +971,7 @@ export interface FileRouteTypes {
     | '/contas-pagar'
     | '/contas-receber'
     | '/cotacoes'
+    | '/cozinha'
     | '/credito'
     | '/dashboard'
     | '/devolucoes'
@@ -991,6 +1020,7 @@ export interface FileRouteTypes {
     | '/relatorio-estoque'
     | '/relatorio-locacoes'
     | '/rota'
+    | '/salao'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1029,6 +1059,7 @@ export interface FileRouteTypes {
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
+    | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
     | '/clientes'
@@ -1039,6 +1070,7 @@ export interface FileRouteTypes {
     | '/contas-pagar'
     | '/contas-receber'
     | '/cotacoes'
+    | '/cozinha'
     | '/credito'
     | '/dashboard'
     | '/devolucoes'
@@ -1087,6 +1119,7 @@ export interface FileRouteTypes {
     | '/relatorio-estoque'
     | '/relatorio-locacoes'
     | '/rota'
+    | '/salao'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1126,6 +1159,7 @@ export interface FileRouteTypes {
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
+    | '/_authenticated/cardapio'
     | '/_authenticated/categorias'
     | '/_authenticated/certificado-nfse'
     | '/_authenticated/clientes'
@@ -1136,6 +1170,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contas-pagar'
     | '/_authenticated/contas-receber'
     | '/_authenticated/cotacoes'
+    | '/_authenticated/cozinha'
     | '/_authenticated/credito'
     | '/_authenticated/dashboard'
     | '/_authenticated/devolucoes'
@@ -1184,6 +1219,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-estoque'
     | '/_authenticated/relatorio-locacoes'
     | '/_authenticated/rota'
+    | '/_authenticated/salao'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
     | '/_authenticated/tef-painel'
@@ -1301,6 +1337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCaixaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cardapio': {
+      id: '/_authenticated/cardapio'
+      path: '/cardapio'
+      fullPath: '/cardapio'
+      preLoaderRoute: typeof AuthenticatedCardapioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/categorias': {
       id: '/_authenticated/categorias'
       path: '/categorias'
@@ -1369,6 +1412,13 @@ declare module '@tanstack/react-router' {
       path: '/cotacoes'
       fullPath: '/cotacoes'
       preLoaderRoute: typeof AuthenticatedCotacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cozinha': {
+      id: '/_authenticated/cozinha'
+      path: '/cozinha'
+      fullPath: '/cozinha'
+      preLoaderRoute: typeof AuthenticatedCozinhaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/credito': {
@@ -1707,6 +1757,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRotaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/salao': {
+      id: '/_authenticated/salao'
+      path: '/salao'
+      fullPath: '/salao'
+      preLoaderRoute: typeof AuthenticatedSalaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tecnicos': {
       id: '/_authenticated/tecnicos'
       path: '/tecnicos'
@@ -1898,6 +1955,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
+  AuthenticatedCardapioRoute: typeof AuthenticatedCardapioRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
@@ -1908,6 +1966,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContasPagarRoute: typeof AuthenticatedContasPagarRoute
   AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
   AuthenticatedCotacoesRoute: typeof AuthenticatedCotacoesRoute
+  AuthenticatedCozinhaRoute: typeof AuthenticatedCozinhaRoute
   AuthenticatedCreditoRoute: typeof AuthenticatedCreditoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
@@ -1956,6 +2015,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioEstoqueRoute: typeof AuthenticatedRelatorioEstoqueRoute
   AuthenticatedRelatorioLocacoesRoute: typeof AuthenticatedRelatorioLocacoesRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
+  AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
@@ -1989,6 +2049,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
+  AuthenticatedCardapioRoute: AuthenticatedCardapioRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
@@ -1999,6 +2060,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContasPagarRoute: AuthenticatedContasPagarRoute,
   AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,
   AuthenticatedCotacoesRoute: AuthenticatedCotacoesRoute,
+  AuthenticatedCozinhaRoute: AuthenticatedCozinhaRoute,
   AuthenticatedCreditoRoute: AuthenticatedCreditoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
@@ -2048,6 +2110,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatorioEstoqueRoute: AuthenticatedRelatorioEstoqueRoute,
   AuthenticatedRelatorioLocacoesRoute: AuthenticatedRelatorioLocacoesRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
+  AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,
