@@ -90,7 +90,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 ### Etapas seguintes
 - [x] R2 — Ficha técnica: insumos por prato e por opção (ex.: bacon extra), com perda de preparo; custo, lucro e CMV de cada prato; baixa de estoque ao enviar à cozinha (depósito da cozinha configurável); bebida de revenda ligada a um produto baixa 1 unidade; cancelar na fila devolve os insumos, depois de iniciado o preparo não volta. Pendente: conversão de unidades (g ↔ kg), produção de preparos (molhos, bases) e relatório de perdas
-- [ ] R3 — Delivery e iFood
+- [x] R3 — Delivery próprio: pedido com cliente, endereço, zona/taxa e pagamento previsto; painel por etapa (montando, cozinha, pronto, em rota, entregue); impressão do pedido
+- [ ] R3b — Integração iFood (o banco já tem `canal` e `codigo_externo`; falta credencial de parceiro)
 - [ ] R4 — Impressão térmica, balcão e garçom em tablet
 - [ ] NFC-e (depende da Fase 2): obrigatória para operar restaurante
 

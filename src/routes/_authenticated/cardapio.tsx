@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCardapio } from "@/hooks/useCardapio";
+import { useZonasEntrega } from "@/hooks/useZonasEntrega";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
@@ -87,6 +88,7 @@ function Cardapio() {
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="mesas">Mesas</TabsTrigger>
           <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
+          <TabsTrigger value="delivery">Delivery</TabsTrigger>
         </TabsList>
         <TabsContent value="itens">
           <Itens tenantId={session?.profile?.tenant_id ?? ""} />
@@ -100,8 +102,85 @@ function Cardapio() {
         <TabsContent value="estoque">
           <EstoqueRestaurante tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
+        <TabsContent value="delivery">
+          <ZonasEntrega tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+/* ===== Zonas de entrega ===== */
+function ZonasEntrega({ tenantId }: { tenantId: string }) {
+  const { data: zonas = [] } = useZonasEntrega();
+  const salvar = useSalvar("restaurante_zonas_entrega", "Zona salva");
+  const [nome, setNome] = useState("");
+  const [taxa, setTaxa] = useState("0");
+
+  return (
+    <div className="mt-4 max-w-2xl space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Bairros ou regiões atendidas, cada uma com a sua taxa. Na hora do pedido, escolher a zona
+        preenche a taxa (que ainda pode ser ajustada).
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex-1">
+          <Label htmlFor="zona-nome">Nova zona</Label>
+          <Input
+            id="zona-nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="ex.: Centro"
+          />
+        </div>
+        <div className="w-28">
+          <Label htmlFor="zona-taxa">Taxa (R$)</Label>
+          <Input
+            id="zona-taxa"
+            inputMode="decimal"
+            value={taxa}
+            onChange={(e) => setTaxa(e.target.value)}
+          />
+        </div>
+        <Button
+          disabled={!nome.trim() || salvar.isPending}
+          onClick={() =>
+            salvar.mutate(
+              {
+                dados: {
+                  tenant_id: tenantId,
+                  nome: nome.trim(),
+                  taxa: Number(taxa.replace(",", ".")) || 0,
+                },
+              },
+              {
+                onSuccess: () => {
+                  setNome("");
+                  setTaxa("0");
+                },
+              },
+            )
+          }
+        >
+          <Plus className="mr-1 size-4" /> Adicionar
+        </Button>
+      </div>
+      {zonas.map((z) => (
+        <div key={z.id} className="flex items-center justify-between rounded border p-2">
+          <span className={z.ativo ? "" : "text-muted-foreground line-through"}>
+            {z.nome} <span className="text-xs text-muted-foreground">· {brl(z.taxa)}</span>
+          </span>
+          <Switch
+            aria-label={`Zona ${z.nome} ativa`}
+            checked={z.ativo}
+            onCheckedChange={(v) => salvar.mutate({ id: z.id, dados: { ativo: v } })}
+          />
+        </div>
+      ))}
+      {zonas.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nenhuma zona cadastrada.</p>
+      )}
+    </div>
   );
 }
 

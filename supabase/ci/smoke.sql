@@ -512,7 +512,7 @@ DECLARE
   demo   constant uuid := '11111111-1111-1111-1111-111111111111';
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
-    'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos'];
+    'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco'];
   faltando text;
@@ -933,4 +933,131 @@ BEGIN
   PERFORM restaurante_enviar_cozinha(cmd2);
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = pao AND deposito_id = dep) = -51, 'com a baixa desligada o estoque não muda');
+END $$;
+
+-- 20. delivery do restaurante
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  cat uuid; it_pizza uuid; it_taxa uuid; mesa_x uuid; cx uuid; outro_tenant uuid;
+  d1 uuid; d2 uuid; i1 uuid; r jsonb; n bigint;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Delivery CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Pizza CI', 20, 'cozinha') RETURNING id INTO it_pizza;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- validações do pedido
+  PERFORM ci.deve_falhar(coz, $c$SELECT restaurante_abrir_delivery('Ana', '11999998888', 'Rua das Flores, 100')$c$, 'cozinha abre delivery');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('', '11999998888', 'Rua das Flores, 100')$c$, 'delivery sem nome do cliente');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('Ana', '11999998888', 'Rua')$c$, 'delivery com endereço curto');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('Ana', '1234', 'Rua das Flores, 100')$c$, 'delivery com telefone curto');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('Ana', '11999998888', 'Rua das Flores, 100', NULL, NULL, -5)$c$, 'taxa de entrega negativa');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('Ana', '11999998888', 'Rua das Flores, 100', NULL, NULL, 5000)$c$, 'taxa de entrega absurda');
+  PERFORM ci.deve_falhar(gar, $c$SELECT restaurante_abrir_delivery('Ana', '11999998888', 'Rua das Flores, 100', NULL, NULL, 5, 'cheque')$c$, 'forma de pagamento inventada');
+
+  -- pedido: taxa de 8, pagamento em dinheiro com troco para 100
+  PERFORM ci.entrar(gar);
+  d1 := restaurante_abrir_delivery('Ana Souza', '(11) 99999-8888', 'Rua das Flores, 100', 'Centro', 'Casa azul', 8, 'dinheiro', 100, 'Sem campainha');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo = 'delivery' AND entrega_situacao = 'aguardando' AND mesa_id IS NULL AND canal = 'proprio'
+                         AND taxa_servico_percentual = 0 AND couvert_por_pessoa = 0 AND entrega_bairro = 'Centro'
+                         AND entrega_troco_para = 100 AND entrega_pagamento = 'dinheiro'
+                    FROM comandas WHERE id = d1), 'delivery nasce sem serviço nem couvert, aguardando, com os dados da entrega');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(total) = 8 AND bool_and(situacao = 'entregue') FROM comanda_itens WHERE comanda_id = d1),
+                   'a taxa de entrega entra na conta como um item');
+  SELECT id INTO it_taxa FROM cardapio_itens WHERE tenant_id = demo AND interno AND nome = 'Taxa de entrega';
+  PERFORM ci.exige(it_taxa IS NOT NULL AND (SELECT NOT ativo FROM cardapio_itens WHERE id = it_taxa), 'o item da taxa é interno e inativo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, d1, it_taxa), 'lançar o item interno da taxa à mão');
+
+  -- itens, cozinha e saída
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(d1, it_pizza, 2);
+  PERFORM restaurante_enviar_cozinha(d1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'saiu', 'Zé')$c$, d1), 'sair com item ainda na cozinha');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_delivery_avancar(%L, 'saiu', 'Zé')$c$, d1), 'cozinha despacha o delivery');
+  PERFORM ci.entrar(coz);
+  PERFORM restaurante_atualizar_item(i1, 'preparando');
+  PERFORM restaurante_atualizar_item(i1, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'entregue')$c$, d1), 'entregar ao cliente sem ter saído');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_delivery_avancar(d1, 'saiu', ' Zé da moto ');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT entrega_situacao = 'saiu' AND entregador = 'Zé da moto' AND saiu_em IS NOT NULL FROM comandas WHERE id = d1),
+                   'o pedido sai com o entregador registrado');
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM comanda_itens WHERE id = i1), 'os itens prontos passam a entregues na saída');
+
+  -- voltar e sair de novo
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_delivery_avancar(d1, 'aguardando');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT entrega_situacao = 'aguardando' AND entregador IS NULL AND saiu_em IS NULL FROM comandas WHERE id = d1),
+                   'entregador que volta devolve o pedido para aguardando');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_delivery_avancar(d1, 'saiu', 'Zé');
+  PERFORM ci.sair();
+
+  -- taxa: ajusta antes do recebimento, trava depois
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_delivery_taxa(%L, 12)$c$, d1), 'cozinha muda a taxa de entrega');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_taxa(%L, -1)$c$, d1), 'taxa negativa ao ajustar');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_delivery_taxa(d1, 12);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(total) = 52 FROM comanda_itens WHERE comanda_id = d1 AND situacao <> 'cancelado'), 'taxa ajustada para 12: conta de 40 + 12');
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_receber_parcial(d1, '[{"forma":"pix","valor":10}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_taxa(%L, 15)$c$, d1), 'mudar a taxa depois de receber pagamento');
+
+  -- entrega ao cliente e fechamento no caixa (serviço zero: total 52, já recebido 10)
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_delivery_avancar(d1, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT entrega_situacao = 'entregue' AND entregue_cliente_em IS NOT NULL FROM comandas WHERE id = d1), 'pedido entregue ao cliente');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'entregue')$c$, d1), 'entregar duas vezes');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'aguardando')$c$, d1), 'voltar um pedido já entregue');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'inventada')$c$, d1), 'situação de entrega inventada');
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(d1, '[{"forma":"dinheiro","valor":42}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 52 AND (r ->> 'taxa_servico')::numeric = 0 AND (r ->> 'restante')::numeric = 42,
+                   'o delivery fecha sem serviço, com a taxa dentro do total');
+  SELECT numero INTO n FROM comandas WHERE id = d1;
+  PERFORM ci.exige((SELECT sum(valor) = 52 FROM caixa_movimentos WHERE tipo = 'venda' AND descricao LIKE 'Comanda ' || n || '%'), 'o caixa recebeu a conta do delivery');
+
+  -- cancelar o pedido devolve nada quando já foi pago; pedido novo cancelado antes da cozinha
+  PERFORM ci.entrar(gar);
+  d2 := restaurante_abrir_delivery('Bruno', NULL, 'Av. Brasil, 2000', NULL, NULL, 0);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM comanda_itens WHERE comanda_id = d2), 'taxa zero não cria item');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(d2, 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_delivery_avancar(%L, 'saiu')$c$, d2), 'despachar pedido cancelado');
+
+  -- integridade: sem mesa, canal e código externo únicos
+  SELECT id INTO mesa_x FROM mesas WHERE tenant_id = demo LIMIT 1;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET mesa_id = %L WHERE id = %L$c$, mesa_x, d1), 'delivery com mesa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET entrega_endereco = 'Rua' WHERE id = %L$c$, d1), 'delivery com endereço curto no banco');
+  UPDATE comandas SET canal = 'ifood', codigo_externo = 'IF-1' WHERE id = d1;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET canal = 'ifood', codigo_externo = 'IF-1' WHERE id = %L$c$, d2), 'mesmo código externo duas vezes no mesmo canal');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET canal = 'rappi' WHERE id = %L$c$, d2), 'canal inventado');
+
+  -- zonas de entrega: a gestão cadastra, o atendimento lê, os outros não
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (demo, 'Centro', 6), (demo, 'Zona Norte', 12);
+  PERFORM ci.sair();
+  INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (outro_tenant, 'Centro', 9);
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_zonas_entrega') = 2, 'atendimento lê só as zonas da própria empresa');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Sul', 5)$c$, demo), 'garçom cadastra zona de entrega');
+  PERFORM ci.deve_falhar(cxa, format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Sul', 5)$c$, demo), 'caixa cadastra zona de entrega');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, ' centro ', 5)$c$, demo), 'zona repetida (sem diferenciar maiúsculas)');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Cara', 5000)$c$, demo), 'taxa de zona absurda');
 END $$;

@@ -34,6 +34,7 @@ import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCozinhaRouteImport } from './routes/_authenticated/cozinha'
 import { Route as AuthenticatedCreditoRouteImport } from './routes/_authenticated/credito'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticated/delivery'
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
 import { Route as AuthenticatedEmpresaRouteImport } from './routes/_authenticated/empresa'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
@@ -240,6 +241,11 @@ const AuthenticatedCreditoRoute = AuthenticatedCreditoRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDeliveryRoute = AuthenticatedDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDevolucoesRoute = AuthenticatedDevolucoesRouteImport.update({
@@ -673,6 +679,7 @@ export interface FileRoutesByFullPath {
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
@@ -772,6 +779,7 @@ export interface FileRoutesByTo {
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
@@ -873,6 +881,7 @@ export interface FileRoutesById {
   '/_authenticated/cozinha': typeof AuthenticatedCozinhaRoute
   '/_authenticated/credito': typeof AuthenticatedCreditoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/delivery': typeof AuthenticatedDeliveryRoute
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/_authenticated/empresa': typeof AuthenticatedEmpresaRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
@@ -974,6 +983,7 @@ export interface FileRouteTypes {
     | '/cozinha'
     | '/credito'
     | '/dashboard'
+    | '/delivery'
     | '/devolucoes'
     | '/empresa'
     | '/entregas'
@@ -1073,6 +1083,7 @@ export interface FileRouteTypes {
     | '/cozinha'
     | '/credito'
     | '/dashboard'
+    | '/delivery'
     | '/devolucoes'
     | '/empresa'
     | '/entregas'
@@ -1173,6 +1184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cozinha'
     | '/_authenticated/credito'
     | '/_authenticated/dashboard'
+    | '/_authenticated/delivery'
     | '/_authenticated/devolucoes'
     | '/_authenticated/empresa'
     | '/_authenticated/entregas'
@@ -1433,6 +1445,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/delivery': {
+      id: '/_authenticated/delivery'
+      path: '/delivery'
+      fullPath: '/delivery'
+      preLoaderRoute: typeof AuthenticatedDeliveryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/devolucoes': {
@@ -1969,6 +1988,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCozinhaRoute: typeof AuthenticatedCozinhaRoute
   AuthenticatedCreditoRoute: typeof AuthenticatedCreditoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDeliveryRoute: typeof AuthenticatedDeliveryRoute
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
   AuthenticatedEmpresaRoute: typeof AuthenticatedEmpresaRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
@@ -2063,6 +2083,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCozinhaRoute: AuthenticatedCozinhaRoute,
   AuthenticatedCreditoRoute: AuthenticatedCreditoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDeliveryRoute: AuthenticatedDeliveryRoute,
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
   AuthenticatedEmpresaRoute: AuthenticatedEmpresaRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,

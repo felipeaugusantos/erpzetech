@@ -106,7 +106,10 @@ function Cozinha() {
   const origem = (i: ComandaItem) => {
     const c = data?.comandas.get(i.comanda_id);
     const mesa = c?.mesa_id ? data?.mesas.get(c.mesa_id) : null;
-    return mesa ? `Mesa ${mesa.numero}` : c ? `Comanda ${c.numero}` : "—";
+    if (mesa) return `Mesa ${mesa.numero}`;
+    if (c?.tipo === "delivery")
+      return `Delivery ${c.numero}${c.cliente_nome ? ` · ${c.cliente_nome}` : ""}`;
+    return c ? `Comanda ${c.numero}` : "—";
   };
 
   return (

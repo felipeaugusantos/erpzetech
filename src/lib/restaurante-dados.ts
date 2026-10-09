@@ -30,7 +30,22 @@ export type Comanda = {
   fechada_em: string | null;
   observacao: string | null;
   pessoas_pagas: number;
+  tipo: "salao" | "delivery";
+  canal: "proprio" | "ifood";
+  codigo_externo: string | null;
+  entrega_telefone: string | null;
+  entrega_endereco: string | null;
+  entrega_bairro: string | null;
+  entrega_referencia: string | null;
+  entrega_pagamento: string | null;
+  entrega_troco_para: number | null;
+  entrega_situacao: "aguardando" | "saiu" | "entregue" | null;
+  entregador: string | null;
+  saiu_em: string | null;
+  entregue_cliente_em: string | null;
 };
+
+export type ZonaEntrega = { id: string; nome: string; taxa: number; ativo: boolean };
 
 export type ComandaItem = {
   id: string;
@@ -82,6 +97,7 @@ export type CardapioItem = {
   id: string;
   categoria_id: string | null;
   produto_id: string | null;
+  interno: boolean;
   nome: string;
   descricao: string | null;
   preco: number;

@@ -123,7 +123,7 @@ function Salao() {
   // mesa desativada some do mapa, menos enquanto ainda tem comanda aberta (senão ela ficaria inacessível)
   const mesas = (data?.mesas ?? []).filter((m) => m.ativa || porMesa.has(m.id));
   const mesasLivres = mesas.filter((m) => m.ativa && !porMesa.has(m.id));
-  const avulsas = (data?.comandas ?? []).filter((c) => !c.mesa_id);
+  const avulsas = (data?.comandas ?? []).filter((c) => !c.mesa_id && c.tipo !== "delivery");
 
   const ocupadas = mesas.filter((m) => porMesa.has(m.id)).length;
 
