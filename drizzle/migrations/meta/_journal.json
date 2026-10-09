@@ -57,6 +57,13 @@
       "when": 1791567879490,
       "tag": "0007_webhook_eventos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791567895704,
+      "tag": "0008_restaurante_papeis",
+      "breakpoints": true
     }
   ]
 }

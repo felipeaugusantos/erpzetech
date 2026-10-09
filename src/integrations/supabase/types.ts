@@ -6603,6 +6603,8 @@ export type Database = {
         | "financeiro"
         | "logistica"
         | "motorista"
+        | "garcom"
+        | "cozinha"
       autorizacao_situacao: "pendente" | "aprovada" | "negada"
       caixa_mov_tipo:
         | "abertura"
@@ -6813,6 +6815,8 @@ export const Constants = {
         "financeiro",
         "logistica",
         "motorista",
+        "garcom",
+        "cozinha",
       ],
       autorizacao_situacao: ["pendente", "aprovada", "negada"],
       caixa_mov_tipo: [
