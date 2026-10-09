@@ -29,6 +29,7 @@ export type Comanda = {
   aberta_em: string;
   fechada_em: string | null;
   observacao: string | null;
+  pessoas_pagas: number;
 };
 
 export type ComandaItem = {
@@ -43,8 +44,20 @@ export type ComandaItem = {
   total: number;
   observacao: string | null;
   situacao: "pendente" | "enviado" | "preparando" | "pronto" | "entregue" | "cancelado";
+  pago_em: string | null;
+  pagante: string | null;
   enviado_em: string | null;
   pronto_em: string | null;
+  created_at: string;
+};
+
+export type PagamentoComanda = {
+  id: string;
+  comanda_id: string;
+  forma: string;
+  valor: number;
+  pagante: string | null;
+  parcial: boolean;
   created_at: string;
 };
 

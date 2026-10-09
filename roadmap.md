@@ -84,6 +84,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Tela do salão (`/salao`): mesas, comandas, lançamento de itens com opções, envio à cozinha, entrega, troca de mesa e cancelamento. Falta validar no celular e no uso real
 - [x] Tela da cozinha em tempo real (`/cozinha`), com filtro cozinha/bar e alerta de atraso
 - [x] Fechamento de conta (serviço, couvert, desconto da gestão, divisão entre pagantes, vários pagamentos e caixa)
+- [x] Baixa parcial da mesa: quem vai embora paga a própria parte e a comanda segue aberta. Por itens (unidades já entregues, serviço proporcional e couvert de quem sai) ou por valor livre; o fechamento cobra só o saldo. Item pago não é cancelado e comanda com recebimento não é cancelada. Pendente: estorno de baixa parcial
+- [x] PDV do restaurante: leitor de comanda (código de barras `C123` da etiqueta impressa, ou número da mesa digitado), mesas vermelhas (ocupadas) e verdes (livres) e configuração da quantidade de mesas (`Cardápio e mesas`, cria de 1 até N e desativa as que sobram, sem mexer em mesa ocupada). Falta leitura por câmera do celular
 - [x] Módulo liberado pelo ramo "restaurante" ou CNAE 56.xx, com menu "Restaurante"
 
 ### Etapas seguintes

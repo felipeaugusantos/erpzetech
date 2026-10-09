@@ -34,6 +34,7 @@ import { brl } from "@/lib/format";
 import { ROTULO_ESTACAO, ehGestaoSalao } from "@/lib/restaurante";
 import {
   CHAVE_REST,
+  rpcRestaurante,
   tabela,
   type CardapioCategoria,
   type CardapioGrupo,
@@ -192,9 +193,94 @@ function Mesas({ tenantId }: { tenantId: string }) {
     },
   });
   const filiais = session?.filiais ?? [];
+  const qc = useQueryClient();
+  const [quantidade, setQuantidade] = useState("");
+  const [filialQtd, setFilialQtd] = useState("todas");
+
+  // mesas numeradas (1, 2, 3...) da loja escolhida: são as que a configuração controla
+  const numeradas = mesas.filter(
+    (m) => /^\d+$/.test(m.numero) && (m.filial_id ?? "todas") === filialQtd,
+  );
+  const ativasNumeradas = numeradas.filter((m) => m.ativa).length;
+
+  const definir = useMutation({
+    mutationFn: async () => {
+      const n = Number(quantidade);
+      if (!Number.isInteger(n) || n < 0 || n > 500)
+        throw new Error("Informe uma quantidade de mesas entre 0 e 500");
+      return rpcRestaurante<{
+        criadas: number;
+        reativadas: number;
+        desativadas: number;
+        mantidas_ocupadas: number;
+      }>("restaurante_definir_mesas", {
+        p_quantidade: n,
+        p_filial_id: filialQtd === "todas" ? null : filialQtd,
+      });
+    },
+    onSuccess: (r) => {
+      const partes = [
+        r.criadas > 0 && `${r.criadas} criada(s)`,
+        r.reativadas > 0 && `${r.reativadas} reativada(s)`,
+        r.desativadas > 0 && `${r.desativadas} desativada(s)`,
+      ].filter(Boolean);
+      toast.success(partes.length ? `Mesas atualizadas: ${partes.join(", ")}` : "Nada a alterar");
+      if (r.mantidas_ocupadas > 0)
+        toast.info(
+          `${r.mantidas_ocupadas} mesa(s) acima da quantidade seguem ativas porque têm comanda aberta`,
+        );
+      void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="mt-4 max-w-2xl space-y-3">
+      <div className="space-y-2 rounded border bg-secondary/40 p-3">
+        <h3 className="font-display font-semibold">Quantidade de mesas do restaurante</h3>
+        <p className="text-sm text-muted-foreground">
+          Informe quantas mesas existem e o sistema cria as mesas numeradas de 1 até esse número. Ao
+          reduzir, as mesas que sobram são desativadas (mesa com comanda aberta continua ativa).
+          Hoje: <strong>{ativasNumeradas}</strong> mesa(s) numerada(s) ativa(s).
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="w-32">
+            <Label htmlFor="qtd-mesas">Quantas mesas</Label>
+            <Input
+              id="qtd-mesas"
+              inputMode="numeric"
+              placeholder={String(ativasNumeradas)}
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+            />
+          </div>
+          {filiais.length > 1 && (
+            <div className="w-44">
+              <Label>Loja</Label>
+              <Select value={filialQtd} onValueChange={setFilialQtd}>
+                <SelectTrigger aria-label="Loja da configuração de mesas">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {filiais.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Button
+            disabled={!quantidade.trim() || definir.isPending}
+            onClick={() => definir.mutate()}
+          >
+            Aplicar
+          </Button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-end gap-2">
         <div className="w-28">
           <Label htmlFor="mesa-num">Número</Label>

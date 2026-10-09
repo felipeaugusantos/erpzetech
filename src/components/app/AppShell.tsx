@@ -160,7 +160,7 @@ const groups: Group[] = [
     label: "Restaurante",
     icon: UtensilsCrossed,
     items: [
-      { label: "Salão e comandas", to: "/salao", icon: ConciergeBell },
+      { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
     ],
@@ -293,7 +293,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const roles = data?.roles ?? [];
     const gestao = ehGestaoSalao(roles);
     return [
-      { label: "Salão e comandas", to: "/salao", icon: ConciergeBell },
+      { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
     ].filter((i) =>
       i.to === "/salao"

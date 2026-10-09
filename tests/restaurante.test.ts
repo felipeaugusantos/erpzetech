@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  calcularBaixa,
   calcularConta,
   dividirConta,
   ehGestaoSalao,
@@ -51,6 +52,9 @@ test("conta com serviço de 10% e couvert", () => {
     desconto: 0,
     descontoExcede: false,
     total: 115.6,
+    jaPago: 0,
+    restante: 115.6,
+    pagoExcede: false,
   });
 });
 
@@ -138,4 +142,84 @@ test("meio centavo arredonda para cima, como o numeric do banco", () => {
   assert.equal(d.couvert, 7.5);
   assert.equal(d.servico, 1.26);
   assert.equal(d.total, 18.51);
+});
+
+test("saldo da conta depois de baixas parciais", () => {
+  const base = {
+    subtotal: 85,
+    pessoas: 4,
+    couvertPorPessoa: 5,
+    taxaServicoPercentual: 10,
+    cobrarServico: true,
+    desconto: 0,
+  };
+  const c = calcularConta({ ...base, jaPago: 84.5 });
+  assert.equal(c.total, 113.5);
+  assert.equal(c.jaPago, 84.5);
+  assert.equal(c.restante, 29);
+  assert.equal(c.pagoExcede, false);
+  // sem baixa, o saldo é a conta inteira
+  assert.equal(calcularConta(base).restante, 113.5);
+  // desconto depois da baixa pode deixar o já recebido acima do total
+  const d = calcularConta({ ...base, jaPago: 84.5, desconto: 40 });
+  assert.equal(d.pagoExcede, true);
+  assert.equal(d.restante, 0);
+});
+
+test("baixa por itens: unidades, serviço e couvert de quem sai (mesma conta do banco)", () => {
+  // 1 cerveja de 20 + 2 porções de 12,50, serviço de 10%, 1 pessoa com couvert de 5
+  const b = calcularBaixa({
+    linhas: [
+      { preco: 20, quantidade: 1 },
+      { preco: 12.5, quantidade: 2 },
+    ],
+    pessoas: 1,
+    couvertPorPessoa: 5,
+    taxaServicoPercentual: 10,
+    cobrarServico: true,
+  });
+  assert.deepEqual(b, { itens: 45, servico: 4.5, couvert: 5, total: 54.5 });
+  const semServico = calcularBaixa({
+    linhas: [{ preco: 20, quantidade: 1 }],
+    pessoas: 0,
+    couvertPorPessoa: 5,
+    taxaServicoPercentual: 10,
+    cobrarServico: false,
+  });
+  assert.deepEqual(semServico, { itens: 20, servico: 0, couvert: 0, total: 20 });
+  // meio centavo arredonda para cima
+  assert.equal(
+    calcularBaixa({
+      linhas: [{ preco: 40.15, quantidade: 1 }],
+      pessoas: 0,
+      couvertPorPessoa: 0,
+      taxaServicoPercentual: 10,
+      cobrarServico: true,
+    }).servico,
+    4.02,
+  );
+});
+
+test("serviço acumulado: duas baixas somam o serviço da conta inteira (sem perder centavo)", () => {
+  const base = { pessoas: 0, couvertPorPessoa: 0, taxaServicoPercentual: 10, cobrarServico: true };
+  // dois itens de R$ 10,05: o serviço da conta é 2,01; separado seria 1,01 + 1,01 = 2,02
+  const primeira = calcularBaixa({ ...base, linhas: [{ preco: 10.05, quantidade: 1 }] });
+  assert.deepEqual(primeira, { itens: 10.05, servico: 1.01, couvert: 0, total: 11.06 });
+  const segunda = calcularBaixa({
+    ...base,
+    linhas: [{ preco: 10.05, quantidade: 1 }],
+    baseAnterior: 10.05,
+  });
+  assert.deepEqual(segunda, { itens: 10.05, servico: 1, couvert: 0, total: 11.05 });
+  assert.equal(
+    primeira.total + segunda.total,
+    calcularConta({
+      subtotal: 20.1,
+      pessoas: null,
+      couvertPorPessoa: 0,
+      taxaServicoPercentual: 10,
+      cobrarServico: true,
+      desconto: 0,
+    }).total,
+  );
 });

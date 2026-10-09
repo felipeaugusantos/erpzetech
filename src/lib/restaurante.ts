@@ -50,6 +50,8 @@ export type ContaEntrada = {
   taxaServicoPercentual: number;
   cobrarServico: boolean;
   desconto: number;
+  /** já recebido em baixas parciais */
+  jaPago?: number;
 };
 
 const arredonda = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -71,6 +73,10 @@ export function calcularConta(e: ContaEntrada) {
   // o banco recusa desconto acima do total da conta: a tela avisa em vez de fechar em silêncio
   const descontoExcede = desconto > bruto;
   const total = bruto - Math.min(desconto, bruto);
+  const jaPago = centavos(e.jaPago ?? 0);
+  // o fechamento cobra só o saldo; se o já recebido passa do total (ex.: desconto depois da baixa), não fecha
+  const pagoExcede = jaPago > total;
+  const restante = Math.max(total - jaPago, 0);
   return {
     subtotal: reais(subtotal),
     couvert: reais(couvert),
@@ -79,6 +85,9 @@ export function calcularConta(e: ContaEntrada) {
     desconto: reais(desconto),
     descontoExcede,
     total: reais(total),
+    jaPago: reais(jaPago),
+    restante: reais(restante),
+    pagoExcede,
   };
 }
 
@@ -115,4 +124,34 @@ export function validarOpcoes(
 export function minutosDesde(iso: string | null | undefined, agora: Date = new Date()): number {
   if (!iso) return 0;
   return Math.max(Math.floor((agora.getTime() - new Date(iso).getTime()) / 60000), 0);
+}
+
+export type LinhaBaixa = { preco: number; quantidade: number };
+
+/** Valor de uma baixa por itens: unidades escolhidas, serviço proporcional e couvert de quem sai. */
+export function calcularBaixa(e: {
+  linhas: LinhaBaixa[];
+  pessoas: number;
+  couvertPorPessoa: number;
+  taxaServicoPercentual: number;
+  cobrarServico: boolean;
+  /** soma dos itens já pagos em baixas anteriores (base do serviço acumulado) */
+  baseAnterior?: number;
+}) {
+  const itens = e.linhas.reduce(
+    (s, l) => s + Math.round((l.quantidade * l.preco + Number.EPSILON) * 100),
+    0,
+  );
+  const pontos = Math.round(e.taxaServicoPercentual * 100);
+  // serviço acumulado, como no banco: o do total pago até agora menos o do total pago antes
+  const antes = centavos(e.baseAnterior ?? 0);
+  const meio = (c: number) => Math.floor((c * pontos + 5000) / 10000);
+  const servico = e.cobrarServico ? meio(antes + itens) - meio(antes) : 0;
+  const couvert = Math.max(Math.floor(e.pessoas), 0) * centavos(e.couvertPorPessoa);
+  return {
+    itens: reais(itens),
+    servico: reais(servico),
+    couvert: reais(couvert),
+    total: reais(itens + servico + couvert),
+  };
 }
