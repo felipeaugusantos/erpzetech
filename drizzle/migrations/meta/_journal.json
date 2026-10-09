@@ -71,6 +71,13 @@
       "when": 1791568072060,
       "tag": "0009_restaurante_salao",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791568110143,
+      "tag": "0010_tef_modo_simulado",
+      "breakpoints": true
     }
   ]
 }
