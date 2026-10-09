@@ -779,6 +779,8 @@ export type Database = {
           nome: string
           observacao: string | null
           opcoes: Json
+          pagante: string | null
+          pago_em: string | null
           preco_unitario: number
           pronto_em: string | null
           quantidade: number
@@ -801,6 +803,8 @@ export type Database = {
           nome: string
           observacao?: string | null
           opcoes?: Json
+          pagante?: string | null
+          pago_em?: string | null
           preco_unitario: number
           pronto_em?: string | null
           quantidade: number
@@ -823,6 +827,8 @@ export type Database = {
           nome?: string
           observacao?: string | null
           opcoes?: Json
+          pagante?: string | null
+          pago_em?: string | null
           preco_unitario?: number
           pronto_em?: string | null
           quantidade?: number
@@ -861,6 +867,7 @@ export type Database = {
           forma: Database["public"]["Enums"]["forma_pagamento"]
           id: string
           pagante: string | null
+          parcial: boolean
           tenant_id: string
           usuario_id: string | null
           valor: number
@@ -871,6 +878,7 @@ export type Database = {
           forma: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           pagante?: string | null
+          parcial?: boolean
           tenant_id: string
           usuario_id?: string | null
           valor: number
@@ -881,6 +889,7 @@ export type Database = {
           forma?: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
           pagante?: string | null
+          parcial?: boolean
           tenant_id?: string
           usuario_id?: string | null
           valor?: number
@@ -921,6 +930,7 @@ export type Database = {
           numero: number
           observacao: string | null
           pessoas: number | null
+          pessoas_pagas: number
           situacao: string
           subtotal: number
           taxa_servico: number
@@ -947,6 +957,7 @@ export type Database = {
           numero: number
           observacao?: string | null
           pessoas?: number | null
+          pessoas_pagas?: number
           situacao?: string
           subtotal?: number
           taxa_servico?: number
@@ -973,6 +984,7 @@ export type Database = {
           numero?: number
           observacao?: string | null
           pessoas?: number | null
+          pessoas_pagas?: number
           situacao?: string
           subtotal?: number
           taxa_servico?: number
@@ -6931,6 +6943,18 @@ export type Database = {
         Returns: string
       }
       restaurante_operador: { Args: never; Returns: boolean }
+      restaurante_receber_parcial: {
+        Args: {
+          p_caixa_id: string
+          p_cobrar_servico?: boolean
+          p_comanda_id: string
+          p_itens?: Json
+          p_pagamentos: Json
+          p_pagante?: string
+          p_pessoas?: number
+        }
+        Returns: Json
+      }
       restaurante_transferir_mesa: {
         Args: { p_comanda_id: string; p_mesa_destino: string }
         Returns: undefined
