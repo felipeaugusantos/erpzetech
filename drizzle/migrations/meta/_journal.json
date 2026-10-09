@@ -29,6 +29,13 @@
       "when": 1791567755790,
       "tag": "0003_has_role_por_tenant",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791567776607,
+      "tag": "0004_caixas_auditoria_politicas",
+      "breakpoints": true
     }
   ]
 }
