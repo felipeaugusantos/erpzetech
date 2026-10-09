@@ -51,7 +51,7 @@ function Salao() {
     queryKey: [CHAVE_REST, "salao"],
     queryFn: async () => {
       const [mesas, comandas] = await Promise.all([
-        tabela("mesas").select("*").eq("ativa", true),
+        tabela("mesas").select("*"),
         tabela("comandas").select("*").eq("situacao", "aberta").order("aberta_em"),
       ]);
       if (mesas.error) throw new Error(mesas.error.message);
@@ -103,8 +103,9 @@ function Salao() {
       />
     );
 
-  const mesas = data?.mesas ?? [];
-  const mesasLivres = mesas.filter((m) => !porMesa.has(m.id));
+  // mesa desativada some do mapa, menos enquanto ainda tem comanda aberta (senão ela ficaria inacessível)
+  const mesas = (data?.mesas ?? []).filter((m) => m.ativa || porMesa.has(m.id));
+  const mesasLivres = mesas.filter((m) => m.ativa && !porMesa.has(m.id));
   const avulsas = (data?.comandas ?? []).filter((c) => !c.mesa_id);
 
   return (

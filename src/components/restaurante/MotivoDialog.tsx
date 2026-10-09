@@ -29,14 +29,15 @@ export function MotivoDialog({
 }) {
   const [motivo, setMotivo] = useState("");
   const faltaMotivo = obrigatorio && !motivo.trim();
+  const voltar = () => {
+    setMotivo("");
+    onFechar();
+  };
   return (
     <Dialog
       open={aberto}
       onOpenChange={(o) => {
-        if (!o) {
-          setMotivo("");
-          onFechar();
-        }
+        if (!o) voltar();
       }}
     >
       <DialogContent className="max-w-md">
@@ -48,7 +49,7 @@ export function MotivoDialog({
           <Textarea id="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onFechar}>
+          <Button variant="outline" onClick={voltar}>
             Voltar
           </Button>
           <Button

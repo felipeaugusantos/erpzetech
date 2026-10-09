@@ -32,6 +32,18 @@ export function AbrirComandaDialog({
   const [taxa, setTaxa] = useState("10");
   const [couvert, setCouvert] = useState("0");
 
+  // cada abertura começa dos padrões: serviço e couvert da mesa anterior não podem vazar para a próxima
+  const reiniciar = () => {
+    setPessoas("");
+    setCliente("");
+    setTaxa("10");
+    setCouvert("0");
+  };
+  const fechar = () => {
+    reiniciar();
+    onFechar();
+  };
+
   const abrir = useMutation({
     mutationFn: async () => {
       const qtd = pessoas.trim() ? Number(pessoas) : null;
@@ -48,15 +60,14 @@ export function AbrirComandaDialog({
     onSuccess: (id) => {
       toast.success(mesa ? `Mesa ${mesa.numero} aberta` : "Comanda avulsa aberta");
       void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
-      setPessoas("");
-      setCliente("");
+      reiniciar();
       onAberta(id);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <Dialog open={aberto} onOpenChange={(o) => !o && onFechar()}>
+    <Dialog open={aberto} onOpenChange={(o) => !o && fechar()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -100,7 +111,7 @@ export function AbrirComandaDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onFechar}>
+          <Button variant="outline" onClick={fechar}>
             Cancelar
           </Button>
           <Button onClick={() => abrir.mutate()} disabled={abrir.isPending}>
