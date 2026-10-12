@@ -8,7 +8,8 @@ export const getRouter = () => {
   if (typeof window !== "undefined") onlineManager.setOnline(navigator.onLine);
   // Os dados ficam 24 h na memória (e salvos no computador), para as telas abrirem sem internet.
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { gcTime: 1000 * 60 * 60 * 24 } },
+    // ações nunca ficam paradas esperando: a frente de caixa guarda a venda e as demais avisam o erro
+    defaultOptions: { queries: { gcTime: 1000 * 60 * 60 * 24 }, mutations: { networkMode: "always" } },
   });
 
   const router = createRouter({
