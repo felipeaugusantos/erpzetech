@@ -200,8 +200,8 @@ function MockupPdv() {
 }
 
 function Landing() {
-  const [ativo, setAtivo] = useState(segmentos[0].id);
-  const seg = segmentos.find((s) => s.id === ativo) ?? segmentos[0];
+  const [ativo, setAtivo] = useState("varejo");
+  const seg = segmentos.find((s) => s.id === ativo) ?? segmentos[0]!;
 
   return (
     <div className="min-h-screen">
