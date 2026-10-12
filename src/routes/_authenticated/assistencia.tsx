@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ListChecks, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
+import { ListChecks, Pencil, Stethoscope, Plus, Search, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +139,8 @@ function Assistencia() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todas");
   const [aberto, setAberto] = useState(false);
+  // abertura (recepção) e atendimento técnico são etapas separadas da OS
+  const [modo, setModo] = useState<"abertura" | "tecnico">("abertura");
   const [form, setForm] = useState<Form>(vazio);
   const [osAberta, setOsAberta] = useState<string | null>(null);
   const [item, setItem] = useState<ItemForm>(itemVazio);
@@ -314,6 +316,32 @@ function Assistencia() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  function editar(o: (typeof ordens)[number], m: "abertura" | "tecnico") {
+    setForm({
+                            id: o.id,
+                            cliente_id: o.cliente_id ?? "",
+                            equipamento: o.equipamento,
+                            marca: o.marca ?? "",
+                            modelo: o.modelo ?? "",
+                            numero_serie: o.numero_serie ?? "",
+                            acessorios: o.acessorios ?? "",
+                            defeito_relatado: o.defeito_relatado ?? "",
+                            diagnostico: o.diagnostico ?? "",
+                            laudo: o.laudo ?? "",
+                            tecnico_nome: o.tecnico_nome ?? "",
+                            tecnico_id: o.tecnico_id ?? "",
+                            prioridade: o.prioridade,
+                            situacao: o.situacao,
+                            previsao: o.previsao ?? "",
+                            garantia_dias: String(o.garantia_dias ?? 90),
+                            horas_trabalhadas: String(o.horas_trabalhadas ?? 0),
+                            desconto: String(o.desconto ?? 0),
+                            observacoes: o.observacoes ?? "",
+                          });
+    setModo(m);
+    setAberto(true);
+  }
+
   const andamento = ordens.filter((o) => !["entregue", "cancelada"].includes(o.situacao));
 
   return (
@@ -325,6 +353,7 @@ function Assistencia() {
           <Button
             onClick={() => {
               setForm(vazio);
+              setModo("abertura");
               setAberto(true);
             }}
           >
@@ -389,7 +418,8 @@ function Assistencia() {
             <Button
               onClick={() => {
                 setForm(vazio);
-                setAberto(true);
+                setModo("abertura");
+              setAberto(true);
               }}
             >
               <Plus className="size-4" /> Nova ordem
@@ -454,35 +484,11 @@ function Assistencia() {
                       <Button variant="ghost" size="sm" onClick={() => setOsAberta(o.id)}>
                         <ListChecks className="size-4" /> Peças e serviços
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setForm({
-                            id: o.id,
-                            cliente_id: o.cliente_id ?? "",
-                            equipamento: o.equipamento,
-                            marca: o.marca ?? "",
-                            modelo: o.modelo ?? "",
-                            numero_serie: o.numero_serie ?? "",
-                            acessorios: o.acessorios ?? "",
-                            defeito_relatado: o.defeito_relatado ?? "",
-                            diagnostico: o.diagnostico ?? "",
-                            laudo: o.laudo ?? "",
-                            tecnico_nome: o.tecnico_nome ?? "",
-                            tecnico_id: o.tecnico_id ?? "",
-                            prioridade: o.prioridade,
-                            situacao: o.situacao,
-                            previsao: o.previsao ?? "",
-                            garantia_dias: String(o.garantia_dias ?? 90),
-                            horas_trabalhadas: String(o.horas_trabalhadas ?? 0),
-                            desconto: String(o.desconto ?? 0),
-                            observacoes: o.observacoes ?? "",
-                          });
-                          setAberto(true);
-                        }}
-                      >
-                        <Pencil className="size-4" /> Editar
+                      <Button variant="ghost" size="sm" onClick={() => editar(o, "tecnico")}>
+                        <Stethoscope className="size-4" /> Atendimento técnico
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => editar(o, "abertura")}>
+                        <Pencil className="size-4" /> Abertura
                       </Button>
                     </div>
                   </TableCell>
@@ -497,10 +503,16 @@ function Assistencia() {
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {form.id ? "Editar ordem de serviço" : "Nova ordem de serviço"}
+              {modo === "tecnico"
+                ? "Atendimento técnico — diagnóstico e solução"
+                : form.id
+                  ? "Abertura da ordem de serviço"
+                  : "Nova ordem de serviço"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
+            {modo === "abertura" ? (
+              <>
             <div className="sm:col-span-2">
               <Label>Cliente</Label>
               <ClienteCombobox
@@ -553,6 +565,44 @@ function Assistencia() {
                 onChange={(e) => setForm({ ...form, defeito_relatado: e.target.value })}
               />
             </div>
+            <div>
+              <Label>Prioridade</Label>
+              <Select
+                value={form.prioridade}
+                onValueChange={(v) => setForm({ ...form, prioridade: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="urgente">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Previsão de entrega</Label>
+              <Input
+                type="date"
+                value={form.previsao}
+                onChange={(e) => setForm({ ...form, previsao: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Observações</Label>
+              <Input
+                value={form.observacoes}
+                onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+              />
+            </div>
+              </>
+            ) : (
+              <>
+            <div className="sm:col-span-2 rounded-md bg-secondary/60 p-3 text-sm">
+              <p className="font-medium">{form.equipamento} {form.marca} {form.modelo}</p>
+              <p className="text-muted-foreground">Defeito relatado: {form.defeito_relatado || "—"}</p>
+            </div>
             <div className="sm:col-span-2">
               <Label>Diagnóstico técnico</Label>
               <Textarea
@@ -597,22 +647,6 @@ function Assistencia() {
               </p>
             </div>
             <div>
-              <Label>Prioridade</Label>
-              <Select
-                value={form.prioridade}
-                onValueChange={(v) => setForm({ ...form, prioridade: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="baixa">Baixa</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="urgente">Urgente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label>Situação</Label>
               <Select
                 value={form.situacao}
@@ -629,14 +663,6 @@ function Assistencia() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Previsão de entrega</Label>
-              <Input
-                type="date"
-                value={form.previsao}
-                onChange={(e) => setForm({ ...form, previsao: e.target.value })}
-              />
             </div>
             <div>
               <Label>Garantia (dias)</Label>
@@ -659,13 +685,8 @@ function Assistencia() {
                 onChange={(e) => setForm({ ...form, desconto: e.target.value })}
               />
             </div>
-            <div className="sm:col-span-2">
-              <Label>Observações</Label>
-              <Input
-                value={form.observacoes}
-                onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-              />
-            </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>
