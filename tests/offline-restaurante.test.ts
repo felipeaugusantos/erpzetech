@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import { totalOffline, type ComandaOffline } from "../src/lib/offline-restaurante";
 
@@ -21,10 +22,10 @@ const base: ComandaOffline = {
 
 describe("conta de comanda feita sem internet", () => {
   it("salão soma 10% de serviço igual ao banco", () => {
-    expect(totalOffline(base, true)).toBe(61.38);
+    assert.equal(totalOffline(base, true), 61.38);
   });
   it("salão sem serviço cobra só os itens", () => {
-    expect(totalOffline(base, false)).toBe(55.8);
+    assert.equal(totalOffline(base, false), 55.8);
   });
   it("delivery soma a taxa de entrega e não cobra serviço", () => {
     const d: ComandaOffline = {
@@ -33,6 +34,6 @@ describe("conta de comanda feita sem internet", () => {
       taxa_servico: 0,
       delivery: { cliente: "Ana", telefone: "", endereco: "Rua A, 1", bairro: "", taxa: 7, pagamento: "dinheiro" },
     };
-    expect(totalOffline(d, true)).toBe(62.8);
+    assert.equal(totalOffline(d, true), 62.8);
   });
 });
