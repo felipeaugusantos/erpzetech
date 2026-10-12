@@ -272,7 +272,15 @@ function FrenteCaixa() {
     },
   });
   const produtos = base?.produtos ?? [];
-  const [depositoId, setDepositoId] = useState("");
+  const [depositoId, setDepositoIdState] = useState("");
+  // o depósito escolhido fica guardado no computador (vale também ao reabrir sem internet)
+  useEffect(() => {
+    setDepositoIdState(localStorage.getItem("fc-deposito") ?? "");
+  }, []);
+  const setDepositoId = (id: string) => {
+    setDepositoIdState(id);
+    localStorage.setItem("fc-deposito", id);
+  };
   const deposito =
     base?.depositos.find((d) => d.id === depositoId) ??
     base?.depositos.find(
