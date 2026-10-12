@@ -130,7 +130,7 @@ function FrenteCaixa() {
     em: string;
     total: number;
     params: Record<string, unknown>;
-    erro?: string;
+    erro?: string | undefined;
   };
   const [esperas, setEsperas] = useState<Espera[]>([]);
   const [fila, setFila] = useState<Pendente[]>([]);
