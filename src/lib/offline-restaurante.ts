@@ -111,3 +111,42 @@ export async function sincronizarComandasOffline(): Promise<{ enviadas: number; 
   salvarComandasOffline(restantes);
   return { enviadas, recusadas };
 }
+
+/** Atualiza a cópia de mesas, cardápio e caixas usada sem internet. */
+export async function atualizarBaseRestauranteOffline(): Promise<void> {
+  if (!navigator.onLine) return;
+  const de = (t: string) => supabase.from(t as never);
+  const [mesas, itens, caixas] = await Promise.all([
+    de("mesas").select("id, numero, ativa"),
+    de("cardapio_itens").select("id, nome, preco, ativo, interno").order("nome"),
+    supabase.from("caixas").select("id, numero, filial_id").eq("situacao", "aberto"),
+  ]);
+  if (mesas.error || itens.error || caixas.error) return;
+  const base: BaseRestauranteOffline = {
+    mesas: ((mesas.data ?? []) as unknown as (MesaOffline & { ativa: boolean })[])
+      .filter((m) => m.ativa)
+      .map((m) => ({ id: m.id, numero: m.numero }))
+      .sort((a, b) => a.numero.localeCompare(b.numero, "pt-BR", { numeric: true })),
+    itens: (
+      (itens.data ?? []) as unknown as (ItemCardapioOffline & { ativo: boolean; interno: boolean })[]
+    )
+      .filter((i) => i.ativo && !i.interno)
+      .map((i) => ({ id: i.id, nome: i.nome, preco: Number(i.preco) })),
+    caixas: (caixas.data ?? []).map((c) => ({
+      id: c.id,
+      numero: Number(c.numero),
+      filial_id: c.filial_id,
+    })),
+    taxaServico: 10,
+  };
+  localStorage.setItem("zt-base-restaurante", JSON.stringify(base));
+}
+
+export function lerBaseRestauranteOffline(): BaseRestauranteOffline | null {
+  try {
+    const t = localStorage.getItem("zt-base-restaurante");
+    return t ? (JSON.parse(t) as BaseRestauranteOffline) : null;
+  } catch {
+    return null;
+  }
+}
