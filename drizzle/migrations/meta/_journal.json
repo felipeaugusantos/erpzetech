@@ -113,6 +113,13 @@
       "when": 1791568478087,
       "tag": "0015_restaurante_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791769385335,
+      "tag": "0016_restaurante_sincronizar_offline",
+      "breakpoints": true
     }
   ]
 }

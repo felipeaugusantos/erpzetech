@@ -1005,6 +1005,7 @@ export type Database = {
           motivo_cancelamento: string | null
           numero: number
           observacao: string | null
+          offline_id: string | null
           pessoas: number | null
           pessoas_pagas: number
           saiu_em: string | null
@@ -1045,6 +1046,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           numero: number
           observacao?: string | null
+          offline_id?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
           saiu_em?: string | null
@@ -1085,6 +1087,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           numero?: number
           observacao?: string | null
+          offline_id?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
           saiu_em?: string | null
@@ -7168,6 +7171,7 @@ export type Database = {
         }
         Returns: Json
       }
+      restaurante_sincronizar_offline: { Args: { p: Json }; Returns: Json }
       restaurante_transferir_mesa: {
         Args: { p_comanda_id: string; p_mesa_destino: string }
         Returns: undefined

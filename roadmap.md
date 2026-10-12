@@ -55,7 +55,7 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [ ] SPED Fiscal e Contribuições e exportação de arquivos para a contabilidade
 - [ ] Importação em massa por planilha: produtos, clientes e saldos de estoque (hoje só cotações)
 - [ ] Integrações: e-commerce e marketplaces, WhatsApp automático, API pública e webhooks
-- [ ] PDV offline com fila de vendas (hoje o service worker só mostra página de "sem internet")
+- [x] Trabalho sem internet: frente de caixa, salão e delivery abrem sem conexão (páginas guardadas no aparelho), vendas e comandas ficam salvas e são enviadas ao voltar; venda recusada fica guardada para resolver; tela "Conferência sem internet" com saldo de estoque e caixa
 - [ ] CT-e e MDF-e para clientes com frota e transporte de terceiros
 - [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e (item pendente da Rodada 4)
 
