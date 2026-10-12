@@ -15,12 +15,14 @@ const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
     ],
   },
   assistencia: {
-    prefixos: ["95", "3314", "3319", "4520", "4543"],
+    prefixos: ["95", "3314", "3319", "4321", "4322", "4520", "4543"],
     exemplos: [
       "95.11-8 — Reparação e manutenção de computadores",
       "95.21-5 — Reparação de equipamentos de áudio e vídeo",
       "95.29-1 — Reparação de objetos e equipamentos pessoais e domésticos",
       "33.14-7 — Manutenção e reparação de máquinas e equipamentos",
+      "43.21-5 — Instalação e manutenção elétrica (inclui CFTV)",
+      "43.22-3 — Instalação de ar-condicionado e ventilação",
       "45.20-0 — Manutenção e reparação de veículos automotores",
     ],
   },
