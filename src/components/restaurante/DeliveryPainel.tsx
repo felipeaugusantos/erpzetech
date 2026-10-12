@@ -184,7 +184,8 @@ export function DeliveryPainel({
         </div>
       )}
 
-      {aberta && (
+      {/* conta já paga (online/balcão) ainda precisa sair e ser entregue */}
+      {comanda.situacao !== "cancelada" && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {comanda.entrega_situacao === "aguardando" && (
             <>
