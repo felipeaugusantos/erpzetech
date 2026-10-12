@@ -44,6 +44,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { useSincronizacaoOffline } from "@/hooks/useSincronizacaoOffline";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
@@ -108,6 +109,7 @@ const groups: Group[] = [
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
       { label: "Transferência entre lojas", to: "/transferencias", icon: ArrowLeftRight },
       { label: "Relatório de estoque", to: "/relatorio-estoque", icon: Warehouse },
+      { label: "Conferência sem internet", to: "/conferencia-offline", icon: Wallet },
 
       { label: "Depósitos", to: "/depositos", icon: Warehouse },
     ],
@@ -217,6 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data } = useSessionData();
   // Aplica a cor da marca da loja assim que o sistema abre.
   useTemaEmpresa();
+  useSincronizacaoOffline();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });

@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import {
   Outlet,
   Link,
@@ -157,10 +159,20 @@ function RootComponent() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24, buster: "zt-1" }}
+    >
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="top-right" richColors />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
+
+// Guarda no computador os dados já carregados, para as telas abrirem sem internet.
+const persister = createSyncStoragePersister({
+  storage: typeof window === "undefined" ? undefined : window.localStorage,
+  key: "zt-dados",
+  throttleTime: 2000,
+});

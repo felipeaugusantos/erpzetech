@@ -3,7 +3,10 @@ import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
-  const queryClient = new QueryClient();
+  // Os dados ficam 24 h na memória (e salvos no computador), para as telas abrirem sem internet.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { gcTime: 1000 * 60 * 60 * 24 } },
+  });
 
   const router = createRouter({
     routeTree,
