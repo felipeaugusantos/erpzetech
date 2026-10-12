@@ -8,6 +8,8 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { AbrirComandaDialog } from "@/components/restaurante/AbrirComandaDialog";
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
+import { RestauranteOffline } from "@/components/restaurante/RestauranteOffline";
+import { useOnline } from "@/lib/offline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
@@ -43,6 +45,7 @@ function Salao() {
   const modulos = useModulosCnae();
   const roles = session?.roles ?? [];
   const agora = useRelogio();
+  const online = useOnline();
   const [abrindo, setAbrindo] = useState<{ mesa: Mesa | null } | null>(null);
   const [comandaAberta, setComandaAberta] = useState<string | null>(null);
   const [leitura, setLeitura] = useState("");
@@ -110,6 +113,13 @@ function Salao() {
     };
   };
 
+  if (!online)
+    return (
+      <>
+        <PageHeader title="PDV do restaurante" description="Modo sem internet" />
+        <RestauranteOffline modo="salao" />
+      </>
+    );
   if (session && !modulos.carregando && !modulos.restaurante)
     return <ModuloBloqueado modulo="restaurante" />;
   if (session && !roles.some((r) => PERFIS_SALAO.includes(r)))
