@@ -134,6 +134,13 @@
       "when": 1791987851330,
       "tag": "0018_obra_historico_romaneio",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791988080653,
+      "tag": "0019_compra_de_sugestao_revisada",
+      "breakpoints": true
     }
   ]
 }

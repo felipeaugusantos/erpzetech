@@ -6853,6 +6853,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      compra_criar_de_sugestao: {
+        Args: {
+          p_deposito_id: string
+          p_fornecedor_id: string
+          p_itens: Json
+          p_observacao?: string
+        }
+        Returns: string
+      }
       compra_escolher_cotacao: {
         Args: { p_cotacao_id: string }
         Returns: undefined
