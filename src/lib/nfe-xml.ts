@@ -11,6 +11,10 @@ export type NfeXmlItem = {
   quantidade: number;
   custo_unitario: number;
   total: number;
+  /** Lote do fabricante (<rastro><nLote>) e tonalidade/calibre lidos de <infAdProd>. */
+  lote: string | null;
+  tonalidade: string | null;
+  calibre: string | null;
 };
 
 export type NfeXmlFornecedor = {
@@ -110,6 +114,7 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
       quantidade: qtd,
       custo_unitario: unit,
       total: numero(prod, "vProd") || Number((qtd * unit).toFixed(2)),
+      ...loteDoItem(det ?? null),
     });
   }
 
@@ -155,5 +160,19 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
       nome: texto(dest, "xNome"),
     },
     itens,
+  };
+}
+
+/** Lê lote de <rastro><nLote> (ou "LOTE: X" em infAdProd) e "TONALIDADE/TOM: X", "CALIBRE: X". */
+export function loteDoItem(det: Element | null) {
+  const rastro = det?.getElementsByTagName("rastro")[0] ?? null;
+  const ad = det?.getElementsByTagName("infAdProd")[0]?.textContent ?? "";
+  const pega = (re: RegExp) => ad.match(re)?.[1]?.trim() || null;
+  return {
+    lote:
+      rastro?.getElementsByTagName("nLote")[0]?.textContent?.trim() ||
+      pega(/lote[:\s]+([\w\-./]+)/i),
+    tonalidade: pega(/(?:tonalidade|tom|ton)[:\s.]+([\w-]+)/i),
+    calibre: pega(/(?:calibre|cal)[:\s.]+([\w-]+)/i),
   };
 }

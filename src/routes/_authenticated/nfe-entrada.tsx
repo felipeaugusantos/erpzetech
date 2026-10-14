@@ -220,6 +220,35 @@ function NfeEntrada() {
         ...(vencimento ? { p_vencimento: vencimento } : {}),
       });
       if (error) throw error;
+      // Itens com lote no XML: dá entrada no lote/tonalidade e marca o produto como controlado por lote.
+      for (const i of lida.itens) {
+        if (!i.lote) continue;
+        let prodId = mapa[i.seq] && mapa[i.seq] !== NOVO ? mapa[i.seq] : null;
+        if (!prodId) {
+          const q = supabase
+            .from("produtos")
+            .select("id")
+            .order("created_at", { ascending: false })
+            .limit(1);
+          const { data: p } = i.codigo_barras
+            ? await q.eq("codigo_barras", i.codigo_barras)
+            : await q.eq("descricao", i.descricao);
+          prodId = p?.[0]?.id ?? null;
+        }
+        if (!prodId) continue;
+        await supabase.from("produtos").update({ controla_lote: true }).eq("id", prodId);
+        const { error: e2 } = await supabase.rpc("estoque_lote_lancar", {
+          p_produto_id: prodId,
+          p_deposito_id: depositoId,
+          p_lote: i.lote,
+          p_tonalidade: i.tonalidade ?? "",
+          p_calibre: i.calibre ?? "",
+          p_tipo: "entrada",
+          p_quantidade: i.quantidade,
+          p_documento: `NF-e ${lida.nota.numero ?? ""}`,
+        });
+        if (e2) toast.error(`Lote ${i.lote}: ${e2.message}`);
+      }
       return data as { compra_id: string; numero: number; produtos_criados: number };
     },
     onSuccess: (res) => {
