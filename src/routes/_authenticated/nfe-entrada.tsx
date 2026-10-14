@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
-import { lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
+import { custosComImpostos, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
