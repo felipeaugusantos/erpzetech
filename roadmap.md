@@ -123,3 +123,9 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Tela "Lotes sem internet" (`/lotes-offline`) com saldo e histórico
 - [ ] Baixar o saldo do lote automaticamente na saída do pedido e preencher lote na importação do XML
 - [ ] Teste do app do motorista "não entregue" (nenhum motorista tem login e nenhuma entrega está em rota)
+
+## Fase 0 — Diagnóstico e estabilização
+- [x] Mapa dos fluxos, núcleo compartilhado, revisão de papéis, empresa e filial, gravações em etapas e trabalho sem internet: `docs/diagnostico-fase-0.md`
+- [x] Script que repete a verificação de papéis e de isolamento entre empresas: `docs/fase-0/verificacao-papeis-e-tenant.sql`
+- [ ] P0: papéis no banco (R1), nota fiscal (R2), comissão entre empresas (R3), venda offline duplicada (R4)
+- [ ] P1: referências entre empresas (R5), criação de cliente SaaS e troca de papéis sem desfazer (R6, R7), regime tributário ao salvar a empresa (R8)
