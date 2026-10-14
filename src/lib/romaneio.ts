@@ -94,6 +94,30 @@ export function linhasRomaneio(
   return linhas;
 }
 
+/** O que ainda falta do pedido inteiro depois desta saída, inclusive dos itens que não estão nela. */
+export function pendenteDoPedido(
+  entrega: EntregaRomaneio,
+  entregasDoPedido: EntregaRomaneio[],
+  itens: ItemPedidoRomaneio[],
+): number {
+  const anteriores = entregasDoPedido.filter((e) => veioAntes(e, entrega));
+  const soma = (lista: EntregaRomaneio[], itemId: string) =>
+    lista.reduce(
+      (t, e) =>
+        t +
+        (e.entrega_itens ?? [])
+          .filter((x) => x.pedido_item_id === itemId)
+          .reduce((s, x) => s + n(x.quantidade), 0),
+      0,
+    );
+  return arred(
+    itens.reduce(
+      (t, i) => t + Math.max(n(i.quantidade) - soma(anteriores, i.id) - soma([entrega], i.id), 0),
+      0,
+    ),
+  );
+}
+
 /** Totais do rodapé: quantos itens, quanto sai nesta entrega e quanto ainda falta do pedido. */
 export function totalRomaneio(linhas: LinhaRomaneio[]) {
   return {
@@ -131,6 +155,8 @@ export type DadosRomaneio = {
   endereco?: string | null;
   entrega: EntregaRomaneio;
   linhas: LinhaRomaneio[];
+  /** Falta do pedido inteiro (com os itens que não estão nesta saída); sem isso, soma só as linhas. */
+  pendentePedido?: number;
 };
 
 /** Romaneio em A4 pronto para imprimir: itens, quantidades, data, saldo do pedido e assinaturas. */
@@ -196,10 +222,10 @@ export function htmlRomaneio(d: DadosRomaneio): string {
       <th class="v">Pedido</th><th class="v">Já saiu</th><th class="v">Nesta saída</th><th class="v">Falta depois</th><th class="c">Conf.</th>
     </tr></thead>
     <tbody>${corpo}</tbody>
-    <tfoot><tr><td colspan="6">${total.itens} ${total.itens === 1 ? "item" : "itens"}</td><td class="v">${num(total.quantidade, 3)}</td><td class="v">${num(total.pendente, 3)}</td><td></td></tr></tfoot>
+    <tfoot><tr><td colspan="6">${total.itens} ${total.itens === 1 ? "item" : "itens"}</td><td class="v">${num(total.quantidade, 3)}</td><td class="v">${num(d.pendentePedido ?? total.pendente, 3)}</td><td></td></tr></tfoot>
   </table>
   <div class="obs"><b>Observações:</b> ${escapar(e.observacao ?? "")}</div>
   <div class="ass"><div>Separado por</div><div>Conferido por</div><div>Recebido por (nome, documento, data)</div></div>
-  <p class="rodape">Falta depois = o que ainda resta do pedido depois desta saída. Marque a coluna Conf. ao conferir cada item na doca.</p>
+  <p class="rodape">Falta depois = o que ainda resta do pedido depois desta saída; o total do rodapé inclui os itens que não estão nesta saída. Marque a coluna Conf. ao conferir cada item na doca.</p>
 </body></html>`;
 }

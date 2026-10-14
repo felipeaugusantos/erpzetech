@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
 import { abrirImpressao } from "@/lib/imprimir";
-import { htmlRomaneio, linhasRomaneio, type ItemPedidoRomaneio } from "@/lib/romaneio";
+import {
+  htmlRomaneio,
+  linhasRomaneio,
+  pendenteDoPedido,
+  type ItemPedidoRomaneio,
+} from "@/lib/romaneio";
 import { planejadoPorItem, saldoItem } from "@/lib/saldo-pedido";
 import { useSessionData } from "@/hooks/useSessionData";
 import { Button } from "@/components/ui/button";
@@ -111,6 +116,7 @@ export function PedidoAtendimento({
         endereco: enderecoObra,
         entrega: alvo,
         linhas: linhasRomaneio(alvo, dados, itens as unknown as ItemPedidoRomaneio[]),
+        pendentePedido: pendenteDoPedido(alvo, dados, itens as unknown as ItemPedidoRomaneio[]),
       }),
     );
   };

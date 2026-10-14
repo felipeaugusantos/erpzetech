@@ -35,6 +35,7 @@ import {
   type OcorrenciaObra,
   type PedidoObra,
   type ReagendamentoObra,
+  type TentativaObra,
   type TipoEvento,
 } from "@/lib/historico-obra";
 import { corSituacao, labelSituacao } from "@/lib/pedido";
@@ -131,6 +132,7 @@ function HistoricoObra() {
           entregas: [] as EntregaObra[],
           reagendamentos: [] as ReagendamentoObra[],
           ocorrencias: [] as OcorrenciaObra[],
+          tentativas: [] as TentativaObra[],
           nomes: {} as Record<string, string>,
         };
       const [hist, ent, oco] = await Promise.all([
@@ -153,6 +155,15 @@ function HistoricoObra() {
           ? await supabase.from("entrega_reagendamentos").select("*").in("entrega_id", entregaIds)
           : { data: [], error: null };
       if (rea.error) throw rea.error;
+      // tabela nova: fora dos tipos gerados até o Supabase regenerá-los
+      const ten =
+        entregaIds.length > 0
+          ? await supabase
+              .from("entrega_tentativas" as never)
+              .select("id, entrega_id, motivo, observacao, usuario_id, created_at")
+              .in("entrega_id", entregaIds)
+          : { data: [], error: null };
+      if (ten.error) throw ten.error;
 
       const usuarios = [
         ...new Set(
@@ -161,6 +172,7 @@ function HistoricoObra() {
             ...(ent.data ?? []).map((e) => e.usuario_id),
             ...(oco.data ?? []).map((o) => o.usuario_id),
             ...(rea.data ?? []).map((r) => r.usuario_id),
+            ...((ten.data ?? []) as unknown as TentativaObra[]).map((t) => t.usuario_id),
           ].filter(Boolean),
         ),
       ] as string[];
@@ -174,6 +186,7 @@ function HistoricoObra() {
         entregas: (ent.data ?? []) as unknown as EntregaObra[],
         reagendamentos: (rea.data ?? []) as unknown as ReagendamentoObra[],
         ocorrencias: (oco.data ?? []) as unknown as OcorrenciaObra[],
+        tentativas: (ten.data ?? []) as unknown as TentativaObra[],
         nomes: Object.fromEntries((perfis.data ?? []).map((p) => [p.id, p.nome])) as Record<
           string,
           string

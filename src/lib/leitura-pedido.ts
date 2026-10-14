@@ -4,18 +4,22 @@ import { interpretarBusca } from "./busca-pdv.ts";
 
 export type ProdutoLeitura = { codigo_barras?: string | null; codigo_interno?: string | null };
 
-const semZeros = (v: string) => v.replace(/^0+/, "");
 const soDigitos = (v: string) => v.replace(/\D/g, "");
 
-/** O mesmo produto lido como EAN-13 ou GTIN-14 só difere pelos zeros à esquerda. */
+const TAMANHOS_GTIN = [8, 12, 13, 14];
+
+/**
+ * O mesmo produto lido como EAN-13 ou GTIN-14 só difere pelos zeros à esquerda. Essa equivalência vale só
+ * entre códigos numéricos de tamanho GTIN; códigos internos (123 e 00123 podem ser produtos diferentes)
+ * casam apenas quando são iguais.
+ */
 export function mesmoCodigo(a: string | null | undefined, b: string | null | undefined): boolean {
   const x = (a ?? "").trim();
   const y = (b ?? "").trim();
   if (!x || !y) return false;
   if (x.toLowerCase() === y.toLowerCase()) return true;
-  const dx = soDigitos(x);
-  const dy = soDigitos(y);
-  return dx === x && dy === y && semZeros(dx) !== "" && semZeros(dx) === semZeros(dy);
+  const gtin = (v: string) => v === soDigitos(v) && TAMANHOS_GTIN.includes(v.length);
+  return gtin(x) && gtin(y) && x.padStart(14, "0") === y.padStart(14, "0");
 }
 
 /** Produto cujo código de barras ou código interno é o texto lido. */

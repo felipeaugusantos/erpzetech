@@ -19,6 +19,10 @@ test("EAN-13 e GTIN-14 do mesmo produto são o mesmo código", () => {
   assert.ok(!mesmoCodigo("7891000100103", "7891000100104"));
   assert.ok(!mesmoCodigo("", ""));
   assert.ok(!mesmoCodigo("000", "0"));
+  // códigos internos numéricos só casam quando são iguais
+  assert.ok(!mesmoCodigo("123", "00123"));
+  assert.ok(mesmoCodigo("123", "123"));
+  assert.ok(!mesmoCodigo("123456789", "0123456789"));
 });
 
 test("código interno vale sem diferenciar maiúsculas", () => {

@@ -1156,6 +1156,20 @@ BEGIN
   PERFORM ci.exige((SELECT count(*) FROM entrega_reagendamentos WHERE entrega_id = plan AND motivo = 'chuva prevista'
                        AND data_anterior = current_date + 1 AND data_nova = current_date + 3) = 1, 'reagendamento guarda de, para e motivo');
 
+  -- cada insucesso fica guardado, mesmo depois de reagendar a entrega
+  PERFORM ci.entrar(adm);
+  PERFORM entrega_insucesso(plan, 'Obra fechada');
+  PERFORM entrega_agendar(plan, current_date + 4, NULL, NULL, 'obra reabre');
+  PERFORM entrega_insucesso(plan, 'Cliente ausente');
+  PERFORM entrega_agendar(plan, current_date + 5, NULL, NULL, 'cliente confirmou');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM entregas WHERE id = plan) = 'planejada', 'entrega reagendada volta a planejada');
+  PERFORM ci.exige((SELECT count(*) FROM entrega_tentativas WHERE entrega_id = plan) = 2, 'as duas tentativas que falharam ficam guardadas');
+  PERFORM ci.exige((SELECT array_agg(motivo ORDER BY created_at, motivo) FROM entrega_tentativas WHERE entrega_id = plan) = ARRAY['Cliente ausente', 'Obra fechada'], 'cada tentativa guarda o seu motivo');
+  PERFORM ci.exige(ci.contar(adm, format('SELECT count(*) FROM entrega_tentativas WHERE entrega_id = %L', plan)) = 2, 'gestão lê as tentativas');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM entrega_tentativas') = 0, 'garçom não lê as tentativas');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO entrega_tentativas (tenant_id, entrega_id, motivo) VALUES (%L, %L, 'x')$c$, demo, plan), 'inserir tentativa direto');
+
   -- ocorrências do pedido: avaria pede descrição, substituição pede o produto novo
   PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_ocorrencia(%L, 'avaria', 1, 'entrega')$c$, i_areia), 'avaria sem descrição');
   PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_ocorrencia(%L, 'substituicao', 1, 'entrega')$c$, i_areia), 'substituição sem produto');
@@ -1163,7 +1177,7 @@ BEGIN
   PERFORM pedido_registrar_ocorrencia(i_areia, 'avaria', 1, 'entrega', NULL, 'um m³ contaminado');
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT count(*) FROM pedido_ocorrencias WHERE pedido_id = ped) = 1, 'ocorrência registrada no pedido');
-  PERFORM ci.exige(ci.contar(adm, format('SELECT count(*) FROM entrega_reagendamentos WHERE entrega_id = %L', plan)) = 1, 'gestão lê o histórico de reagendamentos');
+  PERFORM ci.exige(ci.contar(adm, format('SELECT count(*) FROM entrega_reagendamentos WHERE entrega_id = %L', plan)) = 3, 'gestão lê o histórico de reagendamentos');
   PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pedido_ocorrencias') = 0, 'garçom não lê ocorrências');
   PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM entrega_reagendamentos') = 0, 'garçom não lê reagendamentos');
   PERFORM ci.deve_falhar(gar, format($c$SELECT entrega_agendar(%L, current_date + 5, NULL, NULL, 'x')$c$, plan), 'garçom reagenda entrega');

@@ -4,6 +4,7 @@ import {
   dataDoRomaneio,
   htmlRomaneio,
   linhasRomaneio,
+  pendenteDoPedido,
   totalRomaneio,
   type EntregaRomaneio,
   type ItemPedidoRomaneio,
@@ -105,4 +106,13 @@ test("o romaneio impresso traz quantidade, item e data e escapa o texto", () => 
   assert.match(html, /Saída em/);
   assert.match(html, /Recebido por:<\/b> João/);
   assert.doesNotMatch(html, /<média>/);
+});
+
+test("o total que falta considera os itens do pedido que não estão nesta saída", () => {
+  // retirada de 4 sacos de um pedido de 10 sacos + 4 m³ de areia: faltam 6 + 4
+  const so = entrega("s", 1, "entregue", "2026-10-01T12:00:00Z", [["i1", 4]]);
+  assert.equal(pendenteDoPedido(so, [so], itens), 10);
+  // a soma só das linhas da saída esconderia a areia
+  assert.equal(totalRomaneio(linhasRomaneio(so, [so], itens)).pendente, 6);
+  assert.equal(pendenteDoPedido(e2, todas, itens), 2);
 });

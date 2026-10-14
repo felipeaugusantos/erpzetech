@@ -19,6 +19,7 @@ import { abrirImpressao } from "@/lib/imprimir";
 import {
   htmlRomaneio,
   linhasRomaneio,
+  pendenteDoPedido,
   type EntregaRomaneio,
   type ItemPedidoRomaneio,
 } from "@/lib/romaneio";
@@ -154,6 +155,11 @@ function Entregas() {
         endereco: e.endereco_entrega ?? (pedido ? enderecoPedido(pedido as never) : null),
         entrega: e as unknown as EntregaRomaneio,
         linhas: linhasRomaneio(
+          e as unknown as EntregaRomaneio,
+          doPedido as unknown as EntregaRomaneio[],
+          pedido?.pedido_itens ?? [],
+        ),
+        pendentePedido: pendenteDoPedido(
           e as unknown as EntregaRomaneio,
           doPedido as unknown as EntregaRomaneio[],
           pedido?.pedido_itens ?? [],

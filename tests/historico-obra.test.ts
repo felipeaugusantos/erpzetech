@@ -119,7 +119,8 @@ test("retirada direta não gera agendamento, só a saída", () => {
 
 test("entrega agendada mostra data, responsável, rota, reagendamento e insucesso", () => {
   const ag = eventos.find((e) => e.id === "ea-e2")!;
-  assert.match(ag.titulo, /Entrega 0002 agendada para 04\/10\/2026/);
+  // a data do agendamento é a original (03/10); a nova aparece no reagendamento
+  assert.match(ag.titulo, /Entrega 0002 agendada para 03\/10\/2026/);
   assert.equal(ag.detalhe, "Responsável na obra: Mestre Zé");
   const rg = eventos.find((e) => e.id === "rg-r1")!;
   assert.match(rg.titulo, /reagendada de 03\/10\/2026 para 04\/10\/2026/);
@@ -162,4 +163,65 @@ test("filtros por tipo e por pedido", () => {
     filtrarEventos(eventos, { tipos: ["saida", "insucesso"], pedidoNumero: 10 }).length,
     2,
   );
+});
+
+test("cada tentativa que falhou continua na linha do tempo depois de reagendar", () => {
+  const reagendada: EntregaObra = {
+    ...agendada,
+    id: "e9",
+    numero: 9,
+    situacao: "planejada",
+    previsao_data: "2026-10-09",
+    motivo_insucesso: "Cliente ausente",
+  };
+  const ev = montarHistoricoObra({
+    pedidos,
+    historico: [],
+    entregas: [reagendada],
+    reagendamentos: [
+      {
+        id: "x1",
+        entrega_id: "e9",
+        data_anterior: "2026-10-04",
+        data_nova: "2026-10-06",
+        motivo: "obra reabre",
+        usuario_id: null,
+        created_at: "2026-10-04T16:00:00Z",
+      },
+      {
+        id: "x2",
+        entrega_id: "e9",
+        data_anterior: "2026-10-06",
+        data_nova: "2026-10-09",
+        motivo: "cliente confirmou",
+        usuario_id: null,
+        created_at: "2026-10-06T16:00:00Z",
+      },
+    ],
+    ocorrencias: [],
+    tentativas: [
+      {
+        id: "t1",
+        entrega_id: "e9",
+        motivo: "Obra fechada",
+        observacao: null,
+        usuario_id: "u1",
+        created_at: "2026-10-04T15:00:00Z",
+      },
+      {
+        id: "t2",
+        entrega_id: "e9",
+        motivo: "Cliente ausente",
+        observacao: "ninguém atendeu",
+        usuario_id: "u1",
+        created_at: "2026-10-06T15:00:00Z",
+      },
+    ],
+  });
+  const falhas = ev.filter((e) => e.tipo === "insucesso");
+  assert.deepEqual(
+    falhas.map((e) => e.detalhe),
+    ["Obra fechada", "Cliente ausente · ninguém atendeu"],
+  );
+  assert.match(ev.find((e) => e.tipo === "agendamento")!.titulo, /agendada para 04\/10\/2026/);
 });

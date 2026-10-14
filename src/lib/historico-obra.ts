@@ -75,6 +75,14 @@ export type ReagendamentoObra = {
   usuario_id: string | null;
   created_at: string;
 };
+export type TentativaObra = {
+  id: string;
+  entrega_id: string;
+  motivo: string | null;
+  observacao: string | null;
+  usuario_id: string | null;
+  created_at: string;
+};
 export type OcorrenciaObra = {
   id: string;
   pedido_id: string;
@@ -124,6 +132,8 @@ export function montarHistoricoObra(d: {
   entregas: EntregaObra[];
   reagendamentos: ReagendamentoObra[];
   ocorrencias: OcorrenciaObra[];
+  /** Cada vez que uma entrega falhou (a entrega pode ter sido reagendada depois). */
+  tentativas?: TentativaObra[];
 }): EventoObra[] {
   const numeroDe = new Map(d.pedidos.map((p) => [p.id, p.numero]));
   const entregaPorId = new Map(d.entregas.map((e) => [e.id, e]));
@@ -150,7 +160,14 @@ export function montarHistoricoObra(d: {
   for (const e of d.entregas) {
     const numero = numeroDe.get(e.pedido_id) ?? null;
     const base = { pedidoNumero: numero, itens: itensDe(e) };
-    // entrega que foi marcada antes de sair: nasce "planejada" ou com data prevista
+    // `previsao_data` guarda a data mais nova; a do agendamento é a anterior do primeiro reagendamento
+    const primeiroReagendamento = d.reagendamentos
+      .filter((r) => r.entrega_id === e.id)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+    const dataOriginal = primeiroReagendamento
+      ? primeiroReagendamento.data_anterior
+      : e.previsao_data;
+    // entrega marcada antes de sair: nasce "planejada" ou com data prevista
     const planejada =
       e.previsao_data !== null || ["planejada", "em_rota", "insucesso"].includes(e.situacao);
     if (planejada) {
@@ -159,7 +176,7 @@ export function montarHistoricoObra(d: {
         id: `ea-${e.id}`,
         quando: e.created_at,
         tipo: "agendamento",
-        titulo: `${nomeEntrega(e)} agendada para ${e.previsao_data ? dateBR(e.previsao_data) : "data a definir"}`,
+        titulo: `${nomeEntrega(e)} agendada para ${dataOriginal ? dateBR(dataOriginal) : "data a definir"}`,
         detalhe: e.responsavel ? `Responsável na obra: ${e.responsavel}` : null,
         usuarioId: e.usuario_id ?? null,
       });
@@ -188,7 +205,10 @@ export function montarHistoricoObra(d: {
             .join(" · ") || null,
         usuarioId: e.usuario_id ?? null,
       });
-    } else if (e.situacao === "insucesso") {
+    }
+    const tentativas = (d.tentativas ?? []).filter((t) => t.entrega_id === e.id);
+    if (tentativas.length === 0 && e.situacao === "insucesso") {
+      // entrega que falhou antes de existir o registro das tentativas
       eventos.push({
         ...base,
         id: `ei-${e.id}`,
@@ -199,6 +219,21 @@ export function montarHistoricoObra(d: {
         usuarioId: null,
       });
     }
+  }
+
+  for (const t of d.tentativas ?? []) {
+    const e = entregaPorId.get(t.entrega_id);
+    if (!e) continue;
+    eventos.push({
+      id: `ei-${t.id}`,
+      quando: t.created_at,
+      tipo: "insucesso",
+      pedidoNumero: numeroDe.get(e.pedido_id) ?? null,
+      titulo: `${nomeEntrega(e)} sem sucesso`,
+      detalhe: [t.motivo, t.observacao].filter(Boolean).join(" · ") || null,
+      usuarioId: t.usuario_id,
+      itens: itensDe(e),
+    });
   }
 
   for (const r of d.reagendamentos) {
