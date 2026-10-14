@@ -203,7 +203,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | Concluir entrega | administrador, gestor, logística, motorista (só a própria) |
 | Cancelar pedido | administrador, gestor |
 | Gerar contas a receber | administrador, gestor, financeiro, caixa |
-| Emitir e transmitir nota | administrador, gestor, financeiro |
+| Emitir e transmitir nota | administrador, gestor, financeiro, vendedor, caixa (vendedor e caixa incluídos pelo dono para o balcão) |
 | Cancelar nota | administrador, gestor |
 | Abrir e fechar caixa | administrador, gestor, caixa |
 | Ajuste de estoque e inventário | administrador, gestor, estoquista |
@@ -247,8 +247,8 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | Concluir entrega | `entrega_concluir`, `entrega_insucesso`, `entrega_iniciar_rota` | administrador, gestor, logística; motorista só da própria entrega |
 | Receber pagamento do pedido | `pedido_checkout` | administrador, gestor, financeiro, caixa |
 | Gerar contas a receber; lançar e baixar títulos | `gerar_contas_receber`; política de `contas_receber` (ninguém apaga) | administrador, gestor, financeiro, caixa |
-| Emitir nota; recalcular impostos | `gerar_nfe`, `gerar_nfe_agrupada`, `nfe_calcular_impostos`; políticas de `nfe` e `nfe_itens` | administrador, gestor, financeiro |
-| Transmitir e consultar nota | servidor (`nfe-escopo`) | administrador, gestor, financeiro |
+| Emitir nota; recalcular impostos | `gerar_nfe`, `gerar_nfe_agrupada`, `nfe_calcular_impostos`; políticas de `nfe` e `nfe_itens` | administrador, gestor, financeiro, vendedor, caixa (ampliado em 14/10 pelo dono, para a nota do balcão) |
+| Transmitir e consultar nota | servidor (`nfe-escopo`) | administrador, gestor, financeiro, vendedor, caixa |
 | Cancelar nota | servidor | administrador, gestor |
 | Abrir e fechar caixa | `abrir_caixa`, `fechar_caixa` (a frente de caixa mantém a permissão por operador, `pode_abrir_caixa`) | administrador, gestor, caixa |
 | Entrada e ajuste de estoque; inventário | `registrar_movimentacao`, `inventario_aplicar` | administrador, gestor, estoquista |

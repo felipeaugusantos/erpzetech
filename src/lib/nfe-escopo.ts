@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- cliente Supabase injetado pelas funções de servidor */
 // Quem pode operar a nota fiscal e de qual empresa ela é. Fica à parte das funções de servidor para ser testado.
 
-export const PAPEIS_FISCAIS = ["administrador", "gestor", "financeiro"] as const;
+export const PAPEIS_FISCAIS = ["administrador", "gestor", "financeiro", "vendedor", "caixa"] as const;
 
 export const soDigitos = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
@@ -11,7 +11,7 @@ export async function exigirPapelFiscal(supabase: any, userId: string) {
     PAPEIS_FISCAIS.map((r) => supabase.rpc("has_role", { _user_id: userId, _role: r })),
   );
   if (!respostas.some((r: any) => r.data === true)) {
-    throw new Error("Somente administrador, gestor ou financeiro pode operar notas fiscais.");
+    throw new Error("Somente administrador, gestor, financeiro, vendedor ou caixa pode operar notas fiscais.");
   }
   const { data: perfil, error } = await supabase
     .from("profiles")

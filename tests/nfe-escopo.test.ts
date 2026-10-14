@@ -40,17 +40,17 @@ function falso(d: Dados) {
 const nota = { id: "n1", tenant_id: "t1", empresa_id: "e1" };
 const perfil = { tenant_id: "t1", empresa_id: "e1" };
 
-test("motorista, vendedor e estoquista não operam nota fiscal", async () => {
-  for (const papel of ["motorista", "vendedor", "estoquista", "caixa"]) {
+test("motorista, estoquista e logística não operam nota fiscal", async () => {
+  for (const papel of ["motorista", "estoquista", "logistica"]) {
     await assert.rejects(
       carregarNota(falso({ papeis: [papel], perfil, nota }), "n1", "u1"),
-      /Somente administrador, gestor ou financeiro/,
+      /Somente administrador, gestor, financeiro, vendedor ou caixa/,
     );
   }
 });
 
-test("administrador, gestor e financeiro leem a nota da própria empresa", async () => {
-  for (const papel of ["administrador", "gestor", "financeiro"]) {
+test("administrador, gestor, financeiro, vendedor e caixa leem a nota da própria empresa", async () => {
+  for (const papel of ["administrador", "gestor", "financeiro", "vendedor", "caixa"]) {
     const r = await carregarNota(falso({ papeis: [papel], perfil, nota }), "n1", "u1");
     assert.equal(r.id, "n1");
   }
