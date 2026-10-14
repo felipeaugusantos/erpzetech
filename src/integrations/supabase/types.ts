@@ -7160,6 +7160,45 @@ export type Database = {
         }
         Returns: string
       }
+      conferencia_salvar: {
+        Args: { p_itens: Json; p_pedido_id: string }
+        Returns: number
+      }
+      filial_extra_criar: {
+        Args: {
+          p_bairro?: string
+          p_cidade?: string
+          p_cnpj?: string
+          p_codigo?: string
+          p_endereco?: string
+          p_estado?: string
+          p_inscricao_estadual?: string
+          p_nome: string
+          p_numero?: string
+          p_telefone?: string
+        }
+        Returns: string
+      }
+      orcamento_salvar: {
+        Args: {
+          p_cliente_id: string
+          p_condicao?: string
+          p_desconto?: number
+          p_frete?: number
+          p_itens: Json
+          p_obra_id?: string
+          p_observacoes?: string
+          p_prazo?: string
+          p_profissional_id?: string
+          p_validade?: string
+          p_vendedor_id?: string
+        }
+        Returns: string
+      }
+      separacao_salvar: {
+        Args: { p_itens: Json; p_pedido_id: string }
+        Returns: number
+      }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }

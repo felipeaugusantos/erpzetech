@@ -21,7 +21,7 @@ O ponto fraco é o isolamento **entre papéis dentro da mesma empresa**. As tela
 | R7 | Trocar os perfis de um usuário pode deixá-lo sem nenhum perfil | P1 |
 | R8 | Salvar a empresa ignora erro ao gravar o regime tributário da configuração fiscal | P1 |
 | R9 | Duas fontes de migrations; as do Lovable ficaram fora do CI até agora | P1 |
-| R10 | Outras gravações em etapas sem desfazer (filial extra, orçamento, separação, compra) | P2 |
+| R10 | Outras gravações em etapas sem desfazer (filial extra, orçamento, separação, compra) — feito | P2 |
 | R11 | Peças da ordem de serviço não baixam estoque | P2 |
 | R12 | Auditoria cobre 7 tabelas; faltam financeiro, fiscal, empresa e papéis | P2 |
 | R13 | Acesso é por empresa, não por filial (decidido: por filial; feito) | P2 |
@@ -146,10 +146,10 @@ O que já está certo: `user_roles` (ninguém se dá um papel), `fiscal_config` 
 | `criarAdminCliente` (SaaS) | cria empresa → cria usuário → perfil → papel → vínculo no cliente | nada é desfeito: empresa órfã e e-mail preso; repetir cria outra empresa | R6 |
 | `atualizarUsuario` | atualiza perfil → apaga papéis → insere papéis | se o insert falhar, o usuário fica **sem papel** e não entra | R7 |
 | `empresa.tsx` | grava empresa → vincula perfil → grava `fiscal_config` | erro do `fiscal_config` é ignorado: regime tributário diverge do cadastro e a nota sai com o regime antigo | R8 |
-| `filial-extra.tsx` | filial → depósito → configuração fiscal | filial sem depósito ou sem configuração fiscal | R10 |
-| `orcamentos.tsx` | orçamento → itens → recalcular | orçamento vazio ou sem total | R10 |
-| `pedidos.$id.tsx` (separação) | atualiza um item por vez em laço | só parte dos itens fica salva | R10 |
-| `compras.$id.tsx` | altera item → recalcular compra | total desatualizado até a próxima ação (o recálculo é repetível) | R10 |
+| `filial-extra.tsx` | filial → depósito → configuração fiscal | filial sem depósito ou sem configuração fiscal |R10 (feito) |
+| `orcamentos.tsx` | orçamento → itens → recalcular | orçamento vazio ou sem total |R10 (feito) |
+| `pedidos.$id.tsx` (separação) | atualiza um item por vez em laço | só parte dos itens fica salva |R10 (feito) |
+| `compras.$id.tsx` | altera item → recalcular compra | total desatualizado até a próxima ação (o recálculo é repetível) |R10 (feito) |
 | `criarUsuario`, `criarLoginMotorista` | várias etapas | **já desfazem** a conta criada (correção do P0 do Lovable) | — |
 
 As operações de dinheiro e estoque (venda, saída, caixa, comanda, delivery) estão em funções do banco e são atômicas.
@@ -186,7 +186,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R7 | P1 | Papéis trocados sem atomicidade | `src/lib/usuario-admin.functions.ts` | Função do banco `usuario_definir_papeis(user, papeis[])` que troca todos de uma vez (uma transação), com a conferência de administrador | Falha no insert mantém os papéis antigos |
 | R8 | P1 | `fiscal_config` ignora erro | `src/routes/_authenticated/empresa.tsx` | Conferir o erro e mover "salvar empresa" para uma função do banco (empresa, vínculo e configuração fiscal juntos) | Falha na configuração fiscal desfaz a gravação |
 | R9 | P1 | Duas fontes de migrations | `supabase/migrations` (96) e `drizzle/migrations` (25); o Lovable grava só na segunda | Já feito: o CI aplica as duas, na ordem. A fazer: documentar a regra (qual pasta cada pessoa usa), e criar a checagem de nome de política restritiva do salão para qualquer nome (feito neste PR). | CI já falha se tabela ou função nova sair sem proteção |
-| R10 | P2 | Outras gravações em etapas | seção 6 | Funções do banco para filial extra, orçamento (com itens) e separação (todos os itens de uma vez) | — |
+| R10 | P2 | Outras gravações em etapas | seção 6 | Funções do banco para filial extra, orçamento (com itens) e separação (todos os itens de uma vez); gatilho para o total da compra. Feito na migration `20261014000004_r10_gravacoes_em_etapas.sql` | — |
 | R11 | P2 | Peça da OS sem baixa de estoque | nenhuma função ou gatilho de assistência chama `registrar_movimentacao` | Decidir a regra (baixa ao aprovar ou ao concluir a OS) e criar a função com devolução ao cancelar | Peça aplicada baixa o estoque uma vez |
 | R12 | P2 | Auditoria curta | gatilho em 7 tabelas | Estender `auditar_campos` a `contas_receber`, `contas_pagar`, `nfe`, `nfe_itens`, `empresas`, `filiais`, `fiscal_config`, `comissoes`, `user_roles` | Alteração e exclusão geram linha em `auditoria` |
 | R13 | P2 | Acesso por empresa, não por filial | nenhuma política cita filial | Decidido pelo dono: acesso por filial. Feito na migration `20261014000003_acesso_por_filial.sql` | — |
@@ -231,6 +231,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R5 | Feito | `abrir_caixa` confere a filial; `criar_pedido_direto` confere obra, vendedor e profissional | Chave estrangeira composta (`tenant_id`, `id`), a avaliar |
 | R6 | Feito | `criarAdminCliente` desfaz empresa e usuário se uma etapa falhar (`src/lib/desfazer.ts`, com testes) | — |
 | R7 | Feito | `usuario_definir_papeis`: troca todos os papéis numa transação | — |
+| R10 | Feito | Quatro fluxos viraram uma transação só: `filial_extra_criar` (filial + depósito + configuração fiscal; só administrador), `orcamento_salvar` (cabeçalho + itens + total calculado no banco, com cliente, obra, vendedor, profissional e produtos conferidos na empresa), `separacao_salvar` e `conferencia_salvar` (todos os itens ou nenhum; administrador, gestor e estoquista); o total da compra passa a acompanhar os itens por gatilho. As telas chamam as funções. Achado no caminho: a restrição antiga `fiscal_config (tenant_id, empresa_id)` impedia a configuração fiscal da filial extra e foi removida (os índices parciais já fazem a regra certa). Bloco 25 do `smoke.sql` | — |
 | R13 | Feito | Decisão do dono: acesso por filial. `pode_filial` e `filial_irrestrita`; política restritiva `filial_restrita` em `pedidos`, `caixas`, `depositos`, `contas_receber`, `contas_pagar`, `nfe`, `orcamentos`, `compras`, `devolucoes` e, por herança, `pedido_itens`, `pedido_historico`, `entregas`, `entrega_itens`, `caixa_movimentos`, `estoques`, `estoque_movimentacoes`; gatilho `filial_protege` para gravações dentro das funções (venda, caixa, nota, entrega, estoque). Administrador, gestor e usuário sem filial no perfil veem todas as filiais; linha sem filial é de todos. Bloco 24 do `smoke.sql` | Tabelas com `filial_id` que ficaram de fora (ver abaixo); telas com filtro de filial para a gestão, se quiser |
 | R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
 | R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |

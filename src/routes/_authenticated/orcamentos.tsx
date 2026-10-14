@@ -230,44 +230,29 @@ function Orcamentos() {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      const { data: orc, error } = await supabase
-        .from("orcamentos")
-        .insert({
-          tenant_id: session?.profile?.tenant_id as string,
-          empresa_id: session?.profile?.empresa_id ?? null,
-          filial_id: session?.profile?.filial_id ?? null,
-          cliente_id: clienteId,
-          obra_id: obraId || null,
-          vendedor_id: vendedorId ?? session?.user.id ?? null,
-          profissional_id: profissionalId,
-          situacao: "rascunho",
-          validade: validade || null,
-          condicao_pagamento: condicao || null,
-          prazo_entrega: prazo || null,
-          desconto: Number(desconto || 0),
-          frete: Number(frete || 0),
-          observacoes: observacoes || null,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      const { error: e2 } = await supabase.from("orcamento_itens").insert(
-        itens.map((i) => ({
-          tenant_id: session?.profile?.tenant_id as string,
-          orcamento_id: orc.id,
+      // cabeçalho, itens e total numa transação só: não sobra orçamento vazio nem sem total
+      const { error } = await supabase.rpc("orcamento_salvar", {
+        p_cliente_id: clienteId,
+        ...(obraId ? { p_obra_id: obraId } : {}),
+        ...((vendedorId ?? session?.user.id)
+          ? { p_vendedor_id: (vendedorId ?? session?.user.id) as string }
+          : {}),
+        ...(profissionalId ? { p_profissional_id: profissionalId } : {}),
+        ...(validade ? { p_validade: validade } : {}),
+        ...(condicao ? { p_condicao: condicao } : {}),
+        ...(prazo ? { p_prazo: prazo } : {}),
+        p_desconto: Number(desconto || 0),
+        p_frete: Number(frete || 0),
+        ...(observacoes ? { p_observacoes: observacoes } : {}),
+        p_itens: itens.map((i) => ({
           produto_id: i.produto_id,
           quantidade: i.quantidade,
           unidade: i.unidade,
           preco_unitario: i.preco_unitario,
           desconto: i.desconto,
-          total: i.quantidade * i.preco_unitario - i.desconto,
         })),
-      );
-      if (e2) throw e2;
-
-      const { error: e3 } = await supabase.rpc("recalcular_orcamento", { p_id: orc.id });
-      if (e3) throw e3;
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Orçamento criado");
