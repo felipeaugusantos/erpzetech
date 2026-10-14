@@ -101,7 +101,7 @@ function SugestaoCompra() {
           .eq("ativo", true)
           .is("deleted_at", null)
           .order("descricao"),
-        supabase.from("fornecedores").select("id, nome, razao_social, prazo_entrega_dias"),
+        supabase.from("fornecedores").select("id, razao_social, prazo_entrega_dias"),
         supabase
           .from("pedido_itens")
           .select("produto_id, quantidade, pedidos!inner(created_at, situacao, deposito_id)")
@@ -114,7 +114,9 @@ function SugestaoCompra() {
           .eq("deposito_id", dep),
         supabase
           .from("compra_itens")
-          .select("produto_id, quantidade, quantidade_recebida, compras!inner(situacao, deposito_id)")
+          .select(
+            "produto_id, quantidade, quantidade_recebida, compras!inner(situacao, deposito_id)",
+          )
           .eq("compras.deposito_id", dep)
           .not("compras.situacao", "in", "(recebido,cancelado)"),
       ]);
@@ -292,15 +294,13 @@ function SugestaoCompra() {
       <div className="space-y-4">
         {grupos.map(([fid, itens]) => {
           const f = fid === SEM_FORNECEDOR ? null : fornecedores.get(fid);
-          const total = itens
-            .filter(marcadoDe)
-            .reduce((s, l) => s + quantidadeDe(l) * l.custo, 0);
+          const total = itens.filter(marcadoDe).reduce((s, l) => s + quantidadeDe(l) * l.custo, 0);
           return (
             <div key={fid} className="panel overflow-x-auto">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
                 <div>
                   <p className="font-display font-semibold">
-                    {f ? (f.nome ?? f.razao_social) : "Produtos sem fornecedor definido"}
+                    {f ? f.razao_social : "Produtos sem fornecedor definido"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {f?.prazo_entrega_dias
@@ -352,9 +352,7 @@ function SugestaoCompra() {
                         <Input
                           inputMode="decimal"
                           value={qtd[l.produtoId] ?? String(l.s.quantidade)}
-                          onChange={(e) =>
-                            setQtd((q) => ({ ...q, [l.produtoId]: e.target.value }))
-                          }
+                          onChange={(e) => setQtd((q) => ({ ...q, [l.produtoId]: e.target.value }))}
                         />
                         <span className="text-xs text-muted-foreground">
                           {l.unidade}

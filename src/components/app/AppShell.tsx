@@ -107,6 +107,7 @@ const groups: Group[] = [
       { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
       { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
       { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },
+      { label: "Sugestão de reposição", to: "/sugestao-compra", icon: ShoppingCart },
       { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
       { label: "Transferência entre lojas", to: "/transferencias", icon: ArrowLeftRight },
       { label: "Relatório de estoque", to: "/relatorio-estoque", icon: Warehouse },

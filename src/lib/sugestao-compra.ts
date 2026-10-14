@@ -62,12 +62,16 @@ export function sugerirCompra(e: EntradaSugestao): Sugestao {
       ? `Venda média de ${r3(mediaDia)}/dia nos últimos ${dias} dias`
       : `Sem vendas nos últimos ${dias} dias`,
   );
-  fatores.push(`Disponível ${r3(disponivel)} (físico ${r3(n(e.fisico))} − reservado ${r3(n(e.reservado))})`);
+  fatores.push(
+    `Disponível ${r3(disponivel)} (físico ${r3(n(e.fisico))} − reservado ${r3(n(e.reservado))})`,
+  );
   if (n(e.emCompra) > 0) fatores.push(`${r3(n(e.emCompra))} já pedidos ao fornecedor`);
-  if (prazo > 0) fatores.push(`Prazo do fornecedor ${prazo} dias (consumo previsto ${r3(consumoNoPrazo)})`);
+  if (prazo > 0)
+    fatores.push(`Prazo do fornecedor ${prazo} dias (consumo previsto ${r3(consumoNoPrazo)})`);
   if (minimo > 0) fatores.push(`Estoque mínimo ${r3(minimo)}`);
   if (maximo > 0) fatores.push(`Limitado ao máximo ${r3(maximo)}`);
-  if (fator !== 1 && embalagens > 0) fatores.push(`Arredondado para ${embalagens} embalagem(ns) de ${fator}`);
+  if (fator !== 1 && embalagens > 0)
+    fatores.push(`Arredondado para ${embalagens} embalagem(ns) de ${fator}`);
 
   return {
     mediaDia: r3(mediaDia),
