@@ -2495,6 +2495,51 @@ export type Database = {
           },
         ]
       }
+      entrega_tentativas: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          motivo: string | null
+          observacao: string | null
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_tentativas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_tentativas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregas: {
         Row: {
           assinatura: string | null
