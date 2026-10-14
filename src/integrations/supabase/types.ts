@@ -7006,6 +7006,10 @@ export type Database = {
         Args: { p_cotacao_id: string }
         Returns: undefined
       }
+      conferencia_salvar: {
+        Args: { p_itens: Json; p_pedido_id: string }
+        Returns: number
+      }
       consumir_autorizacao: {
         Args: { p_acao: string; p_id: string }
         Returns: string
@@ -7111,6 +7115,7 @@ export type Database = {
         Returns: string
       }
       exige_nao_salao: { Args: never; Returns: undefined }
+      exige_papel: { Args: { p_papeis: string[] }; Returns: undefined }
       fechar_caixa: {
         Args: {
           p_caixa_id: string
@@ -7118,6 +7123,21 @@ export type Database = {
           p_valor_informado: number
         }
         Returns: number
+      }
+      filial_extra_criar: {
+        Args: {
+          p_bairro?: string
+          p_cidade?: string
+          p_cnpj?: string
+          p_codigo?: string
+          p_endereco?: string
+          p_estado?: string
+          p_inscricao_estadual?: string
+          p_nome: string
+          p_numero?: string
+          p_telefone?: string
+        }
+        Returns: string
       }
       frente_abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
@@ -7281,6 +7301,22 @@ export type Database = {
       operador_definir_permissoes: {
         Args: { p_abrir: boolean; p_user_id: string; p_ver: boolean }
         Returns: undefined
+      }
+      orcamento_salvar: {
+        Args: {
+          p_cliente_id: string
+          p_condicao?: string
+          p_desconto?: number
+          p_frete?: number
+          p_itens: Json
+          p_obra_id?: string
+          p_observacoes?: string
+          p_prazo?: string
+          p_profissional_id?: string
+          p_validade?: string
+          p_vendedor_id?: string
+        }
+        Returns: string
       }
       painel_fiscal_loja: {
         Args: { p_ate: string; p_de: string }
@@ -7702,6 +7738,10 @@ export type Database = {
           valor_notas_servico: number
           valor_vendas: number
         }[]
+      }
+      separacao_salvar: {
+        Args: { p_itens: Json; p_pedido_id: string }
+        Returns: number
       }
       solicitar_autorizacao_credito: {
         Args: {
