@@ -164,46 +164,23 @@ function FilialExtra() {
     mutationFn: async () => {
       if (!tenantId || !empresaId) throw new Error("Empresa não identificada");
       if (nova.nome.trim().length < 2) throw new Error("Informe o nome da filial");
-      const { data: filialNova, error } = await supabase
-        .from("filiais")
-        .insert({
-          tenant_id: tenantId,
-          empresa_id: empresaId,
-          nome: nova.nome.trim(),
-          codigo: nova.codigo.trim() || null,
-          cnpj: nova.cnpj.trim() || null,
-          inscricao_estadual: nova.inscricao_estadual.trim() || null,
-          cidade: nova.cidade.trim() || null,
-          estado: nova.estado.trim() || null,
-          bairro: nova.bairro.trim() || null,
-          endereco: nova.endereco.trim() || null,
-          numero: nova.numero.trim() || null,
-          telefone: nova.telefone.trim() || null,
-          situacao: "implantacao",
-        })
-        .select("id")
-        .single();
+      // filial, depósito e configuração fiscal numa transação só: ou saem os três, ou nenhum
+      const { data: filialId, error } = await supabase.rpc("filial_extra_criar", {
+        p_nome: nova.nome.trim(),
+        ...(nova.codigo.trim() ? { p_codigo: nova.codigo.trim() } : {}),
+        ...(nova.cnpj.trim() ? { p_cnpj: nova.cnpj.trim() } : {}),
+        ...(nova.inscricao_estadual.trim()
+          ? { p_inscricao_estadual: nova.inscricao_estadual.trim() }
+          : {}),
+        ...(nova.cidade.trim() ? { p_cidade: nova.cidade.trim() } : {}),
+        ...(nova.estado.trim() ? { p_estado: nova.estado.trim() } : {}),
+        ...(nova.bairro.trim() ? { p_bairro: nova.bairro.trim() } : {}),
+        ...(nova.endereco.trim() ? { p_endereco: nova.endereco.trim() } : {}),
+        ...(nova.numero.trim() ? { p_numero: nova.numero.trim() } : {}),
+        ...(nova.telefone.trim() ? { p_telefone: nova.telefone.trim() } : {}),
+      });
       if (error) throw error;
-
-      const { error: errDep } = await supabase.from("depositos").insert({
-        tenant_id: tenantId,
-        filial_id: filialNova.id,
-        nome: `Depósito ${nova.nome.trim()}`,
-        tipo: "loja",
-      });
-      if (errDep) throw errDep;
-
-      const { error: errFiscal } = await supabase.from("fiscal_config").insert({
-        tenant_id: tenantId,
-        empresa_id: empresaId,
-        filial_id: filialNova.id,
-        serie: 2,
-        proximo_numero: 1,
-        ambiente: "homologacao",
-        cfop_padrao: "5102",
-      });
-      if (errFiscal) throw errFiscal;
-      return filialNova.id;
+      return filialId as string;
     },
     onSuccess: (id) => {
       toast.success("Filial extra criada em implantação");

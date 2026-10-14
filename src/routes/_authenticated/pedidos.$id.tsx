@@ -454,15 +454,16 @@ function PedidoDetalhe() {
 
   const salvarSeparacao = useMutation({
     mutationFn: async () => {
-      for (const i of itens) {
-        const q = Number(separado[i.id] ?? 0);
-        if (q === Number(i.quantidade_separada)) continue;
-        const { error } = await supabase
-          .from("pedido_itens")
-          .update({ quantidade_separada: q })
-          .eq("id", i.id);
-        if (error) throw error;
-      }
+      // todos os itens alterados numa transação só: não fica separação pela metade
+      const alterados = itens
+        .filter((i) => Number(separado[i.id] ?? 0) !== Number(i.quantidade_separada))
+        .map((i) => ({ id: i.id, quantidade_separada: Number(separado[i.id] ?? 0) }));
+      if (alterados.length === 0) return;
+      const { error } = await supabase.rpc("separacao_salvar", {
+        p_pedido_id: id,
+        p_itens: alterados,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Separação salva");
@@ -473,16 +474,25 @@ function PedidoDetalhe() {
 
   const salvarConferencia = useMutation({
     mutationFn: async () => {
-      for (const i of itens) {
-        const q = Number(conferido[i.id] ?? 0);
-        const d = (divergencias[i.id] ?? "").trim();
-        if (q === Number(i.quantidade_conferida) && d === (i.divergencia ?? "")) continue;
-        const { error } = await supabase
-          .from("pedido_itens")
-          .update({ quantidade_conferida: q, divergencia: d || null })
-          .eq("id", i.id);
-        if (error) throw error;
-      }
+      const alterados = itens
+        .filter((i) => {
+          const d = (divergencias[i.id] ?? "").trim();
+          return (
+            Number(conferido[i.id] ?? 0) !== Number(i.quantidade_conferida) ||
+            d !== (i.divergencia ?? "")
+          );
+        })
+        .map((i) => ({
+          id: i.id,
+          quantidade_conferida: Number(conferido[i.id] ?? 0),
+          divergencia: (divergencias[i.id] ?? "").trim(),
+        }));
+      if (alterados.length === 0) return;
+      const { error } = await supabase.rpc("conferencia_salvar", {
+        p_pedido_id: id,
+        p_itens: alterados,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Conferência salva");

@@ -1624,3 +1624,93 @@ BEGIN
   -- volta ao que os outros blocos esperam
   UPDATE profiles SET filial_id = NULL WHERE id IN (vend, cxa, est, gest);
 END $$;
+
+-- 25. Fase 0 / R10: gravações em etapas viram uma transação só
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  tb   uuid;
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  logi constant uuid := 'a0000000-0000-0000-0000-0000000000b3';
+  dep uuid; prod uuid; cli uuid; cli_b uuid; fil uuid; orc uuid; ped1 uuid; ped2 uuid; it1 uuid; it2 uuid; it_outro uuid;
+  compra uuid; n_antes bigint; n_depois bigint; itens jsonb; itens_ruins jsonb; prod_b uuid;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep R10') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'R10-A', 'Item R10 A', 'un', 5, 10) RETURNING id INTO prod;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente R10') RETURNING id INTO cli;
+  INSERT INTO tenants (nome) VALUES ('R10 B') RETURNING id INTO tb;
+  INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Cliente R10 B') RETURNING id INTO cli_b;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (tb, 'R10-B', 'Item R10 B', 'un', 5, 10) RETURNING id INTO prod_b;
+
+  -- filial extra: filial + depósito + configuração fiscal juntos, só o administrador
+  UPDATE profiles SET empresa_id = '22222222-2222-2222-2222-222222222222' WHERE id IN (adm, gest);
+  PERFORM ci.deve_falhar(gest, $c$SELECT filial_extra_criar('Filial R10')$c$, 'gestor cria filial extra');
+  PERFORM ci.deve_falhar(adm, $c$SELECT filial_extra_criar(' ')$c$, 'filial extra sem nome');
+  PERFORM ci.entrar(adm);
+  fil := filial_extra_criar('Filial R10', 'F10', NULL, NULL, 'Cidade', 'SP');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'implantacao' AND cidade = 'Cidade' FROM filiais WHERE id = fil), 'filial extra criada em implantação');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM depositos WHERE filial_id = fil), 'filial extra com o depósito');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM fiscal_config WHERE filial_id = fil), 'filial extra com a configuração fiscal');
+  UPDATE profiles SET empresa_id = NULL WHERE id IN (adm, gest);
+
+  -- orçamento: cabeçalho + itens + total, ou nada
+  itens := jsonb_build_array(
+    jsonb_build_object('produto_id', prod, 'quantidade', 2, 'unidade', 'un', 'preco_unitario', 10, 'desconto', 1),
+    jsonb_build_object('produto_id', prod, 'quantidade', 1, 'unidade', 'un', 'preco_unitario', 5, 'desconto', 0));
+  itens_ruins := jsonb_build_array(
+    jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10, 'desconto', 0),
+    jsonb_build_object('produto_id', prod_b, 'quantidade', 1, 'preco_unitario', 10, 'desconto', 0));
+  PERFORM ci.deve_falhar(est, format($c$SELECT orcamento_salvar(%L, %L::jsonb)$c$, cli, itens), 'estoquista cria orçamento');
+  SELECT count(*) INTO n_antes FROM orcamentos WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT orcamento_salvar(%L, %L::jsonb)$c$, cli, itens_ruins), 'orçamento com produto de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT orcamento_salvar(%L, '[]'::jsonb)$c$, cli), 'orçamento sem itens');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT orcamento_salvar(%L, %L::jsonb)$c$, cli_b, itens), 'orçamento com cliente de outra empresa');
+  SELECT count(*) INTO n_depois FROM orcamentos WHERE tenant_id = demo;
+  PERFORM ci.exige(n_antes = n_depois, 'orçamento recusado não deixa cabeçalho para trás');
+  PERFORM ci.entrar(vend);
+  orc := orcamento_salvar(cli, itens, NULL, NULL, NULL, NULL, '30 dias', NULL, 3, 2, NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT subtotal = 24 AND total = 23 AND situacao = 'rascunho' FROM orcamentos WHERE id = orc), 'total do orçamento calculado no banco (24 - 3 + 2)');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM orcamento_itens WHERE orcamento_id = orc), 'orçamento com os dois itens');
+  PERFORM ci.exige((SELECT vendedor_id = vend FROM orcamentos WHERE id = orc), 'vendedor padrão é quem salvou');
+
+  -- separação e conferência: todos os itens ou nenhum
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  ped1 := criar_pedido_direto(cli, dep, jsonb_build_array(
+    jsonb_build_object('produto_id', prod, 'quantidade', 3, 'preco_unitario', 10),
+    jsonb_build_object('produto_id', prod, 'quantidade', 4, 'preco_unitario', 10)));
+  ped2 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)));
+  PERFORM ci.sair();
+  SELECT id INTO it1 FROM pedido_itens WHERE pedido_id = ped1 ORDER BY quantidade LIMIT 1;
+  SELECT id INTO it2 FROM pedido_itens WHERE pedido_id = ped1 ORDER BY quantidade DESC LIMIT 1;
+  SELECT id INTO it_outro FROM pedido_itens WHERE pedido_id = ped2;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT separacao_salvar(%L, '[{"id":"%s","quantidade_separada":1}]'::jsonb)$c$, ped1, it1), 'vendedor salva separação');
+  PERFORM ci.deve_falhar(logi, format($c$SELECT conferencia_salvar(%L, '[{"id":"%s","quantidade_conferida":1}]'::jsonb)$c$, ped1, it1), 'logística salva conferência');
+  PERFORM ci.deve_falhar(est, format($c$SELECT separacao_salvar(%L, '[{"id":"%s","quantidade_separada":1},{"id":"%s","quantidade_separada":1}]'::jsonb)$c$, ped1, it1, it_outro), 'separação com item de outro pedido');
+  PERFORM ci.exige((SELECT quantidade_separada = 0 FROM pedido_itens WHERE id = it1), 'separação recusada não grava nem o item válido');
+  PERFORM ci.deve_falhar(est, format($c$SELECT separacao_salvar(%L, '[{"id":"%s","quantidade_separada":-1}]'::jsonb)$c$, ped1, it1), 'separação negativa');
+  PERFORM ci.entrar(est);
+  PERFORM separacao_salvar(ped1, jsonb_build_array(
+    jsonb_build_object('id', it1, 'quantidade_separada', 3), jsonb_build_object('id', it2, 'quantidade_separada', 4)));
+  PERFORM conferencia_salvar(ped1, jsonb_build_array(
+    jsonb_build_object('id', it1, 'quantidade_conferida', 3, 'divergencia', ''), jsonb_build_object('id', it2, 'quantidade_conferida', 3, 'divergencia', 'faltou 1')));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(quantidade_separada) = 7 FROM pedido_itens WHERE pedido_id = ped1), 'separação grava os dois itens');
+  PERFORM ci.exige((SELECT divergencia = 'faltou 1' FROM pedido_itens WHERE id = it2) AND (SELECT divergencia IS NULL FROM pedido_itens WHERE id = it1), 'conferência grava a divergência (vazia vira nula)');
+
+  -- compra: o total acompanha os itens sem chamar o recálculo
+  INSERT INTO compras (tenant_id, deposito_id) VALUES (demo, dep) RETURNING id INTO compra;
+  INSERT INTO compra_itens (tenant_id, compra_id, produto_id, quantidade, custo_unitario, total) VALUES (demo, compra, prod, 2, 5, 10);
+  INSERT INTO compra_itens (tenant_id, compra_id, produto_id, quantidade, custo_unitario, total) VALUES (demo, compra, prod, 1, 7, 7);
+  PERFORM ci.exige((SELECT subtotal = 17 AND total = 17 FROM compras WHERE id = compra), 'total da compra acompanha os itens ao incluir');
+  UPDATE compra_itens SET quantidade = 3, total = 15 WHERE compra_id = compra AND custo_unitario = 5;
+  PERFORM ci.exige((SELECT total = 22 FROM compras WHERE id = compra), 'total da compra acompanha ao alterar o item');
+  DELETE FROM compra_itens WHERE compra_id = compra AND custo_unitario = 7;
+  PERFORM ci.exige((SELECT total = 15 FROM compras WHERE id = compra), 'total da compra acompanha ao remover o item');
+END $$;

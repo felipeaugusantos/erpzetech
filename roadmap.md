@@ -129,5 +129,6 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Script que repete a verificação de papéis e de isolamento entre empresas: `docs/fase-0/verificacao-papeis-e-tenant.sql`
 - [x] P0: papéis no banco (R1) e papel na nota fiscal e nos dados do emitente (R2), pela tabela de papéis aprovada
 - [x] P0: comissão entre empresas (R3), venda offline duplicada (R4), nota fiscal protegida no servidor e no banco (parte de R2)
+- [x] P2: gravações em etapas viram transação (R10): filial extra, orçamento, separação e conferência; total da compra por gatilho
 - [x] P2 (decisão do dono): acesso por filial (R13); NF-e do balcão por vendedor e caixa
 - [x] P1: referências entre empresas (R5), criação de cliente SaaS e troca de papéis sem desfazer (R6, R7), regime tributário ao salvar a empresa (R8)

@@ -200,8 +200,6 @@ function CompraDetalhe() {
         total: Number(produto.custo),
       });
       if (error) throw error;
-      const { error: e2 } = await supabase.rpc("recalcular_compra", { p_id: id });
-      if (e2) throw e2;
     },
     onSuccess: () => {
       setBuscaProduto("");
@@ -221,8 +219,6 @@ function CompraDetalhe() {
         })
         .eq("id", p.itemId);
       if (error) throw error;
-      const { error: e2 } = await supabase.rpc("recalcular_compra", { p_id: id });
-      if (e2) throw e2;
     },
     onSuccess: invalidate,
     onError: (e: Error) => toast.error(e.message),
@@ -232,8 +228,6 @@ function CompraDetalhe() {
     mutationFn: async (itemId: string) => {
       const { error } = await supabase.from("compra_itens").delete().eq("id", itemId);
       if (error) throw error;
-      const { error: e2 } = await supabase.rpc("recalcular_compra", { p_id: id });
-      if (e2) throw e2;
     },
     onSuccess: invalidate,
     onError: (e: Error) => toast.error(e.message),
