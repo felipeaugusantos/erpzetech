@@ -155,6 +155,13 @@
       "when": 1791988866322,
       "tag": "0021_pedido_itens_lote",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791989079104,
+      "tag": "0022_entregas_realtime",
+      "breakpoints": true
     }
   ]
 }
