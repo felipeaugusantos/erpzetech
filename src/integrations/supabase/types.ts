@@ -2656,6 +2656,124 @@ export type Database = {
           },
         ]
       }
+      estoque_lote_movimentos: {
+        Row: {
+          created_at: string
+          documento: string | null
+          id: string
+          lote_id: string
+          motivo: string | null
+          quantidade: number
+          saldo_posterior: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          documento?: string | null
+          id?: string
+          lote_id: string
+          motivo?: string | null
+          quantidade: number
+          saldo_posterior: number
+          tenant_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          documento?: string | null
+          id?: string
+          lote_id?: string
+          motivo?: string | null
+          quantidade?: number
+          saldo_posterior?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_lote_movimentos_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lote_movimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_lotes: {
+        Row: {
+          calibre: string
+          created_at: string
+          deposito_id: string
+          id: string
+          lote: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          tonalidade: string
+          updated_at: string
+          validade: string | null
+        }
+        Insert: {
+          calibre?: string
+          created_at?: string
+          deposito_id: string
+          id?: string
+          lote: string
+          produto_id: string
+          quantidade?: number
+          tenant_id: string
+          tonalidade?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Update: {
+          calibre?: string
+          created_at?: string
+          deposito_id?: string
+          id?: string
+          lote?: string
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          tonalidade?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_lotes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lotes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_movimentacoes: {
         Row: {
           created_at: string
@@ -5274,6 +5392,7 @@ export type Database = {
           codigo_barras: string | null
           codigo_interno: string
           comprimento: number | null
+          controla_lote: boolean
           created_at: string
           cst_csosn: string | null
           custo: number
@@ -5310,6 +5429,7 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno: string
           comprimento?: number | null
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -5346,6 +5466,7 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno?: string
           comprimento?: number | null
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -6955,6 +7076,20 @@ export type Database = {
       entrega_insucesso: {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
         Returns: undefined
+      }
+      estoque_lote_lancar: {
+        Args: {
+          p_calibre: string
+          p_deposito_id: string
+          p_documento?: string
+          p_lote: string
+          p_motivo?: string
+          p_produto_id: string
+          p_quantidade: number
+          p_tipo: string
+          p_tonalidade: string
+        }
+        Returns: string
       }
       exige_nao_salao: { Args: never; Returns: undefined }
       fechar_caixa: {
