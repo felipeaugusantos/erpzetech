@@ -188,7 +188,8 @@ function NfeEntrada() {
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
-      const itens = lida.itens.map((i) => {
+      const custos = custosComImpostos(lida.itens, lida.nota);
+      const itens = lida.itens.map((i, idx) => {
         const escolha = mapa[i.seq] ?? NOVO;
         return {
           ...(escolha !== NOVO ? { produto_id: escolha } : {}),
@@ -198,7 +199,7 @@ function NfeEntrada() {
           ncm: i.ncm,
           unidade: i.unidade,
           quantidade: i.quantidade,
-          custo_unitario: i.custo_unitario,
+          custo_unitario: custos[idx] ?? i.custo_unitario,
         };
       });
       const { data, error } = await supabase.rpc("importar_nfe_entrada", {
