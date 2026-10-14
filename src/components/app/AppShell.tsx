@@ -134,6 +134,7 @@ const groups: Group[] = [
     items: [
       { label: "Entregas", to: "/entregas", icon: Truck },
       { label: "Rota do dia", to: "/rota", icon: MapPin },
+      { label: "Entregas do motorista", to: "/entregas-motorista", icon: MapPin },
       { label: "Tela do motorista", to: "/motorista", icon: IdCard },
       { label: "Veículos", to: "/veiculos", icon: Truck },
       { label: "Motoristas", to: "/motoristas", icon: IdCard },
