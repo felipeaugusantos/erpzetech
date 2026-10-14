@@ -452,7 +452,9 @@ export function PedidoAtendimento({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Agendar entrega</DialogTitle>
-            <DialogDescription>Data, endereço da obra e responsável pelo recebimento.</DialogDescription>
+            <DialogDescription>
+              Data, endereço da obra e responsável pelo recebimento.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
             <div>

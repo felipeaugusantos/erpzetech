@@ -63,6 +63,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { PedidoAtendimento } from "@/components/app/PedidoAtendimento";
+import { planejadoPorItem, saldoItem, validaSaida } from "@/lib/saldo-pedido";
 
 export const Route = createFileRoute("/_authenticated/pedidos/$id")({
   head: () => ({
@@ -220,6 +222,15 @@ function PedidoDetalhe() {
   const [entregaQtd, setEntregaQtd] = useState<Record<string, string>>({});
   const [recebedor, setRecebedor] = useState("");
   const [obsEntrega, setObsEntrega] = useState("");
+  const [tipoSaida, setTipoSaida] = useState<"entrega" | "retirada">("entrega");
+  // chave única por abertura da janela: clique duplo ou reenvio não registra a saída duas vezes
+  const [chaveSaida, setChaveSaida] = useState("");
+  const abrirSaida = (tipo: "entrega" | "retirada") => {
+    setTipoSaida(tipo);
+    setEntregaQtd({});
+    setChaveSaida(crypto.randomUUID());
+    setEntregaOpen(true);
+  };
   const [cancelOpen, setCancelOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [contasOpen, setContasOpen] = useState(false);
@@ -259,7 +270,7 @@ function PedidoDetalhe() {
           .order("created_at", { ascending: false }),
         supabase
           .from("entregas")
-          .select("*, entrega_itens(quantidade, produtos(descricao))")
+          .select("*, entrega_itens(pedido_item_id, quantidade, produtos(descricao))")
           .eq("pedido_id", id)
           .order("created_at", { ascending: false }),
       ]);
@@ -456,18 +467,29 @@ function PedidoDetalhe() {
       const payload = itens
         .map((i) => ({ pedido_item_id: i.id, quantidade: Number(entregaQtd[i.id] ?? 0) }))
         .filter((x) => x.quantidade > 0);
-      if (payload.length === 0)
-        throw new Error("Informe a quantidade entregue de pelo menos um item");
-      const { error } = await supabase.rpc("pedido_registrar_entrega", {
+      if (payload.length === 0) throw new Error("Informe a quantidade de pelo menos um item");
+      for (const x of payload) {
+        const it = itens.find((i) => i.id === x.pedido_item_id);
+        if (!it) continue;
+        const erro = validaSaida(
+          saldoItem({ ...it, planejado: planejadoEntregas[it.id] ?? 0 }),
+          x.quantidade,
+        );
+        if (erro)
+          throw new Error(`${(it.produtos as { descricao?: string } | null)?.descricao}: ${erro}`);
+      }
+      const { error } = await supabase.rpc("pedido_registrar_saida", {
         p_pedido_id: id,
         p_itens: payload as never,
+        p_tipo: tipoSaida,
+        p_chave: chaveSaida,
         ...(recebedor ? { p_recebedor: recebedor } : {}),
         ...(obsEntrega ? { p_observacao: obsEntrega } : {}),
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Entrega registrada");
+      toast.success(tipoSaida === "retirada" ? "Retirada registrada" : "Entrega registrada");
       setEntregaOpen(false);
       setRecebedor("");
       setObsEntrega("");
@@ -477,6 +499,17 @@ function PedidoDetalhe() {
     },
     onError: (e: Error) => toast.error("Não foi possível registrar", { description: e.message }),
   });
+
+  const planejadoEntregas = useMemo(
+    () =>
+      planejadoPorItem(
+        (data?.entregas ?? []) as unknown as {
+          situacao: string;
+          entrega_itens?: { pedido_item_id: string; quantidade: number }[];
+        }[],
+      ),
+    [data?.entregas],
+  );
 
   const resumo = useMemo(() => {
     const pedidoQtd = itens.reduce((s, i) => s + Number(i.quantidade), 0);
@@ -568,9 +601,14 @@ function PedidoDetalhe() {
               </Button>
             )}
             {podeEntregar && (
-              <Button onClick={() => setEntregaOpen(true)}>
-                <Truck className="mr-2 size-4" /> Registrar entrega
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => abrirSaida("retirada")}>
+                  Registrar retirada
+                </Button>
+                <Button onClick={() => abrirSaida("entrega")}>
+                  <Truck className="mr-2 size-4" /> Registrar entrega
+                </Button>
+              </>
             )}
           </>
         }
@@ -812,38 +850,17 @@ function PedidoDetalhe() {
             </div>
           )}
 
-          {(data?.entregas ?? []).length > 0 && (
-            <div className="panel p-4">
-              <p className="font-display font-semibold">Entregas registradas</p>
-              <ul className="mt-3 space-y-3">
-                {(data?.entregas ?? []).map((e) => (
-                  <li key={e.id} className="rounded-md border border-border p-3 text-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">
-                        Entrega #{String(e.numero).padStart(4, "0")}
-                      </span>
-                      <span className="text-muted-foreground">{dateTimeBR(e.data_entrega)}</span>
-                      {e.recebedor && (
-                        <span className="text-muted-foreground">Recebido por {e.recebedor}</span>
-                      )}
-                    </div>
-                    <ul className="mt-1 text-xs text-muted-foreground">
-                      {(
-                        (e.entrega_itens ?? []) as unknown as {
-                          quantidade: number;
-                          produtos: { descricao: string } | null;
-                        }[]
-                      ).map((ei, idx) => (
-                        <li key={idx}>
-                          {num(Number(ei.quantidade))} × {ei.produtos?.descricao}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <PedidoAtendimento
+            pedidoId={id}
+            itens={itens}
+            entregas={(data?.entregas ?? []) as never}
+            enderecoObra={
+              obra
+                ? [obra.endereco, obra.numero, obra.bairro, obra.cidade].filter(Boolean).join(", ")
+                : null
+            }
+            faturado={notaDoPedido?.situacao === "autorizada"}
+          />
         </div>
 
         <div className="space-y-4">
@@ -900,9 +917,12 @@ function PedidoDetalhe() {
       <Dialog open={entregaOpen} onOpenChange={setEntregaOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar entrega</DialogTitle>
+            <DialogTitle>
+              {tipoSaida === "retirada" ? "Registrar retirada no balcão" : "Registrar entrega"}
+            </DialogTitle>
             <DialogDescription>
-              Pode ser parcial: informe a quantidade realmente entregue de cada item.
+              Pode ser parcial: informe a quantidade que saiu agora. O que já está agendado em outra
+              entrega não aparece como disponível.
             </DialogDescription>
           </DialogHeader>
           <Table>
@@ -910,12 +930,17 @@ function PedidoDetalhe() {
               <TableRow>
                 <TableHead>Produto</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
-                <TableHead className="w-32">Entregar</TableHead>
+                <TableHead className="w-32">
+                  {tipoSaida === "retirada" ? "Retirar" : "Entregar"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {itens.map((i) => {
-                const pendente = Number(i.quantidade) - Number(i.quantidade_entregue);
+                const pendente = saldoItem({
+                  ...i,
+                  planejado: planejadoEntregas[i.id] ?? 0,
+                }).disponivelParaSaida;
                 return (
                   <TableRow key={i.id}>
                     <TableCell className="text-sm">
@@ -960,7 +985,7 @@ function PedidoDetalhe() {
               Cancelar
             </Button>
             <Button onClick={() => registrarEntrega.mutate()} disabled={registrarEntrega.isPending}>
-              Confirmar entrega
+              {tipoSaida === "retirada" ? "Confirmar retirada" : "Confirmar entrega"}
             </Button>
           </DialogFooter>
         </DialogContent>
