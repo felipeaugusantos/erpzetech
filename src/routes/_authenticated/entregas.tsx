@@ -307,7 +307,7 @@ function Entregas() {
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return entregas.filter((e) => {
-      if (filtro === "abertas" && !["planejada", "em_rota"].includes(e.situacao)) return false;
+      if (filtro === "abertas" && !["planejada", "em_rota", "insucesso"].includes(e.situacao)) return false;
       if (filtro !== "abertas" && filtro !== "todas" && e.situacao !== filtro) return false;
       if (!t) return true;
       const pedido = e.pedidos as unknown as {
