@@ -285,7 +285,6 @@ function SugestaoCompra() {
       )}
       {!isLoading && !isError && dep && grupos.length === 0 && (
         <EmptyState
-          icon={ShoppingCart}
           title="Nada para repor"
           description="Com as vendas e o estoque deste depósito, nenhum produto precisa de compra agora."
         />
