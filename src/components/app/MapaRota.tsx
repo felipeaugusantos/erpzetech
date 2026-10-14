@@ -8,8 +8,8 @@ export function MapaRota({ paradas }: { paradas: { rotulo: string; endereco: str
   const validas = paradas.filter((p) => p.endereco && p.endereco !== "—");
   const [sel, setSel] = useState(0);
   if (validas.length === 0) return null;
-  const atual = validas[Math.min(sel, validas.length - 1)];
-  const destino = validas[validas.length - 1].endereco;
+  const atual = validas[Math.min(sel, validas.length - 1)]!;
+  const destino = validas[validas.length - 1]!.endereco;
   const meio = validas
     .slice(0, -1)
     .map((p) => p.endereco)
