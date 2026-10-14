@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- payloads dinâmicos do emissor fiscal (ACBr) e cliente Supabase sem tipos */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
 
 /**
  * Emissão real de NF-e: monta o pedido de emissão, transmite à Sefaz pelo emissor
@@ -96,46 +97,26 @@ function icmsDoItem(
   return { ICMSSN102: { orig: origem, CSOSN: "102" } };
 }
 
-const PAPEIS_FISCAIS = ["administrador", "gestor", "financeiro"] as const;
-
-/** Exige um papel fiscal e devolve o tenant/empresa de quem chama. */
-async function exigirPapelFiscal(supabase: any, userId: string) {
-  const respostas = await Promise.all(
-    PAPEIS_FISCAIS.map((r) => supabase.rpc("has_role", { _user_id: userId, _role: r })),
-  );
-  if (!respostas.some((r: any) => r.data === true)) {
-    throw new Error("Somente administrador, gestor ou financeiro pode operar notas fiscais.");
-  }
-  const { data: perfil, error } = await supabase
-    .from("profiles")
-    .select("tenant_id, empresa_id")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!perfil?.tenant_id) throw new Error("Perfil sem empresa vinculada.");
-  return { tenantId: perfil.tenant_id as string, empresaId: (perfil.empresa_id as string) ?? null };
-}
-
-async function carregarNota(supabase: any, nfeId: string, userId?: string) {
-  const escopo = userId ? await exigirPapelFiscal(supabase, userId) : null;
-  const { data: nota, error } = await supabase
+/**
+ * Grava o retorno da Sefaz na nota. O andamento da nota (situação, chave, protocolo, retorno) não pode ser
+ * alterado por um usuário logado direto no banco, então o servidor grava com a chave de serviço, depois de
+ * conferir o papel fiscal e a empresa em `carregarNota`.
+ */
+async function gravarNota(
+  nota: { id: string; tenant_id: string },
+  patch: Record<string, unknown>,
+): Promise<string | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin
     .from("nfe")
-    .select(
-      "id, tenant_id, empresa_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_produtos, valor_desconto, valor_frete, valor_total, valor_icms, valor_icms_st, valor_pis, valor_cofins, valor_iss, base_icms, base_icms_st, cliente_id, pendencias, provider_id, provider_status, chave, protocolo, mensagem",
-    )
-    .eq("id", nfeId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!nota) throw new Error("Nota fiscal não encontrada");
-  if (escopo) {
-    const outraEmpresa =
-      escopo.empresaId && nota.empresa_id && nota.empresa_id !== escopo.empresaId;
-    if (nota.tenant_id !== escopo.tenantId || outraEmpresa) {
-      throw new Error("Nota fiscal não encontrada");
-    }
-  }
-  return nota;
+    .update(patch as never)
+    .eq("id", nota.id)
+    .eq("tenant_id", nota.tenant_id);
+  return error ? error.message : null;
 }
+
+const AVISO_SEM_GRAVAR =
+  " Atenção: o retorno da Sefaz não foi gravado na nota. Use Consultar para atualizá-la.";
 
 async function configDaNota(supabase: any, nota: any) {
   const { data: cfgs, error } = await supabase
@@ -159,10 +140,10 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     return { nfeId: input.nfeId };
   })
   .handler(async ({ data, context }) => {
-    const { supabase } = context as unknown as Ctx;
+    const { supabase, userId } = context as unknown as Ctx;
     const { acbr, codigoMunicipioPorCep, CODIGO_UF, so, num } = await import("./acbr.server");
 
-    const nota = await carregarNota(supabase, data.nfeId);
+    const nota = await carregarNota(supabase, data.nfeId, userId);
     if (nota.situacao === "autorizada") throw new Error("Esta nota já está autorizada pela Sefaz.");
     if (nota.situacao === "cancelada") throw new Error("Esta nota foi cancelada.");
 
@@ -422,37 +403,36 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const mensagem =
         retorno?.autorizacao?.motivo_status ?? retorno?.autorizacao?.mensagem ?? null;
 
-      await supabase
-        .from("nfe")
-        .update({
-          provider: "acbr",
-          provider_id: retorno?.id ?? null,
-          provider_status: status || null,
-          chave: retorno?.chave ?? nota.chave,
-          protocolo: retorno?.autorizacao?.numero_protocolo ?? nota.protocolo,
-          situacao: autorizada ? "autorizada" : rejeitada ? "rejeitada" : "transmitida",
-          transmitida_em: new Date().toISOString(),
-          ...(autorizada ? { autorizada_em: new Date().toISOString() } : {}),
-          mensagem,
-          retorno,
-          pendencias: [],
-        })
-        .eq("id", nota.id);
+      const erroGravar = await gravarNota(nota, {
+        provider: "acbr",
+        provider_id: retorno?.id ?? null,
+        provider_status: status || null,
+        chave: retorno?.chave ?? nota.chave,
+        protocolo: retorno?.autorizacao?.numero_protocolo ?? nota.protocolo,
+        situacao: autorizada ? "autorizada" : rejeitada ? "rejeitada" : "transmitida",
+        transmitida_em: new Date().toISOString(),
+        ...(autorizada ? { autorizada_em: new Date().toISOString() } : {}),
+        mensagem,
+        retorno,
+        pendencias: [],
+      });
 
-      return { ok: true, status: status || "pendente", chave: retorno?.chave ?? null, mensagem };
+      return {
+        ok: true,
+        status: status || "pendente",
+        chave: retorno?.chave ?? null,
+        mensagem: erroGravar ? `${mensagem ?? ""}${AVISO_SEM_GRAVAR}` : mensagem,
+      };
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : "Falha ao transmitir a nota";
       const detalhe = (erro as Error & { detalhe?: unknown }).detalhe ?? null;
-      await supabase
-        .from("nfe")
-        .update({
-          provider: "acbr",
-          provider_status: "erro",
-          situacao: "rejeitada",
-          mensagem,
-          ...(detalhe ? { retorno: detalhe } : {}),
-        })
-        .eq("id", nota.id);
+      await gravarNota(nota, {
+        provider: "acbr",
+        provider_status: "erro",
+        situacao: "rejeitada",
+        mensagem,
+        ...(detalhe ? { retorno: detalhe } : {}),
+      });
       throw new Error(mensagem);
     }
   });
@@ -464,10 +444,10 @@ export const consultarNfe = createServerFn({ method: "POST" })
     return { nfeId: input.nfeId };
   })
   .handler(async ({ data, context }) => {
-    const { supabase } = context as unknown as Ctx;
+    const { supabase, userId } = context as unknown as Ctx;
     const { acbr } = await import("./acbr.server");
 
-    const nota = await carregarNota(supabase, data.nfeId);
+    const nota = await carregarNota(supabase, data.nfeId, userId);
     if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada ao emissor fiscal.");
     const ambiente = ambienteDe(nota.ambiente);
 
@@ -478,24 +458,25 @@ export const consultarNfe = createServerFn({ method: "POST" })
     const rejeitada = status === "rejeitado" || status === "denegado";
     const mensagem = retorno?.autorizacao?.motivo_status ?? retorno?.autorizacao?.mensagem ?? null;
 
-    await supabase
-      .from("nfe")
-      .update({
-        provider_status: status || null,
-        chave: retorno?.chave ?? nota.chave,
-        protocolo: retorno?.autorizacao?.numero_protocolo ?? nota.protocolo,
-        situacao: autorizada
-          ? "autorizada"
-          : cancelada
-            ? "cancelada"
-            : rejeitada
-              ? "rejeitada"
-              : "transmitida",
-        ...(autorizada && !nota.chave ? { autorizada_em: new Date().toISOString() } : {}),
-        mensagem,
-        retorno,
-      })
-      .eq("id", nota.id);
+    const erroConsulta = await gravarNota(nota, {
+      provider_status: status || null,
+      chave: retorno?.chave ?? nota.chave,
+      protocolo: retorno?.autorizacao?.numero_protocolo ?? nota.protocolo,
+      situacao: autorizada
+        ? "autorizada"
+        : cancelada
+          ? "cancelada"
+          : rejeitada
+            ? "rejeitada"
+            : "transmitida",
+      ...(autorizada && !nota.chave ? { autorizada_em: new Date().toISOString() } : {}),
+      mensagem,
+      retorno,
+    });
+    if (erroConsulta)
+      throw new Error(
+        `Não foi possível gravar o retorno da nota: ${erroConsulta}. Use Consultar para atualizá-la.`,
+      );
 
     return { ok: true, status: status || "pendente", chave: retorno?.chave ?? null, mensagem };
   });
@@ -521,7 +502,7 @@ export const cancelarNfeSefaz = createServerFn({ method: "POST" })
     if (!ehAdmin && !ehGestor)
       throw new Error("Somente administrador ou gestor pode cancelar a nota.");
 
-    const nota = await carregarNota(supabase, data.nfeId);
+    const nota = await carregarNota(supabase, data.nfeId, userId);
     if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada à Receita.");
     if (nota.situacao === "cancelada") throw new Error("Esta nota já está cancelada.");
     const ambiente = ambienteDe(nota.ambiente);
@@ -531,17 +512,18 @@ export const cancelarNfeSefaz = createServerFn({ method: "POST" })
       body: { justificativa: data.justificativa },
     });
 
-    await supabase
-      .from("nfe")
-      .update({
-        situacao: "cancelada",
-        cancelada_em: new Date().toISOString(),
-        motivo_cancelamento: data.justificativa,
-        provider_status: String(retorno?.status ?? "cancelado"),
-        mensagem: retorno?.motivo_status ?? retorno?.mensagem ?? "Cancelamento registrado na Sefaz",
-        retorno,
-      })
-      .eq("id", nota.id);
+    const erroCancelamento = await gravarNota(nota, {
+      situacao: "cancelada",
+      cancelada_em: new Date().toISOString(),
+      motivo_cancelamento: data.justificativa,
+      provider_status: String(retorno?.status ?? "cancelado"),
+      mensagem: retorno?.motivo_status ?? retorno?.mensagem ?? "Cancelamento registrado na Sefaz",
+      retorno,
+    });
+    if (erroCancelamento)
+      throw new Error(
+        `Não foi possível gravar o retorno da nota: ${erroCancelamento}. Use Consultar para atualizá-la.`,
+      );
 
     return { ok: true };
   });
@@ -554,10 +536,10 @@ export const arquivosNfe = createServerFn({ method: "POST" })
     return { nfeId: input.nfeId };
   })
   .handler(async ({ data, context }) => {
-    const { supabase } = context as unknown as Ctx;
+    const { supabase, userId } = context as unknown as Ctx;
     const { acbrToken, baseUrl } = await import("./acbr.server");
 
-    const nota = await carregarNota(supabase, data.nfeId);
+    const nota = await carregarNota(supabase, data.nfeId, userId);
     if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada à Receita.");
     const ambiente = ambienteDe(nota.ambiente);
     const token = await acbrToken();
@@ -584,19 +566,30 @@ export const arquivosNfe = createServerFn({ method: "POST" })
 /** Conferência da conta do emissor fiscal: conexão, empresas e certificados cadastrados. */
 export const statusEmissor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    // a conta do emissor é compartilhada entre os clientes: só quem opera nota vê, e só as suas empresas
+    const { tenantId } = await exigirPapelFiscal(supabase, userId);
+    const meusCnpjs = await cnpjsDaEmpresa(supabase, tenantId);
     const { acbr } = await import("./acbr.server");
     try {
       const empresas = await acbr<{ data?: any[] }>("producao", "/empresas");
       const certificados = await acbr<{ data?: any[] }>("producao", "/empresas/certificados");
-      const listaEmpresas = (empresas?.data ?? []).map((e: any) => ({
-        cpfCnpj: String(e?.cpf_cnpj ?? ""),
-        nome: String(e?.razao_social ?? e?.nome ?? ""),
-      }));
-      const listaCertificados = (certificados?.data ?? []).map((c: any) => ({
-        nome: String(c?.razao_social ?? c?.nome ?? c?.cpf_cnpj ?? ""),
-        validade: String(c?.data_validade ?? c?.validade ?? ""),
-      }));
+      const listaEmpresas = filtrarPorCnpj(
+        (empresas?.data ?? []).map((e: any) => ({
+          cpfCnpj: String(e?.cpf_cnpj ?? ""),
+          nome: String(e?.razao_social ?? e?.nome ?? ""),
+        })),
+        meusCnpjs,
+      );
+      const listaCertificados = filtrarPorCnpj(
+        (certificados?.data ?? []).map((c: any) => ({
+          cpfCnpj: String(c?.cpf_cnpj ?? ""),
+          nome: String(c?.razao_social ?? c?.nome ?? c?.cpf_cnpj ?? ""),
+          validade: String(c?.data_validade ?? c?.validade ?? ""),
+        })),
+        meusCnpjs,
+      ).map(({ nome, validade }) => ({ nome, validade }));
       return {
         conectado: true,
         mensagem: "Conexão com o emissor fiscal funcionando.",

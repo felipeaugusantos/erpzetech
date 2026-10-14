@@ -219,3 +219,18 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 - [ ] R5 a R8 corrigidos ou com data marcada.
 - [ ] `docs/fase-0/verificacao-papeis-e-tenant.sql` sem nenhum PERMITIDO indevido.
 - [ ] CI verde na `main` (Lint, Testes unitários, Typecheck e build, Migrations e segurança).
+
+## 11. Andamento das correções
+
+| # | Situação | O que foi feito | O que falta |
+|---|---|---|---|
+| R1 | Pendente | — | Depende da tabela de papéis (seção 9) |
+| R2 | Parcial | Servidor: `userId` passa a ser conferido em transmitir, consultar, baixar arquivos e cancelar (`src/lib/nfe-escopo.ts`, com testes); `statusEmissor` só para papel fiscal e só com as empresas do cliente; o retorno da Sefaz é gravado com a chave de serviço. Banco: gatilho `nfe_protege_estado` impede um usuário logado de mudar situação, chave, protocolo e retorno da nota. | Papel em `gerar_nfe*`, em `nfe_itens` e em `empresas`/`filiais` (depende da seção 9) |
+| R3 | Feito | `REVOKE EXECUTE` de `comissionar_pedido_id`; o fluxo do pedido entregue segue gerando a comissão (teste no bloco 22 do `smoke.sql`) | — |
+| R4 | Feito | `frente_venda` recebe `p_chave`; o banco guarda a chave por empresa e devolve a venda já gravada; a tela gera a chave antes de a venda entrar na fila | Aviso na tela quando o reenvio devolver uma venda que já existia (hoje é silencioso) |
+| R5 | Feito | `abrir_caixa` confere a filial; `criar_pedido_direto` confere obra, vendedor e profissional | Chave estrangeira composta (`tenant_id`, `id`), a avaliar |
+| R6 | Feito | `criarAdminCliente` desfaz empresa e usuário se uma etapa falhar (`src/lib/desfazer.ts`, com testes) | — |
+| R7 | Feito | `usuario_definir_papeis`: troca todos os papéis numa transação | — |
+| R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
+| R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |
+| R10 a R14 | Pendente | — | Próximas rodadas |

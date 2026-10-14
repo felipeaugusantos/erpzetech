@@ -1207,3 +1207,98 @@ BEGIN
   PERFORM ci.deve_falhar(gar, format($c$SELECT pedido_registrar_saida(%L, '[]'::jsonb)$c$, ped), 'garçom registra saída de pedido');
   PERFORM ci.deve_falhar(NULL, format($c$SELECT pedido_registrar_saida(%L, '[]'::jsonb)$c$, ped), 'anon registra saída de pedido');
 END $$;
+
+-- 22. Fase 0: comissão só pelo fluxo, venda sem duplicar, nota protegida, referências da mesma empresa, papéis atômicos
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp    constant uuid := '22222222-2222-2222-2222-222222222222';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  novo   constant uuid := 'a0000000-0000-0000-0000-000000000004';
+  gest   constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; nota uuid; cx uuid; v1 uuid; v2 uuid; v3 uuid;
+  q_antes numeric; q_depois numeric; n_mov_antes bigint; n_mov_depois bigint;
+  tb uuid; eb uuid; fb uuid; cb uuid; obb uuid; profb uuid; chave_venda uuid := gen_random_uuid();
+  n_com bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Fase0 CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'F0-ITEM', 'Item Fase 0', 'un', 5) RETURNING id INTO prod;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente Fase 0') RETURNING id INTO cli;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- R3: comissão não se cria por chamada direta, e o fluxo do pedido entregue segue gerando
+  INSERT INTO vendedor_comissao_regras (tenant_id, vendedor_id, percentual, base, ativo) VALUES (demo, vend, 10, 'venda', true);
+  PERFORM ci.entrar(vend);
+  ped := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 50)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT comissionar_pedido_id(%L)$c$, ped), 'chamar comissionar_pedido_id direto');
+  UPDATE pedidos SET situacao = 'entregue' WHERE id = ped;
+  PERFORM ci.exige((SELECT count(*) FROM comissoes WHERE pedido_id = ped) = 1, 'pedido entregue gera a comissão pelo fluxo');
+  PERFORM ci.exige((SELECT valor FROM comissoes WHERE pedido_id = ped) = 10, 'comissão de 10% sobre 100');
+
+  -- R4: a mesma venda enviada duas vezes grava uma só
+  PERFORM ci.entrar(adm);
+  cx := frente_caixa_atual();
+  PERFORM ci.exige(cx IS NOT NULL, 'o administrador está com um caixa aberto para a venda de teste');
+  SELECT quantidade INTO q_antes FROM estoques WHERE produto_id = prod AND deposito_id = dep;
+  SELECT count(*) INTO n_mov_antes FROM caixa_movimentos WHERE caixa_id = cx;
+  v1 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 3, 'preco_unitario', 10)), 'dinheiro', NULL, 0, 1, NULL, NULL, chave_venda);
+  v2 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 3, 'preco_unitario', 10)), 'dinheiro', NULL, 0, 1, NULL, NULL, chave_venda);
+  PERFORM ci.sair();
+  SELECT quantidade INTO q_depois FROM estoques WHERE produto_id = prod AND deposito_id = dep;
+  SELECT count(*) INTO n_mov_depois FROM caixa_movimentos WHERE caixa_id = cx;
+  PERFORM ci.exige(v1 = v2, 'reenviar a venda com a mesma chave devolve a mesma venda');
+  PERFORM ci.exige((SELECT count(*) FROM pedidos WHERE chave_idempotencia = chave_venda) = 1, 'só uma venda gravada para a chave');
+  PERFORM ci.exige(q_antes - q_depois = 3, 'o estoque saiu uma vez só');
+  PERFORM ci.exige(n_mov_depois - n_mov_antes = 1, 'o caixa recebeu uma vez só');
+  PERFORM ci.entrar(adm);
+  v3 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)), 'dinheiro', NULL, 0, 1, NULL, NULL, gen_random_uuid());
+  PERFORM ci.sair();
+  PERFORM ci.exige(v3 <> v1, 'outra chave é outra venda');
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM pedidos WHERE tenant_id = %L AND chave_idempotencia IS NOT NULL$c$, demo)) = 2, 'a chave fica guardada na venda');
+
+  -- R2: o andamento da nota não muda por escrita direta; o dono do banco (funções e servidor) muda
+  PERFORM ci.entrar(adm);
+  nota := gerar_nfe(ped);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$UPDATE nfe SET situacao = 'autorizada' WHERE id = %L$c$, nota), 'vendedor marca a nota como autorizada');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET chave = '1234' WHERE id = %L$c$, nota), 'administrador altera a chave da nota');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET retorno = '{"x":1}'::jsonb WHERE id = %L$c$, nota), 'administrador altera o retorno do emissor');
+  UPDATE nfe SET situacao = 'autorizada', chave = 'CHAVE-CI' WHERE id = nota;
+  PERFORM ci.exige((SELECT situacao = 'autorizada' AND chave = 'CHAVE-CI' FROM nfe WHERE id = nota), 'o servidor (dono do banco) registra o retorno da Sefaz');
+
+  -- R5: referências de outra empresa
+  INSERT INTO tenants (nome) VALUES ('Fase 0 B') RETURNING id INTO tb;
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (tb, 'B Fase 0') RETURNING id INTO eb;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (tb, eb, 'Filial B') RETURNING id INTO fb;
+  INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Cliente B') RETURNING id INTO cb;
+  INSERT INTO obras (tenant_id, cliente_id, nome) VALUES (tb, cb, 'Obra B') RETURNING id INTO obb;
+  INSERT INTO profissionais (tenant_id, nome) VALUES (tb, 'Profissional B') RETURNING id INTO profb;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT abrir_caixa(%L, 0)$c$, fb), 'abrir caixa na filial de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT criar_pedido_direto(%L, %L, jsonb_build_array(jsonb_build_object('produto_id', %L, 'quantidade', 1, 'preco_unitario', 10)), %L)$c$, cli, dep, prod, obb), 'pedido com obra de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT criar_pedido_direto(%L, %L, jsonb_build_array(jsonb_build_object('produto_id', %L, 'quantidade', 1, 'preco_unitario', 10)), NULL, 0, 0, NULL, NULL, %L)$c$, cli, dep, prod, novo), 'pedido com vendedor de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT criar_pedido_direto(%L, %L, jsonb_build_array(jsonb_build_object('produto_id', %L, 'quantidade', 1, 'preco_unitario', 10)), NULL, 0, 0, NULL, NULL, NULL, %L)$c$, cli, dep, prod, profb), 'pedido com profissional de outra empresa');
+  -- da mesma empresa segue funcionando
+  PERFORM ci.entrar(adm);
+  ped2 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)), NULL, 0, 0, NULL, NULL, vend);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT vendedor_id = vend FROM pedidos WHERE id = ped2), 'pedido com vendedor da própria empresa');
+
+  -- R7: trocar os papéis é uma transação, só pelo administrador, só na própria empresa
+  PERFORM ci.entrar(adm);
+  PERFORM usuario_definir_papeis(gest, ARRAY['gestor', 'caixa', 'caixa']::app_role[]);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT array_agg(role::text ORDER BY role::text) FROM user_roles WHERE user_id = gest) = ARRAY['caixa', 'gestor'], 'papéis trocados por completo e sem repetir');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT usuario_definir_papeis(%L, ARRAY['administrador']::app_role[])$c$, gest), 'gestor se dá o papel de administrador');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT usuario_definir_papeis(%L, ARRAY[]::app_role[])$c$, gest), 'trocar para nenhum papel');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT usuario_definir_papeis(%L, ARRAY['gestor']::app_role[])$c$, novo), 'trocar papéis de usuário de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT usuario_definir_papeis(%L, ARRAY['gestor']::app_role[])$c$, adm), 'administrador tira o próprio perfil de administrador');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT usuario_definir_papeis(%L, ARRAY['gestor']::app_role[])$c$, gest), 'garçom troca papéis');
+  PERFORM ci.exige((SELECT count(*) FROM user_roles WHERE user_id = gest) = 2, 'tentativas recusadas não mexem nos papéis');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = novo AND role = 'gestor'), 'usuário de outra empresa segue como estava');
+  DELETE FROM user_roles WHERE user_id = gest AND role = 'caixa';  -- volta ao que os outros blocos esperam
+END $$;
