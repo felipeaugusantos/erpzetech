@@ -110,8 +110,8 @@ function Lotes() {
         p_calibre: f.calibre,
         p_tipo: f.tipo,
         p_quantidade: Number(f.quantidade.replace(",", ".")),
-        p_documento: f.documento || undefined,
-        p_motivo: f.motivo || undefined,
+        ...(f.documento ? { p_documento: f.documento } : {}),
+        ...(f.motivo ? { p_motivo: f.motivo } : {}),
       });
       if (error) throw error;
     },
