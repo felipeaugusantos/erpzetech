@@ -305,7 +305,12 @@ export function PedidoAtendimento({
           <p className="font-display font-semibold">Retiradas e entregas</p>
           <ul className="mt-3 space-y-3">
             {entregas.map((e) => {
-              const aberta = ["planejada", "em_rota", "insucesso"].includes(e.situacao);
+              const temPendente = itens.some(
+                (i) => Number(i.quantidade) > Number(i.quantidade_entregue),
+              );
+              const aberta =
+                ["planejada", "em_rota"].includes(e.situacao) ||
+                (e.situacao === "insucesso" && temPendente);
               return (
                 <li key={e.id} className="rounded-md border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
