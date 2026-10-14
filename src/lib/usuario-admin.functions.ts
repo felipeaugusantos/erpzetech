@@ -77,6 +77,29 @@ async function contextoAdmin(supabase: {
   };
 }
 
+/** Confirma que a filial escolhida é da mesma empresa do administrador. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cliente do Supabase com RLS
+async function validaFilial(
+  supabase: any,
+  ctx: { tenantId: string; empresaId: string | null },
+  filialId: string | null | undefined,
+) {
+  if (!filialId) return;
+  const { data, error } = await supabase
+    .from("filiais")
+    .select("id, tenant_id, empresa_id")
+    .eq("id", filialId)
+    .maybeSingle();
+  if (error) throw error;
+  if (
+    !data ||
+    data.tenant_id !== ctx.tenantId ||
+    (ctx.empresaId && data.empresa_id !== ctx.empresaId)
+  ) {
+    throw new Error("A filial escolhida não pertence à sua empresa");
+  }
+}
+
 /** Cria o login de um operador dentro da empresa do administrador. */
 export const criarUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -101,6 +124,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const ctx = await contextoAdmin(context.supabase as never);
+    await validaFilial(context.supabase, ctx, data.filialId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const criado = await supabaseAdmin.auth.admin.createUser({
@@ -114,29 +138,35 @@ export const criarUsuario = createServerFn({ method: "POST" })
     }
     const novoId = criado.data.user.id;
 
-    const perfil = await supabaseAdmin.from("profiles").upsert({
-      id: novoId,
-      nome: data.nome,
-      email: data.email,
-      telefone: data.telefone,
-      codigo: data.codigo,
-      tenant_id: ctx.tenantId,
-      empresa_id: ctx.empresaId,
-      filial_id: data.filialId ?? ctx.filialId,
-      ativo: true,
-    });
-    if (perfil.error) throw perfil.error;
+    // Se qualquer etapa falhar, apaga o login recém-criado para não deixar conta órfã.
+    try {
+      const perfil = await supabaseAdmin.from("profiles").upsert({
+        id: novoId,
+        nome: data.nome,
+        email: data.email,
+        telefone: data.telefone,
+        codigo: data.codigo,
+        tenant_id: ctx.tenantId,
+        empresa_id: ctx.empresaId,
+        filial_id: data.filialId ?? ctx.filialId,
+        ativo: true,
+      });
+      if (perfil.error) throw perfil.error;
 
-    const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", novoId);
-    if (limpeza.error) throw limpeza.error;
+      const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", novoId);
+      if (limpeza.error) throw limpeza.error;
 
-    const papeis = await supabaseAdmin
-      .from("user_roles")
-      // garcom e cozinha entram nos tipos gerados quando o Lovable os atualizar depois da migration
-      .insert(
-        data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })) as never,
-      );
-    if (papeis.error) throw papeis.error;
+      const papeis = await supabaseAdmin
+        .from("user_roles")
+        // garcom e cozinha entram nos tipos gerados quando o Lovable os atualizar depois da migration
+        .insert(
+          data.perfis.map((role) => ({ user_id: novoId, role, tenant_id: ctx.tenantId })) as never,
+        );
+      if (papeis.error) throw papeis.error;
+    } catch (erro) {
+      await supabaseAdmin.auth.admin.deleteUser(novoId).catch(() => undefined);
+      throw erro;
+    }
 
     return { ok: true, id: novoId, email: data.email };
   });
@@ -158,6 +188,7 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const ctx = await contextoAdmin(context.supabase as never);
+    if (data.filialId) await validaFilial(context.supabase, ctx, data.filialId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const alvo = await supabaseAdmin

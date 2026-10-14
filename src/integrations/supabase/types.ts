@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1005,6 +1005,7 @@ export type Database = {
           motivo_cancelamento: string | null
           numero: number
           observacao: string | null
+          offline_id: string | null
           pessoas: number | null
           pessoas_pagas: number
           saiu_em: string | null
@@ -1045,6 +1046,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           numero: number
           observacao?: string | null
+          offline_id?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
           saiu_em?: string | null
@@ -1085,6 +1087,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           numero?: number
           observacao?: string | null
+          offline_id?: string | null
           pessoas?: number | null
           pessoas_pagas?: number
           saiu_em?: string | null
@@ -2444,12 +2447,62 @@ export type Database = {
           },
         ]
       }
+      entrega_reagendamentos: {
+        Row: {
+          created_at: string
+          data_anterior: string | null
+          data_nova: string | null
+          entrega_id: string
+          id: string
+          motivo: string
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          entrega_id: string
+          id?: string
+          motivo: string
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          entrega_id?: string
+          id?: string
+          motivo?: string
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_reagendamentos_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_reagendamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregas: {
         Row: {
           assinatura: string | null
+          chave_idempotencia: string | null
           created_at: string
           data_entrega: string
           data_saida: string | null
+          endereco_entrega: string | null
           foto_url: string | null
           id: string
           latitude: number | null
@@ -2460,19 +2513,24 @@ export type Database = {
           observacao: string | null
           pedido_id: string
           previsao_data: string | null
+          reagendamentos: number
           recebedor: string | null
           recebedor_documento: string | null
+          responsavel: string | null
           sequencia: number | null
           situacao: string
           tenant_id: string
+          tipo: string
           usuario_id: string | null
           veiculo_id: string | null
         }
         Insert: {
           assinatura?: string | null
+          chave_idempotencia?: string | null
           created_at?: string
           data_entrega?: string
           data_saida?: string | null
+          endereco_entrega?: string | null
           foto_url?: string | null
           id?: string
           latitude?: number | null
@@ -2483,19 +2541,24 @@ export type Database = {
           observacao?: string | null
           pedido_id: string
           previsao_data?: string | null
+          reagendamentos?: number
           recebedor?: string | null
           recebedor_documento?: string | null
+          responsavel?: string | null
           sequencia?: number | null
           situacao?: string
           tenant_id: string
+          tipo?: string
           usuario_id?: string | null
           veiculo_id?: string | null
         }
         Update: {
           assinatura?: string | null
+          chave_idempotencia?: string | null
           created_at?: string
           data_entrega?: string
           data_saida?: string | null
+          endereco_entrega?: string | null
           foto_url?: string | null
           id?: string
           latitude?: number | null
@@ -2506,11 +2569,14 @@ export type Database = {
           observacao?: string | null
           pedido_id?: string
           previsao_data?: string | null
+          reagendamentos?: number
           recebedor?: string | null
           recebedor_documento?: string | null
+          responsavel?: string | null
           sequencia?: number | null
           situacao?: string
           tenant_id?: string
+          tipo?: string
           usuario_id?: string | null
           veiculo_id?: string | null
         }
@@ -4615,6 +4681,77 @@ export type Database = {
           },
           {
             foreignKeyName: "pedido_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_ocorrencias: {
+        Row: {
+          created_at: string
+          etapa: string
+          id: string
+          observacao: string | null
+          pedido_id: string
+          pedido_item_id: string
+          produto_substituto_id: string | null
+          quantidade: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          observacao?: string | null
+          pedido_id: string
+          pedido_item_id: string
+          produto_substituto_id?: string | null
+          quantidade: number
+          tenant_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          observacao?: string | null
+          pedido_id?: string
+          pedido_item_id?: string
+          produto_substituto_id?: string | null
+          quantidade?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_ocorrencias_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_ocorrencias_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_ocorrencias_produto_substituto_id_fkey"
+            columns: ["produto_substituto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_ocorrencias_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6733,6 +6870,16 @@ export type Database = {
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      entrega_agendar: {
+        Args: {
+          p_endereco?: string
+          p_entrega_id: string
+          p_motivo?: string
+          p_previsao: string
+          p_responsavel?: string
+        }
+        Returns: undefined
+      }
       entrega_concluir: {
         Args: {
           p_assinatura?: string
@@ -6982,6 +7129,28 @@ export type Database = {
         }
         Returns: string
       }
+      pedido_registrar_ocorrencia: {
+        Args: {
+          p_etapa?: string
+          p_observacao?: string
+          p_pedido_item_id: string
+          p_produto_substituto_id?: string
+          p_quantidade: number
+          p_tipo: string
+        }
+        Returns: string
+      }
+      pedido_registrar_saida: {
+        Args: {
+          p_chave?: string
+          p_itens: Json
+          p_observacao?: string
+          p_pedido_id: string
+          p_recebedor?: string
+          p_tipo?: string
+        }
+        Returns: string
+      }
       planejar_entrega: {
         Args: {
           p_itens: Json
@@ -7168,6 +7337,7 @@ export type Database = {
         }
         Returns: Json
       }
+      restaurante_sincronizar_offline: { Args: { p: Json }; Returns: Json }
       restaurante_transferir_mesa: {
         Args: { p_comanda_id: string; p_mesa_destino: string }
         Returns: undefined

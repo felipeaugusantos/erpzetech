@@ -26,6 +26,7 @@ import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_auth
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
+import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
 import { Route as AuthenticatedContasPagarRouteImport } from './routes/_authenticated/contas-pagar'
@@ -199,6 +200,12 @@ const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
   path: '/comissoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConferenciaOfflineRoute =
+  AuthenticatedConferenciaOfflineRouteImport.update({
+    id: '/conferencia-offline',
+    path: '/conferencia-offline',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -671,6 +678,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
@@ -771,6 +779,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/contas-pagar': typeof AuthenticatedContasPagarRoute
@@ -873,6 +882,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
+  '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/_authenticated/contas-pagar': typeof AuthenticatedContasPagarRoute
@@ -975,6 +985,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
+    | '/conferencia-offline'
     | '/configuracoes'
     | '/contas-bancarias'
     | '/contas-pagar'
@@ -1075,6 +1086,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/clientes-obras'
     | '/comissoes'
+    | '/conferencia-offline'
     | '/configuracoes'
     | '/contas-bancarias'
     | '/contas-pagar'
@@ -1176,6 +1188,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/comissoes'
+    | '/_authenticated/conferencia-offline'
     | '/_authenticated/configuracoes'
     | '/_authenticated/contas-bancarias'
     | '/_authenticated/contas-pagar'
@@ -1389,6 +1402,13 @@ declare module '@tanstack/react-router' {
       path: '/comissoes'
       fullPath: '/comissoes'
       preLoaderRoute: typeof AuthenticatedComissoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/conferencia-offline': {
+      id: '/_authenticated/conferencia-offline'
+      path: '/conferencia-offline'
+      fullPath: '/conferencia-offline'
+      preLoaderRoute: typeof AuthenticatedConferenciaOfflineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes': {
@@ -1980,6 +2000,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
+  AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
   AuthenticatedContasPagarRoute: typeof AuthenticatedContasPagarRoute
@@ -2075,6 +2096,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
+  AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
   AuthenticatedContasPagarRoute: AuthenticatedContasPagarRoute,

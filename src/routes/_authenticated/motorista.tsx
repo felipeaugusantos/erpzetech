@@ -206,7 +206,8 @@ function AppMotorista() {
         )
         .eq("motorista_id", motoristaId)
         .in("situacao", ["entregue", "insucesso"])
-        .order("updated_at", { ascending: false })
+        .order("data_entrega", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
       return data;

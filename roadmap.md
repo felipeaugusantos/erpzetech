@@ -55,7 +55,7 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [ ] SPED Fiscal e Contribuições e exportação de arquivos para a contabilidade
 - [ ] Importação em massa por planilha: produtos, clientes e saldos de estoque (hoje só cotações)
 - [ ] Integrações: e-commerce e marketplaces, WhatsApp automático, API pública e webhooks
-- [ ] PDV offline com fila de vendas (hoje o service worker só mostra página de "sem internet")
+- [x] Trabalho sem internet: frente de caixa, salão e delivery abrem sem conexão (páginas guardadas no aparelho), vendas e comandas ficam salvas e são enviadas ao voltar; venda recusada fica guardada para resolver; tela "Conferência sem internet" com saldo de estoque e caixa
 - [ ] CT-e e MDF-e para clientes com frota e transporte de terceiros
 - [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e (item pendente da Rodada 4)
 
@@ -99,3 +99,14 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Modo `simulado` na configuração do TEF: a frente de caixa mostra o painel "MODO DE TESTE" com "Simular aprovação" (NSU `SIM-…`, autorização e bandeira de exemplo) e "Simular recusa"; a venda segue o mesmo caminho do TEF real (`frente_venda` + `frente_registrar_tef`) e o cupom sai marcado como simulado
 - [x] Teste de segurança do banco com a venda completa (transação, caixa, estoque, recusa, isolamento entre empresas, cancelamento e estorno)
 - [x] Correção: cancelar venda de balcão com lançamento no caixa falhava por tipo de `forma_pagamento`
+
+## Rodada 7 — Especialização em materiais de construção (em sequência, com conferência entre etapas)
+- [x] P0 Segurança: notas fiscais exigem administrador/gestor/financeiro e conferem empresa da nota; status do emissor só para administrador e só da própria empresa; filial validada na gestão de usuários; criação de usuário e login de motorista desfazem a conta se uma etapa falhar e evitam vínculo duplicado
+- [x] P1 Venda e entrega: retirada/entrega parcial com trava de saldo e chave contra reenvio, ocorrências (falta/sobra/avaria/substituição), agendamento/reagendamento com motivo, visão por item no pedido (orçamento→pedido já existia)
+- [ ] P1 resto: romaneio impresso por entrega, leitura de código de barras na separação, histórico unificado da obra
+- [ ] P2 Estoque e compras: físico/reservado/disponível, conversões, lote/tonalidade, sugestão de reposição revisável
+- [ ] P3 Logística no celular com fila offline
+- [ ] P4 Painéis e indicadores com origem do valor
+- [ ] P5 Financeiro e estrutura de conciliação/CNAB (sem banco real até haver credenciais)
+- [ ] P6 Catálogo, API versionada e integrações
+- [ ] Implantação: importação por planilha e passos iniciais

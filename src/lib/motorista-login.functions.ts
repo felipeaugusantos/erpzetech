@@ -36,6 +36,14 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
       .maybeSingle();
     if (erroMotorista) throw erroMotorista;
     if (!motorista) throw new Error("Motorista não encontrado");
+    const { data: meuPerfil } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!meuPerfil?.tenant_id || meuPerfil.tenant_id !== motorista.tenant_id) {
+      throw new Error("Motorista não encontrado");
+    }
     if (motorista.user_id) throw new Error("Este motorista já possui login");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -51,37 +59,47 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
     }
     const novoId = criado.data.user.id;
 
-    const perfil = await supabaseAdmin.from("profiles").upsert({
-      id: novoId,
-      nome: motorista.nome,
-      email: data.email,
-      tenant_id: motorista.tenant_id,
-      empresa_id: motorista.empresa_id,
-      filial_id: motorista.filial_id,
-    });
-    if (perfil.error) throw perfil.error;
+    try {
+      // Vínculo primeiro e só se ainda estiver livre: duas solicitações ao mesmo tempo não ligam dois logins.
+      const vinculo = await supabaseAdmin
+        .from("motoristas")
+        .update({ user_id: novoId })
+        .eq("id", motorista.id)
+        .eq("tenant_id", motorista.tenant_id)
+        .is("user_id", null)
+        .select("id");
+      if (vinculo.error) throw vinculo.error;
+      if (!vinculo.data || vinculo.data.length === 0) {
+        throw new Error("Este motorista já possui login");
+      }
 
-    const papel = await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        { user_id: novoId, role: "motorista", tenant_id: motorista.tenant_id },
-        { onConflict: "user_id,role" },
-      );
-    if (papel.error) throw papel.error;
+      const perfil = await supabaseAdmin.from("profiles").upsert({
+        id: novoId,
+        nome: motorista.nome,
+        email: data.email,
+        tenant_id: motorista.tenant_id,
+        empresa_id: motorista.empresa_id,
+        filial_id: motorista.filial_id,
+      });
+      if (perfil.error) throw perfil.error;
 
-    // O motorista deve ter somente o perfil de motorista (o cadastro novo nasce como administrador).
-    const limpeza = await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", novoId)
-      .neq("role", "motorista");
-    if (limpeza.error) throw limpeza.error;
-
-    const vinculo = await supabaseAdmin
-      .from("motoristas")
-      .update({ user_id: novoId })
-      .eq("id", motorista.id);
-    if (vinculo.error) throw vinculo.error;
+      // Somente o perfil de motorista.
+      const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", novoId);
+      if (limpeza.error) throw limpeza.error;
+      const papel = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: novoId, role: "motorista", tenant_id: motorista.tenant_id });
+      if (papel.error) throw papel.error;
+    } catch (erro) {
+      // desfaz: solta o vínculo (se foi este login) e apaga a conta para não sobrar órfã
+      await supabaseAdmin
+        .from("motoristas")
+        .update({ user_id: null })
+        .eq("id", motorista.id)
+        .eq("user_id", novoId);
+      await supabaseAdmin.auth.admin.deleteUser(novoId).catch(() => undefined);
+      throw erro;
+    }
 
     return { ok: true, email: data.email };
   });

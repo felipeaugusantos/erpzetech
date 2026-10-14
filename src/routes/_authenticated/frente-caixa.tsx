@@ -125,7 +125,13 @@ function FrenteCaixa() {
   const chaveEspera = `fc-espera-${userId}`;
   const chaveFila = `fc-fila-${userId}`;
   type Espera = { id: string; em: string; linhas: Linha[]; desconto: string };
-  type Pendente = { id: string; em: string; total: number; params: Record<string, unknown> };
+  type Pendente = {
+    id: string;
+    em: string;
+    total: number;
+    params: Record<string, unknown>;
+    erro?: string | undefined;
+  };
   const [esperas, setEsperas] = useState<Espera[]>([]);
   const [fila, setFila] = useState<Pendente[]>([]);
   const [online, setOnline] = useState(true);
@@ -187,18 +193,25 @@ function FrenteCaixa() {
     } catch {
       return;
     }
-    if (!atual.length) return;
+    if (!atual.some((p) => !p.erro)) return;
     enviando.current = true;
     const restantes: Pendente[] = [];
     let ok = 0;
     for (const p of atual) {
+      // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
+      if (p.erro) {
+        restantes.push(p);
+        continue;
+      }
       const { error } = await supabase.rpc("frente_venda", p.params as never);
       if (error) {
         if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
-        else
-          toast.error("Venda guardada recusada", {
+        else {
+          restantes.push({ ...p, erro: error.message });
+          toast.error("Venda guardada recusada — veja em Vendas (F7)", {
             description: `${brl(p.total)} — ${error.message}`,
           });
+        }
       } else ok++;
     }
     salvarFila(restantes);
@@ -259,7 +272,15 @@ function FrenteCaixa() {
     },
   });
   const produtos = base?.produtos ?? [];
-  const [depositoId, setDepositoId] = useState("");
+  const [depositoId, setDepositoIdState] = useState("");
+  // o depósito escolhido fica guardado no computador (vale também ao reabrir sem internet)
+  useEffect(() => {
+    setDepositoIdState(localStorage.getItem("fc-deposito") ?? "");
+  }, []);
+  const setDepositoId = (id: string) => {
+    setDepositoIdState(id);
+    localStorage.setItem("fc-deposito", id);
+  };
   const deposito =
     base?.depositos.find((d) => d.id === depositoId) ??
     base?.depositos.find(
@@ -1333,15 +1354,50 @@ function FrenteCaixa() {
               </div>
             ))}
           </div>
-          {fila.length > 0 && (
+          {fila.some((p) => !p.erro) && (
             <p className="text-xs text-muted-foreground">
-              {fila.length} venda(s) finalizada(s) sem internet aguardando envio (
-              {brl(fila.reduce((s, p) => s + p.total, 0))}).{" "}
+              {fila.filter((p) => !p.erro).length} venda(s) finalizada(s) sem internet aguardando envio (
+              {brl(fila.filter((p) => !p.erro).reduce((s, p) => s + p.total, 0))}).{" "}
               <Button size="sm" variant="link" onClick={() => void enviarFila()}>
                 Enviar agora
               </Button>
             </p>
           )}
+          {fila
+            .filter((p) => p.erro)
+            .map((p) => (
+              <div key={p.id} className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs">
+                <p className="font-semibold">
+                  Venda de {brl(p.total)} feita sem internet em {new Date(p.em).toLocaleString("pt-BR")} foi recusada
+                </p>
+                <p>{p.erro}</p>
+                <p className="text-muted-foreground">
+                  O dinheiro já foi recebido: corrija o motivo (ex.: lance a entrada no estoque) e envie de novo.
+                </p>
+                <div className="mt-1 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      salvarFila(fila.map((x) => (x.id === p.id ? { ...x, erro: undefined } : x)));
+                      setTimeout(() => void enviarFila(), 50);
+                    }}
+                  >
+                    Tentar de novo
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (confirm("Descartar esta venda guardada? Ela não entrará no caixa."))
+                        salvarFila(fila.filter((x) => x.id !== p.id));
+                    }}
+                  >
+                    Descartar
+                  </Button>
+                </div>
+              </div>
+            ))}
         </DialogContent>
       </Dialog>
 

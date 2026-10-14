@@ -5,6 +5,13 @@ import { AppShell } from "@/components/app/AppShell";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    // Sem internet: vale a sessão já guardada neste computador (o banco confere tudo ao reconectar).
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const { data: s } = await supabase.auth.getSession();
+      if (!s.session) throw redirect({ to: "/auth" });
+      return { user: s.session.user };
+    }
+
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
 

@@ -7,6 +7,8 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
 import { NovoDeliveryDialog } from "@/components/restaurante/NovoDeliveryDialog";
+import { RestauranteOffline } from "@/components/restaurante/RestauranteOffline";
+import { useOnline } from "@/lib/offline";
 import { Button } from "@/components/ui/button";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
 import { useRelogio } from "@/hooks/useRelogio";
@@ -47,6 +49,7 @@ function Delivery() {
   const agora = useRelogio();
   const [novo, setNovo] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
+  const online = useOnline();
 
   useRealtimeTabelas(["comandas", "comanda_itens"], () =>
     qc.invalidateQueries({ queryKey: [CHAVE_REST] }),
@@ -115,6 +118,13 @@ function Delivery() {
     return porColuna;
   }, [data]);
 
+  if (!online)
+    return (
+      <>
+        <PageHeader title="Delivery" description="Modo sem internet" />
+        <RestauranteOffline modo="delivery" />
+      </>
+    );
   if (session && !modulos.carregando && !modulos.restaurante)
     return <ModuloBloqueado modulo="restaurante" />;
   if (session && !roles.some((r) => PERFIS_DELIVERY.includes(r)))
