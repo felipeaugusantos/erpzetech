@@ -148,6 +148,13 @@
       "when": 1791988582810,
       "tag": "0020_estoque_lotes_tonalidade",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791988866322,
+      "tag": "0021_pedido_itens_lote",
+      "breakpoints": true
     }
   ]
 }
