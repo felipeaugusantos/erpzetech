@@ -58,6 +58,7 @@ import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
+import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authenticated/lotes-offline'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -382,6 +383,12 @@ const AuthenticatedLocacoesRoute = AuthenticatedLocacoesRouteImport.update({
   path: '/locacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLotesOfflineRoute =
+  AuthenticatedLotesOfflineRouteImport.update({
+    id: '/lotes-offline',
+    path: '/lotes-offline',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
   id: '/lucro',
   path: '/lucro',
@@ -731,6 +738,7 @@ export interface FileRoutesByFullPath {
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
+  '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -835,6 +843,7 @@ export interface FileRoutesByTo {
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
+  '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -941,6 +950,7 @@ export interface FileRoutesById {
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
+  '/_authenticated/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1047,6 +1057,7 @@ export interface FileRouteTypes {
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
+    | '/lotes-offline'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -1151,6 +1162,7 @@ export interface FileRouteTypes {
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
+    | '/lotes-offline'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -1256,6 +1268,7 @@ export interface FileRouteTypes {
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
     | '/_authenticated/locacoes'
+    | '/_authenticated/lotes-offline'
     | '/_authenticated/lucro'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -1665,6 +1678,13 @@ declare module '@tanstack/react-router' {
       path: '/locacoes'
       fullPath: '/locacoes'
       preLoaderRoute: typeof AuthenticatedLocacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lotes-offline': {
+      id: '/_authenticated/lotes-offline'
+      path: '/lotes-offline'
+      fullPath: '/lotes-offline'
+      preLoaderRoute: typeof AuthenticatedLotesOfflineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lucro': {
@@ -2092,6 +2112,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
+  AuthenticatedLotesOfflineRoute: typeof AuthenticatedLotesOfflineRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -2191,6 +2212,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
+  AuthenticatedLotesOfflineRoute: AuthenticatedLotesOfflineRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CloudOff, RefreshCw, Wifi } from "lucide-react";
 
@@ -151,8 +151,8 @@ function LotesOffline() {
           </thead>
           <tbody className="divide-y divide-border">
             {lista.map((l) => (
-              <>
-                <tr key={l.id} className={l.quantidade <= 0 ? "text-destructive" : ""}>
+              <Fragment key={l.id}>
+                <tr className={l.quantidade <= 0 ? "text-destructive" : ""}>
                   <td className="px-3 py-2">{l.produto}</td>
                   <td className="px-3 py-2">{l.deposito}</td>
                   <td className="px-3 py-2 font-medium">{l.lote}</td>
@@ -188,7 +188,7 @@ function LotesOffline() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

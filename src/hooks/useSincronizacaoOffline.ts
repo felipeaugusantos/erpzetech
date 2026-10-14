@@ -9,7 +9,7 @@ import {
 } from "@/lib/offline-restaurante";
 
 /** Telas que precisam abrir sem internet: o sistema baixa os arquivos delas com antecedência. */
-const TELAS_OFFLINE = ["/frente-caixa", "/salao", "/delivery", "/conferencia-offline"] as const;
+const TELAS_OFFLINE = ["/frente-caixa", "/salao", "/delivery", "/conferencia-offline", "/lotes-offline"] as const;
 
 /**
  * Roda em todas as telas: envia as comandas guardadas quando a internet volta,
