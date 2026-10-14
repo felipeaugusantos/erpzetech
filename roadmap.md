@@ -99,3 +99,13 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Modo `simulado` na configuração do TEF: a frente de caixa mostra o painel "MODO DE TESTE" com "Simular aprovação" (NSU `SIM-…`, autorização e bandeira de exemplo) e "Simular recusa"; a venda segue o mesmo caminho do TEF real (`frente_venda` + `frente_registrar_tef`) e o cupom sai marcado como simulado
 - [x] Teste de segurança do banco com a venda completa (transação, caixa, estoque, recusa, isolamento entre empresas, cancelamento e estorno)
 - [x] Correção: cancelar venda de balcão com lançamento no caixa falhava por tipo de `forma_pagamento`
+
+## Rodada 7 — Especialização em materiais de construção (em sequência, com conferência entre etapas)
+- [x] P0 Segurança: notas fiscais exigem administrador/gestor/financeiro e conferem empresa da nota; status do emissor só para administrador e só da própria empresa; filial validada na gestão de usuários; criação de usuário e login de motorista desfazem a conta se uma etapa falhar e evitam vínculo duplicado
+- [ ] P1 Venda e entrega: orçamento→pedido, saldos pendentes por item, retiradas/entregas parciais, ocorrências de separação, agendamento/romaneio, visão de status do pedido, histórico da obra
+- [ ] P2 Estoque e compras: físico/reservado/disponível, conversões, lote/tonalidade, sugestão de reposição revisável
+- [ ] P3 Logística no celular com fila offline
+- [ ] P4 Painéis e indicadores com origem do valor
+- [ ] P5 Financeiro e estrutura de conciliação/CNAB (sem banco real até haver credenciais)
+- [ ] P6 Catálogo, API versionada e integrações
+- [ ] Implantação: importação por planilha e passos iniciais
