@@ -84,6 +84,7 @@ import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_aut
 import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_authenticated/relatorio-locacoes'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
+import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
@@ -520,6 +521,12 @@ const AuthenticatedSalaoRoute = AuthenticatedSalaoRouteImport.update({
   path: '/salao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSugestaoCompraRoute =
+  AuthenticatedSugestaoCompraRouteImport.update({
+    id: '/sugestao-compra',
+    path: '/sugestao-compra',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTecnicosRoute = AuthenticatedTecnicosRouteImport.update({
   id: '/tecnicos',
   path: '/tecnicos',
@@ -743,6 +750,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -845,6 +853,7 @@ export interface FileRoutesByTo {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -949,6 +958,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
+  '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -1053,6 +1063,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/salao'
+    | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1155,6 +1166,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/salao'
+    | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1258,6 +1270,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-locacoes'
     | '/_authenticated/rota'
     | '/_authenticated/salao'
+    | '/_authenticated/sugestao-compra'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
     | '/_authenticated/tef-painel'
@@ -1823,6 +1836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sugestao-compra': {
+      id: '/_authenticated/sugestao-compra'
+      path: '/sugestao-compra'
+      fullPath: '/sugestao-compra'
+      preLoaderRoute: typeof AuthenticatedSugestaoCompraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tecnicos': {
       id: '/_authenticated/tecnicos'
       path: '/tecnicos'
@@ -2078,6 +2098,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioLocacoesRoute: typeof AuthenticatedRelatorioLocacoesRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
+  AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
@@ -2176,6 +2197,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatorioLocacoesRoute: AuthenticatedRelatorioLocacoesRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
+  AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,
