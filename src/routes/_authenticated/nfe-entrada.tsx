@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
-import { lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
+import { custosComImpostos, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,7 +188,8 @@ function NfeEntrada() {
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
-      const itens = lida.itens.map((i) => {
+      const custos = custosComImpostos(lida.itens, lida.nota);
+      const itens = lida.itens.map((i, idx) => {
         const escolha = mapa[i.seq] ?? NOVO;
         return {
           ...(escolha !== NOVO ? { produto_id: escolha } : {}),
@@ -198,7 +199,7 @@ function NfeEntrada() {
           ncm: i.ncm,
           unidade: i.unidade,
           quantidade: i.quantidade,
-          custo_unitario: i.custo_unitario,
+          custo_unitario: custos[idx] ?? i.custo_unitario,
         };
       });
       const { data, error } = await supabase.rpc("importar_nfe_entrada", {

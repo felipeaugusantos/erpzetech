@@ -176,3 +176,26 @@ export function loteDoItem(det: Element | null) {
     calibre: pega(/(?:calibre|cal)[:\s.]+([\w-]+)/i),
   };
 }
+
+/**
+ * Custo de aquisição por item: o valor dos produtos mais a parte de cada um em ST, IPI, seguro e outras
+ * despesas da nota (o que a nota cobra além dos produtos, do frete e do desconto), dividida pelo valor do item.
+ * Assim a compra e a conta a pagar fecham com o total da nota.
+ */
+export function custosComImpostos(
+  itens: { quantidade: number; total: number }[],
+  nota: { total: number; frete: number; desconto: number },
+): number[] {
+  const produtos = itens.reduce((s, i) => s + i.total, 0);
+  const extra = Math.round((nota.total - produtos - nota.frete + nota.desconto) * 100) / 100;
+  if (produtos <= 0 || !(extra > 0) || !nota.total) {
+    return itens.map((i) => (i.quantidade > 0 ? i.total / i.quantidade : 0));
+  }
+  let restante = extra;
+  return itens.map((i, idx) => {
+    const parte =
+      idx === itens.length - 1 ? restante : Math.round((extra * i.total * 100) / produtos) / 100;
+    restante = Math.round((restante - parte) * 100) / 100;
+    return i.quantidade > 0 ? Number(((i.total + parte) / i.quantidade).toFixed(6)) : 0;
+  });
+}
