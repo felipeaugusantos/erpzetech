@@ -178,6 +178,24 @@ function AppMotorista() {
     if (!motoristaId && motoristas[0]) setMotoristaId(motoristas[0].id);
   }, [motoristas, motoristaId, meuMotorista]);
 
+  // Envia a posição do celular a cada minuto, só quando o login é de motorista.
+  useEffect(() => {
+    if (!meuMotorista || typeof navigator === "undefined" || !navigator.geolocation) return;
+    const enviar = () =>
+      navigator.geolocation.getCurrentPosition(
+        (p) =>
+          void supabase.rpc("motorista_enviar_posicao", {
+            p_lat: p.coords.latitude,
+            p_lng: p.coords.longitude,
+          }),
+        () => undefined,
+        { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 },
+      );
+    enviar();
+    const t = setInterval(enviar, 60000);
+    return () => clearInterval(t);
+  }, [meuMotorista]);
+
   const { data: entregas = [], isLoading } = useQuery({
     queryKey: ["entregas-motorista", motoristaId],
     enabled: Boolean(motoristaId),
