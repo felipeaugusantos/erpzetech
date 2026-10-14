@@ -3,7 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-import { atualizarBaseRestauranteOffline, sincronizarComandasOffline } from "@/lib/offline-restaurante";
+import {
+  atualizarBaseRestauranteOffline,
+  sincronizarComandasOffline,
+} from "@/lib/offline-restaurante";
 
 /** Telas que precisam abrir sem internet: o sistema baixa os arquivos delas com antecedência. */
 const TELAS_OFFLINE = ["/frente-caixa", "/salao", "/delivery", "/conferencia-offline"] as const;
@@ -28,7 +31,9 @@ export function useSincronizacaoOffline() {
           void qc.invalidateQueries();
         }
         if (r.recusadas)
-          toast.error(`${r.recusadas} comanda(s) guardada(s) foram recusadas. Veja no Salão ou Delivery.`);
+          toast.error(
+            `${r.recusadas} comanda(s) guardada(s) foram recusadas. Veja no Salão ou Delivery.`,
+          );
         await atualizarBaseRestauranteOffline();
       } finally {
         rodando = false;
@@ -39,7 +44,8 @@ export function useSincronizacaoOffline() {
       if (!navigator.onLine) return;
       for (const to of TELAS_OFFLINE) void router.preloadRoute({ to }).catch(() => undefined);
       // guarda também a página de cada tela no aparelho (service worker)
-      for (const to of TELAS_OFFLINE) void fetch(to, { credentials: "same-origin" }).catch(() => undefined);
+      for (const to of TELAS_OFFLINE)
+        void fetch(to, { credentials: "same-origin" }).catch(() => undefined);
     };
 
     const aoVoltar = () => void rodar();

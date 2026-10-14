@@ -84,8 +84,8 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
         <div className="flex-1 text-sm">
           <p className="font-semibold">Sem internet — trabalhando neste computador</p>
           <p className="text-muted-foreground">
-            {modo === "salao" ? "Comandas" : "Pedidos"} e pagamentos ficam salvos aqui e são enviados
-            sozinhos quando a conexão voltar. Não limpe os dados do navegador.
+            {modo === "salao" ? "Comandas" : "Pedidos"} e pagamentos ficam salvos aqui e são
+            enviados sozinhos quando a conexão voltar. Não limpe os dados do navegador.
           </p>
         </div>
         <Button onClick={() => setNova(true)}>
@@ -195,7 +195,9 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
           onPagar={(fechar) => {
             atualizar(aFechar.offline_id, (c) => ({ ...c, fechar }));
             setFechando(null);
-            toast.success("Conta fechada e guardada. Será enviada ao caixa quando a internet voltar.");
+            toast.success(
+              "Conta fechada e guardada. Será enviada ao caixa quando a internet voltar.",
+            );
           }}
         />
       )}
@@ -269,7 +271,9 @@ function NovaComanda({
     <Dialog open={aberto} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{modo === "salao" ? "Nova comanda" : "Novo delivery"} (sem internet)</DialogTitle>
+          <DialogTitle>
+            {modo === "salao" ? "Nova comanda" : "Novo delivery"} (sem internet)
+          </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           {modo === "salao" ? (
@@ -323,11 +327,19 @@ function NovaComanda({
                 </div>
                 <div>
                   <Label>Taxa de entrega</Label>
-                  <Input inputMode="decimal" value={taxa} onChange={(e) => setTaxa(e.target.value)} />
+                  <Input
+                    inputMode="decimal"
+                    value={taxa}
+                    onChange={(e) => setTaxa(e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label>Pagamento</Label>
-                  <select className={sel} value={pagamento} onChange={(e) => setPagamento(e.target.value)}>
+                  <select
+                    className={sel}
+                    value={pagamento}
+                    onChange={(e) => setPagamento(e.target.value)}
+                  >
                     {FORMAS.map((f) => (
                       <option key={f.v} value={f.v}>
                         {f.l}
@@ -414,11 +426,25 @@ function ItensDialog({
               {comanda.itens.map((i) => (
                 <li key={i.cardapio_item_id} className="flex items-center gap-2 text-sm">
                   <span className="flex-1">{i.nome}</span>
-                  <Button size="icon" variant="outline" className="size-7" onClick={() => somar(i.cardapio_item_id, i.nome, i.preco, -1)}>
-                    {i.quantidade === 1 ? <Trash2 className="size-3.5" /> : <Minus className="size-3.5" />}
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-7"
+                    onClick={() => somar(i.cardapio_item_id, i.nome, i.preco, -1)}
+                  >
+                    {i.quantidade === 1 ? (
+                      <Trash2 className="size-3.5" />
+                    ) : (
+                      <Minus className="size-3.5" />
+                    )}
                   </Button>
                   <span className="w-6 text-center">{i.quantidade}</span>
-                  <Button size="icon" variant="outline" className="size-7" onClick={() => somar(i.cardapio_item_id, i.nome, i.preco, 1)}>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-7"
+                    onClick={() => somar(i.cardapio_item_id, i.nome, i.preco, 1)}
+                  >
                     <Plus className="size-3.5" />
                   </Button>
                   <span className="w-20 text-right">{brl(i.preco * i.quantidade)}</span>
@@ -463,7 +489,11 @@ function FecharDialog({
         <div className="grid gap-3">
           {comanda.tipo === "salao" && (
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={servico} onChange={(e) => setServico(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={servico}
+                onChange={(e) => setServico(e.target.checked)}
+              />
               Cobrar serviço de {comanda.taxa_servico}%
             </label>
           )}
@@ -481,7 +511,9 @@ function FecharDialog({
           <div>
             <Label>Caixa que recebe</Label>
             <select className={sel} value={caixa} onChange={(e) => setCaixa(e.target.value)}>
-              {caixas.length === 0 && <option value="">Nenhum caixa aberto na última conexão</option>}
+              {caixas.length === 0 && (
+                <option value="">Nenhum caixa aberto na última conexão</option>
+              )}
               {caixas.map((c) => (
                 <option key={c.id} value={c.id}>
                   Caixa {c.numero}
@@ -497,7 +529,11 @@ function FecharDialog({
           <Button
             disabled={!caixa}
             onClick={() =>
-              onPagar({ pagamentos: [{ forma, valor: total }], caixa_id: caixa, cobrar_servico: servico })
+              onPagar({
+                pagamentos: [{ forma, valor: total }],
+                caixa_id: caixa,
+                cobrar_servico: servico,
+              })
             }
           >
             Receber {brl(total)}

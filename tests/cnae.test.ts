@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { cnaesDaEmpresa, moduloLiberadoPorCnae } from "../src/lib/cnae.ts";
+import { cnaesDaEmpresa, moduloLiberadoPorCnae } from "../src/lib/cnae-regras.ts";
 
 test("CNAE 4321 (elétrica/CFTV) libera assistência técnica", () => {
   assert.equal(moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae: "4321-5/00" }), "assistencia"), true);

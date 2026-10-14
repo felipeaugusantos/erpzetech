@@ -51,7 +51,10 @@ export function validaSaida(saldo: ItemSaldo, quantidade: number): string | null
 
 /** Soma por item o que está em entregas ainda abertas (planejada ou em rota). */
 export function planejadoPorItem(
-  entregas: { situacao: string; entrega_itens?: { pedido_item_id: string; quantidade: number }[] }[],
+  entregas: {
+    situacao: string;
+    entrega_itens?: { pedido_item_id: string; quantidade: number }[];
+  }[],
 ): Record<string, number> {
   const mapa: Record<string, number> = {};
   for (const e of entregas) {
