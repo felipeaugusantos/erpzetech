@@ -10,7 +10,10 @@ export function MapaRota({ paradas }: { paradas: { rotulo: string; endereco: str
   if (validas.length === 0) return null;
   const atual = validas[Math.min(sel, validas.length - 1)];
   const destino = validas[validas.length - 1].endereco;
-  const meio = validas.slice(0, -1).map((p) => p.endereco).join("|");
+  const meio = validas
+    .slice(0, -1)
+    .map((p) => p.endereco)
+    .join("|");
   const rota =
     `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(destino)}` +
     (meio ? `&waypoints=${encodeURIComponent(meio)}` : "");

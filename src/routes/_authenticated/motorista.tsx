@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dateBR, num } from "@/lib/format";
 import { corEntrega, enderecoPedido, labelEntrega, motivosInsucesso } from "@/lib/entrega";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { MapaRota } from "@/components/app/MapaRota";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,6 +215,49 @@ function AppMotorista() {
     },
   });
 
+  // Status ao vivo: qualquer mudança nas entregas deste motorista atualiza a tela na hora.
+  useEffect(() => {
+    if (!motoristaId) return;
+    const canal = supabase
+      .channel(`entregas-motorista-${motoristaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "entregas",
+          filter: `motorista_id=eq.${motoristaId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["entregas-motorista"] });
+          void queryClient.invalidateQueries({ queryKey: ["entregas-motorista-finalizadas"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(canal);
+    };
+  }, [motoristaId, queryClient]);
+
+  const paradas = useMemo(
+    () =>
+      entregas.map((e) => {
+        const p = e.pedidos as unknown as
+          | (Parameters<typeof enderecoPedido>[0] & {
+              numero?: number;
+              clientes?: { nome: string } | null;
+            })
+          | null;
+        return {
+          rotulo: p?.clientes?.nome ?? `Entrega ${e.numero ?? ""}`,
+          endereco:
+            (e as { endereco_entrega?: string | null }).endereco_entrega ||
+            (p ? enderecoPedido(p) : ""),
+        };
+      }),
+    [entregas],
+  );
+
   const entregaAtual = useMemo(
     () => entregas.find((e) => e.id === entregaId) ?? null,
     [entregas, entregaId],
@@ -341,6 +385,7 @@ function AppMotorista() {
         />
       ) : (
         <div className="grid gap-3">
+          <MapaRota paradas={paradas} />
           {entregas.map((e) => {
             const pedido = e.pedidos as unknown as {
               numero: number;
