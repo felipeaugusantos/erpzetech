@@ -112,3 +112,10 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] P5 Financeiro e estrutura de conciliação/CNAB (sem banco real até haver credenciais)
 - [ ] P6 Catálogo, API versionada e integrações
 - [ ] Implantação: importação por planilha e passos iniciais
+
+## Etapa 2/3 — complemento
+- [x] Lotes, tonalidade e calibre por depósito (`/estoque-lotes`, RPC `estoque_lote_lancar`, histórico permanente)
+- [x] Conferência sem internet mostra mínimo e o que falta
+- [x] App do motorista no celular (`/motorista`) já atualiza entregas e histórico da obra
+- [ ] Teste real: cotação com fornecedor → XML → entrada no estoque após venda (precisa de fornecedor e XML reais)
+- [ ] Ligar lote à venda/separação e à importação do XML
