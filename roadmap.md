@@ -105,9 +105,21 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] P1 Venda e entrega: retirada/entrega parcial com trava de saldo e chave contra reenvio, ocorrências (falta/sobra/avaria/substituição), agendamento/reagendamento com motivo, visão por item no pedido (orçamento→pedido já existia)
 - [x] P1 resto: romaneio impresso por entrega (`/entregas` e pedido: quantidade, item, data, saldo e assinaturas), leitura de código de barras no novo pedido, na separação, na conferência e na saída (`3*código`), histórico unificado da obra (`/obra-historico`)
 - [x] Teste de banco com pedido real de obra: retirada parcial, saldo por item, trava de saída, agendado contra o saldo, reagendamento com motivo e ocorrências (`supabase/ci/smoke.sql`, bloco 21); o CI passa a aplicar também as migrations que o Lovable grava só em `drizzle/migrations`
-- [ ] P2 Estoque e compras: físico/reservado/disponível, conversões, lote/tonalidade, sugestão de reposição revisável
+- [x] P2 Sugestão de reposição revisável por fornecedor (`/sugestao-compra`, RPC `compra_criar_de_sugestao`), considerando vendas, reservado, já pedido, mín/máx, prazo e embalagem de compra. Compras, cotações, XML da NF-e e estoque físico/reservado/disponível já existiam
+- [ ] P2 resto: lote/tonalidade de pisos (precisa de modelo de lote no estoque), motivo obrigatório em ajustes de inventário/transferência
 - [ ] P3 Logística no celular com fila offline
 - [ ] P4 Painéis e indicadores com origem do valor
 - [ ] P5 Financeiro e estrutura de conciliação/CNAB (sem banco real até haver credenciais)
 - [ ] P6 Catálogo, API versionada e integrações
 - [ ] Implantação: importação por planilha e passos iniciais
+
+## Etapa 2/3 — complemento
+- [x] Lotes, tonalidade e calibre por depósito (`/estoque-lotes`, RPC `estoque_lote_lancar`, histórico permanente)
+- [x] Conferência sem internet mostra mínimo e o que falta
+- [x] App do motorista no celular (`/motorista`) já atualiza entregas e histórico da obra
+- [ ] Teste real: cotação com fornecedor → XML → entrada no estoque após venda (precisa de fornecedor e XML reais)
+- [ ] Ligar lote à venda/separação e à importação do XML
+- [x] Lote/tonalidade escolhido no item do pedido e visível na separação (RPC `pedido_item_definir_lote`)
+- [x] Tela "Lotes sem internet" (`/lotes-offline`) com saldo e histórico
+- [ ] Baixar o saldo do lote automaticamente na saída do pedido e preencher lote na importação do XML
+- [ ] Teste do app do motorista "não entregue" (nenhum motorista tem login e nenhuma entrega está em rota)

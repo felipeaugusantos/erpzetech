@@ -65,6 +65,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { LeitorPedido } from "@/components/app/LeitorPedido";
 import { PedidoAtendimento } from "@/components/app/PedidoAtendimento";
+import { LotesDoPedido } from "@/components/app/LotesDoPedido";
 import { aplicarLeitura, mensagemLeitura } from "@/lib/leitura-pedido";
 import { planejadoPorItem, saldoItem, validaSaida } from "@/lib/saldo-pedido";
 
@@ -908,6 +909,11 @@ function PedidoDetalhe() {
               </div>
             </div>
           )}
+
+          <LotesDoPedido
+            pedidoId={id}
+            editavel={!["entregue", "concluido", "cancelado"].includes(pedido.situacao)}
+          />
 
           <PedidoAtendimento
             pedidoId={id}

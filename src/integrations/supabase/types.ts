@@ -2495,6 +2495,51 @@ export type Database = {
           },
         ]
       }
+      entrega_tentativas: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          motivo: string | null
+          observacao: string | null
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_tentativas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_tentativas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregas: {
         Row: {
           assinatura: string | null
@@ -2607,6 +2652,124 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_lote_movimentos: {
+        Row: {
+          created_at: string
+          documento: string | null
+          id: string
+          lote_id: string
+          motivo: string | null
+          quantidade: number
+          saldo_posterior: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          documento?: string | null
+          id?: string
+          lote_id: string
+          motivo?: string | null
+          quantidade: number
+          saldo_posterior: number
+          tenant_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          documento?: string | null
+          id?: string
+          lote_id?: string
+          motivo?: string | null
+          quantidade?: number
+          saldo_posterior?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_lote_movimentos_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lote_movimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_lotes: {
+        Row: {
+          calibre: string
+          created_at: string
+          deposito_id: string
+          id: string
+          lote: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          tonalidade: string
+          updated_at: string
+          validade: string | null
+        }
+        Insert: {
+          calibre?: string
+          created_at?: string
+          deposito_id: string
+          id?: string
+          lote: string
+          produto_id: string
+          quantidade?: number
+          tenant_id: string
+          tonalidade?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Update: {
+          calibre?: string
+          created_at?: string
+          deposito_id?: string
+          id?: string
+          lote?: string
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          tonalidade?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_lotes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lotes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_lotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3644,6 +3807,9 @@ export type Database = {
           observacao: string | null
           telefone: string | null
           tenant_id: string
+          ultima_lat: number | null
+          ultima_lng: number | null
+          ultima_posicao_em: string | null
           updated_at: string
           user_id: string | null
           validade_cnh: string | null
@@ -3661,6 +3827,9 @@ export type Database = {
           observacao?: string | null
           telefone?: string | null
           tenant_id?: string
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_posicao_em?: string | null
           updated_at?: string
           user_id?: string | null
           validade_cnh?: string | null
@@ -3678,6 +3847,9 @@ export type Database = {
           observacao?: string | null
           telefone?: string | null
           tenant_id?: string
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_posicao_em?: string | null
           updated_at?: string
           user_id?: string | null
           validade_cnh?: string | null
@@ -4616,6 +4788,7 @@ export type Database = {
           desconto: number
           divergencia: string | null
           id: string
+          lote_id: string | null
           observacao: string | null
           pedido_id: string
           preco_unitario: number
@@ -4634,6 +4807,7 @@ export type Database = {
           desconto?: number
           divergencia?: string | null
           id?: string
+          lote_id?: string | null
           observacao?: string | null
           pedido_id: string
           preco_unitario?: number
@@ -4652,6 +4826,7 @@ export type Database = {
           desconto?: number
           divergencia?: string | null
           id?: string
+          lote_id?: string | null
           observacao?: string | null
           pedido_id?: string
           preco_unitario?: number
@@ -4665,6 +4840,13 @@ export type Database = {
           unidade?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_itens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_itens_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -5229,6 +5411,7 @@ export type Database = {
           codigo_barras: string | null
           codigo_interno: string
           comprimento: number | null
+          controla_lote: boolean
           created_at: string
           cst_csosn: string | null
           custo: number
@@ -5265,6 +5448,7 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno: string
           comprimento?: number | null
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -5301,6 +5485,7 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno?: string
           comprimento?: number | null
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -6808,6 +6993,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      compra_criar_de_sugestao: {
+        Args: {
+          p_deposito_id: string
+          p_fornecedor_id: string
+          p_itens: Json
+          p_observacao?: string
+        }
+        Returns: string
+      }
       compra_escolher_cotacao: {
         Args: { p_cotacao_id: string }
         Returns: undefined
@@ -6901,6 +7095,20 @@ export type Database = {
       entrega_insucesso: {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
         Returns: undefined
+      }
+      estoque_lote_lancar: {
+        Args: {
+          p_calibre: string
+          p_deposito_id: string
+          p_documento?: string
+          p_lote: string
+          p_motivo?: string
+          p_produto_id: string
+          p_quantidade: number
+          p_tipo: string
+          p_tonalidade: string
+        }
+        Returns: string
       }
       exige_nao_salao: { Args: never; Returns: undefined }
       fechar_caixa: {
@@ -7052,6 +7260,10 @@ export type Database = {
       }
       locacao_gerar_nfe: { Args: { p_locacao_id: string }; Returns: string }
       locacao_gerar_nfse: { Args: { p_locacao_id: string }; Returns: string }
+      motorista_enviar_posicao: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: undefined
+      }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
@@ -7119,6 +7331,10 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      pedido_item_definir_lote: {
+        Args: { p_lote_id: string; p_pedido_item_id: string }
+        Returns: undefined
       }
       pedido_registrar_entrega: {
         Args: {

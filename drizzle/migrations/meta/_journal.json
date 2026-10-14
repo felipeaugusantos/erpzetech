@@ -127,6 +127,55 @@
       "when": 1791984924227,
       "tag": "0017_materiais_entregas_parciais_ocorrencias",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791987851330,
+      "tag": "0018_obra_historico_romaneio",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791988080653,
+      "tag": "0019_compra_de_sugestao_revisada",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791988582810,
+      "tag": "0020_estoque_lotes_tonalidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791988866322,
+      "tag": "0021_pedido_itens_lote",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791989079104,
+      "tag": "0022_entregas_realtime",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791989151829,
+      "tag": "0023_lote_baixa_automatica",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791998715568,
+      "tag": "0024_motorista_posicao",
+      "breakpoints": true
     }
   ]
 }

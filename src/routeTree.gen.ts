@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
+import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
@@ -39,7 +40,9 @@ import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
 import { Route as AuthenticatedEmpresaRouteImport } from './routes/_authenticated/empresa'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
+import { Route as AuthenticatedEntregasMotoristaRouteImport } from './routes/_authenticated/entregas-motorista'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedEstoqueLotesRouteImport } from './routes/_authenticated/estoque-lotes'
 import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
@@ -48,6 +51,7 @@ import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenticated/frente-caixa'
+import { Route as AuthenticatedFrotaMapaRouteImport } from './routes/_authenticated/frota-mapa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
@@ -57,6 +61,7 @@ import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
+import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authenticated/lotes-offline'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -84,6 +89,7 @@ import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_aut
 import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_authenticated/relatorio-locacoes'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
+import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
@@ -140,6 +146,12 @@ const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
   path: '/ze-tech-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAjusteLotesRoute =
+  AuthenticatedAjusteLotesRouteImport.update({
+    id: '/ajuste-lotes',
+    path: '/ajuste-lotes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAssistenciaRoute =
   AuthenticatedAssistenciaRouteImport.update({
     id: '/assistencia',
@@ -271,11 +283,23 @@ const AuthenticatedEntregasRoute = AuthenticatedEntregasRouteImport.update({
   path: '/entregas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEntregasMotoristaRoute =
+  AuthenticatedEntregasMotoristaRouteImport.update({
+    id: '/entregas-motorista',
+    path: '/entregas-motorista',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   id: '/estoque',
   path: '/estoque',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstoqueLotesRoute =
+  AuthenticatedEstoqueLotesRouteImport.update({
+    id: '/estoque-lotes',
+    path: '/estoque-lotes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEstoqueMovimentosRoute =
   AuthenticatedEstoqueMovimentosRouteImport.update({
     id: '/estoque-movimentos',
@@ -322,6 +346,11 @@ const AuthenticatedFrenteCaixaRoute =
     path: '/frente-caixa',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFrotaMapaRoute = AuthenticatedFrotaMapaRouteImport.update({
+  id: '/frota-mapa',
+  path: '/frota-mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGiroEstoqueRoute =
   AuthenticatedGiroEstoqueRouteImport.update({
     id: '/giro-estoque',
@@ -374,6 +403,12 @@ const AuthenticatedLocacoesRoute = AuthenticatedLocacoesRouteImport.update({
   path: '/locacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLotesOfflineRoute =
+  AuthenticatedLotesOfflineRouteImport.update({
+    id: '/lotes-offline',
+    path: '/lotes-offline',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
   id: '/lucro',
   path: '/lucro',
@@ -520,6 +555,12 @@ const AuthenticatedSalaoRoute = AuthenticatedSalaoRouteImport.update({
   path: '/salao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSugestaoCompraRoute =
+  AuthenticatedSugestaoCompraRouteImport.update({
+    id: '/sugestao-compra',
+    path: '/sugestao-compra',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTecnicosRoute = AuthenticatedTecnicosRouteImport.update({
   id: '/tecnicos',
   path: '/tecnicos',
@@ -674,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -698,7 +740,9 @@ export interface FileRoutesByFullPath {
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -707,6 +751,7 @@ export interface FileRoutesByFullPath {
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -716,6 +761,7 @@ export interface FileRoutesByFullPath {
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
+  '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -743,6 +789,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -776,6 +823,7 @@ export interface FileRoutesByTo {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -800,7 +848,9 @@ export interface FileRoutesByTo {
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -809,6 +859,7 @@ export interface FileRoutesByTo {
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -818,6 +869,7 @@ export interface FileRoutesByTo {
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/locacoes': typeof AuthenticatedLocacoesRoute
+  '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -845,6 +897,7 @@ export interface FileRoutesByTo {
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -880,6 +933,7 @@ export interface FileRoutesById {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -904,7 +958,9 @@ export interface FileRoutesById {
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
   '/_authenticated/empresa': typeof AuthenticatedEmpresaRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
+  '/_authenticated/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -913,6 +969,7 @@ export interface FileRoutesById {
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/_authenticated/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -922,6 +979,7 @@ export interface FileRoutesById {
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
+  '/_authenticated/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -949,6 +1007,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
+  '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -984,6 +1043,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1008,7 +1068,9 @@ export interface FileRouteTypes {
     | '/devolucoes'
     | '/empresa'
     | '/entregas'
+    | '/entregas-motorista'
     | '/estoque'
+    | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
     | '/fechamento-operador'
@@ -1017,6 +1079,7 @@ export interface FileRouteTypes {
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
+    | '/frota-mapa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -1026,6 +1089,7 @@ export interface FileRouteTypes {
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
+    | '/lotes-offline'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -1053,6 +1117,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/salao'
+    | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1086,6 +1151,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1110,7 +1176,9 @@ export interface FileRouteTypes {
     | '/devolucoes'
     | '/empresa'
     | '/entregas'
+    | '/entregas-motorista'
     | '/estoque'
+    | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
     | '/fechamento-operador'
@@ -1119,6 +1187,7 @@ export interface FileRouteTypes {
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
+    | '/frota-mapa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -1128,6 +1197,7 @@ export interface FileRouteTypes {
     | '/locacao-equipamentos'
     | '/locacao-estoque'
     | '/locacoes'
+    | '/lotes-offline'
     | '/lucro'
     | '/motorista'
     | '/motoristas'
@@ -1155,6 +1225,7 @@ export interface FileRouteTypes {
     | '/relatorio-locacoes'
     | '/rota'
     | '/salao'
+    | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1189,6 +1260,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/balanco-fiscal'
@@ -1213,7 +1285,9 @@ export interface FileRouteTypes {
     | '/_authenticated/devolucoes'
     | '/_authenticated/empresa'
     | '/_authenticated/entregas'
+    | '/_authenticated/entregas-motorista'
     | '/_authenticated/estoque'
+    | '/_authenticated/estoque-lotes'
     | '/_authenticated/estoque-movimentos'
     | '/_authenticated/extrato-receber'
     | '/_authenticated/fechamento-operador'
@@ -1222,6 +1296,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
     | '/_authenticated/frente-caixa'
+    | '/_authenticated/frota-mapa'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/impostos'
     | '/_authenticated/impostos-filial'
@@ -1231,6 +1306,7 @@ export interface FileRouteTypes {
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
     | '/_authenticated/locacoes'
+    | '/_authenticated/lotes-offline'
     | '/_authenticated/lucro'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -1258,6 +1334,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-locacoes'
     | '/_authenticated/rota'
     | '/_authenticated/salao'
+    | '/_authenticated/sugestao-compra'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
     | '/_authenticated/tef-painel'
@@ -1339,6 +1416,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/ze-tech-login'
       preLoaderRoute: typeof ZeTechLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ajuste-lotes': {
+      id: '/_authenticated/ajuste-lotes'
+      path: '/ajuste-lotes'
+      fullPath: '/ajuste-lotes'
+      preLoaderRoute: typeof AuthenticatedAjusteLotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/assistencia': {
       id: '/_authenticated/assistencia'
@@ -1508,11 +1592,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntregasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/entregas-motorista': {
+      id: '/_authenticated/entregas-motorista'
+      path: '/entregas-motorista'
+      fullPath: '/entregas-motorista'
+      preLoaderRoute: typeof AuthenticatedEntregasMotoristaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/estoque': {
       id: '/_authenticated/estoque'
       path: '/estoque'
       fullPath: '/estoque'
       preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/estoque-lotes': {
+      id: '/_authenticated/estoque-lotes'
+      path: '/estoque-lotes'
+      fullPath: '/estoque-lotes'
+      preLoaderRoute: typeof AuthenticatedEstoqueLotesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/estoque-movimentos': {
@@ -1569,6 +1667,13 @@ declare module '@tanstack/react-router' {
       path: '/frente-caixa'
       fullPath: '/frente-caixa'
       preLoaderRoute: typeof AuthenticatedFrenteCaixaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frota-mapa': {
+      id: '/_authenticated/frota-mapa'
+      path: '/frota-mapa'
+      fullPath: '/frota-mapa'
+      preLoaderRoute: typeof AuthenticatedFrotaMapaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/giro-estoque': {
@@ -1632,6 +1737,13 @@ declare module '@tanstack/react-router' {
       path: '/locacoes'
       fullPath: '/locacoes'
       preLoaderRoute: typeof AuthenticatedLocacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lotes-offline': {
+      id: '/_authenticated/lotes-offline'
+      path: '/lotes-offline'
+      fullPath: '/lotes-offline'
+      preLoaderRoute: typeof AuthenticatedLotesOfflineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lucro': {
@@ -1823,6 +1935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sugestao-compra': {
+      id: '/_authenticated/sugestao-compra'
+      path: '/sugestao-compra'
+      fullPath: '/sugestao-compra'
+      preLoaderRoute: typeof AuthenticatedSugestaoCompraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tecnicos': {
       id: '/_authenticated/tecnicos'
       path: '/tecnicos'
@@ -2009,6 +2128,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAjusteLotesRoute: typeof AuthenticatedAjusteLotesRoute
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
@@ -2033,7 +2153,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
   AuthenticatedEmpresaRoute: typeof AuthenticatedEmpresaRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
+  AuthenticatedEntregasMotoristaRoute: typeof AuthenticatedEntregasMotoristaRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedEstoqueLotesRoute: typeof AuthenticatedEstoqueLotesRoute
   AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
@@ -2042,6 +2164,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedFrenteCaixaRoute: typeof AuthenticatedFrenteCaixaRoute
+  AuthenticatedFrotaMapaRoute: typeof AuthenticatedFrotaMapaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
@@ -2051,6 +2174,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
+  AuthenticatedLotesOfflineRoute: typeof AuthenticatedLotesOfflineRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -2078,6 +2202,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioLocacoesRoute: typeof AuthenticatedRelatorioLocacoesRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
+  AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
@@ -2106,6 +2231,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAjusteLotesRoute: AuthenticatedAjusteLotesRoute,
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
@@ -2130,7 +2256,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
   AuthenticatedEmpresaRoute: AuthenticatedEmpresaRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
+  AuthenticatedEntregasMotoristaRoute: AuthenticatedEntregasMotoristaRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedEstoqueLotesRoute: AuthenticatedEstoqueLotesRoute,
   AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
@@ -2139,6 +2267,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedFrenteCaixaRoute: AuthenticatedFrenteCaixaRoute,
+  AuthenticatedFrotaMapaRoute: AuthenticatedFrotaMapaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
@@ -2148,6 +2277,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
+  AuthenticatedLotesOfflineRoute: AuthenticatedLotesOfflineRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
@@ -2176,6 +2306,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatorioLocacoesRoute: AuthenticatedRelatorioLocacoesRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
+  AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,
