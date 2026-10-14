@@ -104,6 +104,7 @@ const groups: Group[] = [
       { label: "Preços e margens", to: "/precos", icon: Tag },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
+      { label: "Lotes e tonalidades", to: "/estoque-lotes", icon: Boxes },
       { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
       { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
       { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },

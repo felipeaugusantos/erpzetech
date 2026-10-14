@@ -141,6 +141,13 @@
       "when": 1791988080653,
       "tag": "0019_compra_de_sugestao_revisada",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791988582810,
+      "tag": "0020_estoque_lotes_tonalidade",
+      "breakpoints": true
     }
   ]
 }

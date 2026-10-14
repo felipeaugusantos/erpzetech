@@ -30,6 +30,7 @@ type LinhaEstoque = {
   deposito: string;
   quantidade: number;
   reservado: number;
+  minimo?: number;
 };
 type LinhaCaixa = {
   id: string;
@@ -49,7 +50,7 @@ export async function atualizarConferencia(): Promise<Retrato<Dados> | null> {
   const [est, cx] = await Promise.all([
     supabase
       .from("estoques")
-      .select("quantidade, reservado, produtos(descricao, codigo_interno), depositos(nome)")
+      .select("quantidade, reservado, produtos(descricao, codigo_interno, estoque_minimo), depositos(nome)")
       .limit(5000),
     supabase
       .from("caixas")
@@ -83,7 +84,11 @@ export async function atualizarConferencia(): Promise<Retrato<Dados> | null> {
   type Row = {
     quantidade: number;
     reservado: number;
-    produtos: { descricao: string; codigo_interno: string | null } | null;
+    produtos: {
+      descricao: string;
+      codigo_interno: string | null;
+      estoque_minimo: number | null;
+    } | null;
     depositos: { nome: string } | null;
   };
   const estoque = ((est.data ?? []) as unknown as Row[])
@@ -93,6 +98,7 @@ export async function atualizarConferencia(): Promise<Retrato<Dados> | null> {
       deposito: r.depositos?.nome ?? "—",
       quantidade: Number(r.quantidade),
       reservado: Number(r.reservado),
+      minimo: Number(r.produtos?.estoque_minimo ?? 0),
     }))
     .sort((a, b) => a.produto.localeCompare(b.produto, "pt-BR"));
 
@@ -123,6 +129,7 @@ function Conferencia() {
   const [retrato, setRetrato] = useState<Retrato<Dados> | null>(null);
   const [atualizando, setAtualizando] = useState(false);
   const [busca, setBusca] = useState("");
+  const [soFalta, setSoFalta] = useState(false);
   const [frente, setFrente] = useState({ qtd: 0, total: 0 });
 
   useEffect(() => {
@@ -150,11 +157,14 @@ function Conferencia() {
 
   const estoque = useMemo(() => {
     const b = busca.trim().toLowerCase();
-    const l = retrato?.dados.estoque ?? [];
+    const todos = retrato?.dados.estoque ?? [];
+    const l = soFalta
+      ? todos.filter((x) => x.quantidade - x.reservado < (x.minimo ?? 0))
+      : todos;
     return b
       ? l.filter((x) => x.produto.toLowerCase().includes(b) || x.codigo.toLowerCase().includes(b))
       : l;
-  }, [retrato, busca]);
+  }, [retrato, busca, soFalta]);
 
   return (
     <>
@@ -215,6 +225,10 @@ function Conferencia() {
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">Estoque</h2>
+        <label className="ml-auto flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={soFalta} onChange={(e) => setSoFalta(e.target.checked)} />
+          Só o que falta (abaixo do mínimo)
+        </label>
         <Input
           className="max-w-xs"
           placeholder="Buscar produto ou código"
@@ -231,6 +245,8 @@ function Conferencia() {
               <th className="px-3 py-2 text-right">Físico</th>
               <th className="px-3 py-2 text-right">Reservado</th>
               <th className="px-3 py-2 text-right">Disponível</th>
+              <th className="px-3 py-2 text-right">Mínimo</th>
+              <th className="px-3 py-2 text-right">Falta</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -247,6 +263,12 @@ function Conferencia() {
                 <td className="px-3 py-2 text-right">{num(l.reservado)}</td>
                 <td className="px-3 py-2 text-right font-medium">
                   {num(l.quantidade - l.reservado)}
+                </td>
+                <td className="px-3 py-2 text-right">{num(l.minimo ?? 0)}</td>
+                <td className="px-3 py-2 text-right font-medium text-destructive">
+                  {(l.minimo ?? 0) > l.quantidade - l.reservado
+                    ? num((l.minimo ?? 0) - (l.quantidade - l.reservado))
+                    : ""}
                 </td>
               </tr>
             ))}

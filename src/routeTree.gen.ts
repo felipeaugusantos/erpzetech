@@ -40,6 +40,7 @@ import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEmpresaRouteImport } from './routes/_authenticated/empresa'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedEstoqueLotesRouteImport } from './routes/_authenticated/estoque-lotes'
 import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
@@ -277,6 +278,12 @@ const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   path: '/estoque',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstoqueLotesRoute =
+  AuthenticatedEstoqueLotesRouteImport.update({
+    id: '/estoque-lotes',
+    path: '/estoque-lotes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEstoqueMovimentosRoute =
   AuthenticatedEstoqueMovimentosRouteImport.update({
     id: '/estoque-movimentos',
@@ -706,6 +713,7 @@ export interface FileRoutesByFullPath {
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -809,6 +817,7 @@ export interface FileRoutesByTo {
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -914,6 +923,7 @@ export interface FileRoutesById {
   '/_authenticated/empresa': typeof AuthenticatedEmpresaRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
@@ -1019,6 +1029,7 @@ export interface FileRouteTypes {
     | '/empresa'
     | '/entregas'
     | '/estoque'
+    | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
     | '/fechamento-operador'
@@ -1122,6 +1133,7 @@ export interface FileRouteTypes {
     | '/empresa'
     | '/entregas'
     | '/estoque'
+    | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
     | '/fechamento-operador'
@@ -1226,6 +1238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/empresa'
     | '/_authenticated/entregas'
     | '/_authenticated/estoque'
+    | '/_authenticated/estoque-lotes'
     | '/_authenticated/estoque-movimentos'
     | '/_authenticated/extrato-receber'
     | '/_authenticated/fechamento-operador'
@@ -1526,6 +1539,13 @@ declare module '@tanstack/react-router' {
       path: '/estoque'
       fullPath: '/estoque'
       preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/estoque-lotes': {
+      id: '/_authenticated/estoque-lotes'
+      path: '/estoque-lotes'
+      fullPath: '/estoque-lotes'
+      preLoaderRoute: typeof AuthenticatedEstoqueLotesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/estoque-movimentos': {
@@ -2054,6 +2074,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEmpresaRoute: typeof AuthenticatedEmpresaRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedEstoqueLotesRoute: typeof AuthenticatedEstoqueLotesRoute
   AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
@@ -2152,6 +2173,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmpresaRoute: AuthenticatedEmpresaRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedEstoqueLotesRoute: AuthenticatedEstoqueLotesRoute,
   AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
