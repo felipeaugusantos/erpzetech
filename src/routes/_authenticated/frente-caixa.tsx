@@ -1356,8 +1356,8 @@ function FrenteCaixa() {
           </div>
           {fila.some((p) => !p.erro) && (
             <p className="text-xs text-muted-foreground">
-              {fila.filter((p) => !p.erro).length} venda(s) finalizada(s) sem internet aguardando envio (
-              {brl(fila.filter((p) => !p.erro).reduce((s, p) => s + p.total, 0))}).{" "}
+              {fila.filter((p) => !p.erro).length} venda(s) finalizada(s) sem internet aguardando
+              envio ({brl(fila.filter((p) => !p.erro).reduce((s, p) => s + p.total, 0))}).{" "}
               <Button size="sm" variant="link" onClick={() => void enviarFila()}>
                 Enviar agora
               </Button>
@@ -1366,13 +1366,18 @@ function FrenteCaixa() {
           {fila
             .filter((p) => p.erro)
             .map((p) => (
-              <div key={p.id} className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs">
+              <div
+                key={p.id}
+                className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs"
+              >
                 <p className="font-semibold">
-                  Venda de {brl(p.total)} feita sem internet em {new Date(p.em).toLocaleString("pt-BR")} foi recusada
+                  Venda de {brl(p.total)} feita sem internet em{" "}
+                  {new Date(p.em).toLocaleString("pt-BR")} foi recusada
                 </p>
                 <p>{p.erro}</p>
                 <p className="text-muted-foreground">
-                  O dinheiro já foi recebido: corrija o motivo (ex.: lance a entrada no estoque) e envie de novo.
+                  O dinheiro já foi recebido: corrija o motivo (ex.: lance a entrada no estoque) e
+                  envie de novo.
                 </p>
                 <div className="mt-1 flex gap-2">
                   <Button

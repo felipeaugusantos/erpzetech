@@ -78,8 +78,8 @@ async function contextoAdmin(supabase: {
 }
 
 /** Confirma que a filial escolhida é da mesma empresa do administrador. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cliente do Supabase com RLS
 async function validaFilial(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cliente do Supabase com RLS
   supabase: any,
   ctx: { tenantId: string; empresaId: string | null },
   filialId: string | null | undefined,

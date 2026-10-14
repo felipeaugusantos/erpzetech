@@ -22,7 +22,10 @@ export type Retrato<T> = { em: string; dados: T };
 /** Guarda no próprio computador uma cópia dos dados para consultar sem internet. */
 export function salvarRetrato<T>(chave: string, dados: T) {
   try {
-    localStorage.setItem(`zt-retrato-${chave}`, JSON.stringify({ em: new Date().toISOString(), dados }));
+    localStorage.setItem(
+      `zt-retrato-${chave}`,
+      JSON.stringify({ em: new Date().toISOString(), dados }),
+    );
   } catch {
     /* sem espaço: segue sem a cópia */
   }
