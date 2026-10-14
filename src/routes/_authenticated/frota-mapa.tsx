@@ -55,7 +55,9 @@ function FrotaMapa() {
                 className={`block w-full px-3 py-2 text-left text-sm disabled:opacity-60 ${atual?.id === m.id ? "bg-secondary" : ""}`}
               >
                 <span className="font-medium">{m.nome}</span>
-                <p className={`text-xs ${min != null && min > 10 ? "text-destructive" : "text-muted-foreground"}`}>
+                <p
+                  className={`text-xs ${min != null && min > 10 ? "text-destructive" : "text-muted-foreground"}`}
+                >
                   {min == null
                     ? "Ainda não enviou posição"
                     : min < 1
