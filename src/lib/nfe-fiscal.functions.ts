@@ -96,7 +96,28 @@ function icmsDoItem(
   return { ICMSSN102: { orig: origem, CSOSN: "102" } };
 }
 
-async function carregarNota(supabase: any, nfeId: string) {
+const PAPEIS_FISCAIS = ["administrador", "gestor", "financeiro"] as const;
+
+/** Exige um papel fiscal e devolve o tenant/empresa de quem chama. */
+async function exigirPapelFiscal(supabase: any, userId: string) {
+  const respostas = await Promise.all(
+    PAPEIS_FISCAIS.map((r) => supabase.rpc("has_role", { _user_id: userId, _role: r })),
+  );
+  if (!respostas.some((r: any) => r.data === true)) {
+    throw new Error("Somente administrador, gestor ou financeiro pode operar notas fiscais.");
+  }
+  const { data: perfil, error } = await supabase
+    .from("profiles")
+    .select("tenant_id, empresa_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!perfil?.tenant_id) throw new Error("Perfil sem empresa vinculada.");
+  return { tenantId: perfil.tenant_id as string, empresaId: (perfil.empresa_id as string) ?? null };
+}
+
+async function carregarNota(supabase: any, nfeId: string, userId?: string) {
+  const escopo = userId ? await exigirPapelFiscal(supabase, userId) : null;
   const { data: nota, error } = await supabase
     .from("nfe")
     .select(
@@ -106,6 +127,13 @@ async function carregarNota(supabase: any, nfeId: string) {
     .maybeSingle();
   if (error) throw error;
   if (!nota) throw new Error("Nota fiscal não encontrada");
+  if (escopo) {
+    const outraEmpresa =
+      escopo.empresaId && nota.empresa_id && nota.empresa_id !== escopo.empresaId;
+    if (nota.tenant_id !== escopo.tenantId || outraEmpresa) {
+      throw new Error("Nota fiscal não encontrada");
+    }
+  }
   return nota;
 }
 
