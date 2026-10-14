@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mock, test } from "node:test";
+import { test } from "node:test";
+import { comRelogio } from "./relogio.ts";
 
 // Roda em UTC (como o servidor): "hoje" continua sendo a data de Brasília.
 process.env["TZ"] = "UTC";
@@ -17,17 +18,13 @@ import {
 } from "../src/lib/financeiro.ts";
 
 test("hojeISO é a data local, inclusive à noite (quando em UTC já é o dia seguinte)", () => {
-  mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-04T01:30:00Z") }); // 22:30 em Brasília
-  try {
+  comRelogio("2026-10-04T01:30:00Z", () => {
     assert.equal(hojeISO(), "2026-10-03");
-  } finally {
-    mock.timers.reset();
-  }
+  });
 });
 
 test("conta que vence hoje não aparece como vencida à noite", () => {
-  mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-04T01:30:00Z") });
-  try {
+  comRelogio("2026-10-04T01:30:00Z", () => {
     assert.equal(estaVencida("aberto", "2026-10-03"), false);
     assert.equal(estaVencida("aberto", "2026-10-02"), true);
     assert.equal(estaVencida("parcial", "2026-10-02"), true);
@@ -38,9 +35,7 @@ test("conta que vence hoje não aparece como vencida à noite", () => {
     assert.equal(labelConta("pago", "2026-10-02"), "Pago");
     assert.match(corConta("aberto", "2026-10-02"), /destructive/);
     assert.match(corConta("pago", "2026-10-02"), /success/);
-  } finally {
-    mock.timers.reset();
-  }
+  });
 });
 
 test("somaDias atravessa mês e ano", () => {
