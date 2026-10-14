@@ -4985,6 +4985,7 @@ export type Database = {
           autorizado_por: string | null
           caixa_id: string | null
           cancelado_por: string | null
+          chave_idempotencia: string | null
           cliente_id: string
           condicao_pagamento: string | null
           created_at: string
@@ -5025,6 +5026,7 @@ export type Database = {
           autorizado_por?: string | null
           caixa_id?: string | null
           cancelado_por?: string | null
+          chave_idempotencia?: string | null
           cliente_id: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -5065,6 +5067,7 @@ export type Database = {
           autorizado_por?: string | null
           caixa_id?: string | null
           cancelado_por?: string | null
+          chave_idempotencia?: string | null
           cliente_id?: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -7114,6 +7117,10 @@ export type Database = {
         }
         Returns: string
       }
+      exige_entrega_propria: {
+        Args: { p_entrega_id: string }
+        Returns: undefined
+      }
       exige_nao_salao: { Args: never; Returns: undefined }
       exige_papel: { Args: { p_papeis: string[] }; Returns: undefined }
       fechar_caixa: {
@@ -7139,6 +7146,7 @@ export type Database = {
         }
         Returns: string
       }
+      filial_irrestrita: { Args: never; Returns: boolean }
       frente_abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -7170,6 +7178,7 @@ export type Database = {
       frente_venda: {
         Args: {
           p_autorizacao?: string
+          p_chave?: string
           p_cliente_id?: string
           p_deposito_id: string
           p_desconto?: number
@@ -7186,6 +7195,15 @@ export type Database = {
         Returns: string
       }
       gerar_contas_receber: {
+        Args: {
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_parcelas?: number
+          p_pedido_id: string
+          p_primeiro_vencimento?: string
+        }
+        Returns: number
+      }
+      gerar_contas_receber_interno: {
         Args: {
           p_forma?: Database["public"]["Enums"]["forma_pagamento"]
           p_parcelas?: number
@@ -7296,6 +7314,18 @@ export type Database = {
         }
         Returns: Json
       }
+      nfe_calcular_impostos_interno: {
+        Args: {
+          p_aliquota_cofins?: number
+          p_aliquota_icms?: number
+          p_aliquota_iss?: number
+          p_aliquota_pis?: number
+          p_aplicar_icms_em_todos?: boolean
+          p_nfe_id: string
+          p_reducao_base?: number
+        }
+        Returns: Json
+      }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
       onboarding_criar_espaco: { Args: { p_nome: string }; Returns: string }
       operador_definir_permissoes: {
@@ -7350,6 +7380,14 @@ export type Database = {
         Returns: string
       }
       pedido_avancar_status: {
+        Args: {
+          p_observacao?: string
+          p_pedido_id: string
+          p_situacao: Database["public"]["Enums"]["pedido_situacao"]
+        }
+        Returns: undefined
+      }
+      pedido_avancar_status_interno: {
         Args: {
           p_observacao?: string
           p_pedido_id: string
@@ -7415,6 +7453,7 @@ export type Database = {
         }
         Returns: string
       }
+      pode_filial: { Args: { p_filial_id: string }; Returns: boolean }
       premiacao_abater_conta: {
         Args: {
           p_conta_id: string
@@ -7448,6 +7487,19 @@ export type Database = {
         Returns: string
       }
       registrar_movimentacao: {
+        Args: {
+          p_custo?: number
+          p_deposito_destino_id?: string
+          p_deposito_id: string
+          p_documento?: string
+          p_motivo?: string
+          p_produto_id: string
+          p_quantidade: number
+          p_tipo: Database["public"]["Enums"]["mov_tipo"]
+        }
+        Returns: string
+      }
+      registrar_movimentacao_interno: {
         Args: {
           p_custo?: number
           p_deposito_destino_id?: string
@@ -7781,6 +7833,13 @@ export type Database = {
       transferencia_enviar: { Args: { p_id: string }; Returns: undefined }
       transferencia_receber: {
         Args: { p_id: string; p_itens?: Json; p_observacao?: string }
+        Returns: undefined
+      }
+      usuario_definir_papeis: {
+        Args: {
+          p_papeis: Database["public"]["Enums"]["app_role"][]
+          p_user_id: string
+        }
         Returns: undefined
       }
       webhook_concluir: {

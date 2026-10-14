@@ -183,6 +183,34 @@
       "when": 1792006183345,
       "tag": "0025_r10_gravacoes_em_etapas",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792006267119,
+      "tag": "0026_fase0_correcoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792006330699,
+      "tag": "0027_fase0_papeis",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792006350072,
+      "tag": "0028_nfe_balcao",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792006379631,
+      "tag": "0029_acesso_por_filial",
+      "breakpoints": true
     }
   ]
 }
