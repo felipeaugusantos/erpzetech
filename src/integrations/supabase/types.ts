@@ -4985,6 +4985,7 @@ export type Database = {
           autorizado_por: string | null
           caixa_id: string | null
           cancelado_por: string | null
+          chave_idempotencia: string | null
           cliente_id: string
           condicao_pagamento: string | null
           created_at: string
@@ -5025,6 +5026,7 @@ export type Database = {
           autorizado_por?: string | null
           caixa_id?: string | null
           cancelado_por?: string | null
+          chave_idempotencia?: string | null
           cliente_id: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -5065,6 +5067,7 @@ export type Database = {
           autorizado_por?: string | null
           caixa_id?: string | null
           cancelado_por?: string | null
+          chave_idempotencia?: string | null
           cliente_id?: string
           condicao_pagamento?: string | null
           created_at?: string
@@ -7170,6 +7173,7 @@ export type Database = {
       frente_venda: {
         Args: {
           p_autorizacao?: string
+          p_chave?: string
           p_cliente_id?: string
           p_deposito_id: string
           p_desconto?: number
@@ -7781,6 +7785,13 @@ export type Database = {
       transferencia_enviar: { Args: { p_id: string }; Returns: undefined }
       transferencia_receber: {
         Args: { p_id: string; p_itens?: Json; p_observacao?: string }
+        Returns: undefined
+      }
+      usuario_definir_papeis: {
+        Args: {
+          p_papeis: Database["public"]["Enums"]["app_role"][]
+          p_user_id: string
+        }
         Returns: undefined
       }
       webhook_concluir: {
