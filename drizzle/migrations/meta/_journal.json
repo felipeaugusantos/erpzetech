@@ -162,6 +162,13 @@
       "when": 1791989079104,
       "tag": "0022_entregas_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791989151829,
+      "tag": "0023_lote_baixa_automatica",
+      "breakpoints": true
     }
   ]
 }
