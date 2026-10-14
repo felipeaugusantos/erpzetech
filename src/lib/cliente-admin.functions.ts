@@ -67,7 +67,14 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
         user_metadata: { nome: cliente.responsavel ?? cliente.nome },
       });
       if (criado.error || !criado.data.user) {
-        throw new Error(criado.error?.message ?? "Não foi possível criar o acesso");
+        const ja =
+          (criado.error as { code?: string } | null)?.code === "email_exists" ||
+          /already been registered/i.test(criado.error?.message ?? "");
+        throw new Error(
+          ja
+            ? `O e-mail ${data.email} já tem login no sistema (pode ser de outra loja ou da equipe Ze Tech). Use um e-mail diferente para o administrador deste cliente.`
+            : (criado.error?.message ?? "Não foi possível criar o acesso"),
+        );
       }
       const userId = criado.data.user.id;
       desfazerSe(async () => {

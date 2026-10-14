@@ -134,7 +134,14 @@ export const criarUsuario = createServerFn({ method: "POST" })
       user_metadata: { nome: data.nome },
     });
     if (criado.error || !criado.data.user) {
-      throw new Error(criado.error?.message ?? "Não foi possível criar o usuário");
+      const ja =
+        (criado.error as { code?: string } | null)?.code === "email_exists" ||
+        /already been registered/i.test(criado.error?.message ?? "");
+      throw new Error(
+        ja
+          ? `O e-mail ${data.email} já tem login no sistema. Use outro e-mail.`
+          : (criado.error?.message ?? "Não foi possível criar o usuário"),
+      );
     }
     const novoId = criado.data.user.id;
 
