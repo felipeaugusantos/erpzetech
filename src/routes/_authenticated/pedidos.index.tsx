@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
+import { acharProdutoPorCodigo, lerCodigo } from "@/lib/leitura-pedido";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { CodigoPessoa } from "@/components/app/CodigoPessoa";
@@ -157,6 +158,36 @@ function Pedidos() {
       )
       .slice(0, 8);
   }, [base, produtoBusca]);
+
+  /** Código de barras (ou código interno) lido: o produto entra no pedido sem clicar na lista. */
+  function lerProduto(texto: string) {
+    const leitura = lerCodigo(texto);
+    if (!leitura) return;
+    const p = acharProdutoPorCodigo(base?.produtos ?? [], leitura.termo);
+    if (!p) return; // não é um código exato: a lista de busca continua valendo
+    setItens((prev) => {
+      const i = prev.findIndex((x) => x.produto_id === p.id);
+      if (i < 0)
+        return [
+          ...prev,
+          {
+            produto_id: p.id,
+            descricao: p.descricao,
+            unidade: p.unidade,
+            quantidade: leitura.quantidade,
+            qtdTexto: String(leitura.quantidade).replace(".", ","),
+            preco_unitario: Number(p.preco_venda ?? 0),
+            desconto: 0,
+          },
+        ];
+      const total = Math.round((prev[i]!.quantidade + leitura.quantidade) * 1000) / 1000;
+      return prev.map((x, j) =>
+        j === i ? { ...x, quantidade: total, qtdTexto: String(total).replace(".", ",") } : x,
+      );
+    });
+    setProdutoBusca("");
+    toast.success(`${leitura.quantidade} × ${p.descricao}`);
+  }
 
   const subtotalNovo = itens.reduce(
     (s, i) => s + (i.quantidade * i.preco_unitario - i.desconto),
@@ -515,7 +546,12 @@ function Pedidos() {
                 <Input
                   value={produtoBusca}
                   onChange={(e) => setProdutoBusca(e.target.value)}
-                  placeholder="Código, código de barras ou descrição…"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    lerProduto(produtoBusca);
+                  }}
+                  placeholder="Bipe o código de barras (3*código = 3 un.), digite o código ou a descrição…"
                   className="pl-8"
                 />
               </div>

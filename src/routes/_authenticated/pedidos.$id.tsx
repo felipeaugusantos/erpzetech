@@ -63,7 +63,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { LeitorPedido } from "@/components/app/LeitorPedido";
 import { PedidoAtendimento } from "@/components/app/PedidoAtendimento";
+import { aplicarLeitura, mensagemLeitura } from "@/lib/leitura-pedido";
 import { planejadoPorItem, saldoItem, validaSaida } from "@/lib/saldo-pedido";
 
 export const Route = createFileRoute("/_authenticated/pedidos/$id")({
@@ -231,6 +233,32 @@ function PedidoDetalhe() {
     setChaveSaida(crypto.randomUUID());
     setEntregaOpen(true);
   };
+  const nomeDoItem = (itemId: string) =>
+    (itens.find((i) => i.id === itemId)?.produtos as { descricao?: string } | null)?.descricao ??
+    "Item";
+
+  /** Leitura de código de barras somando ao campo da etapa (separado, conferido ou o que sai agora). */
+  function lerNaEtapa(
+    texto: string,
+    valores: Record<string, string>,
+    gravar: (v: Record<string, string>) => void,
+    limites: Record<string, number>,
+  ) {
+    const contados = Object.fromEntries(itens.map((i) => [i.id, Number(valores[i.id] ?? 0) || 0]));
+    const r = aplicarLeitura(
+      itens as unknown as Parameters<typeof aplicarLeitura>[0],
+      contados,
+      limites,
+      texto,
+    );
+    if (r.tipo === "ok") {
+      gravar({
+        ...valores,
+        ...Object.fromEntries(Object.entries(r.alteracoes).map(([k, v]) => [k, String(v)])),
+      });
+    }
+    return mensagemLeitura(r, nomeDoItem);
+  }
   const [cancelOpen, setCancelOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [contasOpen, setContasOpen] = useState(false);
@@ -260,7 +288,7 @@ function PedidoDetalhe() {
           .single(),
         supabase
           .from("pedido_itens")
-          .select("*, produtos(descricao, codigo_interno, localizacao)")
+          .select("*, produtos(descricao, codigo_interno, codigo_barras, localizacao)")
           .eq("pedido_id", id)
           .order("created_at"),
         supabase
@@ -667,6 +695,37 @@ function PedidoDetalhe() {
                 {num(resumo.pendente)}
               </p>
             </div>
+            {(emSeparacao || emConferencia) && (
+              <div className="border-b border-border px-4 py-3">
+                <LeitorPedido
+                  autoFocus
+                  placeholder={
+                    emSeparacao
+                      ? "Bipe cada item que está separando (3*código para 3 unidades)"
+                      : "Bipe cada item que está conferindo (3*código para 3 unidades)"
+                  }
+                  aoLer={(texto) =>
+                    emSeparacao
+                      ? lerNaEtapa(
+                          texto,
+                          separado,
+                          setSeparado,
+                          Object.fromEntries(itens.map((i) => [i.id, Number(i.quantidade)])),
+                        )
+                      : lerNaEtapa(
+                          texto,
+                          conferido,
+                          setConferido,
+                          Object.fromEntries(itens.map((i) => [i.id, Number(i.quantidade)])),
+                        )
+                  }
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  A leitura soma na coluna {emSeparacao ? "Separado" : "Conferido"}. Depois é só
+                  salvar.
+                </p>
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -860,6 +919,9 @@ function PedidoDetalhe() {
                 : null
             }
             faturado={notaDoPedido?.situacao === "autorizada"}
+            pedidoNumero={pedido.numero}
+            clienteNome={cliente?.nome ?? null}
+            obraNome={obra?.nome ?? null}
           />
         </div>
 
@@ -925,6 +987,28 @@ function PedidoDetalhe() {
               entrega não aparece como disponível.
             </DialogDescription>
           </DialogHeader>
+          <LeitorPedido
+            autoFocus
+            placeholder={
+              tipoSaida === "retirada"
+                ? "Bipe o que o cliente está levando (3*código para 3 unidades)"
+                : "Bipe o que está saindo na entrega (3*código para 3 unidades)"
+            }
+            aoLer={(texto) =>
+              lerNaEtapa(
+                texto,
+                entregaQtd,
+                setEntregaQtd,
+                Object.fromEntries(
+                  itens.map((i) => [
+                    i.id,
+                    saldoItem({ ...i, planejado: planejadoEntregas[i.id] ?? 0 })
+                      .disponivelParaSaida,
+                  ]),
+                ),
+              )
+            }
+          />
           <Table>
             <TableHeader>
               <TableRow>

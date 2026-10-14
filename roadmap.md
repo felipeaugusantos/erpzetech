@@ -103,7 +103,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 ## Rodada 7 — Especialização em materiais de construção (em sequência, com conferência entre etapas)
 - [x] P0 Segurança: notas fiscais exigem administrador/gestor/financeiro e conferem empresa da nota; status do emissor só para administrador e só da própria empresa; filial validada na gestão de usuários; criação de usuário e login de motorista desfazem a conta se uma etapa falhar e evitam vínculo duplicado
 - [x] P1 Venda e entrega: retirada/entrega parcial com trava de saldo e chave contra reenvio, ocorrências (falta/sobra/avaria/substituição), agendamento/reagendamento com motivo, visão por item no pedido (orçamento→pedido já existia)
-- [ ] P1 resto: romaneio impresso por entrega, leitura de código de barras na separação, histórico unificado da obra
+- [x] P1 resto: romaneio impresso por entrega (`/entregas` e pedido: quantidade, item, data, saldo e assinaturas), leitura de código de barras no novo pedido, na separação, na conferência e na saída (`3*código`), histórico unificado da obra (`/obra-historico`)
+- [x] Teste de banco com pedido real de obra: retirada parcial, saldo por item, trava de saída, agendado contra o saldo, reagendamento com motivo e ocorrências (`supabase/ci/smoke.sql`, bloco 21); o CI passa a aplicar também as migrations que o Lovable grava só em `drizzle/migrations`
 - [ ] P2 Estoque e compras: físico/reservado/disponível, conversões, lote/tonalidade, sugestão de reposição revisável
 - [ ] P3 Logística no celular com fila offline
 - [ ] P4 Painéis e indicadores com origem do valor

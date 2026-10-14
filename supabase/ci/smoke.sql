@@ -1061,3 +1061,147 @@ BEGIN
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, ' centro ', 5)$c$, demo), 'zona repetida (sem diferenciar maiúsculas)');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Cara', 5000)$c$, demo), 'taxa de zona absurda');
 END $$;
+
+-- 21. pedido de obra com retirada parcial: saldo por item e trava de saída
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  dep uuid; cim uuid; areia uuid; cli uuid; obra uuid; ped uuid; num bigint;
+  i_cim uuid; i_areia uuid; ent1 uuid; ent1b uuid; ent2 uuid; plan uuid;
+  q_antes numeric; r_antes numeric; q numeric; r numeric;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Obras CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'OB-CIMENTO', 'Cimento CI', 'sc', 30) RETURNING id INTO cim;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'OB-AREIA', 'Areia CI', 'm3', 80) RETURNING id INTO areia;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Construtora CI') RETURNING id INTO cli;
+  INSERT INTO obras (tenant_id, cliente_id, nome, endereco) VALUES (demo, cli, 'Obra Centro CI', 'Rua das Obras, 10') RETURNING id INTO obra;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(cim, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  PERFORM registrar_movimentacao(areia, dep, 'entrada'::mov_tipo, 20, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- pedido real da obra: 10 sacos de cimento e 4 m³ de areia, com reserva de estoque
+  PERFORM ci.entrar(vend);
+  ped := criar_pedido_direto(cli, dep,
+    jsonb_build_array(jsonb_build_object('produto_id', cim, 'quantidade', 10, 'preco_unitario', 40),
+                      jsonb_build_object('produto_id', areia, 'quantidade', 4, 'preco_unitario', 120)),
+    obra);
+  PERFORM ci.sair();
+  SELECT id INTO i_cim FROM pedido_itens WHERE pedido_id = ped AND produto_id = cim;
+  SELECT id INTO i_areia FROM pedido_itens WHERE pedido_id = ped AND produto_id = areia;
+  PERFORM ci.exige((SELECT reservado FROM estoques WHERE produto_id = cim AND deposito_id = dep) = 10, 'pedido da obra reserva o cimento');
+  PERFORM ci.exige((SELECT total FROM pedidos WHERE id = ped) = 880, 'total do pedido da obra');
+
+  -- sem separação e conferência completas o pedido não fica pronto para sair
+  PERFORM ci.entrar(adm);
+  PERFORM pedido_avancar_status(ped, 'aprovado');
+  PERFORM pedido_avancar_status(ped, 'separacao');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_avancar_status(%L, 'separado')$c$, ped), 'separar sem separar os itens');
+  UPDATE pedido_itens SET quantidade_separada = quantidade WHERE pedido_id = ped;
+  PERFORM ci.entrar(adm);
+  PERFORM pedido_avancar_status(ped, 'separado');
+  PERFORM pedido_avancar_status(ped, 'conferencia');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_avancar_status(%L, 'pronto_entrega')$c$, ped), 'liberar sem conferir');
+  UPDATE pedido_itens SET quantidade_conferida = quantidade WHERE pedido_id = ped;
+  PERFORM ci.entrar(adm);
+  PERFORM pedido_avancar_status(ped, 'pronto_entrega');
+  PERFORM ci.sair();
+
+  -- 1ª retirada parcial no balcão: 4 de 10 sacos
+  SELECT quantidade, reservado INTO q_antes, r_antes FROM estoques WHERE produto_id = cim AND deposito_id = dep;
+  PERFORM ci.entrar(adm);
+  ent1 := pedido_registrar_saida(ped, jsonb_build_array(jsonb_build_object('pedido_item_id', i_cim, 'quantidade', 4)),
+    'retirada', 'João Pedreiro', 'retirada na loja', 'chave-ret-1');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade_entregue FROM pedido_itens WHERE id = i_cim) = 4, 'retirada parcial soma no item');
+  PERFORM ci.exige((SELECT quantidade_entregue FROM pedido_itens WHERE id = i_areia) = 0, 'o outro item não mexe');
+  PERFORM ci.exige((SELECT tipo = 'retirada' AND situacao = 'entregue' AND recebedor = 'João Pedreiro' FROM entregas WHERE id = ent1), 'a retirada fica registrada com quem levou');
+  SELECT quantidade, reservado INTO q, r FROM estoques WHERE produto_id = cim AND deposito_id = dep;
+  PERFORM ci.exige(q = q_antes - 4 AND r = r_antes - 4, 'a retirada baixa o saldo e libera a reserva só do que saiu');
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = ped) = 'em_rota', 'pedido segue aberto depois da retirada parcial');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pedido_historico WHERE pedido_id = ped AND situacao_nova = 'em_rota'
+                            AND observacao = 'Retirada parcial registrada'), 'a retirada parcial entra no histórico do pedido');
+
+  -- reenvio com a mesma chave (conexão que caiu) não duplica
+  PERFORM ci.entrar(adm);
+  ent1b := pedido_registrar_saida(ped, jsonb_build_array(jsonb_build_object('pedido_item_id', i_cim, 'quantidade', 4)),
+    'retirada', 'João Pedreiro', NULL, 'chave-ret-1');
+  PERFORM ci.sair();
+  PERFORM ci.exige(ent1b = ent1 AND (SELECT quantidade_entregue FROM pedido_itens WHERE id = i_cim) = 4, 'mesma chave não retira duas vezes');
+
+  -- trava de saldo: restam 6 sacos
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_saida(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 7)), 'retirada')$c$, ped, i_cim), 'retirar acima do saldo do item');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_saida(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 0)), 'retirada')$c$, ped, i_cim), 'retirada sem quantidade');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_saida(%L, '[]'::jsonb, 'retirada')$c$, ped), 'retirada sem itens');
+  PERFORM ci.exige((SELECT quantidade_entregue FROM pedido_itens WHERE id = i_cim) = 4, 'retirada recusada não muda o saldo');
+
+  -- o que está agendado também conta contra o saldo
+  PERFORM ci.entrar(adm);
+  plan := planejar_entrega(ped, jsonb_build_array(jsonb_build_object('pedido_item_id', i_cim, 'quantidade', 2)), NULL, NULL, current_date + 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_saida(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 5)), 'retirada')$c$, ped, i_cim), 'retirar o que já está agendado');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT planejar_entrega(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 5)))$c$, ped, i_cim), 'agendar acima do saldo livre');
+
+  -- reagendar a entrega exige motivo e fica no histórico da obra
+  PERFORM ci.deve_falhar(adm, format($c$SELECT entrega_agendar(%L, current_date + 3)$c$, plan), 'reagendar sem motivo');
+  PERFORM ci.entrar(adm);
+  PERFORM entrega_agendar(plan, current_date + 3, 'Rua das Obras, 10', 'Mestre Zé', 'chuva prevista');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reagendamentos = 1 AND previsao_data = current_date + 3 AND responsavel = 'Mestre Zé' FROM entregas WHERE id = plan), 'reagendamento muda a data e conta uma vez');
+  PERFORM ci.exige((SELECT count(*) FROM entrega_reagendamentos WHERE entrega_id = plan AND motivo = 'chuva prevista'
+                       AND data_anterior = current_date + 1 AND data_nova = current_date + 3) = 1, 'reagendamento guarda de, para e motivo');
+
+  -- cada insucesso fica guardado, mesmo depois de reagendar a entrega
+  PERFORM ci.entrar(adm);
+  PERFORM entrega_insucesso(plan, 'Obra fechada');
+  PERFORM entrega_agendar(plan, current_date + 4, NULL, NULL, 'obra reabre');
+  PERFORM entrega_insucesso(plan, 'Cliente ausente');
+  PERFORM entrega_agendar(plan, current_date + 5, NULL, NULL, 'cliente confirmou');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM entregas WHERE id = plan) = 'planejada', 'entrega reagendada volta a planejada');
+  PERFORM ci.exige((SELECT count(*) FROM entrega_tentativas WHERE entrega_id = plan) = 2, 'as duas tentativas que falharam ficam guardadas');
+  PERFORM ci.exige((SELECT array_agg(motivo ORDER BY created_at, motivo) FROM entrega_tentativas WHERE entrega_id = plan) = ARRAY['Cliente ausente', 'Obra fechada'], 'cada tentativa guarda o seu motivo');
+  PERFORM ci.exige(ci.contar(adm, format('SELECT count(*) FROM entrega_tentativas WHERE entrega_id = %L', plan)) = 2, 'gestão lê as tentativas');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM entrega_tentativas') = 0, 'garçom não lê as tentativas');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO entrega_tentativas (tenant_id, entrega_id, motivo) VALUES (%L, %L, 'x')$c$, demo, plan), 'inserir tentativa direto');
+
+  -- ocorrências do pedido: avaria pede descrição, substituição pede o produto novo
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_ocorrencia(%L, 'avaria', 1, 'entrega')$c$, i_areia), 'avaria sem descrição');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_ocorrencia(%L, 'substituicao', 1, 'entrega')$c$, i_areia), 'substituição sem produto');
+  PERFORM ci.entrar(adm);
+  PERFORM pedido_registrar_ocorrencia(i_areia, 'avaria', 1, 'entrega', NULL, 'um m³ contaminado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pedido_ocorrencias WHERE pedido_id = ped) = 1, 'ocorrência registrada no pedido');
+  PERFORM ci.exige(ci.contar(adm, format('SELECT count(*) FROM entrega_reagendamentos WHERE entrega_id = %L', plan)) = 3, 'gestão lê o histórico de reagendamentos');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pedido_ocorrencias') = 0, 'garçom não lê ocorrências');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM entrega_reagendamentos') = 0, 'garçom não lê reagendamentos');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT entrega_agendar(%L, current_date + 5, NULL, NULL, 'x')$c$, plan), 'garçom reagenda entrega');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pedido_registrar_ocorrencia(%L, 'falta', 1, 'entrega', NULL, 'x')$c$, i_areia), 'garçom registra ocorrência');
+
+  -- 2ª retirada: os 4 sacos livres e a areia toda
+  PERFORM ci.entrar(adm);
+  ent2 := pedido_registrar_saida(ped, jsonb_build_array(
+      jsonb_build_object('pedido_item_id', i_cim, 'quantidade', 4),
+      jsonb_build_object('pedido_item_id', i_areia, 'quantidade', 4)), 'retirada', 'Maria', NULL, 'chave-ret-2');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade_entregue FROM pedido_itens WHERE id = i_cim) = 8, 'cimento: 8 de 10 saíram');
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = ped) = 'em_rota', 'com o agendado ainda por sair o pedido continua aberto');
+
+  -- os 2 sacos agendados saem pela própria entrega agendada (e não por uma retirada avulsa)
+  PERFORM ci.entrar(adm);
+  PERFORM entrega_concluir(plan, 'Zé');
+  PERFORM ci.sair();
+  SELECT quantidade, reservado INTO q, r FROM estoques WHERE produto_id = cim AND deposito_id = dep;
+  PERFORM ci.exige(q = 90 AND r = 0, 'depois de tudo: 10 sacos baixados e nenhuma reserva sobrando');
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = ped) = 'entregue', 'pedido entregue quando não resta nada');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pedido_registrar_saida(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 1)), 'retirada')$c$, ped, i_cim), 'retirar depois de entregue');
+
+  -- perfis sem acesso e outra empresa
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pedido_registrar_saida(%L, '[]'::jsonb)$c$, ped), 'garçom registra saída de pedido');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pedido_registrar_saida(%L, '[]'::jsonb)$c$, ped), 'anon registra saída de pedido');
+END $$;

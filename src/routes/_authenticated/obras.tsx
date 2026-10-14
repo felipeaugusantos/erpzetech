@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Search } from "lucide-react";
+import { History, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -266,6 +266,16 @@ function Obras() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link
+                          to="/obra-historico"
+                          search={{ obra: o.id }}
+                          aria-label="Histórico da obra"
+                          title="Histórico da obra"
+                        >
+                          <History className="size-4" />
+                        </Link>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

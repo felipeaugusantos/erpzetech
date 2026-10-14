@@ -5,6 +5,7 @@ import {
   CalendarClock,
   MapPin,
   Play,
+  Printer,
   Route as RouteIcon,
   Search,
   Truck,
@@ -14,6 +15,15 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
+import { abrirImpressao } from "@/lib/imprimir";
+import {
+  htmlRomaneio,
+  linhasRomaneio,
+  pendenteDoPedido,
+  type EntregaRomaneio,
+  type ItemPedidoRomaneio,
+} from "@/lib/romaneio";
+import { useSessionData } from "@/hooks/useSessionData";
 import {
   corEntrega,
   enderecoPedido,
@@ -115,13 +125,48 @@ function Entregas() {
       const { data, error } = await supabase
         .from("entregas")
         .select(
-          "*, veiculos(placa, descricao), motoristas(nome), pedidos(numero, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome)), entrega_itens(quantidade, produtos(descricao))",
+          "*, veiculos(placa, descricao), motoristas(nome), pedidos(numero, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado, clientes(nome), obras(nome), pedido_itens(id, quantidade, unidade, produtos(descricao, codigo_interno, unidade, localizacao))), entrega_itens(pedido_item_id, quantidade, produtos(descricao, codigo_interno, unidade, localizacao))",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+
+  const { data: sessao } = useSessionData();
+
+  /** Romaneio da entrega, com o que já saiu antes e o que falta do pedido. */
+  const imprimirRomaneio = (id: string) => {
+    const e = entregas.find((x) => x.id === id);
+    if (!e) return;
+    const pedido = e.pedidos as unknown as {
+      numero: number;
+      clientes: { nome: string } | null;
+      obras: { nome: string } | null;
+      pedido_itens: ItemPedidoRomaneio[];
+    } | null;
+    const doPedido = entregas.filter((x) => x.pedido_id === e.pedido_id);
+    abrirImpressao(
+      htmlRomaneio({
+        loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+        pedidoNumero: pedido?.numero ?? null,
+        cliente: pedido?.clientes?.nome ?? "—",
+        obra: pedido?.obras?.nome ?? null,
+        endereco: e.endereco_entrega ?? (pedido ? enderecoPedido(pedido as never) : null),
+        entrega: e as unknown as EntregaRomaneio,
+        linhas: linhasRomaneio(
+          e as unknown as EntregaRomaneio,
+          doPedido as unknown as EntregaRomaneio[],
+          pedido?.pedido_itens ?? [],
+        ),
+        pendentePedido: pendenteDoPedido(
+          e as unknown as EntregaRomaneio,
+          doPedido as unknown as EntregaRomaneio[],
+          pedido?.pedido_itens ?? [],
+        ),
+      }),
+    );
+  };
 
   const { data: pedidos = [] } = useQuery({
     queryKey: ["pedidos-para-entrega"],
@@ -499,6 +544,14 @@ function Entregas() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="mr-1"
+                        onClick={() => imprimirRomaneio(e.id)}
+                      >
+                        <Printer className="size-4" /> Romaneio
+                      </Button>
                       {e.situacao === "planejada" && (
                         <Button
                           size="sm"

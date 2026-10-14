@@ -1,10 +1,18 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock } from "lucide-react";
+import { AlertTriangle, CalendarClock, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
+import { abrirImpressao } from "@/lib/imprimir";
+import {
+  htmlRomaneio,
+  linhasRomaneio,
+  pendenteDoPedido,
+  type ItemPedidoRomaneio,
+} from "@/lib/romaneio";
 import { planejadoPorItem, saldoItem } from "@/lib/saldo-pedido";
+import { useSessionData } from "@/hooks/useSessionData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +44,7 @@ import {
 type Item = {
   id: string;
   quantidade: number;
+  unidade?: string | null;
   quantidade_separada: number;
   quantidade_conferida: number;
   quantidade_entregue: number;
@@ -77,14 +86,40 @@ export function PedidoAtendimento({
   entregas,
   enderecoObra,
   faturado,
+  pedidoNumero,
+  clienteNome,
+  obraNome,
 }: {
   pedidoId: string;
   itens: Item[];
   entregas: Entrega[];
   enderecoObra: string | null;
   faturado: boolean;
+  pedidoNumero?: number | string | null;
+  clienteNome?: string | null;
+  obraNome?: string | null;
 }) {
   const qc = useQueryClient();
+  const { data: sessao } = useSessionData();
+
+  /** Romaneio da entrega: o que sai, quanto, a data e o saldo do pedido, para imprimir e conferir. */
+  const imprimirRomaneio = (e: Entrega) => {
+    const dados = entregas as unknown as Parameters<typeof linhasRomaneio>[1];
+    const alvo = dados.find((x) => x.id === e.id);
+    if (!alvo) return;
+    abrirImpressao(
+      htmlRomaneio({
+        loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+        pedidoNumero: pedidoNumero ?? null,
+        cliente: clienteNome ?? "—",
+        obra: obraNome ?? null,
+        endereco: enderecoObra,
+        entrega: alvo,
+        linhas: linhasRomaneio(alvo, dados, itens as unknown as ItemPedidoRomaneio[]),
+        pendentePedido: pendenteDoPedido(alvo, dados, itens as unknown as ItemPedidoRomaneio[]),
+      }),
+    );
+  };
   const planejado = useMemo(
     () =>
       planejadoPorItem(
@@ -330,17 +365,17 @@ export function PedidoAtendimento({
                     {e.recebedor && (
                       <span className="text-muted-foreground">Recebido por {e.recebedor}</span>
                     )}
-                    {aberta && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="ml-auto"
-                        onClick={() => abrirAgenda(e)}
-                      >
-                        <CalendarClock className="mr-1 size-4" />
-                        {e.previsao_data ? "Reagendar" : "Agendar"}
+                    <div className="ml-auto flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => imprimirRomaneio(e)}>
+                        <Printer className="mr-1 size-4" /> Romaneio
                       </Button>
-                    )}
+                      {aberta && (
+                        <Button size="sm" variant="outline" onClick={() => abrirAgenda(e)}>
+                          <CalendarClock className="mr-1 size-4" />
+                          {e.previsao_data ? "Reagendar" : "Agendar"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {(e.endereco_entrega || e.responsavel) && (
                     <p className="mt-1 text-xs text-muted-foreground">
