@@ -172,7 +172,7 @@ export function loteDoItem(det: Element | null) {
     lote:
       rastro?.getElementsByTagName("nLote")[0]?.textContent?.trim() ||
       pega(/lote[:\s]+([\w\-./]+)/i),
-    tonalidade: pega(/(?:tonalidade|tom|ton)[:\s.]+([\w\-]+)/i),
-    calibre: pega(/(?:calibre|cal)[:\s.]+([\w\-]+)/i),
+    tonalidade: pega(/(?:tonalidade|tom|ton)[:\s.]+([\w-]+)/i),
+    calibre: pega(/(?:calibre|cal)[:\s.]+([\w-]+)/i),
   };
 }
