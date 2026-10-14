@@ -67,7 +67,8 @@ function AjusteLotes() {
   }, [lotes.data, busca]);
 
   const novo = Number(saldo.replace(",", "."));
-  const valido = sel && saldo !== "" && Number.isFinite(novo) && novo >= 0 && motivo.trim().length >= 3;
+  const valido =
+    sel && saldo !== "" && Number.isFinite(novo) && novo >= 0 && motivo.trim().length >= 3;
 
   const ajustar = useMutation({
     networkMode: "always",
@@ -159,7 +160,11 @@ function AjusteLotes() {
               </div>
               <label className="block text-xs">
                 Saldo contado (novo saldo)
-                <Input inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value)} />
+                <Input
+                  inputMode="decimal"
+                  value={saldo}
+                  onChange={(e) => setSaldo(e.target.value)}
+                />
               </label>
               <label className="block text-xs">
                 Motivo (obrigatório)
@@ -178,7 +183,9 @@ function AjusteLotes() {
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">Clique em um lote da lista para ajustar.</p>
+            <p className="text-sm text-muted-foreground">
+              Clique em um lote da lista para ajustar.
+            </p>
           )}
         </section>
       </div>
