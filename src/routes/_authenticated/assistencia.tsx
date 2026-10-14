@@ -318,26 +318,26 @@ function Assistencia() {
 
   function editar(o: (typeof ordens)[number], m: "abertura" | "tecnico") {
     setForm({
-                            id: o.id,
-                            cliente_id: o.cliente_id ?? "",
-                            equipamento: o.equipamento,
-                            marca: o.marca ?? "",
-                            modelo: o.modelo ?? "",
-                            numero_serie: o.numero_serie ?? "",
-                            acessorios: o.acessorios ?? "",
-                            defeito_relatado: o.defeito_relatado ?? "",
-                            diagnostico: o.diagnostico ?? "",
-                            laudo: o.laudo ?? "",
-                            tecnico_nome: o.tecnico_nome ?? "",
-                            tecnico_id: o.tecnico_id ?? "",
-                            prioridade: o.prioridade,
-                            situacao: o.situacao,
-                            previsao: o.previsao ?? "",
-                            garantia_dias: String(o.garantia_dias ?? 90),
-                            horas_trabalhadas: String(o.horas_trabalhadas ?? 0),
-                            desconto: String(o.desconto ?? 0),
-                            observacoes: o.observacoes ?? "",
-                          });
+      id: o.id,
+      cliente_id: o.cliente_id ?? "",
+      equipamento: o.equipamento,
+      marca: o.marca ?? "",
+      modelo: o.modelo ?? "",
+      numero_serie: o.numero_serie ?? "",
+      acessorios: o.acessorios ?? "",
+      defeito_relatado: o.defeito_relatado ?? "",
+      diagnostico: o.diagnostico ?? "",
+      laudo: o.laudo ?? "",
+      tecnico_nome: o.tecnico_nome ?? "",
+      tecnico_id: o.tecnico_id ?? "",
+      prioridade: o.prioridade,
+      situacao: o.situacao,
+      previsao: o.previsao ?? "",
+      garantia_dias: String(o.garantia_dias ?? 90),
+      horas_trabalhadas: String(o.horas_trabalhadas ?? 0),
+      desconto: String(o.desconto ?? 0),
+      observacoes: o.observacoes ?? "",
+    });
     setModo(m);
     setAberto(true);
   }
@@ -419,7 +419,7 @@ function Assistencia() {
               onClick={() => {
                 setForm(vazio);
                 setModo("abertura");
-              setAberto(true);
+                setAberto(true);
               }}
             >
               <Plus className="size-4" /> Nova ordem
@@ -513,178 +513,183 @@ function Assistencia() {
           <div className="grid gap-3 sm:grid-cols-2">
             {modo === "abertura" ? (
               <>
-            <div className="sm:col-span-2">
-              <Label>Cliente</Label>
-              <ClienteCombobox
-                clientes={clientes}
-                value={form.cliente_id}
-                onChange={(id) => setForm({ ...form, cliente_id: id })}
-              />
-            </div>
-            <div>
-              <Label>Equipamento</Label>
-              <Input
-                value={form.equipamento}
-                placeholder="Furadeira de impacto"
-                onChange={(e) => setForm({ ...form, equipamento: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Marca</Label>
-              <Input
-                value={form.marca}
-                onChange={(e) => setForm({ ...form, marca: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Modelo</Label>
-              <Input
-                value={form.modelo}
-                onChange={(e) => setForm({ ...form, modelo: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Número de série</Label>
-              <Input
-                value={form.numero_serie}
-                onChange={(e) => setForm({ ...form, numero_serie: e.target.value })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Acessórios entregues</Label>
-              <Input
-                value={form.acessorios}
-                placeholder="Maleta, carregador, 2 baterias"
-                onChange={(e) => setForm({ ...form, acessorios: e.target.value })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Defeito relatado pelo cliente</Label>
-              <Textarea
-                value={form.defeito_relatado}
-                onChange={(e) => setForm({ ...form, defeito_relatado: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Prioridade</Label>
-              <Select
-                value={form.prioridade}
-                onValueChange={(v) => setForm({ ...form, prioridade: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="baixa">Baixa</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="urgente">Urgente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Previsão de entrega</Label>
-              <Input
-                type="date"
-                value={form.previsao}
-                onChange={(e) => setForm({ ...form, previsao: e.target.value })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Observações</Label>
-              <Input
-                value={form.observacoes}
-                onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-              />
-            </div>
+                <div className="sm:col-span-2">
+                  <Label>Cliente</Label>
+                  <ClienteCombobox
+                    clientes={clientes}
+                    value={form.cliente_id}
+                    onChange={(id) => setForm({ ...form, cliente_id: id })}
+                  />
+                </div>
+                <div>
+                  <Label>Equipamento</Label>
+                  <Input
+                    value={form.equipamento}
+                    placeholder="Furadeira de impacto"
+                    onChange={(e) => setForm({ ...form, equipamento: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Marca</Label>
+                  <Input
+                    value={form.marca}
+                    onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Modelo</Label>
+                  <Input
+                    value={form.modelo}
+                    onChange={(e) => setForm({ ...form, modelo: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Número de série</Label>
+                  <Input
+                    value={form.numero_serie}
+                    onChange={(e) => setForm({ ...form, numero_serie: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Acessórios entregues</Label>
+                  <Input
+                    value={form.acessorios}
+                    placeholder="Maleta, carregador, 2 baterias"
+                    onChange={(e) => setForm({ ...form, acessorios: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Defeito relatado pelo cliente</Label>
+                  <Textarea
+                    value={form.defeito_relatado}
+                    onChange={(e) => setForm({ ...form, defeito_relatado: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Prioridade</Label>
+                  <Select
+                    value={form.prioridade}
+                    onValueChange={(v) => setForm({ ...form, prioridade: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baixa">Baixa</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="urgente">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Previsão de entrega</Label>
+                  <Input
+                    type="date"
+                    value={form.previsao}
+                    onChange={(e) => setForm({ ...form, previsao: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Observações</Label>
+                  <Input
+                    value={form.observacoes}
+                    onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                  />
+                </div>
               </>
             ) : (
               <>
-            <div className="sm:col-span-2 rounded-md bg-secondary/60 p-3 text-sm">
-              <p className="font-medium">{form.equipamento} {form.marca} {form.modelo}</p>
-              <p className="text-muted-foreground">Defeito relatado: {form.defeito_relatado || "—"}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Diagnóstico técnico</Label>
-              <Textarea
-                value={form.diagnostico}
-                onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Laudo / serviço executado</Label>
-              <Textarea
-                value={form.laudo}
-                onChange={(e) => setForm({ ...form, laudo: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Técnico responsável</Label>
-              <Select
-                value={form.tecnico_id || "sem"}
-                onValueChange={(v) =>
-                  setForm({
-                    ...form,
-                    tecnico_id: v === "sem" ? "" : v,
-                    tecnico_nome: v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem técnico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sem">Sem técnico definido</SelectItem>
-                  {tecnicos.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nome}
-                      {t.especialidade ? ` · ${t.especialidade}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Cadastre os técnicos em Assistência técnica › Técnicos.
-              </p>
-            </div>
-            <div>
-              <Label>Situação</Label>
-              <Select
-                value={form.situacao}
-                onValueChange={(v) => setForm({ ...form, situacao: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SITUACOES_OS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Garantia (dias)</Label>
-              <Input
-                value={form.garantia_dias}
-                onChange={(e) => setForm({ ...form, garantia_dias: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Horas trabalhadas</Label>
-              <Input
-                value={form.horas_trabalhadas}
-                onChange={(e) => setForm({ ...form, horas_trabalhadas: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Desconto (R$)</Label>
-              <Input
-                value={form.desconto}
-                onChange={(e) => setForm({ ...form, desconto: e.target.value })}
-              />
-            </div>
+                <div className="sm:col-span-2 rounded-md bg-secondary/60 p-3 text-sm">
+                  <p className="font-medium">
+                    {form.equipamento} {form.marca} {form.modelo}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Defeito relatado: {form.defeito_relatado || "—"}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Diagnóstico técnico</Label>
+                  <Textarea
+                    value={form.diagnostico}
+                    onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Laudo / serviço executado</Label>
+                  <Textarea
+                    value={form.laudo}
+                    onChange={(e) => setForm({ ...form, laudo: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Técnico responsável</Label>
+                  <Select
+                    value={form.tecnico_id || "sem"}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        tecnico_id: v === "sem" ? "" : v,
+                        tecnico_nome:
+                          v === "sem" ? "" : (tecnicos.find((t) => t.id === v)?.nome ?? ""),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem técnico" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sem">Sem técnico definido</SelectItem>
+                      {tecnicos.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nome}
+                          {t.especialidade ? ` · ${t.especialidade}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cadastre os técnicos em Assistência técnica › Técnicos.
+                  </p>
+                </div>
+                <div>
+                  <Label>Situação</Label>
+                  <Select
+                    value={form.situacao}
+                    onValueChange={(v) => setForm({ ...form, situacao: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SITUACOES_OS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Garantia (dias)</Label>
+                  <Input
+                    value={form.garantia_dias}
+                    onChange={(e) => setForm({ ...form, garantia_dias: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Horas trabalhadas</Label>
+                  <Input
+                    value={form.horas_trabalhadas}
+                    onChange={(e) => setForm({ ...form, horas_trabalhadas: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Desconto (R$)</Label>
+                  <Input
+                    value={form.desconto}
+                    onChange={(e) => setForm({ ...form, desconto: e.target.value })}
+                  />
+                </div>
               </>
             )}
           </div>

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { totalOffline, type ComandaOffline } from "../src/lib/offline-restaurante";
+import { totalOffline, type ComandaOffline } from "../src/lib/offline-restaurante-conta.ts";
 
 const base: ComandaOffline = {
   offline_id: "x",
@@ -32,7 +32,14 @@ describe("conta de comanda feita sem internet", () => {
       ...base,
       tipo: "delivery",
       taxa_servico: 0,
-      delivery: { cliente: "Ana", telefone: "", endereco: "Rua A, 1", bairro: "", taxa: 7, pagamento: "dinheiro" },
+      delivery: {
+        cliente: "Ana",
+        telefone: "",
+        endereco: "Rua A, 1",
+        bairro: "",
+        taxa: 7,
+        pagamento: "dinheiro",
+      },
     };
     assert.equal(totalOffline(d, true), 62.8);
   });

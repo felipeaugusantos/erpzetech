@@ -23,7 +23,8 @@ import {
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 
-const WHATSAPP = "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20ERP%20Ze%20Tech";
+const WHATSAPP =
+  "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20ERP%20Ze%20Tech";
 const WHATSAPP_LABEL = "(16) 98854-7561";
 
 export const Route = createFileRoute("/")({
@@ -108,14 +109,46 @@ const segmentos = [
 ];
 
 const destaques = [
-  { icon: Sparkles, title: "Busca com IA no caixa", text: "O operador descreve o que o cliente procura e o sistema sugere os produtos." },
-  { icon: ScanBarcode, title: "Frente de caixa rápida", text: "Tela cheia, atalhos de teclado, leitor de código e cupom de 80 mm." },
-  { icon: WifiOff, title: "Vende sem internet", text: "As vendas ficam guardadas e são enviadas quando a conexão volta." },
-  { icon: Bike, title: "iFood e delivery", text: "Pedidos do iFood entram no sistema e seguem para a cozinha." },
-  { icon: Receipt, title: "NF-e e NFS-e", text: "Impostos por filial, simulação de nota e download em PDF e XML." },
-  { icon: Wallet, title: "Financeiro completo", text: "Contas a pagar e receber, caixa por operador, maquininha e fluxo de caixa." },
-  { icon: Truck, title: "Logística", text: "Roteirização automática e app do motorista com foto e assinatura." },
-  { icon: ShieldCheck, title: "Liberado pelo CNAE", text: "Cada empresa vê só os módulos do seu ramo, sem complicação." },
+  {
+    icon: Sparkles,
+    title: "Busca com IA no caixa",
+    text: "O operador descreve o que o cliente procura e o sistema sugere os produtos.",
+  },
+  {
+    icon: ScanBarcode,
+    title: "Frente de caixa rápida",
+    text: "Tela cheia, atalhos de teclado, leitor de código e cupom de 80 mm.",
+  },
+  {
+    icon: WifiOff,
+    title: "Vende sem internet",
+    text: "As vendas ficam guardadas e são enviadas quando a conexão volta.",
+  },
+  {
+    icon: Bike,
+    title: "iFood e delivery",
+    text: "Pedidos do iFood entram no sistema e seguem para a cozinha.",
+  },
+  {
+    icon: Receipt,
+    title: "NF-e e NFS-e",
+    text: "Impostos por filial, simulação de nota e download em PDF e XML.",
+  },
+  {
+    icon: Wallet,
+    title: "Financeiro completo",
+    text: "Contas a pagar e receber, caixa por operador, maquininha e fluxo de caixa.",
+  },
+  {
+    icon: Truck,
+    title: "Logística",
+    text: "Roteirização automática e app do motorista com foto e assinatura.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Liberado pelo CNAE",
+    text: "Cada empresa vê só os módulos do seu ramo, sem complicação.",
+  },
 ];
 
 const planos = [
@@ -125,7 +158,13 @@ const planos = [
     resumo: "1 loja, 1 depósito, 5 usuários",
     destaque: false,
     teste: false,
-    itens: ["Clientes e obras", "Produtos e categorias", "Estoque com reserva", "Orçamento no balcão", "Pedidos"],
+    itens: [
+      "Clientes e obras",
+      "Produtos e categorias",
+      "Estoque com reserva",
+      "Orçamento no balcão",
+      "Pedidos",
+    ],
   },
   {
     nome: "Loja",
@@ -133,7 +172,14 @@ const planos = [
     resumo: "1 loja, depósitos ilimitados, 15 usuários",
     destaque: true,
     teste: true,
-    itens: ["Tudo do Balcão", "Compras com cotação", "Separação e conferência", "Entregas", "Financeiro completo", "NF-e"],
+    itens: [
+      "Tudo do Balcão",
+      "Compras com cotação",
+      "Separação e conferência",
+      "Entregas",
+      "Financeiro completo",
+      "NF-e",
+    ],
   },
   {
     nome: "Rede",
@@ -141,7 +187,14 @@ const planos = [
     resumo: "Multiempresa e filiais, usuários ilimitados",
     destaque: false,
     teste: true,
-    itens: ["Tudo do Loja", "Roteirização automática", "Tela do motorista", "Custo por depósito", "Balanço fiscal", "Relatórios gerenciais"],
+    itens: [
+      "Tudo do Loja",
+      "Roteirização automática",
+      "Tela do motorista",
+      "Custo por depósito",
+      "Balanço fiscal",
+      "Relatórios gerenciais",
+    ],
   },
 ];
 
@@ -190,7 +243,9 @@ function MockupPdv() {
           </div>
           <div className="space-y-1.5 text-xs">
             {["F2 Buscar", "F4 Pagamento", "F8 Remover item"].map((k) => (
-              <div key={k} className="rounded border border-border bg-card px-2 py-1">{k}</div>
+              <div key={k} className="rounded border border-border bg-card px-2 py-1">
+                {k}
+              </div>
             ))}
           </div>
         </div>
@@ -208,7 +263,9 @@ function Landing() {
       <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 border-b border-border bg-background/95 px-4 backdrop-blur sm:px-8">
         <div className="flex min-w-0 items-center gap-2">
           <ZeLogo />
-          <span className="whitespace-nowrap font-display text-sm font-bold tracking-wide sm:text-base">ERP ZE TECH</span>
+          <span className="whitespace-nowrap font-display text-sm font-bold tracking-wide sm:text-base">
+            ERP ZE TECH
+          </span>
         </div>
         <nav className="flex items-center gap-1.5 sm:gap-2">
           <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
@@ -230,14 +287,16 @@ function Landing() {
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-2">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-            <Sparkles className="size-3.5 text-accent" /> Agora com IA no caixa e integração com iFood
+            <Sparkles className="size-3.5 text-accent" /> Agora com IA no caixa e integração com
+            iFood
           </span>
           <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
             Um sistema que <span className="text-accent">acompanha o seu ramo</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
-            Loja, prestador de serviço, locadora ou restaurante: o ERP Ze Tech reúne caixa, estoque, ordens de
-            serviço, locação, delivery, financeiro e nota fiscal. Cada empresa usa só o que precisa.
+            Loja, prestador de serviço, locadora ou restaurante: o ERP Ze Tech reúne caixa, estoque,
+            ordens de serviço, locação, delivery, financeiro e nota fiscal. Cada empresa usa só o
+            que precisa.
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="w-full sm:w-auto">
@@ -247,7 +306,9 @@ function Landing() {
             </Button>
             <WhatsButton className="w-full sm:w-auto" />
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">Sem taxa por nota emitida • Sem limite de produtos • Funciona no celular</p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Sem taxa por nota emitida • Sem limite de produtos • Funciona no celular
+          </p>
         </div>
         <MockupPdv />
       </section>
@@ -256,7 +317,9 @@ function Landing() {
         <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
           <div className="text-center">
             <h2 className="font-display text-3xl font-extrabold">Feito para o seu negócio</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">Escolha o seu ramo e veja o que o sistema faz por você.</p>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+              Escolha o seu ramo e veja o que o sistema faz por você.
+            </p>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">
             {segmentos.map((s) => (
@@ -265,7 +328,9 @@ function Landing() {
                 type="button"
                 onClick={() => setAtivo(s.id)}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
-                  ativo === s.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-secondary"
+                  ativo === s.id
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:bg-secondary"
                 }`}
               >
                 <s.icon className="size-4" /> {s.nome}
@@ -274,7 +339,9 @@ function Landing() {
           </div>
           <div className="panel mt-5 grid gap-6 p-6 md:grid-cols-2 md:p-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">{seg.nome}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                {seg.nome}
+              </p>
               <h3 className="mt-2 font-display text-2xl font-bold">{seg.titulo}</h3>
               <p className="mt-3 text-sm text-muted-foreground">Para: {seg.publico}.</p>
               <Button asChild className="mt-5">
@@ -296,7 +363,9 @@ function Landing() {
 
       <section id="recursos" className="scroll-mt-16 border-t border-border">
         <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
-          <h2 className="text-center font-display text-3xl font-extrabold">Recursos que fazem diferença</h2>
+          <h2 className="text-center font-display text-3xl font-extrabold">
+            Recursos que fazem diferença
+          </h2>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {destaques.map((f) => (
               <div key={f.title} className="panel p-5">
@@ -314,7 +383,10 @@ function Landing() {
               { icon: BarChart3, k: "Relatórios", v: "Lucro por produto, depósito e mês" },
               { icon: ShieldCheck, k: "Multiempresa", v: "Filiais, perfis de acesso e auditoria" },
             ].map((i) => (
-              <div key={i.k} className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4">
+              <div
+                key={i.k}
+                className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4"
+              >
                 <i.icon className="size-5 text-accent" />
                 <div>
                   <p className="font-display text-sm font-semibold">{i.k}</p>
@@ -338,7 +410,11 @@ function Landing() {
             {planos.map((p) => (
               <div
                 key={p.nome}
-                className={p.destaque ? "panel relative flex flex-col border-2 border-accent p-6 shadow-lg" : "panel flex flex-col p-6"}
+                className={
+                  p.destaque
+                    ? "panel relative flex flex-col border-2 border-accent p-6 shadow-lg"
+                    : "panel flex flex-col p-6"
+                }
               >
                 {p.destaque && (
                   <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-foreground">
@@ -363,7 +439,11 @@ function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Button asChild className="mt-6 w-full" variant={p.destaque ? "default" : "outline"}>
+                <Button
+                  asChild
+                  className="mt-6 w-full"
+                  variant={p.destaque ? "default" : "outline"}
+                >
                   <Link to="/auth">{p.teste ? "Testar 15 dias" : "Começar agora"}</Link>
                 </Button>
               </div>
@@ -372,7 +452,9 @@ function Landing() {
           <div className="panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">
             <div>
               <p className="font-display text-sm font-semibold">Filial extra</p>
-              <p className="text-xs text-muted-foreground">Para cada loja adicional no plano Rede</p>
+              <p className="text-xs text-muted-foreground">
+                Para cada loja adicional no plano Rede
+              </p>
             </div>
             <p className="font-display text-lg font-bold">
               R$ 390<span className="text-xs font-medium text-muted-foreground">/mês</span>
@@ -380,7 +462,9 @@ function Landing() {
             <div className="hidden h-8 w-px bg-border sm:block" />
             <div>
               <p className="font-display text-sm font-semibold">Implantação</p>
-              <p className="text-xs text-muted-foreground">Cadastro inicial, importação de produtos e treinamento</p>
+              <p className="text-xs text-muted-foreground">
+                Cadastro inicial, importação de produtos e treinamento
+              </p>
             </div>
             <p className="font-display text-lg font-bold">R$ 1.500</p>
           </div>
@@ -389,8 +473,12 @@ function Landing() {
 
       <section className="border-t border-border bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-5 py-14 text-center sm:px-8">
-          <h2 className="font-display text-3xl font-extrabold">Vamos conversar sobre o seu negócio?</h2>
-          <p className="max-w-xl text-sm opacity-85">Mostramos o sistema funcionando no seu ramo e ajudamos a escolher o plano certo.</p>
+          <h2 className="font-display text-3xl font-extrabold">
+            Vamos conversar sobre o seu negócio?
+          </h2>
+          <p className="max-w-xl text-sm opacity-85">
+            Mostramos o sistema funcionando no seu ramo e ajudamos a escolher o plano certo.
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" variant="secondary">
               <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">

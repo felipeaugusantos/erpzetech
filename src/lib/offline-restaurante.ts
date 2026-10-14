@@ -1,42 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import { calcularConta } from "@/lib/restaurante";
 import { ehErroDeRede } from "@/lib/offline";
+import type { ComandaOffline } from "./offline-restaurante-conta.ts";
 
-/** Comanda (salão ou delivery) feita sem internet e guardada no próprio computador. */
-export type ItemOffline = {
-  cardapio_item_id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  observacao?: string;
-};
-
-export type ComandaOffline = {
-  offline_id: string;
-  criada_em: string;
-  tipo: "salao" | "delivery";
-  mesa_id: string | null;
-  mesa_rotulo: string | null;
-  cliente_nome: string | null;
-  pessoas: number | null;
-  taxa_servico: number;
-  delivery: {
-    cliente: string;
-    telefone: string;
-    endereco: string;
-    bairro: string;
-    taxa: number;
-    pagamento: string;
-  } | null;
-  itens: ItemOffline[];
-  fechar: null | {
-    pagamentos: { forma: string; valor: number }[];
-    caixa_id: string | null;
-    cobrar_servico: boolean;
-  };
-  /** recusa do banco ao enviar (fica guardada para a gestão resolver) */
-  erro?: string;
-};
+export { subtotalOffline, totalOffline } from "./offline-restaurante-conta.ts";
+export type { ComandaOffline, ItemOffline } from "./offline-restaurante-conta.ts";
 
 export type MesaOffline = { id: string; numero: string };
 export type ItemCardapioOffline = { id: string; nome: string; preco: number };
@@ -64,25 +31,11 @@ export function salvarComandasOffline(lista: ComandaOffline[]) {
   window.dispatchEvent(new Event(EVENTO_COMANDAS_OFFLINE));
 }
 
-export function subtotalOffline(c: Pick<ComandaOffline, "itens">) {
-  return c.itens.reduce((s, i) => s + Math.round(i.preco * i.quantidade * 100), 0) / 100;
-}
-
-/** Mesma conta do banco: itens + serviço (salão) ou itens + taxa de entrega (delivery). */
-export function totalOffline(c: ComandaOffline, cobrarServico = true) {
-  const sub = subtotalOffline(c) + (c.tipo === "delivery" ? (c.delivery?.taxa ?? 0) : 0);
-  return calcularConta({
-    subtotal: sub,
-    pessoas: c.pessoas,
-    couvertPorPessoa: 0,
-    taxaServicoPercentual: c.tipo === "delivery" ? 0 : c.taxa_servico,
-    cobrarServico,
-    desconto: 0,
-  }).total;
-}
-
 /** Envia as comandas guardadas. Cada uma é gravada inteira (ou nada) e nunca em dobro. */
-export async function sincronizarComandasOffline(): Promise<{ enviadas: number; recusadas: number }> {
+export async function sincronizarComandasOffline(): Promise<{
+  enviadas: number;
+  recusadas: number;
+}> {
   if (!navigator.onLine) return { enviadas: 0, recusadas: 0 };
   const lista = lerComandasOffline();
   let enviadas = 0;
@@ -98,9 +51,12 @@ export async function sincronizarComandasOffline(): Promise<{ enviadas: number; 
       restantes.push(c);
       continue;
     }
-    const { error } = await supabase.rpc("restaurante_sincronizar_offline" as never, {
-      p: c,
-    } as never);
+    const { error } = await supabase.rpc(
+      "restaurante_sincronizar_offline" as never,
+      {
+        p: c,
+      } as never,
+    );
     if (!error) enviadas++;
     else if (ehErroDeRede(error.message)) restantes.push(c);
     else {
@@ -128,7 +84,10 @@ export async function atualizarBaseRestauranteOffline(): Promise<void> {
       .map((m) => ({ id: m.id, numero: m.numero }))
       .sort((a, b) => a.numero.localeCompare(b.numero, "pt-BR", { numeric: true })),
     itens: (
-      (itens.data ?? []) as unknown as (ItemCardapioOffline & { ativo: boolean; interno: boolean })[]
+      (itens.data ?? []) as unknown as (ItemCardapioOffline & {
+        ativo: boolean;
+        interno: boolean;
+      })[]
     )
       .filter((i) => i.ativo && !i.interno)
       .map((i) => ({ id: i.id, nome: i.nome, preco: Number(i.preco) })),

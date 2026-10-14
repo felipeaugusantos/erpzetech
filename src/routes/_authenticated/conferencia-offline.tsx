@@ -15,14 +15,29 @@ export const Route = createFileRoute("/_authenticated/conferencia-offline")({
   head: () => ({
     meta: [
       { title: "Conferência sem internet — ERP Ze Tech" },
-      { name: "description", content: "Saldo de estoque e de caixa para conferir mesmo sem internet." },
+      {
+        name: "description",
+        content: "Saldo de estoque e de caixa para conferir mesmo sem internet.",
+      },
     ],
   }),
   component: Conferencia,
 });
 
-type LinhaEstoque = { produto: string; codigo: string; deposito: string; quantidade: number; reservado: number };
-type LinhaCaixa = { id: string; numero: number; aberto_em: string; saldo: number; dinheiro: number };
+type LinhaEstoque = {
+  produto: string;
+  codigo: string;
+  deposito: string;
+  quantidade: number;
+  reservado: number;
+};
+type LinhaCaixa = {
+  id: string;
+  numero: number;
+  aberto_em: string;
+  saldo: number;
+  dinheiro: number;
+};
 type Dados = { estoque: LinhaEstoque[]; caixas: LinhaCaixa[] };
 
 const CHAVE = "conferencia";
@@ -36,12 +51,18 @@ export async function atualizarConferencia(): Promise<Retrato<Dados> | null> {
       .from("estoques")
       .select("quantidade, reservado, produtos(descricao, codigo_interno), depositos(nome)")
       .limit(5000),
-    supabase.from("caixas").select("id, numero, aberto_em, valor_abertura").eq("situacao", "aberto"),
+    supabase
+      .from("caixas")
+      .select("id, numero, aberto_em, valor_abertura")
+      .eq("situacao", "aberto"),
   ]);
   if (est.error || cx.error) return null;
   const ids = (cx.data ?? []).map((c) => c.id);
   const movs = ids.length
-    ? await supabase.from("caixa_movimentos").select("caixa_id, tipo, valor, forma_pagamento").in("caixa_id", ids)
+    ? await supabase
+        .from("caixa_movimentos")
+        .select("caixa_id, tipo, valor, forma_pagamento")
+        .in("caixa_id", ids)
     : { data: [], error: null };
   if (movs.error) return null;
 
@@ -122,12 +143,17 @@ function Conferencia() {
   }, [online]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pagasOffline = comandas.filter((c) => c.fechar && !c.erro);
-  const totalComandas = pagasOffline.reduce((s, c) => s + totalOffline(c, c.fechar!.cobrar_servico), 0);
+  const totalComandas = pagasOffline.reduce(
+    (s, c) => s + totalOffline(c, c.fechar!.cobrar_servico),
+    0,
+  );
 
   const estoque = useMemo(() => {
     const b = busca.trim().toLowerCase();
     const l = retrato?.dados.estoque ?? [];
-    return b ? l.filter((x) => x.produto.toLowerCase().includes(b) || x.codigo.toLowerCase().includes(b)) : l;
+    return b
+      ? l.filter((x) => x.produto.toLowerCase().includes(b) || x.codigo.toLowerCase().includes(b))
+      : l;
   }, [retrato, busca]);
 
   return (
@@ -136,7 +162,11 @@ function Conferencia() {
         title="Conferência sem internet"
         description="Saldo de estoque e de caixa guardado neste computador, para consultar mesmo sem conexão."
         actions={
-          <Button variant="outline" disabled={!online || atualizando} onClick={() => void atualizar()}>
+          <Button
+            variant="outline"
+            disabled={!online || atualizando}
+            onClick={() => void atualizar()}
+          >
             <RefreshCw className={`mr-1 size-4 ${atualizando ? "animate-spin" : ""}`} /> Atualizar
           </Button>
         }
@@ -161,7 +191,9 @@ function Conferencia() {
           <div key={c.id} className="panel p-4">
             <p className="text-xs text-muted-foreground">Caixa {c.numero} · aberto</p>
             <p className="mt-1 font-display text-2xl font-extrabold">{brl(c.saldo)}</p>
-            <p className="text-xs text-muted-foreground">Em dinheiro na gaveta: {brl(c.dinheiro)}</p>
+            <p className="text-xs text-muted-foreground">
+              Em dinheiro na gaveta: {brl(c.dinheiro)}
+            </p>
           </div>
         ))}
         {retrato && retrato.dados.caixas.length === 0 && (
@@ -175,13 +207,20 @@ function Conferencia() {
         <div className="panel p-4">
           <p className="text-xs text-muted-foreground">Comandas pagas a enviar</p>
           <p className="mt-1 font-display text-2xl font-extrabold">{brl(totalComandas)}</p>
-          <p className="text-xs text-muted-foreground">{pagasOffline.length} comanda(s) do restaurante</p>
+          <p className="text-xs text-muted-foreground">
+            {pagasOffline.length} comanda(s) do restaurante
+          </p>
         </div>
       </section>
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">Estoque</h2>
-        <Input className="max-w-xs" placeholder="Buscar produto ou código" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <Input
+          className="max-w-xs"
+          placeholder="Buscar produto ou código"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
       </div>
       <div className="panel overflow-x-auto p-0">
         <table className="w-full text-sm">
@@ -199,12 +238,16 @@ function Conferencia() {
               <tr key={`${l.produto}-${l.deposito}-${i}`}>
                 <td className="px-3 py-2">
                   {l.produto}
-                  {l.codigo && <span className="ml-1 text-xs text-muted-foreground">#{l.codigo}</span>}
+                  {l.codigo && (
+                    <span className="ml-1 text-xs text-muted-foreground">#{l.codigo}</span>
+                  )}
                 </td>
                 <td className="px-3 py-2">{l.deposito}</td>
                 <td className="px-3 py-2 text-right">{num(l.quantidade)}</td>
                 <td className="px-3 py-2 text-right">{num(l.reservado)}</td>
-                <td className="px-3 py-2 text-right font-medium">{num(l.quantidade - l.reservado)}</td>
+                <td className="px-3 py-2 text-right font-medium">
+                  {num(l.quantidade - l.reservado)}
+                </td>
               </tr>
             ))}
           </tbody>
