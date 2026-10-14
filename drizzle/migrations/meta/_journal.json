@@ -176,6 +176,13 @@
       "when": 1791998715568,
       "tag": "0024_motorista_posicao",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792006183345,
+      "tag": "0025_r10_gravacoes_em_etapas",
+      "breakpoints": true
     }
   ]
 }

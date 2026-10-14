@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { comRelogio } from "./relogio.ts";
 
 // Um fuso bem diferente do de Brasília, para provar que o resultado não depende do ambiente.
 process.env["TZ"] = "Asia/Tokyo";
@@ -20,9 +21,8 @@ test("isoBrasilia devolve o dia de Brasília, e não o do ambiente", () => {
   assert.equal(isoBrasilia(new Date("2026-10-04T03:00:00Z")), "2026-10-04");
 });
 
-test("hojeISO usa o relógio, no fuso de Brasília", async (t) => {
-  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-04T01:30:00Z") });
-  assert.equal(hojeISO(), "2026-10-03");
+test("hojeISO usa o relógio, no fuso de Brasília", () => {
+  comRelogio("2026-10-04T01:30:00Z", () => assert.equal(hojeISO(), "2026-10-03"));
 });
 
 test("datas e horas são formatadas no fuso de Brasília", () => {
