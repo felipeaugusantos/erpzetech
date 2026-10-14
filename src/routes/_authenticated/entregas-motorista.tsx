@@ -18,7 +18,8 @@ export const Route = createFileRoute("/_authenticated/entregas-motorista")({
       { title: "Entregas do motorista — ERP Ze Tech" },
       {
         name: "description",
-        content: "Rota do dia de cada motorista no computador, com ordem, endereço, situação e motivo.",
+        content:
+          "Rota do dia de cada motorista no computador, com ordem, endereço, situação e motivo.",
       },
     ],
   }),
@@ -44,7 +45,10 @@ type Entrega = {
   recebedor: string | null;
   pedidos: Pedido | null;
   veiculos: { placa: string } | null;
-  entrega_itens: { quantidade: number; produtos: { descricao: string; unidade: string | null } | null }[];
+  entrega_itens: {
+    quantidade: number;
+    produtos: { descricao: string; unidade: string | null } | null;
+  }[];
 };
 
 const hojeISO = () => new Date().toISOString().slice(0, 10);
@@ -103,7 +107,12 @@ function EntregasMotorista() {
       .channel(`entregas-pc-${motoristaId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "entregas", filter: `motorista_id=eq.${motoristaId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "entregas",
+          filter: `motorista_id=eq.${motoristaId}`,
+        },
         () => void qc.invalidateQueries({ queryKey: ["entregas-motorista-pc"] }),
       )
       .subscribe();
@@ -112,7 +121,8 @@ function EntregasMotorista() {
     };
   }, [motoristaId, qc]);
 
-  const endereco = (e: Entrega) => e.endereco_entrega || (e.pedidos ? enderecoPedido(e.pedidos) : "");
+  const endereco = (e: Entrega) =>
+    e.endereco_entrega || (e.pedidos ? enderecoPedido(e.pedidos) : "");
   const abertas = useMemo(
     () => entregas.filter((e) => ["planejada", "em_rota"].includes(e.situacao)),
     [entregas],
@@ -195,7 +205,8 @@ function EntregasMotorista() {
                   <td className="px-3 py-2 text-xs">
                     {e.entrega_itens.map((it, k) => (
                       <p key={k}>
-                        {num(Number(it.quantidade))} {it.produtos?.unidade ?? ""} {it.produtos?.descricao}
+                        {num(Number(it.quantidade))} {it.produtos?.unidade ?? ""}{" "}
+                        {it.produtos?.descricao}
                       </p>
                     ))}
                   </td>
@@ -204,7 +215,9 @@ function EntregasMotorista() {
                     {e.motivo_insucesso && (
                       <p className="mt-1 text-xs text-destructive">{e.motivo_insucesso}</p>
                     )}
-                    {e.observacao && <p className="text-xs text-muted-foreground">{e.observacao}</p>}
+                    {e.observacao && (
+                      <p className="text-xs text-muted-foreground">{e.observacao}</p>
+                    )}
                     {e.recebedor && (
                       <p className="text-xs text-muted-foreground">Recebeu: {e.recebedor}</p>
                     )}
@@ -214,7 +227,9 @@ function EntregasMotorista() {
             </tbody>
           </table>
           {!isLoading && entregas.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">Nenhuma entrega deste motorista no dia.</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              Nenhuma entrega deste motorista no dia.
+            </p>
           )}
           {isLoading && <p className="p-4 text-sm text-muted-foreground">Carregando…</p>}
         </div>
