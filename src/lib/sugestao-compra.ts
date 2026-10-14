@@ -49,9 +49,8 @@ export function sugerirCompra(e: EntradaSugestao): Sugestao {
   let alvo = Math.max(consumoNoPrazo + mediaDia * Math.max(n(e.coberturaDias), 0), minimo);
   if (maximo > 0) alvo = Math.min(alvo, maximo);
 
-  // só repõe se o projetado não chega ao fim do prazo acima do mínimo
-  const precisa = projetado - consumoNoPrazo < Math.max(minimo, 0) || projetado < alvo;
-  const bruto = precisa ? Math.max(alvo + consumoNoPrazo - projetado, 0) : 0;
+  // o projetado (disponível + já pedido) precisa atravessar o prazo de entrega e ainda chegar ao alvo
+  const bruto = Math.max(alvo + consumoNoPrazo - projetado, 0);
 
   const fator = n(e.fatorCompra) > 0 ? n(e.fatorCompra) : 1;
   const embalagens = bruto > 0 ? Math.ceil(r3(bruto / fator)) : 0;
