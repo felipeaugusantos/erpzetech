@@ -128,7 +128,8 @@ async function carregarNota(supabase: any, nfeId: string, userId?: string) {
   if (error) throw error;
   if (!nota) throw new Error("Nota fiscal não encontrada");
   if (escopo) {
-    const outraEmpresa = escopo.empresaId && nota.empresa_id && nota.empresa_id !== escopo.empresaId;
+    const outraEmpresa =
+      escopo.empresaId && nota.empresa_id && nota.empresa_id !== escopo.empresaId;
     if (nota.tenant_id !== escopo.tenantId || outraEmpresa) {
       throw new Error("Nota fiscal não encontrada");
     }
