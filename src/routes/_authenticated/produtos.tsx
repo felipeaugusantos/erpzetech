@@ -119,6 +119,8 @@ function Produtos() {
   const [cat, setCat] = useState("todas");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  // Texto da margem enquanto o usuário digita; null = mostrar a margem calculada.
+  const [margemTxt, setMargemTxt] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["produtos"],
@@ -652,7 +654,15 @@ function Produtos() {
                   type="number"
                   step="0.0001"
                   value={form.custo}
-                  onChange={(e) => setForm({ ...form, custo: e.target.value })}
+                  onChange={(e) => {
+                    const custo = e.target.value;
+                    const m = margemTxt === null ? null : Number(margemTxt.replace(",", "."));
+                    // Com margem digitada, o preço acompanha o novo custo.
+                    if (m !== null && Number.isFinite(m) && m < 100) {
+                      const preco = Number(custo || 0) / (1 - m / 100);
+                      setForm({ ...form, custo, preco_venda: preco.toFixed(2) });
+                    } else setForm({ ...form, custo });
+                  }}
                 />
               </div>
               <div>
@@ -662,15 +672,38 @@ function Produtos() {
                   type="number"
                   step="0.0001"
                   value={form.preco_venda}
-                  onChange={(e) => setForm({ ...form, preco_venda: e.target.value })}
+                  onChange={(e) => {
+                    setMargemTxt(null);
+                    setForm({ ...form, preco_venda: e.target.value });
+                  }}
                 />
               </div>
               <div>
-                <Label>Margem calculada</Label>
+                <Label htmlFor="p-margem">Margem (%)</Label>
                 <Input
-                  readOnly
-                  value={`${num(margem(Number(form.custo || 0), Number(form.preco_venda || 0)), 1)}%`}
+                  id="p-margem"
+                  inputMode="decimal"
+                  value={
+                    margemTxt ??
+                    num(margem(Number(form.custo || 0), Number(form.preco_venda || 0)), 1)
+                  }
+                  onChange={(e) => {
+                    const txt = e.target.value;
+                    setMargemTxt(txt);
+                    const m = Number(txt.replace(",", "."));
+                    if (txt.trim() === "" || !Number.isFinite(m)) return;
+                    if (m >= 100) {
+                      toast.error("A margem precisa ser menor que 100%");
+                      return;
+                    }
+                    const preco = Number(form.custo || 0) / (1 - m / 100);
+                    setForm({ ...form, preco_venda: preco.toFixed(2) });
+                  }}
+                  onBlur={() => setMargemTxt(null)}
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Digite a % e o preço é calculado.
+                </p>
               </div>
               <div>
                 <Label htmlFor="p-loc">Localização no depósito</Label>
