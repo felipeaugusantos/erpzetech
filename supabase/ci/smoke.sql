@@ -1224,6 +1224,8 @@ DECLARE
   q_antes numeric; q_depois numeric; n_mov_antes bigint; n_mov_depois bigint;
   tb uuid; eb uuid; fb uuid; cb uuid; obb uuid; profb uuid; chave_venda uuid := gen_random_uuid();
   n_com bigint;
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  n_nota bigint;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Fase0 CI') RETURNING id INTO dep;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'F0-ITEM', 'Item Fase 0', 'un', 5) RETURNING id INTO prod;
@@ -1267,12 +1269,19 @@ BEGIN
   PERFORM ci.entrar(adm);
   nota := gerar_nfe(ped);
   PERFORM ci.sair();
-  -- o vendedor nem enxerga a nota para alterar (política só para quem emite nota): zero linhas
+  -- vendedor e caixa emitem a nota do balcão pelas funções, mas não escrevem na tabela: zero linhas
   PERFORM ci.entrar(vend);
   UPDATE nfe SET situacao = 'autorizada' WHERE id = nota;
   GET DIAGNOSTICS n_com = ROW_COUNT;
+  UPDATE nfe SET valor_total = 0.01 WHERE id = nota;
+  GET DIAGNOSTICS n_nota = ROW_COUNT;
   PERFORM ci.sair();
-  PERFORM ci.exige(n_com = 0 AND (SELECT situacao <> 'autorizada' FROM nfe WHERE id = nota), 'vendedor não marca a nota como autorizada');
+  PERFORM ci.exige(n_com = 0 AND n_nota = 0 AND (SELECT situacao <> 'autorizada' AND valor_total <> 0.01 FROM nfe WHERE id = nota), 'vendedor não reescreve a nota direto na tabela');
+  PERFORM ci.entrar(cxa);
+  UPDATE nfe SET valor_total = 0.01 WHERE id = nota;
+  GET DIAGNOSTICS n_nota = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_nota = 0, 'caixa não reescreve a nota direto na tabela');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET chave = '1234' WHERE id = %L$c$, nota), 'administrador altera a chave da nota');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET retorno = '{"x":1}'::jsonb WHERE id = %L$c$, nota), 'administrador altera o retorno do emissor');
   UPDATE nfe SET situacao = 'autorizada', chave = 'CHAVE-CI' WHERE id = nota;
@@ -1313,6 +1322,7 @@ END $$;
 -- 23. Fase 0: papéis valem no banco (tabela aprovada na seção 9 do diagnóstico)
 DO $$
 DECLARE
+  msg_nota text;
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
@@ -1466,16 +1476,27 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(n = 2, 'financeiro altera conta a receber');
 
-  -- nota fiscal: administrador, gestor e financeiro
-  FOREACH papel IN ARRAY ARRAY['vendedor', 'caixa', 'estoquista', 'logistica', 'motorista'] LOOP
-    u := CASE papel WHEN 'vendedor' THEN vend WHEN 'caixa' THEN cxa WHEN 'estoquista' THEN est WHEN 'logistica' THEN logi ELSE mt1 END;
+  -- nota fiscal: administrador, gestor, financeiro, vendedor e caixa (o balcão emite a nota do PDV)
+  FOREACH papel IN ARRAY ARRAY['estoquista', 'logistica', 'motorista'] LOOP
+    u := CASE papel WHEN 'estoquista' THEN est WHEN 'logistica' THEN logi ELSE mt1 END;
     PERFORM ci.deve_falhar(u, format($c$SELECT gerar_nfe(%L)$c$, p4), papel || ' emite nota');
   END LOOP;
   PERFORM ci.entrar(fin);
   nota := gerar_nfe(p4);
   PERFORM ci.sair();
   PERFORM ci.exige(nota IS NOT NULL, 'financeiro emite a nota');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT nfe_calcular_impostos(%L)$c$, nota), 'vendedor recalcula os impostos da nota');
+  PERFORM ci.entrar(vend);
+  PERFORM nfe_calcular_impostos(nota);
+  PERFORM ci.sair();
+  -- o caixa passa pela conferência de papel: a recusa que sobra é a de nota repetida, não a de permissão
+  PERFORM ci.entrar(cxa);
+  BEGIN
+    PERFORM gerar_nfe(p4);
+  EXCEPTION WHEN OTHERS THEN
+    msg_nota := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg_nota LIKE '%já tem nota fiscal%', 'caixa chega à emissão da nota');
   PERFORM ci.deve_falhar(mt1, format($c$SELECT nfe_calcular_impostos(%L)$c$, nota), 'motorista recalcula os impostos da nota');
   PERFORM ci.entrar(fin);
   PERFORM nfe_calcular_impostos(nota);
