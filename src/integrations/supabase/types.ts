@@ -3807,6 +3807,9 @@ export type Database = {
           observacao: string | null
           telefone: string | null
           tenant_id: string
+          ultima_lat: number | null
+          ultima_lng: number | null
+          ultima_posicao_em: string | null
           updated_at: string
           user_id: string | null
           validade_cnh: string | null
@@ -3824,6 +3827,9 @@ export type Database = {
           observacao?: string | null
           telefone?: string | null
           tenant_id?: string
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_posicao_em?: string | null
           updated_at?: string
           user_id?: string | null
           validade_cnh?: string | null
@@ -3841,6 +3847,9 @@ export type Database = {
           observacao?: string | null
           telefone?: string | null
           tenant_id?: string
+          ultima_lat?: number | null
+          ultima_lng?: number | null
+          ultima_posicao_em?: string | null
           updated_at?: string
           user_id?: string | null
           validade_cnh?: string | null
@@ -7251,6 +7260,10 @@ export type Database = {
       }
       locacao_gerar_nfe: { Args: { p_locacao_id: string }; Returns: string }
       locacao_gerar_nfse: { Args: { p_locacao_id: string }; Returns: string }
+      motorista_enviar_posicao: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: undefined
+      }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
