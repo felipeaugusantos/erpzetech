@@ -21,30 +21,6 @@ BEGIN
   END LOOP;
 END $$;
 
-DROP POLICY IF EXISTS nfe_insere_fiscal ON public.nfe;
-DROP POLICY IF EXISTS nfe_altera_fiscal ON public.nfe;
-CREATE POLICY nfe_insere_fiscal ON public.nfe FOR INSERT TO authenticated
-  WITH CHECK (tenant_id = public.current_tenant_id()
-              AND (public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor')
-                   OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'vendedor')
-                   OR public.has_role(auth.uid(), 'caixa')));
-CREATE POLICY nfe_altera_fiscal ON public.nfe FOR UPDATE TO authenticated
-  USING (tenant_id = public.current_tenant_id()
-         AND (public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor')
-              OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'vendedor')
-              OR public.has_role(auth.uid(), 'caixa')))
-  WITH CHECK (tenant_id = public.current_tenant_id());
-
-DROP POLICY IF EXISTS nfe_itens_insere_fiscal ON public.nfe_itens;
-DROP POLICY IF EXISTS nfe_itens_altera_fiscal ON public.nfe_itens;
-CREATE POLICY nfe_itens_insere_fiscal ON public.nfe_itens FOR INSERT TO authenticated
-  WITH CHECK (tenant_id = public.current_tenant_id()
-              AND (public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor')
-                   OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'vendedor')
-                   OR public.has_role(auth.uid(), 'caixa')));
-CREATE POLICY nfe_itens_altera_fiscal ON public.nfe_itens FOR UPDATE TO authenticated
-  USING (tenant_id = public.current_tenant_id()
-         AND (public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor')
-              OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'vendedor')
-              OR public.has_role(auth.uid(), 'caixa')))
-  WITH CHECK (tenant_id = public.current_tenant_id());
+-- As políticas de escrita direta em nfe e nfe_itens ficam como estão (administrador, gestor, financeiro): vendedor e
+-- caixa emitem só pelas funções acima, que rodam como dono do banco, e o servidor grava o retorno da Sefaz com a
+-- chave de serviço. Assim eles não reescrevem totais, CFOP ou dados do emitente de uma nota já autorizada.

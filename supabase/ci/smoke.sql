@@ -1224,6 +1224,8 @@ DECLARE
   q_antes numeric; q_depois numeric; n_mov_antes bigint; n_mov_depois bigint;
   tb uuid; eb uuid; fb uuid; cb uuid; obb uuid; profb uuid; chave_venda uuid := gen_random_uuid();
   n_com bigint;
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  n_nota bigint;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Fase0 CI') RETURNING id INTO dep;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'F0-ITEM', 'Item Fase 0', 'un', 5) RETURNING id INTO prod;
@@ -1267,9 +1269,19 @@ BEGIN
   PERFORM ci.entrar(adm);
   nota := gerar_nfe(ped);
   PERFORM ci.sair();
-  -- o vendedor emite a nota do balcão, mas não muda o andamento dela (gatilho)
-  PERFORM ci.deve_falhar(vend, format($c$UPDATE nfe SET situacao = 'autorizada' WHERE id = %L$c$, nota), 'vendedor marca a nota como autorizada');
-  PERFORM ci.exige((SELECT situacao <> 'autorizada' FROM nfe WHERE id = nota), 'a nota segue sem autorização');
+  -- vendedor e caixa emitem a nota do balcão pelas funções, mas não escrevem na tabela: zero linhas
+  PERFORM ci.entrar(vend);
+  UPDATE nfe SET situacao = 'autorizada' WHERE id = nota;
+  GET DIAGNOSTICS n_com = ROW_COUNT;
+  UPDATE nfe SET valor_total = 0.01 WHERE id = nota;
+  GET DIAGNOSTICS n_nota = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_com = 0 AND n_nota = 0 AND (SELECT situacao <> 'autorizada' AND valor_total <> 0.01 FROM nfe WHERE id = nota), 'vendedor não reescreve a nota direto na tabela');
+  PERFORM ci.entrar(cxa);
+  UPDATE nfe SET valor_total = 0.01 WHERE id = nota;
+  GET DIAGNOSTICS n_nota = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_nota = 0, 'caixa não reescreve a nota direto na tabela');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET chave = '1234' WHERE id = %L$c$, nota), 'administrador altera a chave da nota');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET retorno = '{"x":1}'::jsonb WHERE id = %L$c$, nota), 'administrador altera o retorno do emissor');
   UPDATE nfe SET situacao = 'autorizada', chave = 'CHAVE-CI' WHERE id = nota;
