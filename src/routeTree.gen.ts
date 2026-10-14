@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
+import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
@@ -50,6 +51,7 @@ import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenticated/frente-caixa'
+import { Route as AuthenticatedFrotaMapaRouteImport } from './routes/_authenticated/frota-mapa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
@@ -144,6 +146,12 @@ const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
   path: '/ze-tech-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAjusteLotesRoute =
+  AuthenticatedAjusteLotesRouteImport.update({
+    id: '/ajuste-lotes',
+    path: '/ajuste-lotes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAssistenciaRoute =
   AuthenticatedAssistenciaRouteImport.update({
     id: '/assistencia',
@@ -338,6 +346,11 @@ const AuthenticatedFrenteCaixaRoute =
     path: '/frente-caixa',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFrotaMapaRoute = AuthenticatedFrotaMapaRouteImport.update({
+  id: '/frota-mapa',
+  path: '/frota-mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGiroEstoqueRoute =
   AuthenticatedGiroEstoqueRouteImport.update({
     id: '/giro-estoque',
@@ -702,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -737,6 +751,7 @@ export interface FileRoutesByFullPath {
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -808,6 +823,7 @@ export interface FileRoutesByTo {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -843,6 +859,7 @@ export interface FileRoutesByTo {
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -916,6 +933,7 @@ export interface FileRoutesById {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
+  '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -951,6 +969,7 @@ export interface FileRoutesById {
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
+  '/_authenticated/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
@@ -1024,6 +1043,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1059,6 +1079,7 @@ export interface FileRouteTypes {
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
+    | '/frota-mapa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -1130,6 +1151,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
     | '/balanco-fiscal'
@@ -1165,6 +1187,7 @@ export interface FileRouteTypes {
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
+    | '/frota-mapa'
     | '/giro-estoque'
     | '/impostos'
     | '/impostos-filial'
@@ -1237,6 +1260,7 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/ze-tech-login'
+    | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/balanco-fiscal'
@@ -1272,6 +1296,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
     | '/_authenticated/frente-caixa'
+    | '/_authenticated/frota-mapa'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/impostos'
     | '/_authenticated/impostos-filial'
@@ -1391,6 +1416,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/ze-tech-login'
       preLoaderRoute: typeof ZeTechLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ajuste-lotes': {
+      id: '/_authenticated/ajuste-lotes'
+      path: '/ajuste-lotes'
+      fullPath: '/ajuste-lotes'
+      preLoaderRoute: typeof AuthenticatedAjusteLotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/assistencia': {
       id: '/_authenticated/assistencia'
@@ -1635,6 +1667,13 @@ declare module '@tanstack/react-router' {
       path: '/frente-caixa'
       fullPath: '/frente-caixa'
       preLoaderRoute: typeof AuthenticatedFrenteCaixaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frota-mapa': {
+      id: '/_authenticated/frota-mapa'
+      path: '/frota-mapa'
+      fullPath: '/frota-mapa'
+      preLoaderRoute: typeof AuthenticatedFrotaMapaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/giro-estoque': {
@@ -2089,6 +2128,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAjusteLotesRoute: typeof AuthenticatedAjusteLotesRoute
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
@@ -2124,6 +2164,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedFrenteCaixaRoute: typeof AuthenticatedFrenteCaixaRoute
+  AuthenticatedFrotaMapaRoute: typeof AuthenticatedFrotaMapaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
@@ -2190,6 +2231,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAjusteLotesRoute: AuthenticatedAjusteLotesRoute,
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
@@ -2225,6 +2267,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedFrenteCaixaRoute: AuthenticatedFrenteCaixaRoute,
+  AuthenticatedFrotaMapaRoute: AuthenticatedFrotaMapaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
