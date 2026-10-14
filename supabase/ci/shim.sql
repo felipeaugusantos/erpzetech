@@ -31,3 +31,6 @@ CREATE FUNCTION storage.foldername(n text) RETURNS text[] LANGUAGE sql AS
 GRANT USAGE ON SCHEMA public, auth, storage TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+
+-- o Supabase já traz a publicação do Realtime; migrations do Lovable adicionam tabelas a ela
+CREATE PUBLICATION supabase_realtime;

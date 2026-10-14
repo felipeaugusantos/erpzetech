@@ -514,7 +514,9 @@ DECLARE
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
-    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco'];
+    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
+    -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
+    'motorista_enviar_posicao'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -522,8 +524,8 @@ BEGIN
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
    WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity AND NOT (c.relname = ANY (liberadas))
      AND NOT EXISTS (SELECT 1 FROM pg_policies pp WHERE pp.schemaname = 'public' AND pp.tablename = c.relname
-                        AND pp.policyname = 'salao_restrito' AND pp.permissive = 'RESTRICTIVE');
-  PERFORM ci.exige(faltando IS NULL, 'toda tabela com RLS tem a política salao_restrito ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
+                        AND pp.permissive = 'RESTRICTIVE' AND pp.qual LIKE '%eh_salao_restrito%');
+  PERFORM ci.exige(faltando IS NULL, 'toda tabela com RLS tem política restritiva do salão (eh_salao_restrito) ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
 
   SELECT string_agg(p.proname, ', ') INTO faltando
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
