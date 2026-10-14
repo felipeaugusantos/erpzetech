@@ -50,7 +50,9 @@ export async function atualizarConferencia(): Promise<Retrato<Dados> | null> {
   const [est, cx] = await Promise.all([
     supabase
       .from("estoques")
-      .select("quantidade, reservado, produtos(descricao, codigo_interno, estoque_minimo), depositos(nome)")
+      .select(
+        "quantidade, reservado, produtos(descricao, codigo_interno, estoque_minimo), depositos(nome)",
+      )
       .limit(5000),
     supabase
       .from("caixas")
@@ -147,7 +149,7 @@ function Conferencia() {
 
   useEffect(() => {
     if (online) void atualizar();
-  }, [online]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [online]);
 
   const pagasOffline = comandas.filter((c) => c.fechar && !c.erro);
   const totalComandas = pagasOffline.reduce(
@@ -158,9 +160,7 @@ function Conferencia() {
   const estoque = useMemo(() => {
     const b = busca.trim().toLowerCase();
     const todos = retrato?.dados.estoque ?? [];
-    const l = soFalta
-      ? todos.filter((x) => x.quantidade - x.reservado < (x.minimo ?? 0))
-      : todos;
+    const l = soFalta ? todos.filter((x) => x.quantidade - x.reservado < (x.minimo ?? 0)) : todos;
     return b
       ? l.filter((x) => x.produto.toLowerCase().includes(b) || x.codigo.toLowerCase().includes(b))
       : l;

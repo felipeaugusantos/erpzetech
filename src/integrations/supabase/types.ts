@@ -4779,6 +4779,7 @@ export type Database = {
           desconto: number
           divergencia: string | null
           id: string
+          lote_id: string | null
           observacao: string | null
           pedido_id: string
           preco_unitario: number
@@ -4797,6 +4798,7 @@ export type Database = {
           desconto?: number
           divergencia?: string | null
           id?: string
+          lote_id?: string | null
           observacao?: string | null
           pedido_id: string
           preco_unitario?: number
@@ -4815,6 +4817,7 @@ export type Database = {
           desconto?: number
           divergencia?: string | null
           id?: string
+          lote_id?: string | null
           observacao?: string | null
           pedido_id?: string
           preco_unitario?: number
@@ -4828,6 +4831,13 @@ export type Database = {
           unidade?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedido_itens_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedido_itens_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -7308,6 +7318,10 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      pedido_item_definir_lote: {
+        Args: { p_lote_id: string; p_pedido_item_id: string }
+        Returns: undefined
       }
       pedido_registrar_entrega: {
         Args: {
