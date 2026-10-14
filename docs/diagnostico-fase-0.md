@@ -24,7 +24,7 @@ O ponto fraco é o isolamento **entre papéis dentro da mesma empresa**. As tela
 | R10 | Outras gravações em etapas sem desfazer (filial extra, orçamento, separação, compra) | P2 |
 | R11 | Peças da ordem de serviço não baixam estoque | P2 |
 | R12 | Auditoria cobre 7 tabelas; faltam financeiro, fiscal, empresa e papéis | P2 |
-| R13 | Acesso é por empresa, não por filial | P2 (decisão) |
+| R13 | Acesso é por empresa, não por filial (decidido: por filial; feito) | P2 |
 | R14 | Formulário público de contato sem limite de envios | P3 |
 
 ## 2. Como foi feito e o que não foi
@@ -189,7 +189,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R10 | P2 | Outras gravações em etapas | seção 6 | Funções do banco para filial extra, orçamento (com itens) e separação (todos os itens de uma vez) | — |
 | R11 | P2 | Peça da OS sem baixa de estoque | nenhuma função ou gatilho de assistência chama `registrar_movimentacao` | Decidir a regra (baixa ao aprovar ou ao concluir a OS) e criar a função com devolução ao cancelar | Peça aplicada baixa o estoque uma vez |
 | R12 | P2 | Auditoria curta | gatilho em 7 tabelas | Estender `auditar_campos` a `contas_receber`, `contas_pagar`, `nfe`, `nfe_itens`, `empresas`, `filiais`, `fiscal_config`, `comissoes`, `user_roles` | Alteração e exclusão geram linha em `auditoria` |
-| R13 | P2 | Acesso por empresa, não por filial | nenhuma política cita filial | Decisão de produto: se o usuário de uma filial deve ver só a filial dele, desenhar a regra (política por filial + exceção para gestão) | — |
+| R13 | P2 | Acesso por empresa, não por filial | nenhuma política cita filial | Decidido pelo dono: acesso por filial. Feito na migration `20261014000003_acesso_por_filial.sql` | — |
 | R14 | P3 | Formulário de contato sem limite | política `contatos_insert_publico` | Limite por origem/horário e verificação anti-robô | — |
 
 ## 9. Papéis por operação (proposta para decidir antes de corrigir o R1)
@@ -231,6 +231,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R5 | Feito | `abrir_caixa` confere a filial; `criar_pedido_direto` confere obra, vendedor e profissional | Chave estrangeira composta (`tenant_id`, `id`), a avaliar |
 | R6 | Feito | `criarAdminCliente` desfaz empresa e usuário se uma etapa falhar (`src/lib/desfazer.ts`, com testes) | — |
 | R7 | Feito | `usuario_definir_papeis`: troca todos os papéis numa transação | — |
+| R13 | Feito | Decisão do dono: acesso por filial. `pode_filial` e `filial_irrestrita`; política restritiva `filial_restrita` em `pedidos`, `caixas`, `depositos`, `contas_receber`, `contas_pagar`, `nfe`, `orcamentos`, `compras`, `devolucoes` e, por herança, `pedido_itens`, `pedido_historico`, `entregas`, `entrega_itens`, `caixa_movimentos`, `estoques`, `estoque_movimentacoes`; gatilho `filial_protege` para gravações dentro das funções (venda, caixa, nota, entrega, estoque). Administrador, gestor e usuário sem filial no perfil veem todas as filiais; linha sem filial é de todos. Bloco 24 do `smoke.sql` | Tabelas com `filial_id` que ficaram de fora (ver abaixo); telas com filtro de filial para a gestão, se quiser |
 | R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
 | R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |
 | R10 a R14 | Pendente | — | Próximas rodadas |
@@ -261,6 +262,8 @@ As vendas, o PDV e a frente de caixa continuam baixando estoque, reservando e ge
 
 ### Fora da tabela aprovada: decisões que tomei e itens que ficaram como estavam
 
-- **Decisões**: o motorista também pode iniciar a rota e registrar insucesso, só da própria entrega (a tela do motorista faz isso); receber pagamento do pedido, lançar e baixar contas a receber e escrever em `orcamento_itens` seguem os papéis da linha mais próxima da tabela. Confirme ou ajuste.
+- **Confirmado pelo dono**: o motorista só inicia a rota, registra sucesso (conclui) ou insucesso da entrega vinculada ao seu cadastro de motorista (`motoristas.user_id`); nada além disso. Já era assim no banco.
+- **Decisões**: receber pagamento do pedido, lançar e baixar contas a receber e escrever em `orcamento_itens` seguem os papéis da linha mais próxima da tabela. Confirme ou ajuste.
+- **Acesso por filial (R13), o que decidi**: exceção para administrador, gestor e quem não tem filial no perfil (matriz); linha sem filial fica visível a todos. Não aplicado a `clientes`, `contas_bancarias`, `locacoes`, `os_ordens`, `tecnicos`, `veiculos`, `motoristas`, `fiscal_config`, `tef_*`, `mesas` e `comandas` (cadastros compartilhados ou módulos à parte). Transferência entre depósitos de filiais diferentes só pela gestão. Quem já tem filial no perfil passa a ver só a própria filial depois da migration.
 - **Ficaram como estavam** (a tabela não diz): `pedido_registrar_saida` (retirada no balcão e entrega registrada) e `pedido_registrar_ocorrencia`; transferência entre depósitos, devolução e recebimento de compra; `caixa_lancar` (lançamento manual no caixa); `fiscal_config` (administrador, gestor e financeiro); custo médio em `estoques`; comissões.
 - **Efeito nas telas**: quem perdeu acesso vê o erro da função como aviso. Nenhuma tela foi escondida ou reorganizada. Os casos que mais devem aparecer: o botão de emitir NF-e logo após a venda no PDV (`/pdv`) agora só funciona para administrador, gestor e financeiro, então vendedor e caixa recebem recusa ao emitir a nota do balcão; o vendedor que agendava entrega ou recebia o pagamento pela tela do pedido também recebe recusa. Se o balcão precisa emitir nota, é só incluir vendedor e caixa na linha "emitir e transmitir nota" da tabela, e a mudança é uma linha por função.

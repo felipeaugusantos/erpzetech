@@ -516,7 +516,7 @@ DECLARE
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
-    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
+    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco', 'filial_irrestrita', 'pode_filial',
     -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
     'motorista_enviar_posicao'];
   faltando text;
@@ -1539,4 +1539,88 @@ BEGIN
 
   -- o garçom segue fora de tudo isso
   PERFORM ci.deve_falhar(gar, format($c$SELECT gerar_nfe(%L)$c$, p4), 'garçom emite nota');
+END $$;
+
+-- 24. Fase 0 / R13: acesso por filial (administrador, gestor e usuário sem filial veem todas; os demais só a própria)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  fa   constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  fb uuid; da uuid; db uuid; dsem uuid; prod uuid; cli uuid; pa uuid; pb uuid; item_b uuid; n bigint;
+  itens jsonb;
+BEGIN
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Filial R13') RETURNING id INTO fb;
+  INSERT INTO depositos (tenant_id, filial_id, nome) VALUES (demo, fa, 'Dep A R13') RETURNING id INTO da;
+  INSERT INTO depositos (tenant_id, filial_id, nome) VALUES (demo, fb, 'Dep B R13') RETURNING id INTO db;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep geral R13') RETURNING id INTO dsem;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'R13-ITEM', 'Item R13', 'un', 5, 10) RETURNING id INTO prod;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente R13') RETURNING id INTO cli;
+  itens := jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10));
+
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, da, 'entrada'::mov_tipo, 50, 'ci', 'ci');
+  PERFORM registrar_movimentacao(prod, db, 'entrada'::mov_tipo, 50, 'ci', 'ci');
+  pa := criar_pedido_direto(cli, da, itens);
+  pb := criar_pedido_direto(cli, db, itens);
+  PERFORM ci.sair();
+  SELECT id INTO item_b FROM pedido_itens WHERE pedido_id = pb;
+  PERFORM ci.exige((SELECT filial_id = fb FROM pedidos WHERE id = pb), 'o pedido herda a filial do depósito');
+
+  -- vendedor, caixa e estoquista da filial A
+  UPDATE profiles SET filial_id = fa WHERE id IN (vend, cxa, est);
+  -- gestor também tem filial no perfil, mas a gestão vê todas
+  UPDATE profiles SET filial_id = fa WHERE id = gest;
+
+  -- leitura: só a própria filial (e o que não tem filial)
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM pedidos WHERE id = %L$c$, pa)) = 1, 'vendedor vê o pedido da própria filial');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM pedidos WHERE id = %L$c$, pb)) = 0, 'vendedor não vê o pedido de outra filial');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM pedido_itens WHERE pedido_id = %L$c$, pb)) = 0, 'vendedor não vê os itens do pedido de outra filial');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM depositos WHERE id IN (%L, %L, %L)$c$, da, db, dsem)) = 2, 'vendedor vê o depósito da filial e o geral, não o de outra filial');
+  PERFORM ci.exige(ci.contar(est, format($c$SELECT count(*) FROM estoques WHERE deposito_id = %L$c$, db)) = 0, 'estoquista não vê o estoque de outra filial');
+  PERFORM ci.exige(ci.contar(est, format($c$SELECT count(*) FROM estoques WHERE deposito_id = %L$c$, da)) = 1, 'estoquista vê o estoque da própria filial');
+
+  -- escrita direta
+  PERFORM ci.entrar(vend);
+  UPDATE pedido_itens SET quantidade_separada = 1 WHERE id = item_b;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'vendedor não altera item de pedido de outra filial');
+  PERFORM ci.entrar(est);
+  UPDATE pedido_itens SET quantidade_separada = 1 WHERE id = item_b;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'estoquista da filial A não separa pedido da filial B');
+
+  -- dentro das funções do banco
+  PERFORM ci.deve_falhar(vend, format($c$SELECT criar_pedido_direto(%L, %L, %L::jsonb)$c$, cli, db, itens), 'vendedor cria pedido em depósito de outra filial');
+  PERFORM ci.entrar(vend);
+  PERFORM criar_pedido_direto(cli, da, itens);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(est, format($c$SELECT registrar_movimentacao(%L, %L, 'entrada'::mov_tipo, 5, 'ci', 'ci')$c$, prod, db), 'estoquista dá entrada em depósito de outra filial');
+  PERFORM ci.entrar(est);
+  PERFORM registrar_movimentacao(prod, da, 'entrada'::mov_tipo, 5, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT abrir_caixa(%L, 0)$c$, fb), 'caixa abre caixa em outra filial');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT pedido_checkout(%L, 10, 'dinheiro'::forma_pagamento, 1, NULL, NULL)$c$, pb), 'caixa recebe pedido de outra filial');
+
+  -- gestão vê e opera todas as filiais, mesmo com filial no perfil
+  PERFORM ci.exige(ci.contar(gest, format($c$SELECT count(*) FROM pedidos WHERE id IN (%L, %L)$c$, pa, pb)) = 2, 'gestor vê as duas filiais');
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM pedidos WHERE id IN (%L, %L)$c$, pa, pb)) = 2, 'administrador vê as duas filiais');
+  PERFORM ci.entrar(gest);
+  PERFORM pedido_avancar_status(pb, 'aprovado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aprovado' FROM pedidos WHERE id = pb), 'gestor aprova pedido de outra filial');
+
+  -- usuário sem filial no perfil (matriz) vê todas
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM pedidos WHERE id IN (%L, %L)$c$, pa, pb)) = 2, 'usuário sem filial no perfil vê todas');
+
+  -- volta ao que os outros blocos esperam
+  UPDATE profiles SET filial_id = NULL WHERE id IN (vend, cxa, est, gest);
 END $$;
