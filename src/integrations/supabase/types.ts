@@ -7146,6 +7146,7 @@ export type Database = {
         }
         Returns: string
       }
+      filial_irrestrita: { Args: never; Returns: boolean }
       frente_abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -7452,6 +7453,7 @@ export type Database = {
         }
         Returns: string
       }
+      pode_filial: { Args: { p_filial_id: string }; Returns: boolean }
       premiacao_abater_conta: {
         Args: {
           p_conta_id: string
