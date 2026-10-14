@@ -457,6 +457,8 @@ function FrenteCaixa() {
         p_parcelas: Math.max(Number(parcelas) || 1, 1),
         ...(aPrazo ? { p_primeiro_vencimento: somaDias(hojeISO(), 30) } : {}),
         ...(autDesconto ? { p_autorizacao: autDesconto } : {}),
+        // identifica esta venda: se ela for reenviada (resposta perdida, outra aba), o banco não vende de novo
+        p_chave: crypto.randomUUID(),
       };
       const guardar = () => {
         const atual: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");

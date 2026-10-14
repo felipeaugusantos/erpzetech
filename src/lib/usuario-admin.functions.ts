@@ -203,6 +203,10 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
     if (data.userId === ctx.userId && data.ativo === false) {
       throw new Error("Você não pode desativar o seu próprio acesso");
     }
+    // confere tudo antes de gravar qualquer coisa
+    if (data.perfis && data.userId === ctx.userId && !data.perfis.includes("administrador")) {
+      throw new Error("Você não pode remover o seu próprio perfil de administrador");
+    }
 
     const patch: {
       nome?: string;
@@ -223,17 +227,13 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
     }
 
     if (data.perfis) {
-      if (data.userId === ctx.userId && !data.perfis.includes("administrador")) {
-        throw new Error("Você não pode remover o seu próprio perfil de administrador");
-      }
-      const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
-      if (limpeza.error) throw limpeza.error;
-      const papeis = await supabaseAdmin.from("user_roles").insert(
-        data.perfis.map((role) => ({
-          user_id: data.userId,
-          role,
-          tenant_id: ctx.tenantId,
-        })) as never,
+      // troca todos os papéis numa transação só: nunca deixa o usuário sem papel
+      const papeis = await context.supabase.rpc(
+        "usuario_definir_papeis" as never,
+        {
+          p_user_id: data.userId,
+          p_papeis: data.perfis,
+        } as never,
       );
       if (papeis.error) throw papeis.error;
     }

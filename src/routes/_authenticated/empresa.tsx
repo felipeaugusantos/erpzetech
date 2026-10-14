@@ -185,18 +185,19 @@ function Empresa() {
         .select("id")
         .eq("empresa_id", empresaId)
         .maybeSingle();
-      if (cfg.data?.id) {
-        await supabase
-          .from("fiscal_config")
-          .update({ regime_tributario: form.regime_tributario })
-          .eq("id", cfg.data.id);
-      } else {
-        await supabase.from("fiscal_config").insert({
-          tenant_id: tenantId,
-          empresa_id: empresaId,
-          regime_tributario: form.regime_tributario,
-        });
-      }
+      if (cfg.error) throw cfg.error;
+      const fiscal = cfg.data?.id
+        ? await supabase
+            .from("fiscal_config")
+            .update({ regime_tributario: form.regime_tributario })
+            .eq("id", cfg.data.id)
+        : await supabase.from("fiscal_config").insert({
+            tenant_id: tenantId,
+            empresa_id: empresaId,
+            regime_tributario: form.regime_tributario,
+          });
+      // sem isto o cadastro dizia um regime e a nota saía com outro, sem nenhum aviso
+      if (fiscal.error) throw fiscal.error;
     },
     onSuccess: () => {
       toast.success(data ? "Dados da empresa salvos" : "Empresa cadastrada");

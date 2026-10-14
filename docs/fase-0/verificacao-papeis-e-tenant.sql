@@ -158,7 +158,7 @@ BEGIN
     l := l || format('%s|marcar conta a receber como paga|%s', papel, mx.afeta(u, $c$UPDATE contas_receber SET situacao = 'paga', valor_pago = valor WHERE id = (SELECT id FROM contas_receber WHERE tenant_id = '11111111-1111-1111-1111-111111111111' LIMIT 1)$c$));
     l := l || format('%s|apagar conta a receber|%s', papel, mx.afeta(u, $c$DELETE FROM contas_receber WHERE id = (SELECT id FROM contas_receber WHERE tenant_id = '11111111-1111-1111-1111-111111111111' LIMIT 1)$c$));
     l := l || format('%s|alterar item de NF-e|%s', papel, mx.afeta(u, $c$UPDATE nfe_itens SET quantidade = quantidade + 1 WHERE id = (SELECT id FROM nfe_itens WHERE tenant_id = '11111111-1111-1111-1111-111111111111' LIMIT 1)$c$));
-    l := l || format('%s|marcar NF-e como autorizada|%s', papel, mx.afeta(u, $c$UPDATE nfe SET situacao = 'autorizada' WHERE id = (SELECT id FROM nfe WHERE tenant_id = '11111111-1111-1111-1111-111111111111' LIMIT 1)$c$));
+    l := l || format('%s|mudar a situação da NF-e (para cancelada)|%s', papel, mx.afeta(u, $c$UPDATE nfe SET situacao = 'cancelada' WHERE id = (SELECT id FROM nfe WHERE tenant_id = '11111111-1111-1111-1111-111111111111' AND situacao <> 'cancelada' LIMIT 1)$c$));
     l := l || format('%s|alterar custo/preço de produto|%s', papel, mx.afeta(u, $c$UPDATE produtos SET preco_venda = 0.01 WHERE id = (SELECT id FROM produtos WHERE tenant_id = '11111111-1111-1111-1111-111111111111' LIMIT 1)$c$));
     l := l || format('%s|conceder papel a si mesmo|%s', papel, mx.afeta(u, format($c$INSERT INTO user_roles (user_id, tenant_id, role) VALUES (%L, '11111111-1111-1111-1111-111111111111', 'administrador')$c$, u)));
   END LOOP;

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { comDesfazer } from "./desfazer.ts";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Entrada = { clienteId: string; email: string; senha: string };
@@ -40,60 +41,71 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Cada cliente opera em um espaço próprio de dados.
-    let tenantId = cliente.tenant_id;
-    if (!tenantId) {
-      const novoTenant = await supabaseAdmin
-        .from("tenants")
-        .insert({ nome: cliente.nome })
-        .select("id")
-        .single();
-      if (novoTenant.error) throw novoTenant.error;
-      tenantId = novoTenant.data.id;
-    }
+    // Várias etapas em lugares diferentes (empresa, Auth, perfil, papel, vínculo): se uma falhar, desfaz as
+    // anteriores, senão sobra empresa sem dono e o e-mail fica preso, e repetir cria outra empresa.
+    await comDesfazer(async (desfazerSe) => {
+      // Cada cliente opera em um espaço próprio de dados.
+      let tenantId = cliente.tenant_id;
+      if (!tenantId) {
+        const novoTenant = await supabaseAdmin
+          .from("tenants")
+          .insert({ nome: cliente.nome })
+          .select("id")
+          .single();
+        if (novoTenant.error) throw novoTenant.error;
+        tenantId = novoTenant.data.id;
+        const idNovo = tenantId;
+        desfazerSe(async () => {
+          await supabaseAdmin.from("tenants").delete().eq("id", idNovo);
+        });
+      }
 
-    const criado = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.senha,
-      email_confirm: true,
-      user_metadata: { nome: cliente.responsavel ?? cliente.nome },
-    });
-    if (criado.error || !criado.data.user) {
-      throw new Error(criado.error?.message ?? "Não foi possível criar o acesso");
-    }
-    const userId = criado.data.user.id;
+      const criado = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.senha,
+        email_confirm: true,
+        user_metadata: { nome: cliente.responsavel ?? cliente.nome },
+      });
+      if (criado.error || !criado.data.user) {
+        throw new Error(criado.error?.message ?? "Não foi possível criar o acesso");
+      }
+      const userId = criado.data.user.id;
+      desfazerSe(async () => {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      });
 
-    // O gatilho de novo usuário aponta para o primeiro tenant; corrigimos para o tenant do cliente
-    // e deixamos empresa e filial em branco para o administrador cadastrar no primeiro acesso.
-    const perfil = await supabaseAdmin.from("profiles").upsert({
-      id: userId,
-      nome: cliente.responsavel ?? cliente.nome,
-      email: data.email,
-      tenant_id: tenantId,
-      empresa_id: null,
-      filial_id: null,
-      ativo: true,
-    });
-    if (perfil.error) throw perfil.error;
-
-    const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    if (limpeza.error) throw limpeza.error;
-
-    const papel = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: "administrador", tenant_id: tenantId });
-    if (papel.error) throw papel.error;
-
-    const vinculo = await supabaseAdmin
-      .from("saas_clientes")
-      .update({
-        admin_email: data.email,
-        admin_user_id: userId,
-        admin_criado_em: new Date().toISOString(),
+      // O gatilho de novo usuário aponta para o primeiro tenant; corrigimos para o tenant do cliente
+      // e deixamos empresa e filial em branco para o administrador cadastrar no primeiro acesso.
+      const perfil = await supabaseAdmin.from("profiles").upsert({
+        id: userId,
+        nome: cliente.responsavel ?? cliente.nome,
+        email: data.email,
         tenant_id: tenantId,
-      })
-      .eq("id", cliente.id);
-    if (vinculo.error) throw vinculo.error;
+        empresa_id: null,
+        filial_id: null,
+        ativo: true,
+      });
+      if (perfil.error) throw perfil.error;
+
+      const limpeza = await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+      if (limpeza.error) throw limpeza.error;
+
+      const papel = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role: "administrador", tenant_id: tenantId });
+      if (papel.error) throw papel.error;
+
+      const vinculo = await supabaseAdmin
+        .from("saas_clientes")
+        .update({
+          admin_email: data.email,
+          admin_user_id: userId,
+          admin_criado_em: new Date().toISOString(),
+          tenant_id: tenantId,
+        })
+        .eq("id", cliente.id);
+      if (vinculo.error) throw vinculo.error;
+    });
 
     return { ok: true, email: data.email };
   });
