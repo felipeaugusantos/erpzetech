@@ -224,8 +224,8 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 
 | # | Situação | O que foi feito | O que falta |
 |---|---|---|---|
-| R1 | Pendente | — | Depende da tabela de papéis (seção 9) |
-| R2 | Parcial | Servidor: `userId` passa a ser conferido em transmitir, consultar, baixar arquivos e cancelar (`src/lib/nfe-escopo.ts`, com testes); `statusEmissor` só para papel fiscal e só com as empresas do cliente; o retorno da Sefaz é gravado com a chave de serviço. Banco: gatilho `nfe_protege_estado` impede um usuário logado de mudar situação, chave, protocolo e retorno da nota. | Papel em `gerar_nfe*`, em `nfe_itens` e em `empresas`/`filiais` (depende da seção 9) |
+| R1 | Feito | Tabela da seção 9 aprovada e aplicada no banco (migration `20261014000001_fase0_papeis.sql`): conferência de papel nas funções (`exige_papel`), escrita direta fechada ou restrita por papel nas tabelas; bloco 23 do `smoke.sql` testa cada papel contra cada operação | Os itens fora da tabela (ver abaixo) |
+| R2 | Feito | Servidor: `userId` conferido em transmitir, consultar, baixar arquivos e cancelar (`src/lib/nfe-escopo.ts`, com testes); `statusEmissor` só para papel fiscal e só com as empresas do cliente; o retorno da Sefaz é gravado com a chave de serviço. Banco: gatilho `nfe_protege_estado`; emitir nota e recalcular impostos só administrador, gestor e financeiro; `nfe` e `nfe_itens` só para esses papéis; `empresas` e `filiais` só administrador | — |
 | R3 | Feito | `REVOKE EXECUTE` de `comissionar_pedido_id`; o fluxo do pedido entregue segue gerando a comissão (teste no bloco 22 do `smoke.sql`) | — |
 | R4 | Feito | `frente_venda` recebe `p_chave`; o banco guarda a chave por empresa e devolve a venda já gravada; a tela gera a chave antes de a venda entrar na fila | Aviso na tela quando o reenvio devolver uma venda que já existia (hoje é silencioso) |
 | R5 | Feito | `abrir_caixa` confere a filial; `criar_pedido_direto` confere obra, vendedor e profissional | Chave estrangeira composta (`tenant_id`, `id`), a avaliar |
@@ -234,3 +234,32 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
 | R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |
 | R10 a R14 | Pendente | — | Próximas rodadas |
+
+### Papéis aplicados (seção 9 aprovada)
+
+| Operação | Como é imposto | Papéis |
+|---|---|---|
+| Criar pedido | `criar_pedido_direto` (já conferia) | administrador, gestor, vendedor, caixa |
+| Criar e alterar orçamento | política de `orcamentos` e `orcamento_itens`; `converter_orcamentos_em_pedido` | administrador, gestor, vendedor, caixa |
+| Aprovar, cancelar e concluir pedido | `pedido_avancar_status` (papel pelo destino) | administrador, gestor |
+| Separar e conferir | `pedido_avancar_status` (separação até pronto); gravação de `quantidade_separada`, `quantidade_conferida` e `divergencia` | administrador, gestor, estoquista |
+| Planejar entrega e rota; agendar | `planejar_entrega`, `entrega_agendar`; `pedido_avancar_status` para em rota e entregue | administrador, gestor, logística |
+| Concluir entrega | `entrega_concluir`, `entrega_insucesso`, `entrega_iniciar_rota` | administrador, gestor, logística; motorista só da própria entrega |
+| Receber pagamento do pedido | `pedido_checkout` | administrador, gestor, financeiro, caixa |
+| Gerar contas a receber; lançar e baixar títulos | `gerar_contas_receber`; política de `contas_receber` (ninguém apaga) | administrador, gestor, financeiro, caixa |
+| Emitir nota; recalcular impostos | `gerar_nfe`, `gerar_nfe_agrupada`, `nfe_calcular_impostos`; políticas de `nfe` e `nfe_itens` | administrador, gestor, financeiro |
+| Transmitir e consultar nota | servidor (`nfe-escopo`) | administrador, gestor, financeiro |
+| Cancelar nota | servidor | administrador, gestor |
+| Abrir e fechar caixa | `abrir_caixa`, `fechar_caixa` (a frente de caixa mantém a permissão por operador, `pode_abrir_caixa`) | administrador, gestor, caixa |
+| Entrada e ajuste de estoque; inventário | `registrar_movimentacao`, `inventario_aplicar` | administrador, gestor, estoquista |
+| Preço e custo de produto | gatilho `preco_protege` em `produtos` e `produto_variacoes` | administrador, gestor |
+| Dados da empresa e da filial | política de `empresas` e `filiais` | administrador |
+| Matriz de permissões do menu | política de `role_permissoes` | administrador |
+
+As vendas, o PDV e a frente de caixa continuam baixando estoque, reservando e gerando parcelas por dentro: as funções que fazem isso passaram a ter uma versão interna (`*_interno`), sem acesso do usuário, e a versão pública confere o papel.
+
+### Fora da tabela aprovada: decisões que tomei e itens que ficaram como estavam
+
+- **Decisões**: o motorista também pode iniciar a rota e registrar insucesso, só da própria entrega (a tela do motorista faz isso); receber pagamento do pedido, lançar e baixar contas a receber e escrever em `orcamento_itens` seguem os papéis da linha mais próxima da tabela. Confirme ou ajuste.
+- **Ficaram como estavam** (a tabela não diz): `pedido_registrar_saida` (retirada no balcão e entrega registrada) e `pedido_registrar_ocorrencia`; transferência entre depósitos, devolução e recebimento de compra; `caixa_lancar` (lançamento manual no caixa); `fiscal_config` (administrador, gestor e financeiro); custo médio em `estoques`; comissões.
+- **Efeito nas telas**: quem perdeu acesso vê o erro da função como aviso (por exemplo, o vendedor que agendava entrega pela tela do pedido). Nenhuma tela foi escondida ou reorganizada.
