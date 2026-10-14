@@ -84,6 +84,7 @@ const groups: Group[] = [
       { label: "Clientes", to: "/clientes", icon: Users },
       { label: "Clientes e obras", to: "/clientes-obras", icon: Users },
       { label: "Obras", to: "/obras", icon: HardHat },
+      { label: "Histórico da obra", to: "/obra-historico", icon: HardHat },
       { label: "Profissionais e prêmios", to: "/profissionais", icon: HardHat },
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },

@@ -64,6 +64,7 @@ import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
 import { Route as AuthenticatedNfeSimulacaoRouteImport } from './routes/_authenticated/nfe-simulacao'
+import { Route as AuthenticatedObraHistoricoRouteImport } from './routes/_authenticated/obra-historico'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
 import { Route as AuthenticatedOperadoresRouteImport } from './routes/_authenticated/operadores'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
@@ -410,6 +411,12 @@ const AuthenticatedNfeSimulacaoRoute =
     path: '/nfe-simulacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedObraHistoricoRoute =
+  AuthenticatedObraHistoricoRouteImport.update({
+    id: '/obra-historico',
+    path: '/obra-historico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedObrasRoute = AuthenticatedObrasRouteImport.update({
   id: '/obras',
   path: '/obras',
@@ -716,6 +723,7 @@ export interface FileRoutesByFullPath {
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
+  '/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/operadores': typeof AuthenticatedOperadoresRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
@@ -817,6 +825,7 @@ export interface FileRoutesByTo {
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
+  '/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/obras': typeof AuthenticatedObrasRoute
   '/operadores': typeof AuthenticatedOperadoresRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRoute
@@ -920,6 +929,7 @@ export interface FileRoutesById {
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
   '/_authenticated/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
+  '/_authenticated/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
   '/_authenticated/operadores': typeof AuthenticatedOperadoresRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRoute
@@ -1023,6 +1033,7 @@ export interface FileRouteTypes {
     | '/nfe'
     | '/nfe-entrada'
     | '/nfe-simulacao'
+    | '/obra-historico'
     | '/obras'
     | '/operadores'
     | '/orcamentos'
@@ -1124,6 +1135,7 @@ export interface FileRouteTypes {
     | '/nfe'
     | '/nfe-entrada'
     | '/nfe-simulacao'
+    | '/obra-historico'
     | '/obras'
     | '/operadores'
     | '/orcamentos'
@@ -1226,6 +1238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nfe'
     | '/_authenticated/nfe-entrada'
     | '/_authenticated/nfe-simulacao'
+    | '/_authenticated/obra-historico'
     | '/_authenticated/obras'
     | '/_authenticated/operadores'
     | '/_authenticated/orcamentos'
@@ -1670,6 +1683,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNfeSimulacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/obra-historico': {
+      id: '/_authenticated/obra-historico'
+      path: '/obra-historico'
+      fullPath: '/obra-historico'
+      preLoaderRoute: typeof AuthenticatedObraHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/obras': {
       id: '/_authenticated/obras'
       path: '/obras'
@@ -2038,6 +2058,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
   AuthenticatedNfeSimulacaoRoute: typeof AuthenticatedNfeSimulacaoRoute
+  AuthenticatedObraHistoricoRoute: typeof AuthenticatedObraHistoricoRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
   AuthenticatedOperadoresRoute: typeof AuthenticatedOperadoresRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRoute
@@ -2134,6 +2155,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,
   AuthenticatedNfeSimulacaoRoute: AuthenticatedNfeSimulacaoRoute,
+  AuthenticatedObraHistoricoRoute: AuthenticatedObraHistoricoRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
   AuthenticatedOperadoresRoute: AuthenticatedOperadoresRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRoute,
