@@ -119,3 +119,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] App do motorista no celular (`/motorista`) já atualiza entregas e histórico da obra
 - [ ] Teste real: cotação com fornecedor → XML → entrada no estoque após venda (precisa de fornecedor e XML reais)
 - [ ] Ligar lote à venda/separação e à importação do XML
+- [x] Lote/tonalidade escolhido no item do pedido e visível na separação (RPC `pedido_item_definir_lote`)
+- [x] Tela "Lotes sem internet" (`/lotes-offline`) com saldo e histórico
+- [ ] Baixar o saldo do lote automaticamente na saída do pedido e preencher lote na importação do XML
+- [ ] Teste do app do motorista "não entregue" (nenhum motorista tem login e nenhuma entrega está em rota)

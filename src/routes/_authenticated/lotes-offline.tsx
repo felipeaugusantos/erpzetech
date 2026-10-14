@@ -32,7 +32,14 @@ type Linha = {
   quantidade: number;
   unidade: string;
 };
-type Mov = { lote_id: string; tipo: string; quantidade: number; saldo: number; em: string; doc: string };
+type Mov = {
+  lote_id: string;
+  tipo: string;
+  quantidade: number;
+  saldo: number;
+  em: string;
+  doc: string;
+};
 type Dados = { lotes: Linha[]; movs: Mov[] };
 const CHAVE = "lotes";
 
@@ -40,7 +47,9 @@ async function baixar(): Promise<Retrato<Dados> | null> {
   const [l, m] = await Promise.all([
     supabase
       .from("estoque_lotes")
-      .select("id, lote, tonalidade, calibre, quantidade, produtos(descricao, unidade), depositos(nome)")
+      .select(
+        "id, lote, tonalidade, calibre, quantidade, produtos(descricao, unidade), depositos(nome)",
+      )
       .limit(5000),
     supabase
       .from("estoque_lote_movimentos")
@@ -98,7 +107,7 @@ function LotesOffline() {
   useEffect(() => setR(lerRetrato<Dados>(CHAVE)), []);
   useEffect(() => {
     if (online) void atualizar();
-  }, [online]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [online]);
 
   const lista = useMemo(() => {
     const b = busca.trim().toLowerCase();
@@ -114,7 +123,11 @@ function LotesOffline() {
         title="Lotes sem internet"
         description="Saldo de cada lote e tonalidade guardado neste aparelho, com o histórico de entradas e saídas."
         actions={
-          <Button variant="outline" disabled={!online || carregando} onClick={() => void atualizar()}>
+          <Button
+            variant="outline"
+            disabled={!online || carregando}
+            onClick={() => void atualizar()}
+          >
             <RefreshCw className={`mr-1 size-4 ${carregando ? "animate-spin" : ""}`} /> Atualizar
           </Button>
         }
