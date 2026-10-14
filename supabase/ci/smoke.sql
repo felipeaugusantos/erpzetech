@@ -134,14 +134,16 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO user_roles (user_id, tenant_id, role) VALUES ('a0000000-0000-0000-0000-000000000009', %L, 'vendedor')$c$, demo), 'papel para usuário sem tenant');
 
   -- 8. caixas: abre e fecha por RPC; escrita direta negada; motorista não lê
-  PERFORM ci.entrar(vend);
+  PERFORM ci.deve_falhar(vend, format($c$SELECT abrir_caixa(%L, 100)$c$, filial), 'vendedor abre caixa');
+  PERFORM ci.entrar(adm);
   t := abrir_caixa(filial, 100);
   PERFORM ci.sair();
   PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM caixas') = 1, 'vendedor lê caixas do tenant');
   PERFORM ci.deve_falhar(vend, 'UPDATE caixas SET valor_abertura = 999999', 'update direto em caixas');
   PERFORM ci.deve_falhar(vend, format('INSERT INTO caixas (tenant_id, filial_id) VALUES (%L, %L)', demo, filial), 'insert direto em caixas');
   PERFORM ci.exige(ci.contar(moto, 'SELECT count(*) FROM caixas') = 0, 'motorista restrito não lê caixas');
-  PERFORM ci.entrar(vend);
+  PERFORM ci.deve_falhar(vend, format($c$SELECT fechar_caixa(%L, 100, 'ci')$c$, t), 'vendedor fecha caixa');
+  PERFORM ci.entrar(adm);
   PERFORM fechar_caixa(t, 100, 'ci');
   PERFORM ci.sair();
 
@@ -1265,7 +1267,12 @@ BEGIN
   PERFORM ci.entrar(adm);
   nota := gerar_nfe(ped);
   PERFORM ci.sair();
-  PERFORM ci.deve_falhar(vend, format($c$UPDATE nfe SET situacao = 'autorizada' WHERE id = %L$c$, nota), 'vendedor marca a nota como autorizada');
+  -- o vendedor nem enxerga a nota para alterar (política só para quem emite nota): zero linhas
+  PERFORM ci.entrar(vend);
+  UPDATE nfe SET situacao = 'autorizada' WHERE id = nota;
+  GET DIAGNOSTICS n_com = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_com = 0 AND (SELECT situacao <> 'autorizada' FROM nfe WHERE id = nota), 'vendedor não marca a nota como autorizada');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET chave = '1234' WHERE id = %L$c$, nota), 'administrador altera a chave da nota');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET retorno = '{"x":1}'::jsonb WHERE id = %L$c$, nota), 'administrador altera o retorno do emissor');
   UPDATE nfe SET situacao = 'autorizada', chave = 'CHAVE-CI' WHERE id = nota;
@@ -1301,4 +1308,214 @@ BEGIN
   PERFORM ci.exige((SELECT count(*) FROM user_roles WHERE user_id = gest) = 2, 'tentativas recusadas não mexem nos papéis');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id = novo AND role = 'gestor'), 'usuário de outra empresa segue como estava');
   DELETE FROM user_roles WHERE user_id = gest AND role = 'caixa';  -- volta ao que os outros blocos esperam
+END $$;
+
+-- 23. Fase 0: papéis valem no banco (tabela aprovada na seção 9 do diagnóstico)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  fin  constant uuid := 'a0000000-0000-0000-0000-0000000000b2';
+  logi constant uuid := 'a0000000-0000-0000-0000-0000000000b3';
+  mt1  constant uuid := 'a0000000-0000-0000-0000-0000000000b4';
+  mt2  constant uuid := 'a0000000-0000-0000-0000-0000000000b5';
+  dep uuid; prod uuid; cli uuid; p1 uuid; p2 uuid; p3 uuid; p4 uuid; p5 uuid; nota uuid; mot1 uuid; mot2 uuid; ent uuid;
+  item1 uuid; n bigint; contas_antes bigint; papel text; u uuid; q_antes numeric; q_depois numeric;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES
+    (est, 'est@ci'), (fin, 'fin@ci'), (logi, 'log@ci'), (mt1, 'mt1@ci'), (mt2, 'mt2@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (est, fin, logi, mt1, mt2);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES
+    (est, demo, 'estoquista'), (fin, demo, 'financeiro'), (logi, demo, 'logistica'),
+    (mt1, demo, 'motorista'), (mt2, demo, 'motorista');
+  INSERT INTO motoristas (tenant_id, empresa_id, filial_id, nome, cnh, categoria_cnh, validade_cnh, user_id)
+    VALUES (demo, '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'Motorista 1 CI', '1', 'B', '2030-01-01', mt1) RETURNING id INTO mot1;
+  INSERT INTO motoristas (tenant_id, empresa_id, filial_id, nome, cnh, categoria_cnh, validade_cnh, user_id)
+    VALUES (demo, '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'Motorista 2 CI', '2', 'B', '2030-01-01', mt2) RETURNING id INTO mot2;
+
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Papéis CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'PAP-ITEM', 'Item Papéis', 'un', 5, 10) RETURNING id INTO prod;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente Papéis') RETURNING id INTO cli;
+  PERFORM ci.entrar(est);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- estoque: só administrador, gestor e estoquista fazem entrada e ajuste
+  FOREACH papel IN ARRAY ARRAY['vendedor', 'caixa', 'financeiro', 'logistica', 'motorista'] LOOP
+    u := CASE papel WHEN 'vendedor' THEN vend WHEN 'caixa' THEN cxa WHEN 'financeiro' THEN fin WHEN 'logistica' THEN logi ELSE mt1 END;
+    PERFORM ci.deve_falhar(u, format($c$SELECT registrar_movimentacao(%L, %L, 'entrada'::mov_tipo, 1, 'ci', 'ci')$c$, prod, dep), papel || ' dá entrada de estoque');
+  END LOOP;
+  PERFORM ci.entrar(gest);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 1, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = prod AND deposito_id = dep) = 101, 'estoquista e gestor movimentam o estoque');
+
+  -- quem vende segue baixando e reservando estoque pelo pedido (a função interna não passa pela conferência)
+  PERFORM ci.entrar(vend);
+  p1 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 10)));
+  p2 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 10)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reservado FROM estoques WHERE produto_id = prod AND deposito_id = dep) = 4, 'o vendedor reserva estoque ao criar o pedido');
+
+  -- aprovar: administrador e gestor
+  FOREACH papel IN ARRAY ARRAY['vendedor', 'caixa', 'financeiro', 'logistica', 'motorista', 'estoquista'] LOOP
+    u := CASE papel WHEN 'vendedor' THEN vend WHEN 'caixa' THEN cxa WHEN 'financeiro' THEN fin WHEN 'logistica' THEN logi WHEN 'estoquista' THEN est ELSE mt1 END;
+    PERFORM ci.deve_falhar(u, format($c$SELECT pedido_avancar_status(%L, 'aprovado')$c$, p1), papel || ' aprova pedido');
+  END LOOP;
+  PERFORM ci.entrar(gest);
+  PERFORM pedido_avancar_status(p1, 'aprovado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = p1) = 'aprovado', 'gestor aprova o pedido');
+
+  -- separar e conferir: administrador, gestor e estoquista (e só eles gravam a separação)
+  PERFORM ci.deve_falhar(logi, format($c$SELECT pedido_avancar_status(%L, 'separacao')$c$, p1), 'logística inicia a separação');
+  PERFORM ci.entrar(est);
+  PERFORM pedido_avancar_status(p1, 'separacao');
+  PERFORM ci.sair();
+  SELECT id INTO item1 FROM pedido_itens WHERE pedido_id = p1;
+  PERFORM ci.entrar(vend);
+  UPDATE pedido_itens SET quantidade_separada = 2 WHERE id = item1;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'vendedor não grava a separação');
+  PERFORM ci.entrar(est);
+  UPDATE pedido_itens SET quantidade_separada = 2 WHERE id = item1;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 1, 'estoquista grava a separação');
+  PERFORM ci.deve_falhar(est, format($c$UPDATE pedido_itens SET preco_unitario = 0.01 WHERE id = %L$c$, item1), 'estoquista altera o preço do item');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pedido_itens SET total = 1 WHERE id = %L$c$, item1), 'administrador altera o total do item direto');
+  PERFORM ci.entrar(est);
+  PERFORM pedido_avancar_status(p1, 'separado');
+  PERFORM pedido_avancar_status(p1, 'conferencia');
+  UPDATE pedido_itens SET quantidade_conferida = 2 WHERE id = item1;
+  PERFORM pedido_avancar_status(p1, 'pronto_entrega');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = p1) = 'pronto_entrega', 'estoquista leva o pedido até pronto para entrega');
+
+  -- pedido: ninguém grava direto; só as funções
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pedidos SET total = 1, situacao = 'concluido' WHERE id = %L$c$, p1), 'administrador altera o pedido direto');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM pedidos WHERE id = %L$c$, p1), 'administrador apaga o pedido direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO pedido_historico (tenant_id, pedido_id, situacao_nova) VALUES (%L, %L, 'concluido')$c$, demo, p1), 'escrever no histórico do pedido direto');
+
+  -- planejar entrega e rota: administrador, gestor e logística; concluir: o motorista só a própria
+  PERFORM ci.deve_falhar(vend, format($c$SELECT planejar_entrega(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 2)), NULL, %L, current_date)$c$, p1, item1, mot1), 'vendedor planeja entrega');
+  PERFORM ci.deve_falhar(mt1, format($c$SELECT planejar_entrega(%L, jsonb_build_array(jsonb_build_object('pedido_item_id', %L, 'quantidade', 2)), NULL, %L, current_date)$c$, p1, item1, mot1), 'motorista planeja entrega');
+  PERFORM ci.entrar(logi);
+  ent := planejar_entrega(p1, jsonb_build_array(jsonb_build_object('pedido_item_id', item1, 'quantidade', 2)), NULL, mot1, current_date);
+  PERFORM ci.sair();
+  PERFORM ci.exige(ent IS NOT NULL, 'logística planeja a entrega');
+  PERFORM ci.deve_falhar(mt2, format($c$SELECT entrega_concluir(%L, 'Fulano')$c$, ent), 'motorista conclui a entrega de outro');
+  PERFORM ci.deve_falhar(mt2, format($c$SELECT entrega_insucesso(%L, 'Cliente ausente')$c$, ent), 'motorista registra insucesso na entrega de outro');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT entrega_concluir(%L, 'Fulano')$c$, ent), 'vendedor conclui entrega');
+  PERFORM ci.entrar(mt1);
+  PERFORM entrega_concluir(ent, 'Fulano');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM entregas WHERE id = ent) = 'entregue', 'o motorista conclui a própria entrega');
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = p1) = 'entregue', 'pedido entregue ao concluir a entrega');
+
+  -- cancelar pedido: administrador e gestor
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pedido_avancar_status(%L, 'cancelado', 'x')$c$, p2), 'vendedor cancela pedido');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pedido_avancar_status(%L, 'cancelado', 'x')$c$, p2), 'estoquista cancela pedido');
+  PERFORM ci.entrar(gest);
+  PERFORM pedido_avancar_status(p2, 'cancelado', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = p2) = 'cancelado', 'gestor cancela o pedido');
+
+  -- receber o pagamento: caixa, financeiro, gestor e administrador; o recebimento aprova o pedido por dentro
+  PERFORM ci.entrar(vend);
+  p3 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pedido_checkout(%L, 10, 'dinheiro')$c$, p3), 'vendedor recebe o pagamento do pedido');
+  PERFORM ci.deve_falhar(mt1, format($c$SELECT pedido_checkout(%L, 10, 'dinheiro')$c$, p3), 'motorista recebe o pagamento do pedido');
+  PERFORM ci.entrar(cxa);
+  PERFORM pedido_checkout(p3, 10, 'dinheiro');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM pedidos WHERE id = p3) = 'aprovado', 'o caixa recebe e o pedido é aprovado, sem ser administrador nem gestor');
+
+  -- contas a receber
+  PERFORM ci.entrar(vend);
+  p4 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT gerar_contas_receber(%L, 1, current_date + 30, 'boleto')$c$, p4), 'vendedor gera contas a receber');
+  PERFORM ci.deve_falhar(mt1, format($c$SELECT gerar_contas_receber(%L, 1, current_date + 30, 'boleto')$c$, p4), 'motorista gera contas a receber');
+  PERFORM ci.entrar(fin);
+  PERFORM gerar_contas_receber(p4, 2, current_date + 30, 'boleto');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM contas_receber WHERE pedido_id = p4) = 2, 'financeiro gera as contas a receber');
+  -- a venda a prazo de um vendedor no PDV segue gerando as parcelas (usa a função interna)
+  PERFORM ci.entrar(vend);
+  p5 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)), 'crediario', cli, 0, 2, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM contas_receber WHERE pedido_id = p5) = 2, 'venda a prazo no PDV de um vendedor gera as parcelas');
+  -- ninguém apaga conta a receber; só quem recebe altera
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM contas_receber WHERE pedido_id = %L$c$, p4), 'apagar conta a receber');
+  PERFORM ci.entrar(mt1);
+  UPDATE contas_receber SET observacoes = 'x' WHERE pedido_id = p4;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'motorista não altera conta a receber');
+  PERFORM ci.entrar(fin);
+  UPDATE contas_receber SET observacoes = 'ok' WHERE pedido_id = p4;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 2, 'financeiro altera conta a receber');
+
+  -- nota fiscal: administrador, gestor e financeiro
+  FOREACH papel IN ARRAY ARRAY['vendedor', 'caixa', 'estoquista', 'logistica', 'motorista'] LOOP
+    u := CASE papel WHEN 'vendedor' THEN vend WHEN 'caixa' THEN cxa WHEN 'estoquista' THEN est WHEN 'logistica' THEN logi ELSE mt1 END;
+    PERFORM ci.deve_falhar(u, format($c$SELECT gerar_nfe(%L)$c$, p4), papel || ' emite nota');
+  END LOOP;
+  PERFORM ci.entrar(fin);
+  nota := gerar_nfe(p4);
+  PERFORM ci.sair();
+  PERFORM ci.exige(nota IS NOT NULL, 'financeiro emite a nota');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT nfe_calcular_impostos(%L)$c$, nota), 'vendedor recalcula os impostos da nota');
+  PERFORM ci.deve_falhar(mt1, format($c$SELECT nfe_calcular_impostos(%L)$c$, nota), 'motorista recalcula os impostos da nota');
+  PERFORM ci.entrar(fin);
+  PERFORM nfe_calcular_impostos(nota);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(est);
+  UPDATE nfe_itens SET aliquota_icms = 99 WHERE nfe_id = nota;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'estoquista não altera item de nota');
+
+  -- preço e custo de produto: administrador e gestor
+  PERFORM ci.deve_falhar(est, format($c$UPDATE produtos SET preco_venda = 0.01 WHERE id = %L$c$, prod), 'estoquista muda o preço');
+  PERFORM ci.deve_falhar(vend, format($c$UPDATE produtos SET custo = 0.01 WHERE id = %L$c$, prod), 'vendedor muda o custo');
+  PERFORM ci.entrar(est);
+  UPDATE produtos SET descricao = 'Item Papéis (ok)' WHERE id = prod;
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  UPDATE produtos SET preco_venda = 12 WHERE id = prod;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_venda = 12 FROM produtos WHERE id = prod), 'gestor muda o preço; estoquista muda a descrição');
+
+  -- dados fiscais da empresa e da filial: administrador
+  PERFORM ci.entrar(gest);
+  UPDATE empresas SET inscricao_estadual = 'GESTOR' WHERE tenant_id = demo;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'gestor não altera os dados da empresa');
+  PERFORM ci.entrar(adm);
+  UPDATE empresas SET inscricao_estadual = inscricao_estadual WHERE tenant_id = demo;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n >= 1, 'administrador altera os dados da empresa');
+  PERFORM ci.deve_falhar(gest, format($c$INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (%L, '22222222-2222-2222-2222-222222222222', 'Filial do gestor')$c$, demo), 'gestor cria filial');
+
+  -- caixa: administrador, gestor e caixa
+  PERFORM ci.deve_falhar(fin, format($c$SELECT abrir_caixa('33333333-3333-3333-3333-333333333333', 0)$c$), 'financeiro abre caixa');
+
+  -- inventário: administrador, gestor e estoquista
+  PERFORM ci.deve_falhar(vend, format($c$SELECT inventario_aplicar(%L)$c$, gen_random_uuid()), 'vendedor aplica inventário');
+
+  -- o garçom segue fora de tudo isso
+  PERFORM ci.deve_falhar(gar, format($c$SELECT gerar_nfe(%L)$c$, p4), 'garçom emite nota');
 END $$;
