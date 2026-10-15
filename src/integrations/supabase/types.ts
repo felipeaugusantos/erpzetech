@@ -7212,6 +7212,7 @@ export type Database = {
         Args: {
           p_aberto_em?: string
           p_email?: string
+          p_ip?: string
           p_mensagem?: string
           p_nome: string
           p_plano?: string

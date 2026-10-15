@@ -4,7 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Check, Mail, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
+import { enviarContato } from "@/lib/contato.functions";
+import { CHAVE_TURNSTILE, Turnstile } from "@/components/app/Turnstile";
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,29 +59,39 @@ function Contato() {
   // anti-robô: campo escondido que uma pessoa nunca preenche e a hora em que o formulário abriu
   const [armadilha, setArmadilha] = useState("");
   const abertoEm = useRef(new Date().toISOString());
+  // CAPTCHA (Cloudflare Turnstile): só aparece quando a chave do site está configurada
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [reiniciarCaptcha, setReiniciarCaptcha] = useState(0);
 
   const enviar = useMutation({
     mutationFn: async () => {
       if (form.nome.trim().length < 2) throw new Error("Informe o seu nome");
       if (!form.email.trim() && !form.whatsapp.trim())
         throw new Error("Informe e-mail ou WhatsApp para eu responder");
-      // o banco confere tamanho, e-mail e WhatsApp e limita os envios por origem e por hora
-      const { error } = await supabase.rpc("contato_enviar", {
-        p_nome: form.nome.trim(),
-        ...(form.email.trim() ? { p_email: form.email.trim() } : {}),
-        ...(form.whatsapp.trim() ? { p_whatsapp: form.whatsapp.trim() } : {}),
-        p_plano: form.plano_interesse,
-        ...(form.mensagem.trim() ? { p_mensagem: form.mensagem.trim() } : {}),
-        p_site: armadilha,
-        p_aberto_em: abertoEm.current,
+      if (CHAVE_TURNSTILE && !captcha) throw new Error("Confirme que você não é um robô.");
+      // O servidor confere o CAPTCHA e o banco confere tamanho, e-mail e WhatsApp e limita os envios por origem e por hora.
+      await enviarContato({
+        data: {
+          nome: form.nome.trim(),
+          email: form.email.trim(),
+          whatsapp: form.whatsapp.trim(),
+          plano: form.plano_interesse,
+          mensagem: form.mensagem.trim(),
+          site: armadilha,
+          abertoEm: abertoEm.current,
+          ...(captcha ? { captcha } : {}),
+        },
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       setEnviado(true);
       toast.success("Recebemos o seu contato");
     },
-    onError: (e: Error) => toast.error("Não foi possível enviar", { description: e.message }),
+    onError: (e: Error) => {
+      // o token do desafio vale para um envio só: pede outro
+      setReiniciarCaptcha((n) => n + 1);
+      toast.error("Não foi possível enviar", { description: e.message });
+    },
   });
 
   const textoWhats = encodeURIComponent(
@@ -251,7 +262,12 @@ function Contato() {
                     onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={enviar.isPending}>
+                <Turnstile aoMudar={setCaptcha} reiniciar={reiniciarCaptcha} />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={enviar.isPending || (!!CHAVE_TURNSTILE && !captcha)}
+                >
                   {enviar.isPending ? "Enviando…" : "Enviar contato"}
                 </Button>
               </form>

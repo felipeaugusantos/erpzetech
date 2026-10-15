@@ -130,6 +130,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] P0: papéis no banco (R1) e papel na nota fiscal e nos dados do emitente (R2), pela tabela de papéis aprovada
 - [x] P0: comissão entre empresas (R3), venda offline duplicada (R4), nota fiscal protegida no servidor e no banco (parte de R2)
 - [x] Importação do XML de entrada que não trava: limite de 45 s com "Cancelar importação", outra nota pode ser importada em seguida, lotes do XML na mesma transação da compra, nota repetida recusada com atalho para a compra já criada; duplicidade conferida pela chave ou por número + série + fornecedor, com aviso já ao escolher o XML e mensagem de "em processo de importação" quando outra chamada da mesma nota está em andamento
+- [x] CAPTCHA (Cloudflare Turnstile) no formulário de contato: o envio passa pelo servidor, que confere o desafio; só o servidor chama a função do banco. Liga ao cadastrar as chaves (`docs/captcha-turnstile.md`); sem elas o formulário segue como antes
 - [x] P3: formulário público de contato com limite de envios (R14): 5 por hora por origem, 100 por hora no total, campo escondido anti-robô, tamanho e formato validados
 - [x] Salvar empresa numa transação só (`empresa_salvar`): empresa, vínculo do administrador no primeiro cadastro e regime da configuração fiscal; só administrador
 - [x] Aviso na frente de caixa quando uma venda guardada sem internet já estava registrada (a resposta tinha se perdido): a venda não é lançada de novo e o aviso fica na tela até ser fechado
