@@ -7189,6 +7189,10 @@ export type Database = {
         }
         Returns: string
       }
+      nfe_entrada_ja_importada: {
+        Args: { p_chave?: string; p_cnpj?: string; p_numero?: string; p_serie?: string }
+        Returns: Json
+      }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }

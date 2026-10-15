@@ -1721,7 +1721,7 @@ DECLARE
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
-  dep uuid; r jsonb; r2 jsonb; prod uuid; nota jsonb; forn jsonb; itens jsonb; lote_qtd numeric;
+  dep uuid; r jsonb; r2 jsonb; prod uuid; nota jsonb; forn jsonb; itens jsonb; lote_qtd numeric; msg text;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep XML') RETURNING id INTO dep;
   nota := jsonb_build_object('chave', 'CHAVE-XML-CI-1', 'numero', '9001', 'emissao', current_date, 'frete', 0, 'desconto', 0);
@@ -1746,6 +1746,45 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT importar_nfe_entrada(%L::jsonb, %L::jsonb, %L::jsonb, %L)$c$, nota, forn, itens, dep), 'a mesma nota importada de novo');
   PERFORM ci.exige((SELECT count(*) = 1 FROM compras WHERE tenant_id = demo AND nfe_chave = 'CHAVE-XML-CI-1'), 'a nota repetida não gera outra compra');
   PERFORM ci.exige((SELECT quantidade = 10 FROM estoque_lotes WHERE produto_id = prod AND deposito_id = dep AND lote = 'L1'), 'a nota repetida não soma o lote de novo');
+  -- mesma nota com outra chave digitada: barrada por número + série + fornecedor
+  PERFORM ci.deve_falhar(adm, format($c$SELECT importar_nfe_entrada(%L::jsonb, %L::jsonb, %L::jsonb, %L)$c$,
+    nota || jsonb_build_object('chave', 'CHAVE-XML-CI-OUTRA'), forn, itens, dep), 'mesmo número, série e fornecedor com outra chave');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM compras WHERE tenant_id = demo AND nfe_numero = '9001'), 'a nota repetida por número não gera outra compra');
+  -- a mensagem diz que a nota já está importada (pela chave e por número + série + fornecedor)
+  PERFORM ci.entrar(adm);
+  BEGIN
+    PERFORM importar_nfe_entrada(nota, forn, itens, dep);
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.exige(msg LIKE '%já está importada%', 'mensagem da chave repetida: ' || coalesce(msg, 'sem erro'));
+  msg := NULL;
+  BEGIN
+    PERFORM importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-OUTRA'), forn, itens, dep);
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg LIKE '%nº 9001%já está importada%', 'mensagem do número repetido: ' || coalesce(msg, 'sem erro'));
+  -- a tela confere antes de importar, com a mesma regra
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige((nfe_entrada_ja_importada('CHAVE-XML-CI-1') ->> 'compra_id') = (r->>'compra_id'), 'conferência pela chave acha a compra');
+  PERFORM ci.exige((nfe_entrada_ja_importada('OUTRA', '9001', NULL, '11.222.333/0001-81') ->> 'compra_id') = (r->>'compra_id'), 'conferência por número, série e CNPJ acha a compra');
+  PERFORM ci.exige(nfe_entrada_ja_importada('OUTRA', '9001', '7', '11222333000181') IS NULL, 'outra série não é duplicada');
+  PERFORM ci.exige(nfe_entrada_ja_importada('OUTRA', '9001', NULL, '55555555000155') IS NULL, 'outro fornecedor não é duplicada');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, $c$SELECT nfe_entrada_ja_importada('CHAVE-XML-CI-1')$c$, 'vendedor confere nota de entrada');
+  -- outra série do mesmo número é outra nota
+  PERFORM ci.entrar(adm);
+  PERFORM importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-S2', 'serie', '2'), forn,
+    jsonb_build_array(jsonb_build_object('codigo', 'XML-D', 'descricao', 'Cimento XML', 'unidade', 'UN', 'quantidade', 1, 'custo_unitario', 3)), dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT nfe_serie = '2' FROM compras WHERE nfe_chave = 'CHAVE-XML-CI-S2'), 'a série da nota fica guardada na compra');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT importar_nfe_entrada(%L::jsonb, %L::jsonb, %L::jsonb, %L)$c$,
+    nota || jsonb_build_object('chave', 'CHAVE-XML-CI-S2B', 'serie', '2'), forn, itens, dep), 'mesmo número e série 2 de novo');
+  -- de outro fornecedor, o mesmo número é outra nota
+  PERFORM ci.entrar(adm);
+  PERFORM importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-F2'), forn || jsonb_build_object('cnpj', '99888777000166', 'razao_social', 'Outro Fornecedor XML'),
+    jsonb_build_array(jsonb_build_object('codigo', 'XML-E', 'descricao', 'Areia XML', 'unidade', 'UN', 'quantidade', 1, 'custo_unitario', 3)), dep);
+  PERFORM ci.sair();
   PERFORM ci.entrar(adm);
   r2 := importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-2', 'numero', '9002'), forn,
     jsonb_build_array(jsonb_build_object('codigo', 'XML-C', 'descricao', 'Rejunte XML', 'unidade', 'UN', 'quantidade', 3, 'custo_unitario', 4)), dep);
