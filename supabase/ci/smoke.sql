@@ -2058,3 +2058,62 @@ BEGIN
 
   DELETE FROM contatos;
 END $$;
+
+-- 30. Salvar empresa numa transação só
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  novo_adm constant uuid := 'a0000000-0000-0000-0000-0000000000c1';
+  emp uuid; emp2 uuid; razao_antes text; tel_antes text; tx uuid; n_antes bigint;
+BEGIN
+  SELECT id, razao_social, telefone INTO emp, razao_antes, tel_antes FROM empresas WHERE tenant_id = demo ORDER BY created_at, id LIMIT 1;
+
+  -- só o administrador
+  PERFORM ci.deve_falhar(gest, $c$SELECT empresa_salvar('{"razao_social":"Gestor muda"}'::jsonb)$c$, 'gestor salva a empresa');
+  PERFORM ci.deve_falhar(vend, $c$SELECT empresa_salvar('{"razao_social":"Vendedor muda"}'::jsonb)$c$, 'vendedor salva a empresa');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT empresa_salvar('{"razao_social":"Anon muda"}'::jsonb)$c$, 'anon salva a empresa');
+
+  -- recusas não mexem em nada
+  PERFORM ci.deve_falhar(adm, $c$SELECT empresa_salvar('{"razao_social":"  "}'::jsonb)$c$, 'razão social em branco');
+  PERFORM ci.deve_falhar(adm, $c$SELECT empresa_salvar('{"razao_social":"Cor ruim","cor_primaria":"vermelho"}'::jsonb)$c$, 'cor inválida');
+  PERFORM ci.exige((SELECT razao_social = razao_antes FROM empresas WHERE id = emp), 'recusa não altera a empresa');
+
+  -- atualização: empresa e regime da configuração fiscal juntos; o que não veio fica como estava
+  PERFORM ci.entrar(adm);
+  emp2 := empresa_salvar(jsonb_build_object('razao_social', 'Empresa Salva R8', 'regime_tributario', 'lucro_presumido',
+                                            'cidade', 'Ribeirão Preto', 'cor_primaria', '#112233'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(emp2 = emp, 'atualiza a empresa que já existe, sem criar outra');
+  PERFORM ci.exige((SELECT razao_social = 'Empresa Salva R8' AND regime_tributario = 'lucro_presumido' AND cidade = 'Ribeirão Preto'
+                           AND cor_primaria = '#112233' AND telefone IS NOT DISTINCT FROM tel_antes FROM empresas WHERE id = emp),
+                   'dados salvos e campo ausente mantido');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(regime_tributario = 'lucro_presumido') FROM fiscal_config
+                     WHERE empresa_id = emp AND filial_id IS NULL), 'o regime da configuração fiscal acompanha o cadastro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM empresas WHERE tenant_id = demo AND razao_social = 'Empresa Salva R8'), 'continua uma empresa só');
+  SELECT count(*) INTO n_antes FROM fiscal_config WHERE empresa_id = emp AND filial_id IS NULL;
+  PERFORM ci.entrar(adm);
+  PERFORM empresa_salvar(jsonb_build_object('razao_social', 'Empresa Salva R8', 'regime_tributario', 'simples'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = n_antes AND bool_and(regime_tributario = 'simples') FROM fiscal_config WHERE empresa_id = emp AND filial_id IS NULL),
+                   'salvar de novo atualiza a mesma configuração fiscal');
+  UPDATE empresas SET razao_social = razao_antes, regime_tributario = 'simples' WHERE id = emp;
+
+  -- primeiro cadastro: cria a empresa, vincula o administrador e cria a configuração fiscal
+  INSERT INTO tenants (nome) VALUES ('Primeiro acesso R8') RETURNING id INTO tx;
+  INSERT INTO auth.users (id, email) VALUES (novo_adm, 'novoadm@ci');
+  UPDATE profiles SET tenant_id = tx WHERE id = novo_adm;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (novo_adm, tx, 'administrador');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM empresas WHERE tenant_id = tx), 'o primeiro acesso começa sem empresa');
+  PERFORM ci.entrar(novo_adm);
+  emp2 := empresa_salvar(jsonb_build_object('razao_social', 'Loja Nova R8', 'cnpj', '12345678000195', 'regime_tributario', 'simples_excesso'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT razao_social = 'Loja Nova R8' AND tenant_id = tx AND cor_primaria = '#008037' AND ramo_atividade = 'construcao' FROM empresas WHERE id = emp2),
+                   'primeiro cadastro cria a empresa na empresa do administrador, com os padrões');
+  PERFORM ci.exige((SELECT empresa_id = emp2 FROM profiles WHERE id = novo_adm), 'o administrador passa a pertencer à empresa');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(regime_tributario = 'simples_excesso' AND tenant_id = tx) FROM fiscal_config
+                     WHERE empresa_id = emp2 AND filial_id IS NULL), 'o primeiro cadastro cria a configuração fiscal com o regime');
+  PERFORM ci.exige((SELECT razao_social = razao_antes FROM empresas WHERE id = emp), 'a empresa de outro cliente não foi tocada');
+END $$;

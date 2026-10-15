@@ -154,50 +154,14 @@ function Empresa() {
   const salvar = useMutation({
     mutationFn: async () => {
       if (!form.razao_social.trim()) throw new Error("Informe a razão social");
-      const tenantId = session?.profile?.tenant_id;
-      if (!tenantId) throw new Error("Perfil sem empresa vinculada");
+      if (!session?.profile?.tenant_id) throw new Error("Perfil sem empresa vinculada");
 
-      const payload = { ...form, logo_path: marca.logo, cor_primaria: marca.cor };
-
-      let empresaId = data?.id ?? null;
-      if (empresaId) {
-        const { error } = await supabase.from("empresas").update(payload).eq("id", empresaId);
-        if (error) throw error;
-      } else {
-        const criada = await supabase
-          .from("empresas")
-          .insert({ ...payload, tenant_id: tenantId })
-          .select("id")
-          .single();
-        if (criada.error) throw criada.error;
-        empresaId = criada.data.id;
-        // O administrador do primeiro acesso passa a pertencer à empresa cadastrada.
-        const vinculo = await supabase
-          .from("profiles")
-          .update({ empresa_id: empresaId })
-          .eq("id", session!.user.id);
-        if (vinculo.error) throw vinculo.error;
-      }
-
-      // Mantém o regime usado na emissão fiscal igual ao do cadastro.
-      const cfg = await supabase
-        .from("fiscal_config")
-        .select("id")
-        .eq("empresa_id", empresaId)
-        .maybeSingle();
-      if (cfg.error) throw cfg.error;
-      const fiscal = cfg.data?.id
-        ? await supabase
-            .from("fiscal_config")
-            .update({ regime_tributario: form.regime_tributario })
-            .eq("id", cfg.data.id)
-        : await supabase.from("fiscal_config").insert({
-            tenant_id: tenantId,
-            empresa_id: empresaId,
-            regime_tributario: form.regime_tributario,
-          });
-      // sem isto o cadastro dizia um regime e a nota saía com outro, sem nenhum aviso
-      if (fiscal.error) throw fiscal.error;
+      // empresa, vínculo do administrador (primeiro cadastro) e regime fiscal numa transação só:
+      // se algo falhar, nada fica gravado pela metade
+      const { error } = await supabase.rpc("empresa_salvar", {
+        p_dados: { ...form, logo_path: marca.logo, cor_primaria: marca.cor },
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success(data ? "Dados da empresa salvos" : "Empresa cadastrada");
