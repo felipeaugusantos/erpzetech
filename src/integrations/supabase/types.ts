@@ -4568,6 +4568,9 @@ export type Database = {
       }
       os_itens: {
         Row: {
+          baixa_deposito_id: string | null
+          baixa_produto_id: string | null
+          baixa_quantidade: number | null
           created_at: string
           descricao: string
           id: string
@@ -4580,6 +4583,9 @@ export type Database = {
           total: number
         }
         Insert: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao: string
           id?: string
@@ -4592,6 +4598,9 @@ export type Database = {
           total?: number
         }
         Update: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao?: string
           id?: string
@@ -4627,6 +4636,8 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           defeito_relatado: string | null
+          deposito_id: string | null
+          controla_estoque: boolean
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
@@ -4659,6 +4670,8 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
+          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4691,6 +4704,8 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
+          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
