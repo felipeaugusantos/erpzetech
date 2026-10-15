@@ -52,6 +52,8 @@ export const Route = createFileRoute("/_authenticated/auditoria")({
 });
 
 const TODOS = "todos";
+/** Registros sem usuário: o que o servidor ou o próprio banco alterou. */
+const SISTEMA = "sistema";
 const POR_PAGINA = 50;
 
 const COR_OPERACAO: Record<string, string> = {
@@ -112,7 +114,8 @@ function Auditoria() {
         .range(0, limite - 1);
       if (entidade !== TODOS) q = q.eq("entidade", entidade);
       if (operacao !== TODOS) q = q.eq("operacao", operacao);
-      if (usuario !== TODOS) q = q.eq("usuario_id", usuario);
+      if (usuario === SISTEMA) q = q.is("usuario_id", null);
+      else if (usuario !== TODOS) q = q.eq("usuario_id", usuario);
       if (de) q = q.gte("created_at", inicioDoDia(de));
       if (ate) q = q.lte("created_at", fimDoDia(ate));
       const { data, error } = await q;
@@ -189,6 +192,7 @@ function Auditoria() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={TODOS}>Todos</SelectItem>
+              <SelectItem value={SISTEMA}>Sistema</SelectItem>
               {usuarios.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.nome}

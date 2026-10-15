@@ -23,6 +23,8 @@ test("nomes em português para entidades, operações e campos", () => {
 test("valores aparecem como moeda, percentual, data, sim/não e perfil", () => {
   assert.match(formatarValor("valor", 90), /R\$\s?90,00/);
   assert.match(formatarValor("valor", "100.50"), /R\$\s?100,50/);
+  assert.match(formatarValor("preco", 12.5), /R\$\s?12,50/);
+  assert.equal(rotuloCampo("preco"), "Preço");
   assert.equal(formatarValor("aliquota_icms", 18), "18%");
   assert.equal(formatarValor("vencimento", "2026-10-03"), "03/10/2026");
   assert.equal(formatarValor("nfse_iss_retido", true), "Sim");
