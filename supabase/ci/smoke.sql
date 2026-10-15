@@ -1791,3 +1791,92 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((r2->>'compra_id') <> (r->>'compra_id'), 'outra nota importa normalmente depois');
 END $$;
+
+-- 27. R11: peças da ordem de serviço baixam o estoque
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  dep uuid; prod uuid; os uuid; os2 uuid; os3 uuid; os4 uuid; it1 uuid; it2 uuid; it3 uuid;
+  msg text;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep OS R11') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'R11-PECA', 'Peça R11', 'un', 5, 10) RETURNING id INTO prod;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  INSERT INTO os_ordens (tenant_id, equipamento, deposito_id, situacao) VALUES (demo, 'Furadeira R11', dep, 'orcamento') RETURNING id INTO os;
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total)
+    VALUES (demo, os, 'peca', prod, 'Peça R11', 3, 10, 30) RETURNING id INTO it1;
+  INSERT INTO os_itens (tenant_id, os_id, tipo, descricao, quantidade, preco_unitario, total) VALUES (demo, os, 'servico', 'Mão de obra', 1, 50, 50);
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'orçamento não baixa o estoque');
+
+  -- aprovada: baixa uma vez
+  PERFORM ci.entrar(adm);
+  UPDATE os_ordens SET situacao = 'aprovada' WHERE id = os;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 7 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'aprovar a OS baixa a peça (10 - 3)');
+  PERFORM ci.exige((SELECT baixa_quantidade = 3 FROM os_itens WHERE id = it1), 'o item guarda o que foi baixado');
+  PERFORM ci.entrar(adm);
+  UPDATE os_ordens SET situacao = 'em_reparo' WHERE id = os;
+  UPDATE os_ordens SET situacao = 'pronta', diagnostico = 'x' WHERE id = os;
+  PERFORM ci.exige((SELECT quantidade = 7 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'mudar de etapa não baixa de novo');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM estoque_movimentacoes WHERE produto_id = prod AND tipo = 'saida' AND documento LIKE 'OS nº%'), 'uma saída só no histórico de movimentações');
+
+  -- peça incluída, alterada e removida depois da aprovação
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total)
+    VALUES (demo, os, 'peca', prod, 'Peça R11 extra', 2, 10, 20) RETURNING id INTO it2;
+  PERFORM ci.exige((SELECT quantidade = 5 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'peça incluída depois da aprovação baixa na hora');
+  UPDATE os_itens SET quantidade = 4, total = 40 WHERE id = it1;
+  PERFORM ci.exige((SELECT quantidade = 4 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'quantidade alterada acompanha o estoque (3 vira 4)');
+  DELETE FROM os_itens WHERE id = it2;
+  PERFORM ci.exige((SELECT quantidade = 6 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'peça removida devolve ao estoque');
+
+  -- o cliente não escreve o que foi baixado
+  UPDATE os_itens SET baixa_quantidade = 0, baixa_produto_id = NULL WHERE id = it1;
+  PERFORM ci.exige((SELECT baixa_quantidade = 4 AND baixa_produto_id = prod FROM os_itens WHERE id = it1), 'o usuário não altera o registro da baixa');
+
+  -- cancelar devolve; reabrir baixa de novo
+  UPDATE os_ordens SET situacao = 'cancelada' WHERE id = os;
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'cancelar a OS devolve as peças');
+  PERFORM ci.exige((SELECT baixa_quantidade IS NULL FROM os_itens WHERE id = it1), 'cancelada: nada fica como baixado');
+  UPDATE os_ordens SET situacao = 'aprovada' WHERE id = os;
+  PERFORM ci.exige((SELECT quantidade = 6 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'reaprovar baixa de novo');
+  UPDATE os_ordens SET situacao = 'orcamento' WHERE id = os;
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'voltar para orçamento devolve as peças');
+
+  PERFORM ci.sair();
+
+  -- sem depósito: não aprova
+  INSERT INTO os_ordens (tenant_id, equipamento, situacao) VALUES (demo, 'Sem depósito R11', 'orcamento') RETURNING id INTO os2;
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total) VALUES (demo, os2, 'peca', prod, 'Peça', 1, 10, 10);
+  PERFORM ci.entrar(adm);
+  BEGIN
+    UPDATE os_ordens SET situacao = 'aprovada' WHERE id = os2;
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg LIKE '%Escolha o depósito%', 'aprovar sem depósito é recusado: ' || coalesce(msg, 'sem erro'));
+  PERFORM ci.exige((SELECT situacao = 'orcamento' FROM os_ordens WHERE id = os2), 'a OS recusada segue em orçamento');
+
+  -- estoque insuficiente: não aprova e não baixa nada
+  INSERT INTO os_ordens (tenant_id, equipamento, deposito_id, situacao) VALUES (demo, 'Sem saldo R11', dep, 'orcamento') RETURNING id INTO os3;
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total) VALUES (demo, os3, 'peca', prod, 'Peça', 1, 10, 10);
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total) VALUES (demo, os3, 'peca', prod, 'Peça demais', 500, 10, 5000);
+  msg := NULL;
+  PERFORM ci.entrar(adm);
+  BEGIN
+    UPDATE os_ordens SET situacao = 'aprovada' WHERE id = os3;
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg LIKE '%insuficiente%', 'aprovar sem saldo é recusado: ' || coalesce(msg, 'sem erro'));
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'a aprovação recusada não baixa nem a peça que tinha saldo');
+
+  -- OS antiga (já existia antes da regra) não mexe no estoque
+  INSERT INTO os_ordens (tenant_id, equipamento, deposito_id, situacao, controla_estoque) VALUES (demo, 'Antiga R11', dep, 'entregue', false) RETURNING id INTO os4;
+  INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total) VALUES (demo, os4, 'peca', prod, 'Peça', 1, 10, 10);
+  UPDATE os_ordens SET situacao = 'pronta' WHERE id = os4;
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'OS antiga não movimenta o estoque');
+END $$;

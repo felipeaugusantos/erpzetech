@@ -87,6 +87,7 @@ type Form = {
   laudo: string;
   tecnico_nome: string;
   tecnico_id: string;
+  deposito_id: string;
   prioridade: string;
   situacao: string;
   previsao: string;
@@ -108,6 +109,7 @@ const vazio: Form = {
   laudo: "",
   tecnico_nome: "",
   tecnico_id: "",
+  deposito_id: "",
   prioridade: "normal",
   situacao: "aberta",
   previsao: "",
@@ -184,6 +186,19 @@ function Assistencia() {
     },
   });
 
+  const { data: depositos = [] } = useQuery({
+    queryKey: ["depositos-os"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("depositos")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: tecnicos = [] } = useQuery({
     queryKey: ["tecnicos-ativos"],
     queryFn: async () => {
@@ -249,6 +264,8 @@ function Assistencia() {
         laudo: form.laudo || null,
         tecnico_nome: form.tecnico_nome || null,
         tecnico_id: form.tecnico_id || null,
+        // de onde saem as peças quando a ordem é aprovada
+        deposito_id: form.deposito_id || depositos[0]?.id || null,
         prioridade: form.prioridade,
         situacao: form.situacao as never,
         previsao: form.previsao || null,
@@ -330,6 +347,7 @@ function Assistencia() {
       laudo: o.laudo ?? "",
       tecnico_nome: o.tecnico_nome ?? "",
       tecnico_id: o.tecnico_id ?? "",
+      deposito_id: o.deposito_id ?? "",
       prioridade: o.prioridade,
       situacao: o.situacao,
       previsao: o.previsao ?? "",
@@ -668,6 +686,29 @@ function Assistencia() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Depósito das peças</Label>
+                  <Select
+                    value={form.deposito_id || depositos[0]?.id || "sem"}
+                    onValueChange={(v) => setForm({ ...form, deposito_id: v === "sem" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sem">Nenhum</SelectItem>
+                      {depositos.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    As peças da ordem saem deste depósito quando ela é aprovada, e voltam se ela for
+                    cancelada ou voltar para orçamento.
+                  </p>
                 </div>
                 <div>
                   <Label>Garantia (dias)</Label>
