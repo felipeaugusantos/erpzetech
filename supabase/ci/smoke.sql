@@ -1925,10 +1925,16 @@ BEGIN
     ON CONFLICT DO NOTHING;
   SELECT id INTO cfg FROM fiscal_config WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE fiscal_config SET nfse_token = 'SEGREDO-123', ambiente = 'producao' WHERE id = cfg;
-  v := (SELECT valor_novo FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg AND operacao = 'update' ORDER BY created_at DESC LIMIT 1);
+  v := (SELECT valor_novo FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg AND operacao = 'update' AND valor_novo ? 'ambiente' LIMIT 1);
   PERFORM ci.exige(v ->> 'nfse_token' = '***' AND v ->> 'ambiente' = 'producao', 'configuração fiscal: ambiente registrado e token mascarado');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE valor_novo::text LIKE '%SEGREDO-123%' OR valor_anterior::text LIKE '%SEGREDO-123%'), 'o token não aparece em nenhum registro');
+  -- alteração de um campo só da NFS-e também é registrada
+  UPDATE fiscal_config SET nfse_iss_retido = NOT coalesce(nfse_iss_retido, false) WHERE id = cfg;
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg AND operacao = 'update'
+                             AND valor_novo ? 'nfse_iss_retido' AND NOT (valor_novo ? 'ambiente')),
+                   'mudança só de um campo da NFS-e fica registrada');
   SELECT count(*) INTO n_antes FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg;
+  UPDATE fiscal_config SET proximo_numero_nfse = coalesce(proximo_numero_nfse, 1) + 1 WHERE id = cfg;
   UPDATE fiscal_config SET proximo_numero = proximo_numero + 1 WHERE id = cfg;
   PERFORM ci.exige((SELECT count(*) = n_antes FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg), 'o contador de numeração da nota não gera registro');
 

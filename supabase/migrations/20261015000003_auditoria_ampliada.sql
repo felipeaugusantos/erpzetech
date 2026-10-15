@@ -6,7 +6,7 @@
 --
 -- Cada trigger recebe a lista de colunas a registrar. Coluna com "!" na frente registra só que mudou (valor
 -- mascarado), para segredos como o token da prefeitura. Alteração feita pelo servidor (sem usuário) entra com
--- usuário em branco. Os contadores de numeração da nota (proximo_numero) ficam fora: mudam a cada emissão.
+-- usuário em branco. Os contadores de numeração (proximo_numero e proximo_numero_nfse) ficam fora: mudam a cada emissão.
 CREATE OR REPLACE FUNCTION public.auditar_mudanca()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -107,7 +107,11 @@ CREATE TRIGGER trg_auditar_fiscal_config AFTER INSERT OR UPDATE OR DELETE ON pub
     'ambiente', 'emissor', 'conta_emissor', 'certificado_nome', 'certificado_validade', 'cfop_padrao',
     'aliquota_icms_interna', 'aliquota_icms_interestadual', 'mva_st', 'aliquota_pis', 'aliquota_cofins',
     'aliquota_iss', 'cst_pis', 'cst_cofins', 'reducao_base_icms', 'serie_nfse', 'nfse_prefeitura', 'nfse_padrao',
-    'nfse_url', '!nfse_usuario', '!nfse_token');
+    'nfse_url', 'nfse_codigo_tributacao', 'nfse_regime_especial', 'nfse_incentivador_cultural',
+    'nfse_optante_simples', 'nfse_iss_retido', 'nfse_observacoes', 'nfse_codigo_municipio', 'codigo_servico',
+    'item_lista_servico', 'certificado_tipo', 'certificado_titular', 'certificado_observacoes',
+    'responsavel_tecnico_cnpj', 'responsavel_tecnico_contato', 'responsavel_tecnico_email',
+    'responsavel_tecnico_fone', 'informacoes_complementares', '!nfse_usuario', '!nfse_token');
 
 DROP TRIGGER IF EXISTS trg_auditar_user_roles ON public.user_roles;
 CREATE TRIGGER trg_auditar_user_roles AFTER INSERT OR UPDATE OR DELETE ON public.user_roles
