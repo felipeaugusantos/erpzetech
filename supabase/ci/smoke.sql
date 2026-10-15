@@ -150,7 +150,7 @@ BEGIN
   -- 9. auditoria: só administrador/gestor leem; ninguém grava pelo cliente
   INSERT INTO auditoria (tenant_id, entidade, operacao) VALUES (demo, 'ci', 'x');
   PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM auditoria') = 0, 'vendedor não lê auditoria');
-  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM auditoria') = 1, 'gestor lê auditoria');
+  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM auditoria WHERE entidade = ''ci''') = 1, 'gestor lê auditoria');
   PERFORM ci.deve_falhar(gest, format($c$INSERT INTO auditoria (tenant_id, entidade, operacao) VALUES (%L, 'x', 'y')$c$, demo), 'insert em auditoria');
   PERFORM ci.deve_falhar(gest, 'DELETE FROM auditoria', 'delete em auditoria');
 
@@ -1879,4 +1879,87 @@ BEGIN
   INSERT INTO os_itens (tenant_id, os_id, tipo, produto_id, descricao, quantidade, preco_unitario, total) VALUES (demo, os4, 'peca', prod, 'Peça', 1, 10, 10);
   UPDATE os_ordens SET situacao = 'pronta' WHERE id = os4;
   PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'OS antiga não movimenta o estoque');
+END $$;
+
+-- 28. R12: auditoria do financeiro, do fiscal, da empresa e dos papéis
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  fin  constant uuid := 'a0000000-0000-0000-0000-0000000000b2';
+  cr uuid; cp uuid; nota uuid; cfg uuid; tx uuid; ux uuid; n_antes bigint; v jsonb;
+BEGIN
+  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Conta R12', current_date, 100) RETURNING id INTO cr;
+  INSERT INTO contas_pagar (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Pagar R12', current_date, 80) RETURNING id INTO cp;
+
+  -- alteração feita por um usuário: quem, o quê (antes e depois)
+  PERFORM ci.entrar(fin);
+  UPDATE contas_receber SET valor_recebido = 100, situacao = 'pago' WHERE id = cr;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT usuario_id = fin AND valor_novo ->> 'situacao' = 'pago' AND valor_anterior ->> 'situacao' IS NOT NULL
+                      FROM auditoria WHERE entidade = 'contas_receber' AND entidade_id = cr AND operacao = 'update'),
+                   'baixa de conta a receber fica registrada com o usuário, o antes e o depois');
+
+  -- campo fora da lista não gera registro
+  SELECT count(*) INTO n_antes FROM auditoria WHERE entidade = 'contas_receber' AND entidade_id = cr;
+  UPDATE contas_receber SET observacoes = 'só uma nota' WHERE id = cr;
+  PERFORM ci.exige((SELECT count(*) = n_antes FROM auditoria WHERE entidade = 'contas_receber' AND entidade_id = cr), 'campo fora da lista não gera registro');
+
+  -- exclusão
+  UPDATE contas_pagar SET valor = 90 WHERE id = cp;
+  DELETE FROM contas_pagar WHERE id = cp;
+  PERFORM ci.exige((SELECT (valor_anterior ->> 'valor')::numeric = 90 FROM auditoria WHERE entidade = 'contas_pagar' AND entidade_id = cp AND operacao = 'delete'),
+                   'exclusão de conta a pagar fica registrada com os valores que tinha');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM auditoria WHERE entidade = 'contas_pagar' AND entidade_id = cp), 'conta a pagar: alteração e exclusão');
+
+  -- nota fiscal
+  SELECT id INTO nota FROM nfe WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE nfe SET cfop = '5949' WHERE id = nota;
+  PERFORM ci.exige((SELECT valor_novo ->> 'cfop' = '5949' FROM auditoria WHERE entidade = 'nfe' AND entidade_id = nota AND operacao = 'update' ORDER BY created_at DESC LIMIT 1),
+                   'mudança na nota fiscal fica registrada');
+
+  -- configuração fiscal: segredo mascarado, contador de numeração fora
+  INSERT INTO fiscal_config (tenant_id, empresa_id, filial_id) VALUES (demo, emp, '33333333-3333-3333-3333-333333333333')
+    ON CONFLICT DO NOTHING;
+  SELECT id INTO cfg FROM fiscal_config WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE fiscal_config SET nfse_token = 'SEGREDO-123', ambiente = 'producao' WHERE id = cfg;
+  v := (SELECT valor_novo FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg AND operacao = 'update' ORDER BY created_at DESC LIMIT 1);
+  PERFORM ci.exige(v ->> 'nfse_token' = '***' AND v ->> 'ambiente' = 'producao', 'configuração fiscal: ambiente registrado e token mascarado');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE valor_novo::text LIKE '%SEGREDO-123%' OR valor_anterior::text LIKE '%SEGREDO-123%'), 'o token não aparece em nenhum registro');
+  SELECT count(*) INTO n_antes FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg;
+  UPDATE fiscal_config SET proximo_numero = proximo_numero + 1 WHERE id = cfg;
+  PERFORM ci.exige((SELECT count(*) = n_antes FROM auditoria WHERE entidade = 'fiscal_config' AND entidade_id = cfg), 'o contador de numeração da nota não gera registro');
+
+  -- empresa e filiais
+  UPDATE empresas SET regime_tributario = 'lucro_presumido' WHERE id = emp;
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'empresas' AND entidade_id = emp AND valor_novo ->> 'regime_tributario' = 'lucro_presumido'),
+                   'mudança de regime tributário da empresa fica registrada');
+  UPDATE empresas SET regime_tributario = 'simples' WHERE id = emp;
+
+  -- papéis dos usuários
+  UPDATE profiles SET empresa_id = emp WHERE id = adm;
+  PERFORM ci.entrar(adm);
+  PERFORM usuario_definir_papeis(gest, ARRAY['gestor', 'financeiro']::app_role[]);
+  PERFORM ci.sair();
+  UPDATE profiles SET empresa_id = NULL WHERE id = adm;
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'user_roles' AND operacao = 'insert' AND usuario_id = adm
+                             AND valor_novo ->> 'user_id' = gest::text AND valor_novo ->> 'role' = 'financeiro'),
+                   'papel dado a um usuário fica registrado com quem deu');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'user_roles' AND operacao = 'delete' AND usuario_id = adm
+                             AND valor_anterior ->> 'user_id' = gest::text),
+                   'papel retirado de um usuário fica registrado');
+  DELETE FROM user_roles WHERE user_id = gest AND role = 'financeiro';
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'user_roles' AND operacao = 'delete' AND valor_anterior ->> 'role' = 'financeiro'), 'remoção direta de papel também é registrada');
+
+  -- só administrador e gestor leem; ninguém grava
+  PERFORM ci.exige(ci.contar(fin, $c$SELECT count(*) FROM auditoria WHERE entidade = 'user_roles'$c$) = 0, 'financeiro não lê a auditoria');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM auditoria WHERE entidade = 'user_roles'$c$) > 0, 'administrador lê a auditoria dos papéis');
+
+  -- apagar uma empresa inteira (cascata) não quebra pela auditoria
+  INSERT INTO tenants (nome) VALUES ('R12 apagar') RETURNING id INTO tx;
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (tx, 'Empresa R12 apagar');
+  DELETE FROM tenants WHERE id = tx;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM tenants WHERE id = tx), 'apagar a empresa em cascata funciona com a auditoria ligada');
 END $$;

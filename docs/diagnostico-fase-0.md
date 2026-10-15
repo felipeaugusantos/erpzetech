@@ -23,7 +23,7 @@ O ponto fraco é o isolamento **entre papéis dentro da mesma empresa**. As tela
 | R9 | Duas fontes de migrations; as do Lovable ficaram fora do CI até agora | P1 |
 | R10 | Outras gravações em etapas sem desfazer (filial extra, orçamento, separação, compra) — feito | P2 |
 | R11 | Peças da ordem de serviço não baixam estoque — feito | P2 |
-| R12 | Auditoria cobre 7 tabelas; faltam financeiro, fiscal, empresa e papéis | P2 |
+| R12 | Auditoria cobre 7 tabelas; faltam financeiro, fiscal, empresa e papéis — feito | P2 |
 | R13 | Acesso é por empresa, não por filial (decidido: por filial; feito) | P2 |
 | R14 | Formulário público de contato sem limite de envios | P3 |
 
@@ -96,7 +96,7 @@ Telas `ze-tech-*` e funções `saas_*` (10 funções, todas conferem `eh_saas_op
 - **Financeiro e fiscal:** `contas_receber` e as notas (`nfe`, `fiscal_config`) são usadas por varejo e locação (nota de serviço).
 - **Isolamento do salão:** `eh_salao_restrito()` e a trava `exige_nao_salao()` em toda função chamável (CI confere).
 - **Código da tela:** `AppShell` (menu e módulos), `useSessionData`, `format.ts`, e os módulos de leitura de código de barras e impressão.
-- **Auditoria:** gatilho `auditar_campos` em 7 tabelas (`produtos`, `estoques`, `pedidos`, `pedido_itens`, `orcamentos`, `orcamento_itens`, `cardapio_itens`).
+- **Auditoria:** gatilho `auditar_campos` em 7 tabelas (`produtos`, `estoques`, `pedidos`, `pedido_itens`, `orcamentos`, `orcamento_itens`, `cardapio_itens`) e, desde a migration `20261015000003` (R12), `auditar_mudanca` em contas a receber e a pagar, comissões, notas e itens de nota, empresas, filiais, configuração fiscal e papéis. Não há tela para consultar a auditoria.
 
 ## 5. Autorização, empresa e filial
 
@@ -188,7 +188,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R9 | P1 | Duas fontes de migrations | `supabase/migrations` (96) e `drizzle/migrations` (25); o Lovable grava só na segunda | Já feito: o CI aplica as duas, na ordem. A fazer: documentar a regra (qual pasta cada pessoa usa), e criar a checagem de nome de política restritiva do salão para qualquer nome (feito neste PR). | CI já falha se tabela ou função nova sair sem proteção |
 | R10 | P2 | Outras gravações em etapas | seção 6 | Funções do banco para filial extra, orçamento (com itens) e separação (todos os itens de uma vez); gatilho para o total da compra. Feito na migration `20261014000004_r10_gravacoes_em_etapas.sql` | — |
 | R11 | P2 | Peça da OS sem baixa de estoque | nenhuma função ou gatilho de assistência chama `registrar_movimentacao` | Regra adotada: baixa ao aprovar a OS, devolução ao cancelar ou voltar para orçamento. Feito na migration `20261015000002_os_baixa_estoque.sql` | Peça aplicada baixa o estoque uma vez |
-| R12 | P2 | Auditoria curta | gatilho em 7 tabelas | Estender `auditar_campos` a `contas_receber`, `contas_pagar`, `nfe`, `nfe_itens`, `empresas`, `filiais`, `fiscal_config`, `comissoes`, `user_roles` | Alteração e exclusão geram linha em `auditoria` |
+| R12 | P2 | Auditoria curta | gatilho em 7 tabelas | Estender a auditoria a `contas_receber`, `contas_pagar`, `nfe`, `nfe_itens`, `empresas`, `filiais`, `fiscal_config`, `comissoes`, `user_roles`. Feito com `auditar_mudanca` na migration `20261015000003_auditoria_ampliada.sql` | Alteração e exclusão geram linha em `auditoria` |
 | R13 | P2 | Acesso por empresa, não por filial | nenhuma política cita filial | Decidido pelo dono: acesso por filial. Feito na migration `20261014000003_acesso_por_filial.sql` | — |
 | R14 | P3 | Formulário de contato sem limite | política `contatos_insert_publico` | Limite por origem/horário e verificação anti-robô | — |
 
@@ -233,6 +233,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R7 | Feito | `usuario_definir_papeis`: troca todos os papéis numa transação | — |
 | R10 | Feito | Quatro fluxos viraram uma transação só: `filial_extra_criar` (filial + depósito + configuração fiscal; só administrador), `orcamento_salvar` (cabeçalho + itens + total calculado no banco, com cliente, obra, vendedor, profissional e produtos conferidos na empresa), `separacao_salvar` e `conferencia_salvar` (todos os itens ou nenhum; administrador, gestor e estoquista); o total da compra passa a acompanhar os itens por gatilho. As telas chamam as funções. Achado no caminho: a restrição antiga `fiscal_config (tenant_id, empresa_id)` impedia a configuração fiscal da filial extra e foi removida (os índices parciais já fazem a regra certa). Bloco 25 do `smoke.sql` | — |
 | R11 | Feito | `os_ordens.deposito_id` (de onde saem as peças) e gatilhos: a partir de "aprovada" (aprovada, em reparo, pronta, entregue) as peças com produto são baixadas do depósito; cancelar ou voltar para aberta, em análise ou orçamento devolve; peça incluída, alterada ou removida depois da aprovação acompanha na hora; cada item guarda o que foi baixado (`baixa_*`, que o usuário não altera), então a baixa não se repete. Sem depósito ou sem saldo a aprovação é recusada com a mensagem. As OS que já existiam ficaram fora (`controla_estoque = false`). A tela de OS ganhou o campo "Depósito das peças". Bloco 27 do `smoke.sql` | Decisão do dono sobre a regra (aprovar x concluir); peças digitadas sem produto não baixam |
+| R12 | Feito | `auditar_mudanca`: registra quem, quando, o que mudou (antes e depois) e exclusões em `contas_receber`, `contas_pagar`, `comissoes`, `nfe`, `nfe_itens`; também inclusões em `empresas`, `filiais`, `fiscal_config` e `user_roles`. Segredos (`nfse_token`, `nfse_usuario`) entram mascarados (`***`); o contador de numeração da nota (`proximo_numero`) fica fora, porque muda a cada emissão. Alteração do servidor entra com usuário em branco; apagar uma empresa em cascata não é barrado pela auditoria. Bloco 28 do `smoke.sql` | Tela para consultar a auditoria (hoje só pelo banco); ampliar a outras tabelas se quiser |
 | R13 | Feito | Decisão do dono: acesso por filial. `pode_filial` e `filial_irrestrita`; política restritiva `filial_restrita` em `pedidos`, `caixas`, `depositos`, `contas_receber`, `contas_pagar`, `nfe`, `orcamentos`, `compras`, `devolucoes` e, por herança, `pedido_itens`, `pedido_historico`, `entregas`, `entrega_itens`, `caixa_movimentos`, `estoques`, `estoque_movimentacoes`; gatilho `filial_protege` para gravações dentro das funções (venda, caixa, nota, entrega, estoque). Administrador, gestor e usuário sem filial no perfil veem todas as filiais; linha sem filial é de todos. Bloco 24 do `smoke.sql` | Tabelas com `filial_id` que ficaram de fora (ver abaixo); telas com filtro de filial para a gestão, se quiser |
 | R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
 | R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |
