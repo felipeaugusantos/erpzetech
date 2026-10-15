@@ -1,13 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileUp, ShoppingCart, Upload } from "lucide-react";
+import { AlertTriangle, FileUp, ShoppingCart, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { custosComImpostos, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,15 @@ type ProdutoOpcao = {
 
 const NOVO = "__novo__";
 
+/** Passado este tempo sem resposta, a importação é abandonada e a tela volta a ficar livre. */
+const LIMITE_IMPORTACAO_MS = 45_000;
+
+class ImportacaoAbandonada extends Error {
+  constructor() {
+    super("Importação interrompida");
+  }
+}
+
 function normaliza(v: string | null | undefined) {
   return (v ?? "").trim().toUpperCase();
 }
@@ -69,8 +79,12 @@ function NfeEntrada() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Chamada de importação em andamento: dá para abandonar uma que travou e seguir com outra nota.
+  const envio = useRef<AbortController | null>(null);
 
   const [lida, setLida] = useState<NfeXmlLida | null>(null);
+  // compra que já recebeu esta nota (mesma chave, ou mesmo número, série e fornecedor)
+  const [duplicada, setDuplicada] = useState<{ compra_id: string; numero: number } | null>(null);
   const [arquivo, setArquivo] = useState<string>("");
   const [depositoId, setDepositoId] = useState("");
   const [mapa, setMapa] = useState<Record<number, string>>({});
@@ -149,7 +163,18 @@ function NfeEntrada() {
     return NOVO;
   }
 
+  async function conferirDuplicada(parsed: NfeXmlLida) {
+    const { data } = await supabase.rpc("nfe_entrada_ja_importada", {
+      ...(parsed.nota.chave ? { p_chave: parsed.nota.chave } : {}),
+      ...(parsed.nota.numero ? { p_numero: parsed.nota.numero } : {}),
+      ...(parsed.nota.serie ? { p_serie: parsed.nota.serie } : {}),
+      ...(parsed.fornecedor.cnpj ? { p_cnpj: parsed.fornecedor.cnpj } : {}),
+    });
+    setDuplicada((data as { compra_id: string; numero: number } | null) ?? null);
+  }
+
   async function aoEscolherArquivo(file: File) {
+    abandonarEnvio();
     try {
       const conteudo = await file.text();
       const parsed = lerXmlNfe(conteudo);
@@ -159,6 +184,8 @@ function NfeEntrada() {
       }
       setLida(parsed);
       setArquivo(file.name);
+      setDuplicada(null);
+      void conferirDuplicada(parsed);
       const inicial: Record<number, string> = {};
       parsed.itens.forEach((item) => {
         inicial[item.seq] = casarProduto(item);
@@ -184,6 +211,12 @@ function NfeEntrada() {
     };
   }, [lida, mapa]);
 
+  function abandonarEnvio() {
+    envio.current?.abort();
+    envio.current = null;
+    importar.reset();
+  }
+
   const importar = useMutation({
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
@@ -200,57 +233,47 @@ function NfeEntrada() {
           unidade: i.unidade,
           quantidade: i.quantidade,
           custo_unitario: custos[idx] ?? i.custo_unitario,
+          // lote, tonalidade e calibre entram na mesma transação da compra
+          ...(i.lote
+            ? { lote: i.lote, tonalidade: i.tonalidade ?? "", calibre: i.calibre ?? "" }
+            : {}),
         };
       });
-      const { data, error } = await supabase.rpc("importar_nfe_entrada", {
-        p_nota: {
-          chave: lida.nota.chave,
-          numero: lida.nota.numero,
-          emissao: lida.nota.emissao,
-          frete: lida.nota.frete,
-          desconto: lida.nota.desconto,
-          condicao_pagamento: lida.nota.condicao_pagamento,
-          observacao: `NF-e ${lida.nota.numero ?? ""} — ${lida.fornecedor.razao_social}`,
-          primeiro_vencimento: lida.nota.primeiro_vencimento,
-        },
-        p_fornecedor: lida.fornecedor,
-        p_itens: itens,
-        p_deposito_id: depositoId,
-        p_gerar_conta: gerarConta,
-        p_parcelas: Math.max(1, Number(parcelas) || 1),
-        ...(vencimento ? { p_vencimento: vencimento } : {}),
-      });
-      if (error) throw error;
-      // Itens com lote no XML: dá entrada no lote/tonalidade e marca o produto como controlado por lote.
-      for (const i of lida.itens) {
-        if (!i.lote) continue;
-        let prodId = mapa[i.seq] && mapa[i.seq] !== NOVO ? mapa[i.seq] : null;
-        if (!prodId) {
-          const q = supabase
-            .from("produtos")
-            .select("id")
-            .order("created_at", { ascending: false })
-            .limit(1);
-          const { data: p } = i.codigo_barras
-            ? await q.eq("codigo_barras", i.codigo_barras)
-            : await q.eq("descricao", i.descricao);
-          prodId = p?.[0]?.id ?? null;
-        }
-        if (!prodId) continue;
-        await supabase.from("produtos").update({ controla_lote: true }).eq("id", prodId);
-        const { error: e2 } = await supabase.rpc("estoque_lote_lancar", {
-          p_produto_id: prodId,
-          p_deposito_id: depositoId,
-          p_lote: i.lote,
-          p_tonalidade: i.tonalidade ?? "",
-          p_calibre: i.calibre ?? "",
-          p_tipo: "entrada",
-          p_quantidade: i.quantidade,
-          p_documento: `NF-e ${lida.nota.numero ?? ""}`,
-        });
-        if (e2) toast.error(`Lote ${i.lote}: ${e2.message}`);
+      // Uma importação que não responde não prende a tela: passado o limite, a chamada é abandonada e o usuário
+      // pode conferir em "Notas já importadas" ou tentar outra nota. O banco recusa a mesma nota duas vezes.
+      const controle = new AbortController();
+      envio.current = controle;
+      const limite = setTimeout(() => controle.abort(), LIMITE_IMPORTACAO_MS);
+      try {
+        const { data, error } = await supabase
+          .rpc("importar_nfe_entrada", {
+            p_nota: {
+              chave: lida.nota.chave,
+              numero: lida.nota.numero,
+              emissao: lida.nota.emissao,
+              frete: lida.nota.frete,
+              desconto: lida.nota.desconto,
+              condicao_pagamento: lida.nota.condicao_pagamento,
+              observacao: `NF-e ${lida.nota.numero ?? ""} — ${lida.fornecedor.razao_social}`,
+              primeiro_vencimento: lida.nota.primeiro_vencimento,
+            },
+            p_fornecedor: lida.fornecedor,
+            p_itens: itens,
+            p_deposito_id: depositoId,
+            p_gerar_conta: gerarConta,
+            p_parcelas: Math.max(1, Number(parcelas) || 1),
+            ...(vencimento ? { p_vencimento: vencimento } : {}),
+          })
+          .abortSignal(controle.signal);
+        if (error) throw error;
+        return data as { compra_id: string; numero: number; produtos_criados: number };
+      } catch (e) {
+        if (controle.signal.aborted) throw new ImportacaoAbandonada();
+        throw e;
+      } finally {
+        clearTimeout(limite);
+        if (envio.current === controle) envio.current = null;
       }
-      return data as { compra_id: string; numero: number; produtos_criados: number };
     },
     onSuccess: (res) => {
       toast.success(
@@ -263,7 +286,44 @@ function NfeEntrada() {
       setArquivo("");
       void navigate({ to: "/compras/$id", params: { id: res.compra_id } });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível importar."),
+    onError: async (e) => {
+      if (e instanceof ImportacaoAbandonada) {
+        // a chamada pode ter chegado ao banco: atualiza a lista para o usuário conferir antes de tentar de novo
+        // e de novo depois, porque o servidor pode terminar a transação já com a tela livre
+        for (const atraso of [0, 5_000, 15_000, 30_000]) {
+          setTimeout(
+            () => void queryClient.invalidateQueries({ queryKey: ["compras-xml"] }),
+            atraso,
+          );
+        }
+        toast.error(
+          'A importação demorou e foi interrompida. Confira em "Notas já importadas" se a nota entrou; se não entrou, tente de novo.',
+        );
+        return;
+      }
+      const msg = e instanceof Error ? e.message : "Não foi possível importar.";
+      if (msg.includes("já está importada") && lida) {
+        const { data } = await supabase.rpc("nfe_entrada_ja_importada", {
+          ...(lida.nota.chave ? { p_chave: lida.nota.chave } : {}),
+          ...(lida.nota.numero ? { p_numero: lida.nota.numero } : {}),
+          ...(lida.nota.serie ? { p_serie: lida.nota.serie } : {}),
+          ...(lida.fornecedor.cnpj ? { p_cnpj: lida.fornecedor.cnpj } : {}),
+        });
+        const existente = data as { compra_id: string; numero: number } | null;
+        if (existente) {
+          setDuplicada(existente);
+          toast.error(`Esta nota já está importada (compra nº ${existente.numero}).`, {
+            action: {
+              label: "Abrir compra",
+              onClick: () =>
+                void navigate({ to: "/compras/$id", params: { id: existente.compra_id } }),
+            },
+          });
+          return;
+        }
+      }
+      toast.error(msg);
+    },
   });
 
   return (
@@ -309,6 +369,23 @@ function NfeEntrada() {
         />
       ) : (
         <>
+          {duplicada && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="size-4" />
+              <AlertTitle>Esta nota já está importada ou em processo de importação</AlertTitle>
+              <AlertDescription>
+                A chave, ou o número, a série e o fornecedor desta nota já constam na compra nº{" "}
+                {duplicada.numero}.{" "}
+                <Link
+                  className="font-medium underline underline-offset-2"
+                  to="/compras/$id"
+                  params={{ id: duplicada.compra_id }}
+                >
+                  Abrir compra
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Fornecedor"
@@ -434,10 +511,16 @@ function NfeEntrada() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => setLida(null)}>
-              Cancelar
+            <Button
+              variant="outline"
+              onClick={() => {
+                abandonarEnvio();
+                setLida(null);
+              }}
+            >
+              {importar.isPending ? "Cancelar importação" : "Cancelar"}
             </Button>
-            <Button disabled={importar.isPending} onClick={() => importar.mutate()}>
+            <Button disabled={importar.isPending || !!duplicada} onClick={() => importar.mutate()}>
               <Upload className="size-4" />
               {importar.isPending ? "Importando..." : "Importar e dar entrada no estoque"}
             </Button>
