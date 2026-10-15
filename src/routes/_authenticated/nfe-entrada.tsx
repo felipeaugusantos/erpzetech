@@ -289,7 +289,13 @@ function NfeEntrada() {
     onError: async (e) => {
       if (e instanceof ImportacaoAbandonada) {
         // a chamada pode ter chegado ao banco: atualiza a lista para o usuário conferir antes de tentar de novo
-        void queryClient.invalidateQueries({ queryKey: ["compras-xml"] });
+        // e de novo depois, porque o servidor pode terminar a transação já com a tela livre
+        for (const atraso of [0, 5_000, 15_000, 30_000]) {
+          setTimeout(
+            () => void queryClient.invalidateQueries({ queryKey: ["compras-xml"] }),
+            atraso,
+          );
+        }
         toast.error(
           'A importação demorou e foi interrompida. Confira em "Notas já importadas" se a nota entrou; se não entrou, tente de novo.',
         );
