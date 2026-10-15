@@ -1980,80 +1980,74 @@ BEGIN
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM tenants WHERE id = tx), 'apagar a empresa em cascata funciona com a auditoria ligada');
 END $$;
 
--- 29. R14: formulário público de contato com limite de envios
+-- 29. R14: formulário público de contato com limite de envios e CAPTCHA (só o servidor da aplicação envia)
 DO $$
 DECLARE
-  n_antes bigint; ok boolean; msg text; origem1 text; i int;
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  n_antes bigint; ok boolean; msg text; i int;
   antes timestamptz := now() - interval '10 seconds';
 BEGIN
   DELETE FROM contatos;
 
-  -- a gravação direta fechou; só pela função
+  -- a gravação direta e a chamada pública fecharam: só o servidor (chave de serviço) envia
   PERFORM ci.deve_falhar(NULL, $c$INSERT INTO contatos (nome, email) VALUES ('Direto', 'a@b.co')$c$, 'anon grava direto em contatos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT contato_enviar('Anon', 'a@b.co')$c$, 'anon chama contato_enviar');
+  PERFORM ci.deve_falhar(adm, $c$SELECT contato_enviar('Logado', 'a@b.co')$c$, 'usuário logado chama contato_enviar');
 
-  -- envio normal
-  PERFORM ci.entrar(NULL);
-  ok := contato_enviar('Maria Souza', 'maria@loja.com.br', '(16) 99999-1234', 'loja', 'Quero conhecer', NULL, now() - interval '30 seconds');
-  PERFORM ci.sair();
-  PERFORM ci.exige(ok AND (SELECT count(*) = 1 FROM contatos WHERE email = 'maria@loja.com.br'), 'o contato entra pela função');
+  -- o servidor da aplicação (service_role) envia
+  SET LOCAL ROLE service_role;
+  ok := contato_enviar('Maria Souza', 'maria@loja.com.br', '(16) 99999-1234', 'loja', 'Quero conhecer', NULL, now() - interval '30 seconds', '203.0.113.50');
+  RESET ROLE;
+  PERFORM ci.exige(ok AND (SELECT count(*) = 1 FROM contatos WHERE email = 'maria@loja.com.br'), 'o servidor envia o contato');
   PERFORM ci.exige(ci.contar(NULL, 'SELECT count(*) FROM contatos') = 0, 'anon não enxerga os contatos');
 
-  -- robô: campo escondido preenchido finge sucesso e não guarda
+  -- robô: campo escondido preenchido finge sucesso e não grava
   SELECT count(*) INTO n_antes FROM contatos;
-  PERFORM ci.entrar(NULL);
   ok := contato_enviar('Robô', 'robo@spam.com', NULL, NULL, 'compre já', 'http://spam', now() - interval '30 seconds');
-  PERFORM ci.sair();
   PERFORM ci.exige(ok AND (SELECT count(*) = n_antes FROM contatos), 'campo escondido preenchido não grava');
   -- rápido demais
-  PERFORM ci.deve_falhar(NULL, format($c$SELECT contato_enviar('Rápido', 'r@r.co', NULL, NULL, NULL, NULL, %L)$c$, now()), 'envio antes de 3 segundos');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT contato_enviar('Rápido', 'r@r.co', NULL, NULL, NULL, NULL, %L)$c$, now()), 'envio antes de 3 segundos');
 
   -- validações
-  PERFORM ci.deve_falhar(NULL, $c$SELECT contato_enviar('A', 'a@b.co')$c$, 'nome curto');
-  PERFORM ci.deve_falhar(NULL, $c$SELECT contato_enviar('Fulano')$c$, 'sem e-mail nem WhatsApp');
-  PERFORM ci.deve_falhar(NULL, $c$SELECT contato_enviar('Fulano', 'sem-arroba')$c$, 'e-mail inválido');
-  PERFORM ci.deve_falhar(NULL, $c$SELECT contato_enviar('Fulano', NULL, '123')$c$, 'WhatsApp inválido');
-  PERFORM ci.deve_falhar(NULL, format($c$SELECT contato_enviar('Fulano', 'f@f.co', NULL, NULL, %L)$c$, repeat('x', 2001)), 'mensagem muito longa');
+  PERFORM ci.deve_falhar_dono($c$SELECT contato_enviar('A', 'a@b.co')$c$, 'nome curto');
+  PERFORM ci.deve_falhar_dono($c$SELECT contato_enviar('Fulano')$c$, 'sem e-mail nem WhatsApp');
+  PERFORM ci.deve_falhar_dono($c$SELECT contato_enviar('Fulano', 'sem-arroba')$c$, 'e-mail inválido');
+  PERFORM ci.deve_falhar_dono($c$SELECT contato_enviar('Fulano', NULL, '123')$c$, 'WhatsApp inválido');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT contato_enviar('Fulano', 'f@f.co', NULL, NULL, %L)$c$, repeat('x', 2001)), 'mensagem muito longa');
 
   -- o mesmo contato de novo em 10 minutos é um só
   SELECT count(*) INTO n_antes FROM contatos;
-  PERFORM ci.entrar(NULL);
-  ok := contato_enviar('Maria Souza', 'maria@loja.com.br', '(16) 99999-1234', 'loja', 'Quero conhecer', NULL, now() - interval '30 seconds');
-  PERFORM ci.sair();
+  ok := contato_enviar('Maria Souza', 'maria@loja.com.br', '(16) 99999-1234', 'loja', 'Quero conhecer', NULL, now() - interval '30 seconds', '203.0.113.50');
   PERFORM ci.exige(ok AND (SELECT count(*) = n_antes FROM contatos), 'contato repetido em 10 minutos não duplica');
 
-  -- limite por origem (hash do IP, nunca o IP): 5 por hora
-  PERFORM set_config('request.headers', '{"x-forwarded-for":"203.0.113.9, 10.0.0.1"}', true);
+  -- limite por origem (hash do IP informado pelo servidor, nunca o IP): 5 por hora
   FOR i IN 1..5 LOOP
-    PERFORM ci.entrar(NULL);
-    PERFORM contato_enviar('Origem ' || i, 'o' || i || '@teste.co', NULL, NULL, 'mensagem ' || i, NULL, antes);
-    PERFORM ci.sair();
+    PERFORM contato_enviar('Origem ' || i, 'o' || i || '@teste.co', NULL, NULL, 'mensagem ' || i, NULL, antes, '203.0.113.9');
   END LOOP;
-  PERFORM ci.exige((SELECT count(*) = 5 FROM contatos WHERE origem IS NOT NULL), 'cinco envios da mesma origem entram');
-  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM contatos WHERE origem LIKE '%203.0.113.9%'), 'o IP não é guardado, só o hash');
-  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige((SELECT count(*) = 5 FROM contatos WHERE origem = md5('contato:203.0.113.9')), 'cinco envios do mesmo IP entram');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM contatos WHERE origem LIKE '%203.0.113%'), 'o IP não é guardado, só o hash');
   BEGIN
-    PERFORM contato_enviar('Origem 6', 'o6@teste.co', NULL, NULL, 'mensagem 6', NULL, antes);
+    PERFORM contato_enviar('Origem 6', 'o6@teste.co', NULL, NULL, 'mensagem 6', NULL, antes, '203.0.113.9');
   EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
   END;
-  PERFORM ci.sair();
-  PERFORM ci.exige(msg LIKE 'Muitos envios deste aparelho%', 'o sexto envio da mesma origem é recusado: ' || coalesce(msg, 'sem erro'));
-  -- outra origem segue entrando
-  PERFORM set_config('request.headers', '{"x-forwarded-for":"198.51.100.7"}', true);
-  PERFORM ci.entrar(NULL);
-  ok := contato_enviar('Outra origem', 'outra@teste.co', NULL, NULL, 'oi', NULL, antes);
-  PERFORM ci.sair();
-  PERFORM ci.exige(ok, 'outra origem não é afetada pelo limite');
+  PERFORM ci.exige(msg LIKE 'Muitos envios deste aparelho%', 'o sexto envio do mesmo IP é recusado: ' || coalesce(msg, 'sem erro'));
+  -- outro IP segue entrando
+  ok := contato_enviar('Outra origem', 'outra@teste.co', NULL, NULL, 'oi', NULL, antes, '198.51.100.7');
+  PERFORM ci.exige(ok, 'outro IP não é afetado pelo limite');
+
+  -- sem IP informado, vale o cabeçalho da chamada
+  PERFORM set_config('request.headers', '{"x-forwarded-for":"192.0.2.44, 10.0.0.1"}', true);
+  PERFORM contato_enviar('Pelo cabeçalho', 'cab@teste.co', NULL, NULL, 'oi cabeçalho', NULL, antes);
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM contatos WHERE email = 'cab@teste.co' AND origem = md5('contato:192.0.2.44')), 'sem IP informado usa o cabeçalho');
 
   -- limite total: 100 por hora
   PERFORM set_config('request.headers', '', true);
   INSERT INTO contatos (nome, email) SELECT 'Carga ' || g, 'c' || g || '@carga.co' FROM generate_series(1, 100) g;
   msg := NULL;
-  PERFORM ci.entrar(NULL);
   BEGIN
-    PERFORM contato_enviar('Fulano', 'novo@teste.co', NULL, NULL, 'uma a mais', NULL, antes);
+    PERFORM contato_enviar('Fulano', 'novo@teste.co', NULL, NULL, 'uma a mais', NULL, antes, '198.51.100.99');
   EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
   END;
-  PERFORM ci.sair();
   PERFORM ci.exige(msg LIKE 'Estamos recebendo muitos contatos%', 'passou de 100 por hora no total: recusa: ' || coalesce(msg, 'sem erro'));
 
   DELETE FROM contatos;
