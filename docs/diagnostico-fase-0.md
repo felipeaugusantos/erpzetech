@@ -25,7 +25,7 @@ O ponto fraco é o isolamento **entre papéis dentro da mesma empresa**. As tela
 | R11 | Peças da ordem de serviço não baixam estoque — feito | P2 |
 | R12 | Auditoria cobre 7 tabelas; faltam financeiro, fiscal, empresa e papéis — feito | P2 |
 | R13 | Acesso é por empresa, não por filial (decidido: por filial; feito) | P2 |
-| R14 | Formulário público de contato sem limite de envios | P3 |
+| R14 | Formulário público de contato sem limite de envios — feito | P3 |
 
 ## 2. Como foi feito e o que não foi
 
@@ -190,7 +190,7 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R11 | P2 | Peça da OS sem baixa de estoque | nenhuma função ou gatilho de assistência chama `registrar_movimentacao` | Regra adotada: baixa ao aprovar a OS, devolução ao cancelar ou voltar para orçamento. Feito na migration `20261015000002_os_baixa_estoque.sql` | Peça aplicada baixa o estoque uma vez |
 | R12 | P2 | Auditoria curta | gatilho em 7 tabelas | Estender a auditoria a `contas_receber`, `contas_pagar`, `nfe`, `nfe_itens`, `empresas`, `filiais`, `fiscal_config`, `comissoes`, `user_roles`. Feito com `auditar_mudanca` na migration `20261015000003_auditoria_ampliada.sql` | Alteração e exclusão geram linha em `auditoria` |
 | R13 | P2 | Acesso por empresa, não por filial | nenhuma política cita filial | Decidido pelo dono: acesso por filial. Feito na migration `20261014000003_acesso_por_filial.sql` | — |
-| R14 | P3 | Formulário de contato sem limite | política `contatos_insert_publico` | Limite por origem/horário e verificação anti-robô | — |
+| R14 | P3 | Formulário de contato sem limite | política `contatos_insert_publico` | Limite por origem/horário e verificação anti-robô. Feito na migration `20261015000004_contato_limite_envios.sql` (sem CAPTCHA com chave) | — |
 
 ## 9. Papéis por operação (proposta para decidir antes de corrigir o R1)
 
@@ -234,10 +234,11 @@ Convenção: **P0** corrige antes de qualquer expansão; **P1** corrige na estab
 | R10 | Feito | Quatro fluxos viraram uma transação só: `filial_extra_criar` (filial + depósito + configuração fiscal; só administrador), `orcamento_salvar` (cabeçalho + itens + total calculado no banco, com cliente, obra, vendedor, profissional e produtos conferidos na empresa), `separacao_salvar` e `conferencia_salvar` (todos os itens ou nenhum; administrador, gestor e estoquista); o total da compra passa a acompanhar os itens por gatilho. As telas chamam as funções. Achado no caminho: a restrição antiga `fiscal_config (tenant_id, empresa_id)` impedia a configuração fiscal da filial extra e foi removida (os índices parciais já fazem a regra certa). Bloco 25 do `smoke.sql` | — |
 | R11 | Feito | `os_ordens.deposito_id` (de onde saem as peças) e gatilhos: a partir de "aprovada" (aprovada, em reparo, pronta, entregue) as peças com produto são baixadas do depósito; cancelar ou voltar para aberta, em análise ou orçamento devolve; peça incluída, alterada ou removida depois da aprovação acompanha na hora; cada item guarda o que foi baixado (`baixa_*`, que o usuário não altera), então a baixa não se repete. Sem depósito ou sem saldo a aprovação é recusada com a mensagem. As OS que já existiam ficaram fora (`controla_estoque = false`). A tela de OS ganhou o campo "Depósito das peças". Bloco 27 do `smoke.sql` | Decisão do dono sobre a regra (aprovar x concluir); peças digitadas sem produto não baixam |
 | R12 | Feito | `auditar_mudanca`: registra quem, quando, o que mudou (antes e depois) e exclusões em `contas_receber`, `contas_pagar`, `comissoes`, `nfe`, `nfe_itens`; também inclusões em `empresas`, `filiais`, `fiscal_config` e `user_roles`. Segredos (`nfse_token`, `nfse_usuario`) entram mascarados (`***`); o contador de numeração da nota (`proximo_numero`) fica fora, porque muda a cada emissão. Alteração do servidor entra com usuário em branco; apagar uma empresa em cascata não é barrado pela auditoria. Bloco 28 do `smoke.sql` | Tela para consultar a auditoria (hoje só pelo banco); ampliar a outras tabelas se quiser |
+| R14 | Feito | A gravação direta em `contatos` foi fechada; o formulário chama `contato_enviar`: campo escondido preenchido não grava (finge sucesso), envio antes de 3 s é recusado, valida tamanho, e-mail e WhatsApp, limita 5 envios por hora por origem (hash do IP, o IP não é guardado) e 100 por hora no total, e o mesmo contato em 10 minutos conta como um. Bloco 29 do `smoke.sql` | CAPTCHA com chave (Turnstile/hCaptcha): fecha o que ainda passa por chamada direta à API; precisa de uma chave da empresa |
 | R13 | Feito | Decisão do dono: acesso por filial. `pode_filial` e `filial_irrestrita`; política restritiva `filial_restrita` em `pedidos`, `caixas`, `depositos`, `contas_receber`, `contas_pagar`, `nfe`, `orcamentos`, `compras`, `devolucoes` e, por herança, `pedido_itens`, `pedido_historico`, `entregas`, `entrega_itens`, `caixa_movimentos`, `estoques`, `estoque_movimentacoes`; gatilho `filial_protege` para gravações dentro das funções (venda, caixa, nota, entrega, estoque). Administrador, gestor e usuário sem filial no perfil veem todas as filiais; linha sem filial é de todos. Bloco 24 do `smoke.sql` | Tabelas com `filial_id` que ficaram de fora (ver abaixo); telas com filtro de filial para a gestão, se quiser |
 | R8 | Feito | `empresa.tsx` passa a conferir o erro da configuração fiscal | Mover "salvar empresa" para uma função do banco (uma transação) |
 | R9 | Feito | CI aplica as duas pastas de migrations; checagem do salão por política restritiva, qualquer nome | Regra escrita de qual pasta cada pessoa usa |
-| R10 a R14 | Pendente | — | Próximas rodadas |
+
 
 ### Papéis aplicados (seção 9 aprovada)
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Check, Mail, MessageCircle, Phone } from "lucide-react";
@@ -55,18 +55,24 @@ function Contato() {
     mensagem: "",
   });
   const [enviado, setEnviado] = useState(false);
+  // anti-robô: campo escondido que uma pessoa nunca preenche e a hora em que o formulário abriu
+  const [armadilha, setArmadilha] = useState("");
+  const abertoEm = useRef(new Date().toISOString());
 
   const enviar = useMutation({
     mutationFn: async () => {
       if (form.nome.trim().length < 2) throw new Error("Informe o seu nome");
       if (!form.email.trim() && !form.whatsapp.trim())
         throw new Error("Informe e-mail ou WhatsApp para eu responder");
-      const { error } = await supabase.from("contatos").insert({
-        nome: form.nome.trim(),
-        email: form.email.trim() || null,
-        whatsapp: form.whatsapp.trim() || null,
-        plano_interesse: form.plano_interesse,
-        mensagem: form.mensagem.trim() || null,
+      // o banco confere tamanho, e-mail e WhatsApp e limita os envios por origem e por hora
+      const { error } = await supabase.rpc("contato_enviar", {
+        p_nome: form.nome.trim(),
+        ...(form.email.trim() ? { p_email: form.email.trim() } : {}),
+        ...(form.whatsapp.trim() ? { p_whatsapp: form.whatsapp.trim() } : {}),
+        p_plano: form.plano_interesse,
+        ...(form.mensagem.trim() ? { p_mensagem: form.mensagem.trim() } : {}),
+        p_site: armadilha,
+        p_aberto_em: abertoEm.current,
       });
       if (error) throw error;
     },
@@ -171,11 +177,23 @@ function Contato() {
                   enviar.mutate();
                 }}
               >
+                <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                  <label htmlFor="site">Não preencha este campo</label>
+                  <input
+                    id="site"
+                    name="site"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={armadilha}
+                    onChange={(e) => setArmadilha(e.target.value)}
+                  />
+                </div>
                 <div>
                   <Label htmlFor="nome">Nome ou nome da loja</Label>
                   <Input
                     id="nome"
                     className="mt-1"
+                    maxLength={120}
                     value={form.nome}
                     onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   />
@@ -187,6 +205,7 @@ function Contato() {
                       id="email"
                       type="email"
                       className="mt-1"
+                      maxLength={200}
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                     />
@@ -197,6 +216,7 @@ function Contato() {
                       id="whatsapp"
                       inputMode="tel"
                       className="mt-1"
+                      maxLength={40}
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                     />
@@ -226,6 +246,7 @@ function Contato() {
                     className="mt-1"
                     rows={4}
                     placeholder="Quantas lojas, depósitos e usuários você tem?"
+                    maxLength={2000}
                     value={form.mensagem}
                     onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
                   />

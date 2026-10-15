@@ -7208,6 +7208,18 @@ export type Database = {
         Args: { p_chave?: string; p_cnpj?: string; p_numero?: string; p_serie?: string }
         Returns: Json
       }
+      contato_enviar: {
+        Args: {
+          p_aberto_em?: string
+          p_email?: string
+          p_mensagem?: string
+          p_nome: string
+          p_plano?: string
+          p_site?: string
+          p_whatsapp?: string
+        }
+        Returns: boolean
+      }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
