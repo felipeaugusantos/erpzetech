@@ -206,6 +206,7 @@ const groups: Group[] = [
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Auditoria", to: "/auditoria", icon: ShieldCheck },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
       { label: "Painel da maquininha", to: "/tef-painel", icon: Wallet },
