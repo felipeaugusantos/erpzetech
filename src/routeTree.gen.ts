@@ -18,6 +18,7 @@ import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
@@ -164,6 +165,11 @@ const AuthenticatedAssistenciaLojasRoute =
     path: '/assistencia-lojas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBalancoFiscalRoute =
   AuthenticatedBalancoFiscalRouteImport.update({
     id: '/balanco-fiscal',
@@ -718,6 +724,7 @@ export interface FileRoutesByFullPath {
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -826,6 +833,7 @@ export interface FileRoutesByTo {
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -936,6 +944,7 @@ export interface FileRoutesById {
   '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
@@ -1046,6 +1055,7 @@ export interface FileRouteTypes {
     | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
+    | '/auditoria'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -1154,6 +1164,7 @@ export interface FileRouteTypes {
     | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
+    | '/auditoria'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -1263,6 +1274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
+    | '/_authenticated/auditoria'
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
@@ -1436,6 +1448,13 @@ declare module '@tanstack/react-router' {
       path: '/assistencia-lojas'
       fullPath: '/assistencia-lojas'
       preLoaderRoute: typeof AuthenticatedAssistenciaLojasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/balanco-fiscal': {
@@ -2131,6 +2150,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAjusteLotesRoute: typeof AuthenticatedAjusteLotesRoute
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
@@ -2234,6 +2254,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAjusteLotesRoute: AuthenticatedAjusteLotesRoute,
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,

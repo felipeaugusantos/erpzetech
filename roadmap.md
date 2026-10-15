@@ -131,6 +131,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] P0: comissão entre empresas (R3), venda offline duplicada (R4), nota fiscal protegida no servidor e no banco (parte de R2)
 - [x] Importação do XML de entrada que não trava: limite de 45 s com "Cancelar importação", outra nota pode ser importada em seguida, lotes do XML na mesma transação da compra, nota repetida recusada com atalho para a compra já criada; duplicidade conferida pela chave ou por número + série + fornecedor, com aviso já ao escolher o XML e mensagem de "em processo de importação" quando outra chamada da mesma nota está em andamento
 - [x] P3: formulário público de contato com limite de envios (R14): 5 por hora por origem, 100 por hora no total, campo escondido anti-robô, tamanho e formato validados
+- [x] Tela de auditoria (`/auditoria`, só administrador e gestor): filtros por o que mudou, tipo, usuário e período; mostra o valor de antes e o de depois; filtro "Sistema" para o que o servidor alterou; índices por empresa e data
 - [x] P2: auditoria ampliada (R12): financeiro, notas fiscais, empresa, filiais, configuração fiscal, comissões e papéis, com exclusões e segredos mascarados
 - [x] P2: peças da ordem de serviço baixam o estoque ao aprovar e devolvem ao cancelar (R11)
 - [x] P2: gravações em etapas viram transação (R10): filial extra, orçamento, separação e conferência; total da compra por gatilho
