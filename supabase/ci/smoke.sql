@@ -1265,6 +1265,16 @@ BEGIN
   PERFORM ci.exige(v3 <> v1, 'outra chave é outra venda');
   PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM pedidos WHERE tenant_id = %L AND chave_idempotencia IS NOT NULL$c$, demo)) = 2, 'a chave fica guardada na venda');
 
+  -- aviso de venda repetida: a tela pergunta se a chave já tem venda antes de reenviar
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige((frente_venda_existente(chave_venda) ->> 'pedido_id') = v1::text, 'a chave de uma venda já feita devolve o pedido');
+  PERFORM ci.exige((frente_venda_existente(chave_venda) ->> 'numero')::bigint = (SELECT numero FROM pedidos WHERE id = v1), 'e o número dele');
+  PERFORM ci.exige(frente_venda_existente(gen_random_uuid()) IS NULL, 'chave sem venda devolve nulo');
+  PERFORM ci.exige(frente_venda_existente(NULL) IS NULL, 'sem chave devolve nulo');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT frente_venda_existente(%L)$c$, chave_venda), 'anon consulta venda por chave');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT frente_venda_existente(%L)$c$, chave_venda), 'garçom consulta venda por chave');
+
   -- R2: o andamento da nota não muda por escrita direta; o dono do banco (funções e servidor) muda
   PERFORM ci.entrar(adm);
   nota := gerar_nfe(ped);

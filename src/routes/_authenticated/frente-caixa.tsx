@@ -197,11 +197,31 @@ function FrenteCaixa() {
     enviando.current = true;
     const restantes: Pendente[] = [];
     let ok = 0;
+    let repetidas = 0;
     for (const p of atual) {
       // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
       if (p.erro) {
         restantes.push(p);
         continue;
+      }
+      // Resposta perdida: a venda pode já estar no banco. Avisa em vez de reenviar em silêncio.
+      const chave = (p.params as { p_chave?: string }).p_chave;
+      if (chave) {
+        const { data: ja } = await supabase.rpc("frente_venda_existente", { p_chave: chave });
+        const existente = ja as { pedido_id: string; numero: number | null } | null;
+        if (existente) {
+          repetidas++;
+          toast.warning(
+            `Venda de ${brl(p.total)} já estava registrada${existente.numero != null ? ` (pedido nº ${existente.numero})` : ""}`,
+            {
+              description:
+                "A resposta do envio anterior tinha se perdido. A venda não foi lançada de novo: confira no caixa que o valor entrou uma vez só.",
+              duration: Infinity,
+              closeButton: true,
+            },
+          );
+          continue;
+        }
       }
       const { error } = await supabase.rpc("frente_venda", p.params as never);
       if (error) {
@@ -216,10 +236,8 @@ function FrenteCaixa() {
     }
     salvarFila(restantes);
     enviando.current = false;
-    if (ok) {
-      toast.success(`${ok} venda(s) guardada(s) enviada(s)`);
-      void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
-    }
+    if (ok) toast.success(`${ok} venda(s) guardada(s) enviada(s)`);
+    if (ok || repetidas) void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
   }
 
   useEffect(() => {

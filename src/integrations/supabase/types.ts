@@ -7220,6 +7220,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
