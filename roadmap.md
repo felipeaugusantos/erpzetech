@@ -145,6 +145,6 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Base da NFC-e no banco (migration `20261016000000_nfce_base.sql`): configuração com CSC secreto e numeração própria (`nfce_config`, só administrador e gestor), nota modelo 65 criada pelo pedido (`nfce_criar`, idempotente, com CPF opcional e lista de pendências), número reservado só quando a nota está pronta, campos de contingência e tentativas protegidos como o andamento da nota, auditoria sem o token
 - [x] Tela de pendências fiscais (`/pendencias-fiscais`): notas rejeitadas, em contingência, sem retorno há mais de 15 minutos e NFC-e em rascunho; eventos de pagamento que falharam, foram ignorados ou ficaram sem resposta (só administrador, gestor e financeiro)
 - [ ] Transmissão da NFC-e pela ACBr, com contingência e nova tentativa (depende de liberar `dev.acbr.api.br` ou da documentação da API de NFC-e)
-- [ ] Tela para cadastrar o CSC e a série da NFC-e
+- [x] Tela para cadastrar o CSC e a série da NFC-e (`/nfce-config`, só administrador e gestor): o token fica guardado e não volta para a tela; série e contingência manual; o contador é do sistema
 - [ ] Botão de emitir NFC-e na frente de caixa e no PDV
 - [ ] Pix com cobrança automática e boleto registrado (depende do provedor escolhido)

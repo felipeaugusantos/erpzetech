@@ -7236,6 +7236,32 @@ export type Database = {
           tentativas: number
         }[]
       }
+      nfce_config_listar: {
+        Args: never
+        Returns: {
+          ambiente: string
+          certificado_nome: string | null
+          contingencia_ativa: boolean
+          csc_configurado: boolean
+          csc_id: string | null
+          emissor: string | null
+          filial_id: string | null
+          filial_nome: string
+          fiscal_config_id: string
+          proximo_numero: number
+          serie: number
+        }[]
+      }
+      nfce_config_salvar: {
+        Args: {
+          p_contingencia?: boolean
+          p_csc_id: string
+          p_csc_token?: string
+          p_fiscal_config_id: string
+          p_serie: number
+        }
+        Returns: undefined
+      }
       nfce_criar: { Args: { p_pedido_id: string; p_cpf?: string }; Returns: string }
       frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
