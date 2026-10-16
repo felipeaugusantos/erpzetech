@@ -74,3 +74,17 @@ export const ROTULO_PROVEDOR: Record<string, string> = {
 export function rotuloProvedor(provedor: string): string {
   return ROTULO_PROVEDOR[provedor] ?? provedor;
 }
+
+/**
+ * Filtro das notas pendentes para a consulta (PostgREST `or`). A espera da nota enviada entra no filtro, e não só na
+ * tela, para o limite de linhas não esconder as notas travadas atrás de centenas de envios recentes.
+ */
+export function filtroNotasPendentes(agora: Date): string {
+  const limite = new Date(agora.getTime() - MINUTOS_SEM_RETORNO * 60_000).toISOString();
+  return [
+    "situacao.in.(rejeitada,contingencia)",
+    "and(modelo.eq.nfce,situacao.eq.rascunho)",
+    `and(situacao.eq.transmitida,transmitida_em.lt.${limite})`,
+    `and(situacao.eq.transmitida,transmitida_em.is.null,updated_at.lt.${limite})`,
+  ].join(",");
+}

@@ -23,6 +23,7 @@ import {
   ROTULO_PENDENCIA,
   classificarNota,
   contarPorTipo,
+  filtroNotasPendentes,
   rotuloProvedor,
   type TipoPendencia,
 } from "@/lib/pendencias-fiscais";
@@ -71,9 +72,7 @@ function PendenciasFiscais() {
         .select(
           "id, modelo, numero, serie, situacao, valor_total, mensagem, pendencias, tentativas, updated_at, transmitida_em",
         )
-        .or(
-          "situacao.in.(rejeitada,contingencia,transmitida),and(modelo.eq.nfce,situacao.eq.rascunho)",
-        )
+        .or(filtroNotasPendentes(new Date()))
         .order("updated_at", { ascending: false })
         .limit(300);
       if (error) throw error;

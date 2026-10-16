@@ -2120,7 +2120,7 @@ DECLARE
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
   cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
-  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
+  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; ped5 uuid; fil_emit uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
   n_linhas bigint;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'NFC-e CI') RETURNING id INTO dep;
@@ -2180,6 +2180,23 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'rascunho' AND numero IS NULL AND 'CPF do consumidor inválido' = ANY (pendencias) FROM nfe WHERE id = n3),
                    'CPF inválido deixa a nota em rascunho');
+
+  -- emitente: a filial do pedido manda quando tem CNPJ, inscrição e endereço próprios; o que ela não tem vem da empresa
+  INSERT INTO filiais (tenant_id, empresa_id, nome, cnpj, inscricao_estadual, endereco, cidade)
+  VALUES (demo, emp, 'Filial emitente CI', '98765432000110', '999888777', 'Rua da Filial', NULL) RETURNING id INTO fil_emit;
+  PERFORM ci.entrar(adm);
+  ped5 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 15)));
+  PERFORM ci.sair();
+  UPDATE pedidos SET filial_id = fil_emit WHERE id = ped5;
+  PERFORM ci.entrar(adm);
+  n3 := nfce_criar(ped5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT emitente ->> 'cnpj' = '98765432000110' AND emitente ->> 'inscricao_estadual' = '999888777'
+                           AND emitente ->> 'endereco' = 'Rua da Filial' AND emitente ->> 'filial' = 'Filial emitente CI'
+                           AND emitente ->> 'razao_social' IS NOT DISTINCT FROM (SELECT razao_social FROM empresas WHERE id = emp)
+                           AND emitente ->> 'estado' IS NOT DISTINCT FROM (SELECT estado FROM empresas WHERE id = emp)
+                      FROM nfe WHERE id = n3),
+                   'o emitente usa o CNPJ, a inscrição e o endereço da filial, e a empresa no que a filial não tem');
 
   -- uma venda não leva NFC-e e NF-e ao mesmo tempo
   PERFORM ci.deve_falhar(adm, format($c$SELECT gerar_nfe(%L)$c$, ped3), 'NF-e de pedido que já tem NFC-e');
