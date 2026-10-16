@@ -2154,7 +2154,7 @@ BEGIN
 
   -- configura (como o dono do banco); o pedido volta a ser montado e fica pronto
   UPDATE fiscal_config SET certificado_nome = 'cert.pfx', emissor = 'acbr' WHERE id = cfg;
-  UPDATE nfce_config SET csc_id = '1', csc_token = 'SEGREDO-CSC', serie = 3 WHERE fiscal_config_id = cfg;
+  UPDATE nfce_config SET csc_id = '1', csc_token = 'SEGREDOCSC0123456789', serie = 3 WHERE fiscal_config_id = cfg;
   PERFORM ci.entrar(vend);
   n1b := nfce_criar(ped);
   PERFORM ci.sair();
@@ -2211,15 +2211,15 @@ BEGIN
   -- CSC é segredo: só administrador e gestor leem; ninguém mexe na numeração pela tela; a auditoria mascara o token
   PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'vendedor não lê a configuração da NFC-e');
   PERFORM ci.exige(ci.contar(cxa, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'caixa não lê a configuração da NFC-e');
-  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM nfce_config WHERE csc_token = 'SEGREDO-CSC'$c$) = 1, 'administrador lê o CSC');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM nfce_config WHERE csc_token = 'SEGREDOCSC0123456789'$c$) = 1, 'administrador lê o CSC');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfce_config SET proximo_numero = 1 WHERE fiscal_config_id = %L$c$, cfg), 'administrador volta a numeração');
   PERFORM ci.entrar(vend);
-  UPDATE nfce_config SET csc_token = 'ROUBADO' WHERE fiscal_config_id = cfg;
+  UPDATE nfce_config SET csc_token = 'ROUBADOROUBADO0123' WHERE fiscal_config_id = cfg;
   GET DIAGNOSTICS n_linhas = ROW_COUNT;
   PERFORM ci.sair();
   PERFORM ci.exige(n_linhas = 0, 'vendedor não troca o CSC');
   PERFORM ci.entrar(adm);
-  UPDATE nfce_config SET csc_token = 'NOVO-SEGREDO', contingencia_ativa = true WHERE fiscal_config_id = cfg;
+  UPDATE nfce_config SET csc_token = 'NOVOSEGREDO01234567', contingencia_ativa = true WHERE fiscal_config_id = cfg;
   PERFORM ci.sair();
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'nfce_config'
                                   AND (valor_anterior::text LIKE '%SEGREDO%' OR valor_novo::text LIKE '%SEGREDO%')),
@@ -2246,4 +2246,74 @@ BEGIN
   PERFORM ci.deve_falhar(cxa, $c$SELECT * FROM eventos_pendentes()$c$, 'caixa vê eventos pendentes');
   PERFORM ci.deve_falhar(NULL, $c$SELECT * FROM eventos_pendentes()$c$, 'anon vê eventos pendentes');
   PERFORM ci.deve_falhar(adm, $c$SELECT * FROM webhook_eventos$c$, 'administrador lê a tabela de eventos direto');
+END $$;
+
+-- 32. Tela de configuração da NFC-e: lista sem o token, grava com validação e só administrador e gestor
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  cfg uuid; emp uuid; outro uuid; tb uuid; num_antes integer;
+BEGIN
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at, id LIMIT 1;
+  SELECT id INTO cfg FROM fiscal_config WHERE empresa_id = emp AND filial_id IS NULL ORDER BY created_at LIMIT 1;
+  SELECT proximo_numero INTO num_antes FROM nfce_config WHERE fiscal_config_id = cfg;
+
+  -- quem pode
+  PERFORM ci.deve_falhar(vend, $c$SELECT * FROM nfce_config_listar()$c$, 'vendedor lista a configuração da NFC-e');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT * FROM nfce_config_listar()$c$, 'caixa lista a configuração da NFC-e');
+  PERFORM ci.deve_falhar(gar, $c$SELECT * FROM nfce_config_listar()$c$, 'garçom lista a configuração da NFC-e');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT * FROM nfce_config_listar()$c$, 'anon lista a configuração da NFC-e');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT nfce_config_salvar(%L, 1, '1', NULL, false)$c$, cfg), 'vendedor salva a configuração da NFC-e');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT nfce_config_salvar(%L, 1, '1', NULL, false)$c$, cfg), 'anon salva a configuração da NFC-e');
+
+  -- a lista não devolve o token, só se está configurado
+  PERFORM ci.exige(ci.contar(gest, format($c$SELECT count(*) FROM nfce_config_listar() WHERE fiscal_config_id = %L AND csc_configurado AND csc_id = '1'$c$, cfg)) = 1,
+                   'a lista mostra o código e que o token está configurado');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                     WHERE n.nspname = 'public' AND p.proname = 'nfce_config_listar' AND pg_get_function_result(p.oid) LIKE '%csc_token%'),
+                   'o tipo de retorno da lista não tem o token');
+
+  -- validações
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1000, '1', NULL, false)$c$, cfg), 'série fora da faixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, 'abc', NULL, false)$c$, cfg), 'código do CSC com letras');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1234567', NULL, false)$c$, cfg), 'código do CSC com 7 números');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1', 'curto', false)$c$, cfg), 'token curto');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1', 'TOKEN-COM-TRACO-1234', false)$c$, cfg), 'token com símbolo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1', NULL, false)$c$, gen_random_uuid()), 'configuração inexistente');
+
+  -- gravar: token em branco mantém o que existe; o contador não muda
+  PERFORM ci.entrar(gest);
+  PERFORM nfce_config_salvar(cfg, 7, '9', NULL, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT serie = 7 AND csc_id = '9' AND contingencia_ativa AND csc_token = 'NOVOSEGREDO01234567' AND proximo_numero = num_antes
+                      FROM nfce_config WHERE fiscal_config_id = cfg), 'token em branco mantém o guardado; série, código e contingência mudam; contador intacto');
+  PERFORM ci.entrar(adm);
+  PERFORM nfce_config_salvar(cfg, 7, '9', 'TrocaDoToken0123456789', false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT csc_token = 'TrocaDoToken0123456789' AND NOT contingencia_ativa FROM nfce_config WHERE fiscal_config_id = cfg), 'token novo substitui o antigo');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'nfce_config'
+                                  AND (valor_anterior::text LIKE '%TrocaDoToken%' OR valor_novo::text LIKE '%TrocaDoToken%')),
+                   'a auditoria da tela não guarda o token');
+
+  -- configuração que ainda não tem linha de NFC-e: aparece com padrões e a gravação cria
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Filial NFC-e tela') RETURNING id INTO outro;
+  INSERT INTO fiscal_config (tenant_id, empresa_id, filial_id) VALUES (demo, emp, outro) RETURNING id INTO cfg;
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM nfce_config_listar() WHERE fiscal_config_id = %L AND serie = 1 AND proximo_numero = 1 AND NOT csc_configurado AND filial_nome = 'Filial NFC-e tela'$c$, cfg)) = 1,
+                   'configuração sem NFC-e aparece com os padrões');
+  PERFORM ci.entrar(adm);
+  PERFORM nfce_config_salvar(cfg, 2, '3', 'TokenDaFilial0123456789', false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT serie = 2 AND csc_id = '3' AND proximo_numero = 1 FROM nfce_config WHERE fiscal_config_id = cfg), 'a gravação cria a linha da NFC-e');
+
+  -- outra empresa não enxerga nem grava
+  INSERT INTO tenants (nome) VALUES ('NFC-e tela B') RETURNING id INTO tb;
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM nfce_config_listar() WHERE fiscal_config_id = %L$c$, gen_random_uuid())) = 0, 'id solto não aparece');
+  INSERT INTO fiscal_config (tenant_id) VALUES (tb);
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1', NULL, false)$c$, (SELECT id FROM fiscal_config WHERE tenant_id = tb)), 'salvar configuração de outra empresa');
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM nfce_config_listar() WHERE fiscal_config_id = %L$c$, (SELECT id FROM fiscal_config WHERE tenant_id = tb))) = 0, 'não lista a configuração de outra empresa');
 END $$;
