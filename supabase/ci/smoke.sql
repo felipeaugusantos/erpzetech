@@ -2208,18 +2208,16 @@ BEGIN
   UPDATE nfe SET situacao = 'contingencia', contingencia = true, tentativas = 1 WHERE id = n1b;
   PERFORM ci.exige((SELECT contingencia AND tentativas = 1 FROM nfe WHERE id = n1b), 'o servidor registra a contingência');
 
-  -- CSC é segredo: só administrador e gestor leem; ninguém mexe na numeração pela tela; a auditoria mascara o token
-  PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'vendedor não lê a configuração da NFC-e');
-  PERFORM ci.exige(ci.contar(cxa, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'caixa não lê a configuração da NFC-e');
-  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM nfce_config WHERE csc_token = 'SEGREDOCSC0123456789'$c$) = 1, 'administrador lê o CSC');
+  -- CSC é segredo: o navegador não lê nem grava a tabela direto (só as funções da tela); a auditoria mascara o token
+  PERFORM ci.deve_falhar(vend, $c$SELECT count(*) FROM nfce_config$c$, 'vendedor lê a tabela da NFC-e');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT count(*) FROM nfce_config$c$, 'caixa lê a tabela da NFC-e');
+  PERFORM ci.deve_falhar(adm, $c$SELECT csc_token FROM nfce_config$c$, 'administrador lê o token direto da tabela');
   PERFORM ci.deve_falhar(adm, format($c$UPDATE nfce_config SET proximo_numero = 1 WHERE fiscal_config_id = %L$c$, cfg), 'administrador volta a numeração');
-  PERFORM ci.entrar(vend);
-  UPDATE nfce_config SET csc_token = 'ROUBADOROUBADO0123' WHERE fiscal_config_id = cfg;
-  GET DIAGNOSTICS n_linhas = ROW_COUNT;
-  PERFORM ci.sair();
-  PERFORM ci.exige(n_linhas = 0, 'vendedor não troca o CSC');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfce_config SET csc_token = 'ROUBADOROUBADO0123' WHERE fiscal_config_id = %L$c$, cfg), 'administrador troca o CSC direto na tabela');
+  PERFORM ci.deve_falhar(vend, format($c$UPDATE nfce_config SET csc_token = 'ROUBADOROUBADO0123' WHERE fiscal_config_id = %L$c$, cfg), 'vendedor troca o CSC direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO nfce_config (fiscal_config_id) VALUES (%L)$c$, gen_random_uuid()), 'administrador insere direto na tabela da NFC-e');
   PERFORM ci.entrar(adm);
-  UPDATE nfce_config SET csc_token = 'NOVOSEGREDO01234567', contingencia_ativa = true WHERE fiscal_config_id = cfg;
+  PERFORM nfce_config_salvar(cfg, 3, '1', 'NOVOSEGREDO01234567', true);
   PERFORM ci.sair();
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'nfce_config'
                                   AND (valor_anterior::text LIKE '%SEGREDO%' OR valor_novo::text LIKE '%SEGREDO%')),

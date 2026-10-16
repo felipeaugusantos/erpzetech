@@ -2,6 +2,10 @@
 -- A tela lê e grava só por estas funções: o token do CSC nunca volta para o navegador (a lista informa apenas se está
 -- configurado) e o contador de numeração continua só do banco.
 
+-- Sem leitura nem escrita direta pelo navegador: o token do CSC só trafega do navegador para o banco, nunca de volta.
+-- Quem lista e grava são as funções abaixo (e as de emissão, que rodam como dono do banco).
+REVOKE ALL ON public.nfce_config FROM authenticated, anon;
+
 -- CSC no formato aceito: código de 1 a 6 dígitos; token de 16 a 40 letras e números.
 ALTER TABLE public.nfce_config DROP CONSTRAINT IF EXISTS nfce_config_csc_formato;
 ALTER TABLE public.nfce_config ADD CONSTRAINT nfce_config_csc_formato CHECK (
