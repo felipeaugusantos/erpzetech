@@ -2111,3 +2111,139 @@ BEGIN
                      WHERE empresa_id = emp2 AND filial_id IS NULL), 'o primeiro cadastro cria a configuração fiscal com o regime');
   PERFORM ci.exige((SELECT razao_social = razao_antes FROM empresas WHERE id = emp), 'a empresa de outro cliente não foi tocada');
 END $$;
+
+-- 31. Fase 2 / NFC-e: configuração com CSC secreto, nota modelo 65 criada pelo pedido, numeração própria e eventos pendentes
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
+  n_linhas bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'NFC-e CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, ncm, cst_csosn)
+  VALUES (demo, 'NFCE-1', 'Item NFC-e', 'un', 5, '12345678', '102') RETURNING id INTO prod;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente NFC-e') RETURNING id INTO cli;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  ped := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 50)));
+  ped2 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 30)));
+  ped3 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 20)));
+  PERFORM ci.sair();
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at, id LIMIT 1;
+  UPDATE empresas SET cnpj = '12345678000195', inscricao_estadual = '111222333', estado = 'SP' WHERE id = emp;
+
+  -- papéis: quem emite no balcão pode; garçom e anon não
+  PERFORM ci.deve_falhar(gar, format($c$SELECT nfce_criar(%L)$c$, ped), 'garçom cria NFC-e');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT nfce_criar(%L)$c$, ped), 'anon cria NFC-e');
+
+  -- sem CSC, certificado e emissor: nota em rascunho, sem número (a sequência não é gasta)
+  PERFORM ci.entrar(vend);
+  n1 := nfce_criar(ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT modelo = 'nfce' AND situacao = 'rascunho' AND numero IS NULL AND valor_total = 100
+                           AND 'CSC da NFC-e (código e token) não configurado' = ANY (pendencias)
+                           AND 'Certificado digital A1 não configurado' = ANY (pendencias) FROM nfe WHERE id = n1),
+                   'sem CSC e certificado a NFC-e fica em rascunho, com as pendências, sem número');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM nfe_itens WHERE nfe_id = n1), 'a NFC-e leva os itens do pedido');
+  SELECT id INTO cfg FROM fiscal_config WHERE empresa_id = emp AND filial_id IS NULL ORDER BY created_at LIMIT 1;
+  PERFORM ci.exige((SELECT proximo_numero = 1 FROM nfce_config WHERE fiscal_config_id = cfg), 'rascunho não gasta número');
+
+  -- configura (como o dono do banco); o pedido volta a ser montado e fica pronto
+  UPDATE fiscal_config SET certificado_nome = 'cert.pfx', emissor = 'acbr' WHERE id = cfg;
+  UPDATE nfce_config SET csc_id = '1', csc_token = 'SEGREDO-CSC', serie = 3 WHERE fiscal_config_id = cfg;
+  PERFORM ci.entrar(vend);
+  n1b := nfce_criar(ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige(n1b <> n1 AND NOT EXISTS (SELECT 1 FROM nfe WHERE id = n1), 'o rascunho é refeito, não duplicado');
+  PERFORM ci.exige((SELECT situacao = 'pronta' AND numero = 1 AND serie = 3 AND pendencias = '{}' FROM nfe WHERE id = n1b),
+                   'com tudo configurado a NFC-e fica pronta, série 3, número 1');
+
+  -- repetir devolve a mesma nota e não gasta outro número
+  PERFORM ci.entrar(cxa);
+  n2 := nfce_criar(ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige(n2 = n1b, 'repetir a criação devolve a mesma NFC-e');
+  PERFORM ci.exige((SELECT proximo_numero = 2 FROM nfce_config WHERE fiscal_config_id = cfg), 'a sequência andou uma vez só');
+
+  -- outro pedido: próximo número; CPF identificado vai na nota; CPF ruim vira pendência
+  PERFORM ci.entrar(adm);
+  n3 := nfce_criar(ped2, '123.456.789-09');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT numero = 2 AND situacao = 'pronta' AND destinatario ->> 'cpf' = '12345678909' FROM nfe WHERE id = n3),
+                   'segundo pedido leva o número 2 e o CPF do consumidor');
+  PERFORM ci.entrar(adm);
+  n3 := nfce_criar(ped3, '123');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'rascunho' AND numero IS NULL AND 'CPF do consumidor inválido' = ANY (pendencias) FROM nfe WHERE id = n3),
+                   'CPF inválido deixa a nota em rascunho');
+
+  -- uma venda não leva NFC-e e NF-e ao mesmo tempo
+  PERFORM ci.deve_falhar(adm, format($c$SELECT gerar_nfe(%L)$c$, ped3), 'NF-e de pedido que já tem NFC-e');
+  PERFORM ci.entrar(adm);
+  ped4 := criar_pedido_direto(cli, dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)));
+  PERFORM gerar_nfe(ped4);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_criar(%L)$c$, ped4), 'NFC-e de pedido que já tem NF-e');
+
+  -- número de NFC-e nunca repete na série
+  BEGIN
+    INSERT INTO nfe (tenant_id, empresa_id, modelo, serie, numero) SELECT tenant_id, empresa_id, 'nfce', serie, numero FROM nfe WHERE id = n1b;
+    PERFORM ci.exige(false, 'inserir NFC-e com número repetido deveria falhar');
+  EXCEPTION WHEN unique_violation THEN
+    PERFORM ci.exige(true, 'número de NFC-e não repete na série');
+  END;
+
+  -- o andamento e a contingência só mudam pelo servidor
+  PERFORM ci.entrar(vend);
+  UPDATE nfe SET contingencia = true WHERE id = n1b;
+  GET DIAGNOSTICS n_linhas = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_linhas = 0 AND NOT (SELECT contingencia FROM nfe WHERE id = n1b), 'vendedor não marca contingência direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET tentativas = 9 WHERE id = %L$c$, n1b), 'administrador altera as tentativas');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfe SET modelo = 'nfe' WHERE id = %L$c$, n1b), 'administrador troca o modelo da nota');
+  UPDATE nfe SET situacao = 'contingencia', contingencia = true, tentativas = 1 WHERE id = n1b;
+  PERFORM ci.exige((SELECT contingencia AND tentativas = 1 FROM nfe WHERE id = n1b), 'o servidor registra a contingência');
+
+  -- CSC é segredo: só administrador e gestor leem; ninguém mexe na numeração pela tela; a auditoria mascara o token
+  PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'vendedor não lê a configuração da NFC-e');
+  PERFORM ci.exige(ci.contar(cxa, $c$SELECT count(*) FROM nfce_config$c$) = 0, 'caixa não lê a configuração da NFC-e');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM nfce_config WHERE csc_token = 'SEGREDO-CSC'$c$) = 1, 'administrador lê o CSC');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE nfce_config SET proximo_numero = 1 WHERE fiscal_config_id = %L$c$, cfg), 'administrador volta a numeração');
+  PERFORM ci.entrar(vend);
+  UPDATE nfce_config SET csc_token = 'ROUBADO' WHERE fiscal_config_id = cfg;
+  GET DIAGNOSTICS n_linhas = ROW_COUNT;
+  PERFORM ci.sair();
+  PERFORM ci.exige(n_linhas = 0, 'vendedor não troca o CSC');
+  PERFORM ci.entrar(adm);
+  UPDATE nfce_config SET csc_token = 'NOVO-SEGREDO', contingencia_ativa = true WHERE fiscal_config_id = cfg;
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'nfce_config'
+                                  AND (valor_anterior::text LIKE '%SEGREDO%' OR valor_novo::text LIKE '%SEGREDO%')),
+                   'a auditoria não guarda o token do CSC');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM auditoria WHERE entidade = 'nfce_config' AND valor_novo ->> 'contingencia_ativa' = 'true'),
+                   'a auditoria guarda a troca da contingência');
+
+  -- eventos de pagamento pendentes: só os da empresa, só falhos/ignorados/presos, só financeiro, gestor e administrador
+  INSERT INTO tenants (nome) VALUES ('NFC-e B') RETURNING id INTO tb;
+  INSERT INTO webhook_eventos (provedor, event_id, tenant_id, status, erro, payload) VALUES
+    ('pix', 'ev-erro', demo, 'erro', 'falhou a baixa', '{}'),
+    ('pix', 'ev-ok', demo, 'processado', NULL, '{}'),
+    ('pix', 'ev-ign', demo, 'ignorado', NULL, '{}'),
+    ('pix', 'ev-novo', demo, 'recebido', NULL, '{}'),
+    ('pix', 'ev-preso', demo, 'recebido', NULL, '{}'),
+    ('pix', 'ev-outro', tb, 'erro', 'de outra empresa', '{}'),
+    ('pix', 'ev-sem', NULL, 'erro', 'sem empresa', '{}');
+  UPDATE webhook_eventos SET recebido_em = now() - interval '1 hour' WHERE event_id = 'ev-preso';
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM eventos_pendentes()$c$) = 3, 'administrador vê erro, ignorado e preso da própria empresa');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM eventos_pendentes() WHERE event_id IN ('ev-ok', 'ev-novo', 'ev-outro', 'ev-sem')$c$) = 0,
+                   'não vê processado, recente, de outra empresa nem sem empresa');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM eventos_pendentes() WHERE event_id = 'ev-erro' AND erro = 'falhou a baixa'$c$) = 1, 'mostra o erro');
+  PERFORM ci.deve_falhar(vend, $c$SELECT * FROM eventos_pendentes()$c$, 'vendedor vê eventos pendentes');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT * FROM eventos_pendentes()$c$, 'caixa vê eventos pendentes');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT * FROM eventos_pendentes()$c$, 'anon vê eventos pendentes');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM webhook_eventos$c$, 'administrador lê a tabela de eventos direto');
+END $$;

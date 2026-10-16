@@ -78,6 +78,7 @@ import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authent
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
 import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
+import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
 import { Route as AuthenticatedPrefeituraRouteImport } from './routes/_authenticated/prefeitura'
@@ -496,6 +497,12 @@ const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
   path: '/pdv',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPendenciasFiscaisRoute =
+  AuthenticatedPendenciasFiscaisRouteImport.update({
+    id: '/pendencias-fiscais',
+    path: '/pendencias-fiscais',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
   id: '/planos',
   path: '/planos',
@@ -784,6 +791,7 @@ export interface FileRoutesByFullPath {
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
+  '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -893,6 +901,7 @@ export interface FileRoutesByTo {
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
+  '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -1004,6 +1013,7 @@ export interface FileRoutesById {
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
+  '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
   '/_authenticated/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -1115,6 +1125,7 @@ export interface FileRouteTypes {
     | '/painel-fiscal'
     | '/painel-locacao'
     | '/pdv'
+    | '/pendencias-fiscais'
     | '/planos'
     | '/precos'
     | '/prefeitura'
@@ -1224,6 +1235,7 @@ export interface FileRouteTypes {
     | '/painel-fiscal'
     | '/painel-locacao'
     | '/pdv'
+    | '/pendencias-fiscais'
     | '/planos'
     | '/precos'
     | '/prefeitura'
@@ -1334,6 +1346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel-fiscal'
     | '/_authenticated/painel-locacao'
     | '/_authenticated/pdv'
+    | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/planos'
     | '/_authenticated/precos'
     | '/_authenticated/prefeitura'
@@ -1870,6 +1883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPdvRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pendencias-fiscais': {
+      id: '/_authenticated/pendencias-fiscais'
+      path: '/pendencias-fiscais'
+      fullPath: '/pendencias-fiscais'
+      preLoaderRoute: typeof AuthenticatedPendenciasFiscaisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos': {
       id: '/_authenticated/planos'
       path: '/planos'
@@ -2210,6 +2230,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
   AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
+  AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
   AuthenticatedPrefeituraRoute: typeof AuthenticatedPrefeituraRoute
@@ -2314,6 +2335,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,
   AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
+  AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
   AuthenticatedPrefeituraRoute: AuthenticatedPrefeituraRoute,

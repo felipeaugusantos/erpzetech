@@ -156,6 +156,7 @@ const groups: Group[] = [
       { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
+      { label: "Pendências fiscais", to: "/pendencias-fiscais", icon: FileText },
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
       { label: "Impostos por filial", to: "/impostos-filial", icon: Percent },
       { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },

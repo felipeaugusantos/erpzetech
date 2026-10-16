@@ -3889,6 +3889,7 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
+          contingencia: boolean
           codigo_servico: string | null
           created_at: string
           deposito_id: string | null
@@ -3910,6 +3911,7 @@ export type Database = {
           pdf_url: string | null
           pedido_id: string | null
           pendencias: string[]
+          proxima_tentativa_em: string | null
           protocolo: string | null
           provider: string | null
           provider_id: string | null
@@ -3917,6 +3919,7 @@ export type Database = {
           retorno: Json | null
           serie: number
           situacao: string
+          tentativas: number
           tenant_id: string
           transmitida_em: string | null
           updated_at: string
@@ -7221,6 +7224,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      eventos_pendentes: {
+        Args: never
+        Returns: {
+          erro: string | null
+          event_id: string
+          id: string
+          provedor: string
+          recebido_em: string
+          status: string
+          tentativas: number
+        }[]
+      }
+      nfce_criar: { Args: { p_pedido_id: string; p_cpf?: string }; Returns: string }
       frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       gerar_comissoes: { Args: never; Returns: number }
