@@ -5,6 +5,7 @@ import {
   MINUTOS_SEM_RETORNO,
   classificarNota,
   contarPorTipo,
+  filtroNotasPendentes,
   rotuloProvedor,
   type NotaPendente,
 } from "../src/lib/pendencias-fiscais.ts";
@@ -77,4 +78,13 @@ test("contarPorTipo soma cada tipo", () => {
 test("provedor conhecido ganha nome em português; desconhecido aparece como veio", () => {
   assert.equal(rotuloProvedor("pix"), "Pix");
   assert.equal(rotuloProvedor("asaas"), "asaas");
+});
+
+test("o filtro da consulta já deixa de fora a nota enviada há pouco", () => {
+  const filtro = filtroNotasPendentes(agora);
+  const limite = new Date(agora.getTime() - MINUTOS_SEM_RETORNO * 60_000).toISOString();
+  assert.ok(filtro.includes(`transmitida_em.lt.${limite}`));
+  assert.ok(filtro.includes(`transmitida_em.is.null,updated_at.lt.${limite}`));
+  assert.ok(!filtro.includes("situacao.in.(rejeitada,contingencia,transmitida)"));
+  assert.ok(filtro.includes("situacao.in.(rejeitada,contingencia)"));
 });
