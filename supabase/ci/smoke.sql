@@ -2120,7 +2120,7 @@ DECLARE
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
   cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
-  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; ped5 uuid; fil_emit uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
+  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; ped5 uuid; ped6 uuid; fil_emit uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
   n_linhas bigint;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'NFC-e CI') RETURNING id INTO dep;
@@ -2180,6 +2180,19 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'rascunho' AND numero IS NULL AND 'CPF do consumidor inválido' = ANY (pendencias) FROM nfe WHERE id = n3),
                    'CPF inválido deixa a nota em rascunho');
+
+  -- venda do balcão (frente de caixa, sem cliente): o caixa e o vendedor também criam a NFC-e dela
+  PERFORM ci.entrar(adm);
+  ped6 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 12)), 'dinheiro', NULL, 0, 1, NULL, NULL, gen_random_uuid());
+  PERFORM ci.sair();
+  PERFORM ci.entrar(cxa);
+  n3 := nfce_criar(ped6, '52998224725');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT modelo = 'nfce' AND valor_total = 24 AND destinatario ->> 'cpf' = '52998224725'
+                      FROM nfe WHERE id = n3), 'o caixa cria a NFC-e da venda do balcão, com o CPF do consumidor');
+  PERFORM ci.entrar(vend);
+  PERFORM ci.exige(nfce_criar(ped6) = n3, 'repetir pelo vendedor devolve a mesma NFC-e');
+  PERFORM ci.sair();
 
   -- emitente: a filial do pedido manda quando tem CNPJ, inscrição e endereço próprios; o que ela não tem vem da empresa
   INSERT INTO filiais (tenant_id, empresa_id, nome, cnpj, inscricao_estadual, endereco, cidade)

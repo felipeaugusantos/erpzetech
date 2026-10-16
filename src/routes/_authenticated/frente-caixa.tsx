@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
+import { EmitirNfce } from "@/components/app/EmitirNfce";
 
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
@@ -98,9 +99,13 @@ function FrenteCaixa() {
     | "espera"
     | "cliente"
     | "cupom"
+    | "nfce"
   >(null);
   const [cliente, setCliente] = useState<ClienteFrente | null>(null);
   const [cupom, setCupom] = useState<CupomDados | null>(null);
+  /** Pedido da venda que acabou de fechar (ou escolhido na lista de vendas) para emitir a NFC-e. */
+  const [pedidoNfce, setPedidoNfce] = useState<string | null>(null);
+  const [pedidoCupom, setPedidoCupom] = useState<string | null>(null);
   const [gestor, setGestor] = useState<null | {
     acao: AcaoGestor;
     executar: (aut: string) => void;
@@ -569,6 +574,7 @@ function FrenteCaixa() {
       setDesconto("0");
       setRecebido("");
       setAutDesconto(null);
+      setPedidoCupom(r !== "offline" && r ? r : null);
       setModal("cupom");
       setForma("dinheiro");
       setParcelas("1");
@@ -1263,10 +1269,40 @@ function FrenteCaixa() {
             <Button variant="outline" onClick={() => setModal(null)}>
               Fechar (Esc)
             </Button>
+            <Button
+              variant="outline"
+              disabled={!pedidoCupom}
+              title={
+                pedidoCupom ? undefined : "Disponível depois que a venda for enviada ao sistema"
+              }
+              onClick={() => {
+                setPedidoNfce(pedidoCupom);
+                setModal("nfce");
+              }}
+            >
+              Emitir NFC-e
+            </Button>
             <Button autoFocus onClick={() => window.print()}>
               Imprimir cupom
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={modal === "nfce"}
+        onOpenChange={(o) => {
+          if (!o) {
+            setModal(null);
+            setTimeout(() => buscaRef.current?.focus(), 50);
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>NFC-e da venda</DialogTitle>
+          </DialogHeader>
+          {pedidoNfce && modal === "nfce" ? <EmitirNfce pedidoId={pedidoNfce} /> : null}
         </DialogContent>
       </Dialog>
 
@@ -1290,17 +1326,29 @@ function FrenteCaixa() {
                 {v.situacao === "cancelado" ? (
                   <span className="text-destructive">Cancelada</span>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      pedirGestor("cancelar_venda", (aut) =>
-                        cancelarVenda.mutate({ id: v.id, aut }),
-                      )
-                    }
-                  >
-                    Cancelar
-                  </Button>
+                  <span className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setPedidoNfce(v.id);
+                        setModal("nfce");
+                      }}
+                    >
+                      NFC-e
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        pedirGestor("cancelar_venda", (aut) =>
+                          cancelarVenda.mutate({ id: v.id, aut }),
+                        )
+                      }
+                    >
+                      Cancelar
+                    </Button>
+                  </span>
                 )}
               </div>
             ))}
