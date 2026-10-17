@@ -169,6 +169,20 @@ test("saldos: quantidade maior que zero e linha repetida para o mesmo depósito"
   assert.match(por(6), /não é um número/);
 });
 
+test("linha em branco no meio não desloca o número das linhas seguintes", () => {
+  const csv = "codigo;descricao\nA1;Item A\n\n;\nA3;\nA4;Item D\n";
+  const l = lerPlanilha("produtos", csv);
+  assert.deepEqual(
+    l.linhas.map((x) => x.linha),
+    [2, 5, 6],
+  );
+  const por = (n: number) => l.linhas.find((x) => x.linha === n)?.erros.join("|") ?? "";
+  assert.equal(por(2), "");
+  assert.match(por(5), /descrição/i);
+  assert.equal(por(6), "");
+  assert.equal(paraEnvio(l)[1]?.["linha"], 5);
+});
+
 test("limite de linhas", () => {
   const corpo = Array.from({ length: LIMITE_LINHAS + 3 }, (_, i) => `P${i};Item ${i}`).join("\n");
   const l = lerPlanilha("produtos", `codigo;descricao\n${corpo}\n`);

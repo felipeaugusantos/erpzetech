@@ -202,11 +202,16 @@ export const normalizar = (t: string) =>
 /** Texto do arquivo: UTF-8; se vier com caracteres quebrados (planilha salva em Latin-1), lê de novo como Latin-1. */
 export function decodificar(bytes: Uint8Array): string {
   const utf8 = new TextDecoder("utf-8").decode(bytes);
-  return utf8.includes("�") ? new TextDecoder("windows-1252").decode(bytes) : utf8;
+  return utf8.includes("\uFFFD") ? new TextDecoder("windows-1252").decode(bytes) : utf8;
 }
 
-/** CSV (separador ; , ou tabulação — o que o Excel ou uma colagem usar), com aspas e quebras de linha dentro das aspas. */
-export function lerCsv(texto: string): string[][] {
+export type RegistroCsv = { numero: number; celulas: string[] };
+
+/**
+ * CSV (separador ; , ou tabulação — o que o Excel ou uma colagem usar), com aspas e quebras de linha dentro das aspas.
+ * Cada registro leva o número da linha da planilha (a primeira é 1), contando também as linhas em branco, que não entram.
+ */
+export function lerCsvNumerado(texto: string): RegistroCsv[] {
   const conteudo = texto.replace(/^\uFEFF/, "");
   const primeira = conteudo.split(/\r?\n/, 1)[0] ?? "";
   const cont = (c: string) => primeira.split(c).length - 1;
@@ -217,7 +222,8 @@ export function lerCsv(texto: string): string[][] {
         ? ";"
         : ",";
 
-  const linhas: string[][] = [];
+  const linhas: RegistroCsv[] = [];
+  let registro = 0;
   let campo = "";
   let linha: string[] = [];
   let aspas = false;
@@ -227,7 +233,8 @@ export function lerCsv(texto: string): string[][] {
   };
   const fechaLinha = () => {
     fechaCampo();
-    if (linha.some((c) => c !== "")) linhas.push(linha);
+    registro += 1;
+    if (linha.some((c) => c !== "")) linhas.push({ numero: registro, celulas: linha });
     linha = [];
   };
   for (let i = 0; i < conteudo.length; i += 1) {
@@ -245,6 +252,11 @@ export function lerCsv(texto: string): string[][] {
   }
   if (campo !== "" || linha.length > 0) fechaLinha();
   return linhas;
+}
+
+/** Só as células de cada linha, sem os números. */
+export function lerCsv(texto: string): string[][] {
+  return lerCsvNumerado(texto).map((r) => r.celulas);
 }
 
 /** Número em formato brasileiro ou americano. Vazio → null; texto que não é número → NaN. */
@@ -280,7 +292,7 @@ export function cnpjValido(valor: string): boolean {
 }
 
 export type LinhaPlanilha = {
-  /** Número da linha na planilha (a primeira linha de dados é a 2). */
+  /** Número da linha na planilha, como aparece no Excel (o cabeçalho é a linha 1). */
   linha: number;
   valores: Record<string, string>;
   erros: string[];
@@ -303,7 +315,8 @@ export type Leitura = {
 
 /** Lê o arquivo, casa as colunas e valida cada linha. Não fala com o banco (existência e duplicidade com o que já está lá vêm da simulação). */
 export function lerPlanilha(tipo: TipoImportacao, texto: string): Leitura {
-  const grade = lerCsv(texto);
+  const registros = lerCsvNumerado(texto);
+  const grade = registros.map((r) => r.celulas);
   const campos = CAMPOS[tipo];
   const cabecalho = (grade[0] ?? []).map(normalizar);
   const indice = new Map<string, number>();
@@ -317,34 +330,36 @@ export function lerPlanilha(tipo: TipoImportacao, texto: string): Leitura {
   const reconhecidas = campos.filter((c) => indice.has(c.chave)).map((c) => c.rotulo);
 
   const numericos = new Set(NUMERICOS[tipo]);
-  const dados = grade.slice(1);
-  const linhas: LinhaPlanilha[] = dados.slice(0, LIMITE_LINHAS + 1).map((cels, n) => {
-    const valores: Record<string, string> = {};
-    for (const c of campos) {
-      const i = indice.get(c.chave);
-      valores[c.chave] = i === undefined ? "" : (cels[i] ?? "");
-    }
-    const erros: string[] = [];
-    const envio: Record<string, string | number | null> = {};
-    for (const c of campos) {
-      const v = valores[c.chave] ?? "";
-      if (numericos.has(c.chave)) {
-        const num = lerNumero(v);
-        if (num !== null && Number.isNaN(num)) {
-          erros.push(`${c.rotulo}: "${v}" não é um número`);
-          envio[c.chave] = null;
-        } else {
-          if (num !== null && num < 0) erros.push(`${c.rotulo} não pode ser negativo`);
-          envio[c.chave] = num;
-        }
-      } else envio[c.chave] = v === "" ? null : v;
-    }
-    for (const c of campos)
-      if (c.obrigatorio && (valores[c.chave] ?? "") === "")
-        erros.push(`Informe ${c.rotulo.toLowerCase()}`);
-    validarCampos(tipo, valores, erros);
-    return { linha: n + 2, valores, erros, envio };
-  });
+  const dados = registros.slice(1);
+  const linhas: LinhaPlanilha[] = dados
+    .slice(0, LIMITE_LINHAS + 1)
+    .map(({ numero, celulas: cels }) => {
+      const valores: Record<string, string> = {};
+      for (const c of campos) {
+        const i = indice.get(c.chave);
+        valores[c.chave] = i === undefined ? "" : (cels[i] ?? "");
+      }
+      const erros: string[] = [];
+      const envio: Record<string, string | number | null> = {};
+      for (const c of campos) {
+        const v = valores[c.chave] ?? "";
+        if (numericos.has(c.chave)) {
+          const num = lerNumero(v);
+          if (num !== null && Number.isNaN(num)) {
+            erros.push(`${c.rotulo}: "${v}" não é um número`);
+            envio[c.chave] = null;
+          } else {
+            if (num !== null && num < 0) erros.push(`${c.rotulo} não pode ser negativo`);
+            envio[c.chave] = num;
+          }
+        } else envio[c.chave] = v === "" ? null : v;
+      }
+      for (const c of campos)
+        if (c.obrigatorio && (valores[c.chave] ?? "") === "")
+          erros.push(`Informe ${c.rotulo.toLowerCase()}`);
+      validarCampos(tipo, valores, erros);
+      return { linha: numero, valores, erros, envio };
+    });
 
   marcarRepetidos(tipo, linhas);
   return {

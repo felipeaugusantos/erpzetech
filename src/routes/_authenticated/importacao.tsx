@@ -107,21 +107,21 @@ function Importacao() {
     },
   });
 
-  async function chamar(simular: boolean, l: Leitura): Promise<Resposta> {
+  async function chamar(simular: boolean, l: Leitura, atualizarLinhas: boolean): Promise<Resposta> {
     const linhas = paraEnvio(l) as Json;
     const nome = arquivo ?? undefined;
     const pedido =
       l.tipo === "produtos"
         ? supabase.rpc("importar_produtos", {
             p_linhas: linhas,
-            p_atualizar: atualizar,
+            p_atualizar: atualizarLinhas,
             p_simular: simular,
             ...(nome ? { p_arquivo: nome } : {}),
           })
         : l.tipo === "clientes"
           ? supabase.rpc("importar_clientes", {
               p_linhas: linhas,
-              p_atualizar: atualizar,
+              p_atualizar: atualizarLinhas,
               p_simular: simular,
               ...(nome ? { p_arquivo: nome } : {}),
             })
@@ -136,14 +136,15 @@ function Importacao() {
   }
 
   const simular = useMutation({
-    mutationFn: (l: Leitura) => chamar(true, l),
+    mutationFn: ({ l, atualizarLinhas }: { l: Leitura; atualizarLinhas: boolean }) =>
+      chamar(true, l, atualizarLinhas),
     onSuccess: setSimulacao,
     onError: (e) =>
       toast.error(e instanceof Error ? e.message : "Não foi possível conferir a planilha"),
   });
 
   const importar = useMutation({
-    mutationFn: (l: Leitura) => chamar(false, l),
+    mutationFn: (l: Leitura) => chamar(false, l, atualizar),
     onSuccess: (r) => {
       setResultado(r);
       if (r.ok) {
@@ -175,7 +176,7 @@ function Importacao() {
     setLeitura(l);
     // sem erro na planilha: o banco confere o que já existe (código repetido, depósito, saldo reservado…)
     if (l.faltando.length === 0 && l.totalErros === 0 && !l.excedeLimite && l.linhas.length > 0) {
-      simular.mutate(l);
+      simular.mutate({ l, atualizarLinhas: atualizar });
     }
   }
 
@@ -260,10 +261,12 @@ function Importacao() {
               type="checkbox"
               checked={atualizar}
               onChange={(e) => {
-                setAtualizar(e.target.checked);
+                // a simulação usa o valor novo da caixa, não o estado antigo da tela
+                const novo = e.target.checked;
+                setAtualizar(novo);
                 setSimulacao(null);
                 if (leitura && leitura.totalErros === 0 && leitura.faltando.length === 0)
-                  simular.mutate(leitura);
+                  simular.mutate({ l: leitura, atualizarLinhas: novo });
               }}
             />
             Atualizar os que já existem
