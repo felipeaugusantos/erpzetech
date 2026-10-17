@@ -211,6 +211,13 @@
       "when": 1792006379631,
       "tag": "0029_acesso_por_filial",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792248683963,
+      "tag": "0030_nfe_entrada_importacao_segura",
+      "breakpoints": true
     }
   ]
 }
