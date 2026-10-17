@@ -211,6 +211,62 @@
       "when": 1792006379631,
       "tag": "0029_acesso_por_filial",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792248683963,
+      "tag": "0030_nfe_entrada_importacao_segura",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792248713028,
+      "tag": "0031_nfe_entrada_nota_duplicada",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792248741328,
+      "tag": "0032_os_baixa_estoque",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792248781618,
+      "tag": "0033_auditoria_ampliada",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792248799479,
+      "tag": "0034_contato_limite_indices_frente_venda",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792248888399,
+      "tag": "0035_empresa_salvar_contato_captcha",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792248956405,
+      "tag": "0036_nfce_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792248998408,
+      "tag": "0037_nfce_config_tela_emitente_filial",
+      "breakpoints": true
     }
   ]
 }

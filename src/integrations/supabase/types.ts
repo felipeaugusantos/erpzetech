@@ -1542,6 +1542,7 @@ export type Database = {
           nfe_chave: string | null
           nfe_emissao: string | null
           nfe_numero: string | null
+          nfe_serie: string | null
           numero: number | null
           observacoes: string | null
           origem: string
@@ -1569,6 +1570,7 @@ export type Database = {
           nfe_chave?: string | null
           nfe_emissao?: string | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -1596,6 +1598,7 @@ export type Database = {
           nfe_chave?: string | null
           nfe_emissao?: string | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -1952,6 +1955,7 @@ export type Database = {
           id: string
           mensagem: string | null
           nome: string
+          origem: string | null
           plano_interesse: string | null
           situacao: string
           whatsapp: string | null
@@ -1962,6 +1966,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -1972,6 +1977,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome?: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -3879,6 +3885,53 @@ export type Database = {
           },
         ]
       }
+      nfce_config: {
+        Row: {
+          contingencia_ativa: boolean
+          created_at: string
+          csc_id: string | null
+          csc_token: string | null
+          fiscal_config_id: string
+          id: string
+          proximo_numero: number
+          serie: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id?: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfce_config_fiscal_config_id_fkey"
+            columns: ["fiscal_config_id"]
+            isOneToOne: true
+            referencedRelation: "fiscal_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfe: {
         Row: {
           ambiente: string
@@ -3890,6 +3943,7 @@ export type Database = {
           chave: string | null
           cliente_id: string | null
           codigo_servico: string | null
+          contingencia: boolean
           created_at: string
           deposito_id: string | null
           destinatario: Json | null
@@ -3914,10 +3968,12 @@ export type Database = {
           provider: string | null
           provider_id: string | null
           provider_status: string | null
+          proxima_tentativa_em: string | null
           retorno: Json | null
           serie: number
           situacao: string
           tenant_id: string
+          tentativas: number
           transmitida_em: string | null
           updated_at: string
           valor_cofins: number
@@ -3941,6 +3997,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -3965,10 +4022,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -3992,6 +4051,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -4016,10 +4076,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -4568,6 +4630,9 @@ export type Database = {
       }
       os_itens: {
         Row: {
+          baixa_deposito_id: string | null
+          baixa_produto_id: string | null
+          baixa_quantidade: number | null
           created_at: string
           descricao: string
           id: string
@@ -4580,6 +4645,9 @@ export type Database = {
           total: number
         }
         Insert: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao: string
           id?: string
@@ -4592,6 +4660,9 @@ export type Database = {
           total?: number
         }
         Update: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao?: string
           id?: string
@@ -4625,8 +4696,10 @@ export type Database = {
           abertura: string
           acessorios: string | null
           cliente_id: string | null
+          controla_estoque: boolean
           created_at: string
           defeito_relatado: string | null
+          deposito_id: string | null
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
@@ -4657,8 +4730,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4689,8 +4764,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4723,6 +4800,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
             referencedColumns: ["id"]
           },
         ]
@@ -7017,6 +7101,19 @@ export type Database = {
         Args: { p_acao: string; p_id: string }
         Returns: string
       }
+      contato_enviar: {
+        Args: {
+          p_aberto_em?: string
+          p_email?: string
+          p_ip?: string
+          p_mensagem?: string
+          p_nome: string
+          p_plano?: string
+          p_site?: string
+          p_whatsapp?: string
+        }
+        Returns: boolean
+      }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
@@ -7071,6 +7168,7 @@ export type Database = {
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       entrega_agendar: {
         Args: {
           p_endereco?: string
@@ -7116,6 +7214,18 @@ export type Database = {
           p_tonalidade: string
         }
         Returns: string
+      }
+      eventos_pendentes: {
+        Args: never
+        Returns: {
+          erro: string
+          event_id: string
+          id: string
+          provedor: string
+          recebido_em: string
+          status: string
+          tentativas: number
+        }[]
       }
       exige_entrega_propria: {
         Args: { p_entrega_id: string }
@@ -7189,6 +7299,7 @@ export type Database = {
         }
         Returns: string
       }
+      frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
@@ -7302,6 +7413,36 @@ export type Database = {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
       }
+      nfce_config_listar: {
+        Args: never
+        Returns: {
+          ambiente: string
+          certificado_nome: string
+          contingencia_ativa: boolean
+          csc_configurado: boolean
+          csc_id: string
+          emissor: string
+          filial_id: string
+          filial_nome: string
+          fiscal_config_id: string
+          proximo_numero: number
+          serie: number
+        }[]
+      }
+      nfce_config_salvar: {
+        Args: {
+          p_contingencia?: boolean
+          p_csc_id: string
+          p_csc_token?: string
+          p_fiscal_config_id: string
+          p_serie: number
+        }
+        Returns: undefined
+      }
+      nfce_criar: {
+        Args: { p_cpf?: string; p_pedido_id: string }
+        Returns: string
+      }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
@@ -7323,6 +7464,15 @@ export type Database = {
           p_aplicar_icms_em_todos?: boolean
           p_nfe_id: string
           p_reducao_base?: number
+        }
+        Returns: Json
+      }
+      nfe_entrada_ja_importada: {
+        Args: {
+          p_chave?: string
+          p_cnpj?: string
+          p_numero?: string
+          p_serie?: string
         }
         Returns: Json
       }
@@ -7348,6 +7498,7 @@ export type Database = {
         }
         Returns: string
       }
+      os_item_reconciliar: { Args: { p_item_id: string }; Returns: undefined }
       painel_fiscal_loja: {
         Args: { p_ate: string; p_de: string }
         Returns: {

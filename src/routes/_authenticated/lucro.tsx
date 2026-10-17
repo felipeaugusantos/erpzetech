@@ -169,16 +169,16 @@ function Lucro() {
       .sort((a, b) => a.mes.localeCompare(b.mes))
       .map((m) => ({
         nome: rotuloMes(m.mes),
-        receita: Math.round(m.receita),
-        custo: Math.round(m.custo),
-        lucro: Math.round(m.receita - m.custo),
+        receita: Math.round(m.receita * 100) / 100,
+        custo: Math.round(m.custo * 100) / 100,
+        lucro: Math.round((m.receita - m.custo) * 100) / 100,
         margem: m.receita > 0 ? ((m.receita - m.custo) / m.receita) * 100 : 0,
       }));
   }, [data]);
 
   const grafico = linhas.slice(0, 10).map((l) => ({
     nome: l.nome.length > 18 ? `${l.nome.slice(0, 18)}…` : l.nome,
-    lucro: Math.round(l.lucro),
+    lucro: Math.round(l.lucro * 100) / 100,
   }));
 
   return (
