@@ -149,3 +149,9 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Botão de emitir NFC-e na frente de caixa (no cupom da venda e na lista de vendas do caixa): CPF opcional validado, mostra o número ou o que falta resolver; a venda guardada sem internet só libera o botão depois de enviada. A transmissão à Sefaz continua pendente
 - [ ] Botão de emitir NFC-e no PDV (pedido) e nas vendas do restaurante
 - [ ] Pix com cobrança automática e boleto registrado (depende do provedor escolhido)
+
+## Fase 1 — Entrada de dados
+- [x] Importação por planilha de produtos, clientes e saldos de estoque (`/importacao`, migration `20261017000000_importacao_planilha.sql`): CSV (separador `;`, `,` ou tabulação, UTF-8 ou Latin-1), modelo para baixar, colunas por apelido, pré-visualização com erro por linha e conferência no banco antes de gravar (código já existente, depósito, saldo reservado); entra tudo ou nada, até 5000 linhas por vez, uma importação por vez por empresa e tipo; categorias novas são criadas; "atualizar os que já existem" muda só os campos preenchidos; saldos entram como ajuste de estoque com histórico; histórico das importações; relatório de erros em CSV
+- [ ] Importação direta de arquivo `.xlsx` (hoje salvar como CSV no Excel)
+- [ ] Importar fornecedores, obras e preços por tabela; limite por plano de assinatura
+- [ ] Passos iniciais de implantação (checklist guiado depois do cadastro da empresa)
