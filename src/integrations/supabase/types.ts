@@ -1955,6 +1955,7 @@ export type Database = {
           id: string
           mensagem: string | null
           nome: string
+          origem: string | null
           plano_interesse: string | null
           situacao: string
           whatsapp: string | null
@@ -1965,6 +1966,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -1975,6 +1977,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome?: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -7042,6 +7045,18 @@ export type Database = {
         Args: { p_acao: string; p_id: string }
         Returns: string
       }
+      contato_enviar: {
+        Args: {
+          p_aberto_em?: string
+          p_email?: string
+          p_mensagem?: string
+          p_nome: string
+          p_plano?: string
+          p_site?: string
+          p_whatsapp?: string
+        }
+        Returns: boolean
+      }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
@@ -7214,6 +7229,7 @@ export type Database = {
         }
         Returns: string
       }
+      frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }

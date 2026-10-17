@@ -232,6 +232,20 @@
       "when": 1792248741328,
       "tag": "0032_os_baixa_estoque",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792248781618,
+      "tag": "0033_auditoria_ampliada",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792248799479,
+      "tag": "0034_contato_limite_indices_frente_venda",
+      "breakpoints": true
     }
   ]
 }
