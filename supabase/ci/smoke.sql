@@ -2118,9 +2118,10 @@ DECLARE
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
   cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
-  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; ped5 uuid; ped6 uuid; fil_emit uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
+  dep uuid; prod uuid; cli uuid; ped uuid; ped2 uuid; ped3 uuid; ped4 uuid; ped5 uuid; ped6 uuid; ped7 uuid; ped8 uuid; n7 uuid; n8 uuid; aut1 uuid; aut2 uuid; aut3 uuid; fil_emit uuid; n1 uuid; n1b uuid; n2 uuid; n3 uuid; emp uuid; cfg uuid; tb uuid;
   n_linhas bigint;
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'NFC-e CI') RETURNING id INTO dep;
@@ -2193,6 +2194,33 @@ BEGIN
   PERFORM ci.entrar(vend);
   PERFORM ci.exige(nfce_criar(ped6) = n3, 'repetir pelo vendedor devolve a mesma NFC-e');
   PERFORM ci.sair();
+
+  -- cancelar a venda com NFC-e: pronta fica cancelada, rascunho é apagada, enviada à Sefaz impede
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut1;
+  PERFORM ci.entrar(adm);
+  PERFORM frente_cancelar_venda(ped6, aut1, 'Teste NFC-e pronta');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND motivo_cancelamento LIKE 'Venda cancelada%' FROM nfe WHERE id = n3), 'cancelar a venda cancela a NFC-e pronta');
+
+  PERFORM ci.entrar(adm);
+  ped7 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 9)), 'dinheiro', NULL, 0, 1, NULL, NULL, gen_random_uuid());
+  n7 := nfce_criar(ped7, '123');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'rascunho' FROM nfe WHERE id = n7), 'NFC-e com CPF ruim fica em rascunho');
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut2;
+  PERFORM ci.entrar(adm);
+  PERFORM frente_cancelar_venda(ped7, aut2, 'Teste NFC-e rascunho');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM nfe WHERE id = n7), 'cancelar a venda apaga a NFC-e em rascunho');
+
+  PERFORM ci.entrar(adm);
+  ped8 := frente_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 8)), 'dinheiro', NULL, 0, 1, NULL, NULL, gen_random_uuid());
+  n8 := nfce_criar(ped8);
+  PERFORM ci.sair();
+  UPDATE nfe SET situacao = 'autorizada', chave = 'CHAVE-CANC-CI' WHERE id = n8;
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut3;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT frente_cancelar_venda(%L, %L, 'Com NFC-e autorizada')$c$, ped8, aut3), 'cancelar venda com NFC-e já enviada à Sefaz');
+  PERFORM ci.exige((SELECT situacao <> 'cancelado' FROM pedidos WHERE id = ped8) AND (SELECT situacao = 'autorizada' FROM nfe WHERE id = n8), 'a venda e a nota seguem como estavam');
 
   -- emitente: a filial do pedido manda quando tem CNPJ, inscrição e endereço próprios; o que ela não tem vem da empresa
   INSERT INTO filiais (tenant_id, empresa_id, nome, cnpj, inscricao_estadual, endereco, cidade)
