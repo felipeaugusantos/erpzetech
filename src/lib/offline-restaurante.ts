@@ -37,7 +37,9 @@ let sincronizacao: Promise<{ enviadas: number; recusadas: number }> | null = nul
 
 export function sincronizarComandasOffline() {
   if (sincronizacao) return sincronizacao;
-  sincronizacao = enviarComandasOffline().finally(() => { sincronizacao = null; });
+  sincronizacao = enviarComandasOffline().finally(() => {
+    sincronizacao = null;
+  });
   return sincronizacao;
 }
 

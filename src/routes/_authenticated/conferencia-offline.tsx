@@ -219,7 +219,8 @@ function Conferencia() {
           <p className="mt-1 font-display text-2xl font-extrabold">{brl(totalComandas)}</p>
           <p className="text-xs text-muted-foreground">
             {pagasOffline.length} comanda(s) do restaurante
-            {pagasOffline.some((c) => c.erro) && ` · ${pagasOffline.filter((c) => c.erro).length} recusada(s): confira no Salão ou Delivery`}
+            {pagasOffline.some((c) => c.erro) &&
+              ` · ${pagasOffline.filter((c) => c.erro).length} recusada(s): confira no Salão ou Delivery`}
           </p>
         </div>
       </section>

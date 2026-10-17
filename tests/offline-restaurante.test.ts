@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { totalOffline, prepararReenvio, conciliarSincronizacao, type ComandaOffline } from "../src/lib/offline-restaurante-conta.ts";
+import {
+  totalOffline,
+  prepararReenvio,
+  conciliarSincronizacao,
+  type ComandaOffline,
+} from "../src/lib/offline-restaurante-conta.ts";
 
 const base: ComandaOffline = {
   offline_id: "x",
@@ -22,7 +27,15 @@ const base: ComandaOffline = {
 
 describe("conta de comanda feita sem internet", () => {
   it("reenvio preserva identidade, itens e dinheiro recebido e permite corrigir o caixa fechado", () => {
-    const recusada = { ...base, erro: "Caixa fechado", fechar: { caixa_id: "fechado", cobrar_servico: true, pagamentos: [{ forma: "dinheiro", valor: 61.38 }] } };
+    const recusada = {
+      ...base,
+      erro: "Caixa fechado",
+      fechar: {
+        caixa_id: "fechado",
+        cobrar_servico: true,
+        pagamentos: [{ forma: "dinheiro", valor: 61.38 }],
+      },
+    };
     const reenvio = prepararReenvio(recusada, "aberto");
     assert.equal(reenvio.offline_id, "x");
     assert.equal(reenvio.erro, undefined);
