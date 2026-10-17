@@ -7413,6 +7413,32 @@ export type Database = {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
       }
+      nfce_config_listar: {
+        Args: never
+        Returns: {
+          ambiente: string
+          certificado_nome: string
+          contingencia_ativa: boolean
+          csc_configurado: boolean
+          csc_id: string
+          emissor: string
+          filial_id: string
+          filial_nome: string
+          fiscal_config_id: string
+          proximo_numero: number
+          serie: number
+        }[]
+      }
+      nfce_config_salvar: {
+        Args: {
+          p_contingencia?: boolean
+          p_csc_id: string
+          p_csc_token?: string
+          p_fiscal_config_id: string
+          p_serie: number
+        }
+        Returns: undefined
+      }
       nfce_criar: {
         Args: { p_cpf?: string; p_pedido_id: string }
         Returns: string

@@ -260,6 +260,13 @@
       "when": 1792248956405,
       "tag": "0036_nfce_base",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792248998408,
+      "tag": "0037_nfce_config_tela_emitente_filial",
+      "breakpoints": true
     }
   ]
 }
