@@ -151,9 +151,9 @@ function Conferencia() {
     if (online) void atualizar();
   }, [online]);
 
-  const pagasOffline = comandas.filter((c) => c.fechar && !c.erro);
+  const pagasOffline = comandas.filter((c) => c.fechar);
   const totalComandas = pagasOffline.reduce(
-    (s, c) => s + totalOffline(c, c.fechar!.cobrar_servico),
+    (s, c) => s + totalOffline(c, c.fechar?.cobrar_servico ?? true),
     0,
   );
 
@@ -219,6 +219,8 @@ function Conferencia() {
           <p className="mt-1 font-display text-2xl font-extrabold">{brl(totalComandas)}</p>
           <p className="text-xs text-muted-foreground">
             {pagasOffline.length} comanda(s) do restaurante
+            {pagasOffline.some((c) => c.erro) &&
+              ` · ${pagasOffline.filter((c) => c.erro).length} recusada(s): confira no Salão ou Delivery`}
           </p>
         </div>
       </section>

@@ -32,6 +32,10 @@ export const Route = createFileRoute("/_authenticated/salao")({
     meta: [
       { title: "PDV do restaurante — ERP Ze Tech" },
       { name: "description", content: "Mesas, comandas e pedidos do restaurante." },
+      { property: "og:title", content: "PDV do restaurante — ERP Ze Tech" },
+      { property: "og:description", content: "Mesas, comandas e pedidos do restaurante." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Salao,
@@ -180,6 +184,8 @@ function Salao() {
           </Button>
         }
       />
+
+      <RestauranteOffline modo="salao" pendencias />
 
       <form
         className="mb-4 flex flex-wrap items-center gap-3"

@@ -3889,7 +3889,6 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
-          contingencia: boolean
           codigo_servico: string | null
           created_at: string
           deposito_id: string | null
@@ -3911,7 +3910,6 @@ export type Database = {
           pdf_url: string | null
           pedido_id: string | null
           pendencias: string[]
-          proxima_tentativa_em: string | null
           protocolo: string | null
           provider: string | null
           provider_id: string | null
@@ -3919,7 +3917,6 @@ export type Database = {
           retorno: Json | null
           serie: number
           situacao: string
-          tentativas: number
           tenant_id: string
           transmitida_em: string | null
           updated_at: string
@@ -4571,9 +4568,6 @@ export type Database = {
       }
       os_itens: {
         Row: {
-          baixa_deposito_id: string | null
-          baixa_produto_id: string | null
-          baixa_quantidade: number | null
           created_at: string
           descricao: string
           id: string
@@ -4586,9 +4580,6 @@ export type Database = {
           total: number
         }
         Insert: {
-          baixa_deposito_id?: string | null
-          baixa_produto_id?: string | null
-          baixa_quantidade?: number | null
           created_at?: string
           descricao: string
           id?: string
@@ -4601,9 +4592,6 @@ export type Database = {
           total?: number
         }
         Update: {
-          baixa_deposito_id?: string | null
-          baixa_produto_id?: string | null
-          baixa_quantidade?: number | null
           created_at?: string
           descricao?: string
           id?: string
@@ -4639,8 +4627,6 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           defeito_relatado: string | null
-          deposito_id: string | null
-          controla_estoque: boolean
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
@@ -4673,8 +4659,6 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           defeito_relatado?: string | null
-          deposito_id?: string | null
-          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4707,8 +4691,6 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           defeito_relatado?: string | null
-          deposito_id?: string | null
-          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -7207,64 +7189,6 @@ export type Database = {
         }
         Returns: string
       }
-      nfe_entrada_ja_importada: {
-        Args: { p_chave?: string; p_cnpj?: string; p_numero?: string; p_serie?: string }
-        Returns: Json
-      }
-      contato_enviar: {
-        Args: {
-          p_aberto_em?: string
-          p_email?: string
-          p_ip?: string
-          p_mensagem?: string
-          p_nome: string
-          p_plano?: string
-          p_site?: string
-          p_whatsapp?: string
-        }
-        Returns: boolean
-      }
-      eventos_pendentes: {
-        Args: never
-        Returns: {
-          erro: string | null
-          event_id: string
-          id: string
-          provedor: string
-          recebido_em: string
-          status: string
-          tentativas: number
-        }[]
-      }
-      nfce_config_listar: {
-        Args: never
-        Returns: {
-          ambiente: string
-          certificado_nome: string | null
-          contingencia_ativa: boolean
-          csc_configurado: boolean
-          csc_id: string | null
-          emissor: string | null
-          filial_id: string | null
-          filial_nome: string
-          fiscal_config_id: string
-          proximo_numero: number
-          serie: number
-        }[]
-      }
-      nfce_config_salvar: {
-        Args: {
-          p_contingencia?: boolean
-          p_csc_id: string
-          p_csc_token?: string
-          p_fiscal_config_id: string
-          p_serie: number
-        }
-        Returns: undefined
-      }
-      nfce_criar: { Args: { p_pedido_id: string; p_cpf?: string }; Returns: string }
-      frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
-      empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
