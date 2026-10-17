@@ -88,7 +88,7 @@ export function RestauranteOffline({
         .select("id, numero")
         .eq("situacao", "aberto");
       if (error) throw error;
-      const caixas = data ?? [];
+      const caixas = (data ?? []).map((x) => ({ id: x.id, numero: x.numero ?? 0 }));
       setCaixasAtuais(caixas);
       setCaixaReenvio(
         caixas.some((x) => x.id === c.fechar?.caixa_id) ? (c.fechar?.caixa_id ?? "") : "",
