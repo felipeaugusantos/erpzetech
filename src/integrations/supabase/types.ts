@@ -7049,6 +7049,7 @@ export type Database = {
         Args: {
           p_aberto_em?: string
           p_email?: string
+          p_ip?: string
           p_mensagem?: string
           p_nome: string
           p_plano?: string
@@ -7111,6 +7112,7 @@ export type Database = {
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       entrega_agendar: {
         Args: {
           p_endereco?: string

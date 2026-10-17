@@ -246,6 +246,13 @@
       "when": 1792248799479,
       "tag": "0034_contato_limite_indices_frente_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792248888399,
+      "tag": "0035_empresa_salvar_contato_captcha",
+      "breakpoints": true
     }
   ]
 }
