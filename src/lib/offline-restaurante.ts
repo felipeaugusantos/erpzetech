@@ -1,8 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ehErroDeRede } from "@/lib/offline";
 import type { ComandaOffline } from "./offline-restaurante-conta.ts";
+import { conciliarSincronizacao } from "./offline-restaurante-conta.ts";
 
-export { subtotalOffline, totalOffline } from "./offline-restaurante-conta.ts";
+export { subtotalOffline, totalOffline, prepararReenvio } from "./offline-restaurante-conta.ts";
 export type { ComandaOffline, ItemOffline } from "./offline-restaurante-conta.ts";
 
 export type MesaOffline = { id: string; numero: string };
@@ -32,7 +33,15 @@ export function salvarComandasOffline(lista: ComandaOffline[]) {
 }
 
 /** Envia as comandas guardadas. Cada uma é gravada inteira (ou nada) e nunca em dobro. */
-export async function sincronizarComandasOffline(): Promise<{
+let sincronizacao: Promise<{ enviadas: number; recusadas: number }> | null = null;
+
+export function sincronizarComandasOffline() {
+  if (sincronizacao) return sincronizacao;
+  sincronizacao = enviarComandasOffline().finally(() => { sincronizacao = null; });
+  return sincronizacao;
+}
+
+async function enviarComandasOffline(): Promise<{
   enviadas: number;
   recusadas: number;
 }> {
@@ -64,7 +73,7 @@ export async function sincronizarComandasOffline(): Promise<{
       restantes.push({ ...c, erro: error.message });
     }
   }
-  salvarComandasOffline(restantes);
+  salvarComandasOffline(conciliarSincronizacao(lerComandasOffline(), lista, restantes));
   return { enviadas, recusadas };
 }
 

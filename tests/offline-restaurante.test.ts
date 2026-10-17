@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { totalOffline, type ComandaOffline } from "../src/lib/offline-restaurante-conta.ts";
+import { totalOffline, prepararReenvio, conciliarSincronizacao, type ComandaOffline } from "../src/lib/offline-restaurante-conta.ts";
 
 const base: ComandaOffline = {
   offline_id: "x",
@@ -21,6 +21,26 @@ const base: ComandaOffline = {
 };
 
 describe("conta de comanda feita sem internet", () => {
+  it("reenvio preserva identidade, itens e dinheiro recebido e permite corrigir o caixa fechado", () => {
+    const recusada = { ...base, erro: "Caixa fechado", fechar: { caixa_id: "fechado", cobrar_servico: true, pagamentos: [{ forma: "dinheiro", valor: 61.38 }] } };
+    const reenvio = prepararReenvio(recusada, "aberto");
+    assert.equal(reenvio.offline_id, "x");
+    assert.equal(reenvio.erro, undefined);
+    assert.deepEqual(reenvio.itens, base.itens);
+    assert.deepEqual(reenvio.fechar?.pagamentos, [{ forma: "dinheiro", valor: 61.38 }]);
+    assert.equal(reenvio.fechar?.caixa_id, "aberto");
+    assert.equal(recusada.erro, "Caixa fechado");
+  });
+  it("recusa continua guardada até correção explícita", () => {
+    const recusada = { ...base, erro: "Caixa fechado" };
+    assert.deepEqual(conciliarSincronizacao([base], [base], [recusada]), [recusada]);
+  });
+  it("sucesso remove só a operação confirmada, sem apagar novas comandas ou correções", () => {
+    const nova = { ...base, offline_id: "nova" };
+    assert.deepEqual(conciliarSincronizacao([base, nova], [base], []), [nova]);
+    const corrigida = { ...base, cliente_nome: "Corrigido" };
+    assert.deepEqual(conciliarSincronizacao([corrigida, nova], [base], []), [corrigida, nova]);
+  });
   it("salão soma 10% de serviço igual ao banco", () => {
     assert.equal(totalOffline(base, true), 61.38);
   });

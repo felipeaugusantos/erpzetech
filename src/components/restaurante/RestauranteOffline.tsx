@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CloudOff, Minus, Plus, Trash2 } from "lucide-react";
+import { CloudOff, Minus, Plus, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSessionData } from "@/hooks/useSessionData";
+import { supabase } from "@/integrations/supabase/client";
+import { useOnline } from "@/lib/offline";
 import {
   EVENTO_COMANDAS_OFFLINE,
   lerBaseRestauranteOffline,
@@ -20,6 +24,8 @@ import {
   salvarComandasOffline,
   subtotalOffline,
   totalOffline,
+  prepararReenvio,
+  sincronizarComandasOffline,
   type ComandaOffline,
 } from "@/lib/offline-restaurante";
 
@@ -50,13 +56,50 @@ export function useComandasOffline() {
 }
 
 /** Salão e delivery sem internet: abre, lança itens e fecha a conta, tudo guardado neste computador. */
-export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
+export function RestauranteOffline({ modo, pendencias = false }: { modo: "salao" | "delivery"; pendencias?: boolean }) {
+  const online = useOnline();
+  const qc = useQueryClient();
+  const { data: session } = useSessionData();
+  const podeReceber = (session?.roles ?? []).some((r) => ["administrador", "gestor", "caixa"].includes(r));
   const todas = useComandasOffline();
   const lista = todas.filter((c) => c.tipo === modo);
   const [base] = useState(() => lerBaseRestauranteOffline());
   const [nova, setNova] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const [fechando, setFechando] = useState<string | null>(null);
+  const [reenvio, setReenvio] = useState<ComandaOffline | null>(null);
+  const [caixasAtuais, setCaixasAtuais] = useState<{ id: string; numero: number }[]>([]);
+  const [caixaReenvio, setCaixaReenvio] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+
+  async function preparar(c: ComandaOffline) {
+    setOcupado(true);
+    try {
+      const { data, error } = await supabase.from("caixas").select("id, numero").eq("situacao", "aberto");
+      if (error) throw error;
+      const caixas = data ?? [];
+      setCaixasAtuais(caixas);
+      setCaixaReenvio(caixas.some((x) => x.id === c.fechar?.caixa_id) ? c.fechar?.caixa_id ?? "" : "");
+      setReenvio(c);
+    } catch {
+      toast.error("Não foi possível consultar os caixas. A comanda continua guardada.");
+    } finally { setOcupado(false); }
+  }
+
+  async function reenviar() {
+    if (!reenvio || (reenvio.fechar && (!podeReceber || !caixaReenvio))) return;
+    setOcupado(true);
+    try {
+      atualizar(reenvio.offline_id, (c) => prepararReenvio(c, caixaReenvio || undefined));
+      const resultado = await sincronizarComandasOffline();
+      void qc.invalidateQueries();
+      const restante = lerComandasOffline().find((c) => c.offline_id === reenvio.offline_id);
+      if (restante) toast.error(restante.erro ?? "Comanda ainda guardada. Tente novamente quando a conexão estiver disponível.");
+      else toast.success("Comanda enviada ao sistema; pagamento registrado no caixa.");
+      if (resultado.enviadas || !restante) setReenvio(null);
+    } catch { toast.error("Não foi possível enviar. A comanda continua guardada."); }
+    finally { setOcupado(false); }
+  }
 
   const ocupadas = new Set(lista.filter((c) => !c.fechar && c.mesa_id).map((c) => c.mesa_id));
 
@@ -64,7 +107,9 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
     salvarComandasOffline(lerComandasOffline().map((c) => (c.offline_id === id ? f(c) : c)));
   }
 
-  if (!base)
+  if (pendencias && lista.length === 0) return null;
+
+  if (!base && !pendencias)
     return (
       <div className="panel p-6 text-sm">
         <p className="font-semibold">Sem internet e sem cópia do cardápio neste computador.</p>
@@ -82,15 +127,15 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4">
         <CloudOff className="size-5 shrink-0" />
         <div className="flex-1 text-sm">
-          <p className="font-semibold">Sem internet — trabalhando neste computador</p>
+          <p className="font-semibold">{pendencias ? "Comandas guardadas neste computador" : "Sem internet — trabalhando neste computador"}</p>
           <p className="text-muted-foreground">
             {modo === "salao" ? "Comandas" : "Pedidos"} e pagamentos ficam salvos aqui e são
             enviados sozinhos quando a conexão voltar. Não limpe os dados do navegador.
           </p>
         </div>
-        <Button onClick={() => setNova(true)}>
+        {!pendencias && <Button onClick={() => setNova(true)}>
           <Plus className="mr-1 size-4" /> {modo === "salao" ? "Nova comanda" : "Novo delivery"}
-        </Button>
+        </Button>}
       </div>
 
       {lista.length === 0 && (
@@ -133,7 +178,7 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
               {brl(totalOffline(c, c.fechar?.cobrar_servico ?? true))}
             </p>
             {c.erro && <p className="text-xs text-destructive">{c.erro}</p>}
-            {!c.fechar && (
+            {!c.fechar && !pendencias && (
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setEditando(c.offline_id)}>
                   Itens
@@ -147,25 +192,22 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
                 </Button>
               </div>
             )}
-            {c.erro && (
+            {(c.erro || (pendencias && c.fechar)) && (
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() => {
-                  if (confirm("Descartar esta comanda guardada?"))
-                    salvarComandasOffline(
-                      lerComandasOffline().filter((x) => x.offline_id !== c.offline_id),
-                    );
-                }}
+                variant="outline"
+                disabled={!online || ocupado || (!!c.fechar && !podeReceber)}
+                onClick={() => void preparar(c)}
               >
-                Descartar
+                <RefreshCw className="mr-1 size-4" /> Tentar de novo
               </Button>
             )}
+            {c.fechar && c.erro && !podeReceber && <p className="text-xs text-muted-foreground">Peça ao caixa ou à gestão para corrigir e reenviar.</p>}
           </div>
         ))}
       </div>
 
-      <NovaComanda
+      {base && <NovaComanda
         modo={modo}
         aberto={nova}
         mesas={base.mesas.filter((m) => !ocupadas.has(m.id))}
@@ -176,9 +218,9 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
           setNova(false);
           setEditando(c.offline_id);
         }}
-      />
+      />}
 
-      {atual && (
+      {atual && base && (
         <ItensDialog
           comanda={atual}
           cardapio={base.itens}
@@ -187,7 +229,7 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
         />
       )}
 
-      {aFechar && (
+      {aFechar && base && (
         <FecharDialog
           comanda={aFechar}
           caixas={base.caixas}
@@ -201,6 +243,27 @@ export function RestauranteOffline({ modo }: { modo: "salao" | "delivery" }) {
           }}
         />
       )}
+      {reenvio && <Dialog open onOpenChange={(o) => !o && !ocupado && setReenvio(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reenviar comanda guardada</DialogTitle></DialogHeader>
+          {reenvio.erro && <p className="text-sm text-destructive">{reenvio.erro}</p>}
+          <p className="text-sm">Itens e pagamentos recebidos serão mantidos.</p>
+          {reenvio.fechar && <>
+            <p className="font-semibold">Recebido: {brl(reenvio.fechar.pagamentos.reduce((s, p) => s + p.valor, 0))}</p>
+            <Label htmlFor="caixa-reenvio">Caixa que recebe</Label>
+            <select id="caixa-reenvio" className={sel} value={caixaReenvio} onChange={(e) => setCaixaReenvio(e.target.value)} disabled={ocupado}>
+              <option value="">{caixasAtuais.length ? "Selecione um caixa aberto" : "Nenhum caixa aberto"}</option>
+              {caixasAtuais.map((c) => <option key={c.id} value={c.id}>Caixa {c.numero}</option>)}
+            </select>
+          </>}
+          <DialogFooter>
+            <Button variant="outline" disabled={ocupado} onClick={() => setReenvio(null)}>Voltar</Button>
+            <Button disabled={!online || ocupado || (!!reenvio.fechar && (!podeReceber || !caixaReenvio))} onClick={() => void reenviar()}>
+              <RefreshCw className="mr-1 size-4" /> {ocupado ? "Enviando…" : "Reenviar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>}
     </div>
   );
 }
