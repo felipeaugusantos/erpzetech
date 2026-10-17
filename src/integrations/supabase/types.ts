@@ -3885,6 +3885,53 @@ export type Database = {
           },
         ]
       }
+      nfce_config: {
+        Row: {
+          contingencia_ativa: boolean
+          created_at: string
+          csc_id: string | null
+          csc_token: string | null
+          fiscal_config_id: string
+          id: string
+          proximo_numero: number
+          serie: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id?: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfce_config_fiscal_config_id_fkey"
+            columns: ["fiscal_config_id"]
+            isOneToOne: true
+            referencedRelation: "fiscal_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfe: {
         Row: {
           ambiente: string
@@ -3896,6 +3943,7 @@ export type Database = {
           chave: string | null
           cliente_id: string | null
           codigo_servico: string | null
+          contingencia: boolean
           created_at: string
           deposito_id: string | null
           destinatario: Json | null
@@ -3920,10 +3968,12 @@ export type Database = {
           provider: string | null
           provider_id: string | null
           provider_status: string | null
+          proxima_tentativa_em: string | null
           retorno: Json | null
           serie: number
           situacao: string
           tenant_id: string
+          tentativas: number
           transmitida_em: string | null
           updated_at: string
           valor_cofins: number
@@ -3947,6 +3997,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -3971,10 +4022,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -3998,6 +4051,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -4022,10 +4076,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -7159,6 +7215,18 @@ export type Database = {
         }
         Returns: string
       }
+      eventos_pendentes: {
+        Args: never
+        Returns: {
+          erro: string
+          event_id: string
+          id: string
+          provedor: string
+          recebido_em: string
+          status: string
+          tentativas: number
+        }[]
+      }
       exige_entrega_propria: {
         Args: { p_entrega_id: string }
         Returns: undefined
@@ -7344,6 +7412,10 @@ export type Database = {
       motorista_enviar_posicao: {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
+      }
+      nfce_criar: {
+        Args: { p_cpf?: string; p_pedido_id: string }
+        Returns: string
       }
       nfe_calcular_impostos: {
         Args: {

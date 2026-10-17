@@ -253,6 +253,13 @@
       "when": 1792248888399,
       "tag": "0035_empresa_salvar_contato_captcha",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792248956405,
+      "tag": "0036_nfce_base",
+      "breakpoints": true
     }
   ]
 }
