@@ -218,6 +218,20 @@
       "when": 1792248683963,
       "tag": "0030_nfe_entrada_importacao_segura",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792248713028,
+      "tag": "0031_nfe_entrada_nota_duplicada",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792248741328,
+      "tag": "0032_os_baixa_estoque",
+      "breakpoints": true
     }
   ]
 }

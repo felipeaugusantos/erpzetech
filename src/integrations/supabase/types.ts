@@ -1542,6 +1542,7 @@ export type Database = {
           nfe_chave: string | null
           nfe_emissao: string | null
           nfe_numero: string | null
+          nfe_serie: string | null
           numero: number | null
           observacoes: string | null
           origem: string
@@ -1569,6 +1570,7 @@ export type Database = {
           nfe_chave?: string | null
           nfe_emissao?: string | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -1596,6 +1598,7 @@ export type Database = {
           nfe_chave?: string | null
           nfe_emissao?: string | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -4568,6 +4571,9 @@ export type Database = {
       }
       os_itens: {
         Row: {
+          baixa_deposito_id: string | null
+          baixa_produto_id: string | null
+          baixa_quantidade: number | null
           created_at: string
           descricao: string
           id: string
@@ -4580,6 +4586,9 @@ export type Database = {
           total: number
         }
         Insert: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao: string
           id?: string
@@ -4592,6 +4601,9 @@ export type Database = {
           total?: number
         }
         Update: {
+          baixa_deposito_id?: string | null
+          baixa_produto_id?: string | null
+          baixa_quantidade?: number | null
           created_at?: string
           descricao?: string
           id?: string
@@ -4625,8 +4637,10 @@ export type Database = {
           abertura: string
           acessorios: string | null
           cliente_id: string | null
+          controla_estoque: boolean
           created_at: string
           defeito_relatado: string | null
+          deposito_id: string | null
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
@@ -4657,8 +4671,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4689,8 +4705,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
+          deposito_id?: string | null
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4723,6 +4741,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
             referencedColumns: ["id"]
           },
         ]
@@ -7326,6 +7351,15 @@ export type Database = {
         }
         Returns: Json
       }
+      nfe_entrada_ja_importada: {
+        Args: {
+          p_chave?: string
+          p_cnpj?: string
+          p_numero?: string
+          p_serie?: string
+        }
+        Returns: Json
+      }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
       onboarding_criar_espaco: { Args: { p_nome: string }; Returns: string }
       operador_definir_permissoes: {
@@ -7348,6 +7382,7 @@ export type Database = {
         }
         Returns: string
       }
+      os_item_reconciliar: { Args: { p_item_id: string }; Returns: undefined }
       painel_fiscal_loja: {
         Args: { p_ate: string; p_de: string }
         Returns: {
