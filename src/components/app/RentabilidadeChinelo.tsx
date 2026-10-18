@@ -23,7 +23,7 @@ const n = (v: string) => {
 export function RentabilidadeChinelo({
   pares: paresIniciais,
   precoPar: precoInicial,
-}: { pares?: number; precoPar?: number }) {
+}: { pares?: number | undefined; precoPar?: number | undefined }) {
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos-custo-par"],
     queryFn: async () => {
