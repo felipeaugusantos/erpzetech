@@ -55,7 +55,7 @@ function MovimentoGrade() {
       ate.setDate(ate.getDate() + 1);
       const { data, error } = await supabase
         .from("estoque_grade_movimentos")
-        .select("id, tamanho, quantidade, saldo_apos, origem, documento, created_at, produtos(nome, codigo_interno), depositos(nome)")
+        .select("id, tamanho, quantidade, saldo_apos, origem, documento, created_at, produtos(descricao, codigo_interno), depositos(nome)")
         .gte("created_at", new Date(`${inicio}T00:00:00`).toISOString())
         .lt("created_at", ate.toISOString())
         .order("created_at", { ascending: false })
@@ -77,7 +77,7 @@ function MovimentoGrade() {
         (origem === "todas" || m.origem === origem) &&
         (tamanho === "todos" || m.tamanho === tamanho) &&
         (!q ||
-          (m.produtos?.nome ?? "").toLowerCase().includes(q) ||
+          (m.produtos?.descricao ?? "").toLowerCase().includes(q) ||
           (m.produtos?.codigo_interno ?? "").toLowerCase().includes(q) ||
           (m.documento ?? "").toLowerCase().includes(q)),
     );
@@ -182,14 +182,14 @@ function MovimentoGrade() {
             </TableHeader>
             <TableBody>
               {linhas.map((m) => {
-                const o = ORIGENS[m.origem] ?? ORIGENS.outro;
+                const o = ORIGENS[m.origem] ?? { label: "Outro", variant: "outline" as const };
                 const q = Number(m.quantidade);
                 return (
                   <TableRow key={m.id}>
                     <TableCell className="whitespace-nowrap">{dateTimeBR(m.created_at)}</TableCell>
                     <TableCell>
                       {m.produtos?.codigo_interno ? <span className="text-muted-foreground">{m.produtos.codigo_interno} · </span> : null}
-                      {m.produtos?.nome ?? "—"}
+                      {m.produtos?.descricao ?? "—"}
                     </TableCell>
                     <TableCell className="font-medium">{m.tamanho}</TableCell>
                     <TableCell><Badge variant={o.variant}>{o.label}</Badge></TableCell>
