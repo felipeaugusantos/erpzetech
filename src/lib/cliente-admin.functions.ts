@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { comDesfazer } from "./desfazer.ts";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { exigirOperadorZeTech, validarSenhaAdminCliente, validarVinculoAdminCliente } from "./cliente-admin-senha.ts";
 
 type Entrada = { clienteId: string; email: string; senha: string };
 
@@ -115,4 +116,37 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
     });
 
     return { ok: true, email: data.email };
+  });
+
+/** Redefine somente o administrador vinculado ao assinante escolhido. */
+export const redefinirSenhaAdminCliente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clienteId: string; senha: string }) => {
+    if (!input.clienteId) throw new Error("Cliente não informado");
+    return { clienteId: input.clienteId, senha: validarSenhaAdminCliente(String(input.senha ?? "")) };
+  })
+  .handler(async ({ data, context }) => {
+    const { data: operador, error: erroOperador } = await context.supabase.rpc("eh_saas_operador");
+    if (erroOperador) throw erroOperador;
+    exigirOperadorZeTech(operador);
+
+    const { data: cliente, error } = await context.supabase
+      .from("saas_clientes")
+      .select("admin_user_id, tenant_id")
+      .eq("id", data.clienteId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!cliente?.admin_user_id || !cliente.tenant_id) throw new Error("Este cliente não possui administrador vinculado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [perfil, papeis] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, tenant_id").eq("id", cliente.admin_user_id).maybeSingle(),
+      supabaseAdmin.from("user_roles").select("role, tenant_id").eq("user_id", cliente.admin_user_id),
+    ]);
+    if (perfil.error) throw perfil.error;
+    if (papeis.error) throw papeis.error;
+    const userId = validarVinculoAdminCliente(cliente, perfil.data, papeis.data ?? []);
+    const atualizado = await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.senha });
+    if (atualizado.error) throw atualizado.error;
+    return { ok: true };
   });
