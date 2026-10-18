@@ -246,6 +246,8 @@ function NfeEntrada() {
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
+      const semGrade = lida.itens.find((i) => ehTira(i.descricao) && !gradeOk(i));
+      if (semGrade) throw new Error(`Informe a grade da tira "${semGrade.descricao}" antes de importar.`);
       const itens = lida.itens.map((i, idx) => {
         const escolha = mapa[i.seq] ?? NOVO;
         return {
@@ -681,6 +683,22 @@ function NfeEntrada() {
         </div>
       )}
       <DetalhesNotaEntrada compraId={notaDetalhesId} onClose={() => setNotaDetalhesId(null)} />
+      {(() => {
+        const item = lida?.itens.find((i) => i.seq === gradeSeq);
+        return (
+          <GradeEntradaDialog
+            aberto={!!item}
+            descricao={item?.descricao ?? ""}
+            quantidade={item?.quantidade ?? 0}
+            inicial={item ? grades[item.seq] ?? [] : []}
+            onFechar={() => setGradeSeq(null)}
+            onSalvar={(g) => {
+              if (item) setGrades((m) => ({ ...m, [item.seq]: g }));
+              setGradeSeq(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
