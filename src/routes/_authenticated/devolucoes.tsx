@@ -92,7 +92,7 @@ function Devolucoes() {
       const { data, error } = await supabase
         .from("pedidos")
         .select("id, numero, total, created_at, deposito_id, clientes(nome)")
-        .neq("situacao", "cancelado")
+        .not("situacao", "in", "(cancelado,rascunho)")
         .order("numero", { ascending: false })
         .limit(200);
       if (error) throw error;

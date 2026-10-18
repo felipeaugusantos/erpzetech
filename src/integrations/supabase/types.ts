@@ -7333,6 +7333,7 @@ export type Database = {
           p_observacoes?: string
           p_previsao_entrega?: string
           p_profissional_id?: string
+          p_rascunho?: boolean
           p_vendedor_id?: string
         }
         Returns: string
@@ -7778,6 +7779,14 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      pedido_confirmar_rascunho: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
+      pedido_descartar_rascunho: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
       }
       pedido_item_definir_lote: {
         Args: { p_lote_id: string; p_pedido_item_id: string }
@@ -8312,6 +8321,7 @@ export type Database = {
         | "entregue"
         | "cancelada"
       pedido_situacao:
+        | "rascunho"
         | "aguardando_pagamento"
         | "aprovado"
         | "separacao"
@@ -8532,6 +8542,7 @@ export const Constants = {
         "cancelada",
       ],
       pedido_situacao: [
+        "rascunho",
         "aguardando_pagamento",
         "aprovado",
         "separacao",

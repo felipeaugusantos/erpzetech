@@ -137,7 +137,7 @@ function Dashboard() {
         supabase
           .from("pedidos")
           .select("id, numero, total, situacao, created_at, clientes(nome)")
-          .neq("situacao", "cancelado")
+          .not("situacao", "in", "(cancelado,rascunho)")
           .order("numero", { ascending: false })
           .limit(100),
       ]);

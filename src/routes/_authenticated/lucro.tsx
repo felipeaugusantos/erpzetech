@@ -80,7 +80,7 @@ function Lucro() {
         .select(
           "id, numero, created_at, situacao, deposito_id, depositos(nome), pedido_itens(quantidade, preco_unitario, custo_unitario, desconto, total, produto_id, produtos(descricao, codigo_interno, unidade))",
         )
-        .neq("situacao", "cancelado")
+        .not("situacao", "in", "(cancelado,rascunho)")
         .gte("created_at", `${de}T00:00:00`)
         .lte("created_at", `${ate}T23:59:59`);
       if (deposito !== "todos") q = q.eq("deposito_id", deposito);

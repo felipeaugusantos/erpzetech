@@ -40,6 +40,7 @@ export function AlterarPedidoDialog({
   itens,
   desconto,
   frete,
+  rascunho = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -47,6 +48,7 @@ export function AlterarPedidoDialog({
   itens: ItemPedido[];
   desconto: number;
   frete: number;
+  rascunho?: boolean;
 }) {
   const qc = useQueryClient();
   const [linhas, setLinhas] = useState<Linha[]>([]);
@@ -216,7 +218,7 @@ export function AlterarPedidoDialog({
         </div>
 
         <div>
-          <Label>Motivo da alteração</Label>
+          <Label>Motivo da alteração{rascunho ? " (opcional)" : ""}</Label>
           <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} />
         </div>
 
@@ -225,7 +227,7 @@ export function AlterarPedidoDialog({
             Voltar
           </Button>
           <Button
-            disabled={!motivo.trim() || linhas.length === 0 || salvar.isPending}
+            disabled={(!rascunho && !motivo.trim()) || linhas.length === 0 || salvar.isPending}
             onClick={() => salvar.mutate()}
           >
             Salvar alteração
