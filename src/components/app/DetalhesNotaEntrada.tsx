@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { custosEntrada, lerXmlNfe, type ComposicaoCusto } from "@/lib/nfe-xml";
 import { FileUp, Loader2, ShoppingCart, Truck } from "lucide-react";
-import { lerTextoDacte, lerXmlCte } from "@/lib/cte";
+import { cteDaNota, lerDactes, lerXmlCte } from "@/lib/cte";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
       let cte;
       if (ehPdf) {
         const { textoDoPdf } = await import("@/lib/danfe-pdf");
-        cte = lerTextoDacte(await textoDoPdf(file));
+        cte = cteDaNota(lerDactes(await textoDoPdf(file)), data?.compra.nfe_chave);
       } else {
         cte = lerXmlCte(await file.text());
       }

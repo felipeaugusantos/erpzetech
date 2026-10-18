@@ -101,3 +101,25 @@ export function rateioFrete(totais: number[], frete: number): number[] {
   if (soma <= 0) return totais.map(() => 0);
   return totais.map((t) => Math.round(((frete * t) / soma) * 100) / 100);
 }
+
+/** Um PDF pode trazer vários DACTEs (e cada um em duas vias). Devolve um CT-e por chave. */
+export function lerDactes(texto: string): CteLido[] {
+  const porChave = new Map<string, CteLido>();
+  for (const parte of texto.split(/(?=^.*\bDACTE\b)/m)) {
+    let c: CteLido;
+    try { c = lerTextoDacte(parte); } catch { continue; }
+    if (!c.chave) continue;
+    const ja = porChave.get(c.chave);
+    if (ja) ja.nfe_chaves = [...new Set([...ja.nfe_chaves, ...c.nfe_chaves])];
+    else porChave.set(c.chave, c);
+  }
+  return porChave.size ? [...porChave.values()] : [lerTextoDacte(texto)];
+}
+
+/** Escolhe o CT-e que transporta a NF-e informada. */
+export function cteDaNota(ctes: CteLido[], chaveNfe: string | null | undefined): CteLido {
+  if (ctes.length === 1) return ctes[0]!;
+  const achado = chaveNfe ? ctes.find((c) => c.nfe_chaves.includes(chaveNfe)) : undefined;
+  if (achado) return achado;
+  throw new Error(`Este arquivo tem ${ctes.length} CT-e (${ctes.map((c) => `nº ${c.numero ?? "—"}`).join(", ")}) e nenhum deles é desta nota.`);
+}
