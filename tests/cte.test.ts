@@ -25,3 +25,13 @@ test("lê o DACTE da R R Transportes: frete R$ 144,83 da NF-e 13.080", () => {
 test("rateia o frete pelo valor de cada item", () => {
   assert.deepEqual(rateioFrete([750, 250], 100), [75, 25]);
 });
+
+test("separa dois DACTEs no mesmo PDF e acha o da nota certa", async () => {
+  const { lerDactes, cteDaNota } = await import("../src/lib/cte.ts");
+  const outro = `DACTE\n 35.2610.00.564.267/0002-92-57-002-000.727.538-100.175.975-6\n VALOR A RECEBER (R$)   145,76\n NF-E: 35261015324813000104550010000166701300700009`;
+  const ctes = lerDactes(`DACTE\n${DACTE}\nDACTE\n${DACTE}\n${outro}\nDACTE\n${outro}`);
+  assert.equal(ctes.length, 2);
+  assert.equal(cteDaNota(ctes, "35261000574422000170550010000130801293016607").valor, 144.83);
+  assert.equal(cteDaNota(ctes, "35261015324813000104550010000166701300700009").numero, "727538");
+  assert.throws(() => cteDaNota(ctes, "x"));
+});
