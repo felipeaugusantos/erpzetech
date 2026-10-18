@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, FileUp, ShoppingCart, Upload } from "lucide-react";
+import { AlertTriangle, Eye, FileUp, ShoppingCart, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
+import { DetalhesNotaEntrada } from "@/components/app/DetalhesNotaEntrada";
 import { custosComImpostos, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,7 @@ function NfeEntrada() {
   const [gerarConta, setGerarConta] = useState(true);
   const [parcelas, setParcelas] = useState("1");
   const [vencimento, setVencimento] = useState("");
+  const [notaDetalhesId, setNotaDetalhesId] = useState<string | null>(null);
 
   const { data: depositos } = useQuery({
     queryKey: ["depositos-lista"],
@@ -539,6 +541,7 @@ function NfeEntrada() {
                 <TableHead>NF-e</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Detalhes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -559,12 +562,18 @@ function NfeEntrada() {
                   <TableCell className="text-right text-numeric">
                     {brl(Number(c.total ?? 0))}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" aria-label={`Ver detalhes da nota ${c.nfe_numero ?? c.numero}`} onClick={() => setNotaDetalhesId(c.id)}>
+                      <Eye className="size-4" /> Ver nota
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
+      <DetalhesNotaEntrada compraId={notaDetalhesId} onClose={() => setNotaDetalhesId(null)} />
     </div>
   );
 }
