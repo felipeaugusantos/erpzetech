@@ -379,6 +379,13 @@
       "when": 1792349250026,
       "tag": "0053_pedido_cancelar_validar_na_tela",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792350242119,
+      "tag": "0054_produto_codigo_automatico",
+      "breakpoints": true
     }
   ]
 }

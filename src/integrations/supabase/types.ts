@@ -7836,6 +7836,7 @@ export type Database = {
         }
         Returns: string
       }
+      produto_proximo_codigo: { Args: { p_tenant?: string }; Returns: string }
       profissional_converter_em_cliente: {
         Args: { p_profissional_id: string }
         Returns: string
