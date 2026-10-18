@@ -2674,6 +2674,51 @@ export type Database = {
           },
         ]
       }
+      estoque_grade: {
+        Row: {
+          deposito_id: string
+          id: string
+          produto_id: string
+          quantidade: number
+          tamanho: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          deposito_id: string
+          id?: string
+          produto_id: string
+          quantidade?: number
+          tamanho: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          deposito_id?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tamanho?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_grade_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_grade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_lote_movimentos: {
         Row: {
           created_at: string
@@ -7271,6 +7316,10 @@ export type Database = {
       }
       entrega_insucesso: {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
+        Returns: undefined
+      }
+      estoque_grade_ajustar: {
+        Args: { p_deposito_id: string; p_grade: Json; p_produto_id: string }
         Returns: undefined
       }
       estoque_lote_lancar: {

@@ -22,7 +22,13 @@ export function GradeEntradaDialog({
   inicial,
   onFechar,
   onSalvar,
+  titulo = "Grade das tiras",
+  texto = "informe quantas tiras de cada tamanho estão entrando.",
+  salvando = false,
 }: {
+  titulo?: string;
+  texto?: string;
+  salvando?: boolean;
   aberto: boolean;
   descricao: string;
   quantidade: number;
@@ -43,9 +49,9 @@ export function GradeEntradaDialog({
     <Dialog open={aberto} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="grid-cols-[minmax(0,1fr)] sm:max-w-lg">
         <DialogHeader className="min-w-0">
-          <DialogTitle>Grade das tiras</DialogTitle>
+          <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription className="[overflow-wrap:anywhere]">
-            {descricao} — informe quantas tiras de cada tamanho estão entrando.
+            {descricao} — {texto}
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -63,11 +69,11 @@ export function GradeEntradaDialog({
         </div>
         <p className={falta === 0 ? "text-sm text-primary" : "text-sm text-destructive"}>
           Informado {num(soma)} de {num(quantidade)}
-          {falta > 0 ? ` — faltam ${num(falta)}` : falta < 0 ? ` — passou ${num(-falta)}` : " — confere com a nota"}
+          {falta > 0 ? ` — faltam ${num(falta)}` : falta < 0 ? ` — passou ${num(-falta)}` : " — confere com o total"}
         </p>
         <DialogFooter>
           <Button variant="outline" onClick={onFechar}>Cancelar</Button>
-          <Button disabled={falta !== 0} onClick={() => onSalvar(grade)}>Salvar grade</Button>
+          <Button disabled={falta !== 0 || salvando} onClick={() => onSalvar(grade)}>Salvar grade</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
