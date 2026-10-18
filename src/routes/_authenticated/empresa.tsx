@@ -23,6 +23,7 @@ import {
 import { ramos } from "@/lib/ramo";
 import { ROTULO_MODULO, cnaesDaEmpresa, exemplosCnae, moduloLiberadoPorCnae } from "@/lib/cnae";
 import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
+import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
@@ -430,6 +431,7 @@ function Empresa() {
               {data ? "Salvar empresa" : "Cadastrar empresa"}
             </Button>
           </div>
+          {isAdmin && data && <ZerarDadosEmpresa />}
         </div>
       )}
     </>
