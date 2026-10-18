@@ -7476,6 +7476,10 @@ export type Database = {
         }
         Returns: Json
       }
+      nfe_entrada_completar_impostos: {
+        Args: { p_compra_id: string; p_itens: Json; p_nota: Json }
+        Returns: Json
+      }
       nfe_entrada_ja_importada: {
         Args: {
           p_chave?: string
