@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
-import { DetalhesNotaEntrada } from "@/components/app/DetalhesNotaEntrada";
-import { custosComImpostos, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
+import { DetalhesNotaEntrada, textoComposicao } from "@/components/app/DetalhesNotaEntrada";
+import { custosEntrada, impostosRecuperaveis, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,7 @@ function NfeEntrada() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("depositos")
-        .select("id, nome, tipo")
+        .select("id, nome, tipo, filiais(empresas(regime_tributario))")
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
@@ -203,6 +203,16 @@ function NfeEntrada() {
     }
   }
 
+  const regime =
+    ((depositos ?? []).find((d) => d.id === depositoId) as
+      | { filiais?: { empresas?: { regime_tributario?: string | null } | null } | null }
+      | undefined)?.filiais?.empresas?.regime_tributario ?? null;
+  const custos = useMemo(
+    () => (lida ? custosEntrada(lida.itens, lida.nota, regime) : []),
+    [lida, regime],
+  );
+  const creditos = impostosRecuperaveis(regime);
+
   const resumo = useMemo(() => {
     if (!lida) return { itens: 0, novos: 0, total: 0 };
     const novos = lida.itens.filter((i) => (mapa[i.seq] ?? NOVO) === NOVO).length;
@@ -223,7 +233,6 @@ function NfeEntrada() {
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
-      const custos = custosComImpostos(lida.itens, lida.nota);
       const itens = lida.itens.map((i, idx) => {
         const escolha = mapa[i.seq] ?? NOVO;
         return {
@@ -233,10 +242,10 @@ function NfeEntrada() {
           descricao: i.descricao,
           ncm: i.ncm,
           cfop: i.cfop,
-          impostos: i.impostos,
+          impostos: { ...i.impostos, composicao: custos[idx]?.composicao ?? null, regime },
           unidade: i.unidade,
           quantidade: i.quantidade,
-          custo_unitario: custos[idx] ?? i.custo_unitario,
+          custo_unitario: custos[idx]?.custo_unitario ?? i.custo_unitario,
           // lote, tonalidade e calibre entram na mesma transação da compra
           ...(i.lote
             ? { lote: i.lote, tonalidade: i.tonalidade ?? "", calibre: i.calibre ?? "" }
@@ -459,8 +468,11 @@ function NfeEntrada() {
           <div className="panel mb-4 p-4">
             <p className="font-display text-sm font-semibold">Impostos da nota</p>
             <p className="text-xs text-muted-foreground">
-              Valores destacados no XML do fornecedor. ST, IPI, seguro e outras despesas entram no
-              custo dos produtos.
+              Valores destacados no XML do fornecedor. ST, IPI, frete, seguro e outras despesas entram no
+              custo e o desconto sai.{" "}
+              {creditos.icms
+                ? `Pelo regime da empresa, ${creditos.pis ? "ICMS, PIS e COFINS saem" : "o ICMS sai"} do custo (crédito).`
+                : "No Simples Nacional os impostos não dão crédito e ficam no custo."}
             </p>
             <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3 xl:grid-cols-6">
               {(
@@ -504,10 +516,12 @@ function NfeEntrada() {
                   <TableHead className="text-right">Qtd.</TableHead>
                   <TableHead className="text-right">Custo unit.</TableHead>
                   <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Custo final unit.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lida.itens.map((item) => {
+                {lida.itens.map((item, idx) => {
+                  const custo = custos[idx];
                   const escolha = mapa[item.seq] ?? NOVO;
                   return (
                     <TableRow key={item.seq}>
@@ -559,6 +573,10 @@ function NfeEntrada() {
                         {brl(item.custo_unitario)}
                       </TableCell>
                       <TableCell className="text-right text-numeric">{brl(item.total)}</TableCell>
+                      <TableCell className="text-right text-numeric font-semibold" title={custo ? textoComposicao(custo.composicao) : ""}>
+                        {custo ? brl(custo.custo_unitario) : "—"}
+                        {custo && <p className="text-xs font-normal text-muted-foreground">total {brl(custo.composicao.total)}</p>}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
