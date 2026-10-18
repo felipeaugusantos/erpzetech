@@ -38,10 +38,33 @@ function NotFoundComponent() {
   );
 }
 
+/** Depois de publicar, uma aba aberta ainda pede arquivos da versão anterior, que já não existem. */
+function ehVersaoAntiga(error: unknown) {
+  const msg = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+  return /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Failed to fetch dynamically/i.test(msg);
+}
+
+/** Recarrega a página uma vez (no máximo a cada 30 s) para buscar a versão nova. */
+function recarregarVersaoNova() {
+  if (typeof window === "undefined") return false;
+  const ultima = Number(sessionStorage.getItem("zt-recarga-versao") ?? 0);
+  if (Date.now() - ultima < 30_000) return false;
+  sessionStorage.setItem("zt-recarga-versao", String(Date.now()));
+  window.location.reload();
+  return true;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("vite:preloadError", (e) => {
+    if (recarregarVersaoNova()) e.preventDefault();
+  });
+}
+
 function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (ehVersaoAntiga(error) && recarregarVersaoNova()) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
@@ -49,10 +72,10 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Esta tela não abriu
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Algo deu errado. Tente de novo ou volte para o início.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -62,13 +85,13 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Tentar de novo
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Voltar ao início
           </a>
         </div>
       </div>
