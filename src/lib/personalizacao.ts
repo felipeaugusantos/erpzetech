@@ -76,3 +76,12 @@ export function custoPar(e: CustoParEntrada) {
 
 /** Margem sobre o preço de venda, em %. */
 export const margemPar = (preco: number, custo: number) => (preco > 0 ? ((preco - custo) / preco) * 100 : 0);
+
+export const etapasProducao = ["impressao", "prensa", "montagem"] as const;
+
+/** Situação de uma etapa de produção em relação à etapa atual do pedido. */
+export function statusEtapa(atual: string, etapa: string): "concluida" | "andamento" | "aguardando" {
+  const ordem = etapasPersonalizacao.map((e) => e.value as string);
+  const a = ordem.indexOf(atual), e = ordem.indexOf(etapa);
+  return a > e ? "concluida" : a === e ? "andamento" : "aguardando";
+}
