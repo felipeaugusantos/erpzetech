@@ -220,7 +220,7 @@ function Nfe() {
           .select(
             "id, numero, total, situacao, cliente_id, deposito_id, clientes(nome), depositos(nome, filiais(nome))",
           )
-          .neq("situacao", "cancelado")
+          .not("situacao", "in", "(cancelado,rascunho)")
           .order("numero", { ascending: false }),
         supabase.from("nfe_pedidos").select("pedido_id, nfe(situacao)"),
       ]);

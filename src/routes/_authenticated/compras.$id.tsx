@@ -70,10 +70,20 @@ function CompraDetalhe() {
   const { id } = Route.useParams();
   const { data: session } = useSessionData();
   const tenantId = session?.profile?.tenant_id ?? null;
+  // compra na unidade do fornecedor só para empresas com personalização
+  const compraEmUnidadeFornecedor = Boolean(
+    (session?.empresa as { faz_personalizacao?: boolean } | null | undefined)?.faz_personalizacao,
+  );
   const queryClient = useQueryClient();
 
   const [buscaProduto, setBuscaProduto] = useState("");
   const [cancelarAberto, setCancelarAberto] = useState(false);
+  const [alterarAberto, setAlterarAberto] = useState(false);
+  const [motivoAlterar, setMotivoAlterar] = useState("");
+  const [dadosAberto, setDadosAberto] = useState(false);
+  const [dPrevisao, setDPrevisao] = useState("");
+  const [dCondicao, setDCondicao] = useState("");
+  const [dObs, setDObs] = useState("");
   const [motivo, setMotivo] = useState("");
   const [cotacaoAberta, setCotacaoAberta] = useState(false);
   const [cotForn, setCotForn] = useState("");
@@ -115,7 +125,7 @@ function CompraDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compra_itens")
-        .select("*, produtos(codigo_interno, descricao, unidade)")
+        .select("*, produtos(codigo_interno, descricao, unidade, unidade_compra, fator_conversao)")
         .eq("compra_id", id)
         .order("created_at");
       if (error) throw error;
@@ -171,7 +181,7 @@ function CompraDetalhe() {
       const t = buscaProduto.trim();
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, codigo_interno, descricao, unidade, custo")
+        .select("id, codigo_interno, descricao, unidade, custo, unidade_compra, fator_conversao")
         .eq("ativo", true)
         .or(`descricao.ilike.%${t}%,codigo_interno.ilike.%${t}%,codigo_barras.ilike.%${t}%`)
         .limit(8);
@@ -188,16 +198,23 @@ function CompraDetalhe() {
       unidade: string;
       custo: number;
       descricao: string;
+      fator_conversao?: number | null;
+      unidade_compra?: string | null;
     }) => {
+      // produto comprado em outra unidade (ex.: metro): já entra 1 unidade de compra
+      const f =
+        compraEmUnidadeFornecedor && produto.unidade_compra && Number(produto.fator_conversao) > 1
+          ? Number(produto.fator_conversao)
+          : 1;
       if (!tenantId) throw new Error("Usuário sem empresa vinculada");
       const { error } = await supabase.from("compra_itens").insert({
         tenant_id: tenantId,
         compra_id: id,
         produto_id: produto.id,
-        quantidade: 1,
+        quantidade: f,
         unidade: produto.unidade,
         custo_unitario: produto.custo,
-        total: Number(produto.custo),
+        total: Math.round(Number(produto.custo) * f * 100) / 100,
       });
       if (error) throw error;
     },
@@ -243,6 +260,44 @@ function CompraDetalhe() {
     },
     onSuccess: invalidate,
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const salvarDados = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("compras")
+        .update({
+          previsao_entrega: dPrevisao || null,
+          condicao_pagamento: dCondicao.trim() || null,
+          observacoes: dObs.trim() || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dados da compra atualizados.");
+      setDadosAberto(false);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("compra_avancar_status", {
+        p_compra_id: id,
+        p_situacao: "rascunho" as never,
+        p_observacao: motivoAlterar.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Compra reaberta. Altere os itens e aprove de novo.");
+      setAlterarAberto(false);
+      setMotivoAlterar("");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error("Não foi possível reabrir", { description: e.message }),
   });
 
   const avancar = useMutation({
@@ -392,6 +447,24 @@ function CompraDetalhe() {
                 <PackageCheck className="size-4" /> Registrar recebimento
               </Button>
             )}
+            {["aprovado", "pedido_enviado"].includes(compra.situacao) && (
+              <Button variant="outline" onClick={() => setAlterarAberto(true)}>
+                Alterar pedido
+              </Button>
+            )}
+            {!["recebido", "cancelado"].includes(compra.situacao) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDPrevisao(compra.previsao_entrega ?? "");
+                  setDCondicao(compra.condicao_pagamento ?? "");
+                  setDObs(compra.observacoes ?? "");
+                  setDadosAberto(true);
+                }}
+              >
+                Editar dados
+              </Button>
+            )}
             {!["recebido", "cancelado"].includes(compra.situacao) && (
               <Button variant="outline" onClick={() => setCancelarAberto(true)}>
                 Cancelar compra
@@ -466,6 +539,8 @@ function CompraDetalhe() {
                           unidade: p.unidade,
                           custo: Number(p.custo),
                           descricao: p.descricao,
+                          fator_conversao: p.fator_conversao,
+                          unidade_compra: p.unidade_compra,
                         })
                       }
                     >
@@ -507,47 +582,77 @@ function CompraDetalhe() {
                     codigo_interno: string;
                     descricao: string;
                     unidade: string;
+                    unidade_compra: string | null;
+                    fator_conversao: number | null;
                   } | null;
+                  // compra na unidade do fornecedor (ex.: MT); o estoque recebe na unidade do produto (UN)
+                  const f =
+                    compraEmUnidadeFornecedor &&
+                    prod?.unidade_compra &&
+                    Number(prod.fator_conversao) > 1
+                      ? Number(prod.fator_conversao)
+                      : 1;
+                  const qtdCompra = Math.round((Number(i.quantidade) / f) * 1000) / 1000;
+                  const custoCompra = Math.round(Number(i.custo_unitario) * f * 10000) / 10000;
                   return (
                     <TableRow key={i.id}>
                       <TableCell>
                         <p className="font-medium">{prod?.descricao ?? "—"}</p>
                         <p className="text-numeric text-xs text-muted-foreground">
-                          {prod?.codigo_interno} · {i.unidade ?? prod?.unidade}
+                          {prod?.codigo_interno} ·{" "}
+                          {f > 1
+                            ? `compra em ${prod?.unidade_compra} · 1 ${prod?.unidade_compra} = ${num(f)} ${prod?.unidade}`
+                            : (i.unidade ?? prod?.unidade)}
                         </p>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {editavel ? (
-                          <Input
-                            className="ml-auto w-24 text-right"
-                            defaultValue={String(Number(i.quantidade))}
-                            onBlur={(e) =>
-                              atualizarItem.mutate({
-                                itemId: i.id,
-                                quantidade: Number(e.target.value.replace(",", ".") || 0),
-                                custo: Number(i.custo_unitario),
-                              })
-                            }
-                          />
-                        ) : (
-                          <span className="text-numeric">{num(Number(i.quantidade), 3)}</span>
+                        {f > 1 && (
+                          <p className="text-xs text-muted-foreground">
+                            Entra no estoque: {num(Number(i.quantidade), 3)} {prod?.unidade}
+                          </p>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         {editavel ? (
                           <Input
                             className="ml-auto w-24 text-right"
-                            defaultValue={String(Number(i.custo_unitario))}
+                            key={`q${i.id}${i.quantidade}`}
+                            defaultValue={String(qtdCompra)}
                             onBlur={(e) =>
                               atualizarItem.mutate({
                                 itemId: i.id,
-                                quantidade: Number(i.quantidade),
-                                custo: Number(e.target.value.replace(",", ".") || 0),
+                                quantidade: Number(e.target.value.replace(",", ".") || 0) * f,
+                                custo: Number(i.custo_unitario),
                               })
                             }
                           />
                         ) : (
-                          <span className="text-numeric">{brl(Number(i.custo_unitario))}</span>
+                          <span className="text-numeric">
+                            {num(qtdCompra, 3)}
+                            {f > 1 ? ` ${prod?.unidade_compra}` : ""}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {editavel ? (
+                          <Input
+                            className="ml-auto w-24 text-right"
+                            key={`c${i.id}${i.custo_unitario}`}
+                            defaultValue={String(custoCompra)}
+                            onBlur={(e) =>
+                              atualizarItem.mutate({
+                                itemId: i.id,
+                                quantidade: Number(i.quantidade),
+                                custo:
+                                  Math.round(
+                                    (Number(e.target.value.replace(",", ".") || 0) / f) * 1000000,
+                                  ) / 1000000,
+                              })
+                            }
+                          />
+                        ) : (
+                          <span className="text-numeric">
+                            {brl(custoCompra)}
+                            {f > 1 ? `/${prod?.unidade_compra}` : ""}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
@@ -974,6 +1079,67 @@ function CompraDetalhe() {
               onClick={() => avancar.mutate({ situacao: "cancelado", observacao: motivo })}
             >
               Confirmar cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={alterarAberto} onOpenChange={setAlterarAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar pedido de compra</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A compra volta para rascunho: você poderá mudar fornecedor, itens, quantidades e custos.
+            Depois precisa aprovar de novo. Só é possível enquanto nada foi recebido. O motivo fica
+            registrado nas observações.
+          </p>
+          <div>
+            <Label>Motivo da alteração</Label>
+            <Textarea
+              value={motivoAlterar}
+              onChange={(e) => setMotivoAlterar(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlterarAberto(false)}>
+              Voltar
+            </Button>
+            <Button
+              disabled={!motivoAlterar.trim() || reabrir.isPending}
+              onClick={() => reabrir.mutate()}
+            >
+              Reabrir para alterar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dadosAberto} onOpenChange={setDadosAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar dados da compra</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Previsão de entrega</Label>
+              <Input type="date" value={dPrevisao} onChange={(e) => setDPrevisao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Condição de pagamento</Label>
+              <Input value={dCondicao} onChange={(e) => setDCondicao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={dObs} onChange={(e) => setDObs(e.target.value)} rows={4} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDadosAberto(false)}>
+              Voltar
+            </Button>
+            <Button disabled={salvarDados.isPending} onClick={() => salvarDados.mutate()}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>

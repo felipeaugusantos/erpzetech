@@ -2373,3 +2373,141 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_config_salvar(%L, 1, '1', NULL, false)$c$, (SELECT id FROM fiscal_config WHERE tenant_id = tb)), 'salvar configuração de outra empresa');
   PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM nfce_config_listar() WHERE fiscal_config_id = %L$c$, (SELECT id FROM fiscal_config WHERE tenant_id = tb))) = 0, 'não lista a configuração de outra empresa');
 END $$;
+
+-- 33. Fase 1: importação por planilha (produtos, clientes e saldos) numa transação, com simulação e limite
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  dep uuid; r jsonb; n_antes bigint; n_depois bigint; q numeric; linhas jsonb; i integer; tb uuid;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Import CI A'), (demo, 'Import CI B');
+  SELECT id INTO dep FROM depositos WHERE tenant_id = demo AND nome = 'Import CI A';
+
+  -- quem pode: produtos e clientes só administrador e gestor; saldos também o estoquista
+  PERFORM ci.deve_falhar(vend, $c$SELECT importar_produtos('[{"linha":2,"codigo_interno":"IMP-X","descricao":"x"}]'::jsonb)$c$, 'vendedor importa produtos');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT importar_produtos('[{"linha":2,"codigo_interno":"IMP-X","descricao":"x"}]'::jsonb)$c$, 'caixa importa produtos');
+  PERFORM ci.deve_falhar(gar, $c$SELECT importar_produtos('[{"linha":2,"codigo_interno":"IMP-X","descricao":"x"}]'::jsonb)$c$, 'garçom importa produtos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT importar_produtos('[{"linha":2,"codigo_interno":"IMP-X","descricao":"x"}]'::jsonb)$c$, 'anon importa produtos');
+  PERFORM ci.deve_falhar(est, $c$SELECT importar_produtos('[{"linha":2,"codigo_interno":"IMP-X","descricao":"x"}]'::jsonb)$c$, 'estoquista importa produtos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT importar_clientes('[{"linha":2,"nome":"x"}]'::jsonb)$c$, 'vendedor importa clientes');
+  PERFORM ci.deve_falhar(est, $c$SELECT importar_clientes('[{"linha":2,"nome":"x"}]'::jsonb)$c$, 'estoquista importa clientes');
+  PERFORM ci.deve_falhar(vend, $c$SELECT importar_saldos('[{"linha":2,"codigo_interno":"x","quantidade":1}]'::jsonb)$c$, 'vendedor importa saldos');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT importar_saldos('[{"linha":2,"codigo_interno":"x","quantidade":1}]'::jsonb)$c$, 'caixa importa saldos');
+
+  -- limites de entrada
+  PERFORM ci.deve_falhar(adm, $c$SELECT importar_produtos('[]'::jsonb)$c$, 'planilha vazia');
+  PERFORM ci.deve_falhar(adm, $c$SELECT importar_produtos('{"a":1}'::jsonb)$c$, 'linhas que não são lista');
+  SELECT jsonb_agg(jsonb_build_object('linha', g + 1, 'codigo_interno', 'LIM-' || g, 'descricao', 'x')) INTO linhas FROM generate_series(1, 5001) g;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT importar_produtos(%L::jsonb)$c$, linhas), 'mais de 5000 linhas');
+
+  -- produtos: simulação não grava; erros por linha; nada entra se uma linha falha
+  SELECT count(*) INTO n_antes FROM produtos WHERE tenant_id = demo;
+  PERFORM ci.entrar(adm);
+  r := importar_produtos('[{"linha":2,"codigo_interno":"IMP-1","descricao":"Cimento CP II","unidade":"sc","preco_venda":39.9,"custo":31,"ncm":"25232990","categoria":"Cimentos"},
+                           {"linha":3,"codigo_interno":"IMP-2","descricao":"Areia média","unidade":"m3","preco_venda":120,"categoria":"cimentos"}]'::jsonb, false, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'simulado')::boolean AND (r ->> 'criados')::int = 2 AND (r ->> 'categorias_novas')::int = 1,
+                   'a simulação conta os produtos novos e a categoria nova (sem diferenciar maiúsculas)');
+  SELECT count(*) INTO n_depois FROM produtos WHERE tenant_id = demo;
+  PERFORM ci.exige(n_antes = n_depois AND NOT EXISTS (SELECT 1 FROM categorias WHERE tenant_id = demo AND lower(nome) = 'cimentos'),
+                   'simular não grava produto nem categoria');
+
+  PERFORM ci.entrar(adm);
+  r := importar_produtos('[{"linha":2,"codigo_interno":"IMP-OK","descricao":"Bom"},
+                           {"linha":3,"codigo_interno":"IMP-BAD","descricao":"Ruim","ncm":"123"},
+                           {"linha":4,"codigo_interno":"imp-ok","descricao":"Repetido"},
+                           {"linha":5,"codigo_interno":"","descricao":"Sem código"},
+                           {"linha":6,"codigo_interno":"IMP-NEG","descricao":"Negativo","preco_venda":-1},
+                           {"linha":7,"codigo_interno":"IMP-TXT","descricao":"Texto","preco_venda":"abc"}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'ok')::boolean AND (r ->> 'n_erros')::int = 5, 'cada linha ruim vira um erro, cinco ao todo');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'erros') e WHERE (e ->> 'linha')::int = 3 AND e ->> 'mensagem' LIKE '%NCM%'), 'o erro diz a linha e o motivo');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM produtos WHERE tenant_id = demo AND codigo_interno = 'IMP-OK'), 'com erro em outra linha, nada entra (tudo ou nada)');
+
+  -- produtos: importar de verdade, categoria criada, tipos e padrões
+  PERFORM ci.entrar(gest);
+  r := importar_produtos('[{"linha":2,"codigo_interno":"IMP-1","descricao":"Cimento CP II","unidade":"sc","preco_venda":39.9,"custo":31,"ncm":"2523.29.90","categoria":"Cimentos","estoque_minimo":10,"estoque_maximo":100},
+                           {"linha":3,"codigo_interno":"IMP-2","descricao":"Areia média","unidade":"m3","preco_venda":120,"categoria":"cimentos"}]'::jsonb, false, false, 'produtos.csv');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'criados')::int = 2, 'o gestor importa produtos');
+  PERFORM ci.exige((SELECT preco_venda = 39.9 AND custo = 31 AND ncm = '25232990' AND unidade = 'sc' AND estoque_minimo = 10 AND estoque_maximo = 100 AND tenant_id = demo
+                      FROM produtos WHERE codigo_interno = 'IMP-1' AND tenant_id = demo), 'o produto entra com os dados da planilha (NCM só números)');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM categorias WHERE tenant_id = demo AND lower(nome) = 'cimentos'), 'a categoria nova é criada uma vez só');
+  PERFORM ci.exige((SELECT p1.categoria_id = p2.categoria_id AND p1.categoria_id IS NOT NULL
+                      FROM produtos p1, produtos p2 WHERE p1.codigo_interno = 'IMP-1' AND p2.codigo_interno = 'IMP-2' AND p1.tenant_id = demo AND p2.tenant_id = demo),
+                   'os dois produtos usam a mesma categoria');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM importacoes WHERE tenant_id = demo AND tipo = 'produtos' AND arquivo = 'produtos.csv' AND criados = 2), 'a importação fica registrada');
+  PERFORM ci.exige(ci.contar(adm, $c$SELECT count(*) FROM importacoes$c$) = 1 AND ci.contar(vend, $c$SELECT count(*) FROM importacoes$c$) = 0,
+                   'o histórico é de administrador, gestor e estoquista');
+
+  -- produtos: já existe; atualizar só os campos preenchidos
+  PERFORM ci.entrar(adm);
+  r := importar_produtos('[{"linha":2,"codigo_interno":"IMP-1","descricao":"Cimento novo","preco_venda":45}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'ok')::boolean AND r -> 'erros' -> 0 ->> 'mensagem' LIKE '%já existe%', 'código existente sem pedir para atualizar é recusado');
+  PERFORM ci.entrar(adm);
+  r := importar_produtos('[{"linha":2,"codigo_interno":"imp-1","descricao":"Cimento novo","preco_venda":45}]'::jsonb, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'atualizados')::int = 1 AND (r ->> 'criados')::int = 0, 'atualizar altera o produto existente (código sem diferenciar maiúsculas)');
+  PERFORM ci.exige((SELECT descricao = 'Cimento novo' AND preco_venda = 45 AND custo = 31 AND unidade = 'sc' AND ncm = '25232990'
+                      FROM produtos WHERE codigo_interno = 'IMP-1' AND tenant_id = demo), 'campo em branco na planilha mantém o valor que já existe');
+
+  -- clientes
+  PERFORM ci.entrar(adm);
+  r := importar_clientes('[{"linha":2,"nome":"Construtora Alfa","documento":"11.222.333/0001-81","inscricao_estadual":"123","email":"alfa@x.com","estado":"sp","limite_credito":5000,"prazo_padrao_dias":30},
+                           {"linha":3,"nome":"João da Silva","documento":"529.982.247-25","telefone":"(11) 99999-0000"},
+                           {"linha":4,"nome":"Cliente sem documento"}]'::jsonb, false, false, 'clientes.csv');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'criados')::int = 3, 'importa clientes');
+  PERFORM ci.exige((SELECT tipo = 'PJ' AND cnpj = '11222333000181' AND cpf IS NULL AND estado = 'SP' AND limite_credito = 5000 AND prazo_padrao_dias = 30
+                      FROM clientes WHERE tenant_id = demo AND nome = 'Construtora Alfa'), 'CNPJ vira pessoa jurídica, só números; estado em maiúsculas; limite e prazo entram');
+  PERFORM ci.exige((SELECT tipo = 'PF' AND cpf = '52998224725' AND cnpj IS NULL FROM clientes WHERE tenant_id = demo AND nome = 'João da Silva'), 'CPF vira pessoa física');
+  PERFORM ci.entrar(adm);
+  r := importar_clientes('[{"linha":2,"nome":"Outro nome","documento":"52998224725"},
+                           {"linha":3,"nome":"Cliente sem documento"},
+                           {"linha":4,"nome":"Novo","documento":"123"},
+                           {"linha":5,"nome":"Mail","email":"sem-arroba"},
+                           {"linha":6,"nome":"UF","estado":"SPP"},
+                           {"linha":7,"nome":"Neg","limite_credito":-5}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'ok')::boolean AND (r ->> 'n_erros')::int = 6, 'cliente que já existe (por CPF ou por nome) e dados ruins são erros');
+  PERFORM ci.entrar(adm);
+  r := importar_clientes('[{"linha":2,"nome":"João Silva Atualizado","documento":"52998224725","telefone":""}]'::jsonb, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'atualizados')::int = 1, 'atualizar cliente pelo CPF');
+  PERFORM ci.exige((SELECT nome = 'João Silva Atualizado' AND telefone = '(11) 99999-0000' FROM clientes WHERE tenant_id = demo AND cpf = '52998224725'),
+                   'telefone em branco mantém o que já existe');
+
+  -- saldos
+  PERFORM ci.entrar(est);
+  r := importar_saldos('[{"linha":2,"codigo_interno":"IMP-1","deposito":"Import CI A","quantidade":80},
+                         {"linha":3,"codigo_interno":"IMP-2","deposito":"import ci b","quantidade":12.5}]'::jsonb, false, 'saldos.csv');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'atualizados')::int = 2, 'o estoquista importa saldos');
+  SELECT quantidade INTO q FROM estoques e JOIN produtos p ON p.id = e.produto_id WHERE p.codigo_interno = 'IMP-1' AND p.tenant_id = demo AND e.deposito_id = dep;
+  PERFORM ci.exige(q = 80, 'o saldo do depósito fica igual ao da planilha');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM estoque_movimentacoes m JOIN produtos p ON p.id = m.produto_id
+                     WHERE p.codigo_interno = 'IMP-2' AND p.tenant_id = demo AND m.motivo = 'Importação por planilha'), 'o saldo entra como movimentação com histórico');
+  PERFORM ci.entrar(adm);
+  r := importar_saldos('[{"linha":2,"codigo_interno":"IMP-1","deposito":"Import CI A","quantidade":60},
+                         {"linha":3,"codigo_interno":"NAO-EXISTE","deposito":"Import CI A","quantidade":1},
+                         {"linha":4,"codigo_interno":"IMP-2","deposito":"","quantidade":1},
+                         {"linha":5,"codigo_interno":"IMP-2","deposito":"Depósito fantasma","quantidade":1},
+                         {"linha":6,"codigo_interno":"IMP-2","deposito":"Import CI B","quantidade":0},
+                         {"linha":7,"codigo_interno":"IMP-1","deposito":"Import CI A","quantidade":5}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'ok')::boolean AND (r ->> 'n_erros')::int = 5, 'produto inexistente, depósito em branco com vários, depósito inexistente, quantidade zero e linha repetida são erros');
+  SELECT quantidade INTO q FROM estoques e JOIN produtos p ON p.id = e.produto_id WHERE p.codigo_interno = 'IMP-1' AND p.tenant_id = demo AND e.deposito_id = dep;
+  PERFORM ci.exige(q = 80, 'com erro em outra linha, o saldo não muda');
+
+  -- isolamento: nada do que foi importado aparece em outra empresa
+  INSERT INTO tenants (nome) VALUES ('Importação B') RETURNING id INTO tb;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM produtos WHERE tenant_id = tb), 'a outra empresa não recebeu produtos');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM clientes WHERE tenant_id = tb), 'a outra empresa não recebeu clientes');
+END $$;

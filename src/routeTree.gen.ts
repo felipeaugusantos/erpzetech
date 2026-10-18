@@ -36,6 +36,7 @@ import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authen
 import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticated/cotacoes'
 import { Route as AuthenticatedCozinhaRouteImport } from './routes/_authenticated/cozinha'
 import { Route as AuthenticatedCreditoRouteImport } from './routes/_authenticated/credito'
+import { Route as AuthenticatedCustoParRouteImport } from './routes/_authenticated/custo-par'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticated/delivery'
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
@@ -54,6 +55,8 @@ import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authent
 import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenticated/frente-caixa'
 import { Route as AuthenticatedFrotaMapaRouteImport } from './routes/_authenticated/frota-mapa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
+import { Route as AuthenticatedImportacaoRouteImport } from './routes/_authenticated/importacao'
+import { Route as AuthenticatedImportarCteRouteImport } from './routes/_authenticated/importar-cte'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
@@ -67,6 +70,7 @@ import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
+import { Route as AuthenticatedMovimentoGradeRouteImport } from './routes/_authenticated/movimento-grade'
 import { Route as AuthenticatedNfceConfigRouteImport } from './routes/_authenticated/nfce-config'
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
@@ -80,9 +84,11 @@ import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authent
 import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
+import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
 import { Route as AuthenticatedPrefeituraRouteImport } from './routes/_authenticated/prefeitura'
+import { Route as AuthenticatedProducaoRouteImport } from './routes/_authenticated/producao'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
@@ -266,6 +272,11 @@ const AuthenticatedCreditoRoute = AuthenticatedCreditoRouteImport.update({
   path: '/credito',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCustoParRoute = AuthenticatedCustoParRouteImport.update({
+  id: '/custo-par',
+  path: '/custo-par',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -365,6 +376,17 @@ const AuthenticatedGiroEstoqueRoute =
     path: '/giro-estoque',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedImportacaoRoute = AuthenticatedImportacaoRouteImport.update({
+  id: '/importacao',
+  path: '/importacao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedImportarCteRoute =
+  AuthenticatedImportarCteRouteImport.update({
+    id: '/importar-cte',
+    path: '/importar-cte',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImpostosRoute = AuthenticatedImpostosRouteImport.update({
   id: '/impostos',
   path: '/impostos',
@@ -438,6 +460,12 @@ const AuthenticatedMovimentacoesRoute =
     path: '/movimentacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMovimentoGradeRoute =
+  AuthenticatedMovimentoGradeRouteImport.update({
+    id: '/movimento-grade',
+    path: '/movimento-grade',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNfceConfigRoute = AuthenticatedNfceConfigRouteImport.update({
   id: '/nfce-config',
   path: '/nfce-config',
@@ -509,6 +537,12 @@ const AuthenticatedPendenciasFiscaisRoute =
     path: '/pendencias-fiscais',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPersonalizacaoRoute =
+  AuthenticatedPersonalizacaoRouteImport.update({
+    id: '/personalizacao',
+    path: '/personalizacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
   id: '/planos',
   path: '/planos',
@@ -522,6 +556,11 @@ const AuthenticatedPrecosRoute = AuthenticatedPrecosRouteImport.update({
 const AuthenticatedPrefeituraRoute = AuthenticatedPrefeituraRouteImport.update({
   id: '/prefeitura',
   path: '/prefeitura',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProducaoRoute = AuthenticatedProducaoRouteImport.update({
+  id: '/producao',
+  path: '/producao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
@@ -755,6 +794,7 @@ export interface FileRoutesByFullPath {
   '/cotacoes': typeof AuthenticatedCotacoesRoute
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
+  '/custo-par': typeof AuthenticatedCustoParRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -773,6 +813,8 @@ export interface FileRoutesByFullPath {
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
+  '/importacao': typeof AuthenticatedImportacaoRoute
+  '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
@@ -786,6 +828,7 @@ export interface FileRoutesByFullPath {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -799,9 +842,11 @@ export interface FileRoutesByFullPath {
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
+  '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -866,6 +911,7 @@ export interface FileRoutesByTo {
   '/cotacoes': typeof AuthenticatedCotacoesRoute
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
+  '/custo-par': typeof AuthenticatedCustoParRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -884,6 +930,8 @@ export interface FileRoutesByTo {
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
+  '/importacao': typeof AuthenticatedImportacaoRoute
+  '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
@@ -897,6 +945,7 @@ export interface FileRoutesByTo {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -910,9 +959,11 @@ export interface FileRoutesByTo {
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
+  '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -979,6 +1030,7 @@ export interface FileRoutesById {
   '/_authenticated/cotacoes': typeof AuthenticatedCotacoesRoute
   '/_authenticated/cozinha': typeof AuthenticatedCozinhaRoute
   '/_authenticated/credito': typeof AuthenticatedCreditoRoute
+  '/_authenticated/custo-par': typeof AuthenticatedCustoParRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/delivery': typeof AuthenticatedDeliveryRoute
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -997,6 +1049,8 @@ export interface FileRoutesById {
   '/_authenticated/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
   '/_authenticated/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
+  '/_authenticated/importacao': typeof AuthenticatedImportacaoRoute
+  '/_authenticated/importar-cte': typeof AuthenticatedImportarCteRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
@@ -1010,6 +1064,7 @@ export interface FileRoutesById {
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/_authenticated/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/_authenticated/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -1023,9 +1078,11 @@ export interface FileRoutesById {
   '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
+  '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
   '/_authenticated/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/_authenticated/producao': typeof AuthenticatedProducaoRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
@@ -1092,6 +1149,7 @@ export interface FileRouteTypes {
     | '/cotacoes'
     | '/cozinha'
     | '/credito'
+    | '/custo-par'
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
@@ -1110,6 +1168,8 @@ export interface FileRouteTypes {
     | '/frente-caixa'
     | '/frota-mapa'
     | '/giro-estoque'
+    | '/importacao'
+    | '/importar-cte'
     | '/impostos'
     | '/impostos-filial'
     | '/impostos-nota'
@@ -1123,6 +1183,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/movimento-grade'
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
@@ -1136,9 +1197,11 @@ export interface FileRouteTypes {
     | '/painel-locacao'
     | '/pdv'
     | '/pendencias-fiscais'
+    | '/personalizacao'
     | '/planos'
     | '/precos'
     | '/prefeitura'
+    | '/producao'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -1203,6 +1266,7 @@ export interface FileRouteTypes {
     | '/cotacoes'
     | '/cozinha'
     | '/credito'
+    | '/custo-par'
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
@@ -1221,6 +1285,8 @@ export interface FileRouteTypes {
     | '/frente-caixa'
     | '/frota-mapa'
     | '/giro-estoque'
+    | '/importacao'
+    | '/importar-cte'
     | '/impostos'
     | '/impostos-filial'
     | '/impostos-nota'
@@ -1234,6 +1300,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/movimento-grade'
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
@@ -1247,9 +1314,11 @@ export interface FileRouteTypes {
     | '/painel-locacao'
     | '/pdv'
     | '/pendencias-fiscais'
+    | '/personalizacao'
     | '/planos'
     | '/precos'
     | '/prefeitura'
+    | '/producao'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -1315,6 +1384,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cotacoes'
     | '/_authenticated/cozinha'
     | '/_authenticated/credito'
+    | '/_authenticated/custo-par'
     | '/_authenticated/dashboard'
     | '/_authenticated/delivery'
     | '/_authenticated/devolucoes'
@@ -1333,6 +1403,8 @@ export interface FileRouteTypes {
     | '/_authenticated/frente-caixa'
     | '/_authenticated/frota-mapa'
     | '/_authenticated/giro-estoque'
+    | '/_authenticated/importacao'
+    | '/_authenticated/importar-cte'
     | '/_authenticated/impostos'
     | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
@@ -1346,6 +1418,7 @@ export interface FileRouteTypes {
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/movimentacoes'
+    | '/_authenticated/movimento-grade'
     | '/_authenticated/nfce-config'
     | '/_authenticated/nfe'
     | '/_authenticated/nfe-entrada'
@@ -1359,9 +1432,11 @@ export interface FileRouteTypes {
     | '/_authenticated/painel-locacao'
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
+    | '/_authenticated/personalizacao'
     | '/_authenticated/planos'
     | '/_authenticated/precos'
     | '/_authenticated/prefeitura'
+    | '/_authenticated/producao'
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
@@ -1601,6 +1676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreditoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/custo-par': {
+      id: '/_authenticated/custo-par'
+      path: '/custo-par'
+      fullPath: '/custo-par'
+      preLoaderRoute: typeof AuthenticatedCustoParRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -1727,6 +1809,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGiroEstoqueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/importacao': {
+      id: '/_authenticated/importacao'
+      path: '/importacao'
+      fullPath: '/importacao'
+      preLoaderRoute: typeof AuthenticatedImportacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/importar-cte': {
+      id: '/_authenticated/importar-cte'
+      path: '/importar-cte'
+      fullPath: '/importar-cte'
+      preLoaderRoute: typeof AuthenticatedImportarCteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/impostos': {
       id: '/_authenticated/impostos'
       path: '/impostos'
@@ -1816,6 +1912,13 @@ declare module '@tanstack/react-router' {
       path: '/movimentacoes'
       fullPath: '/movimentacoes'
       preLoaderRoute: typeof AuthenticatedMovimentacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/movimento-grade': {
+      id: '/_authenticated/movimento-grade'
+      path: '/movimento-grade'
+      fullPath: '/movimento-grade'
+      preLoaderRoute: typeof AuthenticatedMovimentoGradeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/nfce-config': {
@@ -1909,6 +2012,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPendenciasFiscaisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/personalizacao': {
+      id: '/_authenticated/personalizacao'
+      path: '/personalizacao'
+      fullPath: '/personalizacao'
+      preLoaderRoute: typeof AuthenticatedPersonalizacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos': {
       id: '/_authenticated/planos'
       path: '/planos'
@@ -1928,6 +2038,13 @@ declare module '@tanstack/react-router' {
       path: '/prefeitura'
       fullPath: '/prefeitura'
       preLoaderRoute: typeof AuthenticatedPrefeituraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/producao': {
+      id: '/_authenticated/producao'
+      path: '/producao'
+      fullPath: '/producao'
+      preLoaderRoute: typeof AuthenticatedProducaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/produtos': {
@@ -2207,6 +2324,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCotacoesRoute: typeof AuthenticatedCotacoesRoute
   AuthenticatedCozinhaRoute: typeof AuthenticatedCozinhaRoute
   AuthenticatedCreditoRoute: typeof AuthenticatedCreditoRoute
+  AuthenticatedCustoParRoute: typeof AuthenticatedCustoParRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDeliveryRoute: typeof AuthenticatedDeliveryRoute
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
@@ -2225,6 +2343,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFrenteCaixaRoute: typeof AuthenticatedFrenteCaixaRoute
   AuthenticatedFrotaMapaRoute: typeof AuthenticatedFrotaMapaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
+  AuthenticatedImportacaoRoute: typeof AuthenticatedImportacaoRoute
+  AuthenticatedImportarCteRoute: typeof AuthenticatedImportarCteRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
@@ -2238,6 +2358,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
+  AuthenticatedMovimentoGradeRoute: typeof AuthenticatedMovimentoGradeRoute
   AuthenticatedNfceConfigRoute: typeof AuthenticatedNfceConfigRoute
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
@@ -2251,9 +2372,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
+  AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
   AuthenticatedPrefeituraRoute: typeof AuthenticatedPrefeituraRoute
+  AuthenticatedProducaoRoute: typeof AuthenticatedProducaoRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
@@ -2313,6 +2436,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCotacoesRoute: AuthenticatedCotacoesRoute,
   AuthenticatedCozinhaRoute: AuthenticatedCozinhaRoute,
   AuthenticatedCreditoRoute: AuthenticatedCreditoRoute,
+  AuthenticatedCustoParRoute: AuthenticatedCustoParRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDeliveryRoute: AuthenticatedDeliveryRoute,
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
@@ -2331,6 +2455,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFrenteCaixaRoute: AuthenticatedFrenteCaixaRoute,
   AuthenticatedFrotaMapaRoute: AuthenticatedFrotaMapaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
+  AuthenticatedImportacaoRoute: AuthenticatedImportacaoRoute,
+  AuthenticatedImportarCteRoute: AuthenticatedImportarCteRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
@@ -2344,6 +2470,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
+  AuthenticatedMovimentoGradeRoute: AuthenticatedMovimentoGradeRoute,
   AuthenticatedNfceConfigRoute: AuthenticatedNfceConfigRoute,
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,
@@ -2357,9 +2484,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
+  AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
   AuthenticatedPrefeituraRoute: AuthenticatedPrefeituraRoute,
+  AuthenticatedProducaoRoute: AuthenticatedProducaoRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,

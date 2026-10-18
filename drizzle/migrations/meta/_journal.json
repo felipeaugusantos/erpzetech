@@ -211,6 +211,209 @@
       "when": 1792006379631,
       "tag": "0029_acesso_por_filial",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792248683963,
+      "tag": "0030_nfe_entrada_importacao_segura",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792248713028,
+      "tag": "0031_nfe_entrada_nota_duplicada",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792248741328,
+      "tag": "0032_os_baixa_estoque",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792248781618,
+      "tag": "0033_auditoria_ampliada",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792248799479,
+      "tag": "0034_contato_limite_indices_frente_venda",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792248888399,
+      "tag": "0035_empresa_salvar_contato_captcha",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792248956405,
+      "tag": "0036_nfce_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792248998408,
+      "tag": "0037_nfce_config_tela_emitente_filial",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792329630593,
+      "tag": "0038_nfe_entrada_guarda_impostos",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792329991488,
+      "tag": "0039_nfe_entrada_completar_impostos",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792330227838,
+      "tag": "0040_nfe_entrada_custo_total_nota",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792330261575,
+      "tag": "0041_compra_itens_recalcula_nota_xml",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792331194140,
+      "tag": "0042_zerar_dados_empresa",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792341077830,
+      "tag": "0043_empresa_faz_personalizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792341239184,
+      "tag": "0044_pedido_personalizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792341794708,
+      "tag": "0045_zerar_dados_quebra_ciclos",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792343891643,
+      "tag": "0046_estoque_por_tamanho",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792344094815,
+      "tag": "0047_producao_etapas_datas",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792344567006,
+      "tag": "0048_pedido_grade_baixa_estoque",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792344875553,
+      "tag": "0049_grade_baixa_na_producao",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792347614750,
+      "tag": "0050_compra_cte_frete",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792348736373,
+      "tag": "0051_compra_reabrir_para_alterar",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792349212476,
+      "tag": "0052_pedido_alterar_e_cancelar",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792349250026,
+      "tag": "0053_pedido_cancelar_validar_na_tela",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792350242119,
+      "tag": "0054_produto_codigo_automatico",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792350266183,
+      "tag": "0055_produto_proximo_codigo_tenant_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792350905291,
+      "tag": "0056_pedido_situacao_rascunho",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792350969329,
+      "tag": "0057_pedido_rascunho_funcoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792354673960,
+      "tag": "0058_estoque_grade_movimentos",
+      "breakpoints": true
     }
   ]
 }

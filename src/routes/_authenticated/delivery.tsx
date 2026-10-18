@@ -30,6 +30,10 @@ export const Route = createFileRoute("/_authenticated/delivery")({
     meta: [
       { title: "Delivery — ERP Ze Tech" },
       { name: "description", content: "Pedidos de entrega do restaurante." },
+      { property: "og:title", content: "Delivery — ERP Ze Tech" },
+      { property: "og:description", content: "Pedidos de entrega do restaurante." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Delivery,
@@ -147,6 +151,7 @@ function Delivery() {
         }
       />
 
+      <RestauranteOffline modo="delivery" pendencias />
       {isLoading && <p className="text-sm text-muted-foreground">Carregando pedidos...</p>}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">

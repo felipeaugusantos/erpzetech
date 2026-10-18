@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Pencil, Plus, Ruler, ScanSearch, Search } from "lucide-react";
+import { Barcode, Pencil, Plus, Ruler, ScanSearch, Search, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto"
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
 import { consultarGtin } from "@/lib/gtin.functions";
 import { gtinValido } from "@/lib/gtin";
+import { eanInterno } from "@/lib/ean";
 import { usaGradeTamanho } from "@/lib/ramo";
 import { brl, formatConverted, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
@@ -162,6 +163,42 @@ function Produtos() {
     chaveFormRef.current = chaveForm;
   }, [chaveForm]);
 
+  async function gerarCodigoInterno() {
+    const { data: cod, error } = await supabase.rpc("produto_proximo_codigo");
+    if (error || !cod) {
+      toast.error("Não foi possível gerar o código interno");
+      return null;
+    }
+    setForm((f) => ({ ...f, codigo_interno: cod }));
+    return cod;
+  }
+
+  async function gerarCodigoBarras() {
+    try {
+      const cod = form.codigo_interno.trim() || (await gerarCodigoInterno());
+      if (!cod) return;
+      const ean = eanInterno(cod);
+      const igual = (data?.produtos ?? []).find((p) => p.codigo_barras === ean && p.id !== form.id);
+      if (igual) {
+        toast.warning(`Este código de barras já está no produto "${igual.descricao}"`);
+        return;
+      }
+      setForm((f) => ({ ...f, codigo_barras: ean }));
+      toast.success("Código de barras interno gerado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível gerar o código de barras");
+    }
+  }
+
+  const codigoRepetido = (() => {
+    const c = form.codigo_interno.trim().toLowerCase();
+    return c
+      ? (data?.produtos ?? []).find(
+          (p) => p.codigo_interno?.toLowerCase() === c && p.id !== form.id,
+        )
+      : undefined;
+  })();
+
   // Preenche nome, marca e NCM a partir do código de barras, sem sobrescrever o que já foi digitado.
   async function preencherPeloCodigo() {
     const cod = form.codigo_barras.trim();
@@ -210,6 +247,18 @@ function Produtos() {
         .some((v) => String(v).toLowerCase().includes(termo));
     });
   }, [data, busca, cat]);
+
+  const [valorCompraTxt, setValorCompraTxt] = useState<string | null>(null);
+  const fator = Number(form.fator_conversao) > 0 ? Number(form.fator_conversao) : 1;
+  // Novo custo; com margem digitada, o preço acompanha.
+  function mudarCusto(custo: string, doValorCompra = false) {
+    if (!doValorCompra) setValorCompraTxt(null);
+    const m = margemTxt === null ? null : Number(margemTxt.replace(",", "."));
+    if (m !== null && Number.isFinite(m) && m < 100) {
+      const preco = Number(custo || 0) / (1 - m / 100);
+      setForm((f) => ({ ...f, custo, preco_venda: preco.toFixed(2) }));
+    } else setForm((f) => ({ ...f, custo }));
+  }
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -477,11 +526,32 @@ function Produtos() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <Label htmlFor="p-cod">Código interno</Label>
-                <Input
-                  id="p-cod"
-                  value={form.codigo_interno}
-                  onChange={(e) => setForm({ ...form, codigo_interno: e.target.value })}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="p-cod"
+                    value={form.codigo_interno}
+                    placeholder="Automático"
+                    onChange={(e) => setForm({ ...form, codigo_interno: e.target.value })}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Gerar próximo código"
+                    onClick={() => void gerarCodigoInterno()}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {codigoRepetido ? (
+                  <p className="mt-1 text-xs text-destructive">
+                    Já usado em "{codigoRepetido.descricao}"
+                  </p>
+                ) : !form.codigo_interno.trim() ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Vazio: o sistema gera ao salvar
+                  </p>
+                ) : null}
               </div>
               <div>
                 <Label htmlFor="p-barras">Código de barras</Label>
@@ -507,6 +577,16 @@ function Produtos() {
                     onClick={() => void preencherPeloCodigo()}
                   >
                     <ScanSearch className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Gerar código de barras interno"
+                    disabled={Boolean(form.codigo_barras.trim())}
+                    onClick={() => void gerarCodigoBarras()}
+                  >
+                    <Barcode className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -646,23 +726,42 @@ function Produtos() {
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <div>
-                <Label htmlFor="p-custo">Custo</Label>
+                <Label htmlFor="p-compra">
+                  Valor de compra{form.unidade_compra ? ` (${form.unidade_compra})` : ""}
+                </Label>
+                <Input
+                  id="p-compra"
+                  type="number"
+                  step="0.01"
+                  value={
+                    valorCompraTxt ??
+                    (Number(form.custo || 0) * fator
+                      ? String(Math.round(Number(form.custo || 0) * fator * 100) / 100)
+                      : "")
+                  }
+                  onChange={(e) => {
+                    setValorCompraTxt(e.target.value);
+                    const v = Number(e.target.value.replace(",", ".") || 0);
+                    mudarCusto(String(Math.round((v / fator) * 10000) / 10000), true);
+                  }}
+                  onBlur={() => setValorCompraTxt(null)}
+                />
+                {fator > 1 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    ÷ {num(fator)} = custo por {form.unidade || "unidade"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="p-custo">Custo{form.unidade ? ` (${form.unidade})` : ""}</Label>
                 <Input
                   id="p-custo"
                   type="number"
                   step="0.0001"
                   value={form.custo}
-                  onChange={(e) => {
-                    const custo = e.target.value;
-                    const m = margemTxt === null ? null : Number(margemTxt.replace(",", "."));
-                    // Com margem digitada, o preço acompanha o novo custo.
-                    if (m !== null && Number.isFinite(m) && m < 100) {
-                      const preco = Number(custo || 0) / (1 - m / 100);
-                      setForm({ ...form, custo, preco_venda: preco.toFixed(2) });
-                    } else setForm({ ...form, custo });
-                  }}
+                  onChange={(e) => mudarCusto(e.target.value)}
                 />
               </div>
               <div>
@@ -796,7 +895,7 @@ function Produtos() {
             </Button>
             <Button
               onClick={() => salvar.mutate()}
-              disabled={!form.descricao.trim() || !form.codigo_interno.trim() || salvar.isPending}
+              disabled={!form.descricao.trim() || Boolean(codigoRepetido) || salvar.isPending}
             >
               Salvar produto
             </Button>

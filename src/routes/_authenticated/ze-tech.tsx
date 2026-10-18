@@ -2,11 +2,19 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, BarChart3, CircleDollarSign, Plus, Users, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CircleDollarSign,
+  KeyRound,
+  Plus,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { criarAdminCliente } from "@/lib/cliente-admin.functions";
+import { criarAdminCliente, redefinirSenhaAdminCliente } from "@/lib/cliente-admin.functions";
 import { brl, dateBR } from "@/lib/format";
 import {
   SITUACAO_SAAS,
@@ -795,7 +803,7 @@ function ClienteDialog({
           </div>
           {cliente && (
             <div className="sm:col-span-2">
-              <AcessoAdmin cliente={cliente} />
+              {aberto && <AcessoAdmin key={cliente.id} cliente={cliente} />}
             </div>
           )}
           <div className="grid gap-1.5 sm:col-span-2">
@@ -822,8 +830,29 @@ function ClienteDialog({
 function AcessoAdmin({ cliente }: { cliente: ClienteSaas }) {
   const qc = useQueryClient();
   const criar = useServerFn(criarAdminCliente);
+  const redefinir = useServerFn(redefinirSenhaAdminCliente);
   const [email, setEmail] = useState(cliente.admin_email ?? cliente.email ?? "");
   const [senha, setSenha] = useState("");
+  const [resetAberto, setResetAberto] = useState(false);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmacao, setConfirmacao] = useState("");
+
+  const resetar = useMutation({
+    mutationFn: async () => {
+      if (novaSenha !== confirmacao) throw new Error("As senhas não coincidem");
+      return redefinir({ data: { clienteId: cliente.id, senha: novaSenha } });
+    },
+    onSuccess: () => {
+      setNovaSenha("");
+      setConfirmacao("");
+      setResetAberto(false);
+      toast.success("Senha do administrador redefinida.", {
+        description: "Informe a nova senha ao administrador da loja.",
+      });
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível redefinir a senha", { description: e.message }),
+  });
 
   const enviar = useMutation({
     mutationFn: async () => criar({ data: { clienteId: cliente.id, email, senha } }),
@@ -848,6 +877,65 @@ function AcessoAdmin({ cliente }: { cliente: ClienteSaas }) {
         <p className="mt-1 text-xs text-muted-foreground">
           Ele entra pela tela de acesso do sistema e cadastra os dados da empresa no primeiro login.
         </p>
+        {!resetAberto ? (
+          <Button className="mt-3" variant="outline" onClick={() => setResetAberto(true)}>
+            <KeyRound className="size-4" /> Redefinir senha do administrador
+          </Button>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-muted-foreground">A senha anterior deixará de funcionar.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="admin-nova-senha">Nova senha</Label>
+                <Input
+                  id="admin-nova-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  disabled={resetar.isPending}
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="admin-confirma-senha">Confirmar nova senha</Label>
+                <Input
+                  id="admin-confirma-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmacao}
+                  onChange={(e) => setConfirmacao(e.target.value)}
+                  disabled={resetar.isPending}
+                />
+              </div>
+            </div>
+            {confirmacao && novaSenha !== confirmacao && (
+              <p className="text-sm text-destructive" role="alert">
+                As senhas não coincidem.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => resetar.mutate()}
+                disabled={novaSenha.length < 8 || novaSenha !== confirmacao || resetar.isPending}
+              >
+                <KeyRound className="size-4" />{" "}
+                {resetar.isPending ? "Redefinindo…" : "Confirmar nova senha"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={resetar.isPending}
+                onClick={() => {
+                  setResetAberto(false);
+                  setNovaSenha("");
+                  setConfirmacao("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

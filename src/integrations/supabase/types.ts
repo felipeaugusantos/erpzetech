@@ -1342,12 +1342,84 @@ export type Database = {
           },
         ]
       }
+      compra_ctes: {
+        Row: {
+          chave: string | null
+          compra_id: string
+          conta_pagar_id: string | null
+          created_at: string
+          criado_por: string | null
+          emissao: string | null
+          icms: number
+          id: string
+          numero: string | null
+          serie: string | null
+          tenant_id: string
+          transportadora_id: string | null
+          valor: number
+        }
+        Insert: {
+          chave?: string | null
+          compra_id: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          emissao?: string | null
+          icms?: number
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          tenant_id: string
+          transportadora_id?: string | null
+          valor: number
+        }
+        Update: {
+          chave?: string | null
+          compra_id?: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          emissao?: string | null
+          icms?: number
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          tenant_id?: string
+          transportadora_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_ctes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ctes_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ctes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_itens: {
         Row: {
+          cfop: string | null
           compra_id: string
           created_at: string
           custo_unitario: number
           id: string
+          impostos: Json | null
           observacao: string | null
           produto_id: string
           quantidade: number
@@ -1357,10 +1429,12 @@ export type Database = {
           unidade: string | null
         }
         Insert: {
+          cfop?: string | null
           compra_id: string
           created_at?: string
           custo_unitario?: number
           id?: string
+          impostos?: Json | null
           observacao?: string | null
           produto_id: string
           quantidade: number
@@ -1370,10 +1444,12 @@ export type Database = {
           unidade?: string | null
         }
         Update: {
+          cfop?: string | null
           compra_id?: string
           created_at?: string
           custo_unitario?: number
           id?: string
+          impostos?: Json | null
           observacao?: string | null
           produto_id?: string
           quantidade?: number
@@ -1541,7 +1617,9 @@ export type Database = {
           motivo_cancelamento: string | null
           nfe_chave: string | null
           nfe_emissao: string | null
+          nfe_impostos: Json | null
           nfe_numero: string | null
+          nfe_serie: string | null
           numero: number | null
           observacoes: string | null
           origem: string
@@ -1568,7 +1646,9 @@ export type Database = {
           motivo_cancelamento?: string | null
           nfe_chave?: string | null
           nfe_emissao?: string | null
+          nfe_impostos?: Json | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -1595,7 +1675,9 @@ export type Database = {
           motivo_cancelamento?: string | null
           nfe_chave?: string | null
           nfe_emissao?: string | null
+          nfe_impostos?: Json | null
           nfe_numero?: string | null
+          nfe_serie?: string | null
           numero?: number | null
           observacoes?: string | null
           origem?: string
@@ -1952,6 +2034,7 @@ export type Database = {
           id: string
           mensagem: string | null
           nome: string
+          origem: string | null
           plano_interesse: string | null
           situacao: string
           whatsapp: string | null
@@ -1962,6 +2045,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -1972,6 +2056,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           nome?: string
+          origem?: string | null
           plano_interesse?: string | null
           situacao?: string
           whatsapp?: string | null
@@ -2306,6 +2391,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado: string | null
+          faz_personalizacao: boolean
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
@@ -2335,6 +2421,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          faz_personalizacao?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2364,6 +2451,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          faz_personalizacao?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2652,6 +2740,108 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_grade: {
+        Row: {
+          deposito_id: string
+          id: string
+          produto_id: string
+          quantidade: number
+          tamanho: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          deposito_id: string
+          id?: string
+          produto_id: string
+          quantidade?: number
+          tamanho: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          deposito_id?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tamanho?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_grade_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_grade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_grade_movimentos: {
+        Row: {
+          created_at: string
+          deposito_id: string
+          documento: string | null
+          id: string
+          origem: string
+          produto_id: string
+          quantidade: number
+          saldo_apos: number
+          tamanho: string
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deposito_id: string
+          documento?: string | null
+          id?: string
+          origem?: string
+          produto_id: string
+          quantidade: number
+          saldo_apos: number
+          tamanho: string
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deposito_id?: string
+          documento?: string | null
+          id?: string
+          origem?: string
+          produto_id?: string
+          quantidade?: number
+          saldo_apos?: number
+          tamanho?: string
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_grade_movimentos_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_grade_movimentos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -3345,6 +3535,42 @@ export type Database = {
         }
         Relationships: []
       }
+      importacoes: {
+        Row: {
+          arquivo: string | null
+          atualizados: number
+          created_at: string
+          criados: number
+          id: string
+          linhas: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas: number
+          tenant_id?: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       inventario_itens: {
         Row: {
           created_at: string
@@ -3879,6 +4105,53 @@ export type Database = {
           },
         ]
       }
+      nfce_config: {
+        Row: {
+          contingencia_ativa: boolean
+          created_at: string
+          csc_id: string | null
+          csc_token: string | null
+          fiscal_config_id: string
+          id: string
+          proximo_numero: number
+          serie: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          contingencia_ativa?: boolean
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          fiscal_config_id?: string
+          id?: string
+          proximo_numero?: number
+          serie?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfce_config_fiscal_config_id_fkey"
+            columns: ["fiscal_config_id"]
+            isOneToOne: true
+            referencedRelation: "fiscal_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfe: {
         Row: {
           ambiente: string
@@ -3889,8 +4162,8 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
-          contingencia: boolean
           codigo_servico: string | null
+          contingencia: boolean
           created_at: string
           deposito_id: string | null
           destinatario: Json | null
@@ -3911,16 +4184,16 @@ export type Database = {
           pdf_url: string | null
           pedido_id: string | null
           pendencias: string[]
-          proxima_tentativa_em: string | null
           protocolo: string | null
           provider: string | null
           provider_id: string | null
           provider_status: string | null
+          proxima_tentativa_em: string | null
           retorno: Json | null
           serie: number
           situacao: string
-          tentativas: number
           tenant_id: string
+          tentativas: number
           transmitida_em: string | null
           updated_at: string
           valor_cofins: number
@@ -3944,6 +4217,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -3968,10 +4242,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -3995,6 +4271,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
           destinatario?: Json | null
@@ -4019,10 +4296,12 @@ export type Database = {
           provider?: string | null
           provider_id?: string | null
           provider_status?: string | null
+          proxima_tentativa_em?: string | null
           retorno?: Json | null
           serie?: number
           situacao?: string
           tenant_id?: string
+          tentativas?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -4637,10 +4916,10 @@ export type Database = {
           abertura: string
           acessorios: string | null
           cliente_id: string | null
+          controla_estoque: boolean
           created_at: string
           defeito_relatado: string | null
           deposito_id: string | null
-          controla_estoque: boolean
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
@@ -4671,10 +4950,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
           deposito_id?: string | null
-          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4705,10 +4984,10 @@ export type Database = {
           abertura?: string
           acessorios?: string | null
           cliente_id?: string | null
+          controla_estoque?: boolean
           created_at?: string
           defeito_relatado?: string | null
           deposito_id?: string | null
-          controla_estoque?: boolean
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
@@ -4741,6 +5020,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
             referencedColumns: ["id"]
           },
         ]
@@ -4993,6 +5279,68 @@ export type Database = {
             foreignKeyName: "pedido_orcamentos_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_personalizacao: {
+        Row: {
+          arte_aprovada_em: string | null
+          arte_aprovada_por: string | null
+          arte_descricao: string | null
+          arte_link: string | null
+          arte_situacao: string
+          created_at: string
+          etapa: string
+          etapas_datas: Json
+          grade: Json
+          grade_baixada: boolean
+          id: string
+          observacoes: string | null
+          pedido_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_descricao?: string | null
+          arte_link?: string | null
+          arte_situacao?: string
+          created_at?: string
+          etapa?: string
+          etapas_datas?: Json
+          grade?: Json
+          grade_baixada?: boolean
+          id?: string
+          observacoes?: string | null
+          pedido_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_descricao?: string | null
+          arte_link?: string | null
+          arte_situacao?: string
+          created_at?: string
+          etapa?: string
+          etapas_datas?: Json
+          grade?: Json
+          grade_baixada?: boolean
+          id?: string
+          observacoes?: string | null
+          pedido_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_personalizacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
             referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
@@ -7035,6 +7383,19 @@ export type Database = {
         Args: { p_acao: string; p_id: string }
         Returns: string
       }
+      contato_enviar: {
+        Args: {
+          p_aberto_em?: string
+          p_email?: string
+          p_ip?: string
+          p_mensagem?: string
+          p_nome: string
+          p_plano?: string
+          p_site?: string
+          p_whatsapp?: string
+        }
+        Returns: boolean
+      }
       converter_orcamento_em_pedido: {
         Args: { p_deposito_id: string; p_orcamento_id: string }
         Returns: string
@@ -7065,6 +7426,7 @@ export type Database = {
           p_observacoes?: string
           p_previsao_entrega?: string
           p_profissional_id?: string
+          p_rascunho?: boolean
           p_vendedor_id?: string
         }
         Returns: string
@@ -7089,6 +7451,11 @@ export type Database = {
       eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      empresa_salvar: { Args: { p_dados: Json }; Returns: string }
+      empresa_zerar_dados: {
+        Args: { _confirmacao: string; _modo: string }
+        Returns: Json
+      }
       entrega_agendar: {
         Args: {
           p_endereco?: string
@@ -7121,6 +7488,14 @@ export type Database = {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
         Returns: undefined
       }
+      estoque_grade_ajustar: {
+        Args: { p_deposito_id: string; p_grade: Json; p_produto_id: string }
+        Returns: undefined
+      }
+      estoque_grade_mover_pedido: {
+        Args: { p_pp_id: string; p_sinal: number }
+        Returns: undefined
+      }
       estoque_lote_lancar: {
         Args: {
           p_calibre: string
@@ -7134,6 +7509,18 @@ export type Database = {
           p_tonalidade: string
         }
         Returns: string
+      }
+      eventos_pendentes: {
+        Args: never
+        Returns: {
+          erro: string
+          event_id: string
+          id: string
+          provedor: string
+          recebido_em: string
+          status: string
+          tentativas: number
+        }[]
       }
       exige_entrega_propria: {
         Args: { p_entrega_id: string }
@@ -7207,64 +7594,19 @@ export type Database = {
         }
         Returns: string
       }
-      nfe_entrada_ja_importada: {
-        Args: { p_chave?: string; p_cnpj?: string; p_numero?: string; p_serie?: string }
+      importar_clientes: {
+        Args: { p_arquivo?: string; p_atualizar?: boolean; p_linhas: Json; p_simular?: boolean }
         Returns: Json
       }
-      contato_enviar: {
-        Args: {
-          p_aberto_em?: string
-          p_email?: string
-          p_ip?: string
-          p_mensagem?: string
-          p_nome: string
-          p_plano?: string
-          p_site?: string
-          p_whatsapp?: string
-        }
-        Returns: boolean
+      importar_produtos: {
+        Args: { p_arquivo?: string; p_atualizar?: boolean; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
       }
-      eventos_pendentes: {
-        Args: never
-        Returns: {
-          erro: string | null
-          event_id: string
-          id: string
-          provedor: string
-          recebido_em: string
-          status: string
-          tentativas: number
-        }[]
+      importar_saldos: {
+        Args: { p_arquivo?: string; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
       }
-      nfce_config_listar: {
-        Args: never
-        Returns: {
-          ambiente: string
-          certificado_nome: string | null
-          contingencia_ativa: boolean
-          csc_configurado: boolean
-          csc_id: string | null
-          emissor: string | null
-          filial_id: string | null
-          filial_nome: string
-          fiscal_config_id: string
-          proximo_numero: number
-          serie: number
-        }[]
-      }
-      nfce_config_salvar: {
-        Args: {
-          p_contingencia?: boolean
-          p_csc_id: string
-          p_csc_token?: string
-          p_fiscal_config_id: string
-          p_serie: number
-        }
-        Returns: undefined
-      }
-      nfce_criar: { Args: { p_pedido_id: string; p_cpf?: string }; Returns: string }
       frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
-      empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
@@ -7378,6 +7720,36 @@ export type Database = {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
       }
+      nfce_config_listar: {
+        Args: never
+        Returns: {
+          ambiente: string
+          certificado_nome: string
+          contingencia_ativa: boolean
+          csc_configurado: boolean
+          csc_id: string
+          emissor: string
+          filial_id: string
+          filial_nome: string
+          fiscal_config_id: string
+          proximo_numero: number
+          serie: number
+        }[]
+      }
+      nfce_config_salvar: {
+        Args: {
+          p_contingencia?: boolean
+          p_csc_id: string
+          p_csc_token?: string
+          p_fiscal_config_id: string
+          p_serie: number
+        }
+        Returns: undefined
+      }
+      nfce_criar: {
+        Args: { p_cpf?: string; p_pedido_id: string }
+        Returns: string
+      }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
@@ -7402,6 +7774,23 @@ export type Database = {
         }
         Returns: Json
       }
+      nfe_entrada_completar_impostos: {
+        Args: { p_compra_id: string; p_itens: Json; p_nota: Json }
+        Returns: Json
+      }
+      nfe_entrada_ja_importada: {
+        Args: {
+          p_chave?: string
+          p_cnpj?: string
+          p_numero?: string
+          p_serie?: string
+        }
+        Returns: Json
+      }
+      nfe_entrada_vincular_cte: {
+        Args: { p_compra_id: string; p_cte: Json; p_vencimento?: string }
+        Returns: Json
+      }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
       onboarding_criar_espaco: { Args: { p_nome: string }; Returns: string }
       operador_definir_permissoes: {
@@ -7424,6 +7813,7 @@ export type Database = {
         }
         Returns: string
       }
+      os_item_reconciliar: { Args: { p_item_id: string }; Returns: undefined }
       painel_fiscal_loja: {
         Args: { p_ate: string; p_de: string }
         Returns: {
@@ -7455,6 +7845,19 @@ export type Database = {
         }
         Returns: string
       }
+      pedido_alterar: {
+        Args: {
+          p_condicao_pagamento?: string
+          p_desconto?: number
+          p_frete?: number
+          p_itens: Json
+          p_motivo: string
+          p_observacoes?: string
+          p_pedido_id: string
+          p_previsao_entrega?: string
+        }
+        Returns: undefined
+      }
       pedido_avancar_status: {
         Args: {
           p_observacao?: string
@@ -7481,6 +7884,14 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      pedido_confirmar_rascunho: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
+      pedido_descartar_rascunho: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
       }
       pedido_item_definir_lote: {
         Args: { p_lote_id: string; p_pedido_item_id: string }
@@ -7539,6 +7950,7 @@ export type Database = {
         }
         Returns: string
       }
+      produto_proximo_codigo: { Args: { p_tenant?: string }; Returns: string }
       profissional_converter_em_cliente: {
         Args: { p_profissional_id: string }
         Returns: string
@@ -7937,6 +8349,7 @@ export type Database = {
         }
         Returns: Json
       }
+      zerar_liberado: { Args: { _tenant: string }; Returns: boolean }
     }
     Enums: {
       app_role:
@@ -8013,6 +8426,7 @@ export type Database = {
         | "entregue"
         | "cancelada"
       pedido_situacao:
+        | "rascunho"
         | "aguardando_pagamento"
         | "aprovado"
         | "separacao"
@@ -8233,6 +8647,7 @@ export const Constants = {
         "cancelada",
       ],
       pedido_situacao: [
+        "rascunho",
         "aguardando_pagamento",
         "aprovado",
         "separacao",

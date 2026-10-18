@@ -35,6 +35,8 @@ import {
   type FormatoDocumento,
 } from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
+import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
+import { AlterarPedidoDialog } from "@/components/app/AlterarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -261,6 +263,24 @@ function PedidoDetalhe() {
     return mensagemLeitura(r, nomeDoItem);
   }
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [alterarOpen, setAlterarOpen] = useState(false);
+  const rascunhoAcao = useMutation({
+    mutationFn: async (acao: "confirmar" | "descartar") => {
+      const { error } = await supabase.rpc(
+        acao === "confirmar" ? "pedido_confirmar_rascunho" : "pedido_descartar_rascunho",
+        { p_pedido_id: id },
+      );
+      if (error) throw error;
+      return acao;
+    },
+    onSuccess: async (acao) => {
+      toast.success(
+        acao === "confirmar" ? "Pedido confirmado e estoque reservado" : "Rascunho descartado",
+      );
+      await qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error("Não foi possível concluir", { description: e.message }),
+  });
   const [motivo, setMotivo] = useState("");
   const [contasOpen, setContasOpen] = useState(false);
   const [parcelasReceber, setParcelasReceber] = useState("1");
@@ -655,6 +675,22 @@ function PedidoDetalhe() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-4">
+          {(session?.empresa as { faz_personalizacao?: boolean } | null | undefined)
+            ?.faz_personalizacao && (
+            <details className="panel p-4 print:hidden">
+              <summary className="cursor-pointer font-semibold">
+                Custo e lucro do pedido (uso interno)
+              </summary>
+              <div className="mt-4">
+                <RentabilidadeChinelo
+                  pares={resumo.pedidoQtd || undefined}
+                  precoPar={
+                    resumo.pedidoQtd > 0 ? Number(pedido.total) / resumo.pedidoQtd : undefined
+                  }
+                />
+              </div>
+            </details>
+          )}
           <div className="panel p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span
@@ -674,6 +710,32 @@ function PedidoDetalhe() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
+              {pedido.situacao === "rascunho" && (
+                <>
+                  <Button
+                    disabled={rascunhoAcao.isPending}
+                    onClick={() => rascunhoAcao.mutate("confirmar")}
+                  >
+                    Confirmar pedido
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive"
+                    disabled={rascunhoAcao.isPending}
+                    onClick={() => {
+                      if (window.confirm("Descartar este rascunho?"))
+                        rascunhoAcao.mutate("descartar");
+                    }}
+                  >
+                    Descartar rascunho
+                  </Button>
+                </>
+              )}
+              {["rascunho", "aguardando_pagamento", "aprovado"].includes(pedido.situacao) && (
+                <Button variant="outline" onClick={() => setAlterarOpen(true)}>
+                  Alterar pedido
+                </Button>
+              )}
               {proximas(pedido.situacao).map((s) =>
                 s === "cancelado" ? (
                   <Button
@@ -1192,12 +1254,24 @@ function PedidoDetalhe() {
         </DialogContent>
       </Dialog>
 
+      <AlterarPedidoDialog
+        open={alterarOpen}
+        onOpenChange={setAlterarOpen}
+        pedidoId={id}
+        itens={itens as never}
+        desconto={Number(pedido.desconto)}
+        frete={Number(pedido.frete)}
+        rascunho={pedido.situacao === "rascunho"}
+      />
+
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar pedido</DialogTitle>
             <DialogDescription>
-              A reserva de estoque dos itens não entregues será liberada.
+              A reserva de estoque dos itens não entregues é liberada e as parcelas em aberto são
+              canceladas. Se já houve pagamento recebido ou NF-e autorizada, estorne o recebimento
+              ou cancele a nota antes.
             </DialogDescription>
           </DialogHeader>
           <div>

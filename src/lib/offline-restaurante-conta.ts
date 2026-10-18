@@ -36,6 +36,29 @@ export type ComandaOffline = {
   erro?: string;
 };
 
+/** Reenvia a mesma operação, sem alterar itens nem o pagamento já recebido. */
+export function prepararReenvio(c: ComandaOffline, caixaId?: string): ComandaOffline {
+  const { erro: _erro, ...resto } = c;
+  return {
+    ...resto,
+    fechar: c.fechar ? { ...c.fechar, caixa_id: caixaId ?? c.fechar.caixa_id } : null,
+  };
+}
+
+/** Não apaga comandas criadas ou corrigidas enquanto uma chamada estava em andamento. */
+export function conciliarSincronizacao(
+  atuais: ComandaOffline[],
+  enviadas: ComandaOffline[],
+  restantes: ComandaOffline[],
+) {
+  return atuais.flatMap((c) => {
+    const original = enviadas.find((x) => x.offline_id === c.offline_id);
+    if (!original || JSON.stringify(original) !== JSON.stringify(c)) return [c];
+    const restante = restantes.find((x) => x.offline_id === c.offline_id);
+    return restante ? [restante] : [];
+  });
+}
+
 export function subtotalOffline(c: Pick<ComandaOffline, "itens">) {
   return c.itens.reduce((s, i) => s + Math.round(i.preco * i.quantidade * 100), 0) / 100;
 }
