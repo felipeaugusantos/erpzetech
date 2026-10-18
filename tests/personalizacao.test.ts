@@ -29,3 +29,14 @@ test("status das etapas da produção pela etapa atual", async () => {
   assert.equal(statusEtapa("prensa", "prensa"), "andamento");
   assert.equal(statusEtapa("prensa", "montagem"), "aguardando");
 });
+
+import { custoSacolinha, SACOLINHA_PADRAO } from "@/lib/personalizacao";
+describe("custoSacolinha", () => {
+  it("voil 13,50 rende 16,5, costura 1,00, fita 16,90/100 e 2 folhas de 0,50", () => {
+    const c = custoSacolinha({ ...SACOLINHA_PADRAO, folha: 0.5 });
+    expect(c.tecido).toBeCloseTo(0.818, 3);
+    expect(c.fita).toBeCloseTo(0.169, 3);
+    expect(c.folhas).toBe(1);
+    expect(c.total).toBeCloseTo(2.987, 3);
+  });
+});
