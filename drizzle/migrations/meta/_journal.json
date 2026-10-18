@@ -288,6 +288,13 @@
       "when": 1792330227838,
       "tag": "0040_nfe_entrada_custo_total_nota",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792330261575,
+      "tag": "0041_compra_itens_recalcula_nota_xml",
+      "breakpoints": true
     }
   ]
 }
