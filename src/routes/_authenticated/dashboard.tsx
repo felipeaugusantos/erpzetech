@@ -95,7 +95,7 @@ function Dashboard() {
           supabase
             .from("contas_receber")
             .select(
-              "id, numero, descricao, vencimento, valor, valor_recebido, situacao, clientes(nome)",
+              "id, numero, descricao, vencimento, valor, valor_recebido, situacao, forma_pagamento, cliente_id, clientes(nome, limite_credito)",
             ),
           supabase
             .from("contas_pagar")
@@ -211,6 +211,35 @@ function Dashboard() {
   const prox7 = [...abertoReceber, ...abertoPagar].filter(
     (c) => c.vencimento > hoje && c.vencimento <= em7,
   );
+
+  // Fechamento de clientes (compras marcadas no crediário)
+  const crediarioAberto = abertoReceber.filter((c) => c.forma_pagamento === "crediario");
+  const porClienteMapa = new Map<
+    string,
+    { nome: string; saldo: number; vencido: number; contas: number; proximo: string | null; limite: number }
+  >();
+  for (const c of crediarioAberto) {
+    const chave = c.cliente_id ?? "sem-cliente";
+    const cli = c.clientes as unknown as { nome: string; limite_credito: number | null } | null;
+    const linha = porClienteMapa.get(chave) ?? {
+      nome: cli?.nome ?? "Sem cliente",
+      saldo: 0,
+      vencido: 0,
+      contas: 0,
+      proximo: null,
+      limite: Number(cli?.limite_credito ?? 0),
+    };
+    const saldo = Number(c.valor) - Number(c.valor_recebido);
+    linha.saldo += saldo;
+    linha.contas += 1;
+    if (c.vencimento < hoje) linha.vencido += saldo;
+    else if (!linha.proximo || c.vencimento < linha.proximo) linha.proximo = c.vencimento;
+    porClienteMapa.set(chave, linha);
+  }
+  const fechamentoClientes = [...porClienteMapa.values()].sort((a, b) => b.saldo - a.saldo);
+  const totalCrediario = fechamentoClientes.reduce((s, l) => s + l.saldo, 0);
+  const vencidoCrediario = fechamentoClientes.reduce((s, l) => s + l.vencido, 0);
+  const clientesVencidos = fechamentoClientes.filter((l) => l.vencido > 0).length;
 
   // Estoque
   type Prod = {
