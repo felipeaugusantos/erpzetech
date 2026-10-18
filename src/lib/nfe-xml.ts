@@ -263,3 +263,73 @@ export function custosComImpostos(
     return i.quantidade > 0 ? Number(((i.total + parte) / i.quantidade).toFixed(6)) : 0;
   });
 }
+
+export type ComposicaoCusto = {
+  produto: number;
+  st: number;
+  ipi: number;
+  frete: number;
+  seguro: number;
+  outras: number;
+  desconto: number;
+  creditos: number;
+  total: number;
+};
+
+/** Impostos que voltam como crédito, conforme o regime da empresa que compra. */
+export function impostosRecuperaveis(regime: string | null | undefined) {
+  const r = (regime ?? "").toLowerCase();
+  if (r.includes("real")) return { icms: true, pis: true, cofins: true };
+  if (r.includes("presumido")) return { icms: true, pis: false, cofins: false };
+  return { icms: false, pis: false, cofins: false };
+}
+
+const c2 = (v: number) => Math.round(v * 100) / 100;
+
+/**
+ * Custo de entrada de cada item: produto + ST + IPI + frete + seguro + outras despesas − desconto, com a
+ * parte de cada despesa da nota dividida pelo valor do item, menos os créditos recuperáveis do regime.
+ * Antes dos créditos, a soma dos itens fecha com o total da nota.
+ */
+export function custosEntrada(
+  itens: { quantidade: number; total: number; impostos?: Partial<NfeXmlImpostosItem> | null }[],
+  nota: { total: number; frete: number; desconto: number; impostos?: Partial<NfeXmlImpostosNota> | null },
+  regime?: string | null,
+): { custo_unitario: number; composicao: ComposicaoCusto }[] {
+  const produtos = itens.reduce((s, i) => s + i.total, 0);
+  const cred = impostosRecuperaveis(regime);
+  const seguro = nota.impostos?.seguro ?? 0;
+  const outrasNota = nota.impostos?.outras ?? 0;
+  const parte = (valor: number, idx: number, acumulado: number[]) => {
+    if (produtos <= 0 || !valor) return 0;
+    if (idx === itens.length - 1) return c2(valor - acumulado.reduce((s, v) => s + v, 0));
+    return c2((valor * (itens[idx]?.total ?? 0)) / produtos);
+  };
+  const ac = { frete: [] as number[], seguro: [] as number[], outras: [] as number[], desconto: [] as number[], resto: [] as number[] };
+  const st = itens.map((i) => c2(i.impostos?.icms_st ?? 0));
+  const ipi = itens.map((i) => c2(i.impostos?.ipi ?? 0));
+  const conhecidos = st.reduce((s, v) => s + v, 0) + ipi.reduce((s, v) => s + v, 0);
+  // o que a nota cobra além do que foi identificado (FCP-ST, ST/IPI sem detalhe no item etc.)
+  const resto = nota.total
+    ? c2(nota.total - produtos - conhecidos - nota.frete - seguro - outrasNota + nota.desconto)
+    : 0;
+  return itens.map((i, idx) => {
+    const frete = parte(nota.frete, idx, ac.frete); ac.frete.push(frete);
+    const seg = parte(seguro, idx, ac.seguro); ac.seguro.push(seg);
+    const out = parte(outrasNota, idx, ac.outras); ac.outras.push(out);
+    const desc = parte(nota.desconto, idx, ac.desconto); ac.desconto.push(desc);
+    const r = parte(resto, idx, ac.resto); ac.resto.push(r);
+    const imp = i.impostos ?? {};
+    const creditos = c2(
+      (cred.icms ? imp.icms ?? 0 : 0) + (cred.pis ? imp.pis ?? 0 : 0) + (cred.cofins ? imp.cofins ?? 0 : 0),
+    );
+    const total = c2(i.total + (st[idx] ?? 0) + (ipi[idx] ?? 0) + frete + seg + out + r - desc - creditos);
+    return {
+      custo_unitario: i.quantidade > 0 ? Number((total / i.quantidade).toFixed(6)) : 0,
+      composicao: {
+        produto: c2(i.total), st: c2((st[idx] ?? 0) + r), ipi: ipi[idx] ?? 0, frete, seguro: seg,
+        outras: out, desconto: desc, creditos, total,
+      },
+    };
+  });
+}
