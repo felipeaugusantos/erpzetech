@@ -419,6 +419,79 @@ function Dashboard() {
         />
       </div>
 
+      <div className="panel mt-6 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-sm font-semibold">
+              Fechamento de clientes (compras marcadas)
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Vendas no crediário que ainda não foram acertadas, somadas por cliente.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/extrato-receber">Ver extrato completo</Link>
+          </Button>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <StatCard label="Total a acertar" value={brl(totalCrediario)} icon={Wallet} tone="accent"
+            hint={`${fechamentoClientes.length} cliente(s) com compras abertas`} />
+          <StatCard label="Já vencido" value={brl(vencidoCrediario)} icon={AlertTriangle}
+            tone={vencidoCrediario > 0 ? "danger" : "default"}
+            hint={`${clientesVencidos} cliente(s) em atraso`} />
+          <StatCard label="A vencer" value={brl(totalCrediario - vencidoCrediario)}
+            icon={CalendarClock} tone="success" hint="Próximos fechamentos" />
+        </div>
+
+        {fechamentoClientes.length === 0 ? (
+          <EmptyState className="mt-4 border-0 shadow-none"
+            title="Nenhum cliente com compras marcadas em aberto." />
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr className="border-b border-border">
+                  <th className="py-2 pr-2">Cliente</th>
+                  <th className="py-2 pr-2 text-right">Compras</th>
+                  <th className="py-2 pr-2">Próximo fechamento</th>
+                  <th className="py-2 pr-2 text-right">Vencido</th>
+                  <th className="py-2 pr-2 text-right">Total a acertar</th>
+                  <th className="py-2">Limite</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {fechamentoClientes.slice(0, 10).map((l) => {
+                  const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
+                  return (
+                    <tr key={l.nome}>
+                      <td className="py-2 pr-2 font-medium">{l.nome}</td>
+                      <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
+                      <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
+                      <td className="py-2 pr-2 text-right text-numeric text-destructive">
+                        {l.vencido ? brl(l.vencido) : "—"}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-numeric font-semibold">{brl(l.saldo)}</td>
+                      <td className="py-2">
+                        {l.limite <= 0 ? (
+                          <span className="text-xs text-muted-foreground">Sem limite</span>
+                        ) : uso >= 100 ? (
+                          <Badge className="bg-destructive/15 text-destructive">Acima do limite</Badge>
+                        ) : uso >= 80 ? (
+                          <Badge className="bg-warning/15 text-warning">{num(uso, 0)}% do limite</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{num(uso, 0)}% de {brl(l.limite)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="panel p-4 lg:col-span-2">
           <h2 className="font-display text-sm font-semibold">
