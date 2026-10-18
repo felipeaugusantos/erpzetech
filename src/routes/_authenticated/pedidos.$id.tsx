@@ -690,7 +690,24 @@ function PedidoDetalhe() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {["aguardando_pagamento", "aprovado"].includes(pedido.situacao) && (
+              {pedido.situacao === "rascunho" && (
+                <>
+                  <Button disabled={rascunhoAcao.isPending} onClick={() => rascunhoAcao.mutate("confirmar")}>
+                    Confirmar pedido
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive"
+                    disabled={rascunhoAcao.isPending}
+                    onClick={() => {
+                      if (window.confirm("Descartar este rascunho?")) rascunhoAcao.mutate("descartar");
+                    }}
+                  >
+                    Descartar rascunho
+                  </Button>
+                </>
+              )}
+              {["rascunho", "aguardando_pagamento", "aprovado"].includes(pedido.situacao) && (
                 <Button variant="outline" onClick={() => setAlterarOpen(true)}>
                   Alterar pedido
                 </Button>
@@ -1220,6 +1237,7 @@ function PedidoDetalhe() {
         itens={itens as never}
         desconto={Number(pedido.desconto)}
         frete={Number(pedido.frete)}
+        rascunho={pedido.situacao === "rascunho"}
       />
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>

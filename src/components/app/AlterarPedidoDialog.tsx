@@ -40,6 +40,7 @@ export function AlterarPedidoDialog({
   itens,
   desconto,
   frete,
+  rascunho = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
