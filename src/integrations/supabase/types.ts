@@ -5130,6 +5130,7 @@ export type Database = {
           arte_situacao: string
           created_at: string
           etapa: string
+          etapas_datas: Json
           grade: Json
           id: string
           observacoes: string | null
@@ -5145,6 +5146,7 @@ export type Database = {
           arte_situacao?: string
           created_at?: string
           etapa?: string
+          etapas_datas?: Json
           grade?: Json
           id?: string
           observacoes?: string | null
@@ -5160,6 +5162,7 @@ export type Database = {
           arte_situacao?: string
           created_at?: string
           etapa?: string
+          etapas_datas?: Json
           grade?: Json
           id?: string
           observacoes?: string | null

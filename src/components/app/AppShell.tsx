@@ -89,6 +89,7 @@ const groups: Group[] = [
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
       { label: "Personalização", to: "/personalizacao", icon: ClipboardList },
+      { label: "Produção", to: "/producao", icon: ClipboardList },
       { label: "Custo por par", to: "/custo-par", icon: Calculator },
       { label: "Devoluções de venda", to: "/devolucoes", icon: ClipboardList },
       { label: "Vendedores", to: "/vendedores", icon: Users },
@@ -315,7 +316,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: g.items.filter((i) => {
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
-            if (i.to === "/personalizacao" || i.to === "/custo-par") return fazPersonalizacao;
+            if (i.to === "/personalizacao" || i.to === "/custo-par" || i.to === "/producao") return fazPersonalizacao;
             return true;
           }),
         })),

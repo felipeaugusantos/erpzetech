@@ -101,7 +101,7 @@ function Personalizacao() {
           }
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-5">
+        <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
           {etapasPersonalizacao.map((e) => {
             const lista = data.filter((r) => r.etapa === e.value);
             return (

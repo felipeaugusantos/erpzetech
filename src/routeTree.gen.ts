@@ -85,6 +85,7 @@ import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
 import { Route as AuthenticatedPrefeituraRouteImport } from './routes/_authenticated/prefeitura'
+import { Route as AuthenticatedProducaoRouteImport } from './routes/_authenticated/producao'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
@@ -537,6 +538,11 @@ const AuthenticatedPrefeituraRoute = AuthenticatedPrefeituraRouteImport.update({
   path: '/prefeitura',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProducaoRoute = AuthenticatedProducaoRouteImport.update({
+  id: '/producao',
+  path: '/producao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
@@ -817,6 +823,7 @@ export interface FileRoutesByFullPath {
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -930,6 +937,7 @@ export interface FileRoutesByTo {
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/producao': typeof AuthenticatedProducaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
@@ -1045,6 +1053,7 @@ export interface FileRoutesById {
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
   '/_authenticated/prefeitura': typeof AuthenticatedPrefeituraRoute
+  '/_authenticated/producao': typeof AuthenticatedProducaoRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
@@ -1160,6 +1169,7 @@ export interface FileRouteTypes {
     | '/planos'
     | '/precos'
     | '/prefeitura'
+    | '/producao'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -1273,6 +1283,7 @@ export interface FileRouteTypes {
     | '/planos'
     | '/precos'
     | '/prefeitura'
+    | '/producao'
     | '/produtos'
     | '/profissionais'
     | '/relatorio'
@@ -1387,6 +1398,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planos'
     | '/_authenticated/precos'
     | '/_authenticated/prefeitura'
+    | '/_authenticated/producao'
     | '/_authenticated/produtos'
     | '/_authenticated/profissionais'
     | '/_authenticated/relatorio'
@@ -1969,6 +1981,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPrefeituraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/producao': {
+      id: '/_authenticated/producao'
+      path: '/producao'
+      fullPath: '/producao'
+      preLoaderRoute: typeof AuthenticatedProducaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/produtos': {
       id: '/_authenticated/produtos'
       path: '/produtos'
@@ -2295,6 +2314,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
   AuthenticatedPrefeituraRoute: typeof AuthenticatedPrefeituraRoute
+  AuthenticatedProducaoRoute: typeof AuthenticatedProducaoRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
@@ -2403,6 +2423,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
   AuthenticatedPrefeituraRoute: AuthenticatedPrefeituraRoute,
+  AuthenticatedProducaoRoute: AuthenticatedProducaoRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
