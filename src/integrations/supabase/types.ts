@@ -7178,6 +7178,10 @@ export type Database = {
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
+      empresa_zerar_dados: {
+        Args: { _confirmacao: string; _modo: string }
+        Returns: Json
+      }
       entrega_agendar: {
         Args: {
           p_endereco?: string
@@ -8025,6 +8029,7 @@ export type Database = {
         }
         Returns: Json
       }
+      zerar_liberado: { Args: { _tenant: string }; Returns: boolean }
     }
     Enums: {
       app_role:
