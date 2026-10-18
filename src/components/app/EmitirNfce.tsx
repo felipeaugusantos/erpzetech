@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { erroCpf, formatarCpf, resumirNfce, soDigitos } from "@/lib/nfce-consumidor";
+import { cpfSalvo, erroCpf, formatarCpf, resumirNfce, soDigitos } from "@/lib/nfce-consumidor";
 
 const COR = {
   ok: "border-success/40 bg-success/10",
@@ -18,7 +18,8 @@ const COR = {
 /** NFC-e da venda do balcão: CPF opcional do consumidor, criação da nota e o que falta (se faltar). */
 export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
   const qc = useQueryClient();
-  const [cpf, setCpf] = useState("");
+  /** Texto digitado; enquanto o operador não mexe, vale o CPF já guardado na nota. */
+  const [editado, setEditado] = useState<string | null>(null);
   const chave = ["nfce-da-venda", pedidoId];
 
   const { data: nota, isLoading } = useQuery({
@@ -26,7 +27,7 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("nfe")
-        .select("id, situacao, numero, serie, pendencias, mensagem, contingencia")
+        .select("id, situacao, numero, serie, pendencias, mensagem, contingencia, destinatario")
         .eq("pedido_id", pedidoId)
         .eq("modelo", "nfce")
         .neq("situacao", "cancelada")
@@ -37,6 +38,8 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
       return data;
     },
   });
+
+  const cpf = editado ?? cpfSalvo(nota?.destinatario);
 
   const emitir = useMutation({
     mutationFn: async () => {
@@ -87,7 +90,7 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
               inputMode="numeric"
               placeholder="000.000.000-00"
               value={cpf}
-              onChange={(e) => setCpf(formatarCpf(e.target.value))}
+              onChange={(e) => setEditado(formatarCpf(e.target.value))}
             />
             {erroCpf(cpf) ? <p className="mt-1 text-xs text-destructive">{erroCpf(cpf)}</p> : null}
           </div>

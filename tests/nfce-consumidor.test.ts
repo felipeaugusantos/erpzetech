@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { cpfValido, erroCpf, formatarCpf, resumirNfce } from "../src/lib/nfce-consumidor.ts";
+import {
+  cpfSalvo,
+  cpfValido,
+  erroCpf,
+  formatarCpf,
+  resumirNfce,
+} from "../src/lib/nfce-consumidor.ts";
 
 test("CPF: dígitos verificadores", () => {
   assert.equal(cpfValido("529.982.247-25"), true);
@@ -60,4 +66,12 @@ test("rejeitada mostra o motivo; autorizada e cancelada não têm detalhe extra"
   );
   assert.equal(resumirNfce({ ...base, situacao: "autorizada" }).tom, "ok");
   assert.equal(resumirNfce({ ...base, situacao: "cancelada" }).tom, "erro");
+});
+
+test("cpfSalvo devolve o CPF da nota em rascunho para a nova tentativa não perdê-lo", () => {
+  assert.equal(cpfSalvo({ consumidor: "identificado", cpf: "52998224725" }), "529.982.247-25");
+  assert.equal(cpfSalvo({ consumidor: "não identificado" }), "");
+  assert.equal(cpfSalvo(null), "");
+  assert.equal(cpfSalvo("texto"), "");
+  assert.equal(cpfSalvo({ cpf: 123 }), "");
 });
