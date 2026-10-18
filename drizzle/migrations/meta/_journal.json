@@ -274,6 +274,13 @@
       "when": 1792329630593,
       "tag": "0038_nfe_entrada_guarda_impostos",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792329991488,
+      "tag": "0039_nfe_entrada_completar_impostos",
+      "breakpoints": true
     }
   ]
 }
