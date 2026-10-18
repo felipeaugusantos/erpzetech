@@ -1,4 +1,5 @@
 export const situacoesPedido = [
+  { value: "rascunho", label: "Rascunho" },
   { value: "aguardando_pagamento", label: "Aguardando pagamento" },
   { value: "aprovado", label: "Aprovado" },
   { value: "separacao", label: "Separação" },
@@ -37,6 +38,8 @@ export function labelSituacao(s: string) {
 /** Próximas situações permitidas — espelha a regra aplicada no banco. */
 export function proximas(s: string): PedidoSituacao[] {
   switch (s) {
+    case "rascunho":
+      return [];
     case "aguardando_pagamento":
       return ["aprovado", "cancelado"];
     case "aprovado":

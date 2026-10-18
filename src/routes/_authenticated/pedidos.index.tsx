@@ -266,7 +266,7 @@ function Pedidos() {
   }
 
   const criar = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (rascunho: boolean = false) => {
       if (!clienteId) throw new Error("Escolha o cliente");
       if (!depositoId) throw new Error("Escolha o depósito de saída");
       if (itens.length === 0) throw new Error("Inclua pelo menos um produto");
@@ -290,6 +290,7 @@ function Pedidos() {
         ...(vendedorId ? { p_vendedor_id: vendedorId } : {}),
         ...(profissionalId ? { p_profissional_id: profissionalId } : {}),
         ...(observacoes ? { p_observacoes: observacoes } : {}),
+        p_rascunho: rascunho,
       });
       if (error) throw error;
       const gradeFinal = grade.filter((g) => itens.some((i) => i.produto_id === g.produto_id));
@@ -308,10 +309,11 @@ function Pedidos() {
             description: eg.message,
           });
       }
-      return pedidoId as string;
+      return { id: pedidoId as string, rascunho };
     },
-    onSuccess: (id) => {
-      toast.success("Pedido criado", { description: "Estoque reservado no depósito escolhido." });
+    onSuccess: ({ id, rascunho }) => {
+      if (rascunho) toast.success("Rascunho salvo", { description: "Sem reserva de estoque. Confirme o pedido quando fechar com o cliente." });
+      else toast.success("Pedido criado", { description: "Estoque reservado no depósito escolhido." });
       setOpen(false);
       limpar();
       qc.invalidateQueries({ queryKey: ["pedidos"] });
@@ -890,7 +892,14 @@ function Pedidos() {
               Cancelar
             </Button>
             <Button
-              onClick={() => criar.mutate()}
+              variant="outline"
+              onClick={() => criar.mutate(true)}
+              disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
+            >
+              Salvar rascunho
+            </Button>
+            <Button
+              onClick={() => criar.mutate(false)}
               disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
             >
               Salvar pedido
