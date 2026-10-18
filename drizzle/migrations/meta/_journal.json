@@ -267,6 +267,13 @@
       "when": 1792248998408,
       "tag": "0037_nfce_config_tela_emitente_filial",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792329630593,
+      "tag": "0038_nfe_entrada_guarda_impostos",
+      "breakpoints": true
     }
   ]
 }
