@@ -85,3 +85,10 @@ export function resumirNfce(n: NotaBalcao): ResumoNfce {
       };
   }
 }
+
+/** CPF já guardado na NFC-e (campo destinatario), formatado; vazio se o consumidor não foi identificado. */
+export function cpfSalvo(destinatario: unknown): string {
+  if (!destinatario || typeof destinatario !== "object") return "";
+  const cpf = (destinatario as Record<string, unknown>)["cpf"];
+  return typeof cpf === "string" ? formatarCpf(cpf) : "";
+}
