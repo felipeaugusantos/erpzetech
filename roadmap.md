@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Redefinir senha do administrador em Editar cliente assinante, com autorização Ze Tech, validação do vínculo e testes.
+- [x] Redefinir senha do administrador em Editar cliente assinante: cinco testes de proteção passaram e campos/confirmar/cancelar conferidos com conta autenticada; nenhuma senha real alterada na verificação.
 
 - [x] Corrigir a leitura do PDF com dois DACTEs: quatro testes passaram e a tela reconheceu 727506 e 727538 com suas respectivas chaves; vínculo existente conferido por consulta, sem lançar novo frete.
 
