@@ -121,7 +121,7 @@ function CompraDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compra_itens")
-        .select("*, produtos(codigo_interno, descricao, unidade)")
+        .select("*, produtos(codigo_interno, descricao, unidade, unidade_compra, fator_conversao)")
         .eq("compra_id", id)
         .order("created_at");
       if (error) throw error;
@@ -177,7 +177,7 @@ function CompraDetalhe() {
       const t = buscaProduto.trim();
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, codigo_interno, descricao, unidade, custo")
+        .select("id, codigo_interno, descricao, unidade, custo, unidade_compra, fator_conversao")
         .eq("ativo", true)
         .or(`descricao.ilike.%${t}%,codigo_interno.ilike.%${t}%,codigo_barras.ilike.%${t}%`)
         .limit(8);
@@ -194,16 +194,20 @@ function CompraDetalhe() {
       unidade: string;
       custo: number;
       descricao: string;
+      fator_conversao?: number | null;
+      unidade_compra?: string | null;
     }) => {
+      // produto comprado em outra unidade (ex.: metro): já entra 1 unidade de compra
+      const f = produto.unidade_compra && Number(produto.fator_conversao) > 1 ? Number(produto.fator_conversao) : 1;
       if (!tenantId) throw new Error("Usuário sem empresa vinculada");
       const { error } = await supabase.from("compra_itens").insert({
         tenant_id: tenantId,
         compra_id: id,
         produto_id: produto.id,
-        quantidade: 1,
+        quantidade: f,
         unidade: produto.unidade,
         custo_unitario: produto.custo,
-        total: Number(produto.custo),
+        total: Math.round(Number(produto.custo) * f * 100) / 100,
       });
       if (error) throw error;
     },
@@ -569,47 +573,60 @@ function CompraDetalhe() {
                     codigo_interno: string;
                     descricao: string;
                     unidade: string;
+                    unidade_compra: string | null;
+                    fator_conversao: number | null;
                   } | null;
+                  // compra na unidade do fornecedor (ex.: MT); o estoque recebe na unidade do produto (UN)
+                  const f = prod?.unidade_compra && Number(prod.fator_conversao) > 1 ? Number(prod.fator_conversao) : 1;
+                  const qtdCompra = Math.round((Number(i.quantidade) / f) * 1000) / 1000;
+                  const custoCompra = Math.round(Number(i.custo_unitario) * f * 10000) / 10000;
                   return (
                     <TableRow key={i.id}>
                       <TableCell>
                         <p className="font-medium">{prod?.descricao ?? "—"}</p>
                         <p className="text-numeric text-xs text-muted-foreground">
-                          {prod?.codigo_interno} · {i.unidade ?? prod?.unidade}
+                          {prod?.codigo_interno} · {f > 1 ? `compra em ${prod?.unidade_compra} · 1 ${prod?.unidade_compra} = ${num(f)} ${prod?.unidade}` : (i.unidade ?? prod?.unidade)}
                         </p>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {editavel ? (
-                          <Input
-                            className="ml-auto w-24 text-right"
-                            defaultValue={String(Number(i.quantidade))}
-                            onBlur={(e) =>
-                              atualizarItem.mutate({
-                                itemId: i.id,
-                                quantidade: Number(e.target.value.replace(",", ".") || 0),
-                                custo: Number(i.custo_unitario),
-                              })
-                            }
-                          />
-                        ) : (
-                          <span className="text-numeric">{num(Number(i.quantidade), 3)}</span>
+                        {f > 1 && (
+                          <p className="text-xs text-muted-foreground">
+                            Entra no estoque: {num(Number(i.quantidade), 3)} {prod?.unidade}
+                          </p>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         {editavel ? (
                           <Input
                             className="ml-auto w-24 text-right"
-                            defaultValue={String(Number(i.custo_unitario))}
+                            key={`q${i.id}${i.quantidade}`}
+                            defaultValue={String(qtdCompra)}
                             onBlur={(e) =>
                               atualizarItem.mutate({
                                 itemId: i.id,
-                                quantidade: Number(i.quantidade),
-                                custo: Number(e.target.value.replace(",", ".") || 0),
+                                quantidade: Number(e.target.value.replace(",", ".") || 0) * f,
+                                custo: Number(i.custo_unitario),
                               })
                             }
                           />
                         ) : (
-                          <span className="text-numeric">{brl(Number(i.custo_unitario))}</span>
+                          <span className="text-numeric">{num(qtdCompra, 3)}{f > 1 ? ` ${prod?.unidade_compra}` : ""}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {editavel ? (
+                          <Input
+                            className="ml-auto w-24 text-right"
+                            key={`c${i.id}${i.custo_unitario}`}
+                            defaultValue={String(custoCompra)}
+                            onBlur={(e) =>
+                              atualizarItem.mutate({
+                                itemId: i.id,
+                                quantidade: Number(i.quantidade),
+                                custo: Math.round((Number(e.target.value.replace(",", ".") || 0) / f) * 1000000) / 1000000,
+                              })
+                            }
+                          />
+                        ) : (
+                          <span className="text-numeric">{brl(custoCompra)}{f > 1 ? `/${prod?.unidade_compra}` : ""}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
