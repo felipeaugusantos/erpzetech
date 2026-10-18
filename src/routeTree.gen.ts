@@ -68,6 +68,7 @@ import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
+import { Route as AuthenticatedMovimentoGradeRouteImport } from './routes/_authenticated/movimento-grade'
 import { Route as AuthenticatedNfceConfigRouteImport } from './routes/_authenticated/nfce-config'
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
@@ -446,6 +447,12 @@ const AuthenticatedMovimentacoesRoute =
     path: '/movimentacoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMovimentoGradeRoute =
+  AuthenticatedMovimentoGradeRouteImport.update({
+    id: '/movimento-grade',
+    path: '/movimento-grade',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNfceConfigRoute = AuthenticatedNfceConfigRouteImport.update({
   id: '/nfce-config',
   path: '/nfce-config',
@@ -806,6 +813,7 @@ export interface FileRoutesByFullPath {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -920,6 +928,7 @@ export interface FileRoutesByTo {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -1036,6 +1045,7 @@ export interface FileRoutesById {
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
+  '/_authenticated/movimento-grade': typeof AuthenticatedMovimentoGradeRoute
   '/_authenticated/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
@@ -1152,6 +1162,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/movimento-grade'
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
@@ -1266,6 +1277,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
+    | '/movimento-grade'
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
@@ -1381,6 +1393,7 @@ export interface FileRouteTypes {
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/movimentacoes'
+    | '/_authenticated/movimento-grade'
     | '/_authenticated/nfce-config'
     | '/_authenticated/nfe'
     | '/_authenticated/nfe-entrada'
@@ -1862,6 +1875,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMovimentacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/movimento-grade': {
+      id: '/_authenticated/movimento-grade'
+      path: '/movimento-grade'
+      fullPath: '/movimento-grade'
+      preLoaderRoute: typeof AuthenticatedMovimentoGradeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/nfce-config': {
       id: '/_authenticated/nfce-config'
       path: '/nfce-config'
@@ -2297,6 +2317,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
+  AuthenticatedMovimentoGradeRoute: typeof AuthenticatedMovimentoGradeRoute
   AuthenticatedNfceConfigRoute: typeof AuthenticatedNfceConfigRoute
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
@@ -2406,6 +2427,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
+  AuthenticatedMovimentoGradeRoute: AuthenticatedMovimentoGradeRoute,
   AuthenticatedNfceConfigRoute: AuthenticatedNfceConfigRoute,
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,

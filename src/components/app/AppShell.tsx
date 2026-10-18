@@ -111,6 +111,7 @@ const groups: Group[] = [
       { label: "Ajuste de lotes", to: "/ajuste-lotes", icon: Boxes },
       { label: "Lotes sem internet", to: "/lotes-offline", icon: Wallet },
       { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
+      { label: "Movimento por tamanho", to: "/movimento-grade", icon: Boxes },
       { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
       { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },
       { label: "Sugestão de reposição", to: "/sugestao-compra", icon: ShoppingCart },
@@ -316,7 +317,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: g.items.filter((i) => {
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
-            if (i.to === "/personalizacao" || i.to === "/custo-par" || i.to === "/producao") return fazPersonalizacao;
+            if (i.to === "/personalizacao" || i.to === "/custo-par" || i.to === "/producao" || i.to === "/movimento-grade") return fazPersonalizacao;
             return true;
           }),
         })),
