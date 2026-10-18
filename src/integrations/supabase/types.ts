@@ -1344,10 +1344,12 @@ export type Database = {
       }
       compra_itens: {
         Row: {
+          cfop: string | null
           compra_id: string
           created_at: string
           custo_unitario: number
           id: string
+          impostos: Json | null
           observacao: string | null
           produto_id: string
           quantidade: number
@@ -1357,10 +1359,12 @@ export type Database = {
           unidade: string | null
         }
         Insert: {
+          cfop?: string | null
           compra_id: string
           created_at?: string
           custo_unitario?: number
           id?: string
+          impostos?: Json | null
           observacao?: string | null
           produto_id: string
           quantidade: number
@@ -1370,10 +1374,12 @@ export type Database = {
           unidade?: string | null
         }
         Update: {
+          cfop?: string | null
           compra_id?: string
           created_at?: string
           custo_unitario?: number
           id?: string
+          impostos?: Json | null
           observacao?: string | null
           produto_id?: string
           quantidade?: number
@@ -1541,6 +1547,7 @@ export type Database = {
           motivo_cancelamento: string | null
           nfe_chave: string | null
           nfe_emissao: string | null
+          nfe_impostos: Json | null
           nfe_numero: string | null
           nfe_serie: string | null
           numero: number | null
@@ -1569,6 +1576,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           nfe_chave?: string | null
           nfe_emissao?: string | null
+          nfe_impostos?: Json | null
           nfe_numero?: string | null
           nfe_serie?: string | null
           numero?: number | null
@@ -1597,6 +1605,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           nfe_chave?: string | null
           nfe_emissao?: string | null
+          nfe_impostos?: Json | null
           nfe_numero?: string | null
           nfe_serie?: string | null
           numero?: number | null
