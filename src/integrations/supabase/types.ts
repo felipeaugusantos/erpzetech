@@ -3535,6 +3535,50 @@ export type Database = {
         }
         Relationships: []
       }
+      importacoes: {
+        Row: {
+          arquivo: string | null
+          atualizados: number
+          created_at: string
+          criados: number
+          id: string
+          linhas: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas: number
+          tenant_id?: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventario_itens: {
         Row: {
           created_at: string
@@ -7189,6 +7233,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _imp_erro: {
+        Args: { p_linha: number; p_lista: Json; p_msg: string }
+        Returns: Json
+      }
+      _imp_num: { Args: { p_campo: string; p_item: Json }; Returns: number }
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -7599,6 +7648,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      importar_clientes: {
+        Args: {
+          p_arquivo?: string
+          p_atualizar?: boolean
+          p_linhas: Json
+          p_simular?: boolean
+        }
+        Returns: Json
+      }
       importar_nfe_entrada: {
         Args: {
           p_deposito_id: string
@@ -7609,6 +7667,19 @@ export type Database = {
           p_parcelas?: number
           p_vencimento?: string
         }
+        Returns: Json
+      }
+      importar_produtos: {
+        Args: {
+          p_arquivo?: string
+          p_atualizar?: boolean
+          p_linhas: Json
+          p_simular?: boolean
+        }
+        Returns: Json
+      }
+      importar_saldos: {
+        Args: { p_arquivo?: string; p_linhas: Json; p_simular?: boolean }
         Returns: Json
       }
       inventario_abrir: {
