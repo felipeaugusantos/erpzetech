@@ -56,3 +56,22 @@ export const ordemTamanho = (t: string) => {
   const i = TAMANHOS_CHINELO.indexOf(t);
   return i < 0 ? 999 : i;
 };
+
+export type CustoParEntrada = {
+  tira: number; tirasPorPar: number;
+  solado: number; soladosPorPar: number;
+  folha: number; paresPorFolha: number;
+  outros: number;
+};
+
+/** Custo de um par: tira e solado pela quantidade usada, folha dividida pelos pares que ela rende, mais outros gastos. */
+export function custoPar(e: CustoParEntrada) {
+  const tira = e.tira * e.tirasPorPar;
+  const solado = e.solado * e.soladosPorPar;
+  const folha = e.paresPorFolha > 0 ? e.folha / e.paresPorFolha : 0;
+  const total = tira + solado + folha + e.outros;
+  return { tira, solado, folha, outros: e.outros, total };
+}
+
+/** Margem sobre o preço de venda, em %. */
+export const margemPar = (preco: number, custo: number) => (preco > 0 ? ((preco - custo) / preco) * 100 : 0);
