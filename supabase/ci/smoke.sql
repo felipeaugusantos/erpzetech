@@ -2222,6 +2222,14 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT frente_cancelar_venda(%L, %L, 'Com NFC-e autorizada')$c$, ped8, aut3), 'cancelar venda com NFC-e já enviada à Sefaz');
   PERFORM ci.exige((SELECT situacao <> 'cancelado' FROM pedidos WHERE id = ped8) AND (SELECT situacao = 'autorizada' FROM nfe WHERE id = n8), 'a venda e a nota seguem como estavam');
 
+  -- criar e cancelar usam o mesmo bloqueio por pedido, e a criação o toma antes de ler o pedido
+  PERFORM ci.exige(position('pg_advisory_xact_lock' IN pg_get_functiondef('public.frente_cancelar_venda(uuid, uuid, text)'::regprocedure)) > 0
+                   AND position('nfce:' IN pg_get_functiondef('public.frente_cancelar_venda(uuid, uuid, text)'::regprocedure)) > 0,
+                   'cancelar a venda toma o bloqueio por pedido da NFC-e');
+  PERFORM ci.exige(position('pg_advisory_xact_lock' IN pg_get_functiondef('public.nfce_criar(uuid, text)'::regprocedure))
+                   < position('INTO v_ped FROM public.pedidos' IN pg_get_functiondef('public.nfce_criar(uuid, text)'::regprocedure)),
+                   'nfce_criar toma o bloqueio antes de ler o pedido');
+
   -- emitente: a filial do pedido manda quando tem CNPJ, inscrição e endereço próprios; o que ela não tem vem da empresa
   INSERT INTO filiais (tenant_id, empresa_id, nome, cnpj, inscricao_estadual, endereco, cidade)
   VALUES (demo, emp, 'Filial emitente CI', '98765432000110', '999888777', 'Rua da Filial', NULL) RETURNING id INTO fil_emit;
