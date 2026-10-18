@@ -35,6 +35,7 @@ import {
   type FormatoDocumento,
 } from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
+import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -655,6 +656,19 @@ function PedidoDetalhe() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-4">
+          {(session?.empresa as { faz_personalizacao?: boolean } | null | undefined)?.faz_personalizacao && (
+            <details className="panel p-4 print:hidden">
+              <summary className="cursor-pointer font-semibold">
+                Custo e lucro do pedido (uso interno)
+              </summary>
+              <div className="mt-4">
+                <RentabilidadeChinelo
+                  pares={resumo.pedidoQtd || undefined}
+                  precoPar={resumo.pedidoQtd > 0 ? Number(pedido.total) / resumo.pedidoQtd : undefined}
+                />
+              </div>
+            </details>
+          )}
           <div className="panel p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span

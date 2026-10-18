@@ -85,3 +85,25 @@ export function statusEtapa(atual: string, etapa: string): "concluida" | "andame
   const a = ordem.indexOf(atual), e = ordem.indexOf(etapa);
   return a > e ? "concluida" : a === e ? "andamento" : "aguardando";
 }
+
+export type SacolinhaEntrada = {
+  precoMetroVoil: number; sacolinhasPorMetro: number;
+  costura: number;
+  precoRoloFita: number; sacolinhasPorRolo: number;
+  folha: number; folhasPorSacolinha: number;
+};
+
+/** Padrões da oficina: voil R$13,50/m rende 16,5; costura R$1,00; rolo de fita R$16,90 rende 100; 2 folhas. */
+export const SACOLINHA_PADRAO = {
+  precoMetroVoil: 13.5, sacolinhasPorMetro: 16.5, costura: 1,
+  precoRoloFita: 16.9, sacolinhasPorRolo: 100, folhasPorSacolinha: 2,
+};
+
+/** Custo de uma sacolinha voil pronta: tecido + costura + fita de cetim + folhas transfer. */
+export function custoSacolinha(e: SacolinhaEntrada) {
+  const tecido = e.sacolinhasPorMetro > 0 ? e.precoMetroVoil / e.sacolinhasPorMetro : 0;
+  const fita = e.sacolinhasPorRolo > 0 ? e.precoRoloFita / e.sacolinhasPorRolo : 0;
+  const folhas = e.folha * e.folhasPorSacolinha;
+  const total = tecido + e.costura + fita + folhas;
+  return { tecido, costura: e.costura, fita, folhas, total };
+}
