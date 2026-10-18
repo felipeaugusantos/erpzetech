@@ -232,10 +232,16 @@ function Pedidos() {
 
   function lancarGrade() {
     const p = (base?.produtos ?? []).find((x) => x.id === gradeProduto);
-    if (!p) return toast.error("Escolha o modelo");
+    if (!p) {
+      toast.error("Escolha o modelo");
+      return;
+    }
     const linhas = montarGrade(p.descricao, gradeQtds);
     const total = totalGrade(linhas);
-    if (total === 0) return toast.error("Informe a quantidade de pelo menos um tamanho");
+    if (total === 0) {
+      toast.error("Informe a quantidade de pelo menos um tamanho");
+      return;
+    }
     setItens((prev) => {
       const i = prev.findIndex((x) => x.produto_id === p.id);
       if (i < 0)
