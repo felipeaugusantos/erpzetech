@@ -8312,6 +8312,7 @@ export type Database = {
         | "entregue"
         | "cancelada"
       pedido_situacao:
+        | "rascunho"
         | "aguardando_pagamento"
         | "aprovado"
         | "separacao"
@@ -8532,6 +8533,7 @@ export const Constants = {
         "cancelada",
       ],
       pedido_situacao: [
+        "rascunho",
         "aguardando_pagamento",
         "aprovado",
         "separacao",
