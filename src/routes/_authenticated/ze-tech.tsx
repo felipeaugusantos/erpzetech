@@ -2,7 +2,15 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, BarChart3, CircleDollarSign, KeyRound, Plus, Users, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CircleDollarSign,
+  KeyRound,
+  Plus,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -842,7 +850,8 @@ function AcessoAdmin({ cliente }: { cliente: ClienteSaas }) {
         description: "Informe a nova senha ao administrador da loja.",
       });
     },
-    onError: (e: Error) => toast.error("Não foi possível redefinir a senha", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error("Não foi possível redefinir a senha", { description: e.message }),
   });
 
   const enviar = useMutation({
@@ -878,19 +887,52 @@ function AcessoAdmin({ cliente }: { cliente: ClienteSaas }) {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="admin-nova-senha">Nova senha</Label>
-                <Input id="admin-nova-senha" type="password" autoComplete="new-password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} disabled={resetar.isPending} placeholder="Mínimo 8 caracteres" />
+                <Input
+                  id="admin-nova-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  disabled={resetar.isPending}
+                  placeholder="Mínimo 8 caracteres"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="admin-confirma-senha">Confirmar nova senha</Label>
-                <Input id="admin-confirma-senha" type="password" autoComplete="new-password" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} disabled={resetar.isPending} />
+                <Input
+                  id="admin-confirma-senha"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmacao}
+                  onChange={(e) => setConfirmacao(e.target.value)}
+                  disabled={resetar.isPending}
+                />
               </div>
             </div>
-            {confirmacao && novaSenha !== confirmacao && <p className="text-sm text-destructive" role="alert">As senhas não coincidem.</p>}
+            {confirmacao && novaSenha !== confirmacao && (
+              <p className="text-sm text-destructive" role="alert">
+                As senhas não coincidem.
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => resetar.mutate()} disabled={novaSenha.length < 8 || novaSenha !== confirmacao || resetar.isPending}>
-                <KeyRound className="size-4" /> {resetar.isPending ? "Redefinindo…" : "Confirmar nova senha"}
+              <Button
+                onClick={() => resetar.mutate()}
+                disabled={novaSenha.length < 8 || novaSenha !== confirmacao || resetar.isPending}
+              >
+                <KeyRound className="size-4" />{" "}
+                {resetar.isPending ? "Redefinindo…" : "Confirmar nova senha"}
               </Button>
-              <Button variant="outline" disabled={resetar.isPending} onClick={() => { setResetAberto(false); setNovaSenha(""); setConfirmacao(""); }}>Cancelar</Button>
+              <Button
+                variant="outline"
+                disabled={resetar.isPending}
+                onClick={() => {
+                  setResetAberto(false);
+                  setNovaSenha("");
+                  setConfirmacao("");
+                }}
+              >
+                Cancelar
+              </Button>
             </div>
           </div>
         )}

@@ -21,7 +21,11 @@ export function validarVinculoAdminCliente(
   if (perfil?.id !== cliente.admin_user_id || perfil?.tenant_id !== cliente.tenant_id) {
     throw new Error("O administrador não pertence à empresa deste cliente");
   }
-  if (!papeis.some((p) => p.role === "administrador" && (p.tenant_id ?? perfil.tenant_id) === cliente.tenant_id)) {
+  if (
+    !papeis.some(
+      (p) => p.role === "administrador" && (p.tenant_id ?? perfil.tenant_id) === cliente.tenant_id,
+    )
+  ) {
     throw new Error("O acesso vinculado não possui perfil de administrador nesta empresa");
   }
   return cliente.admin_user_id;
