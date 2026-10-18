@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -81,6 +82,7 @@ function Empresa() {
   const { data: session } = useSessionData();
   const isAdmin = session?.roles.includes("administrador") ?? false;
   const [form, setForm] = useState(vazio);
+  const [personaliza, setPersonaliza] = useState(false);
   /** Identidade visual da loja: logo e cor principal do sistema. */
   const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
     logo: null,
@@ -150,6 +152,7 @@ function Empresa() {
       codigo_municipio: data.codigo_municipio ?? "",
     });
     setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
+    setPersonaliza(data.faz_personalizacao ?? false);
   }, [data]);
 
   const salvar = useMutation({
@@ -163,6 +166,11 @@ function Empresa() {
         p_dados: { ...form, logo_path: marca.logo, cor_primaria: marca.cor },
       });
       if (error) throw error;
+      const { error: errPers } = await supabase
+        .from("empresas")
+        .update({ faz_personalizacao: personaliza })
+        .eq("tenant_id", session.profile.tenant_id);
+      if (errPers) throw errPers;
     },
     onSuccess: () => {
       toast.success(data ? "Dados da empresa salvos" : "Empresa cadastrada");
@@ -298,6 +306,22 @@ function Empresa() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-md border p-3 sm:col-span-2 lg:col-span-3">
+              <Switch
+                id="emp-personalizacao"
+                checked={personaliza}
+                disabled={!isAdmin}
+                onCheckedChange={setPersonaliza}
+              />
+              <div>
+                <Label htmlFor="emp-personalizacao">A empresa faz personalização</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ative se vocês personalizam produtos sob encomenda (ex.: chinelos, camisetas,
+                  brindes): arte, aprovação do cliente e etapas de produção.
+                </p>
+              </div>
             </div>
 
             {campo("telefone", "Telefone")}

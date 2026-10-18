@@ -1,0 +1,1 @@
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS faz_personalizacao boolean NOT NULL DEFAULT false;
