@@ -5132,6 +5132,7 @@ export type Database = {
           etapa: string
           etapas_datas: Json
           grade: Json
+          grade_baixada: boolean
           id: string
           observacoes: string | null
           pedido_id: string
@@ -5148,6 +5149,7 @@ export type Database = {
           etapa?: string
           etapas_datas?: Json
           grade?: Json
+          grade_baixada?: boolean
           id?: string
           observacoes?: string | null
           pedido_id: string
@@ -5164,6 +5166,7 @@ export type Database = {
           etapa?: string
           etapas_datas?: Json
           grade?: Json
+          grade_baixada?: boolean
           id?: string
           observacoes?: string | null
           pedido_id?: string
@@ -7323,6 +7326,10 @@ export type Database = {
       }
       estoque_grade_ajustar: {
         Args: { p_deposito_id: string; p_grade: Json; p_produto_id: string }
+        Returns: undefined
+      }
+      estoque_grade_mover_pedido: {
+        Args: { p_pp_id: string; p_sinal: number }
         Returns: undefined
       }
       estoque_lote_lancar: {
