@@ -11,6 +11,7 @@
 
 ## Imported purchase notes
 - Show imported NF-e details through a read-only dialog querying the saved purchase and its items with the existing RLS client; the original XML is not stored, so never present reconstructed data as the original fiscal document.
+- Parse combined DACTE PDFs per document, accepting spaced headings and isolating 44-digit keys from adjacent number columns, then deduplicate by CT-e key to avoid mixing freight or charging repeated copies.
 
 ## Trabalho sem internet
 - Salão e Delivery mostram a fila local também online; reenvios preservam a chave idempotente e os pagamentos, e a sincronização concilia a fila atual para não apagar operações concorrentes.

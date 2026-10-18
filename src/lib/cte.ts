@@ -58,7 +58,9 @@ export function lerTextoDacte(texto: string): CteLido {
   let chave: string | null = null;
   const nfes = new Set<string>();
   for (const linha of texto.split("\n")) {
-    const blocos = linha.match(/[\d][\d.\-/\s|]{40,}\d/g) ?? [];
+    // A chave pode vir acompanhada do número da nota na coluna seguinte.
+    // Capture só os 44 dígitos, sem juntar os números das outras colunas.
+    const blocos = linha.match(/(?<!\d)\d(?:[.\-/\s|]*\d){43}(?!\d)/g) ?? [];
     for (const b of blocos) {
       const d = b.replace(/\D/g, "");
       if (d.length !== 44) continue;
@@ -76,7 +78,7 @@ export function lerTextoDacte(texto: string): CteLido {
   const icms = m(/VALOR\s+ICMS\s*\(R\$\)[^\d]*([\d.]+,\d{2})/i);
   const data = texto.match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
   const emissao = data
-    ? `${data[3]!.length === 2 ? `20${data[3]}` : data[3]}-${data[2]}-${data[1]}`
+    ? `${data[3]?.length === 2 ? `20${data[3]}` : data[3]}-${data[2]}-${data[1]}`
     : null;
   const razao = texto.match(/([A-Z0-9][A-Z0-9 &.\-]*\b(?:LTDA|S\.?A\.?|EIRELI|EPP))\b/)?.[1]?.trim() ?? null;
   const k = chave ? daChave(chave) : null;
@@ -105,7 +107,8 @@ export function rateioFrete(totais: number[], frete: number): number[] {
 /** Um PDF pode trazer vários DACTEs (e cada um em duas vias). Devolve um CT-e por chave. */
 export function lerDactes(texto: string): CteLido[] {
   const porChave = new Map<string, CteLido>();
-  for (const parte of texto.split(/(?=^.*\bDACTE\b)/m)) {
+  // O PDF.js extrai o título deste documento como "D A C T E".
+  for (const parte of texto.split(/(?=^.*\bD\s*A\s*C\s*T\s*E\b)/m)) {
     let c: CteLido;
     try { c = lerTextoDacte(parte); } catch { continue; }
     if (!c.chave) continue;
@@ -118,7 +121,8 @@ export function lerDactes(texto: string): CteLido[] {
 
 /** Escolhe o CT-e que transporta a NF-e informada. */
 export function cteDaNota(ctes: CteLido[], chaveNfe: string | null | undefined): CteLido {
-  if (ctes.length === 1) return ctes[0]!;
+  const unico = ctes.length === 1 ? ctes[0] : undefined;
+  if (unico) return unico;
   const achado = chaveNfe ? ctes.find((c) => c.nfe_chaves.includes(chaveNfe)) : undefined;
   if (achado) return achado;
   throw new Error(`Este arquivo tem ${ctes.length} CT-e (${ctes.map((c) => `nº ${c.numero ?? "—"}`).join(", ")}) e nenhum deles é desta nota.`);
