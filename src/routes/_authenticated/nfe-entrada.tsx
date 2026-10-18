@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Eye, FileUp, ShoppingCart, Upload } from "lucide-react";
+import { AlertTriangle, Eye, FileUp, Grid3x3, ShoppingCart, Upload } from "lucide-react";
+import { GradeEntradaDialog } from "@/components/app/GradeEntradaDialog";
+import { ehTira, tamanhoNaDescricao, type GradeEntrada } from "@/lib/personalizacao";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +95,10 @@ function NfeEntrada() {
   const [parcelas, setParcelas] = useState("1");
   const [vencimento, setVencimento] = useState("");
   const [notaDetalhesId, setNotaDetalhesId] = useState<string | null>(null);
+  const [grades, setGrades] = useState<Record<number, GradeEntrada>>({});
+  const [gradeSeq, setGradeSeq] = useState<number | null>(null);
+  const gradeOk = (item: { seq: number; quantidade: number }) =>
+    (grades[item.seq] ?? []).reduce((s, l) => s + l.quantidade, 0) === item.quantidade;
 
   const { data: depositos } = useQuery({
     queryKey: ["depositos-lista"],
@@ -193,6 +199,13 @@ function NfeEntrada() {
         inicial[item.seq] = casarProduto(item);
       });
       setMapa(inicial);
+      // tira com o tamanho na descrição já vem com a grade preenchida
+      const gradesIniciais: Record<number, GradeEntrada> = {};
+      parsed.itens.forEach((item) => {
+        const t = ehTira(item.descricao) ? tamanhoNaDescricao(item.descricao) : null;
+        if (t) gradesIniciais[item.seq] = [{ tamanho: t, quantidade: item.quantidade }];
+      });
+      setGrades(gradesIniciais);
       setParcelas(String(parsed.nota.parcelas));
       setVencimento(parsed.nota.primeiro_vencimento ?? "");
       if (!depositoId && (depositos ?? []).length > 0) {
@@ -242,7 +255,12 @@ function NfeEntrada() {
           descricao: i.descricao,
           ncm: i.ncm,
           cfop: i.cfop,
-          impostos: { ...i.impostos, composicao: custos[idx]?.composicao ?? null, regime },
+          impostos: {
+            ...i.impostos,
+            composicao: custos[idx]?.composicao ?? null,
+            regime,
+            ...(grades[i.seq]?.length ? { grade: grades[i.seq] } : {}),
+          },
           unidade: i.unidade,
           quantidade: i.quantidade,
           custo_unitario: custos[idx]?.custo_unitario ?? i.custo_unitario,
@@ -564,6 +582,23 @@ function NfeEntrada() {
                           <Badge variant="outline" className="mt-1">
                             Novo cadastro
                           </Badge>
+                        )}
+                        {ehTira(item.descricao) && (
+                          <div className="mt-2">
+                            <Button
+                              size="sm"
+                              variant={gradeOk(item) ? "outline" : "default"}
+                              onClick={() => setGradeSeq(item.seq)}
+                            >
+                              <Grid3x3 className="size-4" />
+                              {gradeOk(item) ? "Grade informada" : "Informar grade da tira"}
+                            </Button>
+                            {(grades[item.seq] ?? []).length > 0 && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {(grades[item.seq] ?? []).map((l) => `${l.tamanho}: ${l.quantidade}`).join(" · ")}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
