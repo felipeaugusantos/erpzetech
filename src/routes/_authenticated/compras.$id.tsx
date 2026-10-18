@@ -74,6 +74,12 @@ function CompraDetalhe() {
 
   const [buscaProduto, setBuscaProduto] = useState("");
   const [cancelarAberto, setCancelarAberto] = useState(false);
+  const [alterarAberto, setAlterarAberto] = useState(false);
+  const [motivoAlterar, setMotivoAlterar] = useState("");
+  const [dadosAberto, setDadosAberto] = useState(false);
+  const [dPrevisao, setDPrevisao] = useState("");
+  const [dCondicao, setDCondicao] = useState("");
+  const [dObs, setDObs] = useState("");
   const [motivo, setMotivo] = useState("");
   const [cotacaoAberta, setCotacaoAberta] = useState(false);
   const [cotForn, setCotForn] = useState("");
@@ -245,6 +251,44 @@ function CompraDetalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const salvarDados = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("compras")
+        .update({
+          previsao_entrega: dPrevisao || null,
+          condicao_pagamento: dCondicao.trim() || null,
+          observacoes: dObs.trim() || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dados da compra atualizados.");
+      setDadosAberto(false);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("compra_avancar_status", {
+        p_compra_id: id,
+        p_situacao: "rascunho" as never,
+        p_observacao: motivoAlterar.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Compra reaberta. Altere os itens e aprove de novo.");
+      setAlterarAberto(false);
+      setMotivoAlterar("");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error("Não foi possível reabrir", { description: e.message }),
+  });
+
   const avancar = useMutation({
     mutationFn: async (p: { situacao: string; observacao?: string }) => {
       const { error } = await supabase.rpc("compra_avancar_status", {
@@ -390,6 +434,24 @@ function CompraDetalhe() {
             {podeReceber(compra.situacao) && (
               <Button variant="outline" onClick={abrirRecebimento}>
                 <PackageCheck className="size-4" /> Registrar recebimento
+              </Button>
+            )}
+            {["aprovado", "pedido_enviado"].includes(compra.situacao) && (
+              <Button variant="outline" onClick={() => setAlterarAberto(true)}>
+                Alterar pedido
+              </Button>
+            )}
+            {!["recebido", "cancelado"].includes(compra.situacao) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDPrevisao(compra.previsao_entrega ?? "");
+                  setDCondicao(compra.condicao_pagamento ?? "");
+                  setDObs(compra.observacoes ?? "");
+                  setDadosAberto(true);
+                }}
+              >
+                Editar dados
               </Button>
             )}
             {!["recebido", "cancelado"].includes(compra.situacao) && (
@@ -974,6 +1036,67 @@ function CompraDetalhe() {
               onClick={() => avancar.mutate({ situacao: "cancelado", observacao: motivo })}
             >
               Confirmar cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={alterarAberto} onOpenChange={setAlterarAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar pedido de compra</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A compra volta para rascunho: você poderá mudar fornecedor, itens, quantidades e custos.
+            Depois precisa aprovar de novo. Só é possível enquanto nada foi recebido. O motivo fica
+            registrado nas observações.
+          </p>
+          <div>
+            <Label>Motivo da alteração</Label>
+            <Textarea
+              value={motivoAlterar}
+              onChange={(e) => setMotivoAlterar(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlterarAberto(false)}>
+              Voltar
+            </Button>
+            <Button
+              disabled={!motivoAlterar.trim() || reabrir.isPending}
+              onClick={() => reabrir.mutate()}
+            >
+              Reabrir para alterar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dadosAberto} onOpenChange={setDadosAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar dados da compra</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Previsão de entrega</Label>
+              <Input type="date" value={dPrevisao} onChange={(e) => setDPrevisao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Condição de pagamento</Label>
+              <Input value={dCondicao} onChange={(e) => setDCondicao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={dObs} onChange={(e) => setDObs(e.target.value)} rows={4} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDadosAberto(false)}>
+              Voltar
+            </Button>
+            <Button disabled={salvarDados.isPending} onClick={() => salvarDados.mutate()}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
