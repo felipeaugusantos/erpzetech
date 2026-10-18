@@ -5076,6 +5076,62 @@ export type Database = {
           },
         ]
       }
+      pedido_personalizacao: {
+        Row: {
+          arte_aprovada_em: string | null
+          arte_aprovada_por: string | null
+          arte_descricao: string | null
+          arte_link: string | null
+          arte_situacao: string
+          created_at: string
+          etapa: string
+          grade: Json
+          id: string
+          observacoes: string | null
+          pedido_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_descricao?: string | null
+          arte_link?: string | null
+          arte_situacao?: string
+          created_at?: string
+          etapa?: string
+          grade?: Json
+          id?: string
+          observacoes?: string | null
+          pedido_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_descricao?: string | null
+          arte_link?: string | null
+          arte_situacao?: string
+          created_at?: string
+          etapa?: string
+          grade?: Json
+          id?: string
+          observacoes?: string | null
+          pedido_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_personalizacao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           autorizado_por: string | null

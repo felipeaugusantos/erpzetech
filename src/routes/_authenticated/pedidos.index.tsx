@@ -39,6 +39,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { situacoesPedido, corSituacao, labelSituacao } from "@/lib/pedido";
+import { useSessionData } from "@/hooks/useSessionData";
+import {
+  TAMANHOS_CHINELO,
+  montarGrade,
+  totalGrade,
+  type LinhaGrade,
+} from "@/lib/personalizacao";
 
 export const Route = createFileRoute("/_authenticated/pedidos/")({
   head: () => ({
@@ -109,6 +116,14 @@ function Pedidos() {
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [codProfissional, setCodProfissional] = useState("");
   const [profissionalId, setProfissionalId] = useState<string | null>(null);
+  const { data: sessao } = useSessionData();
+  const fazPersonalizacao = Boolean(
+    (sessao?.empresa as { faz_personalizacao?: boolean } | null)?.faz_personalizacao,
+  );
+  /** Grade rápida: modelo + quantidade por tamanho; vira um item do pedido e a grade da personalização. */
+  const [gradeProduto, setGradeProduto] = useState("");
+  const [gradeQtds, setGradeQtds] = useState<Record<string, string>>({});
+  const [grade, setGrade] = useState<(LinhaGrade & { produto_id: string })[]>([]);
 
   const { data: base } = useQuery({
     queryKey: ["pedido-novo-base"],
@@ -210,6 +225,44 @@ function Pedidos() {
     setVendedorId(null);
     setCodProfissional("");
     setProfissionalId(null);
+    setGrade([]);
+    setGradeQtds({});
+    setGradeProduto("");
+  }
+
+  function lancarGrade() {
+    const p = (base?.produtos ?? []).find((x) => x.id === gradeProduto);
+    if (!p) {
+      toast.error("Escolha o modelo");
+      return;
+    }
+    const linhas = montarGrade(p.descricao, gradeQtds);
+    const total = totalGrade(linhas);
+    if (total === 0) {
+      toast.error("Informe a quantidade de pelo menos um tamanho");
+      return;
+    }
+    setItens((prev) => {
+      const i = prev.findIndex((x) => x.produto_id === p.id);
+      if (i < 0)
+        return [
+          ...prev,
+          {
+            produto_id: p.id,
+            descricao: p.descricao,
+            unidade: p.unidade,
+            quantidade: total,
+            qtdTexto: String(total),
+            preco_unitario: Number(p.preco_venda ?? 0),
+            desconto: 0,
+          },
+        ];
+      const q = prev[i]!.quantidade + total;
+      return prev.map((x, j) => (j === i ? { ...x, quantidade: q, qtdTexto: String(q) } : x));
+    });
+    setGrade((g) => [...g, ...linhas.map((l) => ({ ...l, produto_id: p.id }))]);
+    setGradeQtds({});
+    toast.success(`${total} pares de ${p.descricao} lançados`);
   }
 
   const criar = useMutation({
@@ -239,6 +292,21 @@ function Pedidos() {
         ...(observacoes ? { p_observacoes: observacoes } : {}),
       });
       if (error) throw error;
+      const gradeFinal = grade.filter((g) => itens.some((i) => i.produto_id === g.produto_id));
+      if (gradeFinal.length > 0) {
+        const { error: eg } = await supabase.from("pedido_personalizacao").insert({
+          pedido_id: pedidoId as string,
+          grade: gradeFinal.map(({ modelo, tamanho, quantidade }) => ({
+            modelo,
+            tamanho,
+            quantidade,
+          })),
+        });
+        if (eg)
+          toast.error("Pedido criado, mas a grade da personalização não foi salva", {
+            description: eg.message,
+          });
+      }
       return pedidoId as string;
     },
     onSuccess: (id) => {
@@ -538,6 +606,56 @@ function Pedidos() {
                 </Select>
               </div>
             </div>
+
+            {fazPersonalizacao && (
+              <div className="rounded-lg border border-border p-3">
+                <Label>Grade rápida (personalização)</Label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Escolha o modelo e digite os pares de cada tamanho. A grade vai para a tela de
+                  Personalização junto com o pedido.
+                </p>
+                <Select value={gradeProduto} onValueChange={setGradeProduto}>
+                  <SelectTrigger aria-label="Modelo da grade">
+                    <SelectValue placeholder="Modelo (produto)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(base?.produtos ?? []).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.descricao}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="mt-2 grid grid-cols-5 gap-2">
+                  {TAMANHOS_CHINELO.map((t) => (
+                    <div key={t}>
+                      <Label htmlFor={`gr-${t}`} className="text-xs">
+                        {t}
+                      </Label>
+                      <Input
+                        id={`gr-${t}`}
+                        inputMode="numeric"
+                        value={gradeQtds[t] ?? ""}
+                        onChange={(e) => setGradeQtds({ ...gradeQtds, [t]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    Total: {totalGrade(montarGrade("", gradeQtds))} pares
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={lancarGrade}>
+                    <Plus className="size-4" /> Lançar grade
+                  </Button>
+                </div>
+                {grade.length > 0 && (
+                  <p className="mt-2 text-xs">
+                    {grade.map((g) => `${g.modelo} ${g.tamanho}: ${g.quantidade}`).join(" · ")}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="rounded-lg border border-border p-3">
               <Label>Produtos</Label>
