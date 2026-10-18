@@ -3,7 +3,8 @@ import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { custosEntrada, lerXmlNfe, type ComposicaoCusto } from "@/lib/nfe-xml";
-import { FileUp, Loader2, ShoppingCart } from "lucide-react";
+import { FileUp, Loader2, ShoppingCart, Truck } from "lucide-react";
+import { lerTextoDacte, lerXmlCte } from "@/lib/cte";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,46 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
 
   const qc = useQueryClient();
   const arquivoRef = useRef<HTMLInputElement>(null);
+  const cteRef = useRef<HTMLInputElement>(null);
+  const { data: ctes } = useQuery({
+    queryKey: ["compra-ctes", compraId],
+    enabled: Boolean(compraId),
+    queryFn: async () => {
+      const { data: l, error } = await supabase
+        .from("compra_ctes")
+        .select("id, numero, serie, emissao, valor, icms, fornecedores(razao_social)")
+        .eq("compra_id", compraId as string)
+        .order("created_at");
+      if (error) throw error;
+      return l ?? [];
+    },
+  });
+  const vincularCte = useMutation({
+    mutationFn: async (file: File) => {
+      if (!compraId) throw new Error("Escolha uma nota importada.");
+      const ehPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+      let cte;
+      if (ehPdf) {
+        const { textoDoPdf } = await import("@/lib/danfe-pdf");
+        cte = lerTextoDacte(await textoDoPdf(file));
+      } else {
+        cte = lerXmlCte(await file.text());
+      }
+      const transp = cte.razao_social ?? "transportadora";
+      if (!window.confirm(`Vincular o CT-e nº ${cte.numero ?? "—"} de ${transp}, frete de ${brl(cte.valor)}?\n\nO frete entra no custo dos produtos desta nota e vira uma conta a pagar para a transportadora.`)) {
+        return null;
+      }
+      const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", { p_compra_id: compraId, p_cte: cte });
+      if (error) throw error;
+      return { ...(res as { itens?: number }), valor: cte.valor, transp };
+    },
+    onSuccess: async (r) => {
+      if (!r) return;
+      toast.success(`Frete de ${brl(r.valor)} somado ao custo de ${r.itens ?? 0} produto(s) e lançado nas contas a pagar de ${r.transp}.`);
+      await qc.invalidateQueries();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler o CT-e."),
+  });
   const completar = useMutation({
     mutationFn: async (file: File) => {
       if (!compraId) throw new Error("Escolha uma nota importada.");
@@ -128,6 +169,28 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
             </div>
           ); })()}
           <input ref={arquivoRef} type="file" accept=".xml,text/xml,application/xml" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) completar.mutate(f); e.target.value = ""; }} />
+          <div className="border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Frete da transportadora (CT-e)</p>
+                <p className="text-xs text-muted-foreground">Escolha o XML do CT-e (ou o PDF digital). O frete é dividido no custo dos produtos pelo valor de cada um e vira uma conta a pagar da transportadora.</p>
+              </div>
+              <Button variant="outline" disabled={vincularCte.isPending} onClick={() => cteRef.current?.click()}>
+                {vincularCte.isPending ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} Vincular CT-e de frete
+              </Button>
+            </div>
+            {(ctes ?? []).length > 0 && (
+              <ul className="mt-3 space-y-1 text-sm">
+                {(ctes ?? []).map((c) => (
+                  <li key={c.id} className="flex flex-wrap justify-between gap-2 rounded-md border border-border px-3 py-2">
+                    <span>CT-e nº {c.numero ?? "—"} · {c.fornecedores?.razao_social ?? "Transportadora"}{c.emissao ? ` · ${dateBR(c.emissao)}` : ""}</span>
+                    <strong className="text-numeric">{brl(Number(c.valor))}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input ref={cteRef} type="file" accept=".xml,text/xml,application/xml,.pdf,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) vincularCte.mutate(f); e.target.value = ""; }} />
+          </div>
           {data.compra.observacoes && <dl className="text-sm"><Campo label="Observações" value={data.compra.observacoes} /></dl>}
           <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
             <Button variant="outline" onClick={onClose}>Fechar</Button>
