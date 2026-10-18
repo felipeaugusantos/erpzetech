@@ -264,6 +264,21 @@ function PedidoDetalhe() {
   }
   const [cancelOpen, setCancelOpen] = useState(false);
   const [alterarOpen, setAlterarOpen] = useState(false);
+  const rascunhoAcao = useMutation({
+    mutationFn: async (acao: "confirmar" | "descartar") => {
+      const { error } = await supabase.rpc(
+        acao === "confirmar" ? "pedido_confirmar_rascunho" : "pedido_descartar_rascunho",
+        { p_pedido_id: id },
+      );
+      if (error) throw error;
+      return acao;
+    },
+    onSuccess: async (acao) => {
+      toast.success(acao === "confirmar" ? "Pedido confirmado e estoque reservado" : "Rascunho descartado");
+      await qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error("Não foi possível concluir", { description: e.message }),
+  });
   const [motivo, setMotivo] = useState("");
   const [contasOpen, setContasOpen] = useState(false);
   const [parcelasReceber, setParcelasReceber] = useState("1");
