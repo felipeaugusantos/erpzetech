@@ -18,7 +18,7 @@ test("o custo dos itens soma o total da nota, com ST, IPI e outras despesas", ()
   assert.equal(Math.round(soma * 100) / 100, 233.7);
 });
 
-test("frete e desconto ficam fora do rateio", () => {
+test("custo antigo: frete e desconto ficam fora do rateio", () => {
   const c = custosComImpostos([{ quantidade: 1, total: 100 }], {
     total: 110,
     frete: 10,
