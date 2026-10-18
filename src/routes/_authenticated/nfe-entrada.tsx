@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Eye, FileUp, Grid3x3, ShoppingCart, Upload } from "lucide-react";
+import { lerDanfePdf } from "@/lib/danfe-pdf.functions";
 import { GradeEntradaDialog } from "@/components/app/GradeEntradaDialog";
 import { ehTira, tamanhoNaDescricao, type GradeEntrada } from "@/lib/personalizacao";
 import { toast } from "sonner";
@@ -184,8 +185,18 @@ function NfeEntrada() {
   async function aoEscolherArquivo(file: File) {
     abandonarEnvio();
     try {
-      const conteudo = await file.text();
-      const parsed = lerXmlNfe(conteudo);
+      const ehPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+      let parsed: NfeXmlLida;
+      if (ehPdf) {
+        const t = toast.loading("Lendo o PDF da nota...");
+        try {
+          const { textoDoPdf } = await import("@/lib/danfe-pdf");
+          parsed = await lerDanfePdf({ data: { texto: await textoDoPdf(file) } });
+        } finally { toast.dismiss(t); }
+        toast.warning("Nota lida do PDF: confira produtos, quantidades e valores antes de importar.");
+      } else {
+        parsed = lerXmlNfe(await file.text());
+      }
       if (parsed.itens.length === 0) {
         toast.error("O XML não tem itens de produto.");
         return;
@@ -375,7 +386,7 @@ function NfeEntrada() {
               </Link>
             </Button>
             <Button onClick={() => inputRef.current?.click()}>
-              <Upload className="size-4" /> Escolher arquivo XML
+              <Upload className="size-4" /> Escolher XML ou PDF
             </Button>
           </>
         }
@@ -384,7 +395,7 @@ function NfeEntrada() {
       <input
         ref={inputRef}
         type="file"
-        accept=".xml,text/xml,application/xml"
+        accept=".xml,text/xml,application/xml,.pdf,application/pdf"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
