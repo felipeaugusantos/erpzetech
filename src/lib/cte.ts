@@ -58,7 +58,7 @@ export function lerTextoDacte(texto: string): CteLido {
   let chave: string | null = null;
   const nfes = new Set<string>();
   for (const linha of texto.split("\n")) {
-    const blocos = linha.match(/[\d][\d.\-/\s]{40,}\d/g) ?? [];
+    const blocos = linha.match(/[\d][\d.\-/\s|]{40,}\d/g) ?? [];
     for (const b of blocos) {
       const d = b.replace(/\D/g, "");
       if (d.length !== 44) continue;
