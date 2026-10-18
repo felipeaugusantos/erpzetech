@@ -71,11 +71,18 @@ function Estoque() {
   const [filtro, setFiltro] = useState("todos");
   const [open, setOpen] = useState(false);
   const qcGrade = useQueryClient();
-  const [ajusteGrade, setAjusteGrade] = useState<{ produto_id: string; deposito_id: string; nome: string; total: number } | null>(null);
+  const [ajusteGrade, setAjusteGrade] = useState<{
+    produto_id: string;
+    deposito_id: string;
+    nome: string;
+    total: number;
+  } | null>(null);
   const { data: gradesEstoque = [] } = useQuery({
     queryKey: ["estoque-grade"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("estoque_grade").select("produto_id, deposito_id, tamanho, quantidade");
+      const { data, error } = await supabase
+        .from("estoque_grade")
+        .select("produto_id, deposito_id, tamanho, quantidade");
       if (error) throw error;
       return data;
     },
@@ -314,12 +321,18 @@ function Estoque() {
                         return (
                           <div className="mt-1 flex flex-wrap gap-1">
                             {g.map((x) => (
-                              <Badge key={x.tamanho} variant="outline" className="text-numeric font-normal">
+                              <Badge
+                                key={x.tamanho}
+                                variant="outline"
+                                className="text-numeric font-normal"
+                              >
                                 {x.tamanho}: {num(x.quantidade)}
                               </Badge>
                             ))}
                             {soma !== l.fisico && (
-                              <Badge variant="secondary">por tamanho {num(soma)} ≠ físico {num(l.fisico)}</Badge>
+                              <Badge variant="secondary">
+                                por tamanho {num(soma)} ≠ físico {num(l.fisico)}
+                              </Badge>
                             )}
                           </div>
                         );
@@ -375,7 +388,12 @@ function Estoque() {
                         variant="ghost"
                         className="ml-1"
                         onClick={() =>
-                          setAjusteGrade({ produto_id: l.e.produto_id, deposito_id: l.e.deposito_id, nome: l.p.descricao, total: l.fisico })
+                          setAjusteGrade({
+                            produto_id: l.e.produto_id,
+                            deposito_id: l.e.deposito_id,
+                            nome: l.p.descricao,
+                            total: l.fisico,
+                          })
                         }
                       >
                         Tamanhos
@@ -502,13 +520,17 @@ function Estoque() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    <GradeEntradaDialog
+      <GradeEntradaDialog
         aberto={!!ajusteGrade}
         titulo="Saldo por tamanho"
         texto="conte quantos tem de cada tamanho; a soma precisa bater com o estoque físico."
         descricao={ajusteGrade?.nome ?? ""}
         quantidade={ajusteGrade?.total ?? 0}
-        inicial={ajusteGrade ? gradePor.get(`${ajusteGrade.produto_id}|${ajusteGrade.deposito_id}`) ?? [] : []}
+        inicial={
+          ajusteGrade
+            ? (gradePor.get(`${ajusteGrade.produto_id}|${ajusteGrade.deposito_id}`) ?? [])
+            : []
+        }
         salvando={salvarGrade.isPending}
         onFechar={() => setAjusteGrade(null)}
         onSalvar={(g) => salvarGrade.mutate(g)}

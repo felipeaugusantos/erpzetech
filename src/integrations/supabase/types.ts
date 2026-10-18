@@ -3535,6 +3535,42 @@ export type Database = {
         }
         Relationships: []
       }
+      importacoes: {
+        Row: {
+          arquivo: string | null
+          atualizados: number
+          created_at: string
+          criados: number
+          id: string
+          linhas: number
+          tenant_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas: number
+          tenant_id?: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo?: string | null
+          atualizados?: number
+          created_at?: string
+          criados?: number
+          id?: string
+          linhas?: number
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       inventario_itens: {
         Row: {
           created_at: string
@@ -7557,6 +7593,18 @@ export type Database = {
           p_primeiro_vencimento?: string
         }
         Returns: string
+      }
+      importar_clientes: {
+        Args: { p_arquivo?: string; p_atualizar?: boolean; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
+      }
+      importar_produtos: {
+        Args: { p_arquivo?: string; p_atualizar?: boolean; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
+      }
+      importar_saldos: {
+        Args: { p_arquivo?: string; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
       }
       frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
       gerar_comissoes: { Args: never; Returns: number }

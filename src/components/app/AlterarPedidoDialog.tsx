@@ -18,7 +18,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type Linha = { produto_id: string; descricao: string; unidade: string; quantidade: string; preco: string };
+type Linha = {
+  produto_id: string;
+  descricao: string;
+  unidade: string;
+  quantidade: string;
+  preco: string;
+};
 type ItemPedido = {
   produto_id: string;
   unidade: string | null;
@@ -172,7 +178,10 @@ export function AlterarPedidoDialog({
 
         <div className="space-y-2">
           {linhas.map((l, i) => (
-            <div key={`${l.produto_id}-${i}`} className="grid grid-cols-[1fr_6rem_7rem_auto] items-end gap-2">
+            <div
+              key={`${l.produto_id}-${i}`}
+              className="grid grid-cols-[1fr_6rem_7rem_auto] items-end gap-2"
+            >
               <p className="text-sm">
                 {l.descricao}
                 <span className="block text-xs text-muted-foreground">
@@ -181,11 +190,19 @@ export function AlterarPedidoDialog({
               </p>
               <div>
                 <Label className="text-xs">Qtd. ({l.unidade})</Label>
-                <Input inputMode="decimal" value={l.quantidade} onChange={(e) => muda(i, "quantidade", e.target.value)} />
+                <Input
+                  inputMode="decimal"
+                  value={l.quantidade}
+                  onChange={(e) => muda(i, "quantidade", e.target.value)}
+                />
               </div>
               <div>
                 <Label className="text-xs">Preço (R$)</Label>
-                <Input inputMode="decimal" value={l.preco} onChange={(e) => muda(i, "preco", e.target.value)} />
+                <Input
+                  inputMode="decimal"
+                  value={l.preco}
+                  onChange={(e) => muda(i, "preco", e.target.value)}
+                />
               </div>
               <Button
                 variant="ghost"

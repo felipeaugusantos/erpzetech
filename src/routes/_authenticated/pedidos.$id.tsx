@@ -274,7 +274,9 @@ function PedidoDetalhe() {
       return acao;
     },
     onSuccess: async (acao) => {
-      toast.success(acao === "confirmar" ? "Pedido confirmado e estoque reservado" : "Rascunho descartado");
+      toast.success(
+        acao === "confirmar" ? "Pedido confirmado e estoque reservado" : "Rascunho descartado",
+      );
       await qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error("Não foi possível concluir", { description: e.message }),
@@ -673,7 +675,8 @@ function PedidoDetalhe() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-4">
-          {(session?.empresa as { faz_personalizacao?: boolean } | null | undefined)?.faz_personalizacao && (
+          {(session?.empresa as { faz_personalizacao?: boolean } | null | undefined)
+            ?.faz_personalizacao && (
             <details className="panel p-4 print:hidden">
               <summary className="cursor-pointer font-semibold">
                 Custo e lucro do pedido (uso interno)
@@ -681,7 +684,9 @@ function PedidoDetalhe() {
               <div className="mt-4">
                 <RentabilidadeChinelo
                   pares={resumo.pedidoQtd || undefined}
-                  precoPar={resumo.pedidoQtd > 0 ? Number(pedido.total) / resumo.pedidoQtd : undefined}
+                  precoPar={
+                    resumo.pedidoQtd > 0 ? Number(pedido.total) / resumo.pedidoQtd : undefined
+                  }
                 />
               </div>
             </details>
@@ -707,7 +712,10 @@ function PedidoDetalhe() {
             <div className="mt-4 flex flex-wrap gap-2">
               {pedido.situacao === "rascunho" && (
                 <>
-                  <Button disabled={rascunhoAcao.isPending} onClick={() => rascunhoAcao.mutate("confirmar")}>
+                  <Button
+                    disabled={rascunhoAcao.isPending}
+                    onClick={() => rascunhoAcao.mutate("confirmar")}
+                  >
                     Confirmar pedido
                   </Button>
                   <Button
@@ -715,7 +723,8 @@ function PedidoDetalhe() {
                     className="text-destructive"
                     disabled={rascunhoAcao.isPending}
                     onClick={() => {
-                      if (window.confirm("Descartar este rascunho?")) rascunhoAcao.mutate("descartar");
+                      if (window.confirm("Descartar este rascunho?"))
+                        rascunhoAcao.mutate("descartar");
                     }}
                   >
                     Descartar rascunho
@@ -1261,8 +1270,8 @@ function PedidoDetalhe() {
             <DialogTitle>Cancelar pedido</DialogTitle>
             <DialogDescription>
               A reserva de estoque dos itens não entregues é liberada e as parcelas em aberto são
-              canceladas. Se já houve pagamento recebido ou NF-e autorizada, estorne o recebimento ou
-              cancele a nota antes.
+              canceladas. Se já houve pagamento recebido ou NF-e autorizada, estorne o recebimento
+              ou cancele a nota antes.
             </DialogDescription>
           </DialogHeader>
           <div>

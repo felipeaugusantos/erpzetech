@@ -202,7 +202,10 @@ function CompraDetalhe() {
       unidade_compra?: string | null;
     }) => {
       // produto comprado em outra unidade (ex.: metro): já entra 1 unidade de compra
-      const f = compraEmUnidadeFornecedor && produto.unidade_compra && Number(produto.fator_conversao) > 1 ? Number(produto.fator_conversao) : 1;
+      const f =
+        compraEmUnidadeFornecedor && produto.unidade_compra && Number(produto.fator_conversao) > 1
+          ? Number(produto.fator_conversao)
+          : 1;
       if (!tenantId) throw new Error("Usuário sem empresa vinculada");
       const { error } = await supabase.from("compra_itens").insert({
         tenant_id: tenantId,
@@ -583,7 +586,12 @@ function CompraDetalhe() {
                     fator_conversao: number | null;
                   } | null;
                   // compra na unidade do fornecedor (ex.: MT); o estoque recebe na unidade do produto (UN)
-                  const f = compraEmUnidadeFornecedor && prod?.unidade_compra && Number(prod.fator_conversao) > 1 ? Number(prod.fator_conversao) : 1;
+                  const f =
+                    compraEmUnidadeFornecedor &&
+                    prod?.unidade_compra &&
+                    Number(prod.fator_conversao) > 1
+                      ? Number(prod.fator_conversao)
+                      : 1;
                   const qtdCompra = Math.round((Number(i.quantidade) / f) * 1000) / 1000;
                   const custoCompra = Math.round(Number(i.custo_unitario) * f * 10000) / 10000;
                   return (
@@ -591,7 +599,10 @@ function CompraDetalhe() {
                       <TableCell>
                         <p className="font-medium">{prod?.descricao ?? "—"}</p>
                         <p className="text-numeric text-xs text-muted-foreground">
-                          {prod?.codigo_interno} · {f > 1 ? `compra em ${prod?.unidade_compra} · 1 ${prod?.unidade_compra} = ${num(f)} ${prod?.unidade}` : (i.unidade ?? prod?.unidade)}
+                          {prod?.codigo_interno} ·{" "}
+                          {f > 1
+                            ? `compra em ${prod?.unidade_compra} · 1 ${prod?.unidade_compra} = ${num(f)} ${prod?.unidade}`
+                            : (i.unidade ?? prod?.unidade)}
                         </p>
                         {f > 1 && (
                           <p className="text-xs text-muted-foreground">
@@ -614,7 +625,10 @@ function CompraDetalhe() {
                             }
                           />
                         ) : (
-                          <span className="text-numeric">{num(qtdCompra, 3)}{f > 1 ? ` ${prod?.unidade_compra}` : ""}</span>
+                          <span className="text-numeric">
+                            {num(qtdCompra, 3)}
+                            {f > 1 ? ` ${prod?.unidade_compra}` : ""}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -627,12 +641,18 @@ function CompraDetalhe() {
                               atualizarItem.mutate({
                                 itemId: i.id,
                                 quantidade: Number(i.quantidade),
-                                custo: Math.round((Number(e.target.value.replace(",", ".") || 0) / f) * 1000000) / 1000000,
+                                custo:
+                                  Math.round(
+                                    (Number(e.target.value.replace(",", ".") || 0) / f) * 1000000,
+                                  ) / 1000000,
                               })
                             }
                           />
                         ) : (
-                          <span className="text-numeric">{brl(custoCompra)}{f > 1 ? `/${prod?.unidade_compra}` : ""}</span>
+                          <span className="text-numeric">
+                            {brl(custoCompra)}
+                            {f > 1 ? `/${prod?.unidade_compra}` : ""}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">

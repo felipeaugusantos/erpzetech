@@ -69,11 +69,19 @@ export function GradeEntradaDialog({
         </div>
         <p className={falta === 0 ? "text-sm text-primary" : "text-sm text-destructive"}>
           Informado {num(soma)} de {num(quantidade)}
-          {falta > 0 ? ` — faltam ${num(falta)}` : falta < 0 ? ` — passou ${num(-falta)}` : " — confere com o total"}
+          {falta > 0
+            ? ` — faltam ${num(falta)}`
+            : falta < 0
+              ? ` — passou ${num(-falta)}`
+              : " — confere com o total"}
         </p>
         <DialogFooter>
-          <Button variant="outline" onClick={onFechar}>Cancelar</Button>
-          <Button disabled={falta !== 0 || salvando} onClick={() => onSalvar(grade)}>Salvar grade</Button>
+          <Button variant="outline" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button disabled={falta !== 0 || salvando} onClick={() => onSalvar(grade)}>
+            Salvar grade
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

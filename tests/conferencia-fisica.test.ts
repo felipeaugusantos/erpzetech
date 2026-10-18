@@ -21,7 +21,16 @@ test("sem valor real, mantém o custo da nota", () => {
 });
 
 test("item extra sem preço de referência divide o valor pela quantidade", () => {
-  assert.deepEqual(ratearValorReal([{ quantidade: 130, base: 950 }, { quantidade: 100, base: 0 }], 1150), [5, 5]);
+  assert.deepEqual(
+    ratearValorReal(
+      [
+        { quantidade: 130, base: 950 },
+        { quantidade: 100, base: 0 },
+      ],
+      1150,
+    ),
+    [5, 5],
+  );
 });
 
 test("complemento não faturado: 1225 pago − 950 da nota = 275", () => {

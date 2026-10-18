@@ -40,12 +40,7 @@ import {
 } from "@/components/ui/table";
 import { situacoesPedido, corSituacao, labelSituacao } from "@/lib/pedido";
 import { useSessionData } from "@/hooks/useSessionData";
-import {
-  TAMANHOS_CHINELO,
-  montarGrade,
-  totalGrade,
-  type LinhaGrade,
-} from "@/lib/personalizacao";
+import { TAMANHOS_CHINELO, montarGrade, totalGrade, type LinhaGrade } from "@/lib/personalizacao";
 
 export const Route = createFileRoute("/_authenticated/pedidos/")({
   head: () => ({
@@ -312,8 +307,12 @@ function Pedidos() {
       return { id: pedidoId as string, rascunho };
     },
     onSuccess: ({ id, rascunho }) => {
-      if (rascunho) toast.success("Rascunho salvo", { description: "Sem reserva de estoque. Confirme o pedido quando fechar com o cliente." });
-      else toast.success("Pedido criado", { description: "Estoque reservado no depósito escolhido." });
+      if (rascunho)
+        toast.success("Rascunho salvo", {
+          description: "Sem reserva de estoque. Confirme o pedido quando fechar com o cliente.",
+        });
+      else
+        toast.success("Pedido criado", { description: "Estoque reservado no depósito escolhido." });
       setOpen(false);
       limpar();
       qc.invalidateQueries({ queryKey: ["pedidos"] });

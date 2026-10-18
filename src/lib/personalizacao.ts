@@ -15,7 +15,16 @@ export const labelEtapa = (v: string) =>
   etapasPersonalizacao.find((e) => e.value === v)?.label ?? v;
 
 export const TAMANHOS_CHINELO = [
-  "27/28", "29/30", "31/32", "33/34", "35/36", "37/38", "39/40", "41/42", "43/44", "45/46",
+  "27/28",
+  "29/30",
+  "31/32",
+  "33/34",
+  "35/36",
+  "37/38",
+  "39/40",
+  "41/42",
+  "43/44",
+  "45/46",
 ];
 
 export type LinhaGrade = { modelo: string; tamanho: string; quantidade: number };
@@ -23,7 +32,11 @@ export type LinhaGrade = { modelo: string; tamanho: string; quantidade: number }
 /** Linhas da grade com quantidade positiva (inteira), descartando tamanhos em branco. */
 export function montarGrade(modelo: string, qtds: Record<string, string>): LinhaGrade[] {
   return Object.entries(qtds)
-    .map(([tamanho, v]) => ({ modelo, tamanho, quantidade: Math.floor(Number(v.replace(",", "."))) }))
+    .map(([tamanho, v]) => ({
+      modelo,
+      tamanho,
+      quantidade: Math.floor(Number(v.replace(",", "."))),
+    }))
     .filter((l) => Number.isFinite(l.quantidade) && l.quantidade > 0);
 }
 
@@ -59,9 +72,12 @@ export const ordemTamanho = (t: string) => {
 };
 
 export type CustoParEntrada = {
-  tira: number; tirasPorPar: number;
-  solado: number; soladosPorPar: number;
-  folha: number; paresPorFolha: number;
+  tira: number;
+  tirasPorPar: number;
+  solado: number;
+  soladosPorPar: number;
+  folha: number;
+  paresPorFolha: number;
   outros: number;
 };
 
@@ -75,28 +91,40 @@ export function custoPar(e: CustoParEntrada) {
 }
 
 /** Margem sobre o preço de venda, em %. */
-export const margemPar = (preco: number, custo: number) => (preco > 0 ? ((preco - custo) / preco) * 100 : 0);
+export const margemPar = (preco: number, custo: number) =>
+  preco > 0 ? ((preco - custo) / preco) * 100 : 0;
 
 export const etapasProducao = ["impressao", "prensa", "montagem"] as const;
 
 /** Situação de uma etapa de produção em relação à etapa atual do pedido. */
-export function statusEtapa(atual: string, etapa: string): "concluida" | "andamento" | "aguardando" {
+export function statusEtapa(
+  atual: string,
+  etapa: string,
+): "concluida" | "andamento" | "aguardando" {
   const ordem = etapasPersonalizacao.map((e) => e.value as string);
-  const a = ordem.indexOf(atual), e = ordem.indexOf(etapa);
+  const a = ordem.indexOf(atual),
+    e = ordem.indexOf(etapa);
   return a > e ? "concluida" : a === e ? "andamento" : "aguardando";
 }
 
 export type SacolinhaEntrada = {
-  precoMetroVoil: number; sacolinhasPorMetro: number;
+  precoMetroVoil: number;
+  sacolinhasPorMetro: number;
   costura: number;
-  precoRoloFita: number; sacolinhasPorRolo: number;
-  folha: number; folhasPorSacolinha: number;
+  precoRoloFita: number;
+  sacolinhasPorRolo: number;
+  folha: number;
+  folhasPorSacolinha: number;
 };
 
 /** Padrões da oficina: voil R$13,50/m rende 16,5; costura R$1,00; rolo de fita R$16,90 rende 100; 2 folhas. */
 export const SACOLINHA_PADRAO = {
-  precoMetroVoil: 13.5, sacolinhasPorMetro: 16.5, costura: 1,
-  precoRoloFita: 16.9, sacolinhasPorRolo: 100, folhasPorSacolinha: 2,
+  precoMetroVoil: 13.5,
+  sacolinhasPorMetro: 16.5,
+  costura: 1,
+  precoRoloFita: 16.9,
+  sacolinhasPorRolo: 100,
+  folhasPorSacolinha: 2,
 };
 
 /** Custo de uma sacolinha voil pronta: tecido + costura + fita de cetim + folhas transfer. */

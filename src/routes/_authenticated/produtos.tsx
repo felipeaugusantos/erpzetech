@@ -192,7 +192,11 @@ function Produtos() {
 
   const codigoRepetido = (() => {
     const c = form.codigo_interno.trim().toLowerCase();
-    return c ? (data?.produtos ?? []).find((p) => p.codigo_interno?.toLowerCase() === c && p.id !== form.id) : undefined;
+    return c
+      ? (data?.produtos ?? []).find(
+          (p) => p.codigo_interno?.toLowerCase() === c && p.id !== form.id,
+        )
+      : undefined;
   })();
 
   // Preenche nome, marca e NCM a partir do código de barras, sem sobrescrever o que já foi digitado.
@@ -529,14 +533,24 @@ function Produtos() {
                     placeholder="Automático"
                     onChange={(e) => setForm({ ...form, codigo_interno: e.target.value })}
                   />
-                  <Button type="button" variant="outline" size="icon" title="Gerar próximo código" onClick={() => void gerarCodigoInterno()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Gerar próximo código"
+                    onClick={() => void gerarCodigoInterno()}
+                  >
                     <Wand2 className="h-4 w-4" />
                   </Button>
                 </div>
                 {codigoRepetido ? (
-                  <p className="mt-1 text-xs text-destructive">Já usado em "{codigoRepetido.descricao}"</p>
+                  <p className="mt-1 text-xs text-destructive">
+                    Já usado em "{codigoRepetido.descricao}"
+                  </p>
                 ) : !form.codigo_interno.trim() ? (
-                  <p className="mt-1 text-xs text-muted-foreground">Vazio: o sistema gera ao salvar</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Vazio: o sistema gera ao salvar
+                  </p>
                 ) : null}
               </div>
               <div>
@@ -714,12 +728,19 @@ function Produtos() {
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <div>
-                <Label htmlFor="p-compra">Valor de compra{form.unidade_compra ? ` (${form.unidade_compra})` : ""}</Label>
+                <Label htmlFor="p-compra">
+                  Valor de compra{form.unidade_compra ? ` (${form.unidade_compra})` : ""}
+                </Label>
                 <Input
                   id="p-compra"
                   type="number"
                   step="0.01"
-                  value={valorCompraTxt ?? (Number(form.custo || 0) * fator ? String(Math.round(Number(form.custo || 0) * fator * 100) / 100) : "")}
+                  value={
+                    valorCompraTxt ??
+                    (Number(form.custo || 0) * fator
+                      ? String(Math.round(Number(form.custo || 0) * fator * 100) / 100)
+                      : "")
+                  }
                   onChange={(e) => {
                     setValorCompraTxt(e.target.value);
                     const v = Number(e.target.value.replace(",", ".") || 0);

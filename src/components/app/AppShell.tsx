@@ -214,6 +214,7 @@ const groups: Group[] = [
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Auditoria", to: "/auditoria", icon: ShieldCheck },
+      { label: "Importação por planilha", to: "/importacao", icon: FileText },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
       { label: "Painel da maquininha", to: "/tef-painel", icon: Wallet },
@@ -299,9 +300,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const modulos = useModulosCnae();
   /** Obras só existem para lojas de materiais de construção. */
   const empresaMenu = data?.empresa as
-    | { ramo_atividade?: string | null; faz_personalizacao?: boolean }
-    | null
-    | undefined;
+    { ramo_atividade?: string | null; faz_personalizacao?: boolean } | null | undefined;
   const ehConstrucao = (empresaMenu?.ramo_atividade ?? "construcao") === "construcao";
   const fazPersonalizacao = Boolean(empresaMenu?.faz_personalizacao);
   const gruposLoja = useMemo(
@@ -318,7 +317,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: g.items.filter((i) => {
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
-            if (i.to === "/personalizacao" || i.to === "/custo-par" || i.to === "/producao" || i.to === "/movimento-grade") return fazPersonalizacao;
+            if (
+              i.to === "/personalizacao" ||
+              i.to === "/custo-par" ||
+              i.to === "/producao" ||
+              i.to === "/movimento-grade"
+            )
+              return fazPersonalizacao;
             return true;
           }),
         })),

@@ -216,7 +216,17 @@ function Dashboard() {
   const crediarioAberto = abertoReceber.filter((c) => c.forma_pagamento === "crediario");
   const porClienteMapa = new Map<
     string,
-    { nome: string; faturado: number; recebido: number; saldo: number; vencido: number; vencidoRecebido: number; contas: number; proximo: string | null; limite: number }
+    {
+      nome: string;
+      faturado: number;
+      recebido: number;
+      saldo: number;
+      vencido: number;
+      vencidoRecebido: number;
+      contas: number;
+      proximo: string | null;
+      limite: number;
+    }
   >();
   for (const c of crediarioAberto) {
     const chave = c.cliente_id ?? "sem-cliente";
@@ -240,8 +250,7 @@ function Dashboard() {
     if (c.vencimento < hoje) {
       linha.vencido += saldo;
       linha.vencidoRecebido += Number(c.valor_recebido);
-    }
-    else if (!linha.proximo || c.vencimento < linha.proximo) linha.proximo = c.vencimento;
+    } else if (!linha.proximo || c.vencimento < linha.proximo) linha.proximo = c.vencimento;
     porClienteMapa.set(chave, linha);
   }
   const fechamentoClientes = [...porClienteMapa.values()].sort((a, b) => b.saldo - a.saldo);
@@ -446,20 +455,41 @@ function Dashboard() {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total a acertar" value={brl(totalCrediario)} icon={Wallet} tone="accent"
-            hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`} />
-          <StatCard label="Já recebido" value={brl(recebidoCrediario)} icon={Wallet} tone="success"
-            hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`} />
-          <StatCard label="Já vencido" value={brl(vencidoCrediario)} icon={AlertTriangle}
+          <StatCard
+            label="Total a acertar"
+            value={brl(totalCrediario)}
+            icon={Wallet}
+            tone="accent"
+            hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
+          />
+          <StatCard
+            label="Já recebido"
+            value={brl(recebidoCrediario)}
+            icon={Wallet}
+            tone="success"
+            hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
+          />
+          <StatCard
+            label="Já vencido"
+            value={brl(vencidoCrediario)}
+            icon={AlertTriangle}
             tone={vencidoCrediario > 0 ? "danger" : "default"}
-            hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`} />
-          <StatCard label="A vencer" value={brl(totalCrediario - vencidoCrediario)}
-            icon={CalendarClock} tone="success" hint="Próximos fechamentos" />
+            hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
+          />
+          <StatCard
+            label="A vencer"
+            value={brl(totalCrediario - vencidoCrediario)}
+            icon={CalendarClock}
+            tone="success"
+            hint="Próximos fechamentos"
+          />
         </div>
 
         {fechamentoClientes.length === 0 ? (
-          <EmptyState className="mt-4 border-0 shadow-none"
-            title="Nenhum cliente com compras marcadas em aberto." />
+          <EmptyState
+            className="mt-4 border-0 shadow-none"
+            title="Nenhum cliente com compras marcadas em aberto."
+          />
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
@@ -490,16 +520,24 @@ function Dashboard() {
                       <td className="py-2 pr-2 text-right text-numeric text-destructive">
                         {l.vencido ? brl(l.vencido) : "—"}
                       </td>
-                      <td className="py-2 pr-2 text-right text-numeric font-semibold">{brl(l.saldo)}</td>
+                      <td className="py-2 pr-2 text-right text-numeric font-semibold">
+                        {brl(l.saldo)}
+                      </td>
                       <td className="py-2">
                         {l.limite <= 0 ? (
                           <span className="text-xs text-muted-foreground">Sem limite</span>
                         ) : uso >= 100 ? (
-                          <Badge className="bg-destructive/15 text-destructive">Acima do limite</Badge>
+                          <Badge className="bg-destructive/15 text-destructive">
+                            Acima do limite
+                          </Badge>
                         ) : uso >= 80 ? (
-                          <Badge className="bg-warning/15 text-warning">{num(uso, 0)}% do limite</Badge>
+                          <Badge className="bg-warning/15 text-warning">
+                            {num(uso, 0)}% do limite
+                          </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">{num(uso, 0)}% de {brl(l.limite)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {num(uso, 0)}% de {brl(l.limite)}
+                          </span>
                         )}
                       </td>
                     </tr>

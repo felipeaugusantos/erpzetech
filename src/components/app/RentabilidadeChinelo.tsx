@@ -9,7 +9,13 @@ import { StatCard } from "@/components/app/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const n = (v: string) => {
   const x = Number(v.replace(",", "."));
@@ -23,7 +29,10 @@ const n = (v: string) => {
 export function RentabilidadeChinelo({
   pares: paresIniciais,
   precoPar: precoInicial,
-}: { pares?: number | undefined; precoPar?: number | undefined }) {
+}: {
+  pares?: number | undefined;
+  precoPar?: number | undefined;
+}) {
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos-custo-par"],
     queryFn: async () => {
@@ -48,7 +57,9 @@ export function RentabilidadeChinelo({
   const [costura, setCostura] = useState(String(SACOLINHA_PADRAO.costura));
   const [rolo, setRolo] = useState(String(SACOLINHA_PADRAO.precoRoloFita));
   const [rendeRolo, setRendeRolo] = useState(String(SACOLINHA_PADRAO.sacolinhasPorRolo));
-  const [folhasSacolinha, setFolhasSacolinha] = useState(String(SACOLINHA_PADRAO.folhasPorSacolinha));
+  const [folhasSacolinha, setFolhasSacolinha] = useState(
+    String(SACOLINHA_PADRAO.folhasPorSacolinha),
+  );
   const [preco, setPreco] = useState(precoInicial ? precoInicial.toFixed(2) : "");
   const [pares, setPares] = useState(String(paresIniciais ?? 1));
 
@@ -62,15 +73,22 @@ export function RentabilidadeChinelo({
   const custoDe = (id: string) => Number(produtos.find((p) => p.id === id)?.custo ?? 0);
   const folha = custoDe(folhaId);
   const chinelo = custoPar({
-    tira: custoDe(tiraId), tirasPorPar: 1,
-    solado: custoDe(soladoId), soladosPorPar: 1,
-    folha: folha * n(folhasChinelo), paresPorFolha: 1,
+    tira: custoDe(tiraId),
+    tirasPorPar: 1,
+    solado: custoDe(soladoId),
+    soladosPorPar: 1,
+    folha: folha * n(folhasChinelo),
+    paresPorFolha: 1,
     outros: n(outros),
   });
   const sacolinha = custoSacolinha({
-    precoMetroVoil: n(voil), sacolinhasPorMetro: n(rendeMetro), costura: n(costura),
-    precoRoloFita: n(rolo), sacolinhasPorRolo: n(rendeRolo),
-    folha, folhasPorSacolinha: n(folhasSacolinha),
+    precoMetroVoil: n(voil),
+    sacolinhasPorMetro: n(rendeMetro),
+    costura: n(costura),
+    precoRoloFita: n(rolo),
+    sacolinhasPorRolo: n(rendeRolo),
+    folha,
+    folhasPorSacolinha: n(folhasSacolinha),
   });
   const custoSac = comSacolinha ? sacolinha.total : 0;
   const total = chinelo.total + custoSac;
@@ -82,7 +100,9 @@ export function RentabilidadeChinelo({
     <div className="space-y-1">
       <Label>{rotulo}</Label>
       <Select value={valor} onValueChange={set}>
-        <SelectTrigger><SelectValue placeholder="Escolha o produto" /></SelectTrigger>
+        <SelectTrigger>
+          <SelectValue placeholder="Escolha o produto" />
+        </SelectTrigger>
         <SelectContent>
           {produtos.map((p) => (
             <SelectItem key={p.id} value={p.id}>
@@ -136,7 +156,8 @@ export function RentabilidadeChinelo({
         )}
         {comSacolinha && (
           <p className="mt-3 text-sm text-muted-foreground">
-            Tecido {brl(sacolinha.tecido)} · Costura {brl(sacolinha.costura)} · Fita {brl(sacolinha.fita)} · Folhas {brl(sacolinha.folhas)}
+            Tecido {brl(sacolinha.tecido)} · Costura {brl(sacolinha.costura)} · Fita{" "}
+            {brl(sacolinha.fita)} · Folhas {brl(sacolinha.folhas)}
           </p>
         )}
       </div>

@@ -27,8 +27,10 @@ function daChave(chave: string) {
 export function lerXmlCte(xml: string): CteLido {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   if (doc.getElementsByTagName("parsererror").length) throw new Error("Arquivo XML inválido.");
-  const tag = (nome: string, raiz: Document | Element = doc) => raiz.getElementsByTagName(nome)[0] ?? null;
-  const txt = (nome: string, raiz: Document | Element = doc) => tag(nome, raiz)?.textContent?.trim() || null;
+  const tag = (nome: string, raiz: Document | Element = doc) =>
+    raiz.getElementsByTagName(nome)[0] ?? null;
+  const txt = (nome: string, raiz: Document | Element = doc) =>
+    tag(nome, raiz)?.textContent?.trim() || null;
   const inf = tag("infCte");
   if (!inf) throw new Error("Este XML não é um CT-e.");
   const chave = (inf.getAttribute("Id") ?? "").replace(/\D/g, "") || null;
@@ -80,7 +82,8 @@ export function lerTextoDacte(texto: string): CteLido {
   const emissao = data
     ? `${data[3]?.length === 2 ? `20${data[3]}` : data[3]}-${data[2]}-${data[1]}`
     : null;
-  const razao = texto.match(/([A-Z0-9][A-Z0-9 &.\-]*\b(?:LTDA|S\.?A\.?|EIRELI|EPP))\b/)?.[1]?.trim() ?? null;
+  const razao =
+    texto.match(/([A-Z0-9][A-Z0-9 &.-]*\b(?:LTDA|S\.?A\.?|EIRELI|EPP))\b/)?.[1]?.trim() ?? null;
   const k = chave ? daChave(chave) : null;
   return {
     chave,
@@ -118,7 +121,11 @@ export function lerDactes(texto: string): CteLido[] {
   const partes = inicios.map((inicio, i) => linhas.slice(inicio, inicios[i + 1]).join("\n"));
   for (const parte of partes) {
     let c: CteLido;
-    try { c = lerTextoDacte(parte); } catch { continue; }
+    try {
+      c = lerTextoDacte(parte);
+    } catch {
+      continue;
+    }
     if (!c.chave) continue;
     const ja = porChave.get(c.chave);
     if (ja) ja.nfe_chaves = [...new Set([...ja.nfe_chaves, ...c.nfe_chaves])];
@@ -133,5 +140,7 @@ export function cteDaNota(ctes: CteLido[], chaveNfe: string | null | undefined):
   if (unico) return unico;
   const achado = chaveNfe ? ctes.find((c) => c.nfe_chaves.includes(chaveNfe)) : undefined;
   if (achado) return achado;
-  throw new Error(`Este arquivo tem ${ctes.length} CT-e (${ctes.map((c) => `nº ${c.numero ?? "—"}`).join(", ")}) e nenhum deles é desta nota.`);
+  throw new Error(
+    `Este arquivo tem ${ctes.length} CT-e (${ctes.map((c) => `nº ${c.numero ?? "—"}`).join(", ")}) e nenhum deles é desta nota.`,
+  );
 }

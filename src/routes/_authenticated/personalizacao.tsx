@@ -27,7 +27,8 @@ export const Route = createFileRoute("/_authenticated/personalizacao")({
       { title: "Personalização — ERP Ze Tech" },
       {
         name: "description",
-        content: "Aprovação da arte, etapas de produção e grade por tamanho dos pedidos personalizados.",
+        content:
+          "Aprovação da arte, etapas de produção e grade por tamanho dos pedidos personalizados.",
       },
       { property: "og:title", content: "Personalização — ERP Ze Tech" },
       {
@@ -72,9 +73,9 @@ function Personalizacao() {
         .select("*, pedidos(numero, situacao, previsao_entrega, clientes(nome))")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]).filter(
-        (r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""),
-      );
+      return (
+        (data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]
+      ).filter((r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""));
     },
   });
 
@@ -205,7 +206,11 @@ function Cartao({ r }: { r: Registro }) {
           <Label htmlFor={`arte-${r.id}`} className="text-xs">
             Arte (nome, tema, cores)
           </Label>
-          <Input id={`arte-${r.id}`} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          <Input
+            id={`arte-${r.id}`}
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor={`link-${r.id}`} className="text-xs">
@@ -232,17 +237,25 @@ function Cartao({ r }: { r: Registro }) {
           <Label htmlFor={`obs-${r.id}`} className="text-xs">
             Observações
           </Label>
-          <Textarea id={`obs-${r.id}`} rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+          <Textarea
+            id={`obs-${r.id}`}
+            rows={2}
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+          />
         </div>
         {r.arte_aprovada_em && (
-          <p className="text-xs text-muted-foreground">
-            Aprovada em {dateBR(r.arte_aprovada_em)}
-          </p>
+          <p className="text-xs text-muted-foreground">Aprovada em {dateBR(r.arte_aprovada_em)}</p>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" disabled={salvar.isPending} onClick={() => salvar.mutate({})}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={salvar.isPending}
+          onClick={() => salvar.mutate({})}
+        >
           Salvar
         </Button>
         {r.etapa === "aguardando_arte" && r.arte_situacao !== "aprovada" && (

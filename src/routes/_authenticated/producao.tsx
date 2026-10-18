@@ -16,13 +16,23 @@ import {
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
     meta: [
       { title: "Produção — ERP Ze Tech" },
-      { name: "description", content: "Impressão, prensa e montagem de cada pedido personalizado, com status e data." },
+      {
+        name: "description",
+        content: "Impressão, prensa e montagem de cada pedido personalizado, com status e data.",
+      },
       { property: "og:title", content: "Produção — ERP Ze Tech" },
       { property: "og:description", content: "Acompanhe cada etapa da produção ligada ao pedido." },
       { property: "og:type", content: "website" },
@@ -39,10 +49,18 @@ type Registro = {
   arte_situacao: string;
   grade: LinhaGrade[];
   etapas_datas: Record<string, string>;
-  pedidos: { numero: number; previsao_entrega: string | null; clientes: { nome: string } | null } | null;
+  pedidos: {
+    numero: number;
+    previsao_entrega: string | null;
+    clientes: { nome: string } | null;
+  } | null;
 };
 
-const rotulo = { concluida: "Concluída", andamento: "Em andamento", aguardando: "Aguardando" } as const;
+const rotulo = {
+  concluida: "Concluída",
+  andamento: "Em andamento",
+  aguardando: "Aguardando",
+} as const;
 
 function Producao() {
   const qc = useQueryClient();
@@ -51,13 +69,15 @@ function Producao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedido_personalizacao")
-        .select("id, pedido_id, etapa, arte_situacao, grade, etapas_datas, pedidos(numero, situacao, previsao_entrega, clientes(nome))")
+        .select(
+          "id, pedido_id, etapa, arte_situacao, grade, etapas_datas, pedidos(numero, situacao, previsao_entrega, clientes(nome))",
+        )
         .neq("etapa", "entregue")
         .order("created_at");
       if (error) throw error;
-      return ((data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]).filter(
-        (r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""),
-      );
+      return (
+        (data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]
+      ).filter((r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""));
     },
   });
 
@@ -85,7 +105,11 @@ function Producao() {
         <EmptyState
           title="Nada em produção"
           description="Pedidos criados com a Grade rápida aparecem aqui."
-          action={<Button asChild><Link to="/personalizacao">Ir para Personalização</Link></Button>}
+          action={
+            <Button asChild>
+              <Link to="/personalizacao">Ir para Personalização</Link>
+            </Button>
+          }
         />
       ) : (
         <div className="panel overflow-x-auto">
@@ -94,7 +118,9 @@ function Producao() {
               <TableRow>
                 <TableHead>Pedido</TableHead>
                 <TableHead className="text-right">Pares</TableHead>
-                {etapasProducao.map((e) => <TableHead key={e}>{labelEtapa(e)}</TableHead>)}
+                {etapasProducao.map((e) => (
+                  <TableHead key={e}>{labelEtapa(e)}</TableHead>
+                ))}
                 <TableHead>Etapa atual</TableHead>
                 <TableHead />
               </TableRow>
@@ -105,24 +131,42 @@ function Producao() {
                 return (
                   <TableRow key={r.id}>
                     <TableCell>
-                      <Link to="/pedidos/$id" params={{ id: r.pedido_id }} className="font-medium text-primary hover:underline">
+                      <Link
+                        to="/pedidos/$id"
+                        params={{ id: r.pedido_id }}
+                        className="font-medium text-primary hover:underline"
+                      >
                         Pedido nº {r.pedidos?.numero ?? "—"}
                       </Link>
                       <p className="text-xs text-muted-foreground">
                         {r.pedidos?.clientes?.nome ?? "Sem cliente"}
-                        {r.pedidos?.previsao_entrega ? ` · entrega ${dateBR(r.pedidos.previsao_entrega)}` : ""}
+                        {r.pedidos?.previsao_entrega
+                          ? ` · entrega ${dateBR(r.pedidos.previsao_entrega)}`
+                          : ""}
                       </p>
                     </TableCell>
-                    <TableCell className="text-right text-numeric">{totalGrade(r.grade ?? [])}</TableCell>
+                    <TableCell className="text-right text-numeric">
+                      {totalGrade(r.grade ?? [])}
+                    </TableCell>
                     {etapasProducao.map((e) => {
                       const s = statusEtapa(r.etapa, e);
                       const d = r.etapas_datas?.[e];
                       return (
                         <TableCell key={e}>
-                          <Badge variant={s === "concluida" ? "default" : s === "andamento" ? "secondary" : "outline"}>
+                          <Badge
+                            variant={
+                              s === "concluida"
+                                ? "default"
+                                : s === "andamento"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
                             {rotulo[s]}
                           </Badge>
-                          {d && s !== "aguardando" && <p className="mt-1 text-xs text-muted-foreground">início {dateBR(d)}</p>}
+                          {d && s !== "aguardando" && (
+                            <p className="mt-1 text-xs text-muted-foreground">início {dateBR(d)}</p>
+                          )}
                         </TableCell>
                       );
                     })}
@@ -134,7 +178,11 @@ function Producao() {
                     </TableCell>
                     <TableCell className="text-right">
                       {prox && (
-                        <Button size="sm" disabled={avancar.isPending} onClick={() => avancar.mutate({ id: r.id, etapa: prox })}>
+                        <Button
+                          size="sm"
+                          disabled={avancar.isPending}
+                          onClick={() => avancar.mutate({ id: r.id, etapa: prox })}
+                        >
                           {labelEtapa(prox)} <ChevronRight className="size-4" />
                         </Button>
                       )}

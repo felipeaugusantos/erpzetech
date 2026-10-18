@@ -7,9 +7,16 @@ export const Route = createFileRoute("/_authenticated/custo-par")({
   head: () => ({
     meta: [
       { title: "Custo por par — ERP Ze Tech" },
-      { name: "description", content: "Calcule o custo real de cada par de chinelo: tira, solado e folha impressa." },
+      {
+        name: "description",
+        content: "Calcule o custo real de cada par de chinelo: tira, solado e folha impressa.",
+      },
       { property: "og:title", content: "Custo por par — ERP Ze Tech" },
-      { property: "og:description", content: "Custo da tira, do solado e da folha impressa em cada par, com margem sobre o preço." },
+      {
+        property: "og:description",
+        content:
+          "Custo da tira, do solado e da folha impressa em cada par, com margem sobre o preço.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

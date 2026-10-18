@@ -41,7 +41,9 @@ function NotFoundComponent() {
 /** Depois de publicar, uma aba aberta ainda pede arquivos da versão anterior, que já não existem. */
 function ehVersaoAntiga(error: unknown) {
   const msg = error instanceof Error ? `${error.name} ${error.message}` : String(error);
-  return /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Failed to fetch dynamically/i.test(msg);
+  return /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Failed to fetch dynamically/i.test(
+    msg,
+  );
 }
 
 /** Recarrega a página uma vez (no máximo a cada 30 s) para buscar a versão nova. */
@@ -201,7 +203,11 @@ const persister = createSyncStoragePersister({
   // algumas telas guardam listas como Map/Set; o JSON comum as transforma em {} e a tela quebra ao reabrir
   serialize: (dados) =>
     JSON.stringify(dados, (_k, v: unknown) =>
-      v instanceof Map ? { __zt_map: [...v.entries()] } : v instanceof Set ? { __zt_set: [...v] } : v,
+      v instanceof Map
+        ? { __zt_map: [...v.entries()] }
+        : v instanceof Set
+          ? { __zt_set: [...v] }
+          : v,
     ),
   deserialize: (texto) =>
     JSON.parse(texto, (_k, v: unknown) => {

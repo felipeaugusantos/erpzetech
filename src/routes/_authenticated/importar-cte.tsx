@@ -17,9 +17,15 @@ export const Route = createFileRoute("/_authenticated/importar-cte")({
   head: () => ({
     meta: [
       { title: "Importar CT-e de frete — ERP Ze Tech" },
-      { name: "description", content: "Importe o CT-e da transportadora e ligue o frete à NF-e de compra certa." },
+      {
+        name: "description",
+        content: "Importe o CT-e da transportadora e ligue o frete à NF-e de compra certa.",
+      },
       { property: "og:title", content: "Importar CT-e de frete — ERP Ze Tech" },
-      { property: "og:description", content: "Frete da transportadora no custo dos produtos e nas contas a pagar." },
+      {
+        property: "og:description",
+        content: "Frete da transportadora no custo dos produtos e nas contas a pagar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -94,7 +100,8 @@ function ImportarCte() {
         description="Envie o XML ou o PDF do CT-e que a transportadora mandou. O sistema procura a NF-e pela chave; se não achar, busque a nota pelo número ou fornecedor."
         actions={
           <Button onClick={() => ref.current?.click()} disabled={lendo}>
-            {lendo ? <Loader2 className="size-4 animate-spin" /> : <FileUp className="size-4" />} Escolher arquivo do CT-e
+            {lendo ? <Loader2 className="size-4 animate-spin" /> : <FileUp className="size-4" />}{" "}
+            Escolher arquivo do CT-e
           </Button>
         }
       />
@@ -111,7 +118,10 @@ function ImportarCte() {
       />
 
       {ctes.length === 0 ? (
-        <EmptyState title="Nenhum CT-e carregado" description="Um PDF com vários CT-e é separado automaticamente, um por linha." />
+        <EmptyState
+          title="Nenhum CT-e carregado"
+          description="Um PDF com vários CT-e é separado automaticamente, um por linha."
+        />
       ) : (
         <div className="space-y-4">
           {ctes.map((c, i) => (
@@ -140,7 +150,8 @@ function CartaoCte({
   vinculado: boolean;
   onFeito: () => void;
 }) {
-  const automatica = compras.find((c) => c.nfe_chave && cte.nfe_chaves.includes(c.nfe_chave)) ?? null;
+  const automatica =
+    compras.find((c) => c.nfe_chave && cte.nfe_chaves.includes(c.nfe_chave)) ?? null;
   const [escolhida, setEscolhida] = useState<Compra | null>(automatica);
   const [busca, setBusca] = useState("");
   const [feito, setFeito] = useState(false);
@@ -153,7 +164,10 @@ function CartaoCte({
       .filter(
         (c) =>
           (c.fornecedores?.razao_social ?? "").toLowerCase().includes(q) ||
-          (dig && (String(c.nfe_numero ?? "").includes(dig) || (c.nfe_chave ?? "").includes(dig) || String(c.numero) === dig)),
+          (dig &&
+            (String(c.nfe_numero ?? "").includes(dig) ||
+              (c.nfe_chave ?? "").includes(dig) ||
+              String(c.numero) === dig)),
       )
       .slice(0, 8);
   }, [busca, compras]);
@@ -166,7 +180,9 @@ function CartaoCte({
         cte.nfe_chaves.length > 0 &&
         !cte.nfe_chaves.includes(escolhida.nfe_chave)
       ) {
-        throw new Error("Este CT-e não transporta a NF-e escolhida (a chave da nota não aparece no CT-e).");
+        throw new Error(
+          "Este CT-e não transporta a NF-e escolhida (a chave da nota não aparece no CT-e).",
+        );
       }
       const { data: parcelas } = await supabase
         .from("contas_pagar")
@@ -174,7 +190,8 @@ function CartaoCte({
         .eq("compra_id", escolhida.id)
         .neq("situacao", "cancelado")
         .order("vencimento");
-      const vencimento = (parcelas ?? []).find((p) => p.categoria !== "Frete")?.vencimento ?? undefined;
+      const vencimento =
+        (parcelas ?? []).find((p) => p.categoria !== "Frete")?.vencimento ?? undefined;
       const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", {
         p_compra_id: escolhida.id,
         p_cte: cte,
@@ -206,7 +223,9 @@ function CartaoCte({
             </div>
             <div className="text-sm text-muted-foreground">
               {cte.emissao ? dateBR(cte.emissao) : "sem data"} · frete {brl(cte.valor)}
-              {cte.nfe_chaves.length > 0 ? ` · ${cte.nfe_chaves.length} NF-e citada(s)` : " · nenhuma NF-e citada"}
+              {cte.nfe_chaves.length > 0
+                ? ` · ${cte.nfe_chaves.length} NF-e citada(s)`
+                : " · nenhuma NF-e citada"}
             </div>
           </div>
         </div>

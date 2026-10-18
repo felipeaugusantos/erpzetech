@@ -1,7 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Eye, FileUp, Grid3x3, PackagePlus, ShoppingCart, Trash2, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  Eye,
+  FileUp,
+  Grid3x3,
+  PackagePlus,
+  ShoppingCart,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { ajusteComercial, ratearValorReal } from "@/lib/conferencia-fisica";
 import { lerDanfePdf } from "@/lib/danfe-pdf.functions";
 import { GradeEntradaDialog } from "@/components/app/GradeEntradaDialog";
@@ -117,7 +126,8 @@ function NfeEntrada() {
     return v > 0 ? v : item.quantidade;
   };
   const somaGrade = (seq: number) => (grades[seq] ?? []).reduce((s, l) => s + l.quantidade, 0);
-  const gradeOk = (item: { seq: number; quantidade: number }) => somaGrade(item.seq) === qtdRecebida(item);
+  const gradeOk = (item: { seq: number; quantidade: number }) =>
+    somaGrade(item.seq) === qtdRecebida(item);
 
   const { data: depositos } = useQuery({
     queryKey: ["depositos-lista"],
@@ -210,8 +220,12 @@ function NfeEntrada() {
         try {
           const { textoDoPdf } = await import("@/lib/danfe-pdf");
           parsed = await lerDanfePdf({ data: { texto: await textoDoPdf(file) } });
-        } finally { toast.dismiss(t); }
-        toast.warning("Nota lida do PDF: confira produtos, quantidades e valores antes de importar.");
+        } finally {
+          toast.dismiss(t);
+        }
+        toast.warning(
+          "Nota lida do PDF: confira produtos, quantidades e valores antes de importar.",
+        );
       } else {
         parsed = lerXmlNfe(await file.text());
       }
@@ -249,9 +263,10 @@ function NfeEntrada() {
   }
 
   const regime =
-    ((depositos ?? []).find((d) => d.id === depositoId) as
-      | { filiais?: { empresas?: { regime_tributario?: string | null } | null } | null }
-      | undefined)?.filiais?.empresas?.regime_tributario ?? null;
+    (
+      (depositos ?? []).find((d) => d.id === depositoId) as
+        { filiais?: { empresas?: { regime_tributario?: string | null } | null } | null } | undefined
+    )?.filiais?.empresas?.regime_tributario ?? null;
   const custos = useMemo(
     () => (lida ? custosEntrada(lida.itens, lida.nota, regime) : []),
     [lida, regime],
@@ -262,15 +277,23 @@ function NfeEntrada() {
   const custosReais = useMemo(() => {
     if (!lida) return { nota: [] as number[], extras: [] as number[] };
     const linhas = [
-      ...lida.itens.map((i, idx) => ({ quantidade: qtdRecebida(i), base: custos[idx]?.composicao.total ?? i.total })),
-      ...extras.map((e) => ({ quantidade: numero(e.quantidade), base: numero(e.quantidade) * numero(e.valor_ref) })),
+      ...lida.itens.map((i, idx) => ({
+        quantidade: qtdRecebida(i),
+        base: custos[idx]?.composicao.total ?? i.total,
+      })),
+      ...extras.map((e) => ({
+        quantidade: numero(e.quantidade),
+        base: numero(e.quantidade) * numero(e.valor_ref),
+      })),
     ];
     const r = ratearValorReal(linhas, valorRealNum);
     return { nota: r.slice(0, lida.itens.length), extras: r.slice(lida.itens.length) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lida, custos, extras, qtdFisica, valorRealNum]);
   const conferenciaAtiva =
-    valorRealNum != null || extras.length > 0 || Object.values(qtdFisica).some((v) => numero(v) > 0);
+    valorRealNum != null ||
+    extras.length > 0 ||
+    Object.values(qtdFisica).some((v) => numero(v) > 0);
   const ajuste = lida ? ajusteComercial(lida.nota.total, valorRealNum) : 0;
 
   const resumo = useMemo(() => {
@@ -294,13 +317,17 @@ function NfeEntrada() {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
       const semGrade = lida.itens.find((i) => ehTira(i.descricao) && !gradeOk(i));
-      if (semGrade) throw new Error(`Informe a grade da tira "${semGrade.descricao}" antes de importar.`);
+      if (semGrade)
+        throw new Error(`Informe a grade da tira "${semGrade.descricao}" antes de importar.`);
       const gradeErrada = lida.itens.find((i) => (grades[i.seq] ?? []).length > 0 && !gradeOk(i));
       if (gradeErrada)
-        throw new Error(`A grade de "${gradeErrada.descricao}" não bate com a quantidade recebida.`);
+        throw new Error(
+          `A grade de "${gradeErrada.descricao}" não bate com a quantidade recebida.`,
+        );
       for (const e of extras) {
         if (!e.produto_id) throw new Error("Escolha o produto de cada item recebido fora da nota.");
-        if (!(numero(e.quantidade) > 0)) throw new Error("Informe a quantidade de cada item recebido fora da nota.");
+        if (!(numero(e.quantidade) > 0))
+          throw new Error("Informe a quantidade de cada item recebido fora da nota.");
         if ((grades[e.seq] ?? []).length > 0 && somaGrade(e.seq) !== numero(e.quantidade))
           throw new Error("A grade de um item recebido fora da nota não bate com a quantidade.");
       }
@@ -319,16 +346,24 @@ function NfeEntrada() {
             regime,
             ...(grades[i.seq]?.length ? { grade: grades[i.seq] } : {}),
             ...(conferenciaAtiva
-              ? { conferencia: { quantidade_nota: i.quantidade, quantidade_recebida: qtdRecebida(i), custo_nota: custos[idx]?.custo_unitario ?? i.custo_unitario } }
+              ? {
+                  conferencia: {
+                    quantidade_nota: i.quantidade,
+                    quantidade_recebida: qtdRecebida(i),
+                    custo_nota: custos[idx]?.custo_unitario ?? i.custo_unitario,
+                  },
+                }
               : {}),
           },
           unidade: i.unidade,
           quantidade: qtdRecebida(i),
           custo_unitario: conferenciaAtiva
-            ? custosReais.nota[idx] ?? 0
-            : custos[idx]?.custo_unitario ?? i.custo_unitario,
+            ? (custosReais.nota[idx] ?? 0)
+            : (custos[idx]?.custo_unitario ?? i.custo_unitario),
           ...(qtdRecebida(i) !== i.quantidade
-            ? { observacao: `Na nota: ${num(i.quantidade)} ${i.unidade}; recebido: ${num(qtdRecebida(i))}` }
+            ? {
+                observacao: `Na nota: ${num(i.quantidade)} ${i.unidade}; recebido: ${num(qtdRecebida(i))}`,
+              }
             : {}),
           // lote, tonalidade e calibre entram na mesma transação da compra
           ...(i.lote
@@ -377,7 +412,11 @@ function NfeEntrada() {
               impostos: {
                 ...lida.nota.impostos,
                 ...(valorRealNum != null
-                  ? { total_fiscal: lida.nota.total, valor_real_pago: valorRealNum, ajuste_comercial: ajuste }
+                  ? {
+                      total_fiscal: lida.nota.total,
+                      valor_real_pago: valorRealNum,
+                      ajuste_comercial: ajuste,
+                    }
                   : {}),
                 ...(extras.length ? { itens_fora_da_nota: extras.length } : {}),
               },
@@ -577,8 +616,8 @@ function NfeEntrada() {
           <div className="panel mb-4 p-4">
             <p className="font-display text-sm font-semibold">Impostos da nota</p>
             <p className="text-xs text-muted-foreground">
-              Valores destacados no XML do fornecedor. ST, IPI, frete, seguro e outras despesas entram no
-              custo e o desconto sai.{" "}
+              Valores destacados no XML do fornecedor. ST, IPI, frete, seguro e outras despesas
+              entram no custo e o desconto sai.{" "}
               {creditos.icms
                 ? `Pelo regime da empresa, ${creditos.pis ? "ICMS, PIS e COFINS saem" : "o ICMS sai"} do custo (crédito).`
                 : "No Simples Nacional os impostos não dão crédito e ficam no custo."}
@@ -645,10 +684,14 @@ function NfeEntrada() {
                           {item.cfop ? `CFOP ${item.cfop} · ` : ""}
                           {item.impostos.cst ? `CST ${item.impostos.cst} · ` : ""}
                           ICMS {brl(item.impostos.icms)}
-                          {item.impostos.aliquota_icms ? ` (${num(item.impostos.aliquota_icms)}%)` : ""}
+                          {item.impostos.aliquota_icms
+                            ? ` (${num(item.impostos.aliquota_icms)}%)`
+                            : ""}
                           {item.impostos.icms_st ? ` · ST ${brl(item.impostos.icms_st)}` : ""}
                           {` · IPI ${brl(item.impostos.ipi)}`}
-                          {item.impostos.aliquota_ipi ? ` (${num(item.impostos.aliquota_ipi)}%)` : ""}
+                          {item.impostos.aliquota_ipi
+                            ? ` (${num(item.impostos.aliquota_ipi)}%)`
+                            : ""}
                           {` · PIS ${brl(item.impostos.pis)} · COFINS ${brl(item.impostos.cofins)}`}
                         </p>
                       </TableCell>
@@ -674,27 +717,38 @@ function NfeEntrada() {
                             Novo cadastro
                           </Badge>
                         )}
-                        {(
+                        {
                           <div className="mt-2">
                             <Button
                               size="sm"
-                              variant={gradeOk(item) || !ehTira(item.descricao) ? "outline" : "default"}
+                              variant={
+                                gradeOk(item) || !ehTira(item.descricao) ? "outline" : "default"
+                              }
                               onClick={() => setGradeSeq(item.seq)}
                             >
                               <Grid3x3 className="size-4" />
-                              {gradeOk(item) ? "Grade informada" : ehTira(item.descricao) ? "Informar grade da tira" : "Informar grade"}
+                              {gradeOk(item)
+                                ? "Grade informada"
+                                : ehTira(item.descricao)
+                                  ? "Informar grade da tira"
+                                  : "Informar grade"}
                             </Button>
                             {(grades[item.seq] ?? []).length > 0 && (
                               <p className="mt-1 text-xs text-muted-foreground">
-                                {(grades[item.seq] ?? []).map((l) => `${l.tamanho}: ${l.quantidade}`).join(" · ")}
+                                {(grades[item.seq] ?? [])
+                                  .map((l) => `${l.tamanho}: ${l.quantidade}`)
+                                  .join(" · ")}
                               </p>
                             )}
                           </div>
-                        )}
+                        }
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         <p>{num(item.quantidade)}</p>
-                        <Label htmlFor={`rec-${item.seq}`} className="mt-1 block text-xs font-normal text-muted-foreground">
+                        <Label
+                          htmlFor={`rec-${item.seq}`}
+                          className="mt-1 block text-xs font-normal text-muted-foreground"
+                        >
                           Recebido
                         </Label>
                         <Input
@@ -703,21 +757,34 @@ function NfeEntrada() {
                           inputMode="decimal"
                           placeholder={num(item.quantidade)}
                           value={qtdFisica[item.seq] ?? ""}
-                          onChange={(e) => setQtdFisica((m) => ({ ...m, [item.seq]: e.target.value }))}
+                          onChange={(e) =>
+                            setQtdFisica((m) => ({ ...m, [item.seq]: e.target.value }))
+                          }
                         />
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(item.custo_unitario)}
                       </TableCell>
                       <TableCell className="text-right text-numeric">{brl(item.total)}</TableCell>
-                      <TableCell className="text-right text-numeric font-semibold" title={custo ? textoComposicao(custo.composicao) : ""}>
-                        {conferenciaAtiva ? brl(custosReais.nota[idx] ?? 0) : custo ? brl(custo.custo_unitario) : "—"}
+                      <TableCell
+                        className="text-right text-numeric font-semibold"
+                        title={custo ? textoComposicao(custo.composicao) : ""}
+                      >
+                        {conferenciaAtiva
+                          ? brl(custosReais.nota[idx] ?? 0)
+                          : custo
+                            ? brl(custo.custo_unitario)
+                            : "—"}
                         {conferenciaAtiva ? (
                           <p className="text-xs font-normal text-muted-foreground">
                             real · total {brl((custosReais.nota[idx] ?? 0) * qtdRecebida(item))}
                           </p>
                         ) : (
-                          custo && <p className="text-xs font-normal text-muted-foreground">total {brl(custo.composicao.total)}</p>
+                          custo && (
+                            <p className="text-xs font-normal text-muted-foreground">
+                              total {brl(custo.composicao.total)}
+                            </p>
+                          )
                         )}
                       </TableCell>
                     </TableRow>
@@ -732,7 +799,8 @@ function NfeEntrada() {
               <div>
                 <p className="font-display text-sm font-semibold">Itens recebidos fora da nota</p>
                 <p className="text-xs text-muted-foreground">
-                  O que chegou na caixa mas o fornecedor não colocou na nota. Entra no estoque e divide o valor pago.
+                  O que chegou na caixa mas o fornecedor não colocou na nota. Entra no estoque e
+                  divide o valor pago.
                 </p>
               </div>
               <Button
@@ -741,7 +809,12 @@ function NfeEntrada() {
                 onClick={() =>
                   setExtras((l) => [
                     ...l,
-                    { seq: SEQ_EXTRA + Date.now() % 100_000 + l.length, produto_id: "", quantidade: "", valor_ref: "" },
+                    {
+                      seq: SEQ_EXTRA + (Date.now() % 100_000) + l.length,
+                      produto_id: "",
+                      quantidade: "",
+                      valor_ref: "",
+                    },
                   ])
                 }
               >
@@ -755,33 +828,64 @@ function NfeEntrada() {
                     setExtras((l) => l.map((x) => (x.seq === e.seq ? { ...x, ...c } : x)));
                   const g = grades[e.seq] ?? [];
                   return (
-                    <div key={e.seq} className="grid items-end gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,2fr)_7rem_8rem_auto_auto]">
+                    <div
+                      key={e.seq}
+                      className="grid items-end gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,2fr)_7rem_8rem_auto_auto]"
+                    >
                       <div className="min-w-0">
                         <Label>Produto</Label>
                         <Select value={e.produto_id} onValueChange={(v) => muda({ produto_id: v })}>
-                          <SelectTrigger className="mt-1"><SelectValue placeholder="Escolha o produto" /></SelectTrigger>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Escolha o produto" />
+                          </SelectTrigger>
                           <SelectContent>
                             {(produtos ?? []).map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.codigo_interno} — {p.descricao}</SelectItem>
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.codigo_interno} — {p.descricao}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         {g.length > 0 && (
-                          <p className="mt-1 text-xs text-muted-foreground">{g.map((l) => `${l.tamanho}: ${l.quantidade}`).join(" · ")}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {g.map((l) => `${l.tamanho}: ${l.quantidade}`).join(" · ")}
+                          </p>
                         )}
                       </div>
                       <div>
                         <Label>Quantidade</Label>
-                        <Input className="mt-1" inputMode="decimal" value={e.quantidade} onChange={(ev) => muda({ quantidade: ev.target.value })} />
+                        <Input
+                          className="mt-1"
+                          inputMode="decimal"
+                          value={e.quantidade}
+                          onChange={(ev) => muda({ quantidade: ev.target.value })}
+                        />
                       </div>
                       <div>
                         <Label>Preço de referência</Label>
-                        <Input className="mt-1" inputMode="decimal" placeholder="R$ por unidade" value={e.valor_ref} onChange={(ev) => muda({ valor_ref: ev.target.value })} />
+                        <Input
+                          className="mt-1"
+                          inputMode="decimal"
+                          placeholder="R$ por unidade"
+                          value={e.valor_ref}
+                          onChange={(ev) => muda({ valor_ref: ev.target.value })}
+                        />
                       </div>
-                      <Button variant="outline" size="sm" disabled={!(numero(e.quantidade) > 0)} onClick={() => setGradeSeq(e.seq)}>
-                        <Grid3x3 className="size-4" /> {g.length ? "Grade informada" : "Informar grade"}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!(numero(e.quantidade) > 0)}
+                        onClick={() => setGradeSeq(e.seq)}
+                      >
+                        <Grid3x3 className="size-4" />{" "}
+                        {g.length ? "Grade informada" : "Informar grade"}
                       </Button>
-                      <Button variant="ghost" size="icon" aria-label="Remover item" onClick={() => setExtras((l) => l.filter((x) => x.seq !== e.seq))}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remover item"
+                        onClick={() => setExtras((l) => l.filter((x) => x.seq !== e.seq))}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                       <p className="text-xs text-muted-foreground sm:col-span-5">
@@ -808,14 +912,21 @@ function NfeEntrada() {
             </div>
             <div className="text-sm">
               <p className="text-xs text-muted-foreground">
-                Deixe em branco se pagou o mesmo valor da nota. Se pagou mais, as contas a pagar ficam no valor real e esse
-                valor é dividido no custo de tudo o que entrou. A nota fiscal continua registrada com o valor dela.
+                Deixe em branco se pagou o mesmo valor da nota. Se pagou mais, as contas a pagar
+                ficam no valor real e esse valor é dividido no custo de tudo o que entrou. A nota
+                fiscal continua registrada com o valor dela.
               </p>
               {valorRealNum != null && (
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
-                  <span>Valor da nota: <strong className="text-numeric">{brl(lida.nota.total)}</strong></span>
-                  <span>Fora da nota: <strong className="text-numeric">{brl(ajuste)}</strong></span>
-                  <span>Total a pagar: <strong className="text-numeric">{brl(valorRealNum)}</strong></span>
+                  <span>
+                    Valor da nota: <strong className="text-numeric">{brl(lida.nota.total)}</strong>
+                  </span>
+                  <span>
+                    Fora da nota: <strong className="text-numeric">{brl(ajuste)}</strong>
+                  </span>
+                  <span>
+                    Total a pagar: <strong className="text-numeric">{brl(valorRealNum)}</strong>
+                  </span>
                 </div>
               )}
             </div>
@@ -872,7 +983,12 @@ function NfeEntrada() {
                     {brl(Number(c.total ?? 0))}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" aria-label={`Ver detalhes da nota ${c.nfe_numero ?? c.numero}`} onClick={() => setNotaDetalhesId(c.id)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Ver detalhes da nota ${c.nfe_numero ?? c.numero}`}
+                      onClick={() => setNotaDetalhesId(c.id)}
+                    >
                       <Eye className="size-4" /> Ver nota
                     </Button>
                   </TableCell>
@@ -891,7 +1007,9 @@ function NfeEntrada() {
           : extra
             ? {
                 seq: extra.seq,
-                descricao: (produtos ?? []).find((p) => p.id === extra.produto_id)?.descricao ?? "Item recebido",
+                descricao:
+                  (produtos ?? []).find((p) => p.id === extra.produto_id)?.descricao ??
+                  "Item recebido",
                 quantidade: numero(extra.quantidade),
               }
             : undefined;
@@ -902,7 +1020,7 @@ function NfeEntrada() {
             quantidade={item?.quantidade ?? 0}
             titulo="Grade por tamanho"
             texto="informe quantos pares de cada tamanho estão entrando."
-            inicial={item ? grades[item.seq] ?? [] : []}
+            inicial={item ? (grades[item.seq] ?? []) : []}
             onFechar={() => setGradeSeq(null)}
             onSalvar={(g) => {
               if (item) setGrades((m) => ({ ...m, [item.seq]: g }));

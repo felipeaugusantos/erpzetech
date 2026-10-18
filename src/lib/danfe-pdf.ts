@@ -18,11 +18,22 @@ export async function textoDoPdf(file: File): Promise<string> {
       linhas.set(y, arr);
     }
     const ordenadas = [...linhas.entries()].sort((a, b) => b[0] - a[0]);
-    paginas.push(ordenadas.map(([, l]) => l.sort((a, b) => a.x - b.x).map((i) => i.s).join(" | ")).join("\n"));
+    paginas.push(
+      ordenadas
+        .map(([, l]) =>
+          l
+            .sort((a, b) => a.x - b.x)
+            .map((i) => i.s)
+            .join(" | "),
+        )
+        .join("\n"),
+    );
   }
   const texto = paginas.join("\n\n").trim();
   if (texto.length < 100) {
-    throw new Error("Esse PDF não tem texto (parece foto ou escaneado). Use o PDF digital ou o XML da nota.");
+    throw new Error(
+      "Esse PDF não tem texto (parece foto ou escaneado). Use o PDF digital ou o XML da nota.",
+    );
   }
   return texto;
 }

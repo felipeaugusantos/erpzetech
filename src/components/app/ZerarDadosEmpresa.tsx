@@ -52,7 +52,8 @@ export function ZerarDadosEmpresa() {
         <div className="flex-1">
           <h3 className="font-semibold text-destructive">Zona de risco — começar do zero</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Apaga vendas, pedidos, notas, compras, caixas, contas e estoque de teste. Não dá para desfazer.
+            Apaga vendas, pedidos, notas, compras, caixas, contas e estoque de teste. Não dá para
+            desfazer.
           </p>
           <Button variant="destructive" className="mt-3" onClick={() => setAberto(true)}>
             Zerar tudo
@@ -64,14 +65,24 @@ export function ZerarDadosEmpresa() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Zerar dados da empresa</DialogTitle>
-            <DialogDescription>Escolha o que apagar. Essa ação não pode ser desfeita.</DialogDescription>
+            <DialogDescription>
+              Escolha o que apagar. Essa ação não pode ser desfeita.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             {(
               [
-                ["movimentacoes", "Só movimentações (recomendado)", "Apaga vendas, pedidos, notas, compras, caixas, contas e entregas. Estoque volta a zero. Mantém produtos, clientes, fornecedores e usuários."],
-                ["tudo", "Tudo", "Apaga também produtos, categorias, clientes, fornecedores e cardápio. Mantém empresa, filiais, usuários e configurações fiscais."],
+                [
+                  "movimentacoes",
+                  "Só movimentações (recomendado)",
+                  "Apaga vendas, pedidos, notas, compras, caixas, contas e entregas. Estoque volta a zero. Mantém produtos, clientes, fornecedores e usuários.",
+                ],
+                [
+                  "tudo",
+                  "Tudo",
+                  "Apaga também produtos, categorias, clientes, fornecedores e cardápio. Mantém empresa, filiais, usuários e configurações fiscais.",
+                ],
               ] as const
             ).map(([v, t, d]) => (
               <label
@@ -89,7 +100,12 @@ export function ZerarDadosEmpresa() {
 
           <div className="space-y-1">
             <Label htmlFor="frase-zerar">Digite {FRASE} para confirmar</Label>
-            <Input id="frase-zerar" value={frase} onChange={(e) => setFrase(e.target.value)} autoComplete="off" />
+            <Input
+              id="frase-zerar"
+              value={frase}
+              onChange={(e) => setFrase(e.target.value)}
+              autoComplete="off"
+            />
           </div>
 
           <DialogFooter>
