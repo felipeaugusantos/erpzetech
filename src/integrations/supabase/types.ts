@@ -2321,6 +2321,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado: string | null
+          faz_personalizacao: boolean
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
@@ -2350,6 +2351,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          faz_personalizacao?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2379,6 +2381,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          faz_personalizacao?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
