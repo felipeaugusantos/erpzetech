@@ -293,15 +293,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Assistência técnica e locação dependem do CNAE informado no cadastro da empresa. */
   const modulos = useModulosCnae();
+  /** Obras só existem para lojas de materiais de construção. */
+  const empresaMenu = data?.empresa as
+    | { ramo_atividade?: string | null; faz_personalizacao?: boolean }
+    | null
+    | undefined;
+  const ehConstrucao = (empresaMenu?.ramo_atividade ?? "construcao") === "construcao";
+  const fazPersonalizacao = Boolean(empresaMenu?.faz_personalizacao);
   const gruposLoja = useMemo(
     () =>
-      groups.filter((g) => {
-        if (g.label === "Assistência técnica") return modulos.assistencia;
-        if (g.label === "Locação de equipamentos") return modulos.locacao;
-        if (g.label === "Restaurante") return modulos.restaurante;
-        return true;
-      }),
-    [modulos.assistencia, modulos.locacao, modulos.restaurante],
+      groups
+        .filter((g) => {
+          if (g.label === "Assistência técnica") return modulos.assistencia;
+          if (g.label === "Locação de equipamentos") return modulos.locacao;
+          if (g.label === "Restaurante") return modulos.restaurante;
+          return true;
+        })
+        .map((g) => ({
+          ...g,
+          items: g.items.filter((i) => {
+            if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
+              return ehConstrucao;
+            if (i.to === "/personalizacao") return fazPersonalizacao;
+            return true;
+          }),
+        })),
+    [modulos.assistencia, modulos.locacao, modulos.restaurante, ehConstrucao, fazPersonalizacao],
   );
 
   /** Telas do restaurante que o perfil pode abrir. */
