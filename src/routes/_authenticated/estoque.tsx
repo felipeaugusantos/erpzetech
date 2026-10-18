@@ -3,6 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftRight, Boxes, PackageX, Search, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
+import { GradeEntradaDialog } from "@/components/app/GradeEntradaDialog";
+import { ordemTamanho, type GradeEntrada } from "@/lib/personalizacao";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, formatConverted, num } from "@/lib/format";
@@ -68,6 +70,49 @@ function Estoque() {
   const [dep, setDep] = useState("todos");
   const [filtro, setFiltro] = useState("todos");
   const [open, setOpen] = useState(false);
+  const qcGrade = useQueryClient();
+  const [ajusteGrade, setAjusteGrade] = useState<{
+    produto_id: string;
+    deposito_id: string;
+    nome: string;
+    total: number;
+  } | null>(null);
+  const { data: gradesEstoque = [] } = useQuery({
+    queryKey: ["estoque-grade"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque_grade")
+        .select("produto_id, deposito_id, tamanho, quantidade");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const gradePor = useMemo(() => {
+    const m = new Map<string, GradeEntrada>();
+    for (const g of gradesEstoque) {
+      const k = `${g.produto_id}|${g.deposito_id}`;
+      m.set(k, [...(m.get(k) ?? []), { tamanho: g.tamanho, quantidade: Number(g.quantidade) }]);
+    }
+    for (const v of m.values()) v.sort((a, b) => ordemTamanho(a.tamanho) - ordemTamanho(b.tamanho));
+    return m;
+  }, [gradesEstoque]);
+  const salvarGrade = useMutation({
+    mutationFn: async (g: GradeEntrada) => {
+      if (!ajusteGrade) return;
+      const { error } = await supabase.rpc("estoque_grade_ajustar", {
+        p_produto_id: ajusteGrade.produto_id,
+        p_deposito_id: ajusteGrade.deposito_id,
+        p_grade: g,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Saldo por tamanho atualizado");
+      setAjusteGrade(null);
+      void qcGrade.invalidateQueries({ queryKey: ["estoque-grade"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [mov, setMov] = useState({
     produto_id: "",
     produto_nome: "",
@@ -269,6 +314,29 @@ function Estoque() {
                       <p className="text-numeric text-xs text-muted-foreground">
                         {l.p.codigo_interno} • mín. {num(l.p.estoque_minimo)} {l.p.unidade}
                       </p>
+                      {(() => {
+                        const g = gradePor.get(`${l.e.produto_id}|${l.e.deposito_id}`);
+                        if (!g?.length) return null;
+                        const soma = g.reduce((s, x) => s + x.quantidade, 0);
+                        return (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {g.map((x) => (
+                              <Badge
+                                key={x.tamanho}
+                                variant="outline"
+                                className="text-numeric font-normal"
+                              >
+                                {x.tamanho}: {num(x.quantidade)}
+                              </Badge>
+                            ))}
+                            {soma !== l.fisico && (
+                              <Badge variant="secondary">
+                                por tamanho {num(soma)} ≠ físico {num(l.fisico)}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-sm">{l.deposito}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -314,6 +382,21 @@ function Estoque() {
                         }}
                       >
                         Movimentar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-1"
+                        onClick={() =>
+                          setAjusteGrade({
+                            produto_id: l.e.produto_id,
+                            deposito_id: l.e.deposito_id,
+                            nome: l.p.descricao,
+                            total: l.fisico,
+                          })
+                        }
+                      >
+                        Tamanhos
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -437,6 +520,21 @@ function Estoque() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <GradeEntradaDialog
+        aberto={!!ajusteGrade}
+        titulo="Saldo por tamanho"
+        texto="conte quantos tem de cada tamanho; a soma precisa bater com o estoque físico."
+        descricao={ajusteGrade?.nome ?? ""}
+        quantidade={ajusteGrade?.total ?? 0}
+        inicial={
+          ajusteGrade
+            ? (gradePor.get(`${ajusteGrade.produto_id}|${ajusteGrade.deposito_id}`) ?? [])
+            : []
+        }
+        salvando={salvarGrade.isPending}
+        onFechar={() => setAjusteGrade(null)}
+        onSalvar={(g) => salvarGrade.mutate(g)}
+      />
     </>
   );
 }

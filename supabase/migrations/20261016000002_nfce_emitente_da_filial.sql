@@ -7,6 +7,8 @@ DECLARE
   campo text;
 BEGIN
   def := pg_get_functiondef('public.nfce_criar(uuid, text)'::regprocedure);
+  -- já ajustada (o Lovable reúne esta migration com a anterior num arquivo só em drizzle/migrations)
+  IF position('nullif(v_fil.cnpj' IN def) > 0 THEN RETURN; END IF;
   novo := def;
 
   novo := replace(novo,

@@ -88,6 +88,9 @@ const groups: Group[] = [
       { label: "Profissionais e prêmios", to: "/profissionais", icon: HardHat },
       { label: "Orçamentos", to: "/orcamentos", icon: ClipboardList },
       { label: "Pedidos", to: "/pedidos", icon: ClipboardList },
+      { label: "Personalização", to: "/personalizacao", icon: ClipboardList },
+      { label: "Produção", to: "/producao", icon: ClipboardList },
+      { label: "Custo por par", to: "/custo-par", icon: Calculator },
       { label: "Devoluções de venda", to: "/devolucoes", icon: ClipboardList },
       { label: "Vendedores", to: "/vendedores", icon: Users },
       { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
@@ -108,6 +111,7 @@ const groups: Group[] = [
       { label: "Ajuste de lotes", to: "/ajuste-lotes", icon: Boxes },
       { label: "Lotes sem internet", to: "/lotes-offline", icon: Wallet },
       { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
+      { label: "Movimento por tamanho", to: "/movimento-grade", icon: Boxes },
       { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
       { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },
       { label: "Sugestão de reposição", to: "/sugestao-compra", icon: ShoppingCart },
@@ -127,6 +131,7 @@ const groups: Group[] = [
       { label: "Cotações", to: "/cotacoes", icon: ClipboardList },
       { label: "Pedidos de compra", to: "/compras", icon: ShoppingCart },
       { label: "Importar XML da NF-e", to: "/nfe-entrada", icon: FileText },
+      { label: "Importar CT-e de frete", to: "/importar-cte", icon: FileText },
     ],
   },
   {
@@ -293,15 +298,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Assistência técnica e locação dependem do CNAE informado no cadastro da empresa. */
   const modulos = useModulosCnae();
+  /** Obras só existem para lojas de materiais de construção. */
+  const empresaMenu = data?.empresa as
+    { ramo_atividade?: string | null; faz_personalizacao?: boolean } | null | undefined;
+  const ehConstrucao = (empresaMenu?.ramo_atividade ?? "construcao") === "construcao";
+  const fazPersonalizacao = Boolean(empresaMenu?.faz_personalizacao);
   const gruposLoja = useMemo(
     () =>
-      groups.filter((g) => {
-        if (g.label === "Assistência técnica") return modulos.assistencia;
-        if (g.label === "Locação de equipamentos") return modulos.locacao;
-        if (g.label === "Restaurante") return modulos.restaurante;
-        return true;
-      }),
-    [modulos.assistencia, modulos.locacao, modulos.restaurante],
+      groups
+        .filter((g) => {
+          if (g.label === "Assistência técnica") return modulos.assistencia;
+          if (g.label === "Locação de equipamentos") return modulos.locacao;
+          if (g.label === "Restaurante") return modulos.restaurante;
+          return true;
+        })
+        .map((g) => ({
+          ...g,
+          items: g.items.filter((i) => {
+            if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
+              return ehConstrucao;
+            if (
+              i.to === "/personalizacao" ||
+              i.to === "/custo-par" ||
+              i.to === "/producao" ||
+              i.to === "/movimento-grade"
+            )
+              return fazPersonalizacao;
+            return true;
+          }),
+        })),
+    [modulos.assistencia, modulos.locacao, modulos.restaurante, ehConstrucao, fazPersonalizacao],
   );
 
   /** Telas do restaurante que o perfil pode abrir. */

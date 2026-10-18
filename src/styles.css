@@ -205,6 +205,31 @@
     color: #000;
   }
 
+  /*
+   * Documento impresso dentro de uma janela (diálogo): o diálogo é fixo na tela e tem rolagem,
+   * o que faria o navegador repetir só o topo em todas as páginas e cortar os itens.
+   * Na impressão, o resto da tela some de verdade e o diálogo vira conteúdo normal da página.
+   */
+  body:has(#documento-impresso, #cupom-impresso, #nota-impressa)
+    > *:not(:has(#documento-impresso, #cupom-impresso, #nota-impressa)) {
+    display: none !important;
+  }
+
+  body:has(#documento-impresso, #cupom-impresso, #nota-impressa)
+    *:has(#documento-impresso, #cupom-impresso, #nota-impressa) {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
   /* Via do orçamento/pedido em folha (A4 ou meia folha na horizontal). */
   body:has(#documento-impresso) * {
     visibility: hidden !important;
@@ -216,8 +241,7 @@
   }
 
   body:has(#documento-impresso) #documento-impresso {
-    position: absolute;
-    inset: 0 auto auto 0;
+    position: static;
     width: 100%;
     max-width: none;
     border: 0;

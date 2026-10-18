@@ -1,0 +1,1 @@
+ALTER TYPE public.pedido_situacao ADD VALUE IF NOT EXISTS 'rascunho' BEFORE 'aguardando_pagamento';

@@ -95,7 +95,7 @@ function Dashboard() {
           supabase
             .from("contas_receber")
             .select(
-              "id, numero, descricao, vencimento, valor, valor_recebido, situacao, clientes(nome)",
+              "id, numero, descricao, vencimento, valor, valor_recebido, situacao, forma_pagamento, cliente_id, clientes(nome, limite_credito)",
             ),
           supabase
             .from("contas_pagar")
@@ -137,7 +137,7 @@ function Dashboard() {
         supabase
           .from("pedidos")
           .select("id, numero, total, situacao, created_at, clientes(nome)")
-          .neq("situacao", "cancelado")
+          .not("situacao", "in", "(cancelado,rascunho)")
           .order("numero", { ascending: false })
           .limit(100),
       ]);
@@ -211,6 +211,55 @@ function Dashboard() {
   const prox7 = [...abertoReceber, ...abertoPagar].filter(
     (c) => c.vencimento > hoje && c.vencimento <= em7,
   );
+
+  // Fechamento de clientes (compras marcadas no crediário)
+  const crediarioAberto = abertoReceber.filter((c) => c.forma_pagamento === "crediario");
+  const porClienteMapa = new Map<
+    string,
+    {
+      nome: string;
+      faturado: number;
+      recebido: number;
+      saldo: number;
+      vencido: number;
+      vencidoRecebido: number;
+      contas: number;
+      proximo: string | null;
+      limite: number;
+    }
+  >();
+  for (const c of crediarioAberto) {
+    const chave = c.cliente_id ?? "sem-cliente";
+    const cli = c.clientes as unknown as { nome: string; limite_credito: number | null } | null;
+    const linha = porClienteMapa.get(chave) ?? {
+      nome: cli?.nome ?? "Sem cliente",
+      faturado: 0,
+      recebido: 0,
+      saldo: 0,
+      vencido: 0,
+      vencidoRecebido: 0,
+      contas: 0,
+      proximo: null,
+      limite: Number(cli?.limite_credito ?? 0),
+    };
+    const saldo = Number(c.valor) - Number(c.valor_recebido);
+    linha.faturado += Number(c.valor);
+    linha.recebido += Number(c.valor_recebido);
+    linha.saldo += saldo;
+    linha.contas += 1;
+    if (c.vencimento < hoje) {
+      linha.vencido += saldo;
+      linha.vencidoRecebido += Number(c.valor_recebido);
+    } else if (!linha.proximo || c.vencimento < linha.proximo) linha.proximo = c.vencimento;
+    porClienteMapa.set(chave, linha);
+  }
+  const fechamentoClientes = [...porClienteMapa.values()].sort((a, b) => b.saldo - a.saldo);
+  const totalCrediario = fechamentoClientes.reduce((s, l) => s + l.saldo, 0);
+  const vencidoCrediario = fechamentoClientes.reduce((s, l) => s + l.vencido, 0);
+  const faturadoCrediario = fechamentoClientes.reduce((s, l) => s + l.faturado, 0);
+  const recebidoCrediario = fechamentoClientes.reduce((s, l) => s + l.recebido, 0);
+  const vencidoRecebidoCrediario = fechamentoClientes.reduce((s, l) => s + l.vencidoRecebido, 0);
+  const clientesVencidos = fechamentoClientes.filter((l) => l.vencido > 0).length;
 
   // Estoque
   type Prod = {
@@ -388,6 +437,116 @@ function Dashboard() {
           icon={Boxes}
           hint={`${data.totalProdutos} produtos cadastrados`}
         />
+      </div>
+
+      <div className="panel mt-6 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-sm font-semibold">
+              Fechamento de clientes (compras marcadas)
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Vendas no crediário que ainda não foram acertadas, somadas por cliente.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/extrato-receber">Ver extrato completo</Link>
+          </Button>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Total a acertar"
+            value={brl(totalCrediario)}
+            icon={Wallet}
+            tone="accent"
+            hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
+          />
+          <StatCard
+            label="Já recebido"
+            value={brl(recebidoCrediario)}
+            icon={Wallet}
+            tone="success"
+            hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
+          />
+          <StatCard
+            label="Já vencido"
+            value={brl(vencidoCrediario)}
+            icon={AlertTriangle}
+            tone={vencidoCrediario > 0 ? "danger" : "default"}
+            hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
+          />
+          <StatCard
+            label="A vencer"
+            value={brl(totalCrediario - vencidoCrediario)}
+            icon={CalendarClock}
+            tone="success"
+            hint="Próximos fechamentos"
+          />
+        </div>
+
+        {fechamentoClientes.length === 0 ? (
+          <EmptyState
+            className="mt-4 border-0 shadow-none"
+            title="Nenhum cliente com compras marcadas em aberto."
+          />
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr className="border-b border-border">
+                  <th className="py-2 pr-2">Cliente</th>
+                  <th className="py-2 pr-2 text-right">Compras</th>
+                  <th className="py-2 pr-2">Próximo fechamento</th>
+                  <th className="py-2 pr-2 text-right">Faturado</th>
+                  <th className="py-2 pr-2 text-right">Já recebido</th>
+                  <th className="py-2 pr-2 text-right">Vencido</th>
+                  <th className="py-2 pr-2 text-right">Total a acertar</th>
+                  <th className="py-2">Limite</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {fechamentoClientes.slice(0, 10).map((l) => {
+                  const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
+                  return (
+                    <tr key={l.nome}>
+                      <td className="py-2 pr-2 font-medium">{l.nome}</td>
+                      <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
+                      <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
+                      <td className="py-2 pr-2 text-right text-numeric">{brl(l.faturado)}</td>
+                      <td className="py-2 pr-2 text-right text-numeric text-success">
+                        {l.recebido ? brl(l.recebido) : "—"}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-numeric text-destructive">
+                        {l.vencido ? brl(l.vencido) : "—"}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-numeric font-semibold">
+                        {brl(l.saldo)}
+                      </td>
+                      <td className="py-2">
+                        {l.limite <= 0 ? (
+                          <span className="text-xs text-muted-foreground">Sem limite</span>
+                        ) : uso >= 100 ? (
+                          <Badge className="bg-destructive/15 text-destructive">
+                            Acima do limite
+                          </Badge>
+                        ) : uso >= 80 ? (
+                          <Badge className="bg-warning/15 text-warning">
+                            {num(uso, 0)}% do limite
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {num(uso, 0)}% de {brl(l.limite)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
