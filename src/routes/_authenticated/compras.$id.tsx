@@ -70,6 +70,10 @@ function CompraDetalhe() {
   const { id } = Route.useParams();
   const { data: session } = useSessionData();
   const tenantId = session?.profile?.tenant_id ?? null;
+  // compra na unidade do fornecedor só para empresas com personalização
+  const compraEmUnidadeFornecedor = Boolean(
+    (session?.empresa as { faz_personalizacao?: boolean } | null | undefined)?.faz_personalizacao,
+  );
   const queryClient = useQueryClient();
 
   const [buscaProduto, setBuscaProduto] = useState("");
@@ -198,7 +202,7 @@ function CompraDetalhe() {
       unidade_compra?: string | null;
     }) => {
       // produto comprado em outra unidade (ex.: metro): já entra 1 unidade de compra
-      const f = produto.unidade_compra && Number(produto.fator_conversao) > 1 ? Number(produto.fator_conversao) : 1;
+      const f = compraEmUnidadeFornecedor && produto.unidade_compra && Number(produto.fator_conversao) > 1 ? Number(produto.fator_conversao) : 1;
       if (!tenantId) throw new Error("Usuário sem empresa vinculada");
       const { error } = await supabase.from("compra_itens").insert({
         tenant_id: tenantId,
@@ -579,7 +583,7 @@ function CompraDetalhe() {
                     fator_conversao: number | null;
                   } | null;
                   // compra na unidade do fornecedor (ex.: MT); o estoque recebe na unidade do produto (UN)
-                  const f = prod?.unidade_compra && Number(prod.fator_conversao) > 1 ? Number(prod.fator_conversao) : 1;
+                  const f = compraEmUnidadeFornecedor && prod?.unidade_compra && Number(prod.fator_conversao) > 1 ? Number(prod.fator_conversao) : 1;
                   const qtdCompra = Math.round((Number(i.quantidade) / f) * 1000) / 1000;
                   const custoCompra = Math.round(Number(i.custo_unitario) * f * 10000) / 10000;
                   return (
