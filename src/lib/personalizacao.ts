@@ -50,3 +50,9 @@ export type GradeEntrada = { tamanho: string; quantidade: number }[];
 export function gradeEntrada(qtds: Record<string, string>): GradeEntrada {
   return montarGrade("", qtds).map(({ tamanho, quantidade }) => ({ tamanho, quantidade }));
 }
+
+/** Posição do tamanho na numeração de chinelo (tamanhos desconhecidos vão para o fim). */
+export const ordemTamanho = (t: string) => {
+  const i = TAMANHOS_CHINELO.indexOf(t);
+  return i < 0 ? 999 : i;
+};
