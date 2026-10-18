@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, ShoppingCart } from "lucide-react";
+import { useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { lerXmlNfe } from "@/lib/nfe-xml";
+import { FileUp, Loader2, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -21,6 +24,27 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
       if (itens.error) throw itens.error;
       return { compra: compra.data, itens: itens.data ?? [] };
     },
+  });
+
+  const qc = useQueryClient();
+  const arquivoRef = useRef<HTMLInputElement>(null);
+  const completar = useMutation({
+    mutationFn: async (file: File) => {
+      if (!compraId) throw new Error("Escolha uma nota importada.");
+      const lida = lerXmlNfe(await file.text());
+      const { data: res, error } = await supabase.rpc("nfe_entrada_completar_impostos", {
+        p_compra_id: compraId,
+        p_nota: { chave: lida.nota.chave, numero: lida.nota.numero, serie: lida.nota.serie, total: lida.nota.total, natureza: lida.nota.natureza, impostos: lida.nota.impostos },
+        p_itens: lida.itens.map((i) => ({ codigo: i.codigo, cfop: i.cfop, impostos: i.impostos })),
+      });
+      if (error) throw error;
+      return { ok: Number((res as { itens?: number } | null)?.itens ?? 0), total: lida.itens.length };
+    },
+    onSuccess: async ({ ok, total }) => {
+      toast.success(`Impostos guardados: nota completa e ${ok} de ${total} produto(s).`);
+      await qc.invalidateQueries({ queryKey: ["nota-entrada-detalhes", compraId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler o XML."),
   });
 
   return (
@@ -85,7 +109,13 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
               </dl>
             </div>
           ) : (
-            <p className="border-t border-border pt-4 text-sm text-muted-foreground">Os impostos desta nota não foram guardados, porque ela foi importada antes desse recurso.</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+              <p className="text-sm text-muted-foreground">Os impostos desta nota não foram guardados, porque ela foi importada antes desse recurso. Escolha o mesmo XML para completar — estoque, custo e contas a pagar não mudam.</p>
+              <input ref={arquivoRef} type="file" accept=".xml,text/xml,application/xml" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) completar.mutate(f); e.target.value = ""; }} />
+              <Button variant="outline" disabled={completar.isPending} onClick={() => arquivoRef.current?.click()}>
+                {completar.isPending ? <Loader2 className="size-4 animate-spin" /> : <FileUp className="size-4" />} Completar impostos com o XML
+              </Button>
+            </div>
           ); })()}
           {data.compra.observacoes && <dl className="text-sm"><Campo label="Observações" value={data.compra.observacoes} /></dl>}
           <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
