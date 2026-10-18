@@ -36,7 +36,7 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
     queryFn: async () => {
       const { data: l, error } = await supabase
         .from("compra_ctes")
-        .select("id, numero, serie, emissao, valor, icms, fornecedores(razao_social)")
+        .select("id, numero, serie, emissao, valor, icms, fornecedores(razao_social), contas_pagar(vencimento, situacao, valor_pago)")
         .eq("compra_id", compraId as string)
         .order("created_at");
       if (error) throw error;
@@ -58,13 +58,21 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
       if (!window.confirm(`Vincular o CT-e nº ${cte.numero ?? "—"} de ${transp}, frete de ${brl(cte.valor)}?\n\nO frete entra no custo dos produtos desta nota e vira uma conta a pagar para a transportadora.`)) {
         return null;
       }
-      const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", { p_compra_id: compraId, p_cte: cte });
+      // o frete vence junto com a primeira parcela da nota do fornecedor
+      const { data: parcelas } = await supabase
+        .from("contas_pagar")
+        .select("vencimento, categoria")
+        .eq("compra_id", compraId)
+        .neq("situacao", "cancelado")
+        .order("vencimento");
+      const vencimento = (parcelas ?? []).find((p) => p.categoria !== "Frete")?.vencimento ?? undefined;
+      const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", { p_compra_id: compraId, p_cte: cte, p_vencimento: vencimento });
       if (error) throw error;
-      return { ...(res as { itens?: number }), valor: cte.valor, transp };
+      return { ...(res as { itens?: number }), valor: cte.valor, transp, vencimento };
     },
     onSuccess: async (r) => {
       if (!r) return;
-      toast.success(`Frete de ${brl(r.valor)} somado ao custo de ${r.itens ?? 0} produto(s) e lançado nas contas a pagar de ${r.transp}.`);
+      toast.success(`Frete de ${brl(r.valor)} somado ao custo de ${r.itens ?? 0} produto(s) e lançado nas contas a pagar de ${r.transp}${r.vencimento ? `, vencimento ${dateBR(r.vencimento)}` : ""}.`);
       await qc.invalidateQueries();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler o CT-e."),
@@ -184,7 +192,15 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
                 {(ctes ?? []).map((c) => (
                   <li key={c.id} className="flex flex-wrap justify-between gap-2 rounded-md border border-border px-3 py-2">
                     <span>CT-e nº {c.numero ?? "—"} · {c.fornecedores?.razao_social ?? "Transportadora"}{c.emissao ? ` · ${dateBR(c.emissao)}` : ""}</span>
-                    <strong className="text-numeric">{brl(Number(c.valor))}</strong>
+                    <span className="flex items-center gap-3">
+                      {c.contas_pagar ? (
+                        <span className="text-muted-foreground">
+                          A pagar · vence {dateBR(c.contas_pagar.vencimento)}
+                          {c.contas_pagar.situacao === "pago" ? " · pago" : c.contas_pagar.situacao === "cancelado" ? " · cancelado" : ""}
+                        </span>
+                      ) : null}
+                      <strong className="text-numeric">{brl(Number(c.valor))}</strong>
+                    </span>
                   </li>
                 ))}
               </ul>
