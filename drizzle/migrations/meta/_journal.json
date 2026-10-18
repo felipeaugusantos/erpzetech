@@ -386,6 +386,13 @@
       "when": 1792350242119,
       "tag": "0054_produto_codigo_automatico",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792350266183,
+      "tag": "0055_produto_proximo_codigo_tenant_check",
+      "breakpoints": true
     }
   ]
 }
