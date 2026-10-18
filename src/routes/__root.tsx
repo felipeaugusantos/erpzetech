@@ -184,7 +184,7 @@ function RootComponent() {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24, buster: "zt-1" }}
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24, buster: "zt-2" }}
     >
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
@@ -198,4 +198,18 @@ const persister = createSyncStoragePersister({
   storage: typeof window === "undefined" ? undefined : window.localStorage,
   key: "zt-dados",
   throttleTime: 2000,
+  // algumas telas guardam listas como Map/Set; o JSON comum as transforma em {} e a tela quebra ao reabrir
+  serialize: (dados) =>
+    JSON.stringify(dados, (_k, v: unknown) =>
+      v instanceof Map ? { __zt_map: [...v.entries()] } : v instanceof Set ? { __zt_set: [...v] } : v,
+    ),
+  deserialize: (texto) =>
+    JSON.parse(texto, (_k, v: unknown) => {
+      if (v && typeof v === "object") {
+        const o = v as { __zt_map?: [unknown, unknown][]; __zt_set?: unknown[] };
+        if (Array.isArray(o.__zt_map)) return new Map(o.__zt_map);
+        if (Array.isArray(o.__zt_set)) return new Set(o.__zt_set);
+      }
+      return v;
+    }),
 });
