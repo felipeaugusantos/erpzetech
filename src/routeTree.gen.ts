@@ -36,6 +36,7 @@ import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authen
 import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticated/cotacoes'
 import { Route as AuthenticatedCozinhaRouteImport } from './routes/_authenticated/cozinha'
 import { Route as AuthenticatedCreditoRouteImport } from './routes/_authenticated/credito'
+import { Route as AuthenticatedCustoParRouteImport } from './routes/_authenticated/custo-par'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticated/delivery'
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
@@ -265,6 +266,11 @@ const AuthenticatedCozinhaRoute = AuthenticatedCozinhaRouteImport.update({
 const AuthenticatedCreditoRoute = AuthenticatedCreditoRouteImport.update({
   id: '/credito',
   path: '/credito',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCustoParRoute = AuthenticatedCustoParRouteImport.update({
+  id: '/custo-par',
+  path: '/custo-par',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -762,6 +768,7 @@ export interface FileRoutesByFullPath {
   '/cotacoes': typeof AuthenticatedCotacoesRoute
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
+  '/custo-par': typeof AuthenticatedCustoParRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -874,6 +881,7 @@ export interface FileRoutesByTo {
   '/cotacoes': typeof AuthenticatedCotacoesRoute
   '/cozinha': typeof AuthenticatedCozinhaRoute
   '/credito': typeof AuthenticatedCreditoRoute
+  '/custo-par': typeof AuthenticatedCustoParRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -988,6 +996,7 @@ export interface FileRoutesById {
   '/_authenticated/cotacoes': typeof AuthenticatedCotacoesRoute
   '/_authenticated/cozinha': typeof AuthenticatedCozinhaRoute
   '/_authenticated/credito': typeof AuthenticatedCreditoRoute
+  '/_authenticated/custo-par': typeof AuthenticatedCustoParRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/delivery': typeof AuthenticatedDeliveryRoute
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
@@ -1102,6 +1111,7 @@ export interface FileRouteTypes {
     | '/cotacoes'
     | '/cozinha'
     | '/credito'
+    | '/custo-par'
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
@@ -1214,6 +1224,7 @@ export interface FileRouteTypes {
     | '/cotacoes'
     | '/cozinha'
     | '/credito'
+    | '/custo-par'
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
@@ -1327,6 +1338,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cotacoes'
     | '/_authenticated/cozinha'
     | '/_authenticated/credito'
+    | '/_authenticated/custo-par'
     | '/_authenticated/dashboard'
     | '/_authenticated/delivery'
     | '/_authenticated/devolucoes'
@@ -1612,6 +1624,13 @@ declare module '@tanstack/react-router' {
       path: '/credito'
       fullPath: '/credito'
       preLoaderRoute: typeof AuthenticatedCreditoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/custo-par': {
+      id: '/_authenticated/custo-par'
+      path: '/custo-par'
+      fullPath: '/custo-par'
+      preLoaderRoute: typeof AuthenticatedCustoParRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -2227,6 +2246,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCotacoesRoute: typeof AuthenticatedCotacoesRoute
   AuthenticatedCozinhaRoute: typeof AuthenticatedCozinhaRoute
   AuthenticatedCreditoRoute: typeof AuthenticatedCreditoRoute
+  AuthenticatedCustoParRoute: typeof AuthenticatedCustoParRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDeliveryRoute: typeof AuthenticatedDeliveryRoute
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
@@ -2334,6 +2354,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCotacoesRoute: AuthenticatedCotacoesRoute,
   AuthenticatedCozinhaRoute: AuthenticatedCozinhaRoute,
   AuthenticatedCreditoRoute: AuthenticatedCreditoRoute,
+  AuthenticatedCustoParRoute: AuthenticatedCustoParRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDeliveryRoute: AuthenticatedDeliveryRoute,
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
