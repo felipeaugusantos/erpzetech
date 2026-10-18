@@ -69,10 +69,12 @@ function Personalizacao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedido_personalizacao")
-        .select("*, pedidos(numero, previsao_entrega, clientes(nome))")
+        .select("*, pedidos(numero, situacao, previsao_entrega, clientes(nome))")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as Registro[];
+      return ((data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]).filter(
+        (r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""),
+      );
     },
   });
 
