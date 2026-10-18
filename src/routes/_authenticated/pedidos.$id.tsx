@@ -36,6 +36,7 @@ import {
 } from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
 import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
+import { AlterarPedidoDialog } from "@/components/app/AlterarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -262,6 +263,7 @@ function PedidoDetalhe() {
     return mensagemLeitura(r, nomeDoItem);
   }
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [alterarOpen, setAlterarOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [contasOpen, setContasOpen] = useState(false);
   const [parcelasReceber, setParcelasReceber] = useState("1");
@@ -688,6 +690,11 @@ function PedidoDetalhe() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
+              {["aguardando_pagamento", "aprovado"].includes(pedido.situacao) && (
+                <Button variant="outline" onClick={() => setAlterarOpen(true)}>
+                  Alterar pedido
+                </Button>
+              )}
               {proximas(pedido.situacao).map((s) =>
                 s === "cancelado" ? (
                   <Button
@@ -1206,12 +1213,23 @@ function PedidoDetalhe() {
         </DialogContent>
       </Dialog>
 
+      <AlterarPedidoDialog
+        open={alterarOpen}
+        onOpenChange={setAlterarOpen}
+        pedidoId={id}
+        itens={itens as never}
+        desconto={Number(pedido.desconto)}
+        frete={Number(pedido.frete)}
+      />
+
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar pedido</DialogTitle>
             <DialogDescription>
-              A reserva de estoque dos itens não entregues será liberada.
+              A reserva de estoque dos itens não entregues é liberada e as parcelas em aberto são
+              canceladas. Se já houve pagamento recebido ou NF-e autorizada, estorne o recebimento ou
+              cancele a nota antes.
             </DialogDescription>
           </DialogHeader>
           <div>

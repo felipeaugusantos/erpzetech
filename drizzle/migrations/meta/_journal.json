@@ -365,6 +365,20 @@
       "when": 1792348736373,
       "tag": "0051_compra_reabrir_para_alterar",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792349212476,
+      "tag": "0052_pedido_alterar_e_cancelar",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792349250026,
+      "tag": "0053_pedido_cancelar_validar_na_tela",
+      "breakpoints": true
     }
   ]
 }
