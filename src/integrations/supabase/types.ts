@@ -2789,6 +2789,63 @@ export type Database = {
           },
         ]
       }
+      estoque_grade_movimentos: {
+        Row: {
+          created_at: string
+          deposito_id: string
+          documento: string | null
+          id: string
+          origem: string
+          produto_id: string
+          quantidade: number
+          saldo_apos: number
+          tamanho: string
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          deposito_id: string
+          documento?: string | null
+          id?: string
+          origem?: string
+          produto_id: string
+          quantidade: number
+          saldo_apos: number
+          tamanho: string
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deposito_id?: string
+          documento?: string | null
+          id?: string
+          origem?: string
+          produto_id?: string
+          quantidade?: number
+          saldo_apos?: number
+          tamanho?: string
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_grade_movimentos_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_grade_movimentos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_lote_movimentos: {
         Row: {
           created_at: string
