@@ -532,6 +532,8 @@ function CompraDetalhe() {
                           unidade: p.unidade,
                           custo: Number(p.custo),
                           descricao: p.descricao,
+                          fator_conversao: p.fator_conversao,
+                          unidade_compra: p.unidade_compra,
                         })
                       }
                     >
