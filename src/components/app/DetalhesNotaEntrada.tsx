@@ -25,8 +25,8 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
 
   return (
     <Dialog open={Boolean(compraId)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto">
-        <DialogHeader className="pr-6">
+      <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl grid-cols-[minmax(0,1fr)] overflow-y-auto">
+        <DialogHeader className="min-w-0 pr-6 text-left">
           <DialogTitle>Detalhes da nota de entrada{data ? ` · nº ${data.compra.nfe_numero ?? "—"}` : ""}</DialogTitle>
           <DialogDescription>Dados registrados na importação da NF-e.</DialogDescription>
         </DialogHeader>

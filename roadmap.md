@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Exibir os detalhes de notas de entrada já importadas e conferir a abertura com uma nota cadastrada.
+- [x] Detalhes das notas já importadas: botão Ver nota com fornecedor, chave, produtos, recebimento e valores; conferido com a nota nº 16670, sem alterar dados.
 
 - [x] Corrigir visibilidade e reenvio de comandas offline recusadas; 6 testes passaram e recuperação online conferida com conta autenticada e respostas de recusa/sucesso simuladas, sem movimentar dinheiro real.
 
