@@ -108,7 +108,9 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
                 <Campo label="Seguro" value={brl(t.seguro ?? 0)} />
                 <Campo label="Outras despesas" value={brl(t.outras ?? 0)} />
                 <Campo label="Tributos aproximados" value={brl(t.tributos_aprox ?? 0)} />
-                <Campo label="Total da nota" value={t.total_nota != null ? brl(t.total_nota) : null} />
+                <Campo label="Total da nota" value={t.total_fiscal != null ? brl(t.total_fiscal) : t.total_nota != null ? brl(t.total_nota) : null} />
+                {t.valor_real_pago != null && <Campo label="Valor real pago" value={brl(t.valor_real_pago)} />}
+                {t.valor_real_pago != null && <Campo label="Pago fora da nota" value={brl(t.ajuste_comercial ?? 0)} />}
               </dl>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">Para recalcular o custo com a regra atual (frete, desconto e créditos do regime), escolha o XML desta nota.</p>
@@ -142,7 +144,7 @@ function Campo({ label, value }: { label: string; value: string | null | undefin
 }
 type Num = number | null | undefined;
 type ImpItem = { cst?: string | null; icms?: Num; aliquota_icms?: Num; icms_st?: Num; ipi?: Num; pis?: Num; cofins?: Num };
-type ImpNota = { base_icms?: Num; icms?: Num; base_st?: Num; icms_st?: Num; fcp_st?: Num; ipi?: Num; pis?: Num; cofins?: Num; seguro?: Num; outras?: Num; tributos_aprox?: Num; total_nota?: Num };
+type ImpNota = { base_icms?: Num; icms?: Num; base_st?: Num; icms_st?: Num; fcp_st?: Num; ipi?: Num; pis?: Num; cofins?: Num; seguro?: Num; outras?: Num; tributos_aprox?: Num; total_nota?: Num; total_fiscal?: Num; valor_real_pago?: Num; ajuste_comercial?: Num };
 function ehObjeto(v: unknown): v is Record<string, unknown> { return !!v && typeof v === "object" && !Array.isArray(v); }
 function impostosItem(v: unknown): ImpItem | null { return ehObjeto(v) ? (v as ImpItem) : null; }
 function impostosNota(v: unknown): ImpNota | null { return ehObjeto(v) ? (v as ImpNota) : null; }
