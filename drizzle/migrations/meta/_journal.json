@@ -351,6 +351,13 @@
       "when": 1792344875553,
       "tag": "0049_grade_baixa_na_producao",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792347614750,
+      "tag": "0050_compra_cte_frete",
+      "breakpoints": true
     }
   ]
 }

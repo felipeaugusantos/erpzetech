@@ -1342,6 +1342,76 @@ export type Database = {
           },
         ]
       }
+      compra_ctes: {
+        Row: {
+          chave: string | null
+          compra_id: string
+          conta_pagar_id: string | null
+          created_at: string
+          criado_por: string | null
+          emissao: string | null
+          icms: number
+          id: string
+          numero: string | null
+          serie: string | null
+          tenant_id: string
+          transportadora_id: string | null
+          valor: number
+        }
+        Insert: {
+          chave?: string | null
+          compra_id: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          emissao?: string | null
+          icms?: number
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          tenant_id: string
+          transportadora_id?: string | null
+          valor: number
+        }
+        Update: {
+          chave?: string | null
+          compra_id?: string
+          conta_pagar_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          emissao?: string | null
+          icms?: number
+          id?: string
+          numero?: string | null
+          serie?: string | null
+          tenant_id?: string
+          transportadora_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_ctes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ctes_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_ctes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_itens: {
         Row: {
           cfop: string | null
@@ -7609,6 +7679,10 @@ export type Database = {
           p_numero?: string
           p_serie?: string
         }
+        Returns: Json
+      }
+      nfe_entrada_vincular_cte: {
+        Args: { p_compra_id: string; p_cte: Json; p_vencimento?: string }
         Returns: Json
       }
       nfe_preencher_destinatario: { Args: { p_nfe_id: string }; Returns: Json }
