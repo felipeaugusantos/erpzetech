@@ -7739,6 +7739,19 @@ export type Database = {
         }
         Returns: string
       }
+      pedido_alterar: {
+        Args: {
+          p_condicao_pagamento?: string
+          p_desconto?: number
+          p_frete?: number
+          p_itens: Json
+          p_motivo: string
+          p_observacoes?: string
+          p_pedido_id: string
+          p_previsao_entrega?: string
+        }
+        Returns: undefined
+      }
       pedido_avancar_status: {
         Args: {
           p_observacao?: string
