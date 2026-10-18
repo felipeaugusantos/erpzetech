@@ -15,6 +15,34 @@ export type NfeXmlItem = {
   lote: string | null;
   tonalidade: string | null;
   calibre: string | null;
+  impostos: NfeXmlImpostosItem;
+};
+
+export type NfeXmlImpostosItem = {
+  cst: string | null;
+  base_icms: number;
+  aliquota_icms: number;
+  icms: number;
+  base_st: number;
+  icms_st: number;
+  aliquota_ipi: number;
+  ipi: number;
+  pis: number;
+  cofins: number;
+};
+
+export type NfeXmlImpostosNota = {
+  base_icms: number;
+  icms: number;
+  base_st: number;
+  icms_st: number;
+  fcp_st: number;
+  ipi: number;
+  pis: number;
+  cofins: number;
+  seguro: number;
+  outras: number;
+  tributos_aprox: number;
 };
 
 export type NfeXmlFornecedor = {
@@ -43,6 +71,7 @@ export type NfeXmlNota = {
   condicao_pagamento: string | null;
   primeiro_vencimento: string | null;
   parcelas: number;
+  impostos: NfeXmlImpostosNota;
 };
 
 export type NfeXmlLida = {
@@ -115,6 +144,7 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
       custo_unitario: unit,
       total: numero(prod, "vProd") || Number((qtd * unit).toFixed(2)),
       ...loteDoItem(det ?? null),
+      impostos: impostosDoItem(det ?? null),
     });
   }
 
@@ -141,6 +171,19 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
         vencimentos.length > 1 ? `${vencimentos.length}x conforme duplicatas` : null,
       primeiro_vencimento: vencimentos[0] ?? null,
       parcelas: Math.max(1, vencimentos.length),
+      impostos: {
+        base_icms: numero(total, "vBC"),
+        icms: numero(total, "vICMS"),
+        base_st: numero(total, "vBCST"),
+        icms_st: numero(total, "vST"),
+        fcp_st: numero(total, "vFCPST"),
+        ipi: numero(total, "vIPI"),
+        pis: numero(total, "vPIS"),
+        cofins: numero(total, "vCOFINS"),
+        seguro: numero(total, "vSeg"),
+        outras: numero(total, "vOutro"),
+        tributos_aprox: numero(total, "vTotTrib"),
+      },
     },
     fornecedor: {
       razao_social: texto(emit, "xNome") ?? "Fornecedor da NF-e",
@@ -160,6 +203,27 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
       nome: texto(dest, "xNome"),
     },
     itens,
+  };
+}
+
+/** Impostos destacados no item (<imposto>): ICMS, ICMS-ST, IPI, PIS e COFINS. */
+export function impostosDoItem(det: Element | null): NfeXmlImpostosItem {
+  const imp = det?.getElementsByTagName("imposto")[0] ?? null;
+  const icms = imp?.getElementsByTagName("ICMS")[0] ?? null;
+  const ipi = imp?.getElementsByTagName("IPI")[0] ?? null;
+  const pis = imp?.getElementsByTagName("PIS")[0] ?? null;
+  const cofins = imp?.getElementsByTagName("COFINS")[0] ?? null;
+  return {
+    cst: texto(icms, "CST") ?? texto(icms, "CSOSN"),
+    base_icms: numero(icms, "vBC"),
+    aliquota_icms: numero(icms, "pICMS"),
+    icms: numero(icms, "vICMS"),
+    base_st: numero(icms, "vBCST"),
+    icms_st: numero(icms, "vICMSST"),
+    aliquota_ipi: numero(ipi, "pIPI"),
+    ipi: numero(ipi, "vIPI"),
+    pis: numero(pis, "vPIS"),
+    cofins: numero(cofins, "vCOFINS"),
   };
 }
 
