@@ -244,6 +244,18 @@ function Produtos() {
     });
   }, [data, busca, cat]);
 
+  const [valorCompraTxt, setValorCompraTxt] = useState<string | null>(null);
+  const fator = Number(form.fator_conversao) > 0 ? Number(form.fator_conversao) : 1;
+  // Novo custo; com margem digitada, o preço acompanha.
+  function mudarCusto(custo: string, doValorCompra = false) {
+    if (!doValorCompra) setValorCompraTxt(null);
+    const m = margemTxt === null ? null : Number(margemTxt.replace(",", "."));
+    if (m !== null && Number.isFinite(m) && m < 100) {
+      const preco = Number(custo || 0) / (1 - m / 100);
+      setForm((f) => ({ ...f, custo, preco_venda: preco.toFixed(2) }));
+    } else setForm((f) => ({ ...f, custo }));
+  }
+
   const salvar = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -700,23 +712,35 @@ function Produtos() {
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <div>
-                <Label htmlFor="p-custo">Custo</Label>
+                <Label htmlFor="p-compra">Valor de compra{form.unidade_compra ? ` (${form.unidade_compra})` : ""}</Label>
+                <Input
+                  id="p-compra"
+                  type="number"
+                  step="0.01"
+                  value={valorCompraTxt ?? (Number(form.custo || 0) * fator ? String(Math.round(Number(form.custo || 0) * fator * 100) / 100) : "")}
+                  onChange={(e) => {
+                    setValorCompraTxt(e.target.value);
+                    const v = Number(e.target.value.replace(",", ".") || 0);
+                    mudarCusto(String(Math.round((v / fator) * 10000) / 10000), true);
+                  }}
+                  onBlur={() => setValorCompraTxt(null)}
+                />
+                {fator > 1 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    ÷ {num(fator)} = custo por {form.unidade || "unidade"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="p-custo">Custo{form.unidade ? ` (${form.unidade})` : ""}</Label>
                 <Input
                   id="p-custo"
                   type="number"
                   step="0.0001"
                   value={form.custo}
-                  onChange={(e) => {
-                    const custo = e.target.value;
-                    const m = margemTxt === null ? null : Number(margemTxt.replace(",", "."));
-                    // Com margem digitada, o preço acompanha o novo custo.
-                    if (m !== null && Number.isFinite(m) && m < 100) {
-                      const preco = Number(custo || 0) / (1 - m / 100);
-                      setForm({ ...form, custo, preco_venda: preco.toFixed(2) });
-                    } else setForm({ ...form, custo });
-                  }}
+                  onChange={(e) => mudarCusto(e.target.value)}
                 />
               </div>
               <div>
