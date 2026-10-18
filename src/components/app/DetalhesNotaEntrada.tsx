@@ -77,6 +77,6 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
   );
 }
 
-function Campo({ label, value }: { label: string; value?: string | null }) {
+function Campo({ label, value }: { label: string; value: string | null | undefined }) {
   return <div className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="break-words font-medium">{value || "—"}</dd></div>;
 }
