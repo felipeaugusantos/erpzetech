@@ -51,11 +51,13 @@ function Producao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedido_personalizacao")
-        .select("id, pedido_id, etapa, arte_situacao, grade, etapas_datas, pedidos(numero, previsao_entrega, clientes(nome))")
+        .select("id, pedido_id, etapa, arte_situacao, grade, etapas_datas, pedidos(numero, situacao, previsao_entrega, clientes(nome))")
         .neq("etapa", "entregue")
         .order("created_at");
       if (error) throw error;
-      return (data ?? []) as unknown as Registro[];
+      return ((data ?? []) as unknown as (Registro & { pedidos: { situacao?: string } | null })[]).filter(
+        (r) => !["cancelado", "rascunho"].includes(r.pedidos?.situacao ?? ""),
+      );
     },
   });
 
