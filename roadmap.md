@@ -153,3 +153,5 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Botão de emitir NFC-e na frente de caixa (no cupom da venda e na lista de vendas do caixa): CPF opcional validado, mostra o número ou o que falta resolver; a venda guardada sem internet só libera o botão depois de enviada. A transmissão à Sefaz continua pendente
 - [ ] Botão de emitir NFC-e no PDV (pedido) e nas vendas do restaurante
 - [ ] Pix com cobrança automática e boleto registrado (depende do provedor escolhido)
+- [x] Importar nota de entrada pelo PDF digital (DANFE), com conferência antes de gravar
+- [x] Produção baixa o saldo por tamanho quando o pedido sai de "Aguardando arte" (cancelamento devolve)
