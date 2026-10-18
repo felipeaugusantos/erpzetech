@@ -296,10 +296,11 @@ function Pedidos() {
       if (gradeFinal.length > 0) {
         const { error: eg } = await supabase.from("pedido_personalizacao").insert({
           pedido_id: pedidoId as string,
-          grade: gradeFinal.map(({ modelo, tamanho, quantidade }) => ({
+          grade: gradeFinal.map(({ modelo, tamanho, quantidade, produto_id }) => ({
             modelo,
             tamanho,
             quantidade,
+            produto_id,
           })),
         });
         if (eg)
