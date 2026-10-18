@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { ajusteComercial, ratearValorReal } from "../src/lib/conferencia-fisica";
 
 describe("conferência física da nota", () => {
@@ -12,7 +12,7 @@ describe("conferência física da nota", () => {
       ],
       1225,
     );
-    const total = 130 * custos[0] + 80 * custos[1] + 20 * custos[2];
+    const total = 130 * custos[0]! + 80 * custos[1]! + 20 * custos[2]!;
     expect(Math.round(total * 100) / 100).toBe(1225);
     expect(custos[1]).toBe(custos[2]);
   });
