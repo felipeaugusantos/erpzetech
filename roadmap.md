@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Exibir os detalhes de notas de entrada já importadas e conferir a abertura com uma nota cadastrada.
+
 - [x] Corrigir visibilidade e reenvio de comandas offline recusadas; 6 testes passaram e recuperação online conferida com conta autenticada e respostas de recusa/sucesso simuladas, sem movimentar dinheiro real.
 
 - [x] Painel Ze Tech: quantidade de notas emitidas por cliente (`/ze-tech-notas` + RPC `saas_notas_por_cliente`)
