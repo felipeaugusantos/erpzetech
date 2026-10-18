@@ -65,17 +65,14 @@ import {
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
-type Item = { label: string; to?: string; icon: typeof Gauge; soon?: boolean };
+type Item = { label: string; to?: string; icon: typeof Gauge; soon?: boolean; secao?: string };
 type Group = { label: string; icon: typeof Gauge; items: Item[] };
 
 const groups: Group[] = [
   {
     label: "Visão geral",
     icon: Gauge,
-    items: [
-      { label: "Dashboard", to: "/dashboard", icon: Gauge },
-      { label: "Relatório do sócio", to: "/relatorio", icon: FileText },
-    ],
+    items: [{ label: "Dashboard", to: "/dashboard", icon: Gauge }],
   },
   {
     label: "Comercial",
@@ -94,7 +91,6 @@ const groups: Group[] = [
       { label: "Devoluções de venda", to: "/devolucoes", icon: ClipboardList },
       { label: "Vendedores", to: "/vendedores", icon: Users },
       { label: "Comissão de vendedores", to: "/comissoes", icon: Tag },
-      { label: "Relatório de comissões", to: "/relatorio-comissoes", icon: Tag },
       { label: "PDV — venda rápida", to: "/pdv", icon: Store },
       { label: "Frente de caixa (tela cheia)", to: "/frente-caixa", icon: Store },
     ],
@@ -111,13 +107,9 @@ const groups: Group[] = [
       { label: "Ajuste de lotes", to: "/ajuste-lotes", icon: Boxes },
       { label: "Lotes sem internet", to: "/lotes-offline", icon: Wallet },
       { label: "Entradas e saídas", to: "/estoque-movimentos", icon: Boxes },
-      { label: "Movimento por tamanho", to: "/movimento-grade", icon: Boxes },
       { label: "Balanço de estoque", to: "/inventarios", icon: ClipboardList },
-      { label: "Giro e sugestão de compra", to: "/giro-estoque", icon: Gauge },
       { label: "Sugestão de reposição", to: "/sugestao-compra", icon: ShoppingCart },
-      { label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
       { label: "Transferência entre lojas", to: "/transferencias", icon: ArrowLeftRight },
-      { label: "Relatório de estoque", to: "/relatorio-estoque", icon: Warehouse },
       { label: "Conferência sem internet", to: "/conferencia-offline", icon: Wallet },
 
       { label: "Depósitos", to: "/depositos", icon: Warehouse },
@@ -152,11 +144,8 @@ const groups: Group[] = [
     icon: Wallet,
     items: [
       { label: "Contas a receber", to: "/contas-receber", icon: Wallet },
-      { label: "Extrato a receber", to: "/extrato-receber", icon: Wallet },
       { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
       { label: "Caixa", to: "/caixa", icon: Wallet },
-      { label: "Fechamento por operador", to: "/fechamento-operador", icon: Wallet },
-      { label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
       { label: "Contas bancárias", to: "/contas-bancarias", icon: Building2 },
       { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
@@ -168,9 +157,6 @@ const groups: Group[] = [
       { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },
       { label: "Configuração de prefeitura", to: "/prefeitura", icon: Landmark },
       { label: "Simulação de nota", to: "/nfe-simulacao", icon: Calculator },
-      { label: "Balanço fiscal", to: "/balanco-fiscal", icon: FileText },
-      { label: "Painel fiscal por loja", to: "/painel-fiscal", icon: Gauge },
-      { label: "Relatório de lucro", to: "/lucro", icon: TrendingUp },
     ],
   },
   {
@@ -189,8 +175,6 @@ const groups: Group[] = [
     items: [
       { label: "Ordens de serviço", to: "/assistencia", icon: Wrench },
       { label: "Técnicos", to: "/tecnicos", icon: IdCard },
-      { label: "Assistência por loja", to: "/assistencia-lojas", icon: Gauge },
-      { label: "Relatório em PDF", to: "/relatorio-assistencia", icon: FileText },
     ],
   },
   {
@@ -199,10 +183,52 @@ const groups: Group[] = [
     items: [
       { label: "Balcão de locação", to: "/locacao-balcao", icon: Receipt },
       { label: "Locações", to: "/locacoes", icon: CalendarClock },
-      { label: "Painel de locação", to: "/painel-locacao", icon: Gauge },
       { label: "Equipamentos", to: "/locacao-equipamentos", icon: Hammer },
       { label: "Estoque de equipamentos", to: "/locacao-estoque", icon: Boxes },
-      { label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
+    ],
+  },
+  {
+    label: "Relatórios",
+    icon: FileText,
+    items: [
+      { secao: "Gerencial", label: "Relatório do sócio", to: "/relatorio", icon: FileText },
+      { secao: "Gerencial", label: "Painel da filial extra", to: "/painel-filial", icon: Gauge },
+      { secao: "Gerencial", label: "Auditoria", to: "/auditoria", icon: ShieldCheck },
+      { secao: "Comercial", label: "Lucro e margem", to: "/lucro", icon: TrendingUp },
+      { secao: "Comercial", label: "Comissões", to: "/relatorio-comissoes", icon: Tag },
+      {
+        secao: "Estoque",
+        label: "Estoque por depósito",
+        to: "/relatorio-estoque",
+        icon: Warehouse,
+      },
+      { secao: "Estoque", label: "Giro e curva ABC", to: "/giro-estoque", icon: Gauge },
+      { secao: "Estoque", label: "Movimentações", to: "/movimentacoes", icon: ClipboardList },
+      { secao: "Estoque", label: "Movimento por tamanho", to: "/movimento-grade", icon: Boxes },
+      { secao: "Financeiro", label: "Extrato a receber", to: "/extrato-receber", icon: Wallet },
+      { secao: "Financeiro", label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
+      {
+        secao: "Financeiro",
+        label: "Fechamento por operador",
+        to: "/fechamento-operador",
+        icon: Wallet,
+      },
+      { secao: "Fiscal", label: "Balanço fiscal", to: "/balanco-fiscal", icon: FileText },
+      { secao: "Fiscal", label: "Painel fiscal por loja", to: "/painel-fiscal", icon: Gauge },
+      {
+        secao: "Assistência técnica",
+        label: "Assistência por loja",
+        to: "/assistencia-lojas",
+        icon: Gauge,
+      },
+      {
+        secao: "Assistência técnica",
+        label: "Relatório em PDF",
+        to: "/relatorio-assistencia",
+        icon: FileText,
+      },
+      { secao: "Locação", label: "Painel de locação", to: "/painel-locacao", icon: Gauge },
+      { secao: "Locação", label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
     ],
   },
   {
@@ -213,14 +239,12 @@ const groups: Group[] = [
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
-      { label: "Auditoria", to: "/auditoria", icon: ShieldCheck },
       { label: "Importação por planilha", to: "/importacao", icon: FileText },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
       { label: "Painel da maquininha", to: "/tef-painel", icon: Wallet },
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
-      { label: "Painel da filial", to: "/painel-filial", icon: Gauge },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
     ],
@@ -317,6 +341,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: g.items.filter((i) => {
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
+            if (i.to === "/assistencia-lojas" || i.to === "/relatorio-assistencia")
+              return modulos.assistencia;
+            if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
+              return modulos.locacao;
             if (
               i.to === "/personalizacao" ||
               i.to === "/custo-par" ||
@@ -460,8 +488,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 </button>
                 <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
-                  {group.items.map((item) => (
-                    <li key={item.label}>
+                  {group.items.map((item, i) => (
+                    <li key={`${item.secao ?? ""}-${item.label}`}>
+                      {item.secao && item.secao !== group.items[i - 1]?.secao ? (
+                        <p className="px-2 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
+                          {item.secao}
+                        </p>
+                      ) : null}
                       {item.to && !item.soon ? (
                         <Link
                           to={item.to}
