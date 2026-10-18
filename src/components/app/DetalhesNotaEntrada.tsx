@@ -66,7 +66,7 @@ export function DetalhesNotaEntrada({ compraId, onClose }: { compraId: string | 
         .neq("situacao", "cancelado")
         .order("vencimento");
       const vencimento = (parcelas ?? []).find((p) => p.categoria !== "Frete")?.vencimento ?? undefined;
-      const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", { p_compra_id: compraId, p_cte: cte, p_vencimento: vencimento });
+      const { data: res, error } = await supabase.rpc("nfe_entrada_vincular_cte", { p_compra_id: compraId, p_cte: cte, ...(vencimento ? { p_vencimento: vencimento } : {}) });
       if (error) throw error;
       return { ...(res as { itens?: number }), valor: cte.valor, transp, vencimento };
     },
