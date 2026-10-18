@@ -131,6 +131,7 @@ const groups: Group[] = [
       { label: "Cotações", to: "/cotacoes", icon: ClipboardList },
       { label: "Pedidos de compra", to: "/compras", icon: ShoppingCart },
       { label: "Importar XML da NF-e", to: "/nfe-entrada", icon: FileText },
+      { label: "Importar CT-e de frete", to: "/importar-cte", icon: FileText },
     ],
   },
   {
