@@ -108,7 +108,15 @@ export function rateioFrete(totais: number[], frete: number): number[] {
 export function lerDactes(texto: string): CteLido[] {
   const porChave = new Map<string, CteLido>();
   // O PDF.js extrai o título deste documento como "D A C T E".
-  for (const parte of texto.split(/(?=^.*\bD\s*A\s*C\s*T\s*E\b)/m)) {
+  const linhas = texto.split("\n");
+  const inicios = linhas.flatMap((linha, i) => {
+    if (!/\bD\s*A\s*C\s*T\s*E\b/.test(linha)) return [];
+    // Preserve o nome da transportadora quando ele vem antes do título.
+    const anterior = linhas[i - 1] ?? "";
+    return [i > 0 && /\b(?:LTDA|S\.?A\.?|EIRELI|EPP)\b/.test(anterior) ? i - 1 : i];
+  });
+  const partes = inicios.map((inicio, i) => linhas.slice(inicio, inicios[i + 1]).join("\n"));
+  for (const parte of partes) {
     let c: CteLido;
     try { c = lerTextoDacte(parte); } catch { continue; }
     if (!c.chave) continue;
