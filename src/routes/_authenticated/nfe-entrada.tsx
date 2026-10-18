@@ -451,6 +451,45 @@ function NfeEntrada() {
             </div>
           </div>
 
+          <div className="panel mb-4 p-4">
+            <p className="font-display text-sm font-semibold">Impostos da nota</p>
+            <p className="text-xs text-muted-foreground">
+              Valores destacados no XML do fornecedor. ST, IPI, seguro e outras despesas entram no
+              custo dos produtos.
+            </p>
+            <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3 xl:grid-cols-6">
+              {(
+                [
+                  ["Base do ICMS", lida.nota.impostos.base_icms],
+                  ["ICMS", lida.nota.impostos.icms],
+                  ["Base do ICMS-ST", lida.nota.impostos.base_st],
+                  ["ICMS-ST", lida.nota.impostos.icms_st],
+                  ["FCP-ST", lida.nota.impostos.fcp_st],
+                  ["IPI", lida.nota.impostos.ipi],
+                  ["PIS", lida.nota.impostos.pis],
+                  ["COFINS", lida.nota.impostos.cofins],
+                  ["Frete", lida.nota.frete],
+                  ["Seguro", lida.nota.impostos.seguro],
+                  ["Outras despesas", lida.nota.impostos.outras],
+                  ["Desconto", lida.nota.desconto],
+                ] as const
+              ).map(([rotulo, valor]) => (
+                <div key={rotulo}>
+                  <p className="text-xs text-muted-foreground">{rotulo}</p>
+                  <p className="text-numeric font-medium">{brl(valor)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-sm">
+              <span className="text-muted-foreground">
+                Tributos aproximados: {brl(lida.nota.impostos.tributos_aprox)}
+              </span>
+              <span>
+                Total da nota: <strong className="text-numeric">{brl(lida.nota.total)}</strong>
+              </span>
+            </div>
+          </div>
+
           <div className="panel overflow-x-auto">
             <Table>
               <TableHeader>
@@ -473,6 +512,16 @@ function NfeEntrada() {
                           Cód. {item.codigo || "—"}
                           {item.codigo_barras ? ` · EAN ${item.codigo_barras}` : ""}
                           {item.ncm ? ` · NCM ${item.ncm}` : ""} · {item.unidade}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.cfop ? `CFOP ${item.cfop} · ` : ""}
+                          {item.impostos.cst ? `CST ${item.impostos.cst} · ` : ""}
+                          ICMS {brl(item.impostos.icms)}
+                          {item.impostos.aliquota_icms ? ` (${num(item.impostos.aliquota_icms)}%)` : ""}
+                          {item.impostos.icms_st ? ` · ST ${brl(item.impostos.icms_st)}` : ""}
+                          {` · IPI ${brl(item.impostos.ipi)}`}
+                          {item.impostos.aliquota_ipi ? ` (${num(item.impostos.aliquota_ipi)}%)` : ""}
+                          {` · PIS ${brl(item.impostos.pis)} · COFINS ${brl(item.impostos.cofins)}`}
                         </p>
                       </TableCell>
                       <TableCell className="min-w-[280px]">
