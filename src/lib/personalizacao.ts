@@ -3,7 +3,8 @@
 export const etapasPersonalizacao = [
   { value: "aguardando_arte", label: "Aguardando aprovação da arte" },
   { value: "impressao", label: "Impressão das folhas" },
-  { value: "prensa", label: "Prensa / montagem" },
+  { value: "prensa", label: "Prensa" },
+  { value: "montagem", label: "Montagem das tiras" },
   { value: "pronto", label: "Pronto para retirada/entrega" },
   { value: "entregue", label: "Entregue" },
 ] as const;
