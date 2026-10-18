@@ -35,3 +35,18 @@ export function proximaEtapa(etapa: string, arte: string): EtapaPersonalizacao |
   if (etapa === "aguardando_arte" && arte !== "aprovada") return null;
   return etapasPersonalizacao[i + 1]!.value;
 }
+
+/** Item de nota de entrada que é tira de chinelo (pede a grade de tamanhos na importação). */
+export const ehTira = (descricao: string) => /\bTIRAS?\b/i.test(descricao);
+
+/** Tamanho já escrito na descrição (ex.: "TIRA TRADICIONAL 45/46" → "45/46"). */
+export function tamanhoNaDescricao(descricao: string): string | null {
+  return TAMANHOS_CHINELO.find((t) => descricao.includes(t)) ?? null;
+}
+
+export type GradeEntrada = { tamanho: string; quantidade: number }[];
+
+/** Grade da entrada a partir dos campos digitados (só tamanhos com pares). */
+export function gradeEntrada(qtds: Record<string, string>): GradeEntrada {
+  return montarGrade("", qtds).map(({ tamanho, quantidade }) => ({ tamanho, quantidade }));
+}
