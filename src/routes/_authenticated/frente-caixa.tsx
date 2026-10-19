@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { EmitirNfce } from "@/components/app/EmitirNfce";
+import { avisoDepoisDoUso } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
@@ -50,9 +51,19 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  // ?pet=<atendimento>: "Retirar e cobrar" da agenda do pet shop abre o caixa com os serviços já na venda
-  validateSearch: (s: Record<string, unknown>): { pet?: string } =>
-    typeof s["pet"] === "string" && s["pet"] ? { pet: s["pet"] } : {},
+  // ?pet=<atendimento>: "Retirar e cobrar" da agenda do pet shop abre o caixa com os serviços já na venda.
+  // ?pacote=<modelo>&para=<pet>&validade=30|60|90: venda de pacote de banhos para um pet.
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { pet?: string; pacote?: string; para?: string; validade?: number } => {
+    const out: { pet?: string; pacote?: string; para?: string; validade?: number } = {};
+    if (typeof s["pet"] === "string" && s["pet"]) out.pet = s["pet"];
+    if (typeof s["pacote"] === "string" && s["pacote"]) out.pacote = s["pacote"];
+    if (typeof s["para"] === "string" && s["para"]) out.para = s["para"];
+    const v = Number(s["validade"]);
+    if ([30, 60, 90].includes(v)) out.validade = v;
+    return out;
+  },
   component: FrenteCaixa,
 });
 
@@ -61,8 +72,26 @@ type PetCobranca = {
   id: string;
   pet: string;
   tutor: string;
+  /** só os serviços que serão cobrados agora (os que saem de um pacote não entram na venda) */
   servicos: { produto_id: string; descricao: string; preco: number }[];
+  /** algum serviço do atendimento sai de um pacote do pet */
+  usarPacote: boolean;
 };
+/** Venda de um pacote de banhos para um pet. */
+type PacoteVenda = {
+  modeloId: string;
+  petId: string;
+  validade: number;
+  pet: string;
+  tutor: string;
+  produto_id: string;
+  descricao: string;
+  preco: number;
+};
+/** O que a venda do caixa precisa registrar no pet shop depois de concluída. */
+type VinculoPet =
+  | { tipo: "atendimento"; agendamentoId: string; usarPacote: boolean }
+  | { tipo: "pacote"; modeloId: string; petId: string; validade: number };
 /** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
 const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
@@ -116,7 +145,13 @@ function FrenteCaixa() {
   >(null);
   const [cliente, setCliente] = useState<ClienteFrente | null>(null);
   const [petCobranca, setPetCobranca] = useState<PetCobranca | null>(null);
-  const { pet: petParam } = Route.useSearch();
+  const [pacoteVenda, setPacoteVenda] = useState<PacoteVenda | null>(null);
+  const {
+    pet: petParam,
+    pacote: pacoteParam,
+    para: paraParam,
+    validade: validadeParam,
+  } = Route.useSearch();
   const navegar = useNavigate();
   const [cupom, setCupom] = useState<CupomDados | null>(null);
   /** Pedido da venda que acabou de fechar (ou escolhido na lista de vendas) para emitir a NFC-e. */
@@ -164,7 +199,7 @@ function FrenteCaixa() {
       const [itens, pet, cli] = await Promise.all([
         supabase
           .from("pet_agendamento_itens")
-          .select("servico_id, preco_aplicado")
+          .select("id, servico_id, preco_aplicado")
           .eq("agendamento_id", ag.id),
         supabase.from("pets").select("nome").eq("id", ag.pet_id).maybeSingle(),
         supabase
@@ -177,13 +212,19 @@ function FrenteCaixa() {
       const servs = ids.length
         ? await supabase.from("pet_servicos").select("id, nome, produto_id").in("id", ids)
         : { data: [] };
+      // banhos que saem de um pacote do pet não entram na venda
+      const cob = await supabase.rpc("pet_agenda_cobertura", { p_agendamento_id: ag.id });
+      const cobertos = new Set(
+        ((cob.data ?? []) as unknown as { item_id: string }[]).map((c) => c.item_id),
+      );
       const servicos = (itens.data ?? []).flatMap((i) => {
+        if (cobertos.has(i.id)) return [];
         const sv = (servs.data ?? []).find((x) => x.id === i.servico_id);
         return sv
           ? [{ produto_id: sv.produto_id, descricao: sv.nome, preco: Number(i.preco_aplicado) }]
           : [];
       });
-      if (!servicos.length) {
+      if (!(itens.data ?? []).length) {
         toast.error("O atendimento não tem serviços para cobrar");
         return;
       }
@@ -192,7 +233,10 @@ function FrenteCaixa() {
         pet: pet.data?.nome ?? "Pet",
         tutor: cli.data?.nome ?? "",
         servicos,
+        usarPacote: cobertos.size > 0,
       });
+      if (cobertos.size > 0)
+        toast.info("Há banho coberto por pacote: ele sai do pacote e não entra na venda");
       setLinhas(
         servicos.map((x) => ({
           produto_id: x.produto_id,
@@ -206,35 +250,101 @@ function FrenteCaixa() {
     })();
   }, [petParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const pacoteCarregado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pacoteParam || !paraParam || !validadeParam) return;
+    const chave = `${pacoteParam}:${paraParam}:${validadeParam}`;
+    if (pacoteCarregado.current === chave) return;
+    pacoteCarregado.current = chave;
+    void (async () => {
+      const [mod, pet] = await Promise.all([
+        supabase
+          .from("pet_pacote_modelos")
+          .select("id, nome, preco, produto_id, ativo")
+          .eq("id", pacoteParam)
+          .maybeSingle(),
+        supabase.from("pets").select("id, nome, cliente_id").eq("id", paraParam).maybeSingle(),
+      ]);
+      if (!mod.data || !pet.data || !mod.data.ativo) {
+        toast.error("Pacote ou pet não encontrado");
+        return;
+      }
+      const cli = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, cnpj, telefone")
+        .eq("id", pet.data.cliente_id)
+        .maybeSingle();
+      setPacoteVenda({
+        modeloId: mod.data.id,
+        petId: pet.data.id,
+        validade: validadeParam,
+        pet: pet.data.nome,
+        tutor: cli.data?.nome ?? "",
+        produto_id: mod.data.produto_id,
+        descricao: mod.data.nome,
+        preco: Number(mod.data.preco),
+      });
+      setLinhas([
+        {
+          produto_id: mod.data.produto_id,
+          descricao: `${mod.data.nome} — ${pet.data.nome}`,
+          unidade: "UN",
+          preco: Number(mod.data.preco),
+          quantidade: 1,
+        },
+      ]);
+      if (cli.data) setCliente(cli.data);
+    })();
+  }, [pacoteParam, paraParam, validadeParam]);
+
   function desistirDaCobrancaPet() {
     setPetCobranca(null);
+    setPacoteVenda(null);
     setLinhas([]);
     setCliente(null);
     petCarregado.current = null;
+    pacoteCarregado.current = null;
     void navegar({ to: "/frente-caixa", search: {} });
   }
 
-  /** Confirma no banco o vínculo da venda com o atendimento; se a conexão cair, guarda para tentar de novo. */
-  async function vincularPet(agendamentoId: string, chave: string, pedidoId: string | null) {
-    const { error } = await supabase.rpc("pet_agenda_retirar", {
-      p_agendamento_id: agendamentoId,
-      ...(pedidoId ? { p_pedido_id: pedidoId } : { p_chave: chave }),
-    });
+  /** Confirma no banco o vínculo da venda com o pet shop; se a conexão cair, guarda para tentar de novo. */
+  async function vincularPet(v: VinculoPet, chave: string, pedidoId: string | null) {
+    const ref = pedidoId ? { p_pedido_id: pedidoId } : { p_chave: chave };
+    const { data, error } =
+      v.tipo === "atendimento"
+        ? await supabase.rpc("pet_agenda_retirar", {
+            p_agendamento_id: v.agendamentoId,
+            p_usar_pacote: v.usarPacote,
+            ...ref,
+          })
+        : await supabase.rpc("pet_pacote_vender", {
+            p_modelo_id: v.modeloId,
+            p_pet_id: v.petId,
+            p_validade_dias: v.validade,
+            ...ref,
+          });
     if (error) {
+      const o = v.tipo === "atendimento" ? "o atendimento" : "o pacote";
       if (/fetch|network|failed/i.test(error.message)) {
-        localStorage.setItem(CHAVE_PET_PENDENTE, JSON.stringify({ agendamentoId, chave }));
+        localStorage.setItem(CHAVE_PET_PENDENTE, JSON.stringify({ v, chave }));
         toast.warning(
-          "Venda registrada, mas o atendimento ainda não foi marcado como retirado. Será confirmado quando a conexão voltar — não cobre de novo.",
+          `Venda registrada, mas ${o} ainda não foi confirmado. Será confirmado quando a conexão voltar — não cobre de novo.`,
         );
       } else {
-        toast.error("Venda registrada, mas o atendimento não foi marcado como retirado", {
+        toast.error(`Venda registrada, mas ${o} não foi confirmado`, {
           description: error.message,
         });
       }
       return false;
     }
     localStorage.removeItem(CHAVE_PET_PENDENTE);
+    // banho tirado do pacote: avisa a recepção quando sobra só um (ou nenhum)
+    const avisos = ((data as { avisos?: { pet: string; restam: number }[] } | null)?.avisos ?? [])
+      .map((a) => avisoDepoisDoUso(a.pet, a.restam))
+      .filter(Boolean);
+    for (const texto of avisos) toast.warning(texto as string, { duration: 15000 });
     void qc.invalidateQueries({ queryKey: ["pet-agenda"] });
+    void qc.invalidateQueries({ queryKey: ["pet-pacotes"] });
     return true;
   }
 
@@ -242,8 +352,9 @@ function FrenteCaixa() {
     const raw = localStorage.getItem(CHAVE_PET_PENDENTE);
     if (!raw || !session) return;
     try {
-      const p = JSON.parse(raw) as { agendamentoId: string; chave: string };
-      void vincularPet(p.agendamentoId, p.chave, null);
+      const p = JSON.parse(raw) as { v?: VinculoPet; chave: string };
+      if (p.v) void vincularPet(p.v, p.chave, null);
+      else localStorage.removeItem(CHAVE_PET_PENDENTE);
     } catch {
       localStorage.removeItem(CHAVE_PET_PENDENTE);
     }
@@ -614,7 +725,7 @@ function FrenteCaixa() {
         ]);
         return "offline";
       };
-      if (petCobranca && !navigator.onLine)
+      if ((petCobranca || pacoteVenda) && !navigator.onLine)
         throw new Error("A cobrança do pet shop precisa de internet");
       if (!navigator.onLine) return guardar();
       const { data, error } = await supabase.rpc("frente_venda", params);
@@ -636,12 +747,35 @@ function FrenteCaixa() {
           } as never,
         );
       }
-      if (petCobranca && data) await vincularPet(petCobranca.id, params.p_chave, data as string);
+      if (data) {
+        const vinculo: VinculoPet | null = petCobranca
+          ? {
+              tipo: "atendimento",
+              agendamentoId: petCobranca.id,
+              usarPacote: petCobranca.usarPacote,
+            }
+          : pacoteVenda
+            ? {
+                tipo: "pacote",
+                modeloId: pacoteVenda.modeloId,
+                petId: pacoteVenda.petId,
+                validade: pacoteVenda.validade,
+              }
+            : null;
+        if (vinculo) await vincularPet(vinculo, params.p_chave, data as string);
+      }
       return data as string;
     },
     onMutate: () => {
+      if (pacoteVenda) {
+        const l = linhas.find((x) => x.produto_id === pacoteVenda.produto_id);
+        if (!l || l.quantidade !== 1 || Math.abs(l.preco - pacoteVenda.preco) > 0.001)
+          throw new Error(
+            `Mantenha "${pacoteVenda.descricao}" na venda, uma vez, por ${brl(pacoteVenda.preco)}`,
+          );
+      }
       if (petCobranca) {
-        // a venda precisa trazer cada serviço do atendimento, uma vez e pelo valor combinado
+        // a venda precisa trazer cada serviço cobrado do atendimento, uma vez e pelo valor combinado
         for (const sv of petCobranca.servicos) {
           const l = linhas.find((x) => x.produto_id === sv.produto_id);
           if (!l || l.quantidade !== 1 || Math.abs(l.preco - sv.preco) > 0.001)
@@ -704,9 +838,11 @@ function FrenteCaixa() {
           : {}),
       });
       setTef({ nsu: "", aut: "", bandeira: "" });
-      if (petCobranca) {
+      if (petCobranca || pacoteVenda) {
         setPetCobranca(null);
+        setPacoteVenda(null);
         petCarregado.current = null;
+        pacoteCarregado.current = null;
         void navegar({ to: "/frente-caixa", search: {} });
       }
       setLinhas([]);
@@ -1023,12 +1159,30 @@ function FrenteCaixa() {
               </Button>
             </div>
 
+            {pacoteVenda && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+                <span>
+                  <strong>Vendendo pacote de banhos:</strong> {pacoteVenda.descricao} para{" "}
+                  {pacoteVenda.pet}
+                  {pacoteVenda.tutor ? ` (${pacoteVenda.tutor})` : ""}, válido por{" "}
+                  {pacoteVenda.validade} dias. Mantenha o pacote na venda e escolha a forma de
+                  pagamento.
+                </span>
+                <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
+                  Desistir da venda do pacote
+                </Button>
+              </div>
+            )}
             {petCobranca && (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
                 <span>
                   <strong>Cobrando atendimento do pet shop:</strong> {petCobranca.pet}
-                  {petCobranca.tutor ? ` (${petCobranca.tutor})` : ""}. Mantenha os serviços na
-                  venda; pode somar produtos e escolher a forma de pagamento.
+                  {petCobranca.tutor ? ` (${petCobranca.tutor})` : ""}.{" "}
+                  {petCobranca.usarPacote
+                    ? "Os banhos cobertos pelo pacote saem do pacote e não entram na venda. "
+                    : ""}
+                  Mantenha os serviços na venda; pode somar produtos e escolher a forma de
+                  pagamento.
                 </span>
                 <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
                   Desistir da cobrança

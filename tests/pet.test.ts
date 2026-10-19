@@ -154,3 +154,58 @@ test("agenda: caminhos de situação", () => {
   assert.equal(podeRemarcar("agendado"), true);
   assert.equal(podeRemarcar("em_atendimento"), false);
 });
+
+import {
+  avisoDepoisDoUso,
+  avisoDoPacote,
+  diasParaVencer,
+  pacoteQueCobre,
+  restamNoPacote,
+  type PacoteSaldo,
+} from "../src/lib/pet.ts";
+
+const pac = (o: Partial<PacoteSaldo>): PacoteSaldo => ({
+  id: "p",
+  pet_id: "a",
+  servico_id: "banho",
+  situacao: "ativo",
+  vence_em: "2026-12-31",
+  quantidade: 4,
+  usados: 0,
+  ...o,
+});
+
+test("pacote: saldo e quem cobre o serviço", () => {
+  assert.equal(restamNoPacote(pac({ usados: 3 })), 1);
+  assert.equal(restamNoPacote(pac({ usados: 9 })), 0);
+  const lista = [
+    pac({ id: "longe", vence_em: "2027-02-01" }),
+    pac({ id: "perto", vence_em: "2026-11-01" }),
+    pac({ id: "vencido", vence_em: "2026-10-01" }),
+    pac({ id: "esgotado", usados: 4, vence_em: "2026-10-25" }),
+    pac({ id: "cancelado", situacao: "cancelado", vence_em: "2026-10-26" }),
+    pac({ id: "outro-pet", pet_id: "b", vence_em: "2026-10-27" }),
+    pac({ id: "outro-servico", servico_id: "tosa", vence_em: "2026-10-28" }),
+  ];
+  assert.equal(pacoteQueCobre(lista, "a", "banho", "2026-10-19")?.id, "perto");
+  assert.equal(pacoteQueCobre(lista, "a", "banho", "2026-11-02")?.id, "longe");
+  assert.equal(pacoteQueCobre(lista, "a", "banho", "2027-03-01"), null);
+  assert.equal(pacoteQueCobre(lista, "c", "banho", "2026-10-19"), null);
+});
+
+test("pacote: aviso no penúltimo banho e no último", () => {
+  assert.equal(avisoDoPacote(4), null);
+  assert.equal(avisoDoPacote(3), null);
+  assert.match(avisoDoPacote(2) ?? "", /Penúltimo banho.*resta só 1/);
+  assert.match(avisoDoPacote(1) ?? "", /Último banho/);
+  assert.equal(avisoDepoisDoUso("Thor", 3), null);
+  assert.match(avisoDepoisDoUso("Thor", 1) ?? "", /só mais 1 banho/);
+  assert.match(avisoDepoisDoUso("Thor", 0) ?? "", /acabou/);
+});
+
+test("pacote: dias para vencer", () => {
+  const hoje = new Date("2026-10-19T09:00:00");
+  assert.equal(diasParaVencer("2026-10-19", hoje), 0);
+  assert.equal(diasParaVencer("2026-10-29", hoje), 10);
+  assert.equal(diasParaVencer("2026-10-18", hoje), -1);
+});

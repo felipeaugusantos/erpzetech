@@ -3040,3 +3040,188 @@ BEGIN
   SELECT count(*) INTO n FROM pet_comissoes WHERE tenant_id <> demo;
   PERFORM ci.exige(n = 0, 'nenhuma comissão fora da empresa');
 END $$;
+
+-- 40. Pet shop (pacotes): venda adiantada, uso na retirada, aviso do penúltimo banho, validade e cancelamento
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '5 days' + interval '8 hours';
+  tutor uuid; pet_a uuid; pet_b uuid; prof uuid; banho uuid; tosa uuid; banho_prod uuid; tosa_prod uuid; mod uuid; mod_prod uuid; dep uuid; merc uuid;
+  ped_pac uuid; ped_tosa uuid; ped_errada uuid; ped_sem uuid; pac uuid; pac2 uuid; ag1 uuid; ag2 uuid; ag3 uuid; ag4 uuid; ag5 uuid; agb uuid; agm uuid;
+  r jsonb; n bigint; tb uuid;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Pet Pacote CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'PET-PAC-RACAO', 'Ração pacote', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Pacote CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Pacote B') RETURNING id INTO tb;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 20, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  banho := pet_servico_salvar('{"nome":"Banho Pacote","duracao_min":30}'::jsonb);
+  tosa := pet_servico_salvar('{"nome":"Tosa Pacote","categoria":"tosa","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(banho, NULL, NULL, NULL, 60);
+  PERFORM pet_preco_salvar(tosa, NULL, NULL, NULL, 40);
+  prof := pet_profissional_salvar('{"nome":"Eli Pacote","comissao_percentual":30}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO banho_prod FROM pet_servicos WHERE id = banho;
+  SELECT produto_id INTO tosa_prod FROM pet_servicos WHERE id = tosa;
+  PERFORM ci.entrar(vend);
+  pet_a := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Pacote A'));
+  pet_b := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Pacote B'));
+  PERFORM ci.sair();
+
+  -- modelo de pacote: só administrador e gestor; validações
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome','P','servico_id',%L,'quantidade',4,'preco',200))$c$, banho), 'vendedor cria modelo de pacote');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome','','servico_id',%L,'quantidade',4,'preco',200))$c$, banho), 'pacote sem nome');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome','P','servico_id',%L,'quantidade',1,'preco',200))$c$, banho), 'pacote de um serviço só');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome','P','servico_id',%L,'quantidade',4,'preco',0))$c$, banho), 'pacote sem preço');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome','P','servico_id',%L,'quantidade',4,'preco',200))$c$, gen_random_uuid()), 'pacote de serviço que não existe');
+  PERFORM ci.entrar(gest);
+  mod := pet_pacote_modelo_salvar(jsonb_build_object('nome', 'Pacote 4 banhos', 'servico_id', banho, 'quantidade', 4, 'preco', 200));
+  PERFORM ci.sair();
+  SELECT produto_id INTO mod_prod FROM pet_pacote_modelos WHERE id = mod;
+  PERFORM ci.exige((SELECT NOT controla_estoque AND preco_venda = 200 AND codigo_interno <> '' FROM produtos WHERE id = mod_prod), 'o pacote vira um produto sem estoque, com código automático');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_pacote_modelo_salvar(jsonb_build_object('nome',' pacote 4 BANHOS ','servico_id',%L,'quantidade',4,'preco',200))$c$, banho), 'nome de pacote repetido');
+
+  -- venda do pacote no caixa (200 com 20 de desconto = 180)
+  PERFORM ci.entrar(vend);
+  ped_pac := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', mod_prod, 'quantidade', 1, 'preco_unitario', 200)), 'crediario', tutor, 20, 1, current_date + 30);
+  ped_errada := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', mod_prod, 'quantidade', 1, 'preco_unitario', 150)), 'crediario', tutor, 0, 1, current_date + 30);
+  ped_sem := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', banho_prod, 'quantidade', 1, 'preco_unitario', 60)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_pacote_vender(%L, %L, 60, %L)$c$, mod, pet_a, ped_pac), 'garçom vende pacote');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_pacote_vender(%L, %L, 60, %L)$c$, mod, pet_a, ped_pac), 'estoquista vende pacote');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_vender(%L, %L, 45, %L)$c$, mod, pet_a, ped_pac), 'validade de 45 dias');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_vender(%L, %L, 60)$c$, mod, pet_a), 'sem informar a venda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_vender(%L, %L, 60, %L)$c$, mod, pet_a, ped_errada), 'venda com o pacote por outro valor');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_vender(%L, %L, 60, %L)$c$, mod, pet_a, ped_sem), 'venda sem o pacote');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_vender(%L, %L, 60, %L)$c$, mod, gen_random_uuid(), ped_pac), 'pet que não existe');
+  PERFORM ci.entrar(vend);
+  r := pet_pacote_vender(mod, pet_a, 60, ped_pac);
+  PERFORM ci.sair();
+  pac := (r ->> 'pacote_id')::uuid;
+  PERFORM ci.exige((SELECT quantidade = 4 AND valor = 180 AND validade_dias = 60 AND vence_em = hoje + 60 AND situacao = 'ativo' AND pet_id = pet_a FROM pet_pacotes WHERE id = pac),
+                   'o pacote guarda 4 banhos, o valor pago (180), a validade e o pet');
+  PERFORM ci.exige((SELECT modelo = 'nfse' AND situacao = 'rascunho' AND valor_total = 180 AND valor_produtos = 200 FROM nfe WHERE pedido_id = ped_pac), 'a NFS-e do pacote nasce na venda, em rascunho');
+  PERFORM ci.entrar(vend);
+  r := pet_pacote_vender(mod, pet_a, 60, ped_pac);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM pet_pacotes WHERE venda_id = ped_pac) AND (SELECT count(*) = 1 FROM nfe WHERE pedido_id = ped_pac AND modelo = 'nfse'),
+                   'repetir a venda do pacote não duplica pacote nem nota');
+
+  -- atendimentos do pet A (4 banhos) e do pet B (sem pacote)
+  PERFORM ci.entrar(vend);
+  ag1 := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0 + interval '1 hour', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0 + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  ag4 := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0 + interval '3 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  ag5 := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0 + interval '4 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  agb := pet_agendar(jsonb_build_object('pet_id', pet_b, 'profissional_id', prof, 'inicio', t0 + interval '5 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  agm := pet_agendar(jsonb_build_object('pet_id', pet_a, 'profissional_id', prof, 'inicio', t0 + interval '6 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho), jsonb_build_object('servico_id', tosa))));
+  PERFORM pet_agenda_situacao(x, 'em_atendimento') FROM unnest(ARRAY[ag1, ag2, ag3, ag4, ag5, agb, agm]) x;
+  PERFORM pet_agenda_situacao(x, 'pronto') FROM unnest(ARRAY[ag1, ag2, ag3, ag4, ag5, agb, agm]) x;
+  PERFORM ci.sair();
+
+  -- cobertura: só o pacote do próprio pet, dentro da validade e com saldo
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_agenda_cobertura(%L)$c$, ag1), 'garçom consulta cobertura');
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_cobertura(ag1);
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND (r -> 0 ->> 'restam')::int = 4 AND (r -> 0 ->> 'pacote_id')::uuid = pac, 'o banho do pet A é coberto pelo pacote (restam 4)');
+  PERFORM ci.exige(jsonb_array_length(pet_agenda_cobertura(agb)) = 0, 'o pacote não vale para outro pet, mesmo do mesmo tutor');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, NULL, NULL, true)$c$, agb), 'usar pacote que o pet não tem, sem venda');
+
+  -- usar o pacote: sem venda, sem NFS-e; comissão sobre o valor do uso (180 / 4 = 45 → 13,50); avisa no penúltimo
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag1, NULL, NULL, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'retirado' AND venda_id IS NULL FROM pet_agendamentos WHERE id = ag1), 'retirada só com pacote: sem venda');
+  PERFORM ci.exige((r ->> 'nfe_id') IS NULL AND jsonb_array_length(r -> 'avisos') = 0 AND (r ->> 'usos')::int = 1, 'sem NFS-e do uso e sem aviso no primeiro banho');
+  PERFORM ci.exige((SELECT base = 45 AND valor = 13.50 FROM pet_comissoes WHERE agendamento_id = ag1), 'comissão de 30% sobre o valor de um banho do pacote');
+  PERFORM ci.exige((SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 3, 'restam 3 banhos');
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag1, NULL, NULL, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 3, 'repetir a retirada não gasta outro banho');
+
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag2, NULL, NULL, true);
+  PERFORM ci.exige(jsonb_array_length(r -> 'avisos') = 0 AND (SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 2, 'segundo uso: restam 2, sem aviso ainda');
+  r := pet_agenda_retirar(ag3, NULL, NULL, true);   -- penúltimo banho do pacote
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'avisos') = 1 AND (r -> 'avisos' -> 0 ->> 'restam')::int = 1 AND (r -> 'avisos' -> 0 ->> 'pet') = 'Pacote A',
+                   'no penúltimo banho o sistema avisa que resta só 1');
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag4, NULL, NULL, true);   -- último
+  PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'avisos' -> 0 ->> 'restam')::int = 0 AND (SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 0, 'o último banho esgota o pacote');
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_cobertura(ag5);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 0, 'pacote esgotado não cobre mais');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, NULL, NULL, true)$c$, ag5), 'usar pacote esgotado sem venda');
+
+  -- desfazer retirada feita só com pacote: só a gestão
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_desfazer_retirada(%L)$c$, ag4), 'vendedor desfaz retirada');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_agenda_desfazer_retirada(ag4);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronto' FROM pet_agendamentos WHERE id = ag4) AND (SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 1
+                   AND (SELECT situacao = 'cancelada' FROM pet_comissoes WHERE agendamento_id = ag4), 'desfazer devolve o banho ao pacote e cancela a comissão');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_agenda_desfazer_retirada(%L)$c$, ag4), 'desfazer atendimento que não está retirado');
+
+  -- atendimento misto: o banho sai do pacote e a tosa é cobrada no caixa (com uma ração junto)
+  PERFORM ci.entrar(vend);
+  ped_tosa := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', tosa_prod, 'quantidade', 1, 'preco_unitario', 40),
+                                               jsonb_build_object('produto_id', merc, 'quantidade', 1, 'preco_unitario', 20)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, NULL, NULL, true)$c$, agm), 'misto sem a venda da tosa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L, NULL, true)$c$, agm, ped_sem), 'misto com venda que não traz a tosa');
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(agm, ped_tosa, NULL, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 0 AND (r ->> 'usos')::int = 1, 'o banho do atendimento misto saiu do pacote');
+  PERFORM ci.exige((SELECT base = 85 AND valor = 25.50 FROM pet_comissoes WHERE agendamento_id = agm), 'comissão: tosa cobrada (40) + banho do pacote (45) = 85 × 30%');
+  PERFORM ci.exige((SELECT valor_total = 40 AND valor_produtos = 40 FROM nfe WHERE pedido_id = ped_tosa AND modelo = 'nfse'), 'a NFS-e do atendimento leva só o que foi cobrado agora (a tosa)');
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped_tosa;
+  PERFORM ci.exige((SELECT quantidade - (SELECT count(*)::int FROM pet_pacote_usos u WHERE u.pacote_id = pac AND NOT u.desfeito) FROM pet_pacotes WHERE id = pac) = 1 AND (SELECT situacao = 'pronto' AND venda_id IS NULL FROM pet_agendamentos WHERE id = agm), 'cancelar a venda devolve o banho ao pacote e o atendimento a pronto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_agenda_desfazer_retirada(%L)$c$, agm), 'desfazer atendimento que não está retirado (misto cancelado)');
+
+  -- validade e cancelamento do pacote
+  UPDATE pet_pacotes SET vence_em = hoje - 1 WHERE id = pac;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM _pet_cobertura(ag5)), 'pacote vencido não cobre');
+  UPDATE pet_pacotes SET vence_em = hoje + 10 WHERE id = pac;
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM _pet_cobertura(ag5)), 'dentro da validade volta a cobrir');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pacote_cancelar(%L, 'x')$c$, pac), 'vendedor cancela pacote');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_pacote_cancelar(%L, '')$c$, pac), 'cancelar pacote sem motivo');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_pacote_cancelar(pac, 'tutor desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM _pet_cobertura(ag5)), 'pacote cancelado não cobre');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_pacote_cancelar(%L, 'de novo')$c$, pac), 'cancelar duas vezes');
+
+  -- venda do pacote cancelada no caixa: pacote cancelado e rascunho da NFS-e some
+  PERFORM ci.entrar(vend);
+  ped_errada := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', mod_prod, 'quantidade', 1, 'preco_unitario', 200)), 'crediario', tutor, 0, 1, current_date + 30);
+  pac2 := (pet_pacote_vender(mod, pet_b, 30, ped_errada) ->> 'pacote_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT vence_em = hoje + 30 AND valor = 200 FROM pet_pacotes WHERE id = pac2), 'pacote de 30 dias para o pet B, sem desconto');
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped_errada;
+  PERFORM ci.exige((SELECT situacao = 'cancelado' FROM pet_pacotes WHERE id = pac2) AND NOT EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped_errada AND modelo = 'nfse'),
+                   'cancelar a venda cancela o pacote e tira a NFS-e em rascunho');
+
+  -- leitura e escrita direta; outra empresa
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM pet_pacotes') >= 2 AND ci.contar(gar, 'SELECT count(*) FROM pet_pacotes') = 0
+                   AND ci.contar(gar, 'SELECT count(*) FROM pet_pacote_usos') = 0 AND ci.contar(gar, 'SELECT count(*) FROM pet_pacote_modelos') = 0, 'o garçom não lê pacotes');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pet_pacotes SET quantidade = 99 WHERE id = %L$c$, pac), 'alterar pacote direto');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM pet_pacote_usos WHERE pacote_id = %L$c$, pac), 'apagar uso direto');
+  SELECT count(*) INTO n FROM pet_pacotes WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0, 'a outra empresa não recebeu pacotes');
+END $$;
