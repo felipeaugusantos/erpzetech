@@ -157,6 +157,7 @@ test("o grupo Pet shop só aparece quando o módulo está liberado e traz as tel
       "/pet-servicos",
       "/pet-profissionais",
       "/pet-contatos",
+      "/pet-pacotes",
       "/pet-comissoes",
     ],
   );

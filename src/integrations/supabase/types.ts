@@ -5245,7 +5245,7 @@ export type Database = {
           id: string
           pago_em: string | null
           pago_por: string | null
-          pedido_id: string
+          pedido_id: string | null
           percentual: number
           profissional_id: string
           situacao: string
@@ -5288,6 +5288,138 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
           valor?: number
+        }
+        Relationships: []
+      }
+      pet_pacote_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          preco: number
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          preco: number
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          preco?: number
+          produto_id?: string
+          quantidade?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_pacote_usos: {
+        Row: {
+          agendamento_id: string
+          agendamento_item_id: string
+          created_at: string
+          desfeito: boolean
+          id: string
+          pacote_id: string
+          tenant_id: string
+          usado_em: string
+          valor: number
+        }
+        Insert: {
+          agendamento_id: string
+          agendamento_item_id: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          pacote_id: string
+          tenant_id?: string
+          usado_em: string
+          valor: number
+        }
+        Update: {
+          agendamento_id?: string
+          agendamento_item_id?: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          pacote_id?: string
+          tenant_id?: string
+          usado_em?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      pet_pacotes: {
+        Row: {
+          cliente_id: string
+          comprado_em: string
+          created_at: string
+          id: string
+          modelo_id: string
+          motivo: string | null
+          pet_id: string
+          quantidade: number
+          servico_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          validade_dias: number
+          valor: number
+          vence_em: string
+          venda_id: string
+        }
+        Insert: {
+          cliente_id: string
+          comprado_em: string
+          created_at?: string
+          id?: string
+          modelo_id: string
+          motivo?: string | null
+          pet_id: string
+          quantidade: number
+          servico_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          validade_dias: number
+          valor: number
+          vence_em: string
+          venda_id: string
+        }
+        Update: {
+          cliente_id?: string
+          comprado_em?: string
+          created_at?: string
+          id?: string
+          modelo_id?: string
+          motivo?: string | null
+          pet_id?: string
+          quantidade?: number
+          servico_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          validade_dias?: number
+          valor?: number
+          vence_em?: string
+          venda_id?: string
         }
         Relationships: []
       }
@@ -8400,7 +8532,12 @@ export type Database = {
         Returns: undefined
       }
       pet_agenda_retirar: {
-        Args: { p_agendamento_id: string; p_chave?: string; p_pedido_id?: string }
+        Args: {
+          p_agendamento_id: string
+          p_chave?: string
+          p_pedido_id?: string
+          p_usar_pacote?: boolean
+        }
         Returns: Json
       }
       pet_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
@@ -8410,6 +8547,23 @@ export type Database = {
       }
       pet_servicos_por_profissional: {
         Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
+      pet_agenda_cobertura: { Args: { p_agendamento_id: string }; Returns: Json }
+      pet_agenda_desfazer_retirada: { Args: { p_id: string }; Returns: undefined }
+      pet_pacote_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      pet_pacote_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_pacote_vender: {
+        Args: {
+          p_chave?: string
+          p_modelo_id: string
+          p_pedido_id?: string
+          p_pet_id: string
+          p_validade_dias: number
+        }
         Returns: Json
       }
       pet_contato_registrar: {

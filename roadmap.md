@@ -175,7 +175,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 ## Rodada 9 — Pet shop, Fase 2 (`docs/pet-shop-fase-2.md`)
 - [x] PR 5 — Contatos com o tutor (`/pet-contatos`): aniversário do pet e retorno de banho, com link do WhatsApp e mensagem editável; quem foi chamado sai da lista (`pet_contatos_pendentes`, `pet_contato_registrar`). Sem envio automático
-- [ ] PR 6 — Pacotes de banho (venda adiantada e uso na cobrança)
+- [x] PR 6 — Pacotes de banho (`/pet-pacotes`): um pacote por pet, validade de 30/60/90 dias, vendido adiantado no caixa; o banho sai do pacote na retirada (sem cobrar de novo); agenda e cobrança avisam no penúltimo banho que resta só mais um; NFS-e na venda do pacote; comissão pelo valor de cada uso (`pet_pacote_vender`, `pet_agenda_retirar` com `p_usar_pacote`, `pet_agenda_cobertura`). Confirmar com a contabilidade quando a NFS-e do pacote deve sair
 - [ ] PR 7 — Venda a granel (abrir o saco e vender por kg)
 - [ ] PR 8 — Agenda própria do profissional (login vinculado ao cadastro)
 - [ ] Lembretes automáticos (depende da integração oficial do WhatsApp) e vacina/vermífugo (depende do prontuário da clínica)

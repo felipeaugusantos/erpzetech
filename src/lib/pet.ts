@@ -202,3 +202,69 @@ export function temConflito(
       intervalosSeCruzam(inicio, fim, a.inicio, a.fim),
   );
 }
+
+// ---------- pacotes de banho ----------
+
+export const VALIDADES_PACOTE = [30, 60, 90] as const;
+
+export type PacoteSaldo = {
+  id: string;
+  pet_id: string;
+  servico_id: string;
+  situacao: string;
+  /** AAAA-MM-DD */
+  vence_em: string;
+  quantidade: number;
+  usados: number;
+};
+
+export const restamNoPacote = (p: Pick<PacoteSaldo, "quantidade" | "usados">) =>
+  Math.max(p.quantidade - p.usados, 0);
+
+/** Pacote do pet que cobre o serviço: ativo, dentro da validade e com saldo; vence primeiro o que vence antes. */
+export function pacoteQueCobre(
+  pacotes: readonly PacoteSaldo[],
+  petId: string,
+  servicoId: string,
+  dia: string,
+): PacoteSaldo | null {
+  return (
+    [...pacotes]
+      .filter(
+        (p) =>
+          p.pet_id === petId &&
+          p.servico_id === servicoId &&
+          p.situacao === "ativo" &&
+          p.vence_em >= dia &&
+          restamNoPacote(p) > 0,
+      )
+      .sort((a, b) => a.vence_em.localeCompare(b.vence_em))[0] ?? null
+  );
+}
+
+/**
+ * Aviso da recepção para o banho que vai sair do pacote, dado quantos banhos restam ANTES dele:
+ * no penúltimo (restam 2) sobra só 1 depois; no último (restam 1) o pacote acaba.
+ */
+export function avisoDoPacote(restamAntes: number): string | null {
+  if (restamAntes === 2)
+    return "Penúltimo banho do pacote: depois deste resta só 1. Avise o tutor.";
+  if (restamAntes === 1) return "Último banho do pacote: depois deste ele acaba. Avise o tutor.";
+  return null;
+}
+
+/** Aviso depois do uso (resposta de pet_agenda_retirar): quantos banhos sobraram. */
+export function avisoDepoisDoUso(pet: string, restam: number): string | null {
+  if (restam === 1) return `${pet}: o pacote tem só mais 1 banho. Avise o tutor.`;
+  if (restam <= 0) return `${pet}: o pacote acabou. Avise o tutor.`;
+  return null;
+}
+
+/** Dias até o pacote vencer (negativo se já venceu). */
+export function diasParaVencer(venceEm: string, hoje: Date = new Date()) {
+  const a = new Date(`${venceEm}T12:00:00`).getTime();
+  const b = new Date(
+    `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}T12:00:00`,
+  ).getTime();
+  return Math.round((a - b) / 86400000);
+}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, ChevronLeft, ChevronRight, Car } from "lucide-react";
 import { toast } from "sonner";
@@ -30,10 +30,16 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useModulosCnae } from "@/lib/cnae";
-import { brl } from "@/lib/format";
+import { brl, dateBR } from "@/lib/format";
+import { isoBrasilia } from "@/lib/fuso";
 import {
   FUNCOES_PROFISSIONAL,
   SITUACOES_AGENDA,
+  avisoDepoisDoUso,
+  avisoDoPacote,
+  pacoteQueCobre,
+  restamNoPacote,
+  type PacoteSaldo,
   descricaoDoPreco,
   duracaoTotal,
   fimDoAtendimento,
@@ -108,6 +114,7 @@ type Linha = {
 
 function Agenda() {
   const qc = useQueryClient();
+  const navegar = useNavigate();
   const { data: session } = useSessionData();
   const roles = session?.roles ?? [];
   const podeAgendar = roles.some((r) =>
@@ -130,7 +137,7 @@ function Agenda() {
       const ini = new Date(`${dia}T00:00:00`);
       const fim = new Date(ini);
       fim.setDate(fim.getDate() + 1);
-      const [ags, profs, pets, servicos, precos, clientes] = await Promise.all([
+      const [ags, profs, pets, servicos, precos, clientes, pacs, usos] = await Promise.all([
         supabase
           .from("pet_agendamentos")
           .select("*")
@@ -151,8 +158,20 @@ function Agenda() {
           .is("deleted_at", null)
           .order("nome")
           .limit(2000),
+        supabase
+          .from("pet_pacotes")
+          .select("id, pet_id, servico_id, situacao, vence_em, quantidade")
+          .eq("situacao", "ativo"),
+        supabase.from("pet_pacote_usos").select("pacote_id").eq("desfeito", false),
       ]);
-      for (const r of [ags, profs, pets, servicos, precos, clientes]) if (r.error) throw r.error;
+      for (const r of [ags, profs, pets, servicos, precos, clientes, pacs, usos])
+        if (r.error) throw r.error;
+      const usados = new Map<string, number>();
+      for (const u of usos.data ?? []) usados.set(u.pacote_id, (usados.get(u.pacote_id) ?? 0) + 1);
+      const pacotes: PacoteSaldo[] = (pacs.data ?? []).map((p) => ({
+        ...p,
+        usados: usados.get(p.id) ?? 0,
+      }));
       const ids = (ags.data ?? []).map((a) => a.id);
       const itens = ids.length
         ? await supabase
@@ -172,6 +191,7 @@ function Agenda() {
         servicos: servicos.data ?? [],
         precos: (precos.data ?? []).map((p) => ({ ...p, preco: Number(p.preco) })),
         clientes: clientes.data ?? [],
+        pacotes,
         itens: itens.data ?? [],
       };
     },
@@ -191,6 +211,44 @@ function Agenda() {
   );
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: ["pet-agenda"] });
+
+  /** Todos os serviços cobertos por pacote: retira direto, sem caixa. Senão abre a frente de caixa. */
+  const retirar = useMutation({
+    mutationFn: async (a: Linha) => {
+      const itens = itensDe(a.id);
+      const { data: cob, error } = await supabase.rpc("pet_agenda_cobertura", {
+        p_agendamento_id: a.id,
+      });
+      if (error) throw error;
+      const cobertos = ((cob ?? []) as unknown as unknown[]).length;
+      if (cobertos > 0 && cobertos === itens.length) {
+        const { data, error: e2 } = await supabase.rpc("pet_agenda_retirar", {
+          p_agendamento_id: a.id,
+          p_usar_pacote: true,
+        });
+        if (e2) throw e2;
+        return {
+          direto: true as const,
+          avisos: (data as { avisos?: { pet: string; restam: number }[] } | null)?.avisos ?? [],
+        };
+      }
+      return { direto: false as const, avisos: [] as { pet: string; restam: number }[] };
+    },
+    onSuccess: (r, a) => {
+      if (!r.direto) {
+        void navegar({ to: "/frente-caixa", search: { pet: a.id } });
+        return;
+      }
+      toast.success("Atendimento retirado com o banho do pacote.");
+      for (const av of r.avisos) {
+        const t = avisoDepoisDoUso(av.pet, av.restam);
+        if (t) toast.warning(t, { duration: 15000 });
+      }
+      atualizar();
+      void qc.invalidateQueries({ queryKey: ["pet-pacotes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const mudar = useMutation({
     mutationFn: async (p: { id: string; para: string; motivo?: string }) => {
@@ -310,6 +368,29 @@ function Agenda() {
                               </span>
                             )}
                           </p>
+                          {ocupaHorario(a.situacao) &&
+                            a.situacao !== "retirado" &&
+                            itens.map((i) => {
+                              const dia = isoBrasilia(a.inicio);
+                              const pc = pacoteQueCobre(
+                                data?.pacotes ?? [],
+                                a.pet_id,
+                                i.servico_id,
+                                dia,
+                              );
+                              if (!pc) return null;
+                              const restam = restamNoPacote(pc);
+                              const aviso = avisoDoPacote(restam);
+                              return (
+                                <p
+                                  key={i.servico_id}
+                                  className={`mt-1 rounded px-1 text-xs ${aviso ? "bg-amber-200 font-semibold text-amber-950" : ""}`}
+                                >
+                                  Pacote: restam {restam} (vence {dateBR(pc.vence_em)}).{" "}
+                                  {aviso ?? ""}
+                                </p>
+                              );
+                            })}
                           {a.observacoes && <p className="mt-1 text-xs italic">{a.observacoes}</p>}
                           {a.motivo && <p className="mt-1 text-xs">Motivo: {a.motivo}</p>}
                           {podeAgendar &&
@@ -337,10 +418,12 @@ function Agenda() {
                                   </Button>
                                 ))}
                                 {a.situacao === "pronto" && (
-                                  <Button size="sm" asChild>
-                                    <Link to="/frente-caixa" search={{ pet: a.id }}>
-                                      Retirar e cobrar
-                                    </Link>
+                                  <Button
+                                    size="sm"
+                                    disabled={retirar.isPending}
+                                    onClick={() => retirar.mutate(a)}
+                                  >
+                                    Retirar e cobrar
                                   </Button>
                                 )}
                                 {podeRemarcar(a.situacao) && (
@@ -440,6 +523,7 @@ type Dados = {
   servicos: { id: string; nome: string; duracao_min: number; ativo: boolean }[];
   precos: (PetPreco & { servico_id: string })[];
   clientes: { id: string; nome: string }[];
+  pacotes: PacoteSaldo[];
 };
 
 function NovoAgendamento({
@@ -611,6 +695,21 @@ function NovoAgendamento({
                       {s.nome}{" "}
                       <span className="text-xs text-muted-foreground">({s.duracao_min} min)</span>
                     </Label>
+                    {pet &&
+                      (() => {
+                        const pc = pacoteQueCobre(dados.pacotes, pet.id, s.id, data);
+                        if (!pc) return null;
+                        const restam = restamNoPacote(pc);
+                        const aviso = avisoDoPacote(restam);
+                        return (
+                          <span
+                            className={`w-full text-xs ${aviso ? "font-semibold text-amber-700" : "text-muted-foreground"}`}
+                          >
+                            Pacote ativo: restam {restam}, vence {dateBR(pc.vence_em)}.{" "}
+                            {aviso ?? ""}
+                          </span>
+                        );
+                      })()}
                     {pet &&
                       (p ? (
                         <span title={descricaoDoPreco(p)}>{brl(p.preco)}</span>
