@@ -19,7 +19,7 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 
 - **Liberação própria.** Além do módulo `petshop`, a clínica só aparece com CNAE `7500` (atividades veterinárias) ou ramo "Clínica" no cadastro da empresa. Pet shop sem clínica não ganha menu, tabela legível nem função de prontuário. Regra em `src/lib/cnae-regras.ts` (novo módulo `clinica`).
 - **Quem escreve no prontuário é o veterinário.** Perfil novo **Veterinário**, com CRMV e UF no cadastro do profissional (`pet_profissionais.crmv`, `crmv_uf`; função "veterinário" já existe). Registro sem CRMV preenchido é recusado pelo banco. Administrador e gestor **não** escrevem em nome do veterinário.
-- **Quem lê.** Veterinário (tudo), administrador e gestor (leitura, para auditoria e atendimento ao tutor). Recepção e vendedor **não** leem o texto clínico; veem só "teve consulta em tal data" e o que a cobrança precisa. Profissional de banho vê apenas o aviso de alergia que já aparece na agenda.
+- **Quem lê (decisão 1).** **Somente o perfil Veterinário** lê o texto clínico. Administrador e gestor **não** leem (quem é dono e também veterinário recebe os dois perfis). Recepção e vendedor só sabem o **dia e a hora** em que o pet passou pela clínica, que já aparece na agenda. Profissional de banho vê apenas o aviso de alergia que já aparece na agenda.
 - **Prontuário não se apaga nem se reescreve.** Cada atendimento clínico, depois de **fechado**, fica imutável; correção é **adendo** datado e assinado pelo mesmo veterinário (ou outro, com identificação). O banco recusa `UPDATE` e `DELETE` direto; o histórico guarda quem escreveu e quando.
 - **Dado pessoal e de saúde animal.** O texto clínico é do pet, mas junto ao tutor é dado pessoal (LGPD): acesso restrito pelas regras acima, auditoria de leitura do prontuário, e nada de texto clínico em notificação, WhatsApp ou relatório que a recepção veja.
 - **Prazo de guarda do prontuário** e exigências do conselho (CFMV/CRMV da UF) **a confirmar com o responsável técnico da clínica antes do PR 2**. Até lá, o sistema simplesmente nunca apaga.
@@ -70,16 +70,18 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 - Consulta e vacina são serviços com preço (consulta por porte/raça como os demais; vacina pelo produto). A cobrança segue o fluxo da Fase 1: retirar → caixa com os itens preenchidos, NFS-e em rascunho para o serviço (consulta) e **tratamento fiscal da vacina a confirmar com o contador** (mercadoria aplicada pelo veterinário x serviço).
 - Comissão do veterinário calculada como a dos demais profissionais (percentual do cadastro), só sobre serviço cobrado.
 
-## Perguntas que travam o PR 1
+## Decisões tomadas
 
-| #   | Pergunta                                                                                               | Sugestão                                                                      |
-| --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| 1   | A recepção pode ler o resumo clínico (diagnóstico) para atender o tutor, ou só ver que houve consulta? | Só que houve consulta; o resumo para o tutor sai impresso pelo veterinário    |
-| 2   | Auxiliar/técnico pode **aplicar** vacina sob responsabilidade do veterinário?                          | Sim, registrando o auxiliar como aplicador e o veterinário como responsável   |
-| 3   | Prazo de guarda do prontuário e exigências do CRMV da UF da clínica                                    | O responsável técnico informa; até lá nada é apagado                          |
-| 4   | Vacina aplicada fora entra no cartão?                                                                  | Sim, marcada "aplicada em outro local"                                        |
-| 5   | A clínica atende animais de produção (cavalo, boi) ou só cães e gatos?                                 | Só cães, gatos e outros pequenos (espécie "outro"); grande porte fica de fora |
-| 6   | Quem imprime o cartão de vacinação: só o veterinário ou também a recepção?                             | Também a recepção (o cartão não traz texto do prontuário)                     |
+| #   | Pergunta                                                    | Decisão                                                                                        |
+| --- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 1   | A recepção lê o resumo clínico?                             | **Não.** Só o veterinário lê; a recepção sabe apenas o dia e a hora do atendimento.            |
+| 2   | Auxiliar aplica vacina sob responsabilidade do veterinário? | Sim, registrando o auxiliar como aplicador e o veterinário como responsável (sugestão aceita). |
+| 3   | Prazo de guarda do prontuário e exigência do CRMV da UF     | **Em aberto** com o responsável técnico; até lá o sistema nunca apaga.                         |
+| 4   | Animais de grande porte                                     | Só cães, gatos e outros pequenos (sugestão aceita); grande porte fica de fora.                 |
+| 5   | Vacina aplicada fora entra no cartão?                       | Sim, marcada "aplicada em outro local" (sugestão aceita).                                      |
+| 6   | A recepção imprime o cartão de vacinação?                   | Sim; o cartão não traz texto do prontuário (sugestão aceita).                                  |
+
+Sem resposta ainda, e que não trava o PR 1: tratamento fiscal da vacina (mercadoria ou serviço) com o contador, que só importa no PR 5.
 
 ## Fora do escopo desta fase
 

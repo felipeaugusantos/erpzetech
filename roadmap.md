@@ -182,7 +182,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 
 ## Rodada 10 — Pet shop, Fase 3: clínica (`docs/pet-shop-fase-3.md`)
-- [ ] Escopo desenhado; aguardam as respostas da seção "Perguntas que travam o PR 1" (acesso da recepção ao resumo clínico, guarda do prontuário com o responsável técnico, aplicação por auxiliar, grande porte)
+- [ ] Escopo desenhado; decisões registradas (só o veterinário lê o prontuário; guarda do prontuário segue em aberto com o responsável técnico — nada é apagado)
 - [ ] PR 1 — Base da clínica (módulo `clinica` por CNAE 7500, perfil Veterinário, CRMV no profissional, isolamento do texto clínico)
 - [ ] PR 2 — Consulta e prontuário (atendimento clínico imutável ao fechar, adendos, histórico do pet)
 - [ ] PR 3 — Vacinas e vermífugos (catálogo, aplicação com lote, próxima dose, cartão de vacinação)
