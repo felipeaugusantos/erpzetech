@@ -118,6 +118,14 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
   - **Prontuário fechado sem internet:** o fechamento vale quando sincroniza; edição concorrente do mesmo atendimento por outro aparelho é recusada e fica guardada.
   - **Cadastro duplicado** (o mesmo tutor cadastrado em dois aparelhos): o envio avisa e a recepção une, sem apagar nada.
 
+**5a — entregue (base segura).** Tela **Trabalho sem internet** (só o veterinário):
+
+- **Cofre criptografado** no IndexedDB do navegador: AES-GCM com chave derivada da senha (PBKDF2, 600 mil iterações); a chave existe só na memória, o cofre **trava sozinho em 15 minutos parado** e ao sair do sistema, a senha mínima tem 8 caracteres e **não se recupera** (senha esquecida = conteúdo perdido). Cada registro é amarrado ao seu lugar, então trocar ou adulterar um registro faz ele não abrir e aparecer como ilegível, nunca some calado.
+- **Preparar visita** (`clinica_visita_preparar`): baixa a agenda do próprio veterinário (1 a 7 dias, sem cancelados nem faltas), com paciente, tutor, telefone e alergia, o catálogo ativo de vacinas com os lotes que têm saldo, os modelos de exame e os aplicadores. Cada paciente baixado fica na auditoria de acessos (`visita`). A cópia **vale 7 dias** e some; não traz texto de prontuário.
+- **Fila única de pendências** com chave de repetição por operação, ordem de envio, dependência entre operações (o atendimento espera o cadastro do pet), erro de conexão que não conta como recusa, **operação recusada guardada com o motivo e nunca descartada sozinha** (a pessoa pode tentar de novo, copiar os dados ou descartar com confirmação), envio automático quando a internet volta e botão **Enviar agora**.
+- Ainda não há operação real na fila: os tipos de operação entram a partir do 5b (cada um com a sua função idempotente no banco).
+- O cache do navegador já não guarda nenhuma consulta da clínica (PR 3), então nada clínico vai para o armazenamento em texto simples.
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |
