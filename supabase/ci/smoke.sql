@@ -3332,3 +3332,78 @@ BEGIN
   SELECT count(*) INTO n FROM pet_pacotes WHERE tenant_id = tb;
   PERFORM ci.exige(n = 0, 'a outra empresa não recebeu pacotes');
 END $$;
+
+-- 41. Pet shop (granel): abrir saco baixa o saco e dá entrada dos kg no granel pelo custo proporcional
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  saco uuid; gran uuid; solto uuid; servico uuid; dep uuid; tb uuid; prod_b uuid;
+  r jsonb; n bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Granel CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'GR-SACO', 'Ração saco 15kg', 'UN', 90, 150) RETURNING id INTO saco;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'GR-KG', 'Ração a granel', 'KG', 0, 12) RETURNING id INTO gran;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'GR-SOLTO', 'Produto sem granel', 'UN', 10, 20) RETURNING id INTO solto;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'GR-SERV', 'Serviço', 'UN', 10, false) RETURNING id INTO servico;
+  INSERT INTO tenants (nome) VALUES ('Granel B') RETURNING id INTO tb;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (tb, 'GR-B', 'Granel de outra empresa', 'KG', 5) RETURNING id INTO prod_b;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(saco, dep, 'entrada'::mov_tipo, 3, 'ci', 'ci', NULL, 90);
+  PERFORM ci.sair();
+
+  -- cadastro do granel: restrições
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L WHERE id = %L$c$, gran, saco), 'granel sem o fator de kg');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 0 WHERE id = %L$c$, gran, saco), 'fator zero');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 15 WHERE id = %L$c$, saco, saco), 'saco que é o próprio granel');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 15 WHERE id = %L$c$, prod_b, saco), 'granel de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 15 WHERE id = %L$c$, servico, saco), 'granel que é serviço');
+  UPDATE produtos SET granel_produto_id = gran, granel_fator = 15 WHERE id = saco;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 10 WHERE id = %L$c$, saco, gran), 'cadeia: o granel virar saco');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET granel_produto_id = %L, granel_fator = 10 WHERE id = %L$c$, solto, gran), 'granel que já é granel de outro saco virar saco');
+
+  -- quem pode abrir
+  PERFORM ci.deve_falhar(vend, format($c$SELECT granel_abrir_saco(%L, %L, 1)$c$, saco, dep), 'vendedor abre saco');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT granel_abrir_saco(%L, %L, 1)$c$, saco, dep), 'garçom abre saco');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT granel_abrir_saco(%L, %L, 0)$c$, saco, dep), 'abrir zero sacos');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT granel_abrir_saco(%L, %L, 1)$c$, solto, dep), 'produto sem granel cadastrado');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT granel_abrir_saco(%L, %L, 1)$c$, saco, gen_random_uuid()), 'depósito que não existe');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT granel_abrir_saco(%L, %L, 4)$c$, saco, dep), 'abrir mais sacos do que há');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = saco AND deposito_id = dep) = 3 AND NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = gran AND deposito_id = dep AND quantidade > 0),
+                   'abertura recusada não mexe no estoque');
+
+  -- abrir 1 saco: 15 kg a 90 / 15 = 6 por kg
+  PERFORM ci.entrar(est);
+  r := granel_abrir_saco(saco, dep, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'kg')::numeric = 15 AND (r ->> 'custo_kg')::numeric = 6, 'abrir 1 saco dá 15 kg a 6,00 o kg');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = saco AND deposito_id = dep) = 2
+                   AND (SELECT quantidade FROM estoques WHERE produto_id = gran AND deposito_id = dep) = 15
+                   AND (SELECT custo_medio FROM estoques WHERE produto_id = gran AND deposito_id = dep) = 6, 'saldo: 2 sacos e 15 kg a custo médio 6');
+
+  -- vender 2,5 kg pelo caminho normal de estoque
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(gran, dep, 'saida'::mov_tipo, 2.5, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = gran AND deposito_id = dep) = 12.5, 'a venda por kg baixa casas decimais');
+
+  -- abrir 2 sacos de uma vez: o custo médio do granel se mantém
+  PERFORM ci.entrar(gest);
+  r := granel_abrir_saco(saco, dep, 2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = saco AND deposito_id = dep) = 0
+                   AND (SELECT quantidade FROM estoques WHERE produto_id = gran AND deposito_id = dep) = 42.5
+                   AND (SELECT custo_medio FROM estoques WHERE produto_id = gran AND deposito_id = dep) = 6, 'abrir 2 sacos soma 30 kg ao granel');
+  PERFORM ci.exige((SELECT count(*) FROM estoque_movimentacoes WHERE produto_id = gran AND documento = 'Abertura de saco') = 2
+                   AND (SELECT sum(sacos) FROM granel_aberturas WHERE saco_produto_id = saco) = 3, 'as aberturas ficam no histórico do estoque e na tabela de aberturas');
+
+  -- leitura e escrita direta; outra empresa
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM granel_aberturas') = 2 AND ci.contar(gar, 'SELECT count(*) FROM granel_aberturas') = 0, 'o garçom não lê aberturas');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM granel_aberturas WHERE saco_produto_id = %L$c$, saco), 'apagar abertura direto');
+  SELECT count(*) INTO n FROM granel_aberturas WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0, 'a outra empresa não recebeu aberturas');
+END $$;
