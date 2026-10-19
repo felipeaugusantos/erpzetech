@@ -9097,6 +9097,7 @@ export type Database = {
         Returns: undefined
       }
       clinica_anexo_abrir: { Args: { p_id: string }; Returns: Json }
+      clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
       clinica_anexo_cancelar: {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
