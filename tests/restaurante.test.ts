@@ -6,6 +6,7 @@ import {
   calcularConta,
   dividirConta,
   ehGestaoSalao,
+  ehProfissionalRestrito,
   ehSalaoRestrito,
   minutosDesde,
   proximoPreparo,
@@ -19,6 +20,13 @@ test("perfil do salão é restrito só quando não há outro papel", () => {
   assert.equal(ehSalaoRestrito(["garcom", "caixa"]), false);
   assert.equal(ehSalaoRestrito(["administrador"]), false);
   assert.equal(ehSalaoRestrito([]), false);
+  assert.equal(ehSalaoRestrito(["profissional"]), false);
+  assert.equal(ehSalaoRestrito(["garcom", "profissional"]), true);
+  assert.equal(ehSalaoRestrito(["garcom", "profissional", "vendedor"]), false);
+  assert.equal(ehProfissionalRestrito(["profissional"]), true);
+  assert.equal(ehProfissionalRestrito(["profissional", "garcom"]), false);
+  assert.equal(ehProfissionalRestrito(["profissional", "vendedor"]), false);
+  assert.equal(ehProfissionalRestrito([]), false);
 });
 
 test("gestão e recebimento da conta", () => {

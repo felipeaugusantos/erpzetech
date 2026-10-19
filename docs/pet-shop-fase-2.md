@@ -44,10 +44,13 @@ Fazer o tutor voltar: contato na hora certa, pacote de banhos pago adiantado, ve
 - Regras do cadastro: o granel é da mesma empresa, controla estoque e não pode ser, ele mesmo, um saco (nada de cadeia); vários sacos (10 kg e 15 kg) podem alimentar o mesmo granel.
 - A venda por kg usa o caixa de sempre (a quantidade já aceita 3 casas decimais). Não há desfazer abertura: erro de contagem se corrige em Entradas e saídas.
 
-## PR 8 — Agenda própria do profissional
+## PR 8 — Agenda própria do profissional (esta entrega)
 
-- Coluna `pet_profissionais.profile_id` (única) ligando o cadastro à conta; o profissional vê só a própria agenda (política de leitura pelo vínculo) e avança as situações dos atendimentos dele.
-- Exige perfil novo ou regra para esse papel; o desenho segue o isolamento do salão.
+- **Perfil novo "Profissional"** (Usuários e perfis). Quem tem só esse perfil fica no mesmo isolamento do salão: o banco não deixa ler nenhuma tabela da loja, do pet shop (inclusive agenda e comissões) nem do restaurante, nem usar as funções da loja. Quem acumula outro perfil usa o sistema todo.
+- **Vínculo**: no cadastro do profissional (Pet shop → Profissionais), a gestão escolhe a "Conta de acesso" entre os usuários ativos com o perfil Profissional. Uma conta por cadastro; só administrador e gestor ligam. Cadastro inativo perde o acesso.
+- **Minha agenda** (única tela do perfil): atendimentos do dia dele com horário, pet (espécie, raça, porte, pelagem, peso, **alergias**, observações), primeiro nome do tutor, serviços e táxi dog, com navegação por dia. Não traz preço, telefone, documento nem sobrenome do tutor.
+- **Ações**: **Começar** (agendado/confirmado → em atendimento) e **Pronto** (em atendimento → pronto), só nos atendimentos dele. Cancelar, faltar, remarcar e cobrar seguem com a recepção.
+- Ficou para depois: avisar a recepção quando o pet ficar pronto (depende de notificação) e comissão visível ao profissional.
 
 ## Fora do escopo desta fase
 

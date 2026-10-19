@@ -5532,6 +5532,7 @@ export type Database = {
           funcao: string
           id: string
           nome: string
+          profile_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -5543,6 +5544,7 @@ export type Database = {
           funcao?: string
           id?: string
           nome: string
+          profile_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -5554,6 +5556,7 @@ export type Database = {
           funcao?: string
           id?: string
           nome?: string
+          profile_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -8669,6 +8672,12 @@ export type Database = {
         }
         Returns: string
       }
+      pet_minha_agenda: { Args: { p_ate: string; p_de: string }; Returns: Json }
+      pet_minha_situacao: { Args: { p_id: string; p_para: string }; Returns: undefined }
+      pet_profissional_vincular: {
+        Args: { p_profile_id: string; p_profissional_id: string }
+        Returns: undefined
+      }
       pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
@@ -9086,6 +9095,7 @@ export type Database = {
         | "motorista"
         | "garcom"
         | "cozinha"
+        | "profissional"
       autorizacao_situacao: "pendente" | "aprovada" | "negada"
       caixa_mov_tipo:
         | "abertura"
@@ -9299,6 +9309,7 @@ export const Constants = {
         "motorista",
         "garcom",
         "cozinha",
+        "profissional",
       ],
       autorizacao_situacao: ["pendente", "aprovada", "negada"],
       caixa_mov_tipo: [

@@ -53,7 +53,7 @@ import { useSincronizacaoOffline } from "@/hooks/useSincronizacaoOffline";
 import { initials } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
-import { ehGestaoSalao, ehSalaoRestrito } from "@/lib/restaurante";
+import { ehGestaoSalao, ehProfissionalRestrito, ehSalaoRestrito } from "@/lib/restaurante";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -346,6 +346,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Garçom e cozinha puros só enxergam as telas do salão (o banco também os isola). */
   const somenteSalao = useMemo(() => ehSalaoRestrito(data?.roles ?? []), [data]);
+  /** Profissional do pet shop puro só enxerga a própria agenda (o banco também o isola). */
+  const somenteProfissional = useMemo(() => ehProfissionalRestrito(data?.roles ?? []), [data]);
 
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
@@ -416,10 +418,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Delivery", to: "/delivery", icon: Bike },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
+      { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
     ].filter((i) =>
-      i.to === "/salao" || i.to === "/delivery"
-        ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
-        : gestao || roles.includes("cozinha"),
+      i.to === "/pet-minha-agenda"
+        ? roles.includes("profissional")
+        : i.to === "/salao" || i.to === "/delivery"
+          ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
+          : gestao || roles.includes("cozinha"),
     );
   }, [data]);
 
@@ -446,27 +451,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Dentro da área Ze Tech o menu da loja não aparece. */
   const naAreaZeTech = pathname.startsWith("/ze-tech");
 
-  const menu: Group[] = somenteSalao
-    ? [{ label: "Restaurante", icon: UtensilsCrossed, items: itensSalao }]
-    : somenteMotorista
-      ? [
-          {
-            label: "Minha rota",
-            icon: Truck,
-            items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
-          },
-        ]
-      : operadorSaas
-        ? naAreaZeTech
-          ? [grupoZeTech]
-          : [...gruposLoja, grupoZeTech]
-        : gruposLoja;
+  const menu: Group[] = somenteProfissional
+    ? [
+        {
+          label: "Pet shop",
+          icon: PawPrint,
+          items: [{ label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock }],
+        },
+      ]
+    : somenteSalao
+      ? [{ label: "Restaurante", icon: UtensilsCrossed, items: itensSalao }]
+      : somenteMotorista
+        ? [
+            {
+              label: "Minha rota",
+              icon: Truck,
+              items: [{ label: "Minhas entregas", to: "/motorista", icon: IdCard }],
+            },
+          ]
+        : operadorSaas
+          ? naAreaZeTech
+            ? [grupoZeTech]
+            : [...gruposLoja, grupoZeTech]
+          : gruposLoja;
 
   useEffect(() => {
     if (somenteMotorista && pathname !== "/motorista") {
       navigate({ to: "/motorista", replace: true });
     }
   }, [somenteMotorista, pathname, navigate]);
+
+  useEffect(() => {
+    if (somenteProfissional && pathname !== "/pet-minha-agenda") {
+      navigate({ to: "/pet-minha-agenda", replace: true });
+    }
+  }, [somenteProfissional, pathname, navigate]);
 
   useEffect(() => {
     if (!somenteSalao || itensSalao.length === 0) return;

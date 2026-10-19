@@ -518,7 +518,9 @@ DECLARE
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco', 'filial_irrestrita', 'pode_filial', 'contato_enviar',
     -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
-    'motorista_enviar_posicao'];
+    'motorista_enviar_posicao',
+    -- agenda do profissional: só quem tem o perfil profissional (e a conta ligada a um cadastro) passa
+    'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -3406,4 +3408,105 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$DELETE FROM granel_aberturas WHERE saco_produto_id = %L$c$, saco), 'apagar abertura direto');
   SELECT count(*) INTO n FROM granel_aberturas WHERE tenant_id = tb;
   PERFORM ci.exige(n = 0, 'a outra empresa não recebeu aberturas');
+END $$;
+
+-- 42. Pet shop (agenda do profissional): conta ligada ao cadastro, só a agenda dele, isolamento do perfil
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  p1   constant uuid := 'a0000000-0000-0000-0000-0000000000d1';
+  p2   constant uuid := 'a0000000-0000-0000-0000-0000000000d2';
+  psem constant uuid := 'a0000000-0000-0000-0000-0000000000d3';
+  pmix constant uuid := 'a0000000-0000-0000-0000-0000000000d4';
+  pout constant uuid := 'a0000000-0000-0000-0000-0000000000d5';
+  t0 timestamptz := date_trunc('day', now()) + interval '9 days' + interval '8 hours';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  tutor uuid; pet uuid; serv uuid; prof1 uuid; prof2 uuid; ag1 uuid; ag2 uuid; ag3 uuid; tb uuid;
+  r jsonb; n bigint;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Maria Tutora CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Prof B') RETURNING id INTO tb;
+  INSERT INTO auth.users (id, email) VALUES (p1, 'prof1@ci'), (p2, 'prof2@ci'), (psem, 'profsem@ci'), (pmix, 'profmix@ci'), (pout, 'profout@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (p1, p2, psem, pmix);
+  UPDATE profiles SET tenant_id = tb WHERE id = pout;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (p1, demo, 'profissional'), (p2, demo, 'profissional'), (psem, demo, 'profissional'),
+    (pmix, demo, 'profissional'), (pmix, demo, 'vendedor'), (pout, tb, 'profissional');
+
+  PERFORM ci.entrar(gest);
+  serv := pet_servico_salvar('{"nome":"Banho Agenda Prof","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(serv, NULL, NULL, NULL, 60);
+  prof1 := pet_profissional_salvar('{"nome":"Ana Banhista CI","comissao_percentual":30}'::jsonb);
+  prof2 := pet_profissional_salvar('{"nome":"Beto Tosador CI","comissao_percentual":30}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Agenda Prof', 'alergias', 'frango'));
+  ag1 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof1, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof1, 'inicio', t0 + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof2, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  PERFORM ci.sair();
+
+  -- vínculo: só a gestão; a conta precisa ser da empresa, ativa e com o perfil profissional; uma conta por cadastro
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, prof1, p1), 'vendedor liga conta ao profissional');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, prof1, p1), 'o próprio profissional se liga');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, prof1, vend), 'conta sem o perfil profissional');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, prof1, pout), 'conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, gen_random_uuid(), p1), 'profissional que não existe');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_vincular(prof1, p1);
+  PERFORM pet_profissional_vincular(prof2, p2);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, prof2, p1), 'mesma conta em dois profissionais');
+
+  -- agenda: só a dele, sem preço nem telefone
+  PERFORM ci.entrar(p1);
+  r := pet_minha_agenda(hoje, hoje + 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 2 AND r -> 0 ->> 'tutor' = 'Maria' AND r -> 0 -> 'pet' ->> 'alergias' = 'frango'
+                   AND (r -> 0 -> 'servicos' -> 0 ->> 'nome') = 'Banho Agenda Prof', 'o profissional vê os 2 atendimentos dele, com pet, alergia e serviço');
+  PERFORM ci.exige(r::text NOT LIKE '%preco%' AND r::text NOT LIKE '%cpf%' AND r::text NOT LIKE '%telefone%' AND r::text NOT LIKE '%Tutora%', 'a agenda não traz preço, documento, telefone nem o sobrenome do tutor');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_agenda(%L, %L)$c$, hoje, hoje + 60), 'período maior que 31 dias');
+  PERFORM ci.deve_falhar(psem, format($c$SELECT pet_minha_agenda(%L, %L)$c$, hoje, hoje + 1), 'conta sem cadastro ligado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_minha_agenda(%L, %L)$c$, hoje, hoje + 1), 'quem não é profissional chama a agenda');
+
+  -- avançar: começar e dar como pronto; nada além, nada dos outros
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_situacao(%L, 'em_atendimento')$c$, ag3), 'atendimento de outro profissional');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_situacao(%L, 'pronto')$c$, ag1), 'pronto sem ter começado');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_situacao(%L, 'cancelado')$c$, ag1), 'profissional cancela');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_situacao(%L, 'retirado')$c$, ag1), 'profissional dá como retirado');
+  PERFORM ci.entrar(p1);
+  PERFORM pet_minha_situacao(ag1, 'em_atendimento');
+  PERFORM pet_minha_situacao(ag1, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronto' FROM pet_agendamentos WHERE id = ag1) AND (SELECT situacao = 'agendado' FROM pet_agendamentos WHERE id = ag3), 'o profissional avançou só o atendimento dele');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_minha_situacao(%L, 'em_atendimento')$c$, ag1), 'voltar atendimento pronto');
+
+  -- cadastro inativo perde o acesso
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_salvar(jsonb_build_object('id', prof2, 'nome', 'Beto Tosador CI', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(p2, format($c$SELECT pet_minha_agenda(%L, %L)$c$, hoje, hoje + 1), 'cadastro do profissional inativo');
+
+  -- isolamento: o perfil não enxerga nada da loja nem do salão; quem acumula outro papel enxerga
+  PERFORM ci.exige(ci.contar(p1, 'SELECT count(*) FROM produtos') = 0 AND ci.contar(p1, 'SELECT count(*) FROM clientes') = 0
+                   AND ci.contar(p1, 'SELECT count(*) FROM pedidos') = 0 AND ci.contar(p1, 'SELECT count(*) FROM pets') = 0
+                   AND ci.contar(p1, 'SELECT count(*) FROM pet_agendamentos') = 0 AND ci.contar(p1, 'SELECT count(*) FROM pet_profissionais') = 0
+                   AND ci.contar(p1, 'SELECT count(*) FROM pet_comissoes') = 0, 'o profissional não lê as tabelas da loja nem as do pet shop');
+  PERFORM ci.exige(ci.contar(p1, 'SELECT count(*) FROM cardapio_itens') = 0 AND ci.contar(p1, 'SELECT count(*) FROM mesas') = 0 AND ci.contar(p1, 'SELECT count(*) FROM comandas') = 0,
+                   'o profissional também não lê cardápio, mesas e comandas');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM mesas') >= 0 AND ci.contar(gar, 'SELECT count(*) FROM cardapio_itens') > 0, 'o garçom segue lendo o cardápio');
+  PERFORM ci.exige(ci.contar(p1, 'SELECT count(*) FROM profiles WHERE id = auth.uid()') = 1, 'o profissional lê o próprio perfil (sessão)');
+  PERFORM ci.exige(ci.contar(pmix, 'SELECT count(*) FROM clientes') > 0, 'profissional que também é vendedor enxerga a loja');
+  PERFORM ci.deve_falhar(p1, 'SELECT frente_caixa_atual()', 'profissional usa o caixa');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_agenda_situacao(%L, 'confirmado')$c$, ag2), 'profissional usa a função da recepção');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_reagendar(%L, %L::timestamptz)$c$, ag2, t0 + interval '5 hours'), 'profissional remarca');
+  PERFORM ci.deve_falhar(p1, format($c$SELECT pet_agenda_retirar(%L)$c$, ag1), 'profissional cobra');
+  PERFORM ci.deve_falhar(p1, format($c$UPDATE pet_agendamentos SET situacao = 'retirado' WHERE id = %L$c$, ag1), 'profissional altera a agenda direto');
+  PERFORM ci.deve_falhar(p1, format($c$UPDATE pet_profissionais SET profile_id = %L WHERE id = %L$c$, p1, prof2), 'profissional liga a própria conta direto');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM pet_profissionais WHERE profile_id = p1 AND id = prof2), 'o vínculo direto não pegou');
+  SELECT count(*) INTO n FROM pet_profissionais WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0, 'a outra empresa não recebeu profissionais');
 END $$;
