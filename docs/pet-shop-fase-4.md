@@ -33,11 +33,12 @@ O PR 1 não depende de nenhuma delas. A decisão 4 trava o PR 2 (e, por consequ�
 | 5   | **Trabalho sem internet:** fila segura de cadastros, atendimento, vacina e exame, enviada ao reconectar                  | decisões 2 e 3 |
 | —   | Cobrança clínica (PR 5 da Fase 3)                                                                                        | contador       |
 
-## PR 1 — Atalhos da próxima dose
+## PR 1 — Atalhos da próxima dose (entregue)
 
 - Hoje a próxima dose já sai do catálogo (intervalo entre doses da série e intervalo de reforço, editáveis: 21, 30 ou 365 dias). A lista **Reforços de vacina** já mostra o que vence e o que atrasou.
 - O que falta é trocar o prazo na hora: ao lado da data da próxima dose, botões **"21 dias"**, **"30 dias"** e **"1 ano"**, que preenchem a data a partir do dia da aplicação. Sem mudar o catálogo nem o banco: usa o campo `proxima_dose_em` que a aplicação já aceita.
-- Vale também para vacina aplicada em outro local.
+- Vale também para vacina aplicada em outro local (o diálogo ganhou o campo "Próxima dose" com os mesmos atalhos).
+- **Entregue.** Sem migração: só a tela e a função `dataDoAtalho` (1 ano em 29/02 cai em 28/02).
 
 ## PR 2 — Exames: modelos
 

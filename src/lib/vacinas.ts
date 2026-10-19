@@ -147,3 +147,25 @@ export function resumoDoProtocolo(
       : "";
   return `${serie}${serie ? "reforço" : "Reforço"} a cada ${i.reforco_dias} dias`;
 }
+
+/** Atalhos para a próxima dose: preenchem a data a partir do dia da aplicação. */
+export type AtalhoProximaDose = { rotulo: string; dias?: number; anos?: number };
+
+export const ATALHOS_PROXIMA_DOSE: readonly AtalhoProximaDose[] = [
+  { rotulo: "21 dias", dias: 21 },
+  { rotulo: "30 dias", dias: 30 },
+  { rotulo: "1 ano", anos: 1 },
+];
+
+/** Data da próxima dose ("AAAA-MM-DD") a partir da aplicação; 29/02 + 1 ano cai em 28/02. */
+export function dataDoAtalho(
+  base: string,
+  atalho: Pick<AtalhoProximaDose, "dias" | "anos">,
+): string {
+  const [a, m, d] = base.split("-").map(Number);
+  const ano = a! + (atalho.anos ?? 0);
+  let t = Date.UTC(ano, m! - 1, d! + (atalho.dias ?? 0));
+  // 29/02 em ano que não é bissexto vira 01/03: volta para o último dia de fevereiro
+  if (atalho.anos && new Date(t).getUTCMonth() !== m! - 1 && !atalho.dias) t = Date.UTC(ano, m!, 0);
+  return new Date(t).toISOString().slice(0, 10);
+}
