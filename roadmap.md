@@ -178,4 +178,13 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 6 — Pacotes de banho (`/pet-pacotes`): um pacote por pet, validade de 30/60/90 dias, vendido adiantado no caixa; o banho sai do pacote na retirada (sem cobrar de novo); agenda e cobrança avisam no penúltimo banho que resta só mais um; NFS-e na venda do pacote; comissão pelo valor de cada uso (`pet_pacote_vender`, `pet_agenda_retirar` com `p_usar_pacote`, `pet_agenda_cobertura`). Confirmar com a contabilidade quando a NFS-e do pacote deve sair
 - [x] PR 7 — Venda a granel (`/granel`, grupo Estoque): o saco guarda o produto vendido por kg e os kg do saco (`produtos.granel_produto_id`/`granel_fator`, informados no cadastro do produto); "abrir saco" baixa o saco e dá entrada dos kg no granel pelo custo proporcional, com histórico (`granel_abrir_saco`, `granel_aberturas`). A venda por kg segue o caixa normal
 - [x] PR 8 — Agenda própria do profissional (`/pet-minha-agenda`): perfil novo **Profissional** (mesmo isolamento do salão: não lê nada da loja), conta ligada ao cadastro (`pet_profissionais.profile_id`, `pet_profissional_vincular`), vê só os atendimentos dele (sem preço, telefone nem documento) e avança Começar/Pronto (`pet_minha_agenda`, `pet_minha_situacao`)
-- [ ] Lembretes automáticos (depende da integração oficial do WhatsApp) e vacina/vermífugo (depende do prontuário da clínica)
+- [ ] Lembretes automáticos (depende da integração oficial do WhatsApp)
+
+
+## Rodada 10 — Pet shop, Fase 3: clínica (`docs/pet-shop-fase-3.md`)
+- [ ] Escopo desenhado; decisões registradas (só o veterinário lê o prontuário; guarda do prontuário segue em aberto com o responsável técnico — nada é apagado)
+- [ ] PR 1 — Base da clínica (módulo `clinica` por CNAE 7500, perfil Veterinário, CRMV no profissional, isolamento do texto clínico)
+- [ ] PR 2 — Consulta e prontuário (atendimento clínico imutável ao fechar, adendos, histórico do pet)
+- [ ] PR 3 — Vacinas e vermífugos (catálogo, aplicação com lote, próxima dose, cartão de vacinação)
+- [ ] PR 4 — Reforços (lista com WhatsApp e "Já falei")
+- [ ] PR 5 — Cobrança clínica (caixa, NFS-e em rascunho, comissão do veterinário)
