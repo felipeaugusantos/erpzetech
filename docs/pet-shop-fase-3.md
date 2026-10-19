@@ -17,7 +17,7 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 
 ## Regras que valem para a fase inteira
 
-- **Liberação própria.** Além do módulo `petshop`, a clínica só aparece com CNAE `7500` (atividades veterinárias) ou ramo "Clínica" no cadastro da empresa. Pet shop sem clínica não ganha menu, tabela legível nem função de prontuário. Regra em `src/lib/cnae-regras.ts` (novo módulo `clinica`).
+- **Liberação própria.** Além do módulo `petshop`, a clínica só aparece com CNAE `7500` (atividades veterinárias) ou ramo "Clínica" no cadastro da empresa. Pet shop sem clínica não ganha menu, tabela legível nem função de prontuário. Regra em `src/lib/cnae-regras.ts` (novo módulo `clinica`) **e também no banco**: a função `clinica_liberada()` (mesma regra, lida do cadastro da empresa) é exigida em **toda política das tabelas clínicas e em toda função** de prontuário, vacina e cartão, para que chamar a API direto não contorne o menu.
 - **Quem escreve no prontuário é o veterinário.** Perfil novo **Veterinário**, com CRMV e UF no cadastro do profissional (`pet_profissionais.crmv`, `crmv_uf`; função "veterinário" já existe). Registro sem CRMV preenchido é recusado pelo banco. Administrador e gestor **não** escrevem em nome do veterinário.
 - **Quem lê (decisão 1).** **Somente o perfil Veterinário** lê o texto clínico. Administrador e gestor **não** leem (quem é dono e também veterinário recebe os dois perfis). Recepção e vendedor só sabem o **dia e a hora** em que o pet passou pela clínica, que já aparece na agenda. Profissional de banho vê apenas o aviso de alergia que já aparece na agenda.
 - **Prontuário não se apaga nem se reescreve.** Cada atendimento clínico, depois de **fechado**, fica imutável; correção é **adendo** datado e assinado pelo mesmo veterinário (ou outro, com identificação). O banco recusa `UPDATE` e `DELETE` direto; o histórico guarda quem escreveu e quando.
@@ -40,6 +40,7 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 > Como foi feito: o perfil Veterinário entra no mesmo isolamento do Profissional (não lê loja, caixa nem restaurante). A leitura dos pets, da agenda e do texto clínico será dada **só a esse perfil** nas tabelas do PR 2, por política própria. Administrador e gestor que também são veterinários precisam receber o perfil Veterinário.
 
 - Módulo `clinica` em `useModulosCnae()` (CNAE `7500` ou ramo "Clínica"). Grupo de menu **Clínica**, separado de Pet shop.
+- `clinica_liberada()` no banco (CNAE `7500` nos CNAEs da empresa ou ramo "Clínica"): já barra o cadastro de profissional com função veterinário em empresa sem clínica e será exigida por todas as políticas e funções dos PRs seguintes.
 - Perfil `veterinario` no `app_role` (arquivo de migration próprio, como `garcom` e `profissional`). Quem tem só esse perfil usa a clínica, a agenda e a própria lista de pets; o isolamento segue o desenho do perfil Profissional (a função de isolamento passa a conhecê-lo; nada da loja, do caixa ou do financeiro).
 - `pet_profissionais.crmv` e `crmv_uf`: obrigatórios para quem tem função "veterinário" e vínculo com conta; telas de cadastro e de vínculo avisam.
 - Categorias de serviço novas: `consulta`, `vacina` e `exame` (hoje há banho, tosa, estética e outro). Elas aparecem na agenda como qualquer serviço, com preço por porte/raça como já existe.
@@ -55,8 +56,8 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 
 ## PR 3 — Vacinas e vermífugos
 
-- **Catálogo** (`pet_vacinas_catalogo`): nome, tipo (`vacina` ou `vermifugo`), espécie, número de doses da série inicial, intervalo entre doses da série, **intervalo de reforço em dias**, idade mínima para a primeira dose, produto vinculado (para baixar estoque e cobrar). A clínica edita; o sistema **sugere** valores iniciais (ex.: múltipla/V10 e antirrábica com reforço anual; vermífugo a cada 90 dias) marcados como "sugestão — conferir com o veterinário responsável", nunca como regra do sistema.
-- **Aplicação** (`pet_vacinacoes`): pet, item do catálogo, data, **lote e validade** (do estoque), dose (1ª, 2ª, reforço), veterinário (com CRMV), local da aplicação, observação, **próxima dose** calculada (editável). Baixa 1 dose do lote escolhido; a aplicação já feita não se apaga: erro vira **cancelamento com motivo** (devolve a dose ao lote).
+- **Catálogo** (`pet_vacinas_catalogo`): nome, tipo (`vacina` ou `vermifugo`), espécie, número de doses da série inicial, intervalo entre doses da série, **intervalo de reforço em dias**, idade mínima para a primeira dose, produto vinculado (**só para baixar o lote do estoque; não é cobrado**). A clínica edita; o sistema **sugere** valores iniciais (ex.: múltipla/V10 e antirrábica com reforço anual; vermífugo a cada 90 dias) marcados como "sugestão — conferir com o veterinário responsável", nunca como regra do sistema.
+- **Aplicação** (`pet_vacinacoes`): ligada ao **atendimento agendado** do serviço de categoria `vacina` (a recepção agenda o serviço; a aplicação só existe dentro dele), pet, item do catálogo, data, **lote e validade** (do estoque), dose (1ª, 2ª, reforço), veterinário (com CRMV), local da aplicação, observação, **próxima dose** calculada (editável). Baixa 1 dose do lote escolhido; a aplicação já feita não se apaga: erro vira **cancelamento com motivo** (devolve a dose ao lote).
 - **Vacina aplicada fora** (outra clínica): registro histórico sem baixa de estoque, marcado "aplicada em outro local", com quem informou. Entra no cartão com essa marca.
 - **Cartão de vacinação**: impressão (A5/A4) com pet, tutor, vacinas e vermífugos aplicados (data, produto, lote, validade, veterinário/CRMV) e próximas doses. É documento do pet, sem texto clínico do prontuário.
 - Regras de segurança do dado: lote vencido, sem saldo ou de outro depósito é recusado; vacina com idade mínima não atendida avisa (não bloqueia: decisão do veterinário).
@@ -69,7 +70,7 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 
 ## PR 5 — Cobrança clínica
 
-- Consulta e vacina são serviços com preço (consulta por porte/raça como os demais; vacina pelo produto). A cobrança segue o fluxo da Fase 1: retirar → caixa com os itens preenchidos, NFS-e em rascunho para o serviço (consulta) e **tratamento fiscal da vacina a confirmar com o contador** (mercadoria aplicada pelo veterinário x serviço).
+- Consulta e vacina são **serviços da agenda** com preço congelado (por porte/raça como os demais). **O item cobrável da vacina é o serviço** (o preço já inclui a dose); o produto do catálogo só baixa o lote e nunca vai para a venda, então não há cobrança em duplicidade e a validação de `pet_agenda_retirar` da Fase 1 segue como está. A cobrança segue o fluxo da Fase 1: retirar → caixa com os itens preenchidos e NFS-e em rascunho; o **tratamento fiscal da vacina** (serviço ou mercadoria aplicada) fica a confirmar com o contador e, se mudar, muda a emissão, não o item cobrado.
 - Comissão do veterinário calculada como a dos demais profissionais (percentual do cadastro), só sobre serviço cobrado.
 
 ## Decisões tomadas
