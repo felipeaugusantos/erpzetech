@@ -194,5 +194,5 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 1 — Atalhos da próxima dose (21 dias, 30 dias, 1 ano)
 - [x] PR 2 — Exames: modelos de hemograma (com VCM, HCM, CHCM e RDW), bioquímica e urina, com unidade e faixa por espécie; faixa guardada no resultado
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
-- [ ] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
+- [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
 - [ ] PR 5 — Trabalho sem internet: fila segura e criptografada para cadastros, atendimento, vacina e exame

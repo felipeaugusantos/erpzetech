@@ -90,13 +90,15 @@ Desenho:
 
 **Como ficou:** tela **Exames** (só o veterinário), com a lista de exames do paciente, abertura a partir de um modelo e preenchimento por grupo. O exame **copia os campos do modelo na abertura** (nome, unidade, casas, opções e a faixa da espécie do paciente), então mudar o modelo depois não muda um exame aberto ou fechado; a faixa pode ser ajustada no exame (a do laudo do laboratório). Os absolutos do leucograma são refeitos na hora, o diferencial que não soma 100% gera aviso (sem travar), e valor fora da faixa fica destacado. Fechar torna o exame imutável (nem o dono do banco altera), correção é adendo com nome e CRMV, e exame aberto por engano é **cancelado com motivo**. O laudo para imprimir traz só os campos preenchidos, com unidade, faixa, notas e adendos, e nada do prontuário. Cada abertura fica em `clinica_acessos`. A evolução de um valor usa só exames fechados, com o mesmo nome e a mesma unidade. Os anexos (imagem, PDF) são o PR 4.
 
-## PR 4 — Exames: anexos
+## PR 4 — Exames: anexos (entregue)
 
 - Arquivos de **ultrassom, raio-x e laudos** ligados ao atendimento ou ao exame: imagem (JPEG, PNG) e PDF. Limite de tamanho por arquivo e por exame definido no PR (proposta: 15 MB por arquivo).
 - **Armazenamento privado** (nada de endereço público): o arquivo só abre por um link temporário que o sistema gera depois de conferir o perfil Veterinário e a clínica liberada. Reaproveita o mecanismo de armazenamento já usado para foto de produto e de entrega, com um espaço próprio e fechado.
 - Anexo é **imutável**: não se troca nem se apaga; enviado por engano vira **anexo cancelado, com motivo**, que some da visualização normal e continua no registro.
 - Auditoria de quem enviou e de quem abriu. DICOM (formato de aparelho de imagem) fica de fora desta fase: o veterinário exporta imagem ou PDF.
 - Vale a decisão 2: no modo sem internet o arquivo fica guardado no notebook (PR 5) e sobe ao reconectar.
+
+**Como ficou:** o painel **Anexos** aparece no exame e no atendimento (só o veterinário), com três tipos: **imagem** (ultrassom, raio-x), **laudo em arquivo** e **exame laboratorial**, em JPEG, PNG ou PDF de até 15 MB, com no máximo 20 por exame ou atendimento. O arquivo vai para um **bucket privado** (`clinica-anexos`) em caminho `empresa/paciente/id`: o envio reserva o caminho por função e só esse caminho aceita upload; a confirmação confere tamanho e formato. Para ver, o sistema **registra quem abriu** (auditoria) e só então libera, por 2 minutos, a geração de um link temporário de 2 minutos; sem essa abertura nem o veterinário consegue gerar o link, e a gestão e a recepção nunca conseguem. Anexo não se troca nem se apaga (nem no armazenamento): enviado por engano, é **cancelado com motivo** por quem enviou, sai da lista normal e continua no registro. Exame fechado ainda recebe anexo, sem mudar o resultado. DICOM não é aceito. Um envio que parou no meio (anexo pendente, sem arquivo confirmado) não aparece e deixa de contar no limite depois de uma hora.
 
 ## PR 5 — Trabalho sem internet
 

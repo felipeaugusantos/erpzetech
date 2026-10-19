@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -284,6 +285,10 @@ function Atendimento() {
           </Button>
         </div>
       )}
+
+      <div className="mt-4">
+        <AnexosClinicos atendimentoId={data.id} />
+      </div>
 
       <Dialog open={confirmando} onOpenChange={(o) => !o && setConfirmando(false)}>
         <DialogContent>

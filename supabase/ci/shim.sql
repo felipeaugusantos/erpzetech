@@ -29,6 +29,8 @@ CREATE FUNCTION storage.foldername(n text) RETURNS text[] LANGUAGE sql AS
   $$ SELECT string_to_array(n, '/') $$;
 
 GRANT USAGE ON SCHEMA public, auth, storage TO anon, authenticated, service_role;
+-- o Supabase concede isto à role authenticated; quem decide o acesso são as políticas (RLS) do storage.objects
+GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 

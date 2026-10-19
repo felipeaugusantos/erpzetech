@@ -534,7 +534,10 @@ DECLARE
     'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais',
     -- resultados de exame: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_exame_abrir', 'clinica_exame_salvar', 'clinica_exame_fechar', 'clinica_exame_cancelar', 'clinica_exame_adendo_criar',
-    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao'];
+    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao',
+    -- anexos: cada função confere o perfil Veterinário e a clínica liberada; as duas de apoio só respondem verdadeiro com perfil, clínica e registro prévio
+    'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
+    '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4519,5 +4522,207 @@ BEGIN
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet, m_hemo), 'abrir exame sem a clínica liberada');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('observacoes', 'x'))$c$, ex5), 'preencher exame sem a clínica liberada');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_get(%L)$c$, ex1), 'ler exame sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 49. Clínica (anexos de exame): armazenamento privado, envio só em caminho reservado, link só depois de registrar a abertura, imutável
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000f8';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000f9';
+  t0 timestamptz := date_trunc('day', now()) + interval '18 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; cons uuid; pva uuid; pvb uuid; ag1 uuid; at1 uuid; m_hemo uuid; ex1 uuid; ex2 uuid;
+  r jsonb; an1 uuid; an2 uuid; an3 uuid; an4 uuid; c1 text; c2 text; c3 text; c4 text; n bigint; i int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (va, 'vetana@ci'), (vb, 'vetanb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
+
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Anexo CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
+  pva := pet_profissional_salvar('{"nome":"Vet A Anexo","funcao":"veterinario","crmv":"8881","crmv_uf":"SP"}'::jsonb);
+  pvb := pet_profissional_salvar('{"nome":"Vet B Anexo","funcao":"veterinario","crmv":"8882","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pva, va);
+  PERFORM pet_profissional_vincular(pvb, vb);
+  PERFORM clinica_exame_modelos_iniciais();
+  PERFORM ci.sair();
+  SELECT id INTO m_hemo FROM pet_exame_modelos WHERE tenant_id = demo AND nome = 'Hemograma';
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Anexo CI', 'especie', 'cao'));
+  ag1 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pva, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(va);
+  at1 := (clinica_atendimento_abrir(ag1) ->> 'id')::uuid;
+  ex1 := (clinica_exame_abrir(pet, m_hemo, jsonb_build_object('atendimento_id', at1)) ->> 'id')::uuid;
+  ex2 := (clinica_exame_abrir(pet, m_hemo, '{"laboratorio":"Lab Anexo CI"}'::jsonb) ->> 'id')::uuid;
+  PERFORM clinica_exame_cancelar(ex2, 'Aberto por engano');
+  PERFORM ci.sair();
+
+  -- bucket privado, só JPEG, PNG e PDF até 15 MB
+  PERFORM ci.exige((SELECT NOT public AND file_size_limit = 15728640 AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'application/pdf'] AND cardinality(allowed_mime_types) = 3
+                      FROM storage.buckets WHERE id = 'clinica-anexos'), 'o bucket de anexos é privado, com 15 MB e só JPEG, PNG e PDF');
+
+  -- só o veterinário usa os anexos
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex1), 'gestor prepara anexo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex1), 'recepção prepara anexo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_anexos(%L, NULL)$c$, ex1), 'garçom lista anexos');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_anexos(%L, NULL)$c$, ex1), 'profissional de banho lista anexos');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_exame_anexos', 'leitura direta da tabela de anexos');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_exame_anexos', 'leitura direta da tabela de anexos pelo veterinário');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO pet_exame_anexos (tenant_id, pet_id, exame_id, categoria, descricao, nome_arquivo, mime, tamanho, caminho, veterinario_id, crmv, crmv_uf) VALUES (%L, %L, %L, 'laudo', 'x', 'x.pdf', 'application/pdf', 10, 'x/y/z.pdf', %L, '8881', 'SP')$c$, demo, pet, ex1, pva), 'escrita direta de anexo');
+
+  -- preparar: regras
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_anexo_preparar(''{"categoria":"laudo","descricao":"x","nome_arquivo":"x.pdf","mime":"application/pdf","tamanho":100}''::jsonb)', 'sem exame nem atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'atendimento_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex1, at1), 'exame e atendimento ao mesmo tempo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'foto', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex1), 'tipo de anexo inválido');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', '  ', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex1), 'anexo sem descrição');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.zip', 'mime', 'application/zip', 'tamanho', 100))$c$, ex1), 'formato não aceito');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/dicom', 'tamanho', 100))$c$, ex1), 'DICOM fica de fora');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 0))$c$, ex1), 'arquivo vazio');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 15728641))$c$, ex1), 'arquivo acima de 15 MB');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 'grande'))$c$, ex1), 'tamanho que não é número');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, ex2), 'anexo em exame cancelado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, gen_random_uuid()), 'anexo em exame que não existe');
+
+  PERFORM ci.entrar(va);
+  r := clinica_anexo_preparar(jsonb_build_object('exame_id', ex1, 'categoria', 'imagem', 'descricao', 'Ultrassom abdominal', 'nome_arquivo', 'ultra.png', 'mime', 'image/png', 'tamanho', 2048));
+  PERFORM ci.sair();
+  an1 := (r ->> 'id')::uuid; c1 := r ->> 'caminho';
+  PERFORM ci.exige(c1 LIKE demo::text || '/' || pet::text || '/' || an1::text || '.png', 'o caminho é empresa/paciente/id.extensão');
+  PERFORM ci.exige((SELECT situacao = 'pendente' FROM pet_exame_anexos WHERE id = an1), 'o anexo nasce pendente');
+  PERFORM ci.entrar(va);
+  PERFORM ci.exige(jsonb_array_length(clinica_anexos(ex1, NULL)) = 0, 'anexo pendente não aparece na lista');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_confirmar(%L)$c$, an1), 'confirmar sem o arquivo enviado');
+
+  -- envio: só no caminho reservado, só pelo veterinário que reservou
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, demo::text || '/' || pet::text || '/outro.png', va), 'upload em caminho que não foi reservado');
+  PERFORM ci.deve_falhar(vb, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, vb), 'upload de outro veterinário no caminho reservado');
+  PERFORM ci.deve_falhar(gest, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, gest), 'upload da gestão no caminho reservado');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, vend), 'upload da recepção no caminho reservado');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('outro-bucket', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, va), 'o caminho reservado não vale em outro bucket');
+  PERFORM ci.entrar(va);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, va);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM storage.objects WHERE bucket_id = 'clinica-anexos' AND name = c1) = 1, 'o veterinário envia o arquivo no caminho reservado');
+
+  -- confirmar: só quem reservou, e só se o arquivo confere
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_anexo_confirmar(%L)$c$, an1), 'outro veterinário confirma o anexo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_anexo_confirmar(%L)$c$, an1), 'gestor confirma o anexo');
+  PERFORM ci.entrar(va);
+  r := clinica_anexo_preparar(jsonb_build_object('exame_id', ex1, 'categoria', 'laudo', 'descricao', 'Laudo do ultrassom', 'nome_arquivo', 'laudo.pdf', 'mime', 'application/pdf', 'tamanho', 5000));
+  PERFORM ci.sair();
+  an2 := (r ->> 'id')::uuid; c2 := r ->> 'caminho';
+  PERFORM ci.entrar(va);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":9999,"mimetype":"application/pdf"}')$c$, c2, va);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_confirmar(%L)$c$, an2), 'confirmar arquivo com tamanho diferente do informado');
+  PERFORM ci.entrar(va);
+  PERFORM clinica_anexo_confirmar(an1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'ativo' AND confirmado_em IS NOT NULL FROM pet_exame_anexos WHERE id = an1), 'anexo confirmado fica ativo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_confirmar(%L)$c$, an1), 'confirmar duas vezes');
+
+  -- lista: sem o caminho do arquivo; só veterinário; qualquer veterinário da clínica enxerga
+  PERFORM ci.entrar(vb);
+  r := clinica_anexos(ex1, NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'descricao' = 'Ultrassom abdominal' AND r -> 0 ->> 'crmv' = '8881' AND r -> 0 ->> 'categoria' = 'imagem', 'a lista traz o anexo ativo, de quem enviou');
+  PERFORM ci.exige(r::text NOT LIKE '%caminho%' AND r::text NOT LIKE '%' || c1 || '%', 'a lista não traz o caminho do arquivo');
+
+  -- ler o arquivo (gerar o link temporário): só logo depois de registrar a abertura
+  PERFORM ci.exige(ci.contar(va, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'sem abrir pela função, o veterinário não enxerga o arquivo');
+  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'a gestão não enxerga o arquivo');
+  SELECT count(*) INTO n FROM clinica_acessos WHERE tenant_id = demo AND acao = 'anexo' AND anexo_id = an1;
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_anexo_abrir(%L)$c$, an1), 'gestor abre anexo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_anexo_abrir(%L)$c$, an1), 'recepção abre anexo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_abrir(%L)$c$, an2), 'abrir anexo que ainda é pendente');
+  PERFORM ci.entrar(va);
+  r := clinica_anexo_abrir(an1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'caminho' = c1 AND r ->> 'mime' = 'image/png' AND r ->> 'nome_arquivo' = 'ultra.png', 'abrir devolve o caminho para o link temporário');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'anexo' AND anexo_id = an1 AND profile_id = va) = n + 1, 'a abertura do anexo fica registrada com quem abriu');
+  PERFORM ci.exige(ci.contar(va, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 1, 'depois de abrir, o veterinário gera o link do arquivo aberto');
+  PERFORM ci.exige(ci.contar(vb, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'a abertura de um veterinário não libera o arquivo para outro');
+  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'a abertura do veterinário não libera para a gestão');
+  UPDATE clinica_acessos SET created_at = now() - interval '3 minutes' WHERE acao = 'anexo' AND anexo_id = an1;
+  PERFORM ci.exige(ci.contar(va, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'a liberação do link vale por 2 minutos');
+
+  -- o arquivo enviado não se troca nem se apaga
+  PERFORM ci.entrar(va);
+  PERFORM clinica_anexo_abrir(an1);
+  UPDATE storage.objects SET name = name || 'x' WHERE bucket_id = 'clinica-anexos';
+  DELETE FROM storage.objects WHERE bucket_id = 'clinica-anexos';
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM storage.objects WHERE bucket_id = 'clinica-anexos' AND name = c1) = 1, 'nem o veterinário altera ou apaga o arquivo no armazenamento');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":2048,"mimetype":"image/png"}')$c$, c1, va), 'enviar de novo por cima do arquivo');
+
+  -- cancelar: só quem enviou, com motivo; continua no registro
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_cancelar(%L, '   ')$c$, an1), 'cancelar anexo sem motivo');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_anexo_cancelar(%L, 'não é meu')$c$, an1), 'outro veterinário cancela o anexo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_anexo_cancelar(%L, 'gestor')$c$, an1), 'gestor cancela o anexo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_cancelar(%L, 'x')$c$, an2), 'cancelar anexo pendente');
+  PERFORM ci.entrar(va);
+  PERFORM clinica_anexo_cancelar(an1, 'Imagem do paciente errado');
+  r := clinica_anexos(ex1, NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 0 ->> 'situacao' = 'cancelado' AND r -> 0 ->> 'cancelado_motivo' = 'Imagem do paciente errado', 'anexo cancelado fica na lista com o motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_cancelar(%L, 'de novo')$c$, an1), 'cancelar duas vezes');
+  PERFORM ci.exige((SELECT count(*) FROM storage.objects WHERE bucket_id = 'clinica-anexos' AND name = c1) = 1, 'o arquivo do anexo cancelado continua no armazenamento');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_exame_anexos WHERE id = %L$c$, an1), 'apagar anexo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_anexos SET descricao = 'outra' WHERE id = %L$c$, an1), 'mudar a descrição do anexo cancelado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_anexos SET descricao = 'outra' WHERE id = %L$c$, an2), 'mudar a descrição de anexo pendente');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_anexos SET caminho = 'outro' WHERE id = %L$c$, an2), 'mudar o caminho do anexo');
+
+  -- anexo do atendimento e de exame fechado
+  PERFORM ci.entrar(va);
+  PERFORM clinica_exame_salvar(ex1, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', (SELECT (x ->> 'id')::uuid FROM jsonb_array_elements(clinica_exame_get(ex1) -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'), 'valor', '14'))));
+  PERFORM clinica_exame_fechar(ex1);
+  r := clinica_anexo_preparar(jsonb_build_object('atendimento_id', at1, 'categoria', 'laboratorial', 'descricao', 'Hemograma do laboratório', 'nome_arquivo', 'hemo.pdf', 'mime', 'application/pdf', 'tamanho', 7000));
+  an3 := (r ->> 'id')::uuid; c3 := r ->> 'caminho';
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":7000,"mimetype":"application/pdf"}')$c$, c3, va);
+  PERFORM clinica_anexo_confirmar(an3);
+  r := clinica_anexo_preparar(jsonb_build_object('exame_id', ex1, 'categoria', 'laudo', 'descricao', 'Laudo depois de fechar', 'nome_arquivo', 'l.jpg', 'mime', 'image/jpeg', 'tamanho', 300));
+  an4 := (r ->> 'id')::uuid; c4 := r ->> 'caminho';
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":300,"mimetype":"image/jpeg"}')$c$, c4, va);
+  PERFORM clinica_anexo_confirmar(an4);
+  PERFORM ci.exige(jsonb_array_length(clinica_anexos(NULL, at1)) = 1, 'o anexo do atendimento aparece na lista do atendimento');
+  PERFORM ci.exige(jsonb_array_length(clinica_anexos(ex1, NULL)) = 2, 'exame fechado ainda recebe anexo (imagem cancelada e laudo novo)');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_resultados WHERE exame_id = ex1 AND valor_num = 14) = 1, 'anexar não altera o resultado do exame fechado');
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_anexos(NULL, NULL)', 'lista sem exame nem atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexos(%L, %L)$c$, ex1, at1), 'lista com exame e atendimento juntos');
+
+  -- limite de 20 anexos por exame
+  PERFORM ci.entrar(va);
+  FOR i IN 1..17 LOOP
+    PERFORM clinica_anexo_preparar(jsonb_build_object('exame_id', ex1, 'categoria', 'laudo', 'descricao', 'Enchendo ' || i, 'nome_arquivo', 'e.pdf', 'mime', 'application/pdf', 'tamanho', 10));
+  END LOOP;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'Passou', 'nome_arquivo', 'e.pdf', 'mime', 'application/pdf', 'tamanho', 10))$c$, ex1), 'mais de 20 anexos no mesmo exame');
+  -- pendentes de mais de uma hora não contam no limite (o teste envelhece os registros desligando a trava só nesta linha)
+  ALTER TABLE pet_exame_anexos DISABLE TRIGGER trg_clinica_anexo_guarda;
+  UPDATE pet_exame_anexos SET created_at = now() - interval '2 hours' WHERE exame_id = ex1 AND situacao = 'pendente' AND descricao LIKE 'Enchendo%';
+  ALTER TABLE pet_exame_anexos ENABLE TRIGGER trg_clinica_anexo_guarda;
+  PERFORM ci.entrar(va);
+  PERFORM clinica_anexo_preparar(jsonb_build_object('exame_id', ex1, 'categoria', 'laudo', 'descricao', 'Cabe de novo', 'nome_arquivo', 'e.pdf', 'mime', 'application/pdf', 'tamanho', 10));
+  PERFORM ci.sair();
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexos(%L, NULL)$c$, ex1), 'lista de anexos sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_abrir(%L)$c$, an3), 'abrir anexo sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'e.pdf', 'mime', 'application/pdf', 'tamanho', 10))$c$, ex1), 'preparar anexo sem a clínica liberada');
+  PERFORM ci.exige(ci.contar(va, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'sem a clínica liberada o veterinário não enxerga os arquivos');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
