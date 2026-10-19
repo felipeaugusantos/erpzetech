@@ -158,6 +158,22 @@ REVOKE ALL ON FUNCTION public.pet_profissional_vincular(uuid, uuid) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.pet_profissional_vincular(uuid, uuid) TO authenticated;
 
 -- ============ a agenda própria vale também para o veterinário ============
+-- Se a empresa deixar de ter a clínica liberada, o veterinário perde também a agenda.
+CREATE OR REPLACE FUNCTION public._pet_exige_clinica_se_vet()
+RETURNS void
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.pet_profissionais WHERE profile_id = auth.uid() AND tenant_id = public.current_tenant_id() AND funcao = 'veterinario')
+     AND NOT public.clinica_liberada() THEN
+    RAISE EXCEPTION 'A clínica não está liberada para esta empresa';
+  END IF;
+END $$;
+REVOKE ALL ON FUNCTION public._pet_exige_clinica_se_vet() FROM PUBLIC, anon, authenticated;
+
 DO $$
 DECLARE
   f text;
@@ -170,7 +186,8 @@ BEGIN
      WHERE n.nspname = 'public' AND p.proname = f;
     IF def IS NULL THEN RAISE EXCEPTION '% não encontrada', f; END IF;
     IF position('''veterinario''' IN def) > 0 THEN CONTINUE; END IF;
-    nova := replace(def, 'ARRAY[''profissional'']', 'ARRAY[''profissional'', ''veterinario'']');
+    nova := replace(def, 'PERFORM public.exige_papel(ARRAY[''profissional'']);',
+      E'PERFORM public.exige_papel(ARRAY[''profissional'', ''veterinario'']);\n  PERFORM public._pet_exige_clinica_se_vet();');
     IF nova = def THEN RAISE EXCEPTION '%: trecho esperado não encontrado', f; END IF;
     EXECUTE nova;
   END LOOP;
@@ -193,5 +210,10 @@ BEGIN
   IF position('''consulta''' IN def) > 0 THEN RETURN; END IF;
   nova := replace(def, '(''banho'', ''tosa'', ''estetica'', ''outro'')', '(''banho'', ''tosa'', ''estetica'', ''consulta'', ''vacina'', ''exame'', ''outro'')');
   IF nova = def THEN RAISE EXCEPTION 'pet_servico_salvar: trecho esperado não encontrado'; END IF;
+  -- consulta, vacina e exame são da clínica: empresa sem a clínica liberada não cria esses serviços
+  def := nova;
+  nova := replace(def, 'RAISE EXCEPTION ''Categoria inválida''; END IF;',
+    E'RAISE EXCEPTION ''Categoria inválida''; END IF;\n  IF v_cat IN (''consulta'', ''vacina'', ''exame'') AND NOT public.clinica_liberada() THEN RAISE EXCEPTION ''A clínica não está liberada para esta empresa''; END IF;');
+  IF nova = def THEN RAISE EXCEPTION 'pet_servico_salvar: trecho da categoria não encontrado'; END IF;
   EXECUTE nova;
 END $$;
