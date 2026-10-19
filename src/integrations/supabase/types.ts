@@ -5558,6 +5558,202 @@ export type Database = {
           },
         ]
       }
+      pet_vacinacoes: {
+        Row: {
+          agendamento_id: string | null
+          aplicada_em: string
+          aplicador_id: string | null
+          cancelada_em: string | null
+          cancelada_motivo: string | null
+          cancelada_por: string | null
+          catalogo_id: string
+          created_at: string
+          deposito_id: string | null
+          dose_numero: number
+          dose_tipo: string
+          estoque_lote_id: string | null
+          id: string
+          informado_por: string | null
+          local_aplicacao: string | null
+          lote: string | null
+          nome: string
+          observacoes: string | null
+          origem: string
+          pet_id: string
+          proxima_dose_em: string | null
+          registrado_por: string | null
+          situacao: string
+          tenant_id: string
+          tipo: string
+          validade_lote: string | null
+          veterinario_id: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          aplicada_em: string
+          aplicador_id?: string | null
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          catalogo_id: string
+          created_at?: string
+          deposito_id?: string | null
+          dose_numero: number
+          dose_tipo: string
+          estoque_lote_id?: string | null
+          id?: string
+          informado_por?: string | null
+          local_aplicacao?: string | null
+          lote?: string | null
+          nome: string
+          observacoes?: string | null
+          origem: string
+          pet_id: string
+          proxima_dose_em?: string | null
+          registrado_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo: string
+          validade_lote?: string | null
+          veterinario_id?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          aplicada_em?: string
+          aplicador_id?: string | null
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          catalogo_id?: string
+          created_at?: string
+          deposito_id?: string | null
+          dose_numero?: number
+          dose_tipo?: string
+          estoque_lote_id?: string | null
+          id?: string
+          informado_por?: string | null
+          local_aplicacao?: string | null
+          lote?: string | null
+          nome?: string
+          observacoes?: string | null
+          origem?: string
+          pet_id?: string
+          proxima_dose_em?: string | null
+          registrado_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          validade_lote?: string | null
+          veterinario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_vacinacoes_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_aplicador_id_fkey"
+            columns: ["aplicador_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_vacinas_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_estoque_lote_id_fkey"
+            columns: ["estoque_lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_vacinas_catalogo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          doses_serie: number
+          especie: string
+          id: string
+          idade_minima_dias: number | null
+          intervalo_serie_dias: number | null
+          nome: string
+          produto_id: string
+          reforco_dias: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          doses_serie?: number
+          especie?: string
+          id?: string
+          idade_minima_dias?: number | null
+          intervalo_serie_dias?: number | null
+          nome: string
+          produto_id: string
+          reforco_dias: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          doses_serie?: number
+          especie?: string
+          id?: string
+          idade_minima_dias?: number | null
+          intervalo_serie_dias?: number | null
+          nome?: string
+          produto_id?: string
+          reforco_dias?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_vacinas_catalogo_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_pacote_modelos: {
         Row: {
           ativo: boolean
@@ -8885,6 +9081,23 @@ export type Database = {
         Args: { p_atendimento_id: string; p_texto: string }
         Returns: Json
       }
+      clinica_aplicadores: { Args: never; Returns: Json }
+      clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
+      clinica_vacina_aplicar: {
+        Args: { p_agendamento_id: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_vacina_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_vacina_catalogo_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_vacina_registrar_externa: {
+        Args: { p_dados: Json; p_pet_id: string }
+        Returns: Json
+      }
+      clinica_vacinas_catalogo: { Args: never; Returns: Json }
       clinica_atendimento_abrir: { Args: { p_agendamento_id: string }; Returns: Json }
       clinica_atendimento_fechar: { Args: { p_id: string }; Returns: Json }
       clinica_atendimento_salvar: { Args: { p_dados: Json; p_id: string }; Returns: Json }

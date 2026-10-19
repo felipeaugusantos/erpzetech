@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PawPrint, Pencil, Plus, Search } from "lucide-react";
+import { PawPrint, Pencil, Plus, Search, Syringe } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
@@ -98,6 +98,7 @@ function PetsModulo() {
 
 function Pets() {
   const qc = useQueryClient();
+  const { clinica } = useModulosCnae();
   const { data: session } = useSessionData();
   const podeEditar = (session?.roles ?? []).some((r) =>
     ["administrador", "gestor", "vendedor", "caixa"].includes(r),
@@ -288,6 +289,18 @@ function Pets() {
                     </TableCell>
                     <TableCell className="max-w-48 truncate">{p.alergias ?? "—"}</TableCell>
                     <TableCell className="text-right">
+                      {clinica && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Cartão de vacinação de ${p.nome}`}
+                        >
+                          <Link to="/clinica-cartao" search={{ pet: p.id }}>
+                            <Syringe className="size-4" />
+                          </Link>
+                        </Button>
+                      )}
                       {podeEditar && (
                         <Button
                           variant="ghost"

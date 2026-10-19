@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -199,6 +199,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <h2 className="font-display text-lg font-semibold">{p.nome}</h2>
           <span className="text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
         </div>
+        <Link
+          to="/clinica-vacinas"
+          search={{ pet: petId, agendamento: undefined }}
+          className="mt-1 inline-block text-sm text-primary underline"
+        >
+          Vacinas, vermífugos e cartão de vacinação
+        </Link>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <span>{rotulo(ESPECIES, p.especie)}</span>
           {p.raca && <span>{p.raca}</span>}

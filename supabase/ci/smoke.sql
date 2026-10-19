@@ -525,7 +525,10 @@ DECLARE
     'clinica_liberada',
     -- prontuário: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_pacientes', 'clinica_atendimento_abrir', 'clinica_atendimento_salvar', 'clinica_atendimento_fechar',
-    'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias'];
+    'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias',
+    -- vacinas: catálogo e cartão para a gestão, o veterinário e a recepção; aplicação só do veterinário
+    'clinica_vacinas_catalogo', 'clinica_vacina_catalogo_salvar', 'clinica_lotes_vacina', 'clinica_aplicadores', 'clinica_vacina_aplicar',
+    'clinica_vacina_registrar_externa', 'clinica_vacina_cancelar', 'clinica_cartao_vacinacao'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -3762,5 +3765,185 @@ BEGIN
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_historico(%L)$c$, pet), 'prontuário sem a clínica liberada');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_abrir(%L)$c$, ag1), 'abrir atendimento sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 45. Clínica (vacinas e vermífugos): catálogo, aplicação com lote, série e reforço, cancelamento, aplicada fora, cartão
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  vg   constant uuid := 'a0000000-0000-0000-0000-0000000000f3';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '13 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; cao uuid; gato uuid; cao2 uuid; vacserv uuid; banho uuid; pvet uuid; ag uuid; ag_banho uuid;
+  prod uuid; prod_b uuid; prod_serv uuid; dep uuid; l_ok uuid; l_venc uuid; l_zero uuid; l_outro uuid; cat uuid; cat_gato uuid; cat_verm uuid;
+  r jsonb; a1 uuid; a2 uuid; a3 uuid; a4 uuid; ext uuid; n numeric; est0 numeric;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (vg, 'vetvac@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = vg;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vg, demo, 'veterinario');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Vacinas CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAC-V10-CI', 'Vacina V10 CI', 'UN', 0, true) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAC-OUTRO-CI', 'Outro produto CI', 'UN', 0, true) RETURNING id INTO prod_b;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'VAC-SERV-CI', 'Serviço CI', 'UN', 10, false) RETURNING id INTO prod_serv;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  l_ok := estoque_lote_lancar(prod, dep, 'L-OK', '', '', 'entrada', 5, 'ci');
+  l_venc := estoque_lote_lancar(prod, dep, 'L-VENC', '', '', 'entrada', 3, 'ci');
+  l_zero := estoque_lote_lancar(prod, dep, 'L-ZERO', '', '', 'entrada', 1, 'ci');
+  l_outro := estoque_lote_lancar(prod_b, dep, 'L-OUTRO', '', '', 'entrada', 2, 'ci');
+  PERFORM estoque_lote_lancar(prod, dep, 'L-ZERO', '', '', 'saida', 1, 'ci');
+  PERFORM ci.sair();
+  UPDATE estoque_lotes SET validade = hoje + 90 WHERE id = l_ok;
+  UPDATE estoque_lotes SET validade = hoje - 1 WHERE id = l_venc;
+
+  PERFORM ci.entrar(gest);
+  vacserv := pet_servico_salvar('{"nome":"Vacinação Clinica CI","categoria":"vacina","duracao_min":15}'::jsonb);
+  banho := pet_servico_salvar('{"nome":"Banho Vacina CI","categoria":"banho","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(vacserv, NULL, NULL, NULL, 120);
+  PERFORM pet_preco_salvar(banho, NULL, NULL, NULL, 60);
+  pvet := pet_profissional_salvar('{"nome":"Vet Vacina CI","funcao":"veterinario","crmv":"3333","crmv_uf":"MG"}'::jsonb);
+  PERFORM pet_profissional_vincular(pvet, vg);
+  PERFORM ci.sair();
+
+  -- catálogo: gestão e veterinário editam; validações
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','produto_id',%L,'reforco_dias',365))$c$, prod), 'vendedor edita o catálogo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','doses_serie',3,'reforco_dias',365,'produto_id',%L))$c$, prod), 'série sem intervalo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',0,'produto_id',%L))$c$, prod), 'reforço zero');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','','reforco_dias',365,'produto_id',%L))$c$, prod), 'item sem nome');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',365,'produto_id',%L))$c$, prod_serv), 'produto que é serviço');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',365,'produto_id',%L,'tipo','soro'))$c$, prod), 'tipo inválido');
+  PERFORM ci.entrar(gest);
+  cat := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'V10 CI', 'tipo', 'vacina', 'especie', 'cao', 'doses_serie', 3, 'intervalo_serie_dias', 21,
+                                        'reforco_dias', 365, 'idade_minima_dias', 42, 'produto_id', prod));
+  cat_gato := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'Quadrupla CI', 'especie', 'gato', 'reforco_dias', 365, 'produto_id', prod));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vg);
+  cat_verm := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'Vermífugo CI', 'tipo', 'vermifugo', 'reforco_dias', 90, 'produto_id', prod));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome',' v10 ci ','especie','cao','reforco_dias',365,'produto_id',%L))$c$, prod), 'nome repetido para a mesma espécie');
+  PERFORM ci.entrar(vend);
+  r := clinica_vacinas_catalogo();
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) >= 3, 'a recepção lê o catálogo');
+  PERFORM ci.deve_falhar(gar, 'SELECT clinica_vacinas_catalogo()', 'garçom lê o catálogo');
+  PERFORM ci.deve_falhar(pban, 'SELECT clinica_vacinas_catalogo()', 'profissional de banho lê o catálogo');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_vacinas_catalogo', 'leitura direta do catálogo');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_vacinacoes', 'leitura direta das aplicações');
+
+  -- pacientes e consulta de vacina agendada
+  PERFORM ci.entrar(vend);
+  cao := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Filhote Vacina CI', 'especie', 'cao', 'nascimento', hoje - 30));
+  cao2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Adulto Vacina CI', 'especie', 'cao'));
+  gato := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Gato Vacina CI', 'especie', 'gato'));
+  ag := pet_agendar(jsonb_build_object('pet_id', cao, 'profissional_id', pvet, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', vacserv))));
+  ag_banho := pet_agendar(jsonb_build_object('pet_id', cao, 'profissional_id', pvet, 'inicio', t0 + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  PERFORM ci.sair();
+
+  -- aplicar: só o veterinário, com lote válido, dentro do atendimento de vacina
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_ok), 'gestor aplica vacina');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag_banho, cat, l_ok), 'agendamento sem serviço de vacina');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_venc), 'lote vencido');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_zero), 'lote sem saldo');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_outro), 'lote de outro produto');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat_gato, l_ok), 'vacina de gato em cão');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'aplicada_em',%L))$c$, ag, cat, l_ok, hoje + 1), 'aplicação no futuro');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'aplicada_em',%L))$c$, ag, cat, l_ok, hoje - 30), 'aplicação antiga fora do registro externo');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'aplicador_id',%L))$c$, ag, cat, l_ok, gen_random_uuid()), 'aplicador que não existe');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'proxima_dose_em',%L))$c$, ag, cat, l_ok, hoje - 1), 'próxima dose antes da aplicação');
+  PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 5, 'aplicação recusada não baixa o lote');
+  SELECT quantidade INTO est0 FROM estoques WHERE produto_id = prod AND deposito_id = dep;
+
+  PERFORM ci.entrar(vg);
+  r := clinica_vacina_aplicar(ag, jsonb_build_object('catalogo_id', cat, 'estoque_lote_id', l_ok, 'local_aplicacao', 'Subcutânea, dorso'));
+  PERFORM ci.sair();
+  a1 := (r ->> 'id')::uuid;
+  PERFORM ci.exige(r ->> 'dose_tipo' = 'serie' AND (r ->> 'dose_numero')::int = 1 AND (r ->> 'proxima_dose_em')::date = hoje + 21, '1ª dose da série: próxima em 21 dias');
+  PERFORM ci.exige(jsonb_array_length(r -> 'avisos') = 1 AND r -> 'avisos' ->> 0 LIKE '%idade mínima%', 'aviso (que não bloqueia) de idade mínima');
+  PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 4 AND (SELECT quantidade FROM estoques WHERE produto_id = prod AND deposito_id = dep) = est0 - 1,
+                   'a aplicação baixa 1 dose do lote e do estoque');
+  PERFORM ci.exige((SELECT situacao = 'em_atendimento' FROM pet_agendamentos WHERE id = ag), 'registrar a vacina começa o atendimento');
+  PERFORM ci.exige((SELECT lote = 'L-OK' AND aplicador_id = veterinario_id AND origem = 'clinica' FROM pet_vacinacoes WHERE id = a1), 'a aplicação guarda o lote e, sem auxiliar, o veterinário como aplicador');
+
+  PERFORM ci.entrar(vg);
+  r := clinica_vacina_aplicar(ag, jsonb_build_object('catalogo_id', cat, 'estoque_lote_id', l_ok, 'aplicada_em', hoje));
+  a2 := (r ->> 'id')::uuid;
+  PERFORM ci.exige(r ->> 'dose_tipo' = 'serie' AND (r ->> 'dose_numero')::int = 2 AND (r ->> 'proxima_dose_em')::date = hoje + 21 AND (r -> 'avisos') @> '["Já existe uma aplicação deste item para o pet nesta data."]'::jsonb, '2ª dose; aviso de aplicação repetida no dia');
+  r := clinica_vacina_aplicar(ag, jsonb_build_object('catalogo_id', cat, 'estoque_lote_id', l_ok));
+  a3 := (r ->> 'id')::uuid;
+  PERFORM ci.exige(r ->> 'dose_tipo' = 'serie' AND (r ->> 'dose_numero')::int = 3 AND (r ->> 'proxima_dose_em')::date = hoje + 365, 'última dose da série: a próxima já é o reforço (365 dias)');
+  r := clinica_vacina_aplicar(ag, jsonb_build_object('catalogo_id', cat, 'estoque_lote_id', l_ok, 'proxima_dose_em', ''));
+  a4 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'dose_tipo' = 'reforco' AND (r ->> 'dose_numero')::int = 1 AND r ->> 'proxima_dose_em' IS NULL, 'depois da série vem o reforço; próxima dose pode ficar em branco');
+  PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 1, 'quatro aplicações baixaram quatro doses do lote');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_vacinacoes SET lote = 'X' WHERE id = %L$c$, a1), 'alterar aplicação');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_vacinacoes SET situacao = 'cancelada', cancelada_em = now() WHERE id = %L$c$, a1), 'cancelar sem motivo no banco');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_vacinacoes WHERE id = %L$c$, a1), 'apagar aplicação');
+
+  -- cancelar: motivo, só o veterinário, devolve a dose
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_cancelar(%L, 'erro')$c$, a4), 'gestor cancela aplicação');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_cancelar(%L, '  ')$c$, a4), 'cancelar sem motivo');
+  PERFORM ci.entrar(vg);
+  PERFORM clinica_vacina_cancelar(a4, 'Registrado no pet errado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 2 AND (SELECT quantidade FROM estoques WHERE produto_id = prod AND deposito_id = dep) = est0 - 3,
+                   'cancelar devolve a dose ao lote e ao estoque');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_cancelar(%L, 'de novo')$c$, a4), 'cancelar duas vezes');
+
+  -- aplicada em outro local: sem baixa
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_registrar_externa(%L, jsonb_build_object('catalogo_id',%L,'aplicada_em',%L,'informado_por','Tutor'))$c$, cao2, cat, hoje - 60), 'gestor registra vacina externa');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_registrar_externa(%L, jsonb_build_object('catalogo_id',%L,'aplicada_em',%L))$c$, cao2, cat, hoje - 60), 'externa sem dizer quem informou');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_registrar_externa(%L, jsonb_build_object('catalogo_id',%L,'aplicada_em',%L,'informado_por','Tutor'))$c$, cao2, cat, hoje + 5), 'externa no futuro');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_registrar_externa(%L, jsonb_build_object('catalogo_id',%L,'aplicada_em','2020-02-30','informado_por','Tutor'))$c$, cao2, cat), 'externa com data inválida');
+  PERFORM ci.entrar(vg);
+  r := clinica_vacina_registrar_externa(cao2, jsonb_build_object('catalogo_id', cat, 'aplicada_em', hoje - 60, 'informado_por', 'Carteira de vacinação (Clínica Boa Vida)', 'lote', 'X123'));
+  ext := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'dose_tipo' = 'serie' AND (r ->> 'dose_numero')::int = 1 AND (r ->> 'proxima_dose_em')::date = hoje - 60 + 21, 'externa também conta como dose da série');
+  PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 2 AND (SELECT origem = 'outro_local' AND estoque_lote_id IS NULL FROM pet_vacinacoes WHERE id = ext), 'externa não baixa estoque');
+
+  -- apoio da tela
+  PERFORM ci.entrar(vg);
+  r := clinica_lotes_vacina(cat);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'lote' = 'L-OK', 'a lista de lotes mostra só lote com saldo e na validade');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_lotes_vacina(%L)$c$, cat), 'gestor lista lotes da vacina');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_aplicadores()', 'recepção lista aplicadores');
+
+  -- cartão: gestão, veterinário e recepção; sem texto do prontuário
+  PERFORM ci.entrar(vend);
+  r := clinica_cartao_vacinacao(cao);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'aplicacoes') = 3 AND jsonb_array_length(r -> 'proximas') = 1 AND r -> 'proximas' -> 0 ->> 'proxima_dose_em' = (hoje + 365)::text,
+                   'o cartão traz as 3 aplicações ativas (a cancelada fica de fora) e a próxima dose da mais recente (reforço em 365 dias)');
+  PERFORM ci.exige(r::text NOT LIKE '%queixa%' AND r::text NOT LIKE '%diagnostico%' AND r -> 'aplicacoes' -> 0 ->> 'crmv' = '3333', 'o cartão não traz prontuário e identifica o veterinário (CRMV)');
+  PERFORM ci.entrar(gest);
+  r := clinica_cartao_vacinacao(cao2);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'aplicacoes') = 1 AND r -> 'aplicacoes' -> 0 ->> 'origem' = 'outro_local' AND r -> 'aplicacoes' -> 0 ->> 'informado_por' LIKE 'Carteira%',
+                   'a vacina aplicada fora aparece no cartão, marcada como de outro local');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_cartao_vacinacao(%L)$c$, cao), 'garçom lê o cartão');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_cartao_vacinacao(%L)$c$, cao), 'profissional de banho lê o cartão');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_cartao_vacinacao(%L)$c$, gen_random_uuid()), 'cartão de paciente que não existe');
+
+  -- o aviso interno da baixa de dose não abre o estoque para perfil restrito (a função pública continua barrando)
+  PERFORM ci.deve_falhar(gar, format($c$SET app.clinica_baixa = 'on'; SELECT registrar_movimentacao(%L, %L, 'saida'::mov_tipo, 1, 'x', 'x')$c$, prod, dep), 'garçom baixa estoque ligando o aviso interno');
+  PERFORM ci.deve_falhar(vg, format($c$SET app.clinica_baixa = 'on'; SELECT registrar_movimentacao(%L, %L, 'saida'::mov_tipo, 1, 'x', 'x')$c$, prod, dep), 'veterinário baixa estoque pela função pública');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_cartao_vacinacao(%L)$c$, cao), 'cartão sem a clínica liberada');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_ok), 'aplicar sem a clínica liberada');
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_vacinas_catalogo()', 'catálogo sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
