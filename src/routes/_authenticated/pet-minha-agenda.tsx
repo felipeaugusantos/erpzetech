@@ -44,6 +44,7 @@ type Atendimento = {
   observacoes: string | null;
   tutor: string;
   pet: {
+    id?: string;
     nome: string;
     especie: string;
     raca: string | null;
@@ -191,7 +192,11 @@ function MinhaAgenda() {
                   </p>
                 )}
 
-                {(passo || (prontuario && a.servicos.some((s) => s.categoria === "consulta"))) && (
+                {(passo ||
+                  (prontuario &&
+                    a.servicos.some(
+                      (s) => s.categoria === "consulta" || s.categoria === "vacina",
+                    ))) && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {prontuario && a.servicos.some((s) => s.categoria === "consulta") && (
                       <Button asChild variant="outline">
@@ -199,6 +204,13 @@ function MinhaAgenda() {
                           {a.situacao === "pronto" || a.situacao === "retirado"
                             ? "Ver prontuário"
                             : "Abrir prontuário"}
+                        </Link>
+                      </Button>
+                    )}
+                    {prontuario && a.pet.id && a.servicos.some((s) => s.categoria === "vacina") && (
+                      <Button asChild variant="outline">
+                        <Link to="/clinica-vacinas" search={{ agendamento: a.id, pet: a.pet.id }}>
+                          Registrar vacina
                         </Link>
                       </Button>
                     )}
