@@ -537,7 +537,9 @@ DECLARE
     'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao',
     -- anexos: cada função confere o perfil Veterinário e a clínica liberada; as duas de apoio só respondem verdadeiro com perfil, clínica e registro prévio
     'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
-    '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler'];
+    '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler',
+    -- cópia para o trabalho sem internet: só o veterinário
+    'clinica_visita_preparar'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4728,5 +4730,99 @@ BEGIN
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_abrir(%L)$c$, an3), 'abrir anexo sem a clínica liberada');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_anexo_preparar(jsonb_build_object('exame_id', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'e.pdf', 'mime', 'application/pdf', 'tamanho', 10))$c$, ex1), 'preparar anexo sem a clínica liberada');
   PERFORM ci.exige(ci.contar(va, 'SELECT count(*) FROM storage.objects WHERE bucket_id = ''clinica-anexos''') = 0, 'sem a clínica liberada o veterinário não enxerga os arquivos');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 50. Clínica (preparar visita, trabalho sem internet): só o veterinário baixa a cópia, só da própria agenda, com auditoria
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000fa';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000fb';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t_hoje timestamptz := date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' + interval '19 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; p1 uuid; p2 uuid; p3 uuid; p4 uuid; cons uuid; pva uuid; pvb uuid; ag1 uuid; ag2 uuid; ag3 uuid; ag4 uuid; ag5 uuid; prod uuid; dep uuid; cat uuid;
+  r jsonb; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Tutor Visita CI', '52998224725', '(16) 98888-7777') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (va, 'vetvisa@ci'), (vb, 'vetvisb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VIS-PROD-CI', 'Produto visita CI', 'UN', 0, true) RETURNING id INTO prod;
+  SELECT id INTO dep FROM depositos WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Visita CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
+  pva := pet_profissional_salvar('{"nome":"Vet A Visita","funcao":"veterinario","crmv":"9991","crmv_uf":"SP"}'::jsonb);
+  pvb := pet_profissional_salvar('{"nome":"Vet B Visita","funcao":"veterinario","crmv":"9992","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pva, va);
+  PERFORM pet_profissional_vincular(pvb, vb);
+  PERFORM clinica_exame_modelos_iniciais();
+  cat := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'V10 Visita CI', 'especie', 'cao', 'doses_serie', 3, 'intervalo_serie_dias', 21, 'reforco_dias', 365, 'produto_id', prod));
+  PERFORM clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'Item inativo Visita CI', 'reforco_dias', 30, 'produto_id', prod, 'ativo', false));
+  PERFORM ci.sair();
+  INSERT INTO estoque_lotes (tenant_id, produto_id, deposito_id, lote, validade, quantidade) VALUES (demo, prod, dep, 'LOTE-VIS-1', hoje + 200, 5), (demo, prod, dep, 'LOTE-VIS-VAZIO', hoje + 200, 0);
+
+  PERFORM ci.entrar(vend);
+  p1 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Visita CI', 'especie', 'cao', 'alergias', 'dipirona'));
+  p2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Mimi Visita CI', 'especie', 'gato'));
+  p3 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Outro Vet Visita CI', 'especie', 'cao'));
+  p4 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Cancelado Visita CI', 'especie', 'cao'));
+  ag1 := pet_agendar(jsonb_build_object('pet_id', p1, 'profissional_id', pva, 'inicio', t_hoje, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', p2, 'profissional_id', pva, 'inicio', t_hoje + interval '1 hour', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', p3, 'profissional_id', pvb, 'inicio', t_hoje, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag4 := pet_agendar(jsonb_build_object('pet_id', p4, 'profissional_id', pva, 'inicio', t_hoje + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag5 := pet_agendar(jsonb_build_object('pet_id', p1, 'profissional_id', pva, 'inicio', t_hoje + interval '3 days', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  PERFORM pet_agenda_situacao(ag4, 'cancelado', 'tutor desistiu');
+  PERFORM ci.sair();
+
+  -- só o veterinário baixa a cópia
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_visita_preparar()', 'gestor baixa a cópia da visita');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_visita_preparar()', 'recepção baixa a cópia da visita');
+  PERFORM ci.deve_falhar(gar, 'SELECT clinica_visita_preparar()', 'garçom baixa a cópia da visita');
+  PERFORM ci.deve_falhar(pban, 'SELECT clinica_visita_preparar()', 'profissional de banho baixa a cópia da visita');
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_visita_preparar(0)', 'zero dias de agenda');
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_visita_preparar(8)', 'mais de 7 dias de agenda');
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_visita_preparar(NULL)', 'dias em branco');
+
+  SELECT count(*) INTO n FROM clinica_acessos WHERE tenant_id = demo AND acao = 'visita';
+  PERFORM ci.entrar(va);
+  r := clinica_visita_preparar();
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'veterinario' ->> 'crmv' = '9991' AND r -> 'veterinario' ->> 'nome' = 'Vet A Visita', 'a cópia traz o veterinário e o CRMV');
+  PERFORM ci.exige(jsonb_array_length(r -> 'agenda') = 2 AND r -> 'agenda' -> 0 -> 'pet' ->> 'nome' = 'Rex Visita CI' AND r -> 'agenda' -> 1 -> 'pet' ->> 'nome' = 'Mimi Visita CI',
+                   'a agenda de hoje traz só as consultas do veterinário, em ordem, sem cancelada e sem as de outro dia');
+  PERFORM ci.exige(r -> 'agenda' -> 0 -> 'tutor' ->> 'telefone' = '(16) 98888-7777' AND r -> 'agenda' -> 0 -> 'pet' ->> 'alergias' = 'dipirona'
+                   AND r -> 'agenda' -> 0 -> 'servicos' -> 0 ->> 'categoria' = 'consulta', 'a cópia traz tutor, telefone, alergia e serviço');
+  PERFORM ci.exige(r::text NOT LIKE '%Outro Vet Visita CI%' AND r::text NOT LIKE '%Cancelado Visita CI%', 'a cópia não traz paciente de outro veterinário nem de consulta cancelada');
+  PERFORM ci.exige(r::text NOT LIKE '%queixa%' AND r::text NOT LIKE '%diagnostico%', 'a cópia não traz texto de prontuário');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'catalogo_vacinas') i WHERE i ->> 'nome' = 'V10 Visita CI' AND jsonb_array_length(i -> 'lotes') = 1 AND i -> 'lotes' -> 0 ->> 'lote' = 'LOTE-VIS-1'),
+                   'o catálogo traz os lotes com saldo (sem o lote zerado)');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'catalogo_vacinas') i WHERE i ->> 'nome' = 'Item inativo Visita CI'), 'item inativo do catálogo não vai na cópia');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'modelos_exame') m WHERE m ->> 'nome' = 'Hemograma' AND jsonb_array_length(m -> 'campos') = 26), 'a cópia traz os modelos de exame com os campos');
+  PERFORM ci.exige(jsonb_array_length(r -> 'aplicadores') >= 2, 'a cópia traz os aplicadores');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'visita') = n + 2 AND (SELECT count(DISTINCT pet_id) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'visita' AND profile_id = va AND pet_id IN (p1, p2)) = 2,
+                   'baixar a cópia registra um acesso por paciente da agenda, com quem baixou');
+
+  PERFORM ci.entrar(va);
+  r := clinica_visita_preparar(7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'agenda') = 3 AND r ->> 'ate' = (hoje + 6)::text, 'com 7 dias entra também a consulta de daqui a 3 dias');
+  PERFORM ci.entrar(vb);
+  r := clinica_visita_preparar();
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'agenda') = 1 AND r -> 'agenda' -> 0 -> 'pet' ->> 'nome' = 'Outro Vet Visita CI', 'cada veterinário baixa só a própria agenda');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_visita_preparar()', 'preparar visita sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
