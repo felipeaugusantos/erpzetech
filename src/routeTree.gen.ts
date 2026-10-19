@@ -27,6 +27,8 @@ import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
+import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
+import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -230,6 +232,18 @@ const AuthenticatedClientesObrasRoute =
   AuthenticatedClientesObrasRouteImport.update({
     id: '/clientes-obras',
     path: '/clientes-obras',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaAtendimentoRoute =
+  AuthenticatedClinicaAtendimentoRouteImport.update({
+    id: '/clinica-atendimento',
+    path: '/clinica-atendimento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaProntuarioRoute =
+  AuthenticatedClinicaProntuarioRouteImport.update({
+    id: '/clinica-prontuario',
+    path: '/clinica-prontuario',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
@@ -851,6 +865,8 @@ export interface FileRoutesByFullPath {
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
+  '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -978,6 +994,8 @@ export interface FileRoutesByTo {
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
+  '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1107,6 +1125,8 @@ export interface FileRoutesById {
   '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
+  '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1236,6 +1256,8 @@ export interface FileRouteTypes {
     | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
+    | '/clinica-atendimento'
+    | '/clinica-prontuario'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1363,6 +1385,8 @@ export interface FileRouteTypes {
     | '/certificado-nfse'
     | '/clientes'
     | '/clientes-obras'
+    | '/clinica-atendimento'
+    | '/clinica-prontuario'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1491,6 +1515,8 @@ export interface FileRouteTypes {
     | '/_authenticated/certificado-nfse'
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
+    | '/_authenticated/clinica-atendimento'
+    | '/_authenticated/clinica-prontuario'
     | '/_authenticated/comissoes'
     | '/_authenticated/conferencia-offline'
     | '/_authenticated/configuracoes'
@@ -1737,6 +1763,20 @@ declare module '@tanstack/react-router' {
       path: '/clientes-obras'
       fullPath: '/clientes-obras'
       preLoaderRoute: typeof AuthenticatedClientesObrasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-atendimento': {
+      id: '/_authenticated/clinica-atendimento'
+      path: '/clinica-atendimento'
+      fullPath: '/clinica-atendimento'
+      preLoaderRoute: typeof AuthenticatedClinicaAtendimentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-prontuario': {
+      id: '/_authenticated/clinica-prontuario'
+      path: '/clinica-prontuario'
+      fullPath: '/clinica-prontuario'
+      preLoaderRoute: typeof AuthenticatedClinicaProntuarioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/comissoes': {
@@ -2511,6 +2551,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
+  AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
+  AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -2633,6 +2675,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
+  AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
+  AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,

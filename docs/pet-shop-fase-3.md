@@ -45,7 +45,9 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 - `pet_profissionais.crmv` e `crmv_uf`: obrigatórios para quem tem função "veterinário" e vínculo com conta; telas de cadastro e de vínculo avisam.
 - Categorias de serviço novas: `consulta`, `vacina` e `exame` (hoje há banho, tosa, estética e outro). Elas aparecem na agenda como qualquer serviço, com preço por porte/raça como já existe.
 
-## PR 2 — Consulta e prontuário
+## PR 2 — Consulta e prontuário (entregue)
+
+> Como foi feito: as tabelas `pet_atendimentos_clinicos`, `pet_atendimento_adendos` e `clinica_acessos` **não têm leitura nem escrita direta** para ninguém; tudo passa por funções que exigem o perfil Veterinário, a clínica liberada e um cadastro de veterinário ativo com CRMV. O veterinário não ganhou leitura das tabelas do pet shop: pets, tutor e agenda chegam só pelas funções (`clinica_pacientes`, `clinica_historico`, `pet_minha_agenda`). Fechar é irreversível (gatilho no banco); o adendo identifica quem escreveu. A auditoria de acessos (sem texto clínico) é lida por administrador e gestor. Fica para depois: anexos, sinais vitais em gráfico e correção do peso do cadastro do pet.
 
 - **Agendar**: a recepção agenda a consulta como qualquer serviço (agenda do veterinário, sem sobreposição).
 - **Atendimento clínico** (`pet_atendimentos_clinicos`): nasce quando o veterinário abre a consulta. Campos: queixa, anamnese, peso (kg), temperatura, frequência cardíaca/respiratória, exame físico, diagnóstico (texto livre), conduta, retorno sugerido (data), observações. Sinais vitais ficam em colunas próprias (dá para fazer gráfico de peso depois).

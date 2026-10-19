@@ -3650,6 +3650,51 @@ export type Database = {
           },
         ]
       }
+      clinica_acessos: {
+        Row: {
+          acao: string
+          atendimento_id: string | null
+          created_at: string
+          id: string
+          pet_id: string
+          profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          acao: string
+          atendimento_id?: string | null
+          created_at?: string
+          id?: string
+          pet_id: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Update: {
+          acao?: string
+          atendimento_id?: string | null
+          created_at?: string
+          id?: string
+          pet_id?: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_acessos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_acessos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       importacoes: {
         Row: {
           arquivo: string | null
@@ -5354,6 +5399,164 @@ export type Database = {
           valor?: number
         }
         Relationships: []
+      }
+      pet_atendimento_adendos: {
+        Row: {
+          atendimento_id: string
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          id: string
+          tenant_id: string
+          texto: string
+          veterinario_id: string
+        }
+        Insert: {
+          atendimento_id: string
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          id?: string
+          tenant_id?: string
+          texto: string
+          veterinario_id: string
+        }
+        Update: {
+          atendimento_id?: string
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          id?: string
+          tenant_id?: string
+          texto?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_atendimento_adendos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimento_adendos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_atendimentos_clinicos: {
+        Row: {
+          agendamento_id: string
+          aberto_em: string
+          anamnese: string | null
+          cliente_id: string
+          conduta: string | null
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          diagnostico: string | null
+          exame_fisico: string | null
+          fechado_em: string | null
+          freq_cardiaca: number | null
+          freq_respiratoria: number | null
+          id: string
+          observacoes: string | null
+          pet_id: string
+          peso_kg: number | null
+          queixa: string | null
+          retorno_em: string | null
+          situacao: string
+          temperatura_c: number | null
+          tenant_id: string
+          updated_at: string
+          veterinario_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          aberto_em?: string
+          anamnese?: string | null
+          cliente_id: string
+          conduta?: string | null
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          diagnostico?: string | null
+          exame_fisico?: string | null
+          fechado_em?: string | null
+          freq_cardiaca?: number | null
+          freq_respiratoria?: number | null
+          id?: string
+          observacoes?: string | null
+          pet_id: string
+          peso_kg?: number | null
+          queixa?: string | null
+          retorno_em?: string | null
+          situacao?: string
+          temperatura_c?: number | null
+          tenant_id?: string
+          updated_at?: string
+          veterinario_id: string
+        }
+        Update: {
+          agendamento_id?: string
+          aberto_em?: string
+          anamnese?: string | null
+          cliente_id?: string
+          conduta?: string | null
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          diagnostico?: string | null
+          exame_fisico?: string | null
+          fechado_em?: string | null
+          freq_cardiaca?: number | null
+          freq_respiratoria?: number | null
+          id?: string
+          observacoes?: string | null
+          pet_id?: string
+          peso_kg?: number | null
+          queixa?: string | null
+          retorno_em?: string | null
+          situacao?: string
+          temperatura_c?: number | null
+          tenant_id?: string
+          updated_at?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pet_pacote_modelos: {
         Row: {
@@ -8677,6 +8880,20 @@ export type Database = {
           p_servico_id: string
         }
         Returns: string
+      }
+      clinica_adendo_criar: {
+        Args: { p_atendimento_id: string; p_texto: string }
+        Returns: Json
+      }
+      clinica_atendimento_abrir: { Args: { p_agendamento_id: string }; Returns: Json }
+      clinica_atendimento_fechar: { Args: { p_id: string }; Returns: Json }
+      clinica_atendimento_salvar: { Args: { p_dados: Json; p_id: string }; Returns: Json }
+      clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_liberada: { Args: never; Returns: boolean }
+      clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
+      clinica_pet_alergias: {
+        Args: { p_alergias: string; p_pet_id: string }
+        Returns: undefined
       }
       pet_minha_agenda: { Args: { p_ate: string; p_de: string }; Returns: Json }
       pet_minha_situacao: { Args: { p_id: string; p_para: string }; Returns: undefined }

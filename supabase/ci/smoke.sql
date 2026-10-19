@@ -522,7 +522,10 @@ DECLARE
     -- agenda do profissional: só quem tem o perfil profissional (e a conta ligada a um cadastro) passa
     'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao',
     -- só responde se a empresa tem a clínica liberada
-    'clinica_liberada'];
+    'clinica_liberada',
+    -- prontuário: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
+    'clinica_pacientes', 'clinica_atendimento_abrir', 'clinica_atendimento_salvar', 'clinica_atendimento_fechar',
+    'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -3609,5 +3612,155 @@ BEGIN
   r := pet_minha_agenda(hoje, hoje + 30);
   PERFORM ci.sair();
   PERFORM ci.exige(jsonb_typeof(r) = 'array', 'o profissional de banho segue com a agenda sem a clínica');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 44. Clínica (consulta e prontuário): só o veterinário lê e escreve; fechado é imutável; adendo; auditoria; liberação da clínica
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000f1';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000f2';
+  t0 timestamptz := date_trunc('day', now()) + interval '12 days' + interval '9 hours';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  tutor uuid; tutor_b uuid; pet uuid; pet_b uuid; cons uuid; banho uuid; pva uuid; pvb uuid; ag1 uuid; ag2 uuid; ag3 uuid; tb uuid;
+  ramo_ant text; cnae_ant text; cnae2_ant text; r jsonb; at1 uuid; at2 uuid; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Joana Tutora Prontuario CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Clinica B CI') RETURNING id INTO tb;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Outra Empresa', '11144477735') RETURNING id INTO tutor_b;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor_b, 'Pet Outra Empresa') RETURNING id INTO pet_b;
+  INSERT INTO auth.users (id, email) VALUES (va, 'veta@ci'), (vb, 'vetb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
+
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Prontuario CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  banho := pet_servico_salvar('{"nome":"Banho Prontuario CI","categoria":"banho","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
+  PERFORM pet_preco_salvar(banho, NULL, NULL, NULL, 60);
+  pva := pet_profissional_salvar('{"nome":"Vet A Prontuario","funcao":"veterinario","crmv":"1111","crmv_uf":"SP"}'::jsonb);
+  pvb := pet_profissional_salvar('{"nome":"Vet B Prontuario","funcao":"veterinario","crmv":"2222","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pva, va);
+  PERFORM pet_profissional_vincular(pvb, vb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Prontuario CI', 'alergias', 'dipirona'));
+  ag1 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pva, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pvb, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pva, 'inicio', t0 + interval '3 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  PERFORM ci.sair();
+
+  -- ninguém além do veterinário lê ou escreve o prontuário
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_historico(%L)$c$, pet), 'administrador lê o prontuário');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_historico(%L)$c$, pet), 'gestor lê o prontuário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_historico(%L)$c$, pet), 'vendedor lê o prontuário');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_historico(%L)$c$, pet), 'garçom lê o prontuário');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_historico(%L)$c$, pet), 'profissional de banho lê o prontuário');
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_pacientes('rex')$c$, 'gestor busca paciente na clínica');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_atendimento_abrir(%L)$c$, ag1), 'gestor abre atendimento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_pet_alergias(%L, 'x')$c$, pet), 'gestor altera alergia pela clínica');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_atendimentos_clinicos', 'leitura direta do atendimento');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_atendimento_adendos', 'leitura direta do adendo');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_atendimentos_clinicos', 'leitura direta do atendimento pelo próprio veterinário');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO pet_atendimentos_clinicos (tenant_id, pet_id, cliente_id, agendamento_id, veterinario_id, crmv, crmv_uf) VALUES (%L, %L, %L, %L, %L, '1111', 'SP')$c$, demo, pet, tutor, ag1, pva), 'escrita direta do atendimento');
+
+  -- abrir: só a consulta do próprio veterinário
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_abrir(%L)$c$, ag2), 'consulta de outro veterinário');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_abrir(%L)$c$, ag3), 'agendamento sem serviço de consulta');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_abrir(%L)$c$, gen_random_uuid()), 'agendamento que não existe');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_abrir(ag1);
+  at1 := (r ->> 'id')::uuid;
+  PERFORM ci.exige(clinica_atendimento_abrir(ag1) ->> 'id' = at1::text, 'abrir de novo devolve o mesmo atendimento');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'veterinario' ->> 'crmv' = '1111' AND r ->> 'tutor' = 'Joana Tutora Prontuario CI' AND r -> 'pet' ->> 'alergias' = 'dipirona', 'o atendimento traz o CRMV da abertura, o tutor e a alergia do pet');
+  PERFORM ci.exige((SELECT situacao = 'em_atendimento' FROM pet_agendamentos WHERE id = ag1), 'abrir o prontuário começa a consulta');
+
+  -- preencher
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_salvar(%L, '{"queixa":"x"}'::jsonb)$c$, at1), 'outro veterinário preenche');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, '{"queixa":"x","peso_kg":"500"}'::jsonb)$c$, at1), 'peso absurdo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, '{"queixa":"x","temperatura_c":"20"}'::jsonb)$c$, at1), 'temperatura absurda');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, '{"queixa":"x","peso_kg":"abc"}'::jsonb)$c$, at1), 'peso que não é número');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('queixa','x','retorno_em', %L))$c$, at1, hoje - 1), 'retorno no passado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_fechar(%L)$c$, at1), 'fechar sem queixa nem conduta');
+  PERFORM ci.entrar(va);
+  PERFORM clinica_atendimento_salvar(at1, '{"queixa":"Vômito há 2 dias"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_fechar(%L)$c$, at1), 'fechar sem conduta');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_salvar(at1, jsonb_build_object('queixa', 'Vômito há 2 dias', 'anamnese', 'Comeu algo na rua', 'peso_kg', '12,5', 'temperatura_c', '38.7',
+                                  'freq_cardiaca', '110', 'freq_respiratoria', '24', 'exame_fisico', 'Mucosas normocoradas', 'diagnostico', 'Gastrite',
+                                  'conduta', 'Dieta leve e protetor gástrico', 'retorno_em', hoje + 7));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'peso_kg')::numeric = 12.5 AND (r ->> 'temperatura_c')::numeric = 38.7 AND r ->> 'diagnostico' = 'Gastrite', 'o atendimento guarda os sinais vitais e o texto');
+
+  -- fechar: imutável, consulta vai para pronto
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_fechar(at1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'fechado' AND r ->> 'fechado_em' IS NOT NULL, 'atendimento fechado');
+  PERFORM ci.exige((SELECT situacao = 'pronto' FROM pet_agendamentos WHERE id = ag1), 'fechar o prontuário dá a consulta como pronta (a recepção cobra)');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, '{"queixa":"mudou"}'::jsonb)$c$, at1), 'alterar atendimento fechado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_fechar(%L)$c$, at1), 'fechar duas vezes');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimentos_clinicos SET diagnostico = 'outro' WHERE id = %L$c$, at1), 'UPDATE direto em atendimento fechado (nem o dono do banco)');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimentos_clinicos WHERE id = %L$c$, at1), 'apagar atendimento');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM pet_agendamentos WHERE situacao = ''pronto''') >= 1, 'a recepção vê a consulta pronta na agenda, sem texto clínico');
+
+  -- adendo
+  PERFORM ci.entrar(vb);
+  r := clinica_atendimento_abrir(ag2);
+  at2 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_adendo_criar(%L, 'não pode')$c$, at2), 'adendo em atendimento aberto');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_adendo_criar(%L, '   ')$c$, at1), 'adendo vazio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_adendo_criar(%L, 'gestor')$c$, at1), 'gestor cria adendo');
+  PERFORM ci.entrar(vb);
+  r := clinica_adendo_criar(at1, 'Tutor relatou melhora após 3 dias.');
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 1 AND r -> 'adendos' -> 0 ->> 'crmv' = '2222' AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'alterar adendo');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimento_adendos WHERE atendimento_id = %L$c$, at1), 'apagar adendo');
+
+  -- histórico, busca, alergia e auditoria
+  PERFORM ci.entrar(vb);
+  r := clinica_historico(pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'atendimentos') = 2 AND r ->> 'tutor' = 'Joana Tutora Prontuario CI', 'o veterinário vê o histórico completo do paciente (dois atendimentos)');
+  PERFORM ci.entrar(vb);
+  r := clinica_pacientes('rex joana');
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 0, 'a busca olha o nome do pet ou do tutor, não os dois juntos');
+  PERFORM ci.entrar(vb);
+  r := clinica_pacientes('Joana');
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'nome' = 'Rex Prontuario CI', 'a busca acha o paciente pelo nome do tutor');
+  PERFORM ci.deve_falhar(vb, $c$SELECT clinica_pacientes('r')$c$, 'busca de uma letra');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_historico(%L)$c$, pet_b), 'paciente de outra empresa');
+  PERFORM ci.entrar(vb);
+  PERFORM clinica_pet_alergias(pet, 'dipirona e frango');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT alergias = 'dipirona e frango' FROM pets WHERE id = pet), 'o veterinário atualiza a alergia do pet');
+  SELECT count(*) INTO n FROM clinica_acessos WHERE tenant_id = demo;
+  PERFORM ci.exige(n >= 5 AND ci.contar(gest, 'SELECT count(*) FROM clinica_acessos') = n AND ci.contar(vend, 'SELECT count(*) FROM clinica_acessos') = 0 AND ci.contar(va, 'SELECT count(*) FROM clinica_acessos') = 0,
+                   'os acessos ficam registrados e só a gestão os vê (sem texto clínico)');
+
+  -- a agenda do veterinário informa a categoria do serviço
+  PERFORM ci.entrar(va);
+  r := pet_minha_agenda(hoje, hoje + 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e, jsonb_array_elements(e -> 'servicos') s WHERE s ->> 'categoria' = 'consulta'), 'a agenda traz a categoria dos serviços');
+
+  -- clínica deixa de estar liberada: nada do prontuário funciona
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_historico(%L)$c$, pet), 'prontuário sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_abrir(%L)$c$, ag1), 'abrir atendimento sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
