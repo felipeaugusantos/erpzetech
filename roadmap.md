@@ -56,7 +56,7 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 ### Prioridade alta — recebimento e fiscal no balcão
 - [ ] NFC-e no PDV e na frente de caixa (hoje só NF-e modelo 55 e NFS-e; o cupom do PDV não é fiscal)
 - [ ] Boleto registrado e Pix com cobrança automática e baixa automática (hoje boleto é só forma de pagamento; a cobrança Ze Tech usa link e linha digitável informados à mão)
-- [ ] Importação de extrato bancário (OFX ou API) na conciliação
+- [x] Importação de extrato bancário (OFX) na conciliação: lê o arquivo, concilia sozinho o que bate (valor, sentido, até 3 dias) e deixa o resto em "Pendências do extrato" para lançar ou ignorar (`banco_extrato_importar`, `src/lib/ofx.ts`). Pendente: API bancária (Open Finance) e vínculo manual com lançamento existente
 - [ ] TEF integrado à maquininha (hoje há cadastro de credenciadora e painel, sem integração com a maquininha)
 
 ### Prioridade média
