@@ -7,6 +7,7 @@ import {
   HandCoins,
   MoreHorizontal,
   Printer,
+  Receipt,
   Send,
   X,
 } from "lucide-react";
@@ -37,6 +38,7 @@ import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
+import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
 import { htmlEtiquetaComanda } from "@/lib/etiqueta-comanda";
 import { brl } from "@/lib/format";
 import {
@@ -260,6 +262,23 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
     janela.document.close();
     janela.focus();
     setTimeout(() => janela.print(), 300);
+  }
+
+  /** Conta para conferência na mesa: o cliente vê o total com e sem o serviço opcional. */
+  function imprimirConta() {
+    if (!comanda) return;
+    imprimirContaComanda({
+      numero: comanda.numero,
+      mesa: mesa?.numero ?? null,
+      cliente: comanda.cliente_nome,
+      loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+      itens: itensDaConta(itens),
+      pessoas: comanda.pessoas,
+      couvertPorPessoa: Number(comanda.couvert_por_pessoa),
+      taxaServicoPercentual: Number(comanda.taxa_servico_percentual),
+      servico: "opcional",
+      jaPago,
+    });
   }
 
   function pedirCancelamentoItem(i: ComandaItem) {
@@ -487,6 +506,11 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                         <Printer className="mr-1 size-4" /> Imprimir comanda
                       </Button>
                     )}
+                    {comanda?.tipo !== "delivery" && validos.length > 0 && (
+                      <Button variant="outline" onClick={imprimirConta}>
+                        <Receipt className="mr-1 size-4" /> Imprimir conta
+                      </Button>
+                    )}
                     {mesa && (
                       <Button variant="outline" onClick={() => setTransferindo(true)}>
                         <ArrowRightLeft className="mr-1 size-4" /> Mudar de mesa
@@ -603,6 +627,8 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
         <FecharContaDialog
           comanda={comanda}
           subtotalItens={subtotal}
+          itens={itens}
+          mesaNumero={mesa?.numero ?? null}
           jaPago={jaPago}
           roles={roles}
           onFechar={() => setFechando(false)}

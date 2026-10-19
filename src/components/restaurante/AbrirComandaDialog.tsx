@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { useShowAoVivo } from "@/hooks/useShowAoVivo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ export function AbrirComandaDialog({
   const [cliente, setCliente] = useState("");
   const [taxa, setTaxa] = useState("10");
   const [couvert, setCouvert] = useState("0");
+  const showAoVivo = useShowAoVivo();
 
   // cada abertura começa dos padrões: serviço e couvert da mesa anterior não podem vazar para a próxima
   const reiniciar = () => {
@@ -54,7 +56,7 @@ export function AbrirComandaDialog({
         p_pessoas: qtd,
         p_cliente_nome: cliente.trim() || null,
         p_taxa_servico: Number(taxa.replace(",", ".")) || 0,
-        p_couvert: Number(couvert.replace(",", ".")) || 0,
+        p_couvert: showAoVivo ? Number(couvert.replace(",", ".")) || 0 : 0,
       });
     },
     onSuccess: (id) => {
@@ -91,7 +93,7 @@ export function AbrirComandaDialog({
               <Input id="ab-cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="ab-taxa">Serviço (%)</Label>
+              <Label htmlFor="ab-taxa">Serviço (%) — opcional na conta</Label>
               <Input
                 id="ab-taxa"
                 inputMode="decimal"
@@ -99,15 +101,17 @@ export function AbrirComandaDialog({
                 onChange={(e) => setTaxa(e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="ab-couvert">Couvert por pessoa (R$)</Label>
-              <Input
-                id="ab-couvert"
-                inputMode="decimal"
-                value={couvert}
-                onChange={(e) => setCouvert(e.target.value)}
-              />
-            </div>
+            {showAoVivo && (
+              <div>
+                <Label htmlFor="ab-couvert">Couvert por pessoa (R$)</Label>
+                <Input
+                  id="ab-couvert"
+                  inputMode="decimal"
+                  value={couvert}
+                  onChange={(e) => setCouvert(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>

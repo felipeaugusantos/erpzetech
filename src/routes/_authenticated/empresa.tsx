@@ -83,6 +83,7 @@ function Empresa() {
   const isAdmin = session?.roles.includes("administrador") ?? false;
   const [form, setForm] = useState(vazio);
   const [personaliza, setPersonaliza] = useState(false);
+  const [showAoVivo, setShowAoVivo] = useState(false);
   /** Identidade visual da loja: logo e cor principal do sistema. */
   const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
     logo: null,
@@ -153,6 +154,7 @@ function Empresa() {
     });
     setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
     setPersonaliza(data.faz_personalizacao ?? false);
+    setShowAoVivo(data.show_ao_vivo ?? false);
   }, [data]);
 
   const salvar = useMutation({
@@ -171,6 +173,14 @@ function Empresa() {
         .update({ faz_personalizacao: personaliza })
         .eq("tenant_id", session.profile.tenant_id);
       if (errPers) throw errPers;
+      // coluna à parte: só grava quando mudou, para o cadastro não depender dela
+      if (showAoVivo !== (data?.show_ao_vivo ?? false)) {
+        const { error: errShow } = await supabase
+          .from("empresas")
+          .update({ show_ao_vivo: showAoVivo })
+          .eq("tenant_id", session.profile.tenant_id);
+        if (errShow) throw errShow;
+      }
     },
     onSuccess: () => {
       toast.success(data ? "Dados da empresa salvos" : "Empresa cadastrada");
@@ -179,6 +189,7 @@ function Empresa() {
       qc.invalidateQueries({ queryKey: ["empresa-cadastro"] });
       qc.invalidateQueries({ queryKey: ["configuracoes"] });
       qc.invalidateQueries({ queryKey: ["session-data"] });
+      qc.invalidateQueries({ queryKey: ["empresa-show-ao-vivo"] });
     },
     onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
   });
@@ -323,6 +334,25 @@ function Empresa() {
                 </p>
               </div>
             </div>
+
+            {(form.ramo_atividade === "restaurante" ||
+              moduloLiberadoPorCnae(cnaesDaEmpresa(form), "restaurante")) && (
+              <div className="flex items-start gap-3 rounded-md border p-3 sm:col-span-2 lg:col-span-3">
+                <Switch
+                  id="emp-show-ao-vivo"
+                  checked={showAoVivo}
+                  disabled={!isAdmin}
+                  onCheckedChange={setShowAoVivo}
+                />
+                <div>
+                  <Label htmlFor="emp-show-ao-vivo">O estabelecimento tem show ao vivo</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ative para cobrar couvert artístico: o campo de couvert por pessoa aparece ao
+                    abrir a comanda e entra na conta.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {campo("telefone", "Telefone")}
             {campo("email", "E-mail")}
