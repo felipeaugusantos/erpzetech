@@ -14,13 +14,13 @@ Pedidos do cliente, com fotos das telas do sistema que ele usa hoje (hemograma, 
 
 O PR 1 não depende de nenhuma delas. A decisão 4 trava o PR 2 (e, por consequência, os PRs 3 e 4); as decisões 2 e 3 travam o PR 5; a decisão 1 pode abrir uma fase própria; a 5 só acrescenta modelos.
 
-| #   | Pergunta                                                                                              | Sugestão                                                                            | Estado     |
-| --- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------- |
-| 1   | A visita à propriedade rural é para cães e gatos, ou também bovinos, equinos e outros?                | Se for grande porte, vira fase própria (seção 7); em cães e gatos nada muda         | **Aberta** |
-| 2   | O modo sem internet cobre só cadastros, ou também atendimento clínico, vacina e exame?                | Tudo, com os dados criptografados no notebook (seção 6)                             | **Aberta** |
-| 3   | A ordem: lembrete, exames, depois offline — ou o offline primeiro por causa da viagem?                | Lembrete, exames, offline; se a viagem for antes, o offline sobe                    | **Aberta** |
-| 4   | As unidades da bioquímica seguem as do laboratório da clínica? (as telas de hoje não mostram unidade) | Cada clínica ajusta unidade e faixa no próprio modelo; o sistema só traz sugestões  | **Aberta** |
-| 5   | Há outras fichas no sistema atual que a clínica usa (a tela cita "Autorização Sacrifício")?           | Mandar as telas; cada ficha nova entra como modelo de documento, fora do prontuário | **Aberta** |
+| #   | Pergunta                                                                                              | Sugestão                                                                            | Estado                                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | A visita à propriedade rural é para cães e gatos, ou também bovinos, equinos e outros?                | Se for grande porte, vira fase própria (seção 7); em cães e gatos nada muda         | **Aberta**                                                                                              |
+| 2   | O modo sem internet cobre só cadastros, ou também atendimento clínico, vacina e exame?                | Tudo, com os dados criptografados no notebook (seção 6)                             | **Aberta**                                                                                              |
+| 3   | A ordem: lembrete, exames, depois offline — ou o offline primeiro por causa da viagem?                | Lembrete, exames, offline; se a viagem for antes, o offline sobe                    | **Aberta**                                                                                              |
+| 4   | As unidades da bioquímica seguem as do laboratório da clínica? (as telas de hoje não mostram unidade) | Cada clínica ajusta unidade e faixa no próprio modelo; o sistema só traz sugestões  | **Respondida em parte:** o laudo de exemplo sugere as unidades usuais (seção abaixo); a clínica confere |
+| 5   | Há outras fichas no sistema atual que a clínica usa (a tela cita "Autorização Sacrifício")?           | Mandar as telas; cada ficha nova entra como modelo de documento, fora do prontuário | **Aberta**                                                                                              |
 
 ## Ordem das entregas
 
@@ -40,11 +40,29 @@ O PR 1 não depende de nenhuma delas. A decisão 4 trava o PR 2 (e, por consequ�
 - Vale também para vacina aplicada em outro local (o diálogo ganhou o campo "Próxima dose" com os mesmos atalhos).
 - **Entregue.** Sem migração: só a tela e a função `dataDoAtalho` (1 ano em 29/02 cai em 28/02).
 
+## Campos de referência: modelo de laudo de laboratório
+
+O cliente enviou um laudo de laboratório só como **ideia dos campos** que o sistema deve ter para o veterinário preencher. Nada dele é importado: o sistema não lê PDF, e os dados do laudo (paciente, laboratório, valores) não entram no sistema nem no repositório. O que ele sugere para os modelos:
+
+- **Cabeçalho do exame:** paciente, idade, sexo, raça, responsável, data da coleta, veterinário solicitante (nome e CRMV) e **material** (sangue total em EDTA, soro, urina e outros, em lista editável).
+- **Hemograma em três grupos:** eritrograma (hemácias, hemoglobina, hematócrito, **VCM, HCM, CHCM e RDW**), leucograma e plaquetograma. O VCM, o HCM, o CHCM e o RDW não existem nas telas do sistema atual e entram no modelo.
+- **Leucograma:** para cada célula, valor **relativo (%)**, valor **absoluto** e faixa dos dois. O absoluto é calculado a partir dos leucócitos totais e do percentual, e o diferencial precisa somar 100% (como previsto no PR 3). No modelo, cada célula do diferencial tem **dois campos ligados**: o percentual (digitado) e o absoluto (**calculado**, forma de valor "calculado" a partir dos leucócitos totais). Os dois têm faixa própria em `pet_exame_referencias`, e o fechamento do exame guarda o nome, a unidade e a faixa dos dois.
+- **Observação por grupo ou campo:** o plaquetograma, por exemplo, precisa de um texto livre para registrar achados que afetam a leitura (como agregados plaquetários).
+- **Bioquímica um exame por vez:** cada campo com valor, unidade, faixa e **nota técnica** opcional (texto livre). Unidades usuais: U/L (enzimas), mg/dL (creatinina, ureia), g/dL (albumina, proteínas).
+
+O que muda no desenho:
+
+1. **Faixa de referência é do exame:** o veterinário pode ajustar a faixa ao preencher, e ela é guardada junto com o resultado, como já previsto para o exame fechado. A faixa do modelo é só sugestão.
+2. **Exame trazido de fora** é o "avulso" do PR 3, preenchido pelo veterinário, com a data da coleta e o nome do laboratório em texto livre.
+3. **Nota técnica e observação** são texto livre do resultado e entram no laudo impresso pela clínica quando preenchidas.
+4. **Material** é um campo do exame, em lista editável.
+5. O **laudo impresso pela clínica** (PR 3) segue esse formato: cabeçalho do paciente, grupos, valor, unidade, faixa e observações, com o destaque de valor fora da faixa.
+
 ## PR 2 — Exames: modelos
 
 As telas de hoje definem os modelos iniciais (campos na ordem da tela):
 
-- **Hemograma:** hemácias (milhões/mm³), hemoglobina (g%), hematócrito (%), proteínas totais (g%), plaquetas (mil/mm³), leucócitos totais (células/mm³); diferencial em %: metamielócitos, bastonetes, segmentados, eosinófilos, basófilos, linfócitos, monócitos; observações.
+- **Hemograma:** hemácias (milhões/mm³), hemoglobina (g%), hematócrito (%), **VCM (fl), HCM (pg), CHCM (%), RDW (%)** (sugeridos pelo laudo de exemplo), proteínas totais (g%), plaquetas (mil/mm³), leucócitos totais (células/mm³); diferencial em %: metamielócitos, bastonetes, segmentados, eosinófilos, basófilos, linfócitos, monócitos; observações.
 - **Bioquímica sanguínea (21 itens):** albumina, proteínas totais, globulinas, fibrinogênio, bilirrubina total, bilirrubina direta, AST (TGO), ALT (TGP), fosfatase alcalina, ureia, creatinina, glicose, colesterol, amilase, lipase, cálcio, fósforo, sódio, potássio, ácido úrico, creatinoquinase; observações.
 - **Urina:** físico (volume em ml, colheita, aspecto, cor, odor, densidade, pH), químico (proteínas e glicose em mg%, corpos cetônicos, bilirrubina, urobilinogênio, sangue oculto, nitritos), sedimentoscopia (hemácias, leucócitos, cilindros, células descamativas, cristais, outros); observações.
 
@@ -53,6 +71,7 @@ Desenho:
 - **Modelo** (`pet_exame_modelos`): nome, tipo (hemograma, bioquímica, urina, outro), ativo. **Campo** (`pet_exame_campos`): ordem, grupo, nome, unidade, forma de valor (**número**, **texto** ou **escolha** com opções), casas decimais, observação. O veterinário e a gestão incluem, tiram e reordenam campos; modelo já usado em exame fechado não perde campo (fica inativo).
 - **Faixa de referência** (`pet_exame_referencias`): mínimo e máximo por campo e por espécie (cão, gato e **outro**, para os pets já cadastrados nessa categoria; sem faixa, nada é destacado). **As faixas vêm como sugestão marcada para o veterinário conferir**, como no catálogo de vacinas: o sistema não decide valor clínico, e cada clínica ajusta ao seu laboratório e método.
 - Cada tela acima vira o modelo correspondente já cadastrado, para a clínica começar sem montar nada.
+- O laudo de exemplo (seção anterior) acrescenta ao hemograma **VCM, HCM, CHCM e RDW**, separa o **plaquetograma** (com observação própria) e mostra que a bioquímica chega **um exame por vez**, cada um com unidade, faixa e nota técnica.
 - **Exame fechado guarda o que viu:** ao fechar, o resultado grava junto, para cada campo, o nome, a unidade, as casas decimais e a faixa de referência em vigor. Editar o modelo depois muda só os exames futuros; laudo e evolução de exame fechado leem esse registro, nunca o modelo atual.
 - Acesso: o mesmo desenho do prontuário (seção "Regras que valem para tudo"). Sem acesso direto às tabelas, funções que exigem a clínica liberada (`clinica_liberada`). **Manter modelo e faixa** (configuração) é do administrador, do gestor e do Veterinário, como o catálogo de vacinas; **escrever resultado** é só do Veterinário.
 
