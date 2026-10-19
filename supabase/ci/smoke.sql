@@ -3041,6 +3041,110 @@ BEGIN
   PERFORM ci.exige(n = 0, 'nenhuma comissão fora da empresa');
 END $$;
 
+-- 39. Pet shop (contatos): aniversário e retorno de banho, uma vez por ocasião
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  tutor uuid; p_aniv uuid; p_aniv_longe uuid; p_bissexto uuid; p_ret uuid; p_ret_marcado uuid; p_recente uuid; p_inativo uuid; p_nunca uuid;
+  prof uuid; serv uuid; ag uuid; r jsonb; tb uuid; n bigint; ref date;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, telefone) VALUES (demo, 'Tutor Contato CI', '(16) 99999-1234') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Contato B') RETURNING id INTO tb;
+  PERFORM ci.entrar(adm);
+  serv := pet_servico_salvar('{"nome":"Banho Contato","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(serv, NULL, NULL, NULL, 50);
+  prof := pet_profissional_salvar('{"nome":"Dani Contato"}'::jsonb);
+  p_aniv := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Aniv Hoje', 'nascimento', (hoje - interval '3 years')::date));
+  p_aniv_longe := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Aniv Longe', 'nascimento', (hoje + interval '40 days' - interval '2 years')::date));
+  p_bissexto := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Aniv Em 5 Dias', 'nascimento', (hoje + interval '5 days' - interval '1 year')::date));
+  p_ret := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Retorno 40 dias'));
+  p_ret_marcado := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Retorno com horário'));
+  p_recente := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Banho recente'));
+  p_inativo := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Inativo', 'ativo', false, 'nascimento', (hoje - interval '1 year')::date));
+  p_nunca := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Nunca veio'));
+  PERFORM ci.sair();
+
+  -- atendimentos retirados no passado (inserção direta de teste, como dono) e um futuro
+  INSERT INTO pet_agendamentos (tenant_id, pet_id, cliente_id, profissional_id, inicio, fim, situacao)
+  VALUES (demo, p_ret, tutor, prof, now() - interval '40 days', now() - interval '40 days' + interval '30 minutes', 'retirado'),
+         (demo, p_ret_marcado, tutor, prof, now() - interval '50 days', now() - interval '50 days' + interval '30 minutes', 'retirado'),
+         (demo, p_ret_marcado, tutor, prof, now() + interval '3 days', now() + interval '3 days' + interval '30 minutes', 'agendado'),
+         (demo, p_recente, tutor, prof, now() - interval '5 days', now() - interval '5 days' + interval '30 minutes', 'retirado');
+
+  -- quem vê as listas
+  PERFORM ci.deve_falhar(gar, $c$SELECT pet_contatos_pendentes('retorno')$c$, 'garçom vê contatos');
+  PERFORM ci.deve_falhar(est, $c$SELECT pet_contatos_pendentes('retorno')$c$, 'estoquista vê contatos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT pet_contatos_pendentes('retorno')$c$, 'anon vê contatos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_contatos_pendentes('qualquer')$c$, 'tipo inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_contatos_pendentes('retorno', 3)$c$, 'prazo curto demais');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_contatos_pendentes('aniversario', 30, 90)$c$, 'janela grande demais');
+
+  -- aniversário: hoje e daqui a 5 dias entram; 40 dias e inativo não
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('aniversario', 30, 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Aniv Hoje' AND (e ->> 'anos')::int = 3 AND (e ->> 'referencia')::date = hoje),
+                   'o aniversário de hoje entra, com a idade');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Aniv Em 5 Dias'), 'o aniversário dos próximos dias entra');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' IN ('Aniv Longe', 'Inativo')), 'aniversário distante e pet inativo ficam de fora');
+  PERFORM ci.exige((SELECT e ->> 'telefone' FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Aniv Hoje') = '(16) 99999-1234', 'traz o telefone do tutor');
+
+  -- registrar o contato tira da lista, uma vez só por ocasião, e é idempotente
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_contato_registrar(%L, 'aniversario', %L)$c$, p_aniv, hoje), 'garçom registra contato');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_contato_registrar(%L, 'aniversario', %L, 'pombo')$c$, p_aniv, hoje), 'canal inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_contato_registrar(%L, 'aniversario', %L)$c$, gen_random_uuid(), hoje), 'pet que não existe');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_contato_registrar(p_aniv, 'aniversario', hoje, 'whatsapp');
+  PERFORM pet_contato_registrar(p_aniv, 'aniversario', hoje, 'telefone', 'repetido');
+  r := pet_contatos_pendentes('aniversario', 30, 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Aniv Hoje'), 'quem já foi chamado sai da lista');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_contatos WHERE pet_id = p_aniv), 'repetir o registro não duplica');
+
+  -- retorno de banho: 40 dias sem vir entra; recente, com horário marcado, sem histórico e inativo não
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Retorno 40 dias' AND (e ->> 'dias')::int >= 40), 'retorno de quem está há mais de 30 dias sem vir');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' IN ('Retorno com horário', 'Banho recente', 'Nunca veio', 'Inativo')),
+                   'com horário marcado, atendimento recente, sem histórico e inativo ficam de fora');
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 60);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Retorno 40 dias'), 'o prazo maior tira quem veio há 40 dias');
+
+  -- contato do retorno vale para aquele último atendimento; um atendimento novo abre outra ocasião
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 30);
+  SELECT (e ->> 'referencia')::date INTO ref FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Retorno 40 dias';
+  PERFORM pet_contato_registrar(p_ret, 'retorno', ref, 'telefone');
+  r := pet_contatos_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Retorno 40 dias'), 'depois do contato, o retorno some da lista');
+
+  -- leitura direta só da empresa, sem escrita direta, outra empresa sem registros
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM pet_contatos') = 2 AND ci.contar(gar, 'SELECT count(*) FROM pet_contatos') = 0, 'o garçom não lê contatos');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO pet_contatos (pet_id, tipo, referencia) VALUES (%L, 'retorno', current_date)$c$, p_ret), 'escrita direta em contatos');
+  PERFORM ci.deve_falhar(adm, $c$DELETE FROM pet_contatos$c$, 'apagar contato direto');
+  SELECT count(*) INTO n FROM pet_contatos WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0, 'a outra empresa não recebeu contatos');
+
+  -- a lista de retorno tem teto de 300 (mais antigos primeiro), mesmo com mais pets elegíveis
+  INSERT INTO pets (tenant_id, cliente_id, nome) SELECT demo, tutor, 'Massa ' || g FROM generate_series(1, 305) g;
+  INSERT INTO pet_agendamentos (tenant_id, pet_id, cliente_id, profissional_id, inicio, fim, situacao)
+  SELECT demo, p.id, tutor, prof, now() - interval '100 days', now() - interval '100 days' + interval '30 minutes', 'retirado'
+    FROM pets p WHERE p.tenant_id = demo AND p.nome LIKE 'Massa %';
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 300, 'a lista de retorno é limitada a 300 pets');
+END $$;
+
 -- 40. Pet shop (pacotes): venda adiantada, uso na retirada, aviso do penúltimo banho, validade e cancelamento
 DO $$
 DECLARE

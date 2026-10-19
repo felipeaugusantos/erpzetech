@@ -5423,6 +5423,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_contatos: {
+        Row: {
+          canal: string
+          contatado_em: string
+          contatado_por: string | null
+          id: string
+          observacao: string | null
+          pet_id: string
+          referencia: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          canal?: string
+          contatado_em?: string
+          contatado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pet_id: string
+          referencia: string
+          tenant_id?: string
+          tipo: string
+        }
+        Update: {
+          canal?: string
+          contatado_em?: string
+          contatado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pet_id?: string
+          referencia?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       pet_profissionais: {
         Row: {
           ativo: boolean
@@ -8528,6 +8564,20 @@ export type Database = {
           p_pet_id: string
           p_validade_dias: number
         }
+        Returns: Json
+      }
+      pet_contato_registrar: {
+        Args: {
+          p_canal?: string
+          p_observacao?: string
+          p_pet_id: string
+          p_referencia: string
+          p_tipo: string
+        }
+        Returns: undefined
+      }
+      pet_contatos_pendentes: {
+        Args: { p_dias?: number; p_janela?: number; p_tipo: string }
         Returns: Json
       }
       pet_preco_calcular: {
