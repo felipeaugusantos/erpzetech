@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR } from "@/lib/format";
+import { ImportarExtratoDialog, PendenciasExtratoDialog } from "@/components/app/ExtratoBancario";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ const ORIGEM_LABEL: Record<string, string> = {
   contas_receber: "Recebimento de título",
   contas_pagar: "Pagamento a fornecedor",
   caixa: "Sangria do caixa",
+  extrato: "Extrato do banco",
   transferencia: "Entre contas próprias",
 };
 
@@ -115,7 +117,7 @@ function BancoMovimentos() {
       const [contasRes, movRes, anterioresRes] = await Promise.all([
         supabase
           .from("contas_bancarias")
-          .select("id, apelido, banco_nome, saldo_inicial, ativa")
+          .select("id, apelido, banco_nome, conta, conta_digito, saldo_inicial, ativa")
           .order("apelido"),
         supabase
           .from("banco_movimentos")
@@ -248,6 +250,9 @@ function BancoMovimentos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [importando, setImportando] = useState(false);
+  const [pendencias, setPendencias] = useState(false);
+
   const conciliar = useMutation({
     mutationFn: async ({ id, valor }: { id: string; valor: boolean }) => {
       const { error } = await supabase.rpc("banco_conciliar", {
@@ -272,6 +277,16 @@ function BancoMovimentos() {
             <Button variant="outline" asChild>
               <Link to="/contas-bancarias">Contas bancárias</Link>
             </Button>
+            {podeConciliar && (
+              <>
+                <Button variant="outline" onClick={() => setPendencias(true)}>
+                  Pendências do extrato
+                </Button>
+                <Button variant="outline" onClick={() => setImportando(true)}>
+                  Importar extrato (OFX)
+                </Button>
+              </>
+            )}
             {podeLancar && (
               <>
                 <Button
@@ -582,6 +597,22 @@ function BancoMovimentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {podeConciliar && (
+        <>
+          <ImportarExtratoDialog
+            key={importando ? "aberto" : "fechado"}
+            aberto={importando}
+            contas={contas}
+            contaInicial={contaFiltro !== "todas" ? contaFiltro : ""}
+            onFechar={() => setImportando(false)}
+          />
+          <PendenciasExtratoDialog
+            aberto={pendencias}
+            contas={contas}
+            onFechar={() => setPendencias(false)}
+          />
+        </>
+      )}
     </>
   );
 }

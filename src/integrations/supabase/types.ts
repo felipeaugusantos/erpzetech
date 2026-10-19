@@ -165,6 +165,54 @@ export type Database = {
           },
         ]
       }
+      banco_extrato_linhas: {
+        Row: {
+          arquivo: string | null
+          conta_id: string
+          created_at: string
+          data: string
+          descricao: string
+          documento: string | null
+          fitid: string
+          id: string
+          movimento_id: string | null
+          situacao: string
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          arquivo?: string | null
+          conta_id: string
+          created_at?: string
+          data: string
+          descricao: string
+          documento?: string | null
+          fitid: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          arquivo?: string | null
+          conta_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          documento?: string | null
+          fitid?: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       banco_movimentos: {
         Row: {
           categoria: string | null
@@ -7307,6 +7355,18 @@ export type Database = {
           p_tipo: string
           p_valor: number
         }
+        Returns: string
+      }
+      banco_extrato_importar: {
+        Args: { p_arquivo?: string; p_conta_id: string; p_linhas: Json; p_simular?: boolean }
+        Returns: Json
+      }
+      banco_extrato_ignorar: {
+        Args: { p_ignorar?: boolean; p_linha_id: string }
+        Returns: undefined
+      }
+      banco_extrato_lancar: {
+        Args: { p_categoria?: string; p_linha_id: string }
         Returns: string
       }
       banco_conciliar: {
