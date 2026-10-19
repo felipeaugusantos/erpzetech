@@ -203,6 +203,17 @@ function Atendimento() {
         >
           Ver o histórico do paciente
         </Link>
+        <Link
+          to="/clinica-exames"
+          search={{
+            pet: data.pet_id,
+            exame: undefined,
+            atendimento: data.situacao === "aberto" ? data.id : undefined,
+          }}
+          className="mt-2 ml-4 inline-block text-primary underline"
+        >
+          Exames do paciente
+        </Link>
       </div>
 
       {fechado && (
