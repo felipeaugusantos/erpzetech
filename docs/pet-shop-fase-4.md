@@ -50,13 +50,14 @@ As telas de hoje definem os modelos iniciais (campos na ordem da tela):
 Desenho:
 
 - **Modelo** (`pet_exame_modelos`): nome, tipo (hemograma, bioquímica, urina, outro), ativo. **Campo** (`pet_exame_campos`): ordem, grupo, nome, unidade, forma de valor (**número**, **texto** ou **escolha** com opções), casas decimais, observação. O veterinário e a gestão incluem, tiram e reordenam campos; modelo já usado em exame fechado não perde campo (fica inativo).
-- **Faixa de referência** (`pet_exame_referencias`): mínimo e máximo por campo e por espécie (cão, gato). **As faixas vêm como sugestão marcada para o veterinário conferir**, como no catálogo de vacinas: o sistema não decide valor clínico, e cada clínica ajusta ao seu laboratório e método.
+- **Faixa de referência** (`pet_exame_referencias`): mínimo e máximo por campo e por espécie (cão, gato e **outro**, para os pets já cadastrados nessa categoria; sem faixa, nada é destacado). **As faixas vêm como sugestão marcada para o veterinário conferir**, como no catálogo de vacinas: o sistema não decide valor clínico, e cada clínica ajusta ao seu laboratório e método.
 - Cada tela acima vira o modelo correspondente já cadastrado, para a clínica começar sem montar nada.
-- Acesso: o mesmo desenho do prontuário (seção "Regras que valem para tudo"). Sem acesso direto às tabelas, funções que exigem a clínica liberada (`clinica_liberada`) e o perfil Veterinário para escrever.
+- **Exame fechado guarda o que viu:** ao fechar, o resultado grava junto, para cada campo, o nome, a unidade, as casas decimais e a faixa de referência em vigor. Editar o modelo depois muda só os exames futuros; laudo e evolução de exame fechado leem esse registro, nunca o modelo atual.
+- Acesso: o mesmo desenho do prontuário (seção "Regras que valem para tudo"). Sem acesso direto às tabelas, funções que exigem a clínica liberada (`clinica_liberada`). **Manter modelo e faixa** (configuração) é do administrador, do gestor e do Veterinário, como o catálogo de vacinas; **escrever resultado** é só do Veterinário.
 
 ## PR 3 — Exames: resultados
 
-- **Preenchimento só com número.** A tela mostra o modelo com a unidade ao lado de cada campo; teclado numérico, vírgula ou ponto.
+- **Número onde o campo é número.** A tela mostra o modelo com a unidade ao lado de cada campo; os campos de forma **número** têm teclado numérico (vírgula ou ponto) e só aceitam número, e os de **texto** (colheita, aspecto, cor, odor, cristais, observações) e **escolha** aparecem como texto livre ou lista. O hemograma e a bioquímica são quase todos numéricos.
 - **Campo em branco é "não feito".** Diferente das telas de hoje, que iniciam em 0,000: aqui o zero precisa ser digitado, e exame que não foi pedido não aparece como valor zero.
 - **Hemograma:** com os leucócitos totais e os percentuais do diferencial, o sistema calcula os **valores absolutos** de cada célula e confere se o diferencial soma 100%.
 - **Valor fora da faixa** de referência da espécie fica destacado (abaixo ou acima), com a faixa à vista. Sem faixa cadastrada, não destaca nada.
@@ -84,7 +85,7 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
   - **5a — cadastros:** tutor, pet e (se a decisão 1 pedir) propriedade.
   - **5b — atendimento, vacina e exame:** preenchimento completo sem sinal; fechar também fica na fila.
   - **5c — anexos:** fotos e PDFs guardados no notebook até subir.
-- **Dado clínico no notebook é sensível** (LGPD): fica no armazenamento do navegador com **criptografia** protegida por senha da pessoa que está usando (o dado não abre sem ela), expira se o aparelho ficar sem entrar por um prazo definido e some depois de enviado. Se o notebook for perdido, sem a senha o conteúdo não abre. Isso exige uma estrutura nova (a cópia atual usa o armazenamento simples do navegador e não serve para dado clínico).
+- **Dado clínico no notebook é sensível** (LGPD): fica no armazenamento do navegador com **criptografia** protegida por senha da pessoa que está usando (o dado não abre sem ela), expira se o aparelho ficar sem entrar por um prazo definido (só a **cópia de consulta** expira; a **fila de gravações pendentes** nunca expira sozinha, e a operação recusada fica guardada até ser enviada ou resolvida por uma pessoa) e some depois de enviado. Se o notebook for perdido, sem a senha o conteúdo não abre. Isso exige uma estrutura nova (a cópia atual usa o armazenamento simples do navegador e não serve para dado clínico).
 - **Conflitos conhecidos e a regra para cada um:**
   - **Baixa de lote da vacina:** a dose só é baixada ao sincronizar. Se o lote acabou antes, o registro **fica pendente com o erro** e o veterinário escolhe outro lote; nada é perdido.
   - **Prontuário fechado sem internet:** o fechamento vale quando sincroniza; edição concorrente do mesmo atendimento por outro aparelho é recusada e fica guardada.
