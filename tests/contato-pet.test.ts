@@ -3,7 +3,9 @@ import { test } from "node:test";
 
 import {
   MENSAGEM_PADRAO,
+  MENSAGEM_REFORCO,
   linkWhatsApp,
+  listaEmTexto,
   montarMensagem,
   telefoneWhatsApp,
 } from "../src/lib/contato-pet.ts";
@@ -46,4 +48,27 @@ test("campo sem valor mantém o marcador", () => {
     montarMensagem("Oi {tutor}, {pet} em {data}", { pet: "Rex" }),
     "Oi {tutor}, Rex em {data}",
   );
+});
+
+test("mensagem de reforço lista os itens e a data", () => {
+  const t = montarMensagem(MENSAGEM_REFORCO, {
+    tutor: "Ana Souza",
+    pet: "Thor",
+    loja: "Clínica Vida",
+    data: "10/10/2026",
+    itens: listaEmTexto(["V10", "Vermífugo"]),
+  });
+  assert.match(t, /Oi, Ana!/);
+  assert.match(t, /O Thor está com V10 e Vermífugo para tomar em 10\/10\/2026/);
+});
+
+test("lista em texto", () => {
+  assert.equal(listaEmTexto([]), "");
+  assert.equal(listaEmTexto(["A"]), "A");
+  assert.equal(listaEmTexto(["A", "B"]), "A e B");
+  assert.equal(listaEmTexto(["A", "B", "C"]), "A, B e C");
+});
+
+test("{itens} sem valor fica como está", () => {
+  assert.equal(montarMensagem("Com {itens}", { pet: "x" }), "Com {itens}");
 });

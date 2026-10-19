@@ -201,6 +201,7 @@ const groups: Group[] = [
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+      { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
     ],
   },
   {
@@ -360,6 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const somenteProfissional = useMemo(() => ehProfissionalRestrito(data?.roles ?? []), [data]);
   const souVeterinario = (data?.roles ?? []).includes("veterinario");
   const souGestao = (data?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
+  const souRecepcao = (data?.roles ?? []).some((r) => r === "vendedor" || r === "caixa");
 
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
@@ -383,7 +385,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Restaurante") return modulos.restaurante;
           if (g.label === "Pet shop") return modulos.petshop;
           // o texto clínico é só do perfil Veterinário (o banco confere de novo)
-          if (g.label === "Clínica") return modulos.clinica && (souVeterinario || souGestao);
+          if (g.label === "Clínica")
+            return modulos.clinica && (souVeterinario || souGestao || souRecepcao);
           if (soAlimentacao && (GRUPOS_FORA_DA_ALIMENTACAO as readonly string[]).includes(g.label))
             return false;
           return true;
@@ -405,6 +408,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
             // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
             if (i.to === "/clinica-prontuario") return souVeterinario;
+            if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
+            // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
+            if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
             if (
               i.to === "/personalizacao" ||
               i.to === "/custo-par" ||
@@ -423,6 +429,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.clinica,
       souVeterinario,
       souGestao,
+      souRecepcao,
       ehConstrucao,
       fazPersonalizacao,
       soAlimentacao,

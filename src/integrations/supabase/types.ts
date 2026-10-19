@@ -9077,6 +9077,10 @@ export type Database = {
         }
         Returns: string
       }
+      clinica_reforcos_pendentes: {
+        Args: { p_atraso?: number; p_janela?: number }
+        Returns: Json
+      }
       clinica_adendo_criar: {
         Args: { p_atendimento_id: string; p_texto: string }
         Returns: Json
