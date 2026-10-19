@@ -2788,3 +2788,123 @@ BEGIN
   PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_servicos') = 0 AND ci.contar(gar, 'SELECT count(*) FROM pet_profissionais') = 0
                    AND ci.contar(gar, 'SELECT count(*) FROM pet_servico_precos') = 0, 'o garçom não lê serviços, preços nem profissionais');
 END $$;
+
+-- 37. Pet shop (agenda): sem sobreposição por profissional, preço congelado, transições válidas e motivo
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  tutor uuid; pet uuid; pet_sem_preco uuid; pet_inativo uuid; prof uuid; prof2 uuid; prof_off uuid; serv uuid; serv2 uuid; serv_sem uuid; ag uuid; ag2 uuid; ag3 uuid;
+  base timestamptz := date_trunc('day', now()) + interval '2 days' + interval '9 hours';
+  r record; tb uuid; n bigint;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Agenda CI') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Agenda B') RETURNING id INTO tb;
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Thor', 'raca', 'Poodle', 'porte', 'pequeno', 'pelagem', 'longa'));
+  pet_sem_preco := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Gigante', 'porte', 'gigante'));
+  pet_inativo := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Inativo', 'porte', 'pequeno', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := pet_servico_salvar('{"nome":"Banho Agenda","duracao_min":60}'::jsonb);
+  serv2 := pet_servico_salvar('{"nome":"Tosa Agenda","categoria":"tosa","duracao_min":30}'::jsonb);
+  serv_sem := pet_servico_salvar('{"nome":"Hidratação Agenda","categoria":"estetica","duracao_min":45}'::jsonb);
+  PERFORM pet_preco_salvar(serv, 'pequeno', NULL, NULL, 60);
+  PERFORM pet_preco_salvar(serv, NULL, 'poodle', NULL, 90);
+  PERFORM pet_preco_salvar(serv2, NULL, NULL, NULL, 40);
+  prof := pet_profissional_salvar('{"nome":"Ana Agenda","funcao":"tosador","comissao_percentual":30}'::jsonb);
+  prof2 := pet_profissional_salvar('{"nome":"Beto Agenda","funcao":"banhista"}'::jsonb);
+  prof_off := pet_profissional_salvar('{"nome":"Inativo Agenda","ativo":false}'::jsonb);
+  PERFORM ci.sair();
+
+  -- quem agenda: administrador, gestor, vendedor e caixa
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, base, serv), 'garçom agenda');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, base, serv), 'estoquista agenda');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, base, serv), 'anon agenda');
+
+  -- validações
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, serv), 'sem horário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', '[]'::jsonb))$c$, pet, prof, base), 'sem serviço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet_inativo, prof, base, serv), 'pet inativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof_off, base, serv), 'profissional inativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L), jsonb_build_object('servico_id', %L))))$c$, pet, prof, base, serv, serv), 'serviço repetido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet_sem_preco, prof, base, serv), 'pet sem preço para o serviço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L, 'preco_avulso', 55))))$c$, pet_sem_preco, prof, base, serv), 'vendedor informa preço avulso');
+
+  -- agendar (preço da raça vence o do porte; duração soma os serviços)
+  PERFORM ci.entrar(vend);
+  ag := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof, 'inicio', base, 'taxi_dog', true,
+                    'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv), jsonb_build_object('servico_id', serv2))));
+  PERFORM ci.sair();
+  SELECT * INTO r FROM pet_agendamentos WHERE id = ag;
+  PERFORM ci.exige(r.fim - r.inicio = interval '90 minutes' AND r.situacao = 'agendado' AND r.taxi_dog AND r.cliente_id = tutor, 'o fim soma a duração dos serviços; o tutor vem do pet');
+  PERFORM ci.exige((SELECT sum(preco_aplicado) = 130 FROM pet_agendamento_itens WHERE agendamento_id = ag), 'banho de poodle (90) + tosa (40): vale o preço mais específico');
+
+  -- preço congelado: mudar a tabela não muda o agendamento
+  PERFORM ci.entrar(gest);
+  PERFORM pet_preco_salvar(serv, NULL, 'poodle', NULL, 200);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(preco_aplicado) = 130 FROM pet_agendamento_itens WHERE agendamento_id = ag), 'o preço combinado fica congelado');
+
+  -- sobreposição: mesmo profissional não pode; encostar pode; outro profissional pode
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, base + interval '30 minutes', serv2), 'sobrepõe o horário do mesmo profissional');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agendar(jsonb_build_object('pet_id', %L, 'profissional_id', %L, 'inicio', %L::timestamptz, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', %L))))$c$, pet, prof, base - interval '20 minutes', serv), 'termina depois que o outro começa');
+  PERFORM ci.entrar(vend);
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof, 'inicio', base + interval '90 minutes', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv2))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof2, 'inicio', base, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv2))));
+  PERFORM ci.sair();
+  PERFORM ci.exige(ag2 IS NOT NULL AND ag3 IS NOT NULL, 'um começa quando o outro termina; outro profissional no mesmo horário');
+
+  -- preço avulso só da gestão, marcado no item
+  PERFORM ci.entrar(gest);
+  ag := pet_agendar(jsonb_build_object('pet_id', pet_sem_preco, 'profissional_id', prof, 'inicio', base + interval '5 hours',
+                    'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv_sem, 'preco_avulso', 75))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_aplicado = 75 AND preco_avulso FROM pet_agendamento_itens WHERE agendamento_id = ag), 'a gestão informa preço avulso e ele fica marcado');
+
+  -- transições
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_situacao(%L, 'pronto')$c$, ag2), 'agendado direto para pronto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_situacao(%L, 'retirado')$c$, ag2), 'retirado não sai da agenda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_situacao(%L, 'cancelado')$c$, ag2), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_agenda_situacao(%L, 'confirmado')$c$, ag2), 'garçom muda situação');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_agenda_situacao(ag2, 'confirmado');
+  PERFORM pet_agenda_situacao(ag2, 'em_atendimento');
+  PERFORM pet_agenda_situacao(ag2, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM pet_agendamentos WHERE id = ag2) = 'pronto', 'agendado → confirmado → em atendimento → pronto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_situacao(%L, 'cancelado', 'desistiu')$c$, ag2), 'cancelar depois de pronto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_reagendar(%L, %L::timestamptz)$c$, ag2, base + interval '8 hours'), 'remarcar depois de pronto');
+
+  -- cancelar libera o horário
+  PERFORM ci.entrar(vend);
+  PERFORM pet_agenda_situacao(ag3, 'cancelado', 'tutor desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelado' AND motivo = 'tutor desistiu' FROM pet_agendamentos WHERE id = ag3), 'cancelar guarda o motivo');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof2, 'inicio', base, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv2))));
+  PERFORM ci.sair();
+  PERFORM ci.exige(true, 'o horário cancelado volta a ficar livre');
+
+  -- remarcar
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_reagendar(%L, %L::timestamptz, %L)$c$, ag, base + interval '30 minutes', prof), 'remarcar para cima de outro atendimento');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_reagendar(%L, %L::timestamptz, %L)$c$, ag, base + interval '7 hours', prof_off), 'remarcar para profissional inativo');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_reagendar(ag, base + interval '6 hours');                    -- o mesmo profissional, outro horário
+  PERFORM pet_reagendar(ag, base + interval '6 hours 10 minutes', prof2);  -- outro profissional
+  PERFORM ci.sair();
+  SELECT * INTO r FROM pet_agendamentos WHERE id = ag;
+  PERFORM ci.exige(r.profissional_id = prof2 AND r.fim - r.inicio = interval '45 minutes', 'remarcar mantém a duração e troca o profissional');
+
+  -- leitura e escrita direta
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM pet_agendamentos') >= 3 AND ci.contar(gar, 'SELECT count(*) FROM pet_agendamentos') = 0
+                   AND ci.contar(gar, 'SELECT count(*) FROM pet_agendamento_itens') = 0, 'o garçom não lê a agenda');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pet_agendamentos SET situacao = 'retirado' WHERE id = %L$c$, ag2), 'escrita direta na agenda');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM pet_agendamento_itens WHERE agendamento_id = %L$c$, ag2), 'apagar item da agenda direto');
+  SELECT count(*) INTO n FROM pet_agendamentos WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0, 'a outra empresa não recebeu agendamentos');
+END $$;

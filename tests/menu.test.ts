@@ -148,6 +148,6 @@ test("o grupo Pet shop só aparece quando o módulo está liberado e traz as tel
   const pet = grupos().find((g) => g.label === "Pet shop");
   assert.deepEqual(
     pet?.itens.map((i) => i.to),
-    ["/pets", "/pet-servicos", "/pet-profissionais"],
+    ["/pet-agenda", "/pets", "/pet-servicos", "/pet-profissionais"],
   );
 });

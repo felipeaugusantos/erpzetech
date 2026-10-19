@@ -5144,6 +5144,96 @@ export type Database = {
           },
         ]
       }
+      pet_agendamento_itens: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          duracao_min: number
+          id: string
+          preco_aplicado: number
+          preco_avulso: boolean
+          servico_id: string
+          tenant_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          duracao_min: number
+          id?: string
+          preco_aplicado: number
+          preco_avulso?: boolean
+          servico_id: string
+          tenant_id?: string
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          preco_aplicado?: number
+          preco_avulso?: boolean
+          servico_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      pet_agendamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          filial_id: string | null
+          fim: string
+          id: string
+          inicio: string
+          motivo: string | null
+          observacoes: string | null
+          pet_id: string
+          profissional_id: string
+          situacao: string
+          taxi_dog: boolean
+          tenant_id: string
+          updated_at: string
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          filial_id?: string | null
+          fim: string
+          id?: string
+          inicio: string
+          motivo?: string | null
+          observacoes?: string | null
+          pet_id: string
+          profissional_id: string
+          situacao?: string
+          taxi_dog?: boolean
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          filial_id?: string | null
+          fim?: string
+          id?: string
+          inicio?: string
+          motivo?: string | null
+          observacoes?: string | null
+          pet_id?: string
+          profissional_id?: string
+          situacao?: string
+          taxi_dog?: boolean
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Relationships: []
+      }
       pet_profissionais: {
         Row: {
           ativo: boolean
@@ -8206,6 +8296,15 @@ export type Database = {
           p_valor: number
         }
         Returns: string
+      }
+      pet_agenda_situacao: {
+        Args: { p_id: string; p_motivo?: string; p_para: string }
+        Returns: undefined
+      }
+      pet_agendar: { Args: { p_dados: Json }; Returns: string }
+      pet_reagendar: {
+        Args: { p_id: string; p_inicio: string; p_profissional_id?: string }
+        Returns: undefined
       }
       pet_preco_calcular: {
         Args: { p_pet_id: string; p_servico_id: string }

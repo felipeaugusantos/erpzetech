@@ -180,6 +180,7 @@ const groups: Group[] = [
     label: "Pet shop",
     icon: PawPrint,
     items: [
+      { label: "Agenda", to: "/pet-agenda", icon: CalendarClock },
       { label: "Pets e tutores", to: "/pets", icon: PawPrint },
       { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
       { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },

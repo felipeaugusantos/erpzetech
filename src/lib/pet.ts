@@ -114,3 +114,91 @@ export function idadeDoPet(nascimento: string | null | undefined, hoje = new Dat
   const anos = Math.floor(meses / 12);
   return anos === 1 ? "1 ano" : `${anos} anos`;
 }
+
+// ---------- agenda ----------
+
+export type SituacaoAgenda =
+  "agendado" | "confirmado" | "em_atendimento" | "pronto" | "retirado" | "cancelado" | "faltou";
+
+export const SITUACOES_AGENDA: readonly { value: SituacaoAgenda; label: string }[] = [
+  { value: "agendado", label: "Agendado" },
+  { value: "confirmado", label: "Confirmado" },
+  { value: "em_atendimento", label: "Em atendimento" },
+  { value: "pronto", label: "Pronto" },
+  { value: "retirado", label: "Retirado" },
+  { value: "cancelado", label: "Cancelado" },
+  { value: "faltou", label: "Faltou" },
+];
+
+/** Situações que ocupam o horário do profissional. */
+export const ocupaHorario = (s: string) => s !== "cancelado" && s !== "faltou";
+
+/**
+ * Próximos passos permitidos (mesma regra de pet_agenda_situacao no banco). "Retirado" não está aqui: sai da cobrança.
+ * `motivo` indica os passos que exigem justificativa.
+ */
+export function proximasSituacoes(
+  situacao: string,
+): { para: SituacaoAgenda; rotulo: string; motivo: boolean }[] {
+  switch (situacao) {
+    case "agendado":
+      return [
+        { para: "confirmado", rotulo: "Confirmar", motivo: false },
+        { para: "em_atendimento", rotulo: "Iniciar atendimento", motivo: false },
+        { para: "cancelado", rotulo: "Cancelar", motivo: true },
+        { para: "faltou", rotulo: "Faltou", motivo: true },
+      ];
+    case "confirmado":
+      return [
+        { para: "em_atendimento", rotulo: "Iniciar atendimento", motivo: false },
+        { para: "cancelado", rotulo: "Cancelar", motivo: true },
+        { para: "faltou", rotulo: "Faltou", motivo: true },
+      ];
+    case "em_atendimento":
+      return [{ para: "pronto", rotulo: "Marcar como pronto", motivo: false }];
+    default:
+      return [];
+  }
+}
+
+/** Só dá para remarcar antes de começar. */
+export const podeRemarcar = (situacao: string) =>
+  situacao === "agendado" || situacao === "confirmado";
+
+export function duracaoTotal(servicos: readonly { duracao_min: number }[]) {
+  return servicos.reduce((s, x) => s + x.duracao_min, 0);
+}
+
+export function fimDoAtendimento(inicio: Date, minutos: number) {
+  return new Date(inicio.getTime() + minutos * 60000);
+}
+
+export type Atendimento = {
+  id: string;
+  profissional_id: string;
+  inicio: Date;
+  fim: Date;
+  situacao: string;
+};
+
+/** Dois intervalos se cruzam quando um começa antes de o outro terminar; terminar às 10h e começar às 10h não cruza. */
+export function intervalosSeCruzam(aIni: Date, aFim: Date, bIni: Date, bFim: Date) {
+  return aIni.getTime() < bFim.getTime() && aFim.getTime() > bIni.getTime();
+}
+
+/** O profissional já tem atendimento (que não esteja cancelado/faltou) cruzando este horário? */
+export function temConflito(
+  atendimentos: readonly Atendimento[],
+  profissionalId: string,
+  inicio: Date,
+  fim: Date,
+  ignorarId?: string,
+) {
+  return atendimentos.some(
+    (a) =>
+      a.profissional_id === profissionalId &&
+      a.id !== ignorarId &&
+      ocupaHorario(a.situacao) &&
+      intervalosSeCruzam(inicio, fim, a.inicio, a.fim),
+  );
+}

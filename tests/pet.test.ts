@@ -100,3 +100,57 @@ test("idade do pet", () => {
   assert.equal(idadeDoPet(null, hoje), "");
   assert.equal(idadeDoPet("2027-01-01", hoje), "");
 });
+
+import {
+  duracaoTotal,
+  fimDoAtendimento,
+  intervalosSeCruzam,
+  podeRemarcar,
+  proximasSituacoes,
+  temConflito,
+} from "../src/lib/pet.ts";
+
+const h = (hora: number, min = 0) => new Date(2026, 9, 20, hora, min);
+
+test("agenda: intervalos que se encostam não se cruzam", () => {
+  assert.equal(intervalosSeCruzam(h(9), h(10), h(10), h(11)), false);
+  assert.equal(intervalosSeCruzam(h(9), h(10), h(9, 59), h(11)), true);
+  assert.equal(intervalosSeCruzam(h(9), h(12), h(10), h(11)), true); // um dentro do outro
+  assert.equal(intervalosSeCruzam(h(10), h(11), h(9), h(10)), false);
+});
+
+test("agenda: conflito por profissional, ignorando cancelado, faltou e o próprio atendimento", () => {
+  const lista = [
+    { id: "a", profissional_id: "p1", inicio: h(9), fim: h(10), situacao: "agendado" },
+    { id: "b", profissional_id: "p1", inicio: h(10), fim: h(11), situacao: "cancelado" },
+    { id: "c", profissional_id: "p2", inicio: h(9), fim: h(10), situacao: "confirmado" },
+    { id: "d", profissional_id: "p1", inicio: h(13), fim: h(14), situacao: "faltou" },
+  ];
+  assert.equal(temConflito(lista, "p1", h(9, 30), h(10, 30)), true);
+  assert.equal(temConflito(lista, "p1", h(10), h(11)), false); // o cancelado não ocupa
+  assert.equal(temConflito(lista, "p1", h(13), h(14)), false); // quem faltou não ocupa
+  assert.equal(temConflito(lista, "p3", h(9), h(10)), false); // outro profissional
+  assert.equal(temConflito(lista, "p1", h(9), h(10), "a"), false); // remarcar o próprio
+});
+
+test("agenda: duração e fim do atendimento", () => {
+  assert.equal(duracaoTotal([{ duracao_min: 60 }, { duracao_min: 30 }]), 90);
+  assert.equal(fimDoAtendimento(h(9), 90).getTime(), h(10, 30).getTime());
+});
+
+test("agenda: caminhos de situação", () => {
+  const para = (s: string) => proximasSituacoes(s).map((x) => x.para);
+  assert.deepEqual(para("agendado"), ["confirmado", "em_atendimento", "cancelado", "faltou"]);
+  assert.deepEqual(para("confirmado"), ["em_atendimento", "cancelado", "faltou"]);
+  assert.deepEqual(para("em_atendimento"), ["pronto"]);
+  for (const fim of ["pronto", "retirado", "cancelado", "faltou"]) assert.deepEqual(para(fim), []);
+  assert.ok(!para("agendado").includes("retirado" as never));
+  assert.deepEqual(
+    proximasSituacoes("agendado")
+      .filter((x) => x.motivo)
+      .map((x) => x.para),
+    ["cancelado", "faltou"],
+  );
+  assert.equal(podeRemarcar("agendado"), true);
+  assert.equal(podeRemarcar("em_atendimento"), false);
+});
