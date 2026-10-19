@@ -2673,3 +2673,118 @@ BEGIN
   PERFORM ci.exige(q = 5, 'cancelar devolve a mercadoria ao estoque');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'cancelar não cria estoque do serviço');
 END $$;
+
+-- 36. Pet shop (cadastros): pets, serviços, preço por porte/raça/pelagem e profissionais
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  tutor uuid; tutor_b uuid; tb uuid; pet uuid; pet2 uuid; pet3 uuid; serv uuid; serv2 uuid; prod uuid; pr uuid; r jsonb; n bigint;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Pet CI') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Pet B') RETURNING id INTO tb;
+  INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Tutor de outra empresa') RETURNING id INTO tutor_b;
+
+  -- quem cadastra pet: administrador, gestor, vendedor e caixa
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex'))$c$, tutor), 'garçom cadastra pet');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex'))$c$, tutor), 'estoquista cadastra pet');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex'))$c$, tutor), 'anon cadastra pet');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', ''))$c$, tutor), 'pet sem nome');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex', 'porte', 'enorme'))$c$, tutor), 'porte inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex', 'peso_kg', 0))$c$, tutor), 'peso zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Rex'))$c$, tutor_b), 'tutor de outra empresa');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_salvar(jsonb_build_object('nome', 'Sem tutor'))$c$, 'pet sem tutor');
+
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Thor', 'especie', 'cao', 'raca', ' Poodle ', 'porte', 'pequeno',
+                                       'pelagem', 'longa', 'peso_kg', 6.5, 'nascimento', '2023-05-10', 'castrado', true, 'alergias', 'frango'));
+  pet2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Mel', 'raca', 'SRD', 'porte', 'grande', 'pelagem', 'curta'));
+  pet3 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Bola', 'especie', 'gato'));
+  PERFORM pet_salvar(jsonb_build_object('id', pet2, 'cliente_id', tutor, 'nome', 'Mel', 'raca', 'SRD', 'porte', 'medio', 'pelagem', 'curta'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT raca = 'Poodle' AND porte = 'pequeno' AND castrado FROM pets WHERE id = pet), 'o pet guarda os dados (raça sem espaços sobrando)');
+  PERFORM ci.exige((SELECT porte = 'medio' FROM pets WHERE id = pet2), 'editar o pet atualiza');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM pets') = 3 AND ci.contar(gar, 'SELECT count(*) FROM pets') = 0, 'o garçom não lê pets');
+
+  -- serviços e preços: só administrador e gestor
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_servico_salvar('{"nome":"Banho"}'::jsonb)$c$, 'vendedor cria serviço');
+  PERFORM ci.deve_falhar(cxa, $c$SELECT pet_servico_salvar('{"nome":"Banho"}'::jsonb)$c$, 'caixa cria serviço');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_servico_salvar('{"nome":""}'::jsonb)$c$, 'serviço sem nome');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_servico_salvar('{"nome":"Banho","duracao_min":2}'::jsonb)$c$, 'duração curta demais');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_servico_salvar('{"nome":"Banho","categoria":"voo"}'::jsonb)$c$, 'categoria inválida');
+  PERFORM ci.entrar(gest);
+  serv := pet_servico_salvar('{"nome":"Banho","categoria":"banho","duracao_min":60,"preco_base":50}'::jsonb);
+  serv2 := pet_servico_salvar('{"nome":"Tosa higiênica","categoria":"tosa","duracao_min":30}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO prod FROM pet_servicos WHERE id = serv;
+  PERFORM ci.exige((SELECT NOT controla_estoque AND preco_venda = 50 AND descricao = 'Banho' AND codigo_interno <> '' FROM produtos WHERE id = prod),
+                   'o serviço vira um produto sem controle de estoque, com código automático e preço de balcão');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_servico_salvar('{"nome":" banho "}'::jsonb)$c$, 'nome de serviço repetido (sem diferenciar maiúsculas)');
+
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_preco_salvar(%L, NULL, NULL, NULL, 10)$c$, serv), 'vendedor grava preço');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_preco_salvar(%L, 'enorme', NULL, NULL, 10)$c$, serv), 'preço com porte inválido');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_preco_salvar(%L, NULL, NULL, NULL, -1)$c$, serv), 'preço negativo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_preco_salvar(%L, NULL, NULL, NULL, 10)$c$, gen_random_uuid()), 'serviço que não existe');
+
+  PERFORM ci.entrar(adm);
+  PERFORM pet_preco_salvar(serv, NULL, NULL, NULL, 50);                 -- qualquer pet
+  PERFORM pet_preco_salvar(serv, 'pequeno', NULL, NULL, 60);
+  PERFORM pet_preco_salvar(serv, NULL, NULL, 'longa', 70);
+  PERFORM pet_preco_salvar(serv, 'pequeno', NULL, 'longa', 80);
+  PERFORM pet_preco_salvar(serv, NULL, 'poodle', NULL, 90);
+  pr := pet_preco_salvar(serv, 'pequeno', ' POODLE ', 'longa', 120);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 6 FROM pet_servico_precos WHERE servico_id = serv), 'seis combinações de preço');
+
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige(pet_preco_salvar(serv, 'pequeno', 'poodle', 'longa', 130) = pr, 'a mesma combinação (raça sem diferenciar maiúsculas) atualiza a linha');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 6 AND max(preco) = 130 FROM pet_servico_precos WHERE servico_id = serv), 'sem linha duplicada para a mesma combinação');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO pet_servico_precos (tenant_id, servico_id, porte, raca, pelagem, preco) VALUES (%L, %L, 'pequeno', 'POODLE ', 'longa', 1)$c$, demo, serv),
+                              'o índice único barra a mesma combinação inserida direto');
+
+  -- o preço calculado no banco segue a mesma regra do código
+  PERFORM ci.entrar(vend);
+  r := pet_preco_calcular(serv, pet);   -- poodle pequeno de pelagem longa
+  PERFORM ci.exige((r ->> 'preco')::numeric = 130 AND (r ->> 'pontos')::int = 7, 'raça + pelagem + porte vence');
+  r := pet_preco_calcular(serv, pet2);  -- SRD médio de pelagem curta
+  PERFORM ci.exige((r ->> 'preco')::numeric = 50, 'cai no preço de qualquer pet');
+  r := pet_preco_calcular(serv2, pet);  -- serviço sem nenhum preço
+  PERFORM ci.exige(r IS NULL, 'serviço sem preço cadastrado não é oferecido');
+  PERFORM ci.sair();
+
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT pet_preco_remover(%L)$c$, pr), 'caixa remove preço');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_preco_remover(pr);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 5 FROM pet_servico_precos WHERE servico_id = serv), 'remover preço');
+  PERFORM ci.entrar(vend);
+  r := pet_preco_calcular(serv, pet);   -- sem a linha completa, vale "poodle"
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'preco')::numeric = 90, 'sem a combinação completa, vence a raça sozinha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_preco_calcular(%L, %L)$c$, serv, pet), 'garçom calcula preço');
+
+  -- profissionais
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_profissional_salvar('{"nome":"Ana"}'::jsonb)$c$, 'vendedor cria profissional');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":""}'::jsonb)$c$, 'profissional sem nome');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Ana","funcao":"astronauta"}'::jsonb)$c$, 'função inválida');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Ana","comissao_percentual":101}'::jsonb)$c$, 'comissão acima de 100');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_salvar('{"nome":"Ana","funcao":"groomer","comissao_percentual":30}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT funcao = 'groomer' AND comissao_percentual = 30 FROM pet_profissionais WHERE nome = 'Ana' AND tenant_id = demo), 'grava o profissional');
+
+  -- escrita direta negada e isolamento entre empresas
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO pets (cliente_id, nome) VALUES (%L, 'Direto')$c$, tutor), 'escrita direta em pets');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pet_servicos SET nome = 'x' WHERE id = %L$c$, serv), 'alteração direta em serviços');
+  PERFORM ci.deve_falhar(adm, $c$DELETE FROM pet_profissionais$c$, 'apagar profissional direto');
+  SELECT count(*) INTO n FROM pets WHERE tenant_id = tb;
+  PERFORM ci.exige(n = 0 AND NOT EXISTS (SELECT 1 FROM pet_servicos WHERE tenant_id = tb), 'a outra empresa não recebeu cadastros');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_servicos') = 0 AND ci.contar(gar, 'SELECT count(*) FROM pet_profissionais') = 0
+                   AND ci.contar(gar, 'SELECT count(*) FROM pet_servico_precos') = 0, 'o garçom não lê serviços, preços nem profissionais');
+END $$;

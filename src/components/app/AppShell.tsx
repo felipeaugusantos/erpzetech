@@ -31,6 +31,8 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  PawPrint,
+  Scissors,
   Tag,
   TrendingUp,
   Truck,
@@ -172,6 +174,15 @@ const groups: Group[] = [
       { label: "Delivery", to: "/delivery", icon: Bike },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Pet shop",
+    icon: PawPrint,
+    items: [
+      { label: "Pets e tutores", to: "/pets", icon: PawPrint },
+      { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
+      { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },
     ],
   },
   {
@@ -342,6 +353,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
+          if (g.label === "Pet shop") return modulos.petshop;
           if (soAlimentacao && (GRUPOS_FORA_DA_ALIMENTACAO as readonly string[]).includes(g.label))
             return false;
           return true;
@@ -374,6 +386,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.assistencia,
       modulos.locacao,
       modulos.restaurante,
+      modulos.petshop,
       ehConstrucao,
       fazPersonalizacao,
       soAlimentacao,

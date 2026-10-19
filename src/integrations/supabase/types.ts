@@ -5144,6 +5144,174 @@ export type Database = {
           },
         ]
       }
+      pet_profissionais: {
+        Row: {
+          ativo: boolean
+          comissao_percentual: number
+          created_at: string
+          filial_id: string | null
+          funcao: string
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          filial_id?: string | null
+          funcao?: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          filial_id?: string | null
+          funcao?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_servico_precos: {
+        Row: {
+          created_at: string
+          id: string
+          pelagem: string | null
+          porte: string | null
+          preco: number
+          raca: string | null
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pelagem?: string | null
+          porte?: string | null
+          preco: number
+          raca?: string | null
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pelagem?: string | null
+          porte?: string | null
+          preco?: number
+          raca?: string | null
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_servicos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          duracao_min: number
+          id: string
+          nome: string
+          produto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome: string
+          produto_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome?: string
+          produto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pets: {
+        Row: {
+          ativo: boolean
+          alergias: string | null
+          castrado: boolean | null
+          cliente_id: string
+          created_at: string
+          especie: string
+          id: string
+          nascimento: string | null
+          nome: string
+          observacoes: string | null
+          pelagem: string | null
+          peso_kg: number | null
+          porte: string | null
+          raca: string | null
+          sexo: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          alergias?: string | null
+          castrado?: boolean | null
+          cliente_id: string
+          created_at?: string
+          especie?: string
+          id?: string
+          nascimento?: string | null
+          nome: string
+          observacoes?: string | null
+          pelagem?: string | null
+          peso_kg?: number | null
+          porte?: string | null
+          raca?: string | null
+          sexo?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          alergias?: string | null
+          castrado?: boolean | null
+          cliente_id?: string
+          created_at?: string
+          especie?: string
+          id?: string
+          nascimento?: string | null
+          nome?: string
+          observacoes?: string | null
+          pelagem?: string | null
+          peso_kg?: number | null
+          porte?: string | null
+          raca?: string | null
+          sexo?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pedido_itens: {
         Row: {
           created_at: string
@@ -8039,6 +8207,24 @@ export type Database = {
         }
         Returns: string
       }
+      pet_preco_calcular: {
+        Args: { p_pet_id: string; p_servico_id: string }
+        Returns: Json
+      }
+      pet_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
+      pet_preco_salvar: {
+        Args: {
+          p_pelagem: string
+          p_porte: string
+          p_preco: number
+          p_raca: string
+          p_servico_id: string
+        }
+        Returns: string
+      }
+      pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       produto_proximo_codigo: { Args: { p_tenant?: string }; Returns: string }
       profissional_converter_em_cliente: {
         Args: { p_profissional_id: string }

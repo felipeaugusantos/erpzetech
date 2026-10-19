@@ -85,6 +85,9 @@ import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
+import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
+import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
+import { Route as AuthenticatedPetsRouteImport } from './routes/_authenticated/pets'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPrecosRouteImport } from './routes/_authenticated/precos'
 import { Route as AuthenticatedPrefeituraRouteImport } from './routes/_authenticated/prefeitura'
@@ -543,6 +546,23 @@ const AuthenticatedPersonalizacaoRoute =
     path: '/personalizacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPetProfissionaisRoute =
+  AuthenticatedPetProfissionaisRouteImport.update({
+    id: '/pet-profissionais',
+    path: '/pet-profissionais',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPetServicosRoute =
+  AuthenticatedPetServicosRouteImport.update({
+    id: '/pet-servicos',
+    path: '/pet-servicos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPetsRoute = AuthenticatedPetsRouteImport.update({
+  id: '/pets',
+  path: '/pets',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
   id: '/planos',
   path: '/planos',
@@ -843,6 +863,9 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
+  '/pet-servicos': typeof AuthenticatedPetServicosRoute
+  '/pets': typeof AuthenticatedPetsRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -960,6 +983,9 @@ export interface FileRoutesByTo {
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
+  '/pet-servicos': typeof AuthenticatedPetServicosRoute
+  '/pets': typeof AuthenticatedPetsRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/precos': typeof AuthenticatedPrecosRoute
   '/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -1079,6 +1105,9 @@ export interface FileRoutesById {
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
+  '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
+  '/_authenticated/pets': typeof AuthenticatedPetsRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/precos': typeof AuthenticatedPrecosRoute
   '/_authenticated/prefeitura': typeof AuthenticatedPrefeituraRoute
@@ -1198,6 +1227,9 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
+    | '/pet-profissionais'
+    | '/pet-servicos'
+    | '/pets'
     | '/planos'
     | '/precos'
     | '/prefeitura'
@@ -1315,6 +1347,9 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
+    | '/pet-profissionais'
+    | '/pet-servicos'
+    | '/pets'
     | '/planos'
     | '/precos'
     | '/prefeitura'
@@ -1433,6 +1468,9 @@ export interface FileRouteTypes {
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
+    | '/_authenticated/pet-profissionais'
+    | '/_authenticated/pet-servicos'
+    | '/_authenticated/pets'
     | '/_authenticated/planos'
     | '/_authenticated/precos'
     | '/_authenticated/prefeitura'
@@ -2019,6 +2057,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPersonalizacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-profissionais': {
+      id: '/_authenticated/pet-profissionais'
+      path: '/pet-profissionais'
+      fullPath: '/pet-profissionais'
+      preLoaderRoute: typeof AuthenticatedPetProfissionaisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pet-servicos': {
+      id: '/_authenticated/pet-servicos'
+      path: '/pet-servicos'
+      fullPath: '/pet-servicos'
+      preLoaderRoute: typeof AuthenticatedPetServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pets': {
+      id: '/_authenticated/pets'
+      path: '/pets'
+      fullPath: '/pets'
+      preLoaderRoute: typeof AuthenticatedPetsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/planos': {
       id: '/_authenticated/planos'
       path: '/planos'
@@ -2373,6 +2432,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
+  AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
+  AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
+  AuthenticatedPetsRoute: typeof AuthenticatedPetsRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedPrecosRoute: typeof AuthenticatedPrecosRoute
   AuthenticatedPrefeituraRoute: typeof AuthenticatedPrefeituraRoute
@@ -2485,6 +2547,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
+  AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
+  AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,
+  AuthenticatedPetsRoute: AuthenticatedPetsRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedPrecosRoute: AuthenticatedPrecosRoute,
   AuthenticatedPrefeituraRoute: AuthenticatedPrefeituraRoute,
