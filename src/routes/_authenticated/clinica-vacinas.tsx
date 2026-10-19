@@ -55,14 +55,14 @@ export const Route = createFileRoute("/_authenticated/clinica-vacinas")({
   component: VacinasModulo,
 });
 
-/** Botões "21 dias", "30 dias" e "1 ano": preenchem a data a partir do dia da aplicação. */
+/** Botões "21 dias", "30 dias" e "1 ano": preenchem a data a partir do dia da aplicação (sem `base`, do dia de hoje no momento do clique). */
 function AtalhosProximaDose({
   base,
   valor,
   onEscolher,
   desativado,
 }: {
-  base: string;
+  base?: string;
   valor: string;
   onEscolher: (data: string) => void;
   desativado?: boolean;
@@ -70,7 +70,7 @@ function AtalhosProximaDose({
   return (
     <div className="mt-1 flex flex-wrap gap-1">
       {ATALHOS_PROXIMA_DOSE.map((a) => {
-        const data = dataDoAtalho(base, a);
+        const data = dataDoAtalho(base ?? hojeISO(), a);
         return (
           <Button
             key={a.rotulo}
@@ -78,7 +78,7 @@ function AtalhosProximaDose({
             size="sm"
             variant={valor === data ? "default" : "outline"}
             disabled={desativado}
-            onClick={() => onEscolher(data)}
+            onClick={() => onEscolher(base ? data : dataDoAtalho(hojeISO(), a))}
             title={`Próxima dose em ${dateBR(data)}`}
           >
             {a.rotulo}
@@ -377,7 +377,6 @@ function Vacinas() {
                 onChange={(e) => setProxima(e.target.value)}
               />
               <AtalhosProximaDose
-                base={hoje}
                 valor={proxima}
                 desativado={semProxima}
                 onEscolher={(d) => {
