@@ -85,6 +85,7 @@ import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authen
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
+import { Route as AuthenticatedPetAgendaRouteImport } from './routes/_authenticated/pet-agenda'
 import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
 import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
 import { Route as AuthenticatedPetsRouteImport } from './routes/_authenticated/pets'
@@ -546,6 +547,11 @@ const AuthenticatedPersonalizacaoRoute =
     path: '/personalizacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPetAgendaRoute = AuthenticatedPetAgendaRouteImport.update({
+  id: '/pet-agenda',
+  path: '/pet-agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPetProfissionaisRoute =
   AuthenticatedPetProfissionaisRouteImport.update({
     id: '/pet-profissionais',
@@ -863,6 +869,7 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -983,6 +990,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -1105,6 +1113,7 @@ export interface FileRoutesById {
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
+  '/_authenticated/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/_authenticated/pets': typeof AuthenticatedPetsRoute
@@ -1227,6 +1236,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
+    | '/pet-agenda'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1347,6 +1357,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
+    | '/pet-agenda'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1468,6 +1479,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
+    | '/_authenticated/pet-agenda'
     | '/_authenticated/pet-profissionais'
     | '/_authenticated/pet-servicos'
     | '/_authenticated/pets'
@@ -2057,6 +2069,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPersonalizacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-agenda': {
+      id: '/_authenticated/pet-agenda'
+      path: '/pet-agenda'
+      fullPath: '/pet-agenda'
+      preLoaderRoute: typeof AuthenticatedPetAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pet-profissionais': {
       id: '/_authenticated/pet-profissionais'
       path: '/pet-profissionais'
@@ -2432,6 +2451,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
+  AuthenticatedPetAgendaRoute: typeof AuthenticatedPetAgendaRoute
   AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
   AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
   AuthenticatedPetsRoute: typeof AuthenticatedPetsRoute
@@ -2547,6 +2567,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
+  AuthenticatedPetAgendaRoute: AuthenticatedPetAgendaRoute,
   AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
   AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,
   AuthenticatedPetsRoute: AuthenticatedPetsRoute,

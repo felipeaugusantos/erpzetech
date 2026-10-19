@@ -169,6 +169,6 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 ## Rodada 8 — Pet shop e veterinária (`docs/pet-shop-fase-1.md`)
 - [x] Base: módulo liberado por CNAE (`7500`, `4789004`, `9609208`, a confirmar com a contabilidade) ou pelo ramo "Pet shop e veterinária"; produto marcado como serviço (`produtos.controla_estoque = false`) não tem saldo nem movimento (venda, cancelamento, reserva e importação ignoram), fora de reposição e giro
 - [x] Pets e tutores (`/pets`), serviços e preço por porte/raça/pelagem (`/pet-servicos`, com simulação "quanto custa para este pet") e profissionais com comissão (`/pet-profissionais`); grupo de menu "Pet shop" (`pet_salvar`, `pet_servico_salvar`, `pet_preco_salvar`, `pet_preco_calcular`, `pet_profissional_salvar`)
-- [ ] Agenda de banho e tosa (sem sobreposição de horário)
+- [x] Agenda de banho e tosa (`/pet-agenda`): agendamento só pela recepção, profissional sem dois atendimentos ao mesmo tempo, preço e duração congelados, situações agendado → confirmado → em atendimento → pronto, cancelar/faltar com motivo, remarcar (`pet_agendar`, `pet_agenda_situacao`, `pet_reagendar`). "Retirado" sai da cobrança (próximo PR)
 - [ ] Cobrança pela frente de caixa com NFS-e em rascunho, comissão e relatório
 - [ ] Clínica veterinária (escopo próprio)
