@@ -14,3 +14,24 @@ test("CNAE 4322 (ar-condicionado) libera assistência técnica", () => {
 test("CNAE 4321 não libera locação", () => {
   assert.equal(moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae: "4321-5/00" }), "locacao"), false);
 });
+
+test("pet shop e veterinária: só os códigos próprios liberam o módulo", () => {
+  const libera = (cnae: string) => moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae }), "petshop");
+  assert.equal(libera("7500-1/00"), true); // atividades veterinárias
+  assert.equal(libera("4789-0/04"), true); // animais vivos e artigos de estimação
+  assert.equal(libera("9609-2/08"), true); // higiene e embelezamento de animais
+});
+
+test("CNAE vizinho do pet shop não libera o módulo", () => {
+  const libera = (cnae: string) => moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae }), "petshop");
+  assert.equal(libera("4789-0/01"), false); // suvenires e artesanato
+  assert.equal(libera("9609-2/99"), false); // outros serviços pessoais
+  assert.equal(libera("4711-3/01"), false); // supermercado
+  assert.equal(
+    moduloLiberadoPorCnae(
+      cnaesDaEmpresa({ cnae: "4711-3/01", cnae_secundarios: "7500-1/00" }),
+      "petshop",
+    ),
+    true,
+  );
+});

@@ -165,3 +165,10 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Importação direta de arquivo `.xlsx` (hoje salvar como CSV no Excel)
 - [ ] Importar fornecedores, obras e preços por tabela; limite por plano de assinatura
 - [ ] Passos iniciais de implantação (checklist guiado depois do cadastro da empresa)
+
+## Rodada 8 — Pet shop e veterinária (`docs/pet-shop-fase-1.md`)
+- [x] Base: módulo liberado por CNAE (`7500`, `4789004`, `9609208`, a confirmar com a contabilidade) ou pelo ramo "Pet shop e veterinária"; produto marcado como serviço (`produtos.controla_estoque = false`) não tem saldo nem movimento (venda, cancelamento, reserva e importação ignoram), fora de reposição e giro
+- [ ] Pets e tutores, serviços e preço por porte/raça/pelagem, profissionais
+- [ ] Agenda de banho e tosa (sem sobreposição de horário)
+- [ ] Cobrança pela frente de caixa com NFS-e em rascunho, comissão e relatório
+- [ ] Clínica veterinária (escopo próprio)

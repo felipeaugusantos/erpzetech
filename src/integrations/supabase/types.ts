@@ -5840,6 +5840,7 @@ export type Database = {
           codigo_interno: string
           comprimento: number | null
           controla_lote: boolean
+          controla_estoque: boolean
           created_at: string
           cst_csosn: string | null
           custo: number
@@ -5877,6 +5878,7 @@ export type Database = {
           codigo_interno: string
           comprimento?: number | null
           controla_lote?: boolean
+          controla_estoque?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -5914,6 +5916,7 @@ export type Database = {
           codigo_interno?: string
           comprimento?: number | null
           controla_lote?: boolean
+          controla_estoque?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number

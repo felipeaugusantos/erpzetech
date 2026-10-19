@@ -20,5 +20,7 @@ export function useModulosCnae() {
     // o ramo escolhido no cadastro da empresa também libera o salão, sem depender do CNAE
     restaurante:
       empresa?.ramo_atividade === "restaurante" || moduloLiberadoPorCnae(cnaes, "restaurante"),
+    // idem para o pet shop: ramo escolhido no cadastro ou CNAE de veterinária/pet shop
+    petshop: empresa?.ramo_atividade === "petshop" || moduloLiberadoPorCnae(cnaes, "petshop"),
   };
 }

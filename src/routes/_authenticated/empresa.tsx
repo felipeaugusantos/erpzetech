@@ -384,7 +384,7 @@ function Empresa() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {(["assistencia", "locacao"] as const).map((m) => {
+              {(["assistencia", "locacao", "petshop"] as const).map((m) => {
                 const liberado = moduloLiberadoPorCnae(
                   cnaesDaEmpresa({ cnae: form.cnae, cnae_secundarios: form.cnae_secundarios }),
                   m,
