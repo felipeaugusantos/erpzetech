@@ -46,7 +46,7 @@ O cliente enviou um laudo de laboratório só como **ideia dos campos** que o si
 
 - **Cabeçalho do exame:** paciente, idade, sexo, raça, responsável, data da coleta, veterinário solicitante (nome e CRMV) e **material** (sangue total em EDTA, soro, urina e outros, em lista editável).
 - **Hemograma em três grupos:** eritrograma (hemácias, hemoglobina, hematócrito, **VCM, HCM, CHCM e RDW**), leucograma e plaquetograma. O VCM, o HCM, o CHCM e o RDW não existem nas telas do sistema atual e entram no modelo.
-- **Leucograma:** para cada célula, valor **relativo (%)**, valor **absoluto** e faixa dos dois. O absoluto é calculado a partir dos leucócitos totais e do percentual, e o diferencial precisa somar 100% (como previsto no PR 3).
+- **Leucograma:** para cada célula, valor **relativo (%)**, valor **absoluto** e faixa dos dois. O absoluto é calculado a partir dos leucócitos totais e do percentual, e o diferencial precisa somar 100% (como previsto no PR 3). No modelo, cada célula do diferencial tem **dois campos ligados**: o percentual (digitado) e o absoluto (**calculado**, forma de valor "calculado" a partir dos leucócitos totais). Os dois têm faixa própria em `pet_exame_referencias`, e o fechamento do exame guarda o nome, a unidade e a faixa dos dois.
 - **Observação por grupo ou campo:** o plaquetograma, por exemplo, precisa de um texto livre para registrar achados que afetam a leitura (como agregados plaquetários).
 - **Bioquímica um exame por vez:** cada campo com valor, unidade, faixa e **nota técnica** opcional (texto livre). Unidades usuais: U/L (enzimas), mg/dL (creatinina, ureia), g/dL (albumina, proteínas).
 
