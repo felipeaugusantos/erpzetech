@@ -3133,4 +3133,14 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$DELETE FROM pet_contatos$c$, 'apagar contato direto');
   SELECT count(*) INTO n FROM pet_contatos WHERE tenant_id = tb;
   PERFORM ci.exige(n = 0, 'a outra empresa não recebeu contatos');
+
+  -- a lista de retorno tem teto de 300 (mais antigos primeiro), mesmo com mais pets elegíveis
+  INSERT INTO pets (tenant_id, cliente_id, nome) SELECT demo, tutor, 'Massa ' || g FROM generate_series(1, 305) g;
+  INSERT INTO pet_agendamentos (tenant_id, pet_id, cliente_id, profissional_id, inicio, fim, situacao)
+  SELECT demo, p.id, tutor, prof, now() - interval '100 days', now() - interval '100 days' + interval '30 minutes', 'retirado'
+    FROM pets p WHERE p.tenant_id = demo AND p.nome LIKE 'Massa %';
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 300, 'a lista de retorno é limitada a 300 pets');
 END $$;

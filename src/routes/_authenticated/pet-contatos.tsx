@@ -87,6 +87,8 @@ function Contatos() {
   const [dias, setDias] = useState("30");
   const [janela, setJanela] = useState("7");
   const [modelo, setModelo] = useState(() => lerModelo("retorno"));
+  /** Canal gravado pelo botão "Já falei" (o botão do WhatsApp sempre grava "whatsapp"). */
+  const [canalJaFalei, setCanalJaFalei] = useState<"telefone" | "outro">("telefone");
 
   function trocarTipo(t: TipoContato) {
     setTipo(t);
@@ -198,6 +200,21 @@ function Contatos() {
           </div>
         )}
       </div>
+      <div className="mb-4 w-64">
+        <Label htmlFor="ct-canal">Quando clicar em &quot;Já falei&quot;, foi por</Label>
+        <Select
+          value={canalJaFalei}
+          onValueChange={(v) => setCanalJaFalei(v as typeof canalJaFalei)}
+        >
+          <SelectTrigger id="ct-canal">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="telefone">Telefone</SelectItem>
+            <SelectItem value="outro">Pessoalmente / outro</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       {!valido && (
         <p className="mb-3 text-sm text-destructive">
           {tipo === "retorno" ? "Informe de 7 a 365 dias." : "Informe de 0 a 60 dias."}
@@ -267,7 +284,7 @@ function Contatos() {
                       size="sm"
                       variant="outline"
                       disabled={registrar.isPending}
-                      onClick={() => registrar.mutate({ l, canal: "telefone" })}
+                      onClick={() => registrar.mutate({ l, canal: canalJaFalei })}
                     >
                       <Phone className="size-4" /> Já falei
                     </Button>

@@ -63,23 +63,28 @@ BEGIN
   END IF;
 
   IF p_dias IS NULL OR p_dias < 7 OR p_dias > 365 THEN RAISE EXCEPTION 'O prazo precisa ficar entre 7 e 365 dias'; END IF;
+  -- o teto de 300 vale para a lista (os mais antigos primeiro), então é aplicado antes de agregar
   RETURN coalesce((
     SELECT jsonb_agg(jsonb_build_object(
-             'pet_id', t.id, 'pet', t.nome, 'tutor', t.tutor, 'telefone', t.telefone,
-             'referencia', t.ultimo, 'dias', v_hoje - t.ultimo) ORDER BY t.ultimo, t.nome)
+             'pet_id', x.id, 'pet', x.nome, 'tutor', x.tutor, 'telefone', x.telefone,
+             'referencia', x.ultimo, 'dias', v_hoje - x.ultimo) ORDER BY x.ultimo, x.nome)
       FROM (
-        SELECT p.id, p.nome, c.nome AS tutor, c.telefone,
-               (SELECT max((a.inicio AT TIME ZONE 'America/Sao_Paulo')::date) FROM public.pet_agendamentos a
-                 WHERE a.pet_id = p.id AND a.situacao = 'retirado') AS ultimo
-          FROM public.pets p JOIN public.clientes c ON c.id = p.cliente_id
-         WHERE p.tenant_id = v_tenant AND p.ativo
-           -- já tem atendimento marcado ou em andamento: não precisa de lembrete
-           AND NOT EXISTS (SELECT 1 FROM public.pet_agendamentos f WHERE f.pet_id = p.id
-                            AND f.situacao IN ('agendado', 'confirmado', 'em_atendimento', 'pronto') AND f.inicio >= now() - interval '1 day')
-      ) t
-     WHERE t.ultimo IS NOT NULL AND t.ultimo <= v_hoje - p_dias
-       AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = t.id AND k.tipo = 'retorno' AND k.referencia = t.ultimo)
-     LIMIT 300
+        SELECT t.*
+          FROM (
+            SELECT p.id, p.nome, c.nome AS tutor, c.telefone,
+                   (SELECT max((a.inicio AT TIME ZONE 'America/Sao_Paulo')::date) FROM public.pet_agendamentos a
+                     WHERE a.pet_id = p.id AND a.situacao = 'retirado') AS ultimo
+              FROM public.pets p JOIN public.clientes c ON c.id = p.cliente_id
+             WHERE p.tenant_id = v_tenant AND p.ativo
+               -- já tem atendimento marcado ou em andamento: não precisa de lembrete
+               AND NOT EXISTS (SELECT 1 FROM public.pet_agendamentos f WHERE f.pet_id = p.id
+                                AND f.situacao IN ('agendado', 'confirmado', 'em_atendimento', 'pronto') AND f.inicio >= now() - interval '1 day')
+          ) t
+         WHERE t.ultimo IS NOT NULL AND t.ultimo <= v_hoje - p_dias
+           AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = t.id AND k.tipo = 'retorno' AND k.referencia = t.ultimo)
+         ORDER BY t.ultimo, t.nome
+         LIMIT 300
+      ) x
   ), '[]'::jsonb);
 END $$;
 REVOKE ALL ON FUNCTION public.pet_contatos_pendentes(text, integer, integer) FROM PUBLIC, anon;
