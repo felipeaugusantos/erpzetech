@@ -3967,3 +3967,119 @@ BEGIN
   PERFORM ci.deve_falhar(gest, 'SELECT clinica_vacinas_catalogo()', 'catálogo sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 46. Clínica (reforços): lista de vacinas e vermífugos a tomar, com WhatsApp e "já falei", sem prontuário
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  vh   constant uuid := 'a0000000-0000-0000-0000-0000000000f4';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '14 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pa uuid; pb uuid; pc uuid; pd uuid; pe uuid; pf uuid; prod uuid; vacserv uuid; pvet uuid;
+  c_v10 uuid; c_verm uuid; c_off uuid; r jsonb; ext_e uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Ana Souza Reforco CI', '52998224725', '(16) 99999-1234') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (vh, 'vetref@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = vh;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vh, demo, 'veterinario');
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'REF-PROD-CI', 'Produto reforço CI', 'UN', 0, true) RETURNING id INTO prod;
+
+  PERFORM ci.entrar(gest);
+  vacserv := pet_servico_salvar('{"nome":"Vacinação Reforço CI","categoria":"vacina","duracao_min":15}'::jsonb);
+  PERFORM pet_preco_salvar(vacserv, NULL, NULL, NULL, 100);
+  pvet := pet_profissional_salvar('{"nome":"Vet Reforço CI","funcao":"veterinario","crmv":"4444","crmv_uf":"RS"}'::jsonb);
+  PERFORM pet_profissional_vincular(pvet, vh);
+  c_v10 := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'V10 Reforço CI', 'especie', 'cao', 'doses_serie', 3, 'intervalo_serie_dias', 21, 'reforco_dias', 365, 'produto_id', prod));
+  c_verm := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'Vermífugo Reforço CI', 'tipo', 'vermifugo', 'reforco_dias', 90, 'produto_id', prod));
+  c_off := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'Item inativo CI', 'reforco_dias', 30, 'produto_id', prod, 'ativo', false));
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(vend);
+  pa := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Atrasado Ref CI', 'especie', 'cao'));
+  pb := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Quase Ref CI', 'especie', 'cao'));
+  pc := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Muito Atrasado Ref CI', 'especie', 'cao'));
+  pd := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Sem Proxima Ref CI', 'especie', 'cao'));
+  pe := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Cancelada Ref CI', 'especie', 'cao'));
+  pf := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Agendado Ref CI', 'especie', 'cao'));
+  PERFORM pet_agendar(jsonb_build_object('pet_id', pf, 'profissional_id', pvet, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', vacserv))));
+  PERFORM ci.sair();
+
+  -- aplicações (registradas como feitas fora, para não depender de lote): datas escolhidas para cair em hoje - 9 etc.
+  PERFORM ci.entrar(vh);
+  PERFORM clinica_vacina_registrar_externa(pa, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira'));      -- série 1ª: próxima hoje-9
+  PERFORM clinica_vacina_registrar_externa(pa, jsonb_build_object('catalogo_id', c_verm, 'aplicada_em', hoje - 99, 'informado_por', 'Carteira'));    -- reforço 90: próxima hoje-9
+  PERFORM clinica_vacina_registrar_externa(pb, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 5, 'informado_por', 'Carteira'));      -- próxima hoje+16
+  PERFORM clinica_vacina_registrar_externa(pc, jsonb_build_object('catalogo_id', c_verm, 'aplicada_em', hoje - 300, 'informado_por', 'Carteira'));   -- próxima hoje-210
+  PERFORM clinica_vacina_registrar_externa(pd, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira', 'proxima_dose_em', ''));
+  ext_e := (clinica_vacina_registrar_externa(pe, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira')) ->> 'id')::uuid;
+  PERFORM clinica_vacina_cancelar(ext_e, 'registrado no pet errado');
+  PERFORM clinica_vacina_registrar_externa(pf, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira'));
+  PERFORM ci.sair();
+
+  -- quem vê a lista
+  PERFORM ci.deve_falhar(gar, 'SELECT clinica_reforcos_pendentes()', 'garçom vê os reforços');
+  PERFORM ci.deve_falhar(pban, 'SELECT clinica_reforcos_pendentes()', 'profissional de banho vê os reforços');
+  PERFORM ci.deve_falhar(vh, 'SELECT clinica_reforcos_pendentes()', 'veterinário (perfil restrito) usa a lista da recepção');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_reforcos_pendentes(61, 10)', 'janela maior que 60 dias');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_reforcos_pendentes(10, 731)', 'atraso maior que 730 dias');
+
+  PERFORM ci.entrar(vend);
+  r := clinica_reforcos_pendentes();
+  PERFORM ci.sair();
+  r := (SELECT coalesce(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r) e WHERE (e ->> 'pet_id')::uuid IN (pa, pb, pc, pd, pe, pf));
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'pet_id' = pa::text AND (r -> 0 ->> 'referencia')::date = hoje - 9 AND (r -> 0 ->> 'dias')::int = -9,
+                   'padrão (15 dias à frente, 180 de atraso): só o pet com os dois itens vencidos, numa linha só');
+  PERFORM ci.exige(jsonb_array_length(r -> 0 -> 'itens') = 2 AND r -> 0 ->> 'telefone' = '(16) 99999-1234', 'a linha traz os 2 itens e o telefone do tutor');
+  PERFORM ci.exige(r::text NOT LIKE '%queixa%' AND r::text NOT LIKE '%diagnostico%' AND r::text NOT LIKE '%lote%', 'a lista não traz prontuário nem lote');
+  PERFORM ci.entrar(vend);
+  r := clinica_reforcos_pendentes(20, 180);
+  PERFORM ci.sair();
+  r := (SELECT coalesce(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r) e WHERE (e ->> 'pet_id')::uuid IN (pa, pb, pc, pd, pe, pf));
+  PERFORM ci.exige(jsonb_array_length(r) = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet_id' = pb::text), 'com janela de 20 dias entra o pet cuja dose é daqui a 16');
+  PERFORM ci.entrar(gest);
+  r := clinica_reforcos_pendentes(15, 365);
+  PERFORM ci.sair();
+  r := (SELECT coalesce(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r) e WHERE (e ->> 'pet_id')::uuid IN (pa, pb, pc, pd, pe, pf));
+  PERFORM ci.exige(jsonb_array_length(r) = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet_id' = pc::text), 'com 365 dias de atraso entra o pet muito atrasado');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet_id' IN (pd::text, pe::text, pf::text)),
+                   'ficam de fora: sem próxima dose, aplicação cancelada e pet com vacina já agendada');
+
+  -- item inativo no catálogo não gera lembrete
+  PERFORM ci.entrar(vh);
+  PERFORM clinica_vacina_registrar_externa(pd, jsonb_build_object('catalogo_id', c_v10, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira', 'proxima_dose_em', (hoje + 3)::text));
+  PERFORM ci.sair();
+  UPDATE pet_vacinas_catalogo SET ativo = false WHERE id = c_v10;
+  PERFORM ci.entrar(vend);
+  r := clinica_reforcos_pendentes(15, 180);
+  PERFORM ci.sair();
+  r := (SELECT coalesce(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r) e WHERE (e ->> 'pet_id')::uuid IN (pa, pb, pc, pd, pe, pf));
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 -> 'itens' -> 0 ->> 'nome' = 'Vermífugo Reforço CI', 'item inativo no catálogo sai da lista');
+  UPDATE pet_vacinas_catalogo SET ativo = true WHERE id = c_v10;
+
+  -- chamar / já falei: some da lista naquela data; idempotente; só a recepção e a gestão
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_contato_registrar(%L, 'reforco', %L, 'whatsapp')$c$, pa, hoje - 9), 'garçom registra contato de reforço');
+  PERFORM ci.deve_falhar(vh, format($c$SELECT pet_contato_registrar(%L, 'reforco', %L, 'whatsapp')$c$, pa, hoje - 9), 'veterinário registra contato de reforço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_contato_registrar(%L, 'outro_tipo', %L, 'whatsapp')$c$, pa, hoje - 9), 'tipo de contato inválido');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_contato_registrar(pa, 'reforco', hoje - 9, 'whatsapp');
+  PERFORM pet_contato_registrar(pa, 'reforco', hoje - 9, 'telefone');
+  r := clinica_reforcos_pendentes(15, 180);
+  PERFORM ci.sair();
+  r := (SELECT coalesce(jsonb_agg(e), '[]'::jsonb) FROM jsonb_array_elements(r) e WHERE (e ->> 'pet_id')::uuid IN (pa, pb, pc, pd, pe, pf));
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet_id' = pa::text), 'quem já foi chamado sai da lista naquela data');
+  PERFORM ci.exige((SELECT count(*) FROM pet_contatos WHERE pet_id = pa AND tipo = 'reforco') = 1, 'registrar duas vezes não duplica');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_reforcos_pendentes()', 'reforços sem a clínica liberada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_contato_registrar(%L, 'reforco', %L, 'whatsapp')$c$, pb, hoje + 16), 'contato de reforço sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

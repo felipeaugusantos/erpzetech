@@ -66,7 +66,9 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 - **Cartão de vacinação**: impressão (A5/A4) com pet, tutor, vacinas e vermífugos aplicados (data, produto, lote, validade, veterinário/CRMV) e próximas doses. É documento do pet, sem texto clínico do prontuário.
 - Regras de segurança do dado: lote vencido, sem saldo ou de outro depósito é recusado; vacina com idade mínima não atendida avisa (não bloqueia: decisão do veterinário).
 
-## PR 4 — Reforços
+## PR 4 — Reforços (entregue)
+
+> Como foi feito: `clinica_reforcos_pendentes(janela, atraso)` lê a aplicação mais recente de cada item do pet e lista as com próxima dose entre `hoje − atraso` e `hoje + janela` (padrão 15 e 180 dias; teto 60 e 730), agrupadas por pet e data. Fora da lista: aplicação cancelada, "sem próxima dose", item inativo no catálogo, pet inativo e pet que já tem vacina agendada. O contato reaproveita `pet_contatos` com o tipo `reforco` (uma vez por pet e data) e exige a clínica liberada. Quem usa é a recepção e a gestão (o veterinário é perfil restrito e não chama o tutor). A lista e a mensagem levam só o nome do item e a data.
 
 - Tela **Reforços** (grupo Clínica) para a recepção: vacinas e vermífugos com próxima dose nos próximos N dias (padrão 15) e **atrasados**, por pet e tutor, com telefone e **"Chamar no WhatsApp"** (mensagem editável: pet, vacina e data) e **"Já falei"**. Mesma mecânica de `pet_contatos` (uma vez por dose).
 - A lista traz só **nome da vacina e data**; nada do prontuário.

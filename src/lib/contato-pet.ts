@@ -22,10 +22,27 @@ export const MENSAGEM_PADRAO: Record<TipoContato, string> = {
     "Oi, {tutor}! Aqui é da {loja}. Faz {dias} dias do último banho do {pet}. Quer agendar um horário?",
 };
 
-/** Troca {tutor}, {pet}, {loja}, {data} e {dias} pelos valores; o que não tiver valor fica de fora com o texto intacto. */
+/** Mensagem do lembrete de vacina e vermífugo da clínica ({itens}: "V10 e Vermífugo"). */
+export const MENSAGEM_REFORCO =
+  "Oi, {tutor}! Aqui é da {loja}. O {pet} está com {itens} para tomar em {data}. Quer agendar um horário?";
+
+/** Lista de nomes em português: "A", "A e B", "A, B e C". */
+export function listaEmTexto(itens: readonly string[]): string {
+  if (itens.length <= 1) return itens[0] ?? "";
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
+}
+
+/** Troca {tutor}, {pet}, {loja}, {data}, {dias} e {itens} pelos valores; o que não tiver valor fica de fora com o texto intacto. */
 export function montarMensagem(
   modelo: string,
-  v: { tutor?: string; pet?: string; loja?: string; data?: string; dias?: number | string },
+  v: {
+    tutor?: string;
+    pet?: string;
+    loja?: string;
+    data?: string;
+    dias?: number | string;
+    itens?: string;
+  },
 ) {
   const mapa: Record<string, string | undefined> = {
     tutor: v.tutor ? primeiroNome(v.tutor) : undefined,
@@ -33,8 +50,9 @@ export function montarMensagem(
     loja: v.loja,
     data: v.data,
     dias: v.dias !== undefined ? String(v.dias) : undefined,
+    itens: v.itens,
   };
-  return modelo.replace(/\{(tutor|pet|loja|data|dias)\}/g, (m, k: string) => mapa[k] ?? m);
+  return modelo.replace(/\{(tutor|pet|loja|data|dias|itens)\}/g, (m, k: string) => mapa[k] ?? m);
 }
 
 export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
