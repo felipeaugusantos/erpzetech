@@ -4,7 +4,7 @@ import { Lock, LockOpen, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
-import { PageHeader } from "@/components/app/PageHeader";
+import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  decidirAcesso,
+  lerAcessoLocal,
+  limparAcessoLocal,
+  salvarAcessoLocal,
+} from "@/lib/acesso-clinica";
 import { useModulosCnae } from "@/lib/cnae";
 import { erroDaSenha, SENHA_MINIMA, type Cofre } from "@/lib/cofre";
 import {
@@ -70,9 +77,48 @@ export const Route = createFileRoute("/_authenticated/clinica-offline")({
 });
 
 function OfflineModulo() {
+  const { data: sessao, isLoading } = useSessionData();
   const modulos = useModulosCnae();
-  if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
-  if (!modulos.clinica) return <ModuloBloqueado modulo="clinica" />;
+  // sem sinal e com o cache de 24 horas vencido, a sessão guardada neste notebook diz quem é a pessoa
+  const [idLocal, setIdLocal] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => setIdLocal(data.session?.user.id ?? null));
+  }, []);
+  const userId = sessao?.user?.id ?? idLocal ?? null;
+  const veterinario = (sessao?.roles ?? []).includes("veterinario");
+  const sessaoConfirmada = !!sessao?.user;
+
+  // com a sessão conhecida, guarda (ou apaga) os dois sins e nãos que valem por 7 dias, como a cópia da visita
+  useEffect(() => {
+    if (!sessaoConfirmada || !userId) return;
+    if (modulos.clinica && veterinario)
+      salvarAcessoLocal(userId, { clinica: true, veterinario: true });
+    else limparAcessoLocal();
+  }, [sessaoConfirmada, userId, modulos.clinica, veterinario]);
+
+  const decisao = decidirAcesso({
+    carregando: isLoading || idLocal === undefined,
+    sessaoConfirmada,
+    clinica: modulos.clinica,
+    veterinario,
+    local: userId ? lerAcessoLocal(userId) : null,
+  });
+  if (decisao === "carregando") return <div className="panel h-40 animate-pulse" />;
+  if (decisao === "sem_clinica") return <ModuloBloqueado modulo="clinica" />;
+  if (decisao === "sem_perfil")
+    return (
+      <EmptyState
+        title="Só o veterinário usa o trabalho sem internet"
+        description="Entre com uma conta de veterinário para abrir o cofre deste notebook."
+      />
+    );
+  if (decisao === "sem_confirmacao")
+    return (
+      <EmptyState
+        title="Entre com internet uma vez"
+        description="Para usar o trabalho sem internet, entre no sistema com internet ao menos uma vez neste notebook, com a conta do veterinário."
+      />
+    );
   return <Offline />;
 }
 
@@ -169,6 +215,7 @@ function DestravarCofre() {
   const [senha, setSenha] = useState("");
   const [trabalhando, setTrabalhando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [esqueci, setEsqueci] = useState(false);
 
   async function destravar() {
     setTrabalhando(true);
@@ -208,11 +255,46 @@ function DestravarCofre() {
         />
       </div>
       {erro && <p className="text-sm text-destructive">{erro}</p>}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" disabled={trabalhando || !senha}>
           <LockOpen className="size-4" /> {trabalhando ? "Abrindo…" : "Destravar"}
         </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEsqueci(true)}>
+          Esqueci a senha
+        </Button>
       </div>
+      <Dialog open={esqueci} onOpenChange={(o) => !o && setEsqueci(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Esqueci a senha do cofre</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2 text-sm">
+            <p>
+              A senha não se recupera. Para voltar a usar o trabalho sem internet é preciso{" "}
+              <strong>apagar o cofre</strong> deste notebook e criar um novo.
+            </p>
+            <p className="font-medium text-destructive">
+              Tudo o que estiver guardado nele (cópia da visita e gravações ainda não enviadas) será
+              perdido, sem volta.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEsqueci(false)}>
+              Voltar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                setEsqueci(false);
+                void apagarCofre().then(() => toast.success("Cofre apagado: crie um novo"));
+              }}
+            >
+              Apagar o cofre
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

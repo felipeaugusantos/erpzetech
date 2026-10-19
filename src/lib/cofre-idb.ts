@@ -50,6 +50,25 @@ export function armazemIndexedDb(): Armazem {
       tx.objectStore(loja).put(valor, chave);
       await concluir(tx);
     },
+    async criarSeNaoExiste(loja, chave, valor) {
+      const db = await abrirBanco();
+      const tx = db.transaction(loja, "readwrite");
+      const criada = new Promise<boolean>((resolve, reject) => {
+        const req = tx.objectStore(loja).add(valor, chave);
+        req.onsuccess = () => resolve(true);
+        req.onerror = (ev) => {
+          if (req.error?.name === "ConstraintError") {
+            // a chave já existe: não é erro do navegador, só quem chegou depois
+            ev.preventDefault();
+            ev.stopPropagation();
+            resolve(false);
+          } else reject(req.error ?? new Error("Falha no armazenamento do navegador"));
+        };
+      });
+      const resultado = await criada;
+      await concluir(tx);
+      return resultado;
+    },
     async apagar(loja, chave) {
       const db = await abrirBanco();
       const tx = db.transaction(loja, "readwrite");

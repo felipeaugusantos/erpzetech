@@ -13,6 +13,8 @@ type LojaBruta = LojaCofre | "meta";
 export interface Armazem {
   ler(loja: LojaBruta, chave: string): Promise<unknown>;
   gravar(loja: LojaBruta, chave: string, valor: unknown): Promise<void>;
+  /** Grava só se a chave ainda não existe (atômico); devolve falso se já existia. */
+  criarSeNaoExiste(loja: LojaBruta, chave: string, valor: unknown): Promise<boolean>;
   apagar(loja: LojaBruta, chave: string): Promise<void>;
   listar(loja: LojaBruta): Promise<[string, unknown][]>;
   limpar(): Promise<void>;
@@ -94,6 +96,14 @@ const ehCifrado = (x: unknown): x is Cifrado =>
   typeof (x as Cifrado).iv === "string" &&
   typeof (x as Cifrado).c === "string";
 
+/** Outra aba criou o cofre primeiro: a senha que vale é a dela. */
+export class CofreJaExisteError extends Error {
+  constructor() {
+    super("O cofre já foi criado em outra aba deste notebook: digite a senha dele para destravar");
+    this.name = "CofreJaExisteError";
+  }
+}
+
 export class Cofre {
   private chave: CryptoKey | null = null;
   private readonly armazem: Armazem;
@@ -125,7 +135,9 @@ export class Cofre {
       iteracoes: this.iteracoes,
       verificador: await cifrar(chave, "meta:verificador", VERIFICADOR),
     };
-    await this.armazem.gravar("meta", "cofre", meta);
+    // atômico: se outra aba criou entre a conferência e agora, esta perde e não fica "aberta" com uma chave que não vale
+    if (!(await this.armazem.criarSeNaoExiste("meta", "cofre", meta)))
+      throw new CofreJaExisteError();
     this.chave = chave;
   }
 
@@ -209,6 +221,11 @@ export function armazemEmMemoria(): Armazem & { bruto: Map<string, unknown> } {
     },
     async gravar(loja, chave, valor) {
       bruto.set(k(loja, chave), structuredClone(valor));
+    },
+    async criarSeNaoExiste(loja, chave, valor) {
+      if (bruto.has(k(loja, chave))) return false;
+      bruto.set(k(loja, chave), structuredClone(valor));
+      return true;
     },
     async apagar(loja, chave) {
       bruto.delete(k(loja, chave));

@@ -2,7 +2,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { Cofre } from "@/lib/cofre";
+import { Cofre, CofreJaExisteError } from "@/lib/cofre";
 import { armazemIndexedDb } from "@/lib/cofre-idb";
 
 export type EstadoCofre = "carregando" | "sem_cofre" | "travado" | "aberto";
@@ -53,7 +53,13 @@ async function iniciar() {
 }
 
 export async function criarCofre(senha: string) {
-  await obterCofre().criar(senha);
+  try {
+    await obterCofre().criar(senha);
+  } catch (e) {
+    // outra aba criou antes: esta passa a pedir a senha do cofre que já existe
+    if (e instanceof CofreJaExisteError) mudar("travado");
+    throw e;
+  }
   agendarTrava();
   mudar("aberto");
 }

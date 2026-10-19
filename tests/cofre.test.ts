@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { Cofre, armazemEmMemoria, erroDaSenha } from "../src/lib/cofre.ts";
+import { Cofre, CofreJaExisteError, armazemEmMemoria, erroDaSenha } from "../src/lib/cofre.ts";
 
 const RAPIDO = 1000; // iterações baixas só para os testes
 
@@ -113,5 +113,26 @@ describe("Cofre", () => {
     assert.equal(cofre.aberto, false);
     assert.equal(arm.bruto.size, 0);
     assert.equal(await cofre.existe(), false);
+  });
+
+  it("duas abas criando ao mesmo tempo: só uma vence e a outra não fica aberta com chave que não vale", async () => {
+    const arm = armazemEmMemoria();
+    const a = new Cofre(arm, RAPIDO);
+    const b = new Cofre(arm, RAPIDO);
+    const [ra, rb] = await Promise.allSettled([
+      a.criar("senha-da-aba-a"),
+      b.criar("senha-da-aba-b"),
+    ]);
+    const vencedora = ra.status === "fulfilled" ? a : b;
+    const perdedora = ra.status === "fulfilled" ? b : a;
+    const senhaVencedora = ra.status === "fulfilled" ? "senha-da-aba-a" : "senha-da-aba-b";
+    assert.equal([ra, rb].filter((r) => r.status === "fulfilled").length, 1);
+    const falha = [ra, rb].find((r) => r.status === "rejected") as PromiseRejectedResult;
+    assert.ok(falha.reason instanceof CofreJaExisteError);
+    assert.equal(perdedora.aberto, false);
+    await vencedora.gravar("fila", "x", { ok: true });
+    // a aba que perdeu destrava com a senha de quem venceu e lê o que a vencedora gravou
+    assert.equal(await perdedora.destravar(senhaVencedora), true);
+    assert.deepEqual(await perdedora.ler("fila", "x"), { ok: true });
   });
 });
