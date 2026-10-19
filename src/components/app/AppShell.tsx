@@ -201,6 +201,7 @@ const groups: Group[] = [
     icon: Stethoscope,
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+      { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
@@ -409,7 +410,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               return modulos.locacao;
             if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
             // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
-            if (i.to === "/clinica-prontuario") return souVeterinario;
+            if (i.to === "/clinica-prontuario" || i.to === "/clinica-exames") return souVeterinario;
             if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
             if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
             // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
@@ -490,6 +491,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ...(souVeterinario && modulos.clinica
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+                  { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
                   { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
                 ]
@@ -526,6 +528,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-atendimento",
       "/clinica-catalogo",
       "/clinica-exames-modelos",
+      "/clinica-exames",
       "/clinica-vacinas",
       "/clinica-cartao",
     ];

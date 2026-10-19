@@ -531,7 +531,10 @@ DECLARE
     'clinica_vacina_registrar_externa', 'clinica_vacina_cancelar', 'clinica_cartao_vacinacao',
     -- modelos de exame: gestão e veterinário mantêm; cada função confere o perfil e a clínica liberada
     'clinica_exame_modelos', 'clinica_exame_modelo_salvar', 'clinica_exame_campo_salvar', 'clinica_exame_campo_mover',
-    'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais'];
+    'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais',
+    -- resultados de exame: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
+    'clinica_exame_abrir', 'clinica_exame_salvar', 'clinica_exame_fechar', 'clinica_exame_cancelar', 'clinica_exame_adendo_criar',
+    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4250,5 +4253,271 @@ BEGIN
   PERFORM ci.deve_falhar(vh, 'SELECT clinica_exame_modelos_iniciais()', 'modelos iniciais sem a clínica liberada');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Sem clínica', 'forma', 'texto'))$c$, m_prop), 'campo sem a clínica liberada');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_hb), 'faixa sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 48. Clínica (resultados de exame): só o veterinário; cópia dos campos na abertura; calculado; fechado imutável; adendo; cancelar; evolução
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000f6';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000f7';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '16 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; gato uuid; cons uuid; pva uuid; pvb uuid; ag1 uuid; ag2 uuid; at1 uuid; at2 uuid; tb uuid; tutor_b uuid; pet_b uuid;
+  m_hemo uuid; m_urina uuid; m_bioq uuid; c_hb uuid; c_leuco uuid; c_seg uuid; c_ht uuid; c_aspecto uuid;
+  r jsonb; ex1 uuid; ex2 uuid; ex3 uuid; ex4 uuid; ex5 uuid; ex6 uuid;
+  r_hb uuid; r_leuco uuid; r_seg uuid; r_eos uuid; r_lin uuid; r_hemac uuid; r_obs uuid; r_asp uuid; r_vol uuid;
+  n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Exame CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO tenants (nome) VALUES ('Clinica B Exame CI') RETURNING id INTO tb;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Outra Empresa Exame', '11144477735') RETURNING id INTO tutor_b;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor_b, 'Pet Outra Empresa Exame') RETURNING id INTO pet_b;
+  INSERT INTO auth.users (id, email) VALUES (va, 'vetexa@ci'), (vb, 'vetexb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
+
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Exame CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
+  pva := pet_profissional_salvar('{"nome":"Vet A Exame","funcao":"veterinario","crmv":"7771","crmv_uf":"SP"}'::jsonb);
+  pvb := pet_profissional_salvar('{"nome":"Vet B Exame","funcao":"veterinario","crmv":"7772","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pva, va);
+  PERFORM pet_profissional_vincular(pvb, vb);
+  PERFORM clinica_exame_modelos_iniciais();
+  PERFORM ci.sair();
+  SELECT id INTO m_hemo FROM pet_exame_modelos WHERE tenant_id = demo AND nome = 'Hemograma';
+  SELECT id INTO m_urina FROM pet_exame_modelos WHERE tenant_id = demo AND nome = 'Urina';
+  SELECT id INTO m_bioq FROM pet_exame_modelos WHERE tenant_id = demo AND nome = 'Bioquímica sanguínea';
+  SELECT id INTO c_hb FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Hemoglobina';
+  SELECT id INTO c_ht FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Hematócrito';
+  SELECT id INTO c_aspecto FROM pet_exame_campos WHERE modelo_id = m_urina AND nome = 'Aspecto';
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'cao', 12, 18);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'gato', 8, 15);
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Exame CI', 'especie', 'cao'));
+  gato := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Mimi Exame CI', 'especie', 'gato'));
+  ag1 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pva, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', pvb, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(va);
+  at1 := (clinica_atendimento_abrir(ag1) ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vb);
+  at2 := (clinica_atendimento_abrir(ag2) ->> 'id')::uuid;
+  PERFORM ci.sair();
+
+  -- ninguém além do veterinário lê ou escreve resultado de exame
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'administrador lê a lista de exames');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'gestor lê a lista de exames');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'recepção lê a lista de exames');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'garçom lê a lista de exames');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'profissional de banho lê a lista de exames');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet, m_hemo), 'gestor abre exame');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_evolucao(%L, 'Hemoglobina', 'g/dL')$c$, pet), 'gestor lê a evolução');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_exames', 'leitura direta do exame');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_exame_resultados', 'leitura direta do resultado pelo próprio veterinário');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_exame_adendos', 'leitura direta do adendo de exame');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO pet_exames (tenant_id, pet_id, modelo_id, veterinario_id, crmv, crmv_uf, nome, tipo, laboratorio, data_coleta) VALUES (%L, %L, %L, %L, '7771', 'SP', 'x', 'outro', 'L', current_date)$c$, demo, pet, m_hemo, pva), 'escrita direta do exame');
+
+  -- abrir: regras
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{}'::jsonb)$c$, pet, m_hemo), 'exame avulso sem laboratório');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, jsonb_build_object('laboratorio', 'Lab', 'data_coleta', %L))$c$, pet, m_hemo, hoje + 1), 'coleta no futuro');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, jsonb_build_object('laboratorio', 'Lab', 'data_coleta', 'ontem'))$c$, pet, m_hemo), 'data da coleta que não é data');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet_b, m_hemo), 'paciente de outra empresa');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet, gen_random_uuid()), 'modelo que não existe');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, jsonb_build_object('atendimento_id', %L))$c$, pet, m_hemo, at2), 'atendimento de outro veterinário');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, jsonb_build_object('atendimento_id', %L))$c$, gato, m_hemo, at1), 'atendimento de outro paciente');
+  UPDATE pet_exame_modelos SET ativo = false WHERE id = m_bioq;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet, m_bioq), 'modelo inativo');
+  UPDATE pet_exame_modelos SET ativo = true WHERE id = m_bioq;
+
+  PERFORM ci.entrar(va);
+  r := clinica_exame_abrir(pet, m_hemo, jsonb_build_object('atendimento_id', at1));
+  ex1 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'resultados') = 26 AND r ->> 'situacao' = 'aberto' AND r ->> 'atendimento_id' = at1::text, 'o exame nasce aberto, ligado ao atendimento e com os 26 campos do modelo');
+  PERFORM ci.exige(r -> 'veterinario' ->> 'crmv' = '7771' AND r ->> 'material' = 'Sangue total em EDTA' AND r ->> 'tutor' = 'Tutor Exame CI', 'traz o CRMV da abertura, o material do modelo e o tutor');
+  PERFORM ci.exige((SELECT (x ->> 'faixa_min')::numeric = 12 AND (x ->> 'faixa_max')::numeric = 18 FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'),
+                   'a faixa da espécie do paciente (cão) é copiada para o exame');
+  PERFORM ci.exige((SELECT count(*) FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'forma' = 'calculado' AND x ->> 'total_id' IS NOT NULL AND x ->> 'pct_id' IS NOT NULL) = 7,
+                   'os 7 absolutos calculados apontam para o total e o percentual do próprio exame');
+  PERFORM ci.exige((SELECT count(*) FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'valor_num' IS NOT NULL OR x ->> 'valor_texto' IS NOT NULL) = 0, 'tudo em branco: não feito');
+  SELECT (x ->> 'id')::uuid INTO r_hb FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina';
+  SELECT (x ->> 'id')::uuid INTO r_leuco FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Leucócitos totais';
+  SELECT (x ->> 'id')::uuid INTO r_seg FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Segmentados (%)';
+  SELECT (x ->> 'id')::uuid INTO r_eos FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Eosinófilos (%)';
+  SELECT (x ->> 'id')::uuid INTO r_lin FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Linfócitos (%)';
+  SELECT (x ->> 'id')::uuid INTO r_hemac FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemácias';
+  SELECT (x ->> 'id')::uuid INTO r_obs FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Observações';
+
+  -- a faixa do gato vem da faixa do gato
+  PERFORM ci.entrar(va);
+  r := clinica_exame_abrir(gato, m_hemo, '{"laboratorio":"Laboratório Externo CI","data_coleta":"2026-01-10"}'::jsonb);
+  ex2 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (x ->> 'faixa_max')::numeric = 15 FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'), 'gato recebe a faixa do gato');
+  PERFORM ci.exige(r ->> 'laboratorio' = 'Laboratório Externo CI' AND r ->> 'atendimento_id' IS NULL AND r ->> 'data_coleta' = '2026-01-10', 'exame avulso guarda laboratório e data da coleta');
+
+  -- preencher
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('observacoes', 'x'))$c$, ex1), 'outro veterinário preenche o exame');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', %L, 'valor', 'abc'))))$c$, ex1, r_hb), 'valor que não é número');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', %L, 'valor', '-3'))))$c$, ex1, r_hb), 'valor negativo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', %L, 'valor', '1'))))$c$, ex1, (SELECT id FROM pet_exame_resultados WHERE exame_id = ex2 LIMIT 1)), 'resultado de outro exame');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', %L, 'faixa_min', '9', 'faixa_max', '3'))))$c$, ex1, r_hb), 'faixa com mínimo maior que o máximo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('data_coleta', %L))$c$, ex1, hoje + 2), 'data da coleta no futuro ao salvar');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_salvar(ex1, jsonb_build_object('resultados', jsonb_build_array(
+         jsonb_build_object('id', r_hb, 'valor', '13,3', 'nota', 'conferido'),
+         jsonb_build_object('id', r_leuco, 'valor', '6600'),
+         jsonb_build_object('id', r_seg, 'valor', '40'),
+         jsonb_build_object('id', r_eos, 'valor', '5'),
+         jsonb_build_object('id', r_lin, 'valor', '55'),
+         jsonb_build_object('id', r_obs, 'valor', 'Plaquetas em agregados'),
+         jsonb_build_object('id', r_hemac, 'faixa_min', '5', 'faixa_max', '10'))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (x ->> 'valor_num')::numeric = 13.3 AND x ->> 'nota' = 'conferido' FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'), 'valor com vírgula e nota gravados');
+  PERFORM ci.exige((SELECT (x ->> 'valor_num')::numeric FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Segmentados (abs.)') = 2640
+               AND (SELECT (x ->> 'valor_num')::numeric FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Eosinófilos (abs.)') = 330
+               AND (SELECT (x ->> 'valor_num')::numeric FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Linfócitos (abs.)') = 3630,
+               'os absolutos são calculados: 6600 × 40% = 2640, 5% = 330, 55% = 3630');
+  PERFORM ci.exige((SELECT x ->> 'valor_num' IS NULL FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Monócitos (abs.)'), 'absoluto sem o percentual fica em branco');
+  PERFORM ci.exige((SELECT (x ->> 'faixa_min')::numeric = 5 AND (x ->> 'faixa_max')::numeric = 10 FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemácias'), 'a faixa do exame pode ser ajustada (a do laudo externo)');
+  PERFORM ci.exige((SELECT x ->> 'valor_texto' = 'Plaquetas em agregados' FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Observações'), 'campo de texto gravado');
+
+  -- chave ausente não apaga; em branco apaga; mudar o total refaz os absolutos
+  PERFORM ci.entrar(va);
+  r := clinica_exame_salvar(ex1, jsonb_build_object('observacoes', 'Coleta em jejum'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'observacoes' = 'Coleta em jejum' AND (SELECT (x ->> 'valor_num')::numeric = 13.3 FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'),
+                   'salvar só as observações do exame não apaga os valores');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_salvar(ex1, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', r_leuco, 'valor', '10000'), jsonb_build_object('id', r_hb, 'valor', ''))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (x ->> 'valor_num')::numeric FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Segmentados (abs.)') = 4000, 'mudar o total refaz os absolutos');
+  PERFORM ci.exige((SELECT x ->> 'valor_num' IS NULL FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'), 'valor em branco volta a "não feito"');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_salvar(ex1, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', r_hb, 'valor', '14'))));
+  PERFORM ci.sair();
+
+  -- editar o modelo depois não muda o exame já aberto
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_salvar(jsonb_build_object('id', c_hb, 'nome', 'Hemoglobina renomeada', 'grupo', 'Eritrograma', 'unidade', 'g%', 'forma', 'numero', 'casas', 1));
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'cao', 1, 2);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(va);
+  r := clinica_exame_get(ex1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT x ->> 'unidade' = 'g/dL' AND (x ->> 'faixa_min')::numeric = 12 FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'),
+                   'o exame mantém nome, unidade e faixa de quando foi aberto');
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_salvar(jsonb_build_object('id', c_hb, 'nome', 'Hemoglobina', 'grupo', 'Eritrograma', 'unidade', 'g/dL', 'forma', 'numero', 'casas', 1));
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'cao', 12, 18);
+  PERFORM ci.sair();
+
+  -- fechar
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_fechar(%L)$c$, ex1), 'outro veterinário fecha o exame');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_fechar(%L)$c$, ex2), 'fechar exame sem nenhum resultado');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_fechar(ex1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'fechado' AND r ->> 'fechado_em' IS NOT NULL, 'exame fechado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('observacoes', 'x'))$c$, ex1), 'preencher exame fechado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_fechar(%L)$c$, ex1), 'fechar duas vezes');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_cancelar(%L, 'erro')$c$, ex1), 'cancelar exame fechado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_resultados SET valor_num = 99 WHERE id = %L$c$, r_hb), 'alterar resultado de exame fechado, nem o dono do banco');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exames SET observacoes = 'x' WHERE id = %L$c$, ex1), 'alterar exame fechado, nem o dono do banco');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_exame_resultados WHERE exame_id = %L$c$, ex1), 'apagar resultado de exame fechado');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_exames WHERE id = %L$c$, ex1), 'apagar exame');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_resultados SET nome = 'Outro nome' WHERE exame_id = %L$c$, ex2), 'trocar a cópia do campo mesmo com o exame aberto');
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_resultados WHERE exame_id = ex1 AND valor_num = 99) = 0, 'o resultado fechado continua o mesmo');
+
+  -- adendo
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_adendo_criar(%L, 'x')$c$, ex1), 'gestor faz adendo de exame');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_adendo_criar(%L, '   ')$c$, ex1), 'adendo vazio');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_adendo_criar(%L, 'x')$c$, ex2), 'adendo em exame aberto');
+  PERFORM ci.entrar(vb);
+  r := clinica_exame_adendo_criar(ex1, 'Hemoglobina digitada errada: o laudo traz 14,0 g/dL.');
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 1 AND r -> 'adendos' -> 0 ->> 'crmv' = '7772' AND r -> 'adendos' -> 0 ->> 'veterinario' = 'Vet B Exame', 'o adendo traz o nome e o CRMV de quem fez');
+  PERFORM ci.deve_falhar_dono('UPDATE pet_exame_adendos SET texto = ''x''', 'alterar adendo de exame');
+  PERFORM ci.deve_falhar_dono('DELETE FROM pet_exame_adendos', 'apagar adendo de exame');
+
+  -- cancelar
+  PERFORM ci.entrar(va);
+  r := clinica_exame_abrir(pet, m_urina, '{"laboratorio":"Lab Urina CI"}'::jsonb);
+  ex3 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  SELECT (x ->> 'id')::uuid INTO r_asp FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Aspecto';
+  SELECT (x ->> 'id')::uuid INTO r_vol FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Volume';
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', %L, 'valor', 'Verde'))))$c$, ex3, r_asp), 'escolha fora da lista');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_salvar(ex3, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', r_asp, 'valor', 'Turvo'), jsonb_build_object('id', r_vol, 'valor', '45'))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT x ->> 'valor_texto' = 'Turvo' FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Aspecto'), 'escolha dentro da lista gravada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_cancelar(%L, '  ')$c$, ex3), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_cancelar(%L, 'aberto por engano')$c$, ex3), 'outro veterinário cancela o exame');
+  PERFORM ci.entrar(va);
+  r := clinica_exame_cancelar(ex3, 'Aberto no paciente errado');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'cancelado' AND r ->> 'cancelado_motivo' = 'Aberto no paciente errado', 'exame cancelado com motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('observacoes', 'x'))$c$, ex3), 'preencher exame cancelado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_fechar(%L)$c$, ex3), 'fechar exame cancelado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exames SET cancelado_motivo = 'outro' WHERE id = %L$c$, ex3), 'mudar o motivo do cancelamento');
+
+  -- lista e auditoria
+  SELECT count(*) INTO n FROM clinica_acessos WHERE tenant_id = demo AND acao = 'exame';
+  PERFORM ci.entrar(va);
+  r := clinica_exames_do_pet(pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'pet' ->> 'nome' = 'Rex Exame CI' AND r ->> 'tutor' = 'Tutor Exame CI', 'a lista traz o paciente e o tutor');
+  PERFORM ci.exige(jsonb_array_length(r -> 'exames') = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'exames') x WHERE x ->> 'id' = ex1::text AND x ->> 'situacao' = 'fechado' AND (x ->> 'preenchidos')::int = 6)
+                   AND EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'exames') x WHERE x ->> 'id' = ex3::text AND x ->> 'situacao' = 'cancelado'),
+                   'a lista do paciente traz o fechado (6 campos preenchidos) e o cancelado, sem valores');
+  PERFORM ci.exige(r::text NOT LIKE '%valor_num%' AND r::text NOT LIKE '%queixa%', 'a lista não traz valores nem prontuário');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'exame') > n, 'abrir a lista de exames fica na auditoria de acessos');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'exame' AND profile_id = va) >= 3, 'a auditoria guarda quem abriu');
+
+  -- evolução: só exames fechados, mesmo campo e unidade, do mais antigo para o mais novo
+  PERFORM ci.entrar(va);
+  r := clinica_exame_abrir(pet, m_hemo, '{"laboratorio":"Lab Antigo CI","data_coleta":"2026-02-01"}'::jsonb);
+  ex4 := (r ->> 'id')::uuid;
+  PERFORM ci.sair();
+  SELECT (x ->> 'id')::uuid INTO r_hb FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina';
+  PERFORM ci.entrar(va);
+  PERFORM clinica_exame_salvar(ex4, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', r_hb, 'valor', '12,5'))));
+  PERFORM clinica_exame_fechar(ex4);
+  r := clinica_exame_abrir(pet, m_hemo, '{"laboratorio":"Lab Aberto CI","data_coleta":"2026-03-01"}'::jsonb);
+  ex5 := (r ->> 'id')::uuid;
+  PERFORM clinica_exame_salvar(ex5, jsonb_build_object('resultados', jsonb_build_array(jsonb_build_object('id', (SELECT (x ->> 'id')::uuid FROM jsonb_array_elements(r -> 'resultados') x WHERE x ->> 'nome' = 'Hemoglobina'), 'valor', '99'))));
+  r := clinica_exame_evolucao(pet, 'hemoglobina', 'g/dL');
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 2 AND (r -> 0 ->> 'data_coleta') < (r -> 1 ->> 'data_coleta') AND (r -> 0 ->> 'valor')::numeric = 12.5 AND (r -> 1 ->> 'valor')::numeric = 14,
+                   'a evolução traz só os exames fechados do pet, do mais antigo para o mais novo');
+  PERFORM ci.entrar(va);
+  PERFORM ci.exige(jsonb_array_length(clinica_exame_evolucao(pet, 'Hemoglobina', 'g%')) = 0, 'unidade diferente não entra na mesma evolução');
+  PERFORM ci.exige(jsonb_array_length(clinica_exame_evolucao(gato, 'Hemoglobina', 'g/dL')) = 0, 'a evolução é do paciente (o gato não tem exame fechado)');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_evolucao(%L, 'Hemoglobina', 'g/dL')$c$, pet_b), 'evolução de paciente de outra empresa');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_get(%L)$c$, gen_random_uuid()), 'exame que não existe');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'lista de exames sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_abrir(%L, %L, '{"laboratorio":"Lab"}'::jsonb)$c$, pet, m_hemo), 'abrir exame sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_salvar(%L, jsonb_build_object('observacoes', 'x'))$c$, ex5), 'preencher exame sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_get(%L)$c$, ex1), 'ler exame sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

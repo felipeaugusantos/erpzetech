@@ -206,6 +206,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         >
           Vacinas, vermífugos e cartão de vacinação
         </Link>
+        <Link
+          to="/clinica-exames"
+          search={{ pet: petId, exame: undefined, atendimento: undefined }}
+          className="mt-1 ml-4 inline-block text-sm text-primary underline"
+        >
+          Exames
+        </Link>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <span>{rotulo(ESPECIES, p.especie)}</span>
           {p.raca && <span>{p.raca}</span>}

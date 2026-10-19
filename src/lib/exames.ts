@@ -70,12 +70,12 @@ export function rotuloFaixa(
   return `a partir de ${fmt(f.minimo as number)}${u}`;
 }
 
-/** Campos na ordem do modelo, juntos por grupo (o grupo vale a partir da primeira vez em que aparece). */
-export function agruparCampos(
-  campos: readonly CampoExame[],
-): { grupo: string; campos: CampoExame[] }[] {
+/** Itens na ordem do exame, juntos por grupo (o grupo vale a partir da primeira vez em que aparece). */
+export function agruparCampos<T extends { id: string; ordem: number; grupo: string | null }>(
+  campos: readonly T[],
+): { grupo: string; campos: T[] }[] {
   const ordenados = [...campos].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id));
-  const grupos: { grupo: string; campos: CampoExame[] }[] = [];
+  const grupos: { grupo: string; campos: T[] }[] = [];
   for (const c of ordenados) {
     const nome = c.grupo ?? "";
     let g = grupos.find((x) => x.grupo === nome);
@@ -143,4 +143,185 @@ export function erroDaFaixa(minimo: string, maximo: string): string | null {
     return "Digite só números na faixa";
   if (a !== null && b !== null && a > b) return "O mínimo não pode passar do máximo";
   return null;
+}
+
+// ============ resultado do exame ============
+
+export type ResultadoExame = {
+  id: string;
+  ordem: number;
+  grupo: string | null;
+  nome: string;
+  unidade: string | null;
+  forma: FormaCampo;
+  casas: number | null;
+  opcoes: string[] | null;
+  total_id: string | null;
+  pct_id: string | null;
+  faixa_min: number | null;
+  faixa_max: number | null;
+  valor_num: number | null;
+  valor_texto: string | null;
+  nota: string | null;
+};
+
+export type AdendoExame = {
+  id: string;
+  texto: string;
+  created_at: string;
+  veterinario: string;
+  crmv: string;
+  crmv_uf: string;
+};
+
+export type ExameClinico = {
+  id: string;
+  pet_id: string;
+  atendimento_id: string | null;
+  nome: string;
+  tipo: string;
+  material: string | null;
+  laboratorio: string | null;
+  data_coleta: string;
+  observacoes: string | null;
+  situacao: "aberto" | "fechado" | "cancelado";
+  aberto_em: string;
+  fechado_em: string | null;
+  cancelado_em: string | null;
+  cancelado_motivo: string | null;
+  veterinario: { id: string; nome: string; crmv: string; crmv_uf: string };
+  pet: {
+    nome: string;
+    especie: string;
+    raca: string | null;
+    sexo: string | null;
+    nascimento: string | null;
+  };
+  tutor: string;
+  resultados: ResultadoExame[];
+  adendos: AdendoExame[];
+};
+
+export type ResumoExame = {
+  id: string;
+  nome: string;
+  tipo: string;
+  situacao: "aberto" | "fechado" | "cancelado";
+  data_coleta: string;
+  laboratorio: string | null;
+  atendimento_id: string | null;
+  aberto_em: string;
+  veterinario: string;
+  preenchidos: number;
+  total: number;
+};
+
+export type PontoEvolucao = {
+  exame_id: string;
+  exame: string;
+  data_coleta: string;
+  valor: number;
+  faixa_min: number | null;
+  faixa_max: number | null;
+  casas: number | null;
+};
+
+export const SITUACOES_EXAME = [
+  { value: "aberto", label: "Em preenchimento" },
+  { value: "fechado", label: "Fechado" },
+  { value: "cancelado", label: "Cancelado" },
+] as const;
+
+/** Número com as casas do campo e vírgula (sem casas definidas, como veio). */
+export function formatarNumero(n: number, casas: number | null | undefined): string {
+  const t = casas === null || casas === undefined ? String(n) : n.toFixed(casas);
+  return t.replace(".", ",");
+}
+
+/** Valor do resultado como aparece no laudo: número com as casas do campo, texto ou traço (não feito). */
+export function valorDoResultado(
+  r: Pick<ResultadoExame, "forma" | "casas" | "valor_num" | "valor_texto">,
+): string {
+  if (r.forma === "texto" || r.forma === "escolha") return r.valor_texto ?? "—";
+  return r.valor_num === null ? "—" : formatarNumero(r.valor_num, r.casas);
+}
+
+/** Onde o valor está em relação à faixa de referência; sem valor ou sem faixa, não destaca nada. */
+export function situacaoNaFaixa(
+  valor: number | null,
+  min: number | null,
+  max: number | null,
+): "abaixo" | "acima" | "dentro" | null {
+  if (valor === null || Number.isNaN(valor)) return null;
+  if (min === null && max === null) return null;
+  if (min !== null && valor < min) return "abaixo";
+  if (max !== null && valor > max) return "acima";
+  return "dentro";
+}
+
+/** Mesma conta do banco para o campo calculado: total × percentual ÷ 100, com as casas do campo. */
+export function calcularAbsoluto(
+  total: number | null,
+  pct: number | null,
+  casas: number | null,
+): number | null {
+  if (total === null || pct === null || Number.isNaN(total) || Number.isNaN(pct)) return null;
+  const f = 10 ** (casas ?? 2);
+  return Math.round((total * pct * f) / 100) / f;
+}
+
+/** Valores numéricos como a tela está editando (texto digitado) e, para os calculados, o valor refeito na hora. */
+export function valoresNumericos(
+  resultados: readonly ResultadoExame[],
+  digitado: Readonly<Record<string, string>>,
+): Record<string, number | null> {
+  const v: Record<string, number | null> = {};
+  for (const r of resultados) {
+    if (r.forma === "numero") {
+      const n = numeroOuNulo(digitado[r.id] ?? "");
+      v[r.id] = n === null || Number.isNaN(n) ? null : n;
+    }
+  }
+  for (const r of resultados) {
+    if (r.forma === "calculado") {
+      v[r.id] = calcularAbsoluto(v[r.total_id ?? ""] ?? null, v[r.pct_id ?? ""] ?? null, r.casas);
+    }
+  }
+  return v;
+}
+
+/** Aviso quando o diferencial do leucograma (os percentuais que alimentam os absolutos) está todo preenchido e não soma 100%. */
+export function avisoDiferencial(
+  resultados: readonly ResultadoExame[],
+  valores: Readonly<Record<string, number | null>>,
+): string | null {
+  const porTotal = new Map<string, Set<string>>();
+  for (const r of resultados) {
+    if (r.forma === "calculado" && r.total_id && r.pct_id) {
+      const set = porTotal.get(r.total_id) ?? new Set<string>();
+      set.add(r.pct_id);
+      porTotal.set(r.total_id, set);
+    }
+  }
+  for (const [total, pcts] of porTotal) {
+    if ((valores[total] ?? null) === null) continue;
+    const lista = [...pcts].map((id) => valores[id] ?? null);
+    if (lista.some((x) => x === null)) continue;
+    const soma = lista.reduce<number>((a, b) => a + (b ?? 0), 0);
+    if (Math.abs(soma - 100) > 0.5) {
+      return `O diferencial soma ${formatarNumero(Math.round(soma * 10) / 10, null)}% (deveria somar 100%). Confira os percentuais.`;
+    }
+  }
+  return null;
+}
+
+/** Variação entre dois valores seguidos da evolução. */
+export function variacao(
+  anterior: number | null,
+  atual: number,
+): "subiu" | "desceu" | "igual" | null {
+  if (anterior === null) return null;
+  if (atual > anterior) return "subiu";
+  if (atual < anterior) return "desceu";
+  return "igual";
 }

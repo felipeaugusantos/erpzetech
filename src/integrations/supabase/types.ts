@@ -9096,6 +9096,29 @@ export type Database = {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
       }
+      clinica_exame_abrir: {
+        Args: { p_dados?: Json; p_modelo_id: string; p_pet_id: string }
+        Returns: Json
+      }
+      clinica_exame_adendo_criar: {
+        Args: { p_exame_id: string; p_texto: string }
+        Returns: Json
+      }
+      clinica_exame_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: Json
+      }
+      clinica_exame_evolucao: {
+        Args: { p_nome: string; p_pet_id: string; p_unidade?: string }
+        Returns: Json
+      }
+      clinica_exame_fechar: { Args: { p_id: string }; Returns: Json }
+      clinica_exame_get: { Args: { p_id: string }; Returns: Json }
+      clinica_exame_salvar: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: Json
+      }
+      clinica_exames_do_pet: { Args: { p_pet_id: string }; Returns: Json }
       clinica_exame_campo_mover: {
         Args: { p_campo_id: string; p_delta: number }
         Returns: undefined

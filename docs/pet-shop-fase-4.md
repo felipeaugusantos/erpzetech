@@ -76,7 +76,7 @@ Desenho:
 - **Como ficou:** tela **Modelos de exame** (gestão e veterinário), com os modelos iniciais criados por botão (hemograma, bioquímica e urina), campos por grupo com subir e descer, e faixa por espécie. Os modelos iniciais **não trazem faixa de referência**: cada clínica digita a do seu laboratório. Campo nunca se apaga, só fica inativo. O absoluto do leucograma é um campo **calculado** ligado ao total e ao percentual. O fechamento do exame, que grava nome, unidade e faixa no resultado, chega no PR 3.
 - Acesso: o mesmo desenho do prontuário (seção "Regras que valem para tudo"). Sem acesso direto às tabelas, funções que exigem a clínica liberada (`clinica_liberada`). **Manter modelo e faixa** (configuração) é do administrador, do gestor e do Veterinário, como o catálogo de vacinas; **escrever resultado** é só do Veterinário.
 
-## PR 3 — Exames: resultados
+## PR 3 — Exames: resultados (entregue)
 
 - **Número onde o campo é número.** A tela mostra o modelo com a unidade ao lado de cada campo; os campos de forma **número** têm teclado numérico (vírgula ou ponto) e só aceitam número, e os de **texto** (colheita, aspecto, cor, odor, cristais, observações) e **escolha** aparecem como texto livre ou lista. O hemograma e a bioquímica são quase todos numéricos.
 - **Campo em branco é "não feito".** Diferente das telas de hoje, que iniciam em 0,000: aqui o zero precisa ser digitado, e exame que não foi pedido não aparece como valor zero.
@@ -87,6 +87,8 @@ Desenho:
 - **Fechar o exame o torna imutável**, como o atendimento; correção é **adendo** com nome e CRMV. Nada se apaga.
 - **Laudo imprimível:** só para o veterinário e o tutor (entrega em papel), com valores, unidades e faixas; sem texto do prontuário.
 - Auditoria de quem abriu o exame, como no prontuário.
+
+**Como ficou:** tela **Exames** (só o veterinário), com a lista de exames do paciente, abertura a partir de um modelo e preenchimento por grupo. O exame **copia os campos do modelo na abertura** (nome, unidade, casas, opções e a faixa da espécie do paciente), então mudar o modelo depois não muda um exame aberto ou fechado; a faixa pode ser ajustada no exame (a do laudo do laboratório). Os absolutos do leucograma são refeitos na hora, o diferencial que não soma 100% gera aviso (sem travar), e valor fora da faixa fica destacado. Fechar torna o exame imutável (nem o dono do banco altera), correção é adendo com nome e CRMV, e exame aberto por engano é **cancelado com motivo**. O laudo para imprimir traz só os campos preenchidos, com unidade, faixa, notas e adendos, e nada do prontuário. Cada abertura fica em `clinica_acessos`. A evolução de um valor usa só exames fechados, com o mesmo nome e a mesma unidade. Os anexos (imagem, PDF) são o PR 4.
 
 ## PR 4 — Exames: anexos
 
