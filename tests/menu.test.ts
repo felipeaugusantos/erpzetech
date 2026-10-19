@@ -38,6 +38,7 @@ test("o menu da loja tem os grupos esperados, com Relatórios antes de Administr
     "Logística",
     "Financeiro",
     "Restaurante",
+    "Pet shop",
     "Assistência técnica",
     "Locação de equipamentos",
     "Relatórios",
@@ -139,5 +140,14 @@ test("relatórios de módulo opcional respeitam a liberação do módulo", () =>
   assert.ok(
     /i\.to === "\/movimento-grade"/.test(fonte),
     "movimento por tamanho segue ligado à personalização",
+  );
+});
+
+test("o grupo Pet shop só aparece quando o módulo está liberado e traz as telas do cadastro", () => {
+  assert.ok(/g\.label === "Pet shop"\) return modulos\.petshop/.test(fonte));
+  const pet = grupos().find((g) => g.label === "Pet shop");
+  assert.deepEqual(
+    pet?.itens.map((i) => i.to),
+    ["/pets", "/pet-servicos", "/pet-profissionais"],
   );
 });
