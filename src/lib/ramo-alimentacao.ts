@@ -6,7 +6,7 @@ export function ehEmpresaAlimentacao(
   empresa?: { ramo_atividade?: string | null; cnae?: string | null } | null,
 ) {
   if (empresa?.ramo_atividade === "restaurante") return true;
-  const principal = cnaesDaEmpresa({ cnae: empresa?.cnae })[0];
+  const principal = cnaesDaEmpresa({ cnae: empresa?.cnae ?? null })[0];
   return Boolean(principal?.startsWith("56"));
 }
 
