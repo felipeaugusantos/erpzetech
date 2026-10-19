@@ -30,6 +30,7 @@ export type AnexoClinico = {
   crmv_uf: string;
   cancelado_em: string | null;
   cancelado_motivo: string | null;
+  pode_cancelar: boolean;
 };
 
 /** Formato do arquivo: o que o navegador informa ou, se vier vazio, o que a extensão diz. */

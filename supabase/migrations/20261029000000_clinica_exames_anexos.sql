@@ -213,10 +213,10 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
 DECLARE
+  v_vet uuid := public._clinica_vet();
   v_tenant uuid := public.current_tenant_id();
   v_pet uuid;
 BEGIN
-  PERFORM public._clinica_vet();
   IF (p_exame_id IS NULL) = (p_atendimento_id IS NULL) THEN RAISE EXCEPTION 'Informe o exame ou o atendimento (só um dos dois)'; END IF;
   IF p_exame_id IS NOT NULL THEN
     SELECT pet_id INTO v_pet FROM public.pet_exames WHERE id = p_exame_id AND tenant_id = v_tenant;
@@ -229,7 +229,9 @@ BEGIN
     SELECT jsonb_agg(jsonb_build_object(
              'id', a.id, 'categoria', a.categoria, 'descricao', a.descricao, 'nome_arquivo', a.nome_arquivo, 'mime', a.mime, 'tamanho', a.tamanho,
              'situacao', a.situacao, 'created_at', a.created_at, 'veterinario', v.nome, 'crmv', a.crmv, 'crmv_uf', a.crmv_uf,
-             'cancelado_em', a.cancelado_em, 'cancelado_motivo', a.cancelado_motivo) ORDER BY a.created_at)
+             'cancelado_em', a.cancelado_em, 'cancelado_motivo', a.cancelado_motivo,
+             -- só quem enviou cancela: a tela só oferece o botão para esse veterinário
+             'pode_cancelar', (a.situacao = 'ativo' AND a.veterinario_id = v_vet AND a.enviado_por = auth.uid())) ORDER BY a.created_at)
       FROM public.pet_exame_anexos a JOIN public.pet_profissionais v ON v.id = a.veterinario_id
      WHERE a.tenant_id = v_tenant AND a.situacao <> 'pendente'
        AND a.exame_id IS NOT DISTINCT FROM p_exame_id AND a.atendimento_id IS NOT DISTINCT FROM p_atendimento_id), '[]'::jsonb);

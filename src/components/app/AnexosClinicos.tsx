@@ -54,6 +54,12 @@ export function AnexosClinicos({
   const alvo = exameId ?? atendimentoId ?? "";
   const qc = useQueryClient();
   const entrada = useRef<HTMLInputElement>(null);
+  const reservaRef = useRef<{
+    chave: string;
+    id: string;
+    caminho: string;
+    enviado: boolean;
+  } | null>(null);
   const [categoria, setCategoria] = useState<CategoriaAnexo>("imagem");
   const [descricao, setDescricao] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -85,26 +91,53 @@ export function AnexosClinicos({
       const falha = erroDoArquivo(arquivo);
       if (falha) throw new Error(falha);
       const mime = mimeDoArquivo(arquivo) as string;
-      const { data: res, error } = await supabase.rpc("clinica_anexo_preparar", {
-        p_dados: {
-          ...(exameId ? { exame_id: exameId } : { atendimento_id: atendimentoId }),
-          categoria,
-          descricao: descricao.trim(),
-          nome_arquivo: arquivo.name,
-          mime,
-          tamanho: arquivo.size,
-        },
-      });
-      if (error) throw error;
-      const reserva = res as unknown as { id: string; caminho: string };
-      const up = await supabase.storage
-        .from(BUCKET)
-        .upload(reserva.caminho, arquivo, { contentType: mime, upsert: false });
-      if (up.error) throw up.error;
+      // a reserva do caminho é guardada: se o envio ou a confirmação falhar, tentar de novo reaproveita a mesma reserva
+      // (sem outro arquivo no armazenamento e sem outro anexo pendente) enquanto o arquivo e a descrição forem os mesmos
+      const chaveEnvio = JSON.stringify([
+        alvo,
+        categoria,
+        descricao.trim(),
+        arquivo.name,
+        arquivo.size,
+        arquivo.lastModified,
+      ]);
+      let reserva = reservaRef.current?.chave === chaveEnvio ? reservaRef.current : null;
+      if (!reserva) {
+        const { data: res, error } = await supabase.rpc("clinica_anexo_preparar", {
+          p_dados: {
+            ...(exameId ? { exame_id: exameId } : { atendimento_id: atendimentoId }),
+            categoria,
+            descricao: descricao.trim(),
+            nome_arquivo: arquivo.name,
+            mime,
+            tamanho: arquivo.size,
+          },
+        });
+        if (error) throw error;
+        const r = res as unknown as { id: string; caminho: string };
+        reserva = { chave: chaveEnvio, id: r.id, caminho: r.caminho, enviado: false };
+        reservaRef.current = reserva;
+      }
+      if (!reserva.enviado) {
+        const up = await supabase.storage
+          .from(BUCKET)
+          .upload(reserva.caminho, arquivo, { contentType: mime, upsert: false });
+        if (up.error) {
+          // o envio anterior pode ter chegado com a resposta perdida: se o arquivo já está lá, a confirmação resolve
+          const { error: erroJaEnviado } = await supabase.rpc("clinica_anexo_confirmar", {
+            p_id: reserva.id,
+          });
+          if (erroJaEnviado) throw up.error;
+          reservaRef.current = null;
+          return;
+        }
+        reserva.enviado = true;
+      }
       const { error: erroConfirma } = await supabase.rpc("clinica_anexo_confirmar", {
         p_id: reserva.id,
       });
       if (erroConfirma) throw erroConfirma;
+      reservaRef.current = null;
     },
     onSuccess: () => {
       toast.success("Anexo enviado");
@@ -225,7 +258,7 @@ export function AnexosClinicos({
                 >
                   <ExternalLink className="size-4" /> Abrir
                 </Button>
-                {a.situacao === "ativo" && podeEnviar && (
+                {a.pode_cancelar && podeEnviar && (
                   <Button variant="ghost" size="sm" onClick={() => setCancelando(a)}>
                     Cancelar
                   </Button>

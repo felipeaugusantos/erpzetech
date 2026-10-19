@@ -4638,6 +4638,10 @@ BEGIN
   r := clinica_anexos(ex1, NULL);
   PERFORM ci.sair();
   PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'descricao' = 'Ultrassom abdominal' AND r -> 0 ->> 'crmv' = '8881' AND r -> 0 ->> 'categoria' = 'imagem', 'a lista traz o anexo ativo, de quem enviou');
+  PERFORM ci.exige((r -> 0 ->> 'pode_cancelar')::boolean = false, 'outro veterinário não recebe a opção de cancelar o anexo');
+  PERFORM ci.entrar(va);
+  PERFORM ci.exige((clinica_anexos(ex1, NULL) -> 0 ->> 'pode_cancelar')::boolean = true, 'quem enviou recebe a opção de cancelar o anexo');
+  PERFORM ci.sair();
   PERFORM ci.exige(r::text NOT LIKE '%caminho%' AND r::text NOT LIKE '%' || c1 || '%', 'a lista não traz o caminho do arquivo');
 
   -- ler o arquivo (gerar o link temporário): só logo depois de registrar a abertura
