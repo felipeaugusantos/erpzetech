@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, X } from "lucide-react";
@@ -50,8 +50,21 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  // ?pet=<atendimento>: "Retirar e cobrar" da agenda do pet shop abre o caixa com os serviços já na venda
+  validateSearch: (s: Record<string, unknown>): { pet?: string } =>
+    typeof s["pet"] === "string" && s["pet"] ? { pet: s["pet"] } : {},
   component: FrenteCaixa,
 });
+
+/** Atendimento do pet shop que esta venda vai cobrar. */
+type PetCobranca = {
+  id: string;
+  pet: string;
+  tutor: string;
+  servicos: { produto_id: string; descricao: string; preco: number }[];
+};
+/** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
+const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
 type Linha = {
   produto_id: string;
@@ -102,6 +115,9 @@ function FrenteCaixa() {
     | "nfce"
   >(null);
   const [cliente, setCliente] = useState<ClienteFrente | null>(null);
+  const [petCobranca, setPetCobranca] = useState<PetCobranca | null>(null);
+  const { pet: petParam } = Route.useSearch();
+  const navegar = useNavigate();
   const [cupom, setCupom] = useState<CupomDados | null>(null);
   /** Pedido da venda que acabou de fechar (ou escolhido na lista de vendas) para emitir a NFC-e. */
   const [pedidoNfce, setPedidoNfce] = useState<string | null>(null);
@@ -126,6 +142,113 @@ function FrenteCaixa() {
   const [valorCaixa, setValorCaixa] = useState("");
   const [opEmail, setOpEmail] = useState("");
   const [opSenha, setOpSenha] = useState("");
+  const petCarregado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!petParam || petCarregado.current === petParam) return;
+    petCarregado.current = petParam;
+    void (async () => {
+      const { data: ag, error } = await supabase
+        .from("pet_agendamentos")
+        .select("id, situacao, pet_id, cliente_id")
+        .eq("id", petParam)
+        .maybeSingle();
+      if (error || !ag) {
+        toast.error("Atendimento do pet shop não encontrado");
+        return;
+      }
+      if (ag.situacao !== "pronto") {
+        toast.error("Só dá para cobrar atendimento pronto na agenda");
+        void navegar({ to: "/frente-caixa", search: {} });
+        return;
+      }
+      const [itens, pet, cli] = await Promise.all([
+        supabase
+          .from("pet_agendamento_itens")
+          .select("servico_id, preco_aplicado")
+          .eq("agendamento_id", ag.id),
+        supabase.from("pets").select("nome").eq("id", ag.pet_id).maybeSingle(),
+        supabase
+          .from("clientes")
+          .select("id, nome, cpf, cnpj, telefone")
+          .eq("id", ag.cliente_id)
+          .maybeSingle(),
+      ]);
+      const ids = (itens.data ?? []).map((i) => i.servico_id);
+      const servs = ids.length
+        ? await supabase.from("pet_servicos").select("id, nome, produto_id").in("id", ids)
+        : { data: [] };
+      const servicos = (itens.data ?? []).flatMap((i) => {
+        const sv = (servs.data ?? []).find((x) => x.id === i.servico_id);
+        return sv
+          ? [{ produto_id: sv.produto_id, descricao: sv.nome, preco: Number(i.preco_aplicado) }]
+          : [];
+      });
+      if (!servicos.length) {
+        toast.error("O atendimento não tem serviços para cobrar");
+        return;
+      }
+      setPetCobranca({
+        id: ag.id,
+        pet: pet.data?.nome ?? "Pet",
+        tutor: cli.data?.nome ?? "",
+        servicos,
+      });
+      setLinhas(
+        servicos.map((x) => ({
+          produto_id: x.produto_id,
+          descricao: `${x.descricao} — ${pet.data?.nome ?? "pet"}`,
+          unidade: "UN",
+          preco: x.preco,
+          quantidade: 1,
+        })),
+      );
+      if (cli.data) setCliente(cli.data);
+    })();
+  }, [petParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function desistirDaCobrancaPet() {
+    setPetCobranca(null);
+    setLinhas([]);
+    setCliente(null);
+    petCarregado.current = null;
+    void navegar({ to: "/frente-caixa", search: {} });
+  }
+
+  /** Confirma no banco o vínculo da venda com o atendimento; se a conexão cair, guarda para tentar de novo. */
+  async function vincularPet(agendamentoId: string, chave: string, pedidoId: string | null) {
+    const { error } = await supabase.rpc("pet_agenda_retirar", {
+      p_agendamento_id: agendamentoId,
+      ...(pedidoId ? { p_pedido_id: pedidoId } : { p_chave: chave }),
+    });
+    if (error) {
+      if (/fetch|network|failed/i.test(error.message)) {
+        localStorage.setItem(CHAVE_PET_PENDENTE, JSON.stringify({ agendamentoId, chave }));
+        toast.warning(
+          "Venda registrada, mas o atendimento ainda não foi marcado como retirado. Será confirmado quando a conexão voltar — não cobre de novo.",
+        );
+      } else {
+        toast.error("Venda registrada, mas o atendimento não foi marcado como retirado", {
+          description: error.message,
+        });
+      }
+      return false;
+    }
+    localStorage.removeItem(CHAVE_PET_PENDENTE);
+    void qc.invalidateQueries({ queryKey: ["pet-agenda"] });
+    return true;
+  }
+
+  useEffect(() => {
+    const raw = localStorage.getItem(CHAVE_PET_PENDENTE);
+    if (!raw || !session) return;
+    try {
+      const p = JSON.parse(raw) as { agendamentoId: string; chave: string };
+      void vincularPet(p.agendamentoId, p.chave, null);
+    } catch {
+      localStorage.removeItem(CHAVE_PET_PENDENTE);
+    }
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const userId = session?.user.id ?? "";
   const chaveEspera = `fc-espera-${userId}`;
   const chaveFila = `fc-fila-${userId}`;
@@ -491,6 +614,8 @@ function FrenteCaixa() {
         ]);
         return "offline";
       };
+      if (petCobranca && !navigator.onLine)
+        throw new Error("A cobrança do pet shop precisa de internet");
       if (!navigator.onLine) return guardar();
       const { data, error } = await supabase.rpc("frente_venda", params);
       if (error) {
@@ -511,9 +636,18 @@ function FrenteCaixa() {
           } as never,
         );
       }
+      if (petCobranca && data) await vincularPet(petCobranca.id, params.p_chave, data as string);
       return data as string;
     },
     onMutate: () => {
+      if (petCobranca) {
+        // a venda precisa trazer cada serviço do atendimento, uma vez e pelo valor combinado
+        for (const sv of petCobranca.servicos) {
+          const l = linhas.find((x) => x.produto_id === sv.produto_id);
+          if (!l || l.quantidade !== 1 || Math.abs(l.preco - sv.preco) > 0.001)
+            throw new Error(`Mantenha "${sv.descricao}" na venda, uma vez, por ${brl(sv.preco)}`);
+        }
+      }
       // A resposta simulada não entra na fila offline (ela só guarda os parâmetros de frente_venda).
       if (simulado && !navigator.onLine)
         throw new Error("Modo de teste: a maquininha simulada precisa de internet");
@@ -570,6 +704,11 @@ function FrenteCaixa() {
           : {}),
       });
       setTef({ nsu: "", aut: "", bandeira: "" });
+      if (petCobranca) {
+        setPetCobranca(null);
+        petCarregado.current = null;
+        void navegar({ to: "/frente-caixa", search: {} });
+      }
       setLinhas([]);
       setDesconto("0");
       setRecebido("");
@@ -883,6 +1022,19 @@ function FrenteCaixa() {
                 <Sparkles className="size-4" /> F3 IA
               </Button>
             </div>
+
+            {petCobranca && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+                <span>
+                  <strong>Cobrando atendimento do pet shop:</strong> {petCobranca.pet}
+                  {petCobranca.tutor ? ` (${petCobranca.tutor})` : ""}. Mantenha os serviços na
+                  venda; pode somar produtos e escolher a forma de pagamento.
+                </span>
+                <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
+                  Desistir da cobrança
+                </Button>
+              </div>
+            )}
 
             <div className="panel min-h-0 flex-1 overflow-auto">
               <table className="w-full text-sm">

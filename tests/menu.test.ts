@@ -77,6 +77,7 @@ test("os relatórios saíram das rotinas e ficam em Relatórios, separados por m
     "Fiscal",
     "Assistência técnica",
     "Locação",
+    "Pet shop",
   ]);
   assert.ok(
     relatorios.itens.every((i) => i.secao),
@@ -100,6 +101,7 @@ test("os relatórios saíram das rotinas e ficam em Relatórios, separados por m
     "/relatorio-assistencia",
     "/painel-locacao",
     "/relatorio-locacoes",
+    "/relatorio-pet-profissionais",
     "/painel-filial",
     "/auditoria",
   ];
@@ -137,6 +139,7 @@ test("relatórios de módulo opcional respeitam a liberação do módulo", () =>
     assert.ok(fonte.includes(`"${to}"`) && /modulos\.assistencia/.test(fonte));
   for (const to of ["/painel-locacao", "/relatorio-locacoes"])
     assert.ok(fonte.includes(`"${to}"`) && /modulos\.locacao/.test(fonte));
+  assert.ok(/i\.to === "\/relatorio-pet-profissionais"\) return modulos\.petshop/.test(fonte));
   assert.ok(
     /i\.to === "\/movimento-grade"/.test(fonte),
     "movimento por tamanho segue ligado à personalização",
@@ -148,6 +151,6 @@ test("o grupo Pet shop só aparece quando o módulo está liberado e traz as tel
   const pet = grupos().find((g) => g.label === "Pet shop");
   assert.deepEqual(
     pet?.itens.map((i) => i.to),
-    ["/pet-agenda", "/pets", "/pet-servicos", "/pet-profissionais"],
+    ["/pet-agenda", "/pets", "/pet-servicos", "/pet-profissionais", "/pet-comissoes"],
   );
 });
