@@ -172,3 +172,10 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Agenda de banho e tosa (`/pet-agenda`): agendamento só pela recepção, profissional sem dois atendimentos ao mesmo tempo, preço e duração congelados, situações agendado → confirmado → em atendimento → pronto, cancelar/faltar com motivo, remarcar (`pet_agendar`, `pet_agenda_situacao`, `pet_reagendar`). "Retirado" sai da cobrança (próximo PR)
 - [x] Cobrança pela frente de caixa ("Retirar e cobrar" abre o caixa com os serviços; o operador escolhe a forma de pagamento) com NFS-e em rascunho, comissão do profissional sobre os serviços (aprovar/pagar em `/pet-comissoes`) e relatório "Serviços por profissional"; NFC-e leva só a mercadoria; venda cancelada devolve o atendimento a "pronto" e cancela a comissão não paga (`pet_agenda_retirar`). A cobrança do pet shop exige internet
 - [ ] Clínica veterinária (escopo próprio)
+
+## Rodada 9 — Pet shop, Fase 2 (`docs/pet-shop-fase-2.md`)
+- [x] PR 5 — Contatos com o tutor (`/pet-contatos`): aniversário do pet e retorno de banho, com link do WhatsApp e mensagem editável; quem foi chamado sai da lista (`pet_contatos_pendentes`, `pet_contato_registrar`). Sem envio automático
+- [ ] PR 6 — Pacotes de banho (venda adiantada e uso na cobrança)
+- [ ] PR 7 — Venda a granel (abrir o saco e vender por kg)
+- [ ] PR 8 — Agenda própria do profissional (login vinculado ao cadastro)
+- [ ] Lembretes automáticos (depende da integração oficial do WhatsApp) e vacina/vermífugo (depende do prontuário da clínica)

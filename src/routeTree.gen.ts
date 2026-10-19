@@ -87,6 +87,7 @@ import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_au
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
 import { Route as AuthenticatedPetAgendaRouteImport } from './routes/_authenticated/pet-agenda'
 import { Route as AuthenticatedPetComissoesRouteImport } from './routes/_authenticated/pet-comissoes'
+import { Route as AuthenticatedPetContatosRouteImport } from './routes/_authenticated/pet-contatos'
 import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
 import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
 import { Route as AuthenticatedPetsRouteImport } from './routes/_authenticated/pets'
@@ -560,6 +561,12 @@ const AuthenticatedPetComissoesRoute =
     path: '/pet-comissoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPetContatosRoute =
+  AuthenticatedPetContatosRouteImport.update({
+    id: '/pet-contatos',
+    path: '/pet-contatos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPetProfissionaisRoute =
   AuthenticatedPetProfissionaisRouteImport.update({
     id: '/pet-profissionais',
@@ -885,6 +892,7 @@ export interface FileRoutesByFullPath {
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
+  '/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -1008,6 +1016,7 @@ export interface FileRoutesByTo {
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
+  '/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -1133,6 +1142,7 @@ export interface FileRoutesById {
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/_authenticated/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/_authenticated/pet-comissoes': typeof AuthenticatedPetComissoesRoute
+  '/_authenticated/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/_authenticated/pets': typeof AuthenticatedPetsRoute
@@ -1258,6 +1268,7 @@ export interface FileRouteTypes {
     | '/personalizacao'
     | '/pet-agenda'
     | '/pet-comissoes'
+    | '/pet-contatos'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1381,6 +1392,7 @@ export interface FileRouteTypes {
     | '/personalizacao'
     | '/pet-agenda'
     | '/pet-comissoes'
+    | '/pet-contatos'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1505,6 +1517,7 @@ export interface FileRouteTypes {
     | '/_authenticated/personalizacao'
     | '/_authenticated/pet-agenda'
     | '/_authenticated/pet-comissoes'
+    | '/_authenticated/pet-contatos'
     | '/_authenticated/pet-profissionais'
     | '/_authenticated/pet-servicos'
     | '/_authenticated/pets'
@@ -2109,6 +2122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPetComissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-contatos': {
+      id: '/_authenticated/pet-contatos'
+      path: '/pet-contatos'
+      fullPath: '/pet-contatos'
+      preLoaderRoute: typeof AuthenticatedPetContatosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pet-profissionais': {
       id: '/_authenticated/pet-profissionais'
       path: '/pet-profissionais'
@@ -2493,6 +2513,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
   AuthenticatedPetAgendaRoute: typeof AuthenticatedPetAgendaRoute
   AuthenticatedPetComissoesRoute: typeof AuthenticatedPetComissoesRoute
+  AuthenticatedPetContatosRoute: typeof AuthenticatedPetContatosRoute
   AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
   AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
   AuthenticatedPetsRoute: typeof AuthenticatedPetsRoute
@@ -2611,6 +2632,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
   AuthenticatedPetAgendaRoute: AuthenticatedPetAgendaRoute,
   AuthenticatedPetComissoesRoute: AuthenticatedPetComissoesRoute,
+  AuthenticatedPetContatosRoute: AuthenticatedPetContatosRoute,
   AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
   AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,
   AuthenticatedPetsRoute: AuthenticatedPetsRoute,
