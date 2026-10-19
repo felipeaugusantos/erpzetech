@@ -183,7 +183,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 ## Rodada 10 — Pet shop, Fase 3: clínica (`docs/pet-shop-fase-3.md`)
 - [ ] Escopo desenhado; decisões registradas (só o veterinário lê o prontuário; guarda do prontuário segue em aberto com o responsável técnico — nada é apagado)
-- [ ] PR 1 — Base da clínica (módulo `clinica` por CNAE 7500, perfil Veterinário, CRMV no profissional, isolamento do texto clínico)
+- [x] PR 1 — Base da clínica: módulo `clinica` (CNAE 7500 ou ramo "Clínica veterinária"), perfil **Veterinário** (mesmo isolamento do Profissional; agenda própria vale para os dois), CRMV e UF obrigatórios para a função veterinário, conta ligada precisa combinar com a função, categorias de serviço consulta/vacina/exame. O isolamento do texto clínico em si vem com as tabelas, no PR 2
 - [ ] PR 2 — Consulta e prontuário (atendimento clínico imutável ao fechar, adendos, histórico do pet)
 - [ ] PR 3 — Vacinas e vermífugos (catálogo, aplicação com lote, próxima dose, cartão de vacinação)
 - [ ] PR 4 — Reforços (lista com WhatsApp e "Já falei")

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { passoDoProfissional, somarDiasISO } from "../src/lib/pet.ts";
+import { crmvValido, normalizarCrmv, passoDoProfissional, somarDiasISO } from "../src/lib/pet.ts";
 
 test("o profissional começa e conclui; o resto é da recepção", () => {
   assert.deepEqual(passoDoProfissional("agendado"), { para: "em_atendimento", rotulo: "Começar" });
@@ -19,4 +19,12 @@ test("soma de dias atravessa mês e ano", () => {
   assert.equal(somarDiasISO("2026-10-31", 1), "2026-11-01");
   assert.equal(somarDiasISO("2026-01-01", -1), "2025-12-31");
   assert.equal(somarDiasISO("2028-02-28", 1), "2028-02-29");
+});
+
+test("CRMV: normaliza e confere o número e a UF", () => {
+  assert.equal(normalizarCrmv("sp-12.345"), "SP12345");
+  assert.equal(crmvValido("12.345", "SP"), true);
+  assert.equal(crmvValido("12", "SP"), false);
+  assert.equal(crmvValido("12345", "XX"), false);
+  assert.equal(crmvValido("", "SP"), false);
 });

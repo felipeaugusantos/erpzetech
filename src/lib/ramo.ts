@@ -9,6 +9,7 @@ export const ramos = [
   { value: "papelaria", label: "Papelaria" },
   { value: "restaurante", label: "Restaurante e lanchonete" },
   { value: "petshop", label: "Pet shop e veterinária" },
+  { value: "clinica", label: "Clínica veterinária" },
   { value: "outro", label: "Outro varejo de produtos" },
 ] as const;
 

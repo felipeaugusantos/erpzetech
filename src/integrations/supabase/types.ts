@@ -5528,6 +5528,8 @@ export type Database = {
           ativo: boolean
           comissao_percentual: number
           created_at: string
+          crmv: string | null
+          crmv_uf: string | null
           filial_id: string | null
           funcao: string
           id: string
@@ -5540,6 +5542,8 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crmv?: string | null
+          crmv_uf?: string | null
           filial_id?: string | null
           funcao?: string
           id?: string
@@ -5552,6 +5556,8 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crmv?: string | null
+          crmv_uf?: string | null
           filial_id?: string | null
           funcao?: string
           id?: string
@@ -9096,6 +9102,7 @@ export type Database = {
         | "garcom"
         | "cozinha"
         | "profissional"
+        | "veterinario"
       autorizacao_situacao: "pendente" | "aprovada" | "negada"
       caixa_mov_tipo:
         | "abertura"
@@ -9310,6 +9317,7 @@ export const Constants = {
         "garcom",
         "cozinha",
         "profissional",
+        "veterinario",
       ],
       autorizacao_situacao: ["pendente", "aprovada", "negada"],
       caixa_mov_tipo: [

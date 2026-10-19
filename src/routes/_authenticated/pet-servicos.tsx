@@ -86,8 +86,11 @@ function ServicosModulo() {
   return <Servicos />;
 }
 
+const CATEGORIAS_DA_CLINICA = ["consulta", "vacina", "exame"];
+
 function Servicos() {
   const qc = useQueryClient();
+  const { clinica } = useModulosCnae();
   const { data: session } = useSessionData();
   const podeEditar = (session?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
   const [aberto, setAberto] = useState(false);
@@ -261,7 +264,12 @@ function Servicos() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIAS_SERVICO.map((c) => (
+                    {CATEGORIAS_SERVICO.filter(
+                      (c) =>
+                        clinica ||
+                        !CATEGORIAS_DA_CLINICA.includes(c.value) ||
+                        c.value === form.categoria,
+                    ).map((c) => (
                       <SelectItem key={c.value} value={c.value}>
                         {c.label}
                       </SelectItem>

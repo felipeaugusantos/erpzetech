@@ -35,3 +35,11 @@ test("CNAE vizinho do pet shop não libera o módulo", () => {
     true,
   );
 });
+
+test("clínica: só atividade veterinária libera prontuário e vacina", () => {
+  const libera = (cnae: string) => moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae }), "clinica");
+  assert.equal(libera("7500-1/00"), true);
+  assert.equal(libera("4789-0/04"), false); // pet shop sozinho
+  assert.equal(libera("9609-2/08"), false); // banho e tosa
+  assert.equal(libera("7490-1/04"), false); // vizinho
+});
