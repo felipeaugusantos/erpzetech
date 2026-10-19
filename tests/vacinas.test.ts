@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ATALHOS_PROXIMA_DOSE,
   SUGESTOES_CATALOGO,
+  dataDoAtalho,
   diasAte,
   resumoDoProtocolo,
   rotuloDose,
@@ -49,4 +51,17 @@ test("as sugestões do catálogo respeitam as regras do banco", () => {
     assert.ok(s.doses_serie >= 1 && s.doses_serie <= 10, s.nome);
     if (s.doses_serie > 1) assert.ok((s.intervalo_serie_dias ?? 0) >= 1, s.nome);
   }
+});
+
+test("atalhos da próxima dose: 21 dias, 30 dias e 1 ano a partir da aplicação", () => {
+  const [d21, d30, ano] = ATALHOS_PROXIMA_DOSE;
+  assert.equal(dataDoAtalho("2026-10-19", d21!), "2026-11-09");
+  assert.equal(dataDoAtalho("2026-10-19", d30!), "2026-11-18");
+  assert.equal(dataDoAtalho("2026-10-19", ano!), "2027-10-19");
+  assert.equal(dataDoAtalho("2026-12-20", d21!), "2027-01-10");
+});
+
+test("1 ano a partir de 29/02 cai em 28/02 do ano seguinte", () => {
+  assert.equal(dataDoAtalho("2028-02-29", { anos: 1 }), "2029-02-28");
+  assert.equal(dataDoAtalho("2028-02-29", { anos: 4 }), "2032-02-29");
 });

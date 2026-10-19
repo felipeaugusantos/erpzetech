@@ -29,6 +29,8 @@ import { useModulosCnae } from "@/lib/cnae";
 import { dateBR } from "@/lib/format";
 import { hojeISO } from "@/lib/financeiro";
 import {
+  ATALHOS_PROXIMA_DOSE,
+  dataDoAtalho,
   rotuloDose,
   resumoDoProtocolo,
   type CartaoVacinacao,
@@ -52,6 +54,40 @@ export const Route = createFileRoute("/_authenticated/clinica-vacinas")({
   }),
   component: VacinasModulo,
 });
+
+/** Botões "21 dias", "30 dias" e "1 ano": preenchem a data a partir do dia da aplicação (sem `base`, do dia de hoje no momento do clique). */
+function AtalhosProximaDose({
+  base,
+  valor,
+  onEscolher,
+  desativado,
+}: {
+  base?: string;
+  valor: string;
+  onEscolher: (data: string) => void;
+  desativado?: boolean;
+}) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {ATALHOS_PROXIMA_DOSE.map((a) => {
+        const data = dataDoAtalho(base ?? hojeISO(), a);
+        return (
+          <Button
+            key={a.rotulo}
+            type="button"
+            size="sm"
+            variant={valor === data ? "default" : "outline"}
+            disabled={desativado}
+            onClick={() => onEscolher(base ? data : dataDoAtalho(hojeISO(), a))}
+            title={`Próxima dose em ${dateBR(data)}`}
+          >
+            {a.rotulo}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
 
 type Lote = {
   id: string;
@@ -87,7 +123,13 @@ function Vacinas() {
   const [proxima, setProxima] = useState("");
   const [semProxima, setSemProxima] = useState(false);
   const [externa, setExterna] = useState(false);
-  const [ext, setExt] = useState({ catalogo: "", data: hoje, informado: "", lote: "" });
+  const [ext, setExt] = useState({
+    catalogo: "",
+    data: hoje,
+    informado: "",
+    lote: "",
+    proxima: "",
+  });
   const [cancelando, setCancelando] = useState<{ id: string; motivo: string } | null>(null);
 
   const petId = pet;
@@ -177,6 +219,8 @@ function Vacinas() {
           aplicada_em: ext.data,
           informado_por: ext.informado,
           lote: ext.lote,
+          // em branco vale o protocolo do item
+          ...(ext.proxima ? { proxima_dose_em: ext.proxima } : {}),
         },
       });
       if (error) throw error;
@@ -184,7 +228,7 @@ function Vacinas() {
     onSuccess: () => {
       toast.success("Registrada como aplicada em outro local");
       setExterna(false);
-      setExt({ catalogo: "", data: hoje, informado: "", lote: "" });
+      setExt({ catalogo: "", data: hoje, informado: "", lote: "", proxima: "" });
       void qc.invalidateQueries({ queryKey: ["clinica-cartao"] });
     },
     onError: (e: Error) => toast.error("Não foi possível registrar", { description: e.message }),
@@ -332,6 +376,14 @@ function Vacinas() {
                 value={proxima}
                 onChange={(e) => setProxima(e.target.value)}
               />
+              <AtalhosProximaDose
+                valor={proxima}
+                desativado={semProxima}
+                onEscolher={(d) => {
+                  setProxima(d);
+                  setSemProxima(false);
+                }}
+              />
               <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
@@ -457,6 +509,23 @@ function Vacinas() {
                 onChange={(e) => setExt({ ...ext, informado: e.target.value })}
                 placeholder="Ex.: carteira de vacinação, tutor, outra clínica"
               />
+            </div>
+            <div>
+              <Label htmlFor="e-prox">Próxima dose</Label>
+              <Input
+                id="e-prox"
+                type="date"
+                value={ext.proxima}
+                onChange={(e) => setExt({ ...ext, proxima: e.target.value })}
+              />
+              <AtalhosProximaDose
+                base={ext.data || hoje}
+                valor={ext.proxima}
+                onEscolher={(d) => setExt({ ...ext, proxima: d })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Em branco, vale o protocolo do item.
+              </p>
             </div>
             <p className="text-xs text-muted-foreground">
               Não baixa estoque; entra no cartão marcada “aplicada em outro local”.
