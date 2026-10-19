@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { consultaPersistivel } from "@/lib/cache-clinico";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import {
   Outlet,
@@ -186,7 +187,16 @@ function RootComponent() {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24, buster: "zt-2" }}
+      persistOptions={{
+        persister,
+        maxAge: 1000 * 60 * 60 * 24,
+        // zt-3: descarta o cache antigo, que ainda podia guardar dado clínico em texto simples
+        buster: "zt-3",
+        dehydrateOptions: {
+          shouldDehydrateQuery: (q) =>
+            q.state.status === "success" && consultaPersistivel(q.queryKey),
+        },
+      }}
     >
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />

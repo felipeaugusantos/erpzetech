@@ -52,7 +52,7 @@ import {
   type ResumoExame,
 } from "@/lib/exames";
 import { dateBR, dateTimeBR } from "@/lib/format";
-import { ESPECIES, idadeDoPet, rotulo } from "@/lib/pet";
+import { ESPECIES, SEXOS, idadeDoPet, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/clinica-exames")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -673,13 +673,23 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
                 const d = dig[r.id];
                 const numerico = r.forma === "numero" || r.forma === "calculado";
                 const valor = valores[r.id] ?? null;
-                const faixaMin = r.forma === "numero" ? parseFaixa(d?.min) : r.faixa_min;
-                const faixaMax = r.forma === "numero" ? parseFaixa(d?.max) : r.faixa_max;
+                const faixaMin = numerico ? parseFaixa(d?.min) : null;
+                const faixaMax = numerico ? parseFaixa(d?.max) : null;
                 const posicao = numerico ? situacaoNaFaixa(valor, faixaMin, faixaMax) : null;
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">
                       {r.nome}
+                      {aberto && (
+                        <Input
+                          aria-label={`Nota — ${r.nome}`}
+                          placeholder="Nota (opcional)"
+                          maxLength={1000}
+                          className="mt-1 h-8 text-xs font-normal"
+                          value={d?.nota ?? ""}
+                          onChange={(e) => mexe(r.id, { nota: e.target.value })}
+                        />
+                      )}
                       {r.nota && !aberto && (
                         <span className="block text-xs font-normal text-muted-foreground">
                           {r.nota}
@@ -743,7 +753,7 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
                     <TableCell>{numerico ? r.unidade || "—" : ""}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       {numerico &&
-                        (aberto && r.forma === "numero" ? (
+                        (aberto ? (
                           <span className="flex items-center gap-1">
                             <Input
                               aria-label={`Mínimo — ${r.nome}`}
@@ -1016,6 +1026,7 @@ function Laudo({
           <span className="text-muted-foreground">Paciente: </span>
           {exame.pet.nome} · {rotulo(ESPECIES, exame.pet.especie)}
           {exame.pet.raca ? ` · ${exame.pet.raca}` : ""}
+          {exame.pet.sexo ? ` · ${rotulo(SEXOS, exame.pet.sexo)}` : ""}
           {exame.pet.nascimento ? ` · ${idadeDoPet(exame.pet.nascimento)}` : ""}
         </p>
         <p>
