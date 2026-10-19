@@ -188,3 +188,11 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 3 — Vacinas e vermífugos (`/clinica-catalogo`, `/clinica-vacinas`, `/clinica-cartao`): catálogo com série de doses e reforço (a gestão cadastra; sugestões marcadas para o veterinário conferir); aplicação dentro do atendimento de vacina, com lote e validade, baixando 1 dose do lote e do estoque; série e reforço calculados; auxiliar como aplicador sob o veterinário; cancelamento com motivo devolve a dose; vacina aplicada em outro local entra no cartão sem baixa; cartão imprimível para recepção, gestão e veterinário. O item cobrável é o serviço da agenda
 - [x] PR 4 — Reforços (`/clinica-reforcos`): pets com vacina ou vermífugo para tomar (padrão 15 dias à frente) ou atrasado (até 180 dias), uma linha por pet e data, com os itens; "Chamar no WhatsApp" (mensagem editável, guardada no navegador) e "Já falei" tiram o pet da lista naquela data; vale a aplicação mais recente de cada item (cancelada não conta, sem próxima dose e item inativo saem, pet com vacina já agendada não aparece); só nome do item e data, nada do prontuário (`clinica_reforcos_pendentes`, contatos do tipo `reforco`)
 - [ ] PR 5 — Cobrança clínica (caixa, NFS-e em rascunho, comissão do veterinário)
+
+## Rodada 11 — Pet shop, Fase 4: exames, lembretes e trabalho sem internet (`docs/pet-shop-fase-4.md`)
+- [ ] Escopo desenhado; aguardam as respostas das decisões em aberto (animais de grande porte, abrangência do modo sem internet, ordem, unidades da bioquímica, outras fichas)
+- [ ] PR 1 — Atalhos da próxima dose (21 dias, 30 dias, 1 ano)
+- [ ] PR 2 — Exames: modelos de hemograma, bioquímica e urina, com unidade e faixa por espécie
+- [ ] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
+- [ ] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
+- [ ] PR 5 — Trabalho sem internet: fila segura e criptografada para cadastros, atendimento, vacina e exame
