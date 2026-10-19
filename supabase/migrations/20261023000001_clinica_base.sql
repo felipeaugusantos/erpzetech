@@ -38,6 +38,26 @@ AS $$
             WHERE r.user_id = auth.uid() AND r.role NOT IN ('profissional', 'veterinario'))
 $$;
 
+-- ============ liberação da clínica no banco ============
+-- Mesma regra do menu (src/lib/cnae-regras.ts): ramo "Clínica veterinária" ou CNAE de atividades veterinárias (7500) entre os CNAEs
+-- da empresa. Toda política e função clínica exige isto, para a API chamada direto não contornar a liberação.
+CREATE OR REPLACE FUNCTION public.clinica_liberada()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.empresas e
+     WHERE e.tenant_id = public.current_tenant_id()
+       AND (e.ramo_atividade = 'clinica'
+            OR EXISTS (SELECT 1 FROM unnest(regexp_split_to_array(coalesce(e.cnae, '') || ',' || coalesce(e.cnae_secundarios, ''), '[,;\n|]+')) c
+                        WHERE regexp_replace(c, '\D', '', 'g') LIKE '7500%')))
+$$;
+REVOKE ALL ON FUNCTION public.clinica_liberada() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.clinica_liberada() TO authenticated;
+
 -- ============ CRMV no cadastro do profissional ============
 ALTER TABLE public.pet_profissionais ADD COLUMN IF NOT EXISTS crmv text;
 ALTER TABLE public.pet_profissionais ADD COLUMN IF NOT EXISTS crmv_uf text;
@@ -75,6 +95,7 @@ BEGIN
     RAISE EXCEPTION 'Loja não encontrada';
   END IF;
   IF v_funcao = 'veterinario' THEN
+    IF NOT public.clinica_liberada() THEN RAISE EXCEPTION 'A clínica não está liberada para esta empresa: informe o CNAE 7500 ou o ramo Clínica veterinária no cadastro da empresa'; END IF;
     IF v_crmv !~ '^[0-9A-Z]{3,12}$' THEN RAISE EXCEPTION 'Informe o CRMV do veterinário'; END IF;
     IF v_uf !~ '^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$' THEN
       RAISE EXCEPTION 'Informe a UF do CRMV';

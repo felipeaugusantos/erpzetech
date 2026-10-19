@@ -520,7 +520,9 @@ DECLARE
     -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
     'motorista_enviar_posicao',
     -- agenda do profissional: só quem tem o perfil profissional (e a conta ligada a um cadastro) passa
-    'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao'];
+    'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao',
+    -- só responde se a empresa tem a clínica liberada
+    'clinica_liberada'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -3523,7 +3525,7 @@ DECLARE
   pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
   t0 timestamptz := date_trunc('day', now()) + interval '11 days' + interval '9 hours';
   hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
-  tutor uuid; pet uuid; cons uuid; vet uuid; ban uuid; ag uuid; r jsonb;
+  tutor uuid; pet uuid; cons uuid; vet uuid; ban uuid; ag uuid; r jsonb; ramo_ant text; cnae_ant text; cnae2_ant text;
 BEGIN
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Clinica CI', '52998224725') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (v1, 'vet1@ci'), (vmix, 'vetmix@ci'), (pban, 'banhista@ci');
@@ -3539,6 +3541,16 @@ BEGIN
   PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT count(*) FROM pet_servicos WHERE categoria IN ('consulta', 'vacina', 'exame') AND tenant_id = demo) = 3, 'consulta, vacina e exame são categorias de serviço');
+
+  -- liberação da clínica no banco: sem CNAE 7500 nem ramo clínica, não cadastra veterinário
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.exige(NOT ci.contar(gest, 'SELECT clinica_liberada()::int') = 1, 'pet shop sem CNAE 7500 não tem a clínica liberada');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Vet Sem Clinica","funcao":"veterinario","crmv":"12345","crmv_uf":"SP"}'::jsonb)$c$, 'veterinário em empresa sem clínica');
+  UPDATE empresas SET cnae_secundarios = '9609-2/08; 7500-1/00' WHERE tenant_id = demo;
+  PERFORM ci.exige(ci.contar(gest, 'SELECT clinica_liberada()::int') = 1, 'CNAE 7500 entre os secundários libera a clínica');
+  UPDATE empresas SET cnae_secundarios = NULL, ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  PERFORM ci.exige(ci.contar(gest, 'SELECT clinica_liberada()::int') = 1, 'ramo Clínica veterinária libera a clínica');
 
   -- CRMV: obrigatório para veterinário, normalizado, e só para ele
   PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Vet Sem Crmv","funcao":"veterinario"}'::jsonb)$c$, 'veterinário sem CRMV');
@@ -3587,4 +3599,5 @@ BEGIN
   PERFORM ci.deve_falhar(v1, format($c$SELECT pet_agenda_situacao(%L, 'pronto')$c$, ag), 'veterinário usa a função da recepção');
   PERFORM ci.deve_falhar(v1, format($c$SELECT pet_profissional_vincular(%L, %L)$c$, ban, pban), 'veterinário liga contas');
   PERFORM ci.deve_falhar(v1, format($c$UPDATE pet_profissionais SET crmv = '1', crmv_uf = 'SP' WHERE id = %L$c$, vet), 'veterinário altera o CRMV direto');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
