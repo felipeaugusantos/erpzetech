@@ -58,7 +58,7 @@ O que muda no desenho:
 4. **Material** é um campo do exame, em lista editável.
 5. O **laudo impresso pela clínica** (PR 3) segue esse formato: cabeçalho do paciente, grupos, valor, unidade, faixa e observações, com o destaque de valor fora da faixa.
 
-## PR 2 — Exames: modelos
+## PR 2 — Exames: modelos (entregue)
 
 As telas de hoje definem os modelos iniciais (campos na ordem da tela):
 
@@ -73,6 +73,7 @@ Desenho:
 - Cada tela acima vira o modelo correspondente já cadastrado, para a clínica começar sem montar nada.
 - O laudo de exemplo (seção anterior) acrescenta ao hemograma **VCM, HCM, CHCM e RDW**, separa o **plaquetograma** (com observação própria) e mostra que a bioquímica chega **um exame por vez**, cada um com unidade, faixa e nota técnica.
 - **Exame fechado guarda o que viu:** ao fechar, o resultado grava junto, para cada campo, o nome, a unidade, as casas decimais e a faixa de referência em vigor. Editar o modelo depois muda só os exames futuros; laudo e evolução de exame fechado leem esse registro, nunca o modelo atual.
+- **Como ficou:** tela **Modelos de exame** (gestão e veterinário), com os modelos iniciais criados por botão (hemograma, bioquímica e urina), campos por grupo com subir e descer, e faixa por espécie. Os modelos iniciais **não trazem faixa de referência**: cada clínica digita a do seu laboratório. Campo nunca se apaga, só fica inativo. O absoluto do leucograma é um campo **calculado** ligado ao total e ao percentual. O fechamento do exame, que grava nome, unidade e faixa no resultado, chega no PR 3.
 - Acesso: o mesmo desenho do prontuário (seção "Regras que valem para tudo"). Sem acesso direto às tabelas, funções que exigem a clínica liberada (`clinica_liberada`). **Manter modelo e faixa** (configuração) é do administrador, do gestor e do Veterinário, como o catálogo de vacinas; **escrever resultado** é só do Veterinário.
 
 ## PR 3 — Exames: resultados

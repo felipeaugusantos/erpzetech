@@ -9096,6 +9096,23 @@ export type Database = {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
       }
+      clinica_exame_campo_mover: {
+        Args: { p_campo_id: string; p_delta: number }
+        Returns: undefined
+      }
+      clinica_exame_campo_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_exame_modelos: { Args: never; Returns: Json }
+      clinica_exame_modelos_iniciais: { Args: never; Returns: number }
+      clinica_exame_referencia_salvar: {
+        Args: {
+          p_campo_id: string
+          p_especie: string
+          p_maximo: number
+          p_minimo: number
+        }
+        Returns: undefined
+      }
       clinica_vacina_catalogo_salvar: { Args: { p_dados: Json }; Returns: string }
       clinica_vacina_registrar_externa: {
         Args: { p_dados: Json; p_pet_id: string }
