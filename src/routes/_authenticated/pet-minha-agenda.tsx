@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Dog, Scissors, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR, num } from "@/lib/format";
+import { useSessionData } from "@/hooks/useSessionData";
+import { useModulosCnae } from "@/lib/cnae";
 import { hojeISO } from "@/lib/financeiro";
 import {
   ESPECIES,
@@ -52,7 +54,7 @@ type Atendimento = {
     alergias: string | null;
     observacoes: string | null;
   };
-  servicos: { nome: string; duracao_min: number }[];
+  servicos: { nome: string; categoria?: string; duracao_min: number }[];
 };
 
 const hora = (iso: string) =>
@@ -66,6 +68,9 @@ function MinhaAgenda() {
   const qc = useQueryClient();
   const hoje = hojeISO();
   const [dia, setDia] = useState(hoje);
+  const { data: sessao } = useSessionData();
+  const { clinica } = useModulosCnae();
+  const prontuario = clinica && (sessao?.roles ?? []).includes("veterinario");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pet-minha-agenda", dia],
@@ -186,14 +191,25 @@ function MinhaAgenda() {
                   </p>
                 )}
 
-                {passo && (
-                  <div className="mt-3">
-                    <Button
-                      onClick={() => avancar.mutate({ id: a.id, para: passo.para })}
-                      disabled={avancar.isPending}
-                    >
-                      {passo.rotulo}
-                    </Button>
+                {(passo || (prontuario && a.servicos.some((s) => s.categoria === "consulta"))) && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {prontuario && a.servicos.some((s) => s.categoria === "consulta") && (
+                      <Button asChild variant="outline">
+                        <Link to="/clinica-atendimento" search={{ agendamento: a.id }}>
+                          {a.situacao === "pronto" || a.situacao === "retirado"
+                            ? "Ver prontuário"
+                            : "Abrir prontuário"}
+                        </Link>
+                      </Button>
+                    )}
+                    {passo && (
+                      <Button
+                        onClick={() => avancar.mutate({ id: a.id, para: passo.para })}
+                        disabled={avancar.isPending}
+                      >
+                        {passo.rotulo}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

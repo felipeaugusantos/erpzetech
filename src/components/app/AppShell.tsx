@@ -35,6 +35,7 @@ import {
   Package,
   PackageOpen,
   PawPrint,
+  Stethoscope,
   Scissors,
   Tag,
   TrendingUp,
@@ -194,6 +195,11 @@ const groups: Group[] = [
     ],
   },
   {
+    label: "Clínica",
+    icon: Stethoscope,
+    items: [{ label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope }],
+  },
+  {
     label: "Assistência técnica",
     icon: Wrench,
     items: [
@@ -348,6 +354,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const somenteSalao = useMemo(() => ehSalaoRestrito(data?.roles ?? []), [data]);
   /** Profissional do pet shop puro só enxerga a própria agenda (o banco também o isola). */
   const somenteProfissional = useMemo(() => ehProfissionalRestrito(data?.roles ?? []), [data]);
+  const souVeterinario = (data?.roles ?? []).includes("veterinario");
 
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
@@ -370,6 +377,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
           if (g.label === "Pet shop") return modulos.petshop;
+          // o texto clínico é só do perfil Veterinário (o banco confere de novo)
+          if (g.label === "Clínica") return modulos.clinica && souVeterinario;
           if (soAlimentacao && (GRUPOS_FORA_DA_ALIMENTACAO as readonly string[]).includes(g.label))
             return false;
           return true;
@@ -404,6 +413,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.locacao,
       modulos.restaurante,
       modulos.petshop,
+      modulos.clinica,
+      souVeterinario,
       ehConstrucao,
       fazPersonalizacao,
       soAlimentacao,
@@ -456,7 +467,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {
           label: "Pet shop",
           icon: PawPrint,
-          items: [{ label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock }],
+          items: [
+            { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
+            ...(souVeterinario && modulos.clinica
+              ? [{ label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope }]
+              : []),
+          ],
         },
       ]
     : somenteSalao
@@ -482,7 +498,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [somenteMotorista, pathname, navigate]);
 
   useEffect(() => {
-    if (somenteProfissional && pathname !== "/pet-minha-agenda") {
+    const permitidas = ["/pet-minha-agenda", "/clinica-prontuario", "/clinica-atendimento"];
+    if (somenteProfissional && !permitidas.includes(pathname)) {
       navigate({ to: "/pet-minha-agenda", replace: true });
     }
   }, [somenteProfissional, pathname, navigate]);
