@@ -12,7 +12,7 @@ Dar ao pet shop de bairro o que ele usa todo dia: cadastro de **tutor e pet**, *
 
 - **Liberação:** igual ao restaurante, mas **somente** por CNAE de veterinária e pet shop (ou pelo ramo "Pet shop" escolhido no cadastro da empresa, como o restaurante). Prefixos propostos, a confirmar com a contabilidade: `7500` (atividades veterinárias), `4789004` (comércio varejista de animais vivos e artigos para animais de estimação) e `9609208` (higiene e embelezamento de animais domésticos). Prefixo mais curto como `4789` ou `9609` fica de fora de propósito: pegaria outras atividades. Regra em `src/lib/cnae-regras.ts` (novo módulo `petshop`), usada por `useModulosCnae()`.
 - **Menu:** novo grupo "Pet shop" (Agenda, Pets e tutores, Serviços, Profissionais) e item em Relatórios ("Serviços por profissional"). Segue a regra de menu enxuto já existente: o ramo pet shop esconde obras, personalização, lotes de piso e logística de frota (a avaliar o táxi dog na Fase 3).
-- **Perfis:** administrador, gestor, vendedor/caixa (agendar e cobrar) e o profissional (ver a própria agenda). Garçom e cozinha não enxergam nada (política `salao_restrito`, como nas demais tabelas).
+- **Perfis:** administrador, gestor, vendedor/caixa (agendar e cobrar). Na Fase 1 o profissional **não tem login**: a recepção opera a agenda por ele. A "agenda própria do profissional" fica para a Fase 2 e exige um vínculo explícito entre a conta e o cadastro (coluna `pet_profissionais.profile_id`, única, referenciando `profiles`) e uma política de leitura que só devolva os agendamentos desse vínculo. Garçom e cozinha não enxergam nada (política `salao_restrito`, como nas demais tabelas).
 
 ## 3. O que reaproveita
 
@@ -35,7 +35,12 @@ Um tutor tem vários pets; um pet tem um tutor. Pet não é apagado (inativa).
 
 ### `pet_servicos`
 
-`id, tenant_id, nome, categoria (banho/tosa/estética/outro), duracao_min, produto_id` — o serviço **é um produto do tipo serviço**, para entrar na frente de caixa e na nota sem criar outro fluxo de venda.
+`id, tenant_id, nome, categoria (banho/tosa/estética/outro), duracao_min, produto_id` — o serviço **é um produto**, para entrar na frente de caixa e na nota sem criar outro fluxo de venda. Hoje `produtos` não distingue serviço de mercadoria e o PDV (`pdv_venda`, `frente_venda`) baixa estoque de todo item, e o cancelamento devolve a quantidade. Por isso a **primeira entrega inclui** a coluna `produtos.controla_estoque boolean not null default true` (serviço = `false`) e as mudanças:
+
+- `registrar_movimentacao` e as rotinas de venda e cancelamento ignoram o estoque de produto com `controla_estoque = false` (sem saldo, sem erro de estoque insuficiente);
+- reposição, giro, balanço de estoque e relatórios de estoque deixam esses produtos de fora;
+- a NFC-e leva só itens que controlam estoque/mercadoria; o serviço vai para a NFS-e (seção 6);
+- teste de banco: vender e cancelar serviço não cria movimentação nem exige saldo, e produto comum continua igual.
 
 ### `pet_servico_precos`
 
@@ -77,7 +82,8 @@ Ao retirar/cobrar, grava `pet_comissoes (profissional_id, agendamento_id, base, 
 ## 6. Fiscal
 
 - Produto vendido segue NFC-e como hoje.
-- Serviço (banho e tosa) é **NFS-e** — depende de inscrição municipal, código do serviço e ISS configurados (item pendente da Rodada 4 do roadmap). Até lá o serviço fica na venda sem nota de serviço; a tela de pendências fiscais já lista isso.
+- Serviço (banho e tosa) é **NFS-e** — depende de inscrição municipal, código do serviço e ISS configurados (item pendente da Rodada 4 do roadmap).
+- Para o serviço não sumir da fila fiscal, a cobrança **sempre cria a NFS-e como rascunho** (modelo `nfse`, situação rascunho, com a pendência "configuração da NFS-e incompleta" quando faltar dado), na mesma rotina da locação (`locacao_gerar_nfse`). A tela de pendências fiscais lê notas já existentes e, assim, lista o rascunho; sem criar o rascunho, a omissão ficaria invisível. Teste de banco: venda de serviço sem configuração gera rascunho com pendência e aparece no filtro de pendentes.
 
 ## 7. Segurança e testes
 
