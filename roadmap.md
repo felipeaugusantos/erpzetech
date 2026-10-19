@@ -192,7 +192,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 ## Rodada 11 — Pet shop, Fase 4: exames, lembretes e trabalho sem internet (`docs/pet-shop-fase-4.md`)
 - [ ] Escopo desenhado; aguardam as respostas das decisões em aberto (animais de grande porte, abrangência do modo sem internet, ordem, unidades da bioquímica, outras fichas)
 - [x] PR 1 — Atalhos da próxima dose (21 dias, 30 dias, 1 ano)
-- [ ] PR 2 — Exames: modelos de hemograma, bioquímica e urina, com unidade e faixa por espécie
+- [ ] PR 2 — Exames: modelos de hemograma (com VCM, HCM, CHCM e RDW), bioquímica e urina, com unidade e faixa por espécie; faixa guardada no resultado
 - [ ] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [ ] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
 - [ ] PR 5 — Trabalho sem internet: fila segura e criptografada para cadastros, atendimento, vacina e exame
