@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
+import { useSessionData } from "@/hooks/useSessionData";
 import { PagamentosForm } from "@/components/restaurante/PagamentosForm";
 import {
   linhaInicial,
@@ -23,12 +26,19 @@ import {
 } from "@/lib/restaurante-pagamentos";
 import { brl } from "@/lib/format";
 import { calcularConta, ehGestaoSalao } from "@/lib/restaurante";
-import { CHAVE_REST, rpcRestaurante, type Comanda } from "@/lib/restaurante-dados";
+import {
+  CHAVE_REST,
+  rpcRestaurante,
+  type Comanda,
+  type ComandaItem,
+} from "@/lib/restaurante-dados";
 
 /** Fecha a conta: serviço, desconto (gestão) e recebimento do saldo, depois de eventuais baixas parciais. */
 export function FecharContaDialog({
   comanda,
   subtotalItens,
+  itens,
+  mesaNumero,
   jaPago,
   roles,
   onFechar,
@@ -36,6 +46,8 @@ export function FecharContaDialog({
 }: {
   comanda: Comanda;
   subtotalItens: number;
+  itens: ComandaItem[];
+  mesaNumero: string | null;
   jaPago: number;
   roles: string[];
   onFechar: () => void;
@@ -43,6 +55,7 @@ export function FecharContaDialog({
 }) {
   const qc = useQueryClient();
   const gestao = ehGestaoSalao(roles);
+  const { data: sessao } = useSessionData();
   const [cobrarServico, setCobrarServico] = useState(true);
   const [desconto, setDesconto] = useState("0");
   const [caixaId, setCaixaId] = useState("");
@@ -61,6 +74,22 @@ export function FecharContaDialog({
       }),
     [subtotalItens, comanda, cobrarServico, desconto, gestao, jaPago],
   );
+
+  function imprimir() {
+    imprimirContaComanda({
+      numero: comanda.numero,
+      mesa: mesaNumero,
+      cliente: comanda.cliente_nome,
+      loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+      itens: itensDaConta(itens),
+      pessoas: comanda.pessoas,
+      couvertPorPessoa: Number(comanda.couvert_por_pessoa),
+      taxaServicoPercentual: Number(comanda.taxa_servico_percentual),
+      servico: cobrarServico ? "cobrado" : "dispensado",
+      desconto: conta.desconto,
+      jaPago: conta.jaPago,
+    });
+  }
 
   const fechar = useMutation({
     mutationFn: async () => {
@@ -105,7 +134,9 @@ export function FecharContaDialog({
           <div className="flex items-center justify-between py-0.5">
             <span className="flex items-center gap-2">
               <Switch checked={cobrarServico} onCheckedChange={setCobrarServico} id="servico" />
-              <Label htmlFor="servico">Serviço ({comanda.taxa_servico_percentual}%)</Label>
+              <Label htmlFor="servico">
+                Serviço ({comanda.taxa_servico_percentual}%) — opcional, o cliente decide
+              </Label>
             </span>
             <span>{brl(conta.servico)}</span>
           </div>
@@ -156,6 +187,9 @@ export function FecharContaDialog({
         )}
 
         <DialogFooter>
+          <Button variant="outline" onClick={imprimir}>
+            <Printer className="mr-1 size-4" /> Imprimir conta
+          </Button>
           <Button variant="outline" onClick={onFechar}>
             Voltar
           </Button>
