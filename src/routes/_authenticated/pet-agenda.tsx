@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, ChevronLeft, ChevronRight, Car } from "lucide-react";
 import { toast } from "sonner";
@@ -312,34 +312,48 @@ function Agenda() {
                           </p>
                           {a.observacoes && <p className="mt-1 text-xs italic">{a.observacoes}</p>}
                           {a.motivo && <p className="mt-1 text-xs">Motivo: {a.motivo}</p>}
-                          {podeAgendar && (passos.length > 0 || podeRemarcar(a.situacao)) && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {passos.map((p) => (
-                                <Button
-                                  key={p.para}
-                                  size="sm"
-                                  variant={p.motivo ? "outline" : "default"}
-                                  disabled={mudar.isPending}
-                                  onClick={() =>
-                                    p.motivo
-                                      ? setPedindoMotivo({ ag: a, para: p.para, rotulo: p.rotulo })
-                                      : mudar.mutate({ id: a.id, para: p.para })
-                                  }
-                                >
-                                  {p.rotulo}
-                                </Button>
-                              ))}
-                              {podeRemarcar(a.situacao) && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setRemarcando(a)}
-                                >
-                                  Remarcar
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                          {podeAgendar &&
+                            (passos.length > 0 ||
+                              podeRemarcar(a.situacao) ||
+                              a.situacao === "pronto") && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {passos.map((p) => (
+                                  <Button
+                                    key={p.para}
+                                    size="sm"
+                                    variant={p.motivo ? "outline" : "default"}
+                                    disabled={mudar.isPending}
+                                    onClick={() =>
+                                      p.motivo
+                                        ? setPedindoMotivo({
+                                            ag: a,
+                                            para: p.para,
+                                            rotulo: p.rotulo,
+                                          })
+                                        : mudar.mutate({ id: a.id, para: p.para })
+                                    }
+                                  >
+                                    {p.rotulo}
+                                  </Button>
+                                ))}
+                                {a.situacao === "pronto" && (
+                                  <Button size="sm" asChild>
+                                    <Link to="/frente-caixa" search={{ pet: a.id }}>
+                                      Retirar e cobrar
+                                    </Link>
+                                  </Button>
+                                )}
+                                {podeRemarcar(a.situacao) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setRemarcando(a)}
+                                  >
+                                    Remarcar
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                         </li>
                       );
                     })}

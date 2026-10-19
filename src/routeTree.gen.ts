@@ -86,6 +86,7 @@ import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pd
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
 import { Route as AuthenticatedPetAgendaRouteImport } from './routes/_authenticated/pet-agenda'
+import { Route as AuthenticatedPetComissoesRouteImport } from './routes/_authenticated/pet-comissoes'
 import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
 import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
 import { Route as AuthenticatedPetsRouteImport } from './routes/_authenticated/pets'
@@ -100,6 +101,7 @@ import { Route as AuthenticatedRelatorioAssistenciaRouteImport } from './routes/
 import { Route as AuthenticatedRelatorioComissoesRouteImport } from './routes/_authenticated/relatorio-comissoes'
 import { Route as AuthenticatedRelatorioEstoqueRouteImport } from './routes/_authenticated/relatorio-estoque'
 import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_authenticated/relatorio-locacoes'
+import { Route as AuthenticatedRelatorioPetProfissionaisRouteImport } from './routes/_authenticated/relatorio-pet-profissionais'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
 import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
@@ -552,6 +554,12 @@ const AuthenticatedPetAgendaRoute = AuthenticatedPetAgendaRouteImport.update({
   path: '/pet-agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPetComissoesRoute =
+  AuthenticatedPetComissoesRouteImport.update({
+    id: '/pet-comissoes',
+    path: '/pet-comissoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPetProfissionaisRoute =
   AuthenticatedPetProfissionaisRouteImport.update({
     id: '/pet-profissionais',
@@ -627,6 +635,12 @@ const AuthenticatedRelatorioLocacoesRoute =
   AuthenticatedRelatorioLocacoesRouteImport.update({
     id: '/relatorio-locacoes',
     path: '/relatorio-locacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatorioPetProfissionaisRoute =
+  AuthenticatedRelatorioPetProfissionaisRouteImport.update({
+    id: '/relatorio-pet-profissionais',
+    path: '/relatorio-pet-profissionais',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
@@ -870,6 +884,7 @@ export interface FileRoutesByFullPath {
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -884,6 +899,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
+  '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
@@ -991,6 +1007,7 @@ export interface FileRoutesByTo {
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/pets': typeof AuthenticatedPetsRoute
@@ -1005,6 +1022,7 @@ export interface FileRoutesByTo {
   '/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
+  '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
@@ -1114,6 +1132,7 @@ export interface FileRoutesById {
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/_authenticated/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/_authenticated/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
   '/_authenticated/pets': typeof AuthenticatedPetsRoute
@@ -1128,6 +1147,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-comissoes': typeof AuthenticatedRelatorioComissoesRoute
   '/_authenticated/relatorio-estoque': typeof AuthenticatedRelatorioEstoqueRoute
   '/_authenticated/relatorio-locacoes': typeof AuthenticatedRelatorioLocacoesRoute
+  '/_authenticated/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
   '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
@@ -1237,6 +1257,7 @@ export interface FileRouteTypes {
     | '/pendencias-fiscais'
     | '/personalizacao'
     | '/pet-agenda'
+    | '/pet-comissoes'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1251,6 +1272,7 @@ export interface FileRouteTypes {
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/relatorio-locacoes'
+    | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
     | '/sugestao-compra'
@@ -1358,6 +1380,7 @@ export interface FileRouteTypes {
     | '/pendencias-fiscais'
     | '/personalizacao'
     | '/pet-agenda'
+    | '/pet-comissoes'
     | '/pet-profissionais'
     | '/pet-servicos'
     | '/pets'
@@ -1372,6 +1395,7 @@ export interface FileRouteTypes {
     | '/relatorio-comissoes'
     | '/relatorio-estoque'
     | '/relatorio-locacoes'
+    | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
     | '/sugestao-compra'
@@ -1480,6 +1504,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
     | '/_authenticated/pet-agenda'
+    | '/_authenticated/pet-comissoes'
     | '/_authenticated/pet-profissionais'
     | '/_authenticated/pet-servicos'
     | '/_authenticated/pets'
@@ -1494,6 +1519,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-comissoes'
     | '/_authenticated/relatorio-estoque'
     | '/_authenticated/relatorio-locacoes'
+    | '/_authenticated/relatorio-pet-profissionais'
     | '/_authenticated/rota'
     | '/_authenticated/salao'
     | '/_authenticated/sugestao-compra'
@@ -2076,6 +2102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPetAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-comissoes': {
+      id: '/_authenticated/pet-comissoes'
+      path: '/pet-comissoes'
+      fullPath: '/pet-comissoes'
+      preLoaderRoute: typeof AuthenticatedPetComissoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pet-profissionais': {
       id: '/_authenticated/pet-profissionais'
       path: '/pet-profissionais'
@@ -2172,6 +2205,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorio-locacoes'
       fullPath: '/relatorio-locacoes'
       preLoaderRoute: typeof AuthenticatedRelatorioLocacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-pet-profissionais': {
+      id: '/_authenticated/relatorio-pet-profissionais'
+      path: '/relatorio-pet-profissionais'
+      fullPath: '/relatorio-pet-profissionais'
+      preLoaderRoute: typeof AuthenticatedRelatorioPetProfissionaisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rota': {
@@ -2452,6 +2492,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
   AuthenticatedPetAgendaRoute: typeof AuthenticatedPetAgendaRoute
+  AuthenticatedPetComissoesRoute: typeof AuthenticatedPetComissoesRoute
   AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
   AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
   AuthenticatedPetsRoute: typeof AuthenticatedPetsRoute
@@ -2466,6 +2507,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioComissoesRoute: typeof AuthenticatedRelatorioComissoesRoute
   AuthenticatedRelatorioEstoqueRoute: typeof AuthenticatedRelatorioEstoqueRoute
   AuthenticatedRelatorioLocacoesRoute: typeof AuthenticatedRelatorioLocacoesRoute
+  AuthenticatedRelatorioPetProfissionaisRoute: typeof AuthenticatedRelatorioPetProfissionaisRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
   AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
@@ -2568,6 +2610,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
   AuthenticatedPetAgendaRoute: AuthenticatedPetAgendaRoute,
+  AuthenticatedPetComissoesRoute: AuthenticatedPetComissoesRoute,
   AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
   AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,
   AuthenticatedPetsRoute: AuthenticatedPetsRoute,
@@ -2583,6 +2626,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatorioComissoesRoute: AuthenticatedRelatorioComissoesRoute,
   AuthenticatedRelatorioEstoqueRoute: AuthenticatedRelatorioEstoqueRoute,
   AuthenticatedRelatorioLocacoesRoute: AuthenticatedRelatorioLocacoesRoute,
+  AuthenticatedRelatorioPetProfissionaisRoute:
+    AuthenticatedRelatorioPetProfissionaisRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
   AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,

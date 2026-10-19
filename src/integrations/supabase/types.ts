@@ -5234,6 +5234,63 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_comissoes: {
+        Row: {
+          agendamento_id: string
+          aprovada_em: string | null
+          aprovada_por: string | null
+          base: number
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          pago_em: string | null
+          pago_por: string | null
+          pedido_id: string
+          percentual: number
+          profissional_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          agendamento_id: string
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id: string
+          percentual: number
+          profissional_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          agendamento_id?: string
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base?: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id?: string
+          percentual?: number
+          profissional_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       pet_profissionais: {
         Row: {
           ativo: boolean
@@ -8305,6 +8362,19 @@ export type Database = {
       pet_reagendar: {
         Args: { p_id: string; p_inicio: string; p_profissional_id?: string }
         Returns: undefined
+      }
+      pet_agenda_retirar: {
+        Args: { p_agendamento_id: string; p_chave?: string; p_pedido_id?: string }
+        Returns: Json
+      }
+      pet_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
+      pet_comissao_pagar: {
+        Args: { p_forma?: string; p_id: string }
+        Returns: undefined
+      }
+      pet_servicos_por_profissional: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
       }
       pet_preco_calcular: {
         Args: { p_pet_id: string; p_servico_id: string }

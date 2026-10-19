@@ -184,6 +184,7 @@ const groups: Group[] = [
       { label: "Pets e tutores", to: "/pets", icon: PawPrint },
       { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
       { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },
+      { label: "Comissões", to: "/pet-comissoes", icon: Tag },
     ],
   },
   {
@@ -246,6 +247,12 @@ const groups: Group[] = [
       },
       { secao: "Locação", label: "Painel de locação", to: "/painel-locacao", icon: Gauge },
       { secao: "Locação", label: "Relatório em PDF", to: "/relatorio-locacoes", icon: FileText },
+      {
+        secao: "Pet shop",
+        label: "Serviços por profissional",
+        to: "/relatorio-pet-profissionais",
+        icon: Scissors,
+      },
     ],
   },
   {
@@ -373,6 +380,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               return modulos.assistencia;
             if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
               return modulos.locacao;
+            if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
             if (
               i.to === "/personalizacao" ||
               i.to === "/custo-par" ||

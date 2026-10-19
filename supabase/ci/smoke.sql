@@ -2908,3 +2908,135 @@ BEGIN
   SELECT count(*) INTO n FROM pet_agendamentos WHERE tenant_id = tb;
   PERFORM ci.exige(n = 0, 'a outra empresa não recebeu agendamentos');
 END $$;
+
+-- 38. Pet shop (cobrança): retirar e cobrar, comissão, NFS-e em rascunho, NFC-e só de mercadoria e venda cancelada
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  fin  constant uuid := 'a0000000-0000-0000-0000-0000000000b2';
+  tutor uuid; pet uuid; prof uuid; serv uuid; serv_prod uuid; merc uuid; dep uuid; ag uuid; ag2 uuid; ag3 uuid;
+  ped uuid; ped2 uuid; ped_so_serv uuid; ped_errado uuid; r jsonb; com uuid; nfe_ct bigint; n bigint;
+  t0 timestamptz := date_trunc('day', now()) + interval '3 days' + interval '9 hours';
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Pet Cobrança CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'PET-COB-RACAO', 'Ração cobrança', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança CI', '52998224725') RETURNING id INTO tutor;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := pet_servico_salvar('{"nome":"Banho Cobrança","duracao_min":60}'::jsonb);
+  PERFORM pet_preco_salvar(serv, NULL, NULL, NULL, 60);
+  prof := pet_profissional_salvar('{"nome":"Cris Cobrança","funcao":"tosador","comissao_percentual":30}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM pet_servicos WHERE id = serv;
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Cobrança', 'porte', 'pequeno'));
+  ag := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  ag2 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof, 'inicio', t0 + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  ag3 := pet_agendar(jsonb_build_object('pet_id', pet, 'profissional_id', prof, 'inicio', t0 + interval '4 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', serv))));
+  -- venda do caixa: serviço (60) + 2 rações (40), desconto de 10 no total
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60),
+                                          jsonb_build_object('produto_id', merc, 'quantidade', 2, 'preco_unitario', 20)),
+                   'crediario', tutor, 10, 1, current_date + 30);
+  ped_so_serv := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60)), 'crediario', tutor, 0, 1, current_date + 30);
+  ped_errado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 50)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+
+  -- só atendimento pronto é cobrado
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped), 'cobrar atendimento que ainda não está pronto');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_agenda_situacao(ag, 'em_atendimento'); PERFORM pet_agenda_situacao(ag, 'pronto');
+  PERFORM pet_agenda_situacao(ag2, 'em_atendimento'); PERFORM pet_agenda_situacao(ag2, 'pronto');
+  PERFORM ci.sair();
+
+  -- a venda tem de ser a certa
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped), 'garçom cobra');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped), 'estoquista cobra');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped), 'anon cobra');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L)$c$, ag), 'sem informar a venda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped_errado), 'venda com o serviço por outro valor');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, gen_random_uuid()), 'venda que não existe');
+
+  -- cobrar: comissão sobre a parte do serviço já com o desconto proporcional (60 de 100 → 54 → 30% = 16,20)
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'retirado' AND venda_id = ped FROM pet_agendamentos WHERE id = ag), 'o atendimento fica retirado e ligado à venda');
+  PERFORM ci.exige((SELECT base = 54 AND percentual = 30 AND valor = 16.20 AND situacao = 'a_aprovar' FROM pet_comissoes WHERE agendamento_id = ag),
+                   'comissão de 30% sobre o serviço líquido do desconto, sem contar a ração');
+  PERFORM ci.exige((SELECT modelo = 'nfse' AND situacao = 'rascunho' AND valor_total = 54 AND valor_produtos = 60 AND valor_desconto = 6 AND array_length(pendencias, 1) > 0
+                      FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'NFS-e do serviço em rascunho, com as pendências de configuração');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM nfe_itens WHERE nfe_id = (r ->> 'nfe_id')::uuid), 'a NFS-e leva o serviço');
+
+  -- repetir a chamada não duplica nada
+  PERFORM ci.entrar(vend);
+  r := pet_agenda_retirar(ag, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM pet_comissoes WHERE agendamento_id = ag)
+                   AND (SELECT count(*) = 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'repetir a cobrança não duplica comissão nem nota');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag2, ped), 'a mesma venda cobrando dois atendimentos');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_situacao(%L, 'cancelado', 'x')$c$, ag), 'cancelar atendimento já retirado');
+
+  -- NFC-e: só a ração entra (40 − 4 de desconto proporcional = 36); venda só de serviço não gera NFC-e
+  PERFORM ci.entrar(vend);
+  PERFORM nfce_criar(ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor_produtos = 40 AND valor_desconto = 4 AND valor_total = 36 FROM nfe WHERE pedido_id = ped AND modelo = 'nfce'), 'a NFC-e leva só a mercadoria e a parte do desconto dela');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM nfe_itens WHERE nfe_id = (SELECT id FROM nfe WHERE pedido_id = ped AND modelo = 'nfce')), 'a NFC-e não leva o serviço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT nfce_criar(%L)$c$, ped_so_serv), 'NFC-e de venda só de serviço');
+
+  -- venda cancelada: atendimento volta a pronto, comissão cancelada e NFS-e em rascunho sai
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped;
+  PERFORM ci.exige((SELECT situacao = 'pronto' AND venda_id IS NULL FROM pet_agendamentos WHERE id = ag), 'venda cancelada devolve o atendimento a pronto');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM pet_comissoes WHERE agendamento_id = ag), 'venda cancelada cancela a comissão');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'venda cancelada tira o rascunho da NFS-e');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_agenda_retirar(%L, %L)$c$, ag, ped), 'cobrar com venda cancelada');
+
+  -- cobrar de novo o mesmo atendimento com outra venda: a comissão cancelada volta a valer
+  PERFORM ci.entrar(vend);
+  ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60)), 'crediario', tutor, 0, 1, current_date + 30);
+  r := pet_agenda_retirar(ag, ped2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'a_aprovar' AND pedido_id = ped2 AND base = 60 AND valor = 18 FROM pet_comissoes WHERE agendamento_id = ag), 'cobrar de novo reativa a comissão cancelada, com a nova venda');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_comissoes WHERE agendamento_id = ag) AND EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped2 AND modelo = 'nfse'), 'uma comissão por atendimento e nova NFS-e em rascunho');
+  PERFORM ci.entrar(vend);
+  -- ag2 (outro atendimento pronto) usa a venda só de serviço
+  r := pet_agenda_retirar(ag2, ped_so_serv);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT base = 60 AND valor = 18 FROM pet_comissoes WHERE agendamento_id = ag2), 'sem desconto, a comissão é 30% do valor do serviço');
+
+  -- comissões: aprovar e pagar
+  SELECT id INTO com FROM pet_comissoes WHERE agendamento_id = ag2;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_comissao_aprovar(%L)$c$, com), 'vendedor aprova comissão');
+  PERFORM ci.deve_falhar(fin, format($c$SELECT pet_comissao_pagar(%L)$c$, com), 'pagar comissão não aprovada');
+  PERFORM ci.entrar(fin);
+  PERFORM pet_comissao_aprovar(com);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(fin, format($c$SELECT pet_comissao_aprovar(%L)$c$, com), 'aprovar duas vezes');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_comissao_pagar(com, 'pix');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'paga' AND forma_pagamento = 'pix' AND pago_em IS NOT NULL AND pago_por IS NOT NULL FROM pet_comissoes WHERE id = com), 'comissão paga com registro de quem e quando');
+
+  -- relatório por profissional (retirados no período)
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_servicos_por_profissional(current_date, current_date + 5)$c$), 'vendedor lê o relatório');
+  PERFORM ci.entrar(fin);
+  r := pet_servicos_por_profissional(current_date, current_date + 10);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (e ->> 'atendimentos')::int = 2 AND (e ->> 'faturamento')::numeric = 120 AND (e ->> 'comissao_paga')::numeric = 18
+                           AND (e ->> 'comissao_a_aprovar')::numeric = 18
+                      FROM jsonb_array_elements(r) e WHERE e ->> 'nome' = 'Cris Cobrança'), 'relatório: dois atendimentos retirados, R$ 120, comissão paga de R$ 18 e R$ 18 a aprovar');
+
+  -- leitura e escrita direta
+  PERFORM ci.exige(ci.contar(fin, 'SELECT count(*) FROM pet_comissoes') >= 2 AND ci.contar(vend, 'SELECT count(*) FROM pet_comissoes') = 0
+                   AND ci.contar(gar, 'SELECT count(*) FROM pet_comissoes') = 0, 'só administrador, gestor e financeiro leem comissões');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE pet_comissoes SET valor = 999 WHERE id = %L$c$, com), 'alterar comissão direto');
+  SELECT count(*) INTO n FROM pet_comissoes WHERE tenant_id <> demo;
+  PERFORM ci.exige(n = 0, 'nenhuma comissão fora da empresa');
+END $$;
