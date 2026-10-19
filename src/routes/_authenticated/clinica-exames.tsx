@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Lock, Plus, Printer, Search, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -813,6 +814,8 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
           </p>
         )}
       </div>
+
+      <AnexosClinicos exameId={exame.id} podeEnviar={exame.situacao !== "cancelado"} />
 
       {exame.adendos.length > 0 && (
         <div className="panel p-4">
