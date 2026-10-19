@@ -97,6 +97,7 @@ function GiroEstoque() {
             "id, descricao, codigo_interno, unidade, unidade_compra, fator_conversao, custo, estoque_minimo",
           )
           .eq("ativo", true)
+          .eq("controla_estoque", true)
           .order("descricao"),
         supabase
           .from("pedido_itens")

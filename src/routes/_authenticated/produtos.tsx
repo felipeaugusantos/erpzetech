@@ -84,6 +84,9 @@ type Form = {
   comprimento: string;
   imagem_url: string | null;
   ativo: boolean;
+  /** serviço (banho, consulta...) não tem saldo nem movimento de estoque */
+  controla_estoque: boolean;
+  controla_estoque_original: boolean;
 };
 
 const vazio: Form = {
@@ -111,6 +114,8 @@ const vazio: Form = {
   comprimento: "",
   imagem_url: null,
   ativo: true,
+  controla_estoque: true,
+  controla_estoque_original: true,
 };
 
 function Produtos() {
@@ -288,6 +293,10 @@ function Produtos() {
         comprimento: form.comprimento ? Number(form.comprimento) : null,
         imagem_url: form.imagem_url,
         ativo: form.ativo,
+        // só vai quando mudou: o cadastro de produto não depende da coluna nova
+        ...(form.controla_estoque !== form.controla_estoque_original
+          ? { controla_estoque: form.controla_estoque }
+          : {}),
       };
       const { error } = form.id
         ? await supabase.from("produtos").update(payload).eq("id", form.id)
@@ -490,6 +499,8 @@ function Produtos() {
                               comprimento: p.comprimento ? String(p.comprimento) : "",
                               imagem_url: p.imagem_url ?? null,
                               ativo: p.ativo,
+                              controla_estoque: p.controla_estoque ?? true,
+                              controla_estoque_original: p.controla_estoque ?? true,
                             });
                             setOpen(true);
                           }}
@@ -811,6 +822,20 @@ function Produtos() {
                   value={form.localizacao}
                   onChange={(e) => setForm({ ...form, localizacao: e.target.value })}
                 />
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-md border p-3">
+              <Switch
+                id="p-servico"
+                checked={!form.controla_estoque}
+                onCheckedChange={(v) => setForm({ ...form, controla_estoque: !v })}
+              />
+              <div>
+                <Label htmlFor="p-servico">É um serviço (não controla estoque)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Banho, tosa, consulta e outros serviços: a venda não baixa estoque nem pede saldo.
+                </p>
               </div>
             </div>
 

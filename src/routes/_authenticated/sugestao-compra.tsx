@@ -99,6 +99,7 @@ function SugestaoCompra() {
             "id, descricao, codigo_interno, unidade, unidade_compra, fator_conversao, custo, estoque_minimo, estoque_maximo, fornecedor_id",
           )
           .eq("ativo", true)
+          .eq("controla_estoque", true)
           .is("deleted_at", null)
           .order("descricao"),
         supabase.from("fornecedores").select("id, razao_social, prazo_entrega_dias"),

@@ -2619,3 +2619,57 @@ BEGIN
   INSERT INTO tenants (nome) VALUES ('Extrato B') RETURNING id INTO tb;
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM banco_extrato_linhas WHERE tenant_id = tb), 'a outra empresa não recebeu linhas');
 END $$;
+
+-- 35. Pet shop (base): produto que é serviço não controla estoque; produto comum segue igual
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  dep uuid; serv uuid; merc uuid; cli uuid; ped uuid; mov_antes bigint; q numeric;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'Pet CI', false) RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque)
+    VALUES (demo, 'PET-BANHO', 'Banho porte P', 'UN', 60, false) RETURNING id INTO serv;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda)
+    VALUES (demo, 'PET-RACAO', 'Ração 1kg', 'UN', 20) RETURNING id INTO merc;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor CI') RETURNING id INTO cli;
+  PERFORM ci.exige((SELECT controla_estoque FROM produtos WHERE id = merc), 'produto comum controla estoque por padrão');
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 5, 'ci', 'ci');
+
+  -- chamada direta: serviço não cria saldo nem movimento, em nenhum tipo
+  SELECT count(*) INTO mov_antes FROM estoque_movimentacoes WHERE produto_id = serv;
+  PERFORM ci.exige(registrar_movimentacao(serv, dep, 'saida'::mov_tipo, 3, 'ci', 'ci') IS NULL, 'saída de serviço não movimenta');
+  PERFORM registrar_movimentacao(serv, dep, 'entrada'::mov_tipo, 3, 'ci', 'ci');
+  PERFORM registrar_movimentacao(serv, dep, 'reserva'::mov_tipo, 3, 'ci', 'ci');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'serviço não tem linha de estoque');
+  PERFORM ci.exige((SELECT count(*) FROM estoque_movimentacoes WHERE produto_id = serv) = mov_antes, 'serviço não tem movimentação');
+
+  PERFORM ci.sair();
+
+  -- venda de serviço + mercadoria no mesmo cupom, sem saldo do serviço
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(
+            jsonb_build_object('produto_id', serv, 'quantidade', 1, 'preco_unitario', 60),
+            jsonb_build_object('produto_id', merc, 'quantidade', 2, 'preco_unitario', 20)),
+          'crediario', cli, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT total = 100 FROM pedidos WHERE id = ped), 'a venda soma serviço e mercadoria');
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 3, 'a mercadoria baixa o estoque normalmente');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'o serviço continua sem estoque depois da venda');
+
+  -- mercadoria sem saldo continua sendo recusada
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pdv_venda(%L, jsonb_build_array(jsonb_build_object('produto_id', %L, 'quantidade', 99, 'preco_unitario', 20)), 'crediario', %L, 0, 1, current_date + 30)$c$, dep, merc, cli),
+                         'mercadoria sem saldo continua recusada');
+
+  -- o cancelamento da venda devolve itens por registrar_movimentacao('entrada'): só a mercadoria volta
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(serv, dep, 'entrada'::mov_tipo, 1, 'Cancelamento de venda', 'CANC');
+  PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 2, 'Cancelamento de venda', 'CANC');
+  PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 5, 'cancelar devolve a mercadoria ao estoque');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'cancelar não cria estoque do serviço');
+END $$;
