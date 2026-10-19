@@ -370,6 +370,8 @@ BEGIN
   PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
   SELECT * INTO a FROM public.pet_agendamentos WHERE id = p_agendamento_id AND tenant_id = v_tenant FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Agendamento não encontrado'; END IF;
+  -- o pacote é do pet: dois atendimentos do mesmo pet não podem gastar o mesmo saldo ao mesmo tempo
+  PERFORM pg_advisory_xact_lock(hashtextextended('pet_pacote:' || a.pet_id::text, 0));
   IF a.situacao = 'retirado'
      AND ((a.venda_id IS NOT NULL AND (a.venda_id = p_pedido_id OR p_pedido_id IS NULL))
           OR (a.venda_id IS NULL AND p_pedido_id IS NULL AND p_chave IS NULL)) THEN

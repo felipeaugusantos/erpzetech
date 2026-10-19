@@ -95,6 +95,51 @@ type VinculoPet =
 /** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
 const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
+/** Vínculo da venda com o pet shop que ainda não foi confirmado (conexão caiu) ou foi recusado pelo banco (com o erro). */
+type PendenciaPet = { id: string; v: VinculoPet; chave: string; em: string; erro?: string };
+
+function lerPendenciasPet(): PendenciaPet[] {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(CHAVE_PET_PENDENTE) ?? "[]");
+    const lista = Array.isArray(raw) ? raw : [raw];
+    return lista.flatMap((x): PendenciaPet[] => {
+      const p = x as Record<string, unknown> | null;
+      if (!p || typeof p["chave"] !== "string") return [];
+      // formato antigo (antes dos pacotes): { agendamentoId, chave } — convertido, nunca descartado
+      const v =
+        (p["v"] as VinculoPet | undefined) ??
+        (typeof p["agendamentoId"] === "string"
+          ? ({
+              tipo: "atendimento",
+              agendamentoId: p["agendamentoId"],
+              usarPacote: false,
+            } as VinculoPet)
+          : null);
+      if (!v) return [];
+      return [
+        {
+          id: typeof p["id"] === "string" ? p["id"] : crypto.randomUUID(),
+          v,
+          chave: p["chave"],
+          em: typeof p["em"] === "string" ? p["em"] : new Date().toISOString(),
+          ...(typeof p["erro"] === "string" ? { erro: p["erro"] } : {}),
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function gravarPendenciasPet(lista: PendenciaPet[]) {
+  try {
+    if (lista.length) localStorage.setItem(CHAVE_PET_PENDENTE, JSON.stringify(lista));
+    else localStorage.removeItem(CHAVE_PET_PENDENTE);
+  } catch {
+    /* sem armazenamento: o aviso na tela é o que resta */
+  }
+}
+
 type Linha = {
   produto_id: string;
   descricao: string;
@@ -307,7 +352,17 @@ function FrenteCaixa() {
     void navegar({ to: "/frente-caixa", search: {} });
   }
 
-  /** Confirma no banco o vínculo da venda com o pet shop; se a conexão cair, guarda para tentar de novo. */
+  const [pendenciasPet, setPendenciasPet] = useState<PendenciaPet[]>(() => lerPendenciasPet());
+  function atualizarPendencias(f: (l: PendenciaPet[]) => PendenciaPet[]) {
+    const prox = f(lerPendenciasPet());
+    gravarPendenciasPet(prox);
+    setPendenciasPet(prox);
+  }
+
+  /**
+   * Confirma no banco o vínculo da venda com o pet shop. Se a conexão cair, o vínculo fica guardado para tentar de novo;
+   * se o banco recusar, fica guardado COM o erro e aparece como aviso fixo — o dinheiro já entrou, então nunca se descarta sozinho.
+   */
   async function vincularPet(v: VinculoPet, chave: string, pedidoId: string | null) {
     const ref = pedidoId ? { p_pedido_id: pedidoId } : { p_chave: chave };
     const { data, error } =
@@ -325,19 +380,30 @@ function FrenteCaixa() {
           });
     if (error) {
       const o = v.tipo === "atendimento" ? "o atendimento" : "o pacote";
-      if (/fetch|network|failed/i.test(error.message)) {
-        localStorage.setItem(CHAVE_PET_PENDENTE, JSON.stringify({ v, chave }));
+      const rede = /fetch|network|failed/i.test(error.message);
+      atualizarPendencias((l) => [
+        ...l.filter((x) => x.chave !== chave),
+        {
+          id: crypto.randomUUID(),
+          v,
+          chave,
+          em: new Date().toISOString(),
+          ...(rede ? {} : { erro: error.message }),
+        },
+      ]);
+      if (rede) {
         toast.warning(
           `Venda registrada, mas ${o} ainda não foi confirmado. Será confirmado quando a conexão voltar — não cobre de novo.`,
         );
       } else {
         toast.error(`Venda registrada, mas ${o} não foi confirmado`, {
           description: error.message,
+          duration: 20000,
         });
       }
       return false;
     }
-    localStorage.removeItem(CHAVE_PET_PENDENTE);
+    atualizarPendencias((l) => l.filter((x) => x.chave !== chave));
     // banho tirado do pacote: avisa a recepção quando sobra só um (ou nenhum)
     const avisos = ((data as { avisos?: { pet: string; restam: number }[] } | null)?.avisos ?? [])
       .map((a) => avisoDepoisDoUso(a.pet, a.restam))
@@ -348,16 +414,10 @@ function FrenteCaixa() {
     return true;
   }
 
+  // ao abrir (ou voltar a conexão), refaz os vínculos que só ficaram pendentes por falta de rede
   useEffect(() => {
-    const raw = localStorage.getItem(CHAVE_PET_PENDENTE);
-    if (!raw || !session) return;
-    try {
-      const p = JSON.parse(raw) as { v?: VinculoPet; chave: string };
-      if (p.v) void vincularPet(p.v, p.chave, null);
-      else localStorage.removeItem(CHAVE_PET_PENDENTE);
-    } catch {
-      localStorage.removeItem(CHAVE_PET_PENDENTE);
-    }
+    if (!session) return;
+    for (const p of lerPendenciasPet().filter((x) => !x.erro)) void vincularPet(p.v, p.chave, null);
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const userId = session?.user.id ?? "";
@@ -1159,6 +1219,32 @@ function FrenteCaixa() {
               </Button>
             </div>
 
+            {pendenciasPet
+              .filter((p) => p.erro)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2 text-sm"
+                >
+                  <span>
+                    <strong>Venda do pet shop recebida, mas não ligada:</strong>{" "}
+                    {p.v.tipo === "atendimento" ? "atendimento" : "pacote"} — {p.erro}. O dinheiro
+                    já entrou: resolva antes de cobrar de novo.
+                  </span>
+                  <span className="space-x-2">
+                    <Button size="sm" onClick={() => void vincularPet(p.v, p.chave, null)}>
+                      Tentar de novo
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => atualizarPendencias((l) => l.filter((x) => x.id !== p.id))}
+                    >
+                      Descartar
+                    </Button>
+                  </span>
+                </div>
+              ))}
             {pacoteVenda && (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
                 <span>

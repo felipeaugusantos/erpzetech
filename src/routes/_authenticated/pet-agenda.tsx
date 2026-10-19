@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl, dateBR } from "@/lib/format";
+import { isoBrasilia } from "@/lib/fuso";
 import {
   FUNCOES_PROFISSIONAL,
   SITUACOES_AGENDA,
@@ -370,7 +371,7 @@ function Agenda() {
                           {ocupaHorario(a.situacao) &&
                             a.situacao !== "retirado" &&
                             itens.map((i) => {
-                              const dia = a.inicio.toISOString().slice(0, 10);
+                              const dia = isoBrasilia(a.inicio);
                               const pc = pacoteQueCobre(
                                 data?.pacotes ?? [],
                                 a.pet_id,

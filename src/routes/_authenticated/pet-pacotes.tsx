@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl, dateBR } from "@/lib/format";
+import { hojeISO } from "@/lib/financeiro";
 import { VALIDADES_PACOTE, diasParaVencer } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/pet-pacotes")({
@@ -117,7 +118,7 @@ function Pacotes() {
     },
   });
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const estado = (p: NonNullable<typeof data>["pacotes"][number]): Estado => {
     if (p.situacao === "cancelado") return "cancelado";
     if ((data?.usados.get(p.id) ?? 0) >= p.quantidade) return "esgotado";

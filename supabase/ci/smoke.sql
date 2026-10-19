@@ -3107,6 +3107,9 @@ BEGIN
   r := pet_pacote_vender(mod, pet_a, 60, ped_pac);
   PERFORM ci.sair();
   pac := (r ->> 'pacote_id')::uuid;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT nfce_criar(%L)$c$, ped_pac), 'NFC-e de venda só de pacote (a nota é de serviço)');
+  PERFORM ci.exige(pg_get_functiondef('public.pet_agenda_retirar(uuid, uuid, uuid, boolean)'::regprocedure) LIKE '%pg_advisory_xact_lock(hashtextextended(''pet_pacote:''%',
+                   'retirar trava o pacote do pet antes de gastar o saldo');
   PERFORM ci.exige((SELECT quantidade = 4 AND valor = 180 AND validade_dias = 60 AND vence_em = hoje + 60 AND situacao = 'ativo' AND pet_id = pet_a FROM pet_pacotes WHERE id = pac),
                    'o pacote guarda 4 banhos, o valor pago (180), a validade e o pet');
   PERFORM ci.exige((SELECT modelo = 'nfse' AND situacao = 'rascunho' AND valor_total = 180 AND valor_produtos = 200 FROM nfe WHERE pedido_id = ped_pac), 'a NFS-e do pacote nasce na venda, em rascunho');
