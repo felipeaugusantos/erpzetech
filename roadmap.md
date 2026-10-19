@@ -190,9 +190,9 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] PR 5 — Cobrança clínica (caixa, NFS-e em rascunho, comissão do veterinário)
 
 ## Rodada 11 — Pet shop, Fase 4: exames, lembretes e trabalho sem internet (`docs/pet-shop-fase-4.md`)
-- [ ] Escopo desenhado; aguardam as respostas das decisões em aberto (animais de grande porte, abrangência do modo sem internet, ordem, unidades da bioquímica, outras fichas)
+- [x] Escopo desenhado; decisões respondidas: só cães e gatos, offline cobre cadastro, atendimento, vacina e exame. Em aberto: outras fichas do sistema atual e 3 pontos do PR 5 (quem leva o notebook, validade da cópia, bloqueio e senha)
 - [x] PR 1 — Atalhos da próxima dose (21 dias, 30 dias, 1 ano)
 - [x] PR 2 — Exames: modelos de hemograma (com VCM, HCM, CHCM e RDW), bioquímica e urina, com unidade e faixa por espécie; faixa guardada no resultado
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
-- [ ] PR 5 — Trabalho sem internet: fila segura e criptografada para cadastros, atendimento, vacina e exame
+- [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) · 5b cadastros · 5c atendimento · 5d vacina e exame · 5e anexos

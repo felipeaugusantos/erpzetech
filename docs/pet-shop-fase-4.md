@@ -16,9 +16,9 @@ O PR 1 não depende de nenhuma delas. A decisão 4 trava o PR 2 (e, por consequ�
 
 | #   | Pergunta                                                                                              | Sugestão                                                                            | Estado                                                                                                  |
 | --- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 1   | A visita à propriedade rural é para cães e gatos, ou também bovinos, equinos e outros?                | Se for grande porte, vira fase própria (seção 7); em cães e gatos nada muda         | **Aberta**                                                                                              |
-| 2   | O modo sem internet cobre só cadastros, ou também atendimento clínico, vacina e exame?                | Tudo, com os dados criptografados no notebook (seção 6)                             | **Aberta**                                                                                              |
-| 3   | A ordem: lembrete, exames, depois offline — ou o offline primeiro por causa da viagem?                | Lembrete, exames, offline; se a viagem for antes, o offline sobe                    | **Aberta**                                                                                              |
+| 1   | A visita à propriedade rural é para cães e gatos, ou também bovinos, equinos e outros?                | Se for grande porte, vira fase própria (seção 7); em cães e gatos nada muda         | **Respondida: só cães e gatos.** Não há Fase 5 de grande porte; nada muda nos cadastros                 |
+| 2   | O modo sem internet cobre só cadastros, ou também atendimento clínico, vacina e exame?                | Tudo, com os dados criptografados no notebook (seção 6)                             | **Respondida: cadastro, atendimento, vacina e exame**, com criptografia no notebook                     |
+| 3   | A ordem: lembrete, exames, depois offline — ou o offline primeiro por causa da viagem?                | Lembrete, exames, offline; se a viagem for antes, o offline sobe                    | **Resolvida:** lembrete, exames e anexos já estão entregues; o trabalho sem internet é o que falta      |
 | 4   | As unidades da bioquímica seguem as do laboratório da clínica? (as telas de hoje não mostram unidade) | Cada clínica ajusta unidade e faixa no próprio modelo; o sistema só traz sugestões  | **Respondida em parte:** o laudo de exemplo sugere as unidades usuais (seção abaixo); a clínica confere |
 | 5   | Há outras fichas no sistema atual que a clínica usa (a tela cita "Autorização Sacrifício")?           | Mandar as telas; cada ficha nova entra como modelo de documento, fora do prontuário | **Aberta**                                                                                              |
 
@@ -106,15 +106,25 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 
 - **Fila única** no navegador para as gravações da clínica e dos cadastros. Cada operação carrega uma **chave de repetição**; ao reconectar, o envio é idempotente (repetir não duplica). **Operação recusada pelo banco fica guardada com o erro e nunca é descartada sozinha**, como já é a regra do sistema.
 - **Consulta sem internet:** cópia do que a visita precisa (tutores e pets do dia, catálogo de vacinas, modelos de exame, lotes com saldo) baixada antes de sair e mostrada com a data da cópia.
-- **Etapas:**
-  - **5a — cadastros:** tutor, pet e (se a decisão 1 pedir) propriedade.
-  - **5b — atendimento, vacina e exame:** preenchimento completo sem sinal; fechar também fica na fila.
-  - **5c — anexos:** fotos e PDFs guardados no notebook até subir.
+- **Etapas** (cada uma é um PR, na ordem, e cada uma já deixa algo útil):
+  - **5a — base segura:** cofre criptografado no notebook, fila única de gravações com chave de repetição, tela **Pendências de envio** (o que está guardado, o que foi recusado e por quê) e **Preparar visita** (baixa a cópia de consulta). Sem mudar nenhuma tela clínica ainda.
+  - **5b — cadastros:** tutor e pet cadastrados sem sinal (cães e gatos). O identificador nasce no notebook, então o pet novo já pode receber atendimento antes de sincronizar.
+  - **5c — atendimento:** abrir a visita, preencher e fechar o atendimento sem sinal. A visita rural nasce sem consulta marcada: uma função única cria a consulta e o atendimento de uma vez, com o serviço de consulta do catálogo.
+  - **5d — vacina e exame:** aplicar vacina (lote baixado na preparação, com a regra do lote que acabou abaixo), registrar vacina de outro local, abrir, preencher e fechar exame.
+  - **5e — anexos:** fotos e PDFs guardados criptografados no notebook até subirem (respeitando o limite de espaço do navegador).
 - **Dado clínico no notebook é sensível** (LGPD): fica no armazenamento do navegador com **criptografia** protegida por senha da pessoa que está usando (o dado não abre sem ela), expira se o aparelho ficar sem entrar por um prazo definido (só a **cópia de consulta** expira; a **fila de gravações pendentes** nunca expira sozinha, e a operação recusada fica guardada até ser enviada ou resolvida por uma pessoa) e some depois de enviado. Se o notebook for perdido, sem a senha o conteúdo não abre. Isso exige uma estrutura nova (a cópia atual usa o armazenamento simples do navegador e não serve para dado clínico).
 - **Conflitos conhecidos e a regra para cada um:**
   - **Baixa de lote da vacina:** a dose só é baixada ao sincronizar. Se o lote acabou antes, o registro **fica pendente com o erro** e o veterinário escolhe outro lote; nada é perdido.
   - **Prontuário fechado sem internet:** o fechamento vale quando sincroniza; edição concorrente do mesmo atendimento por outro aparelho é recusada e fica guardada.
   - **Cadastro duplicado** (o mesmo tutor cadastrado em dois aparelhos): o envio avisa e a recepção une, sem apagar nada.
+
+### Pontos a confirmar antes do PR 5a
+
+| #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | Quem leva o notebook na visita: o veterinário (perfil só Veterinário) ou alguém com mais de um perfil (por exemplo gestor e veterinário)? | O veterinário. Como esse perfil não cadastra tutor nem pet hoje, o 5b cria um **cadastro rápido da clínica** (só nome, telefone e pet)                                                                                |
+| B   | Por quantos dias a cópia de consulta vale no notebook?                                                                                    | 7 dias sem entrar (a fila de pendências nunca expira sozinha)                                                                                                                                                         |
+| C   | Bloqueio por inatividade e senha                                                                                                          | Bloqueia depois de 15 minutos parado e pede a senha de novo; senha mínima de 8 caracteres. **Senha esquecida: o conteúdo do notebook não se recupera** (por isso se envia o que está pendente assim que houver sinal) |
 
 ## Regras que valem para a fase inteira
 
