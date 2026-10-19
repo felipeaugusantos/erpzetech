@@ -178,6 +178,7 @@ const PERFIS: Record<string, string> = {
   motorista: "Motorista",
   garcom: "Garçom",
   cozinha: "Cozinha",
+  profissional: "Profissional (pet shop)",
 };
 
 const ISO_DIA = /^\d{4}-\d{2}-\d{2}$/;

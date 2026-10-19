@@ -60,6 +60,9 @@ type Form = {
   comissao_percentual: string;
   filial_id: string;
   ativo: boolean;
+  /** conta de acesso (perfil Profissional) ligada ao cadastro; vazio = sem acesso próprio */
+  profile_id: string;
+  profile_original: string;
 };
 
 const vazio: Form = {
@@ -68,6 +71,8 @@ const vazio: Form = {
   comissao_percentual: "0",
   filial_id: "",
   ativo: true,
+  profile_id: "",
+  profile_original: "",
 };
 
 function ProfissionaisModulo() {
@@ -94,13 +99,33 @@ function Profissionais() {
     },
   });
 
+  // usuários com o perfil Profissional (a conta é criada em Usuários e perfis)
+  const { data: contas = [] } = useQuery({
+    queryKey: ["pet-profissional-contas"],
+    enabled: podeEditar,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id, profiles(nome, email, ativo)")
+        .eq("role", "profissional");
+      if (error) throw error;
+      return (data ?? []).map((r) => {
+        const pf = r.profiles as unknown as { nome: string; email: string; ativo: boolean } | null;
+        return {
+          id: r.user_id,
+          nome: pf?.nome ?? pf?.email ?? "Usuário",
+          ativo: pf?.ativo ?? false,
+        };
+      });
+    },
+  });
   const salvar = useMutation({
     mutationFn: async () => {
       if (!form.nome.trim()) throw new Error("Informe o nome do profissional.");
       const com = Number((form.comissao_percentual || "0").replace(",", "."));
       if (!Number.isFinite(com) || com < 0 || com > 100)
         throw new Error("A comissão precisa ficar entre 0 e 100%.");
-      const { error } = await supabase.rpc("pet_profissional_salvar", {
+      const { data: id, error } = await supabase.rpc("pet_profissional_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           nome: form.nome.trim(),
@@ -111,6 +136,14 @@ function Profissionais() {
         },
       });
       if (error) throw error;
+      if (form.profile_id !== form.profile_original) {
+        const lig = await supabase.rpc("pet_profissional_vincular", {
+          p_profissional_id: id as string,
+          p_profile_id: (form.profile_id || null) as unknown as string,
+        });
+        if (lig.error)
+          throw new Error(`Profissional salvo, mas a conta não foi ligada: ${lig.error.message}`);
+      }
     },
     onSuccess: () => {
       toast.success(form.id ? "Profissional atualizado." : "Profissional cadastrado.");
@@ -195,6 +228,8 @@ function Profissionais() {
                             comissao_percentual: String(p.comissao_percentual),
                             filial_id: p.filial_id ?? "",
                             ativo: p.ativo,
+                            profile_id: p.profile_id ?? "",
+                            profile_original: p.profile_id ?? "",
                           });
                           setAberto(true);
                         }}
@@ -269,6 +304,36 @@ function Profissionais() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {podeEditar && (
+              <div>
+                <Label htmlFor="pf-conta">Conta de acesso</Label>
+                <Select
+                  value={form.profile_id || SEM_LOJA}
+                  onValueChange={(v) => setForm({ ...form, profile_id: v === SEM_LOJA ? "" : v })}
+                >
+                  <SelectTrigger id="pf-conta">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_LOJA}>Sem acesso próprio</SelectItem>
+                    {contas
+                      .filter(
+                        (c) =>
+                          c.ativo && !lista.some((x) => x.profile_id === c.id && x.id !== form.id),
+                      )
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Crie o usuário com o perfil Profissional em Usuários e perfis; ele entra e vê só a
+                  própria agenda.
+                </p>
               </div>
             )}
             <div className="flex items-center gap-2">

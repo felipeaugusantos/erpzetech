@@ -89,6 +89,7 @@ import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedPetAgendaRouteImport } from './routes/_authenticated/pet-agenda'
 import { Route as AuthenticatedPetComissoesRouteImport } from './routes/_authenticated/pet-comissoes'
 import { Route as AuthenticatedPetContatosRouteImport } from './routes/_authenticated/pet-contatos'
+import { Route as AuthenticatedPetMinhaAgendaRouteImport } from './routes/_authenticated/pet-minha-agenda'
 import { Route as AuthenticatedPetPacotesRouteImport } from './routes/_authenticated/pet-pacotes'
 import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
 import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
@@ -574,6 +575,12 @@ const AuthenticatedPetContatosRoute =
     path: '/pet-contatos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPetMinhaAgendaRoute =
+  AuthenticatedPetMinhaAgendaRouteImport.update({
+    id: '/pet-minha-agenda',
+    path: '/pet-minha-agenda',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPetPacotesRoute = AuthenticatedPetPacotesRouteImport.update({
   id: '/pet-pacotes',
   path: '/pet-pacotes',
@@ -906,6 +913,7 @@ export interface FileRoutesByFullPath {
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-contatos': typeof AuthenticatedPetContatosRoute
+  '/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
   '/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1032,6 +1040,7 @@ export interface FileRoutesByTo {
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-contatos': typeof AuthenticatedPetContatosRoute
+  '/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
   '/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1160,6 +1169,7 @@ export interface FileRoutesById {
   '/_authenticated/pet-agenda': typeof AuthenticatedPetAgendaRoute
   '/_authenticated/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/_authenticated/pet-contatos': typeof AuthenticatedPetContatosRoute
+  '/_authenticated/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
   '/_authenticated/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1288,6 +1298,7 @@ export interface FileRouteTypes {
     | '/pet-agenda'
     | '/pet-comissoes'
     | '/pet-contatos'
+    | '/pet-minha-agenda'
     | '/pet-pacotes'
     | '/pet-profissionais'
     | '/pet-servicos'
@@ -1414,6 +1425,7 @@ export interface FileRouteTypes {
     | '/pet-agenda'
     | '/pet-comissoes'
     | '/pet-contatos'
+    | '/pet-minha-agenda'
     | '/pet-pacotes'
     | '/pet-profissionais'
     | '/pet-servicos'
@@ -1541,6 +1553,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pet-agenda'
     | '/_authenticated/pet-comissoes'
     | '/_authenticated/pet-contatos'
+    | '/_authenticated/pet-minha-agenda'
     | '/_authenticated/pet-pacotes'
     | '/_authenticated/pet-profissionais'
     | '/_authenticated/pet-servicos'
@@ -2160,6 +2173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPetContatosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-minha-agenda': {
+      id: '/_authenticated/pet-minha-agenda'
+      path: '/pet-minha-agenda'
+      fullPath: '/pet-minha-agenda'
+      preLoaderRoute: typeof AuthenticatedPetMinhaAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pet-pacotes': {
       id: '/_authenticated/pet-pacotes'
       path: '/pet-pacotes'
@@ -2553,6 +2573,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPetAgendaRoute: typeof AuthenticatedPetAgendaRoute
   AuthenticatedPetComissoesRoute: typeof AuthenticatedPetComissoesRoute
   AuthenticatedPetContatosRoute: typeof AuthenticatedPetContatosRoute
+  AuthenticatedPetMinhaAgendaRoute: typeof AuthenticatedPetMinhaAgendaRoute
   AuthenticatedPetPacotesRoute: typeof AuthenticatedPetPacotesRoute
   AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
   AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
@@ -2674,6 +2695,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPetAgendaRoute: AuthenticatedPetAgendaRoute,
   AuthenticatedPetComissoesRoute: AuthenticatedPetComissoesRoute,
   AuthenticatedPetContatosRoute: AuthenticatedPetContatosRoute,
+  AuthenticatedPetMinhaAgendaRoute: AuthenticatedPetMinhaAgendaRoute,
   AuthenticatedPetPacotesRoute: AuthenticatedPetPacotesRoute,
   AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
   AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,

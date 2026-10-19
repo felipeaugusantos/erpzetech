@@ -3,11 +3,18 @@
 
 const PERFIS_SALAO = ["garcom", "cozinha"];
 
-/** Perfil do salão puro: só garçom e/ou cozinha. Quem acumula outro papel usa o sistema inteiro. */
+const PERFIS_RESTRITOS = [...PERFIS_SALAO, "profissional"];
+
+/** Perfil do salão puro: só garçom, cozinha e/ou profissional do pet shop (o banco isola os três do mesmo jeito). */
 export function ehSalaoRestrito(roles: readonly string[]): boolean {
   return (
-    roles.some((r) => PERFIS_SALAO.includes(r)) && roles.every((r) => PERFIS_SALAO.includes(r))
+    roles.some((r) => PERFIS_SALAO.includes(r)) && roles.every((r) => PERFIS_RESTRITOS.includes(r))
   );
+}
+
+/** Profissional do pet shop puro: só a própria agenda. Quem acumula outro papel usa o sistema inteiro. */
+export function ehProfissionalRestrito(roles: readonly string[]): boolean {
+  return roles.includes("profissional") && roles.every((r) => r === "profissional");
 }
 
 /** Quem pode cadastrar cardápio e mesas, dar desconto e cancelar item já enviado. */

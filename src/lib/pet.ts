@@ -268,3 +268,19 @@ export function diasParaVencer(venceEm: string, hoje: Date = new Date()) {
   ).getTime();
   return Math.round((a - b) / 86400000);
 }
+
+// ---------- agenda do profissional ----------
+
+/** O que o profissional pode fazer com o atendimento dele: começar e dar como pronto (o resto é da recepção). */
+export function passoDoProfissional(situacao: string): { para: string; rotulo: string } | null {
+  if (situacao === "agendado" || situacao === "confirmado")
+    return { para: "em_atendimento", rotulo: "Começar" };
+  if (situacao === "em_atendimento") return { para: "pronto", rotulo: "Pronto" };
+  return null;
+}
+
+/** Soma dias a uma data "AAAA-MM-DD" sem mexer em fuso. */
+export function somarDiasISO(iso: string, dias: number): string {
+  const [a, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(a!, m! - 1, d! + dias)).toISOString().slice(0, 10);
+}
