@@ -11,6 +11,7 @@ import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto"
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
 import { consultarGtin } from "@/lib/gtin.functions";
 import { gtinValido } from "@/lib/gtin";
+import { lerFatorGranel } from "@/lib/granel";
 import { eanInterno } from "@/lib/ean";
 import { usaGradeTamanho } from "@/lib/ramo";
 import { brl, formatConverted, num } from "@/lib/format";
@@ -87,6 +88,10 @@ type Form = {
   /** serviço (banho, consulta...) não tem saldo nem movimento de estoque */
   controla_estoque: boolean;
   controla_estoque_original: boolean;
+  /** saco vendido por kg: produto do granel e kg do saco (vazio = não é saco) */
+  granel_produto_id: string;
+  granel_fator: string;
+  granel_original: string;
 };
 
 const vazio: Form = {
@@ -116,6 +121,9 @@ const vazio: Form = {
   ativo: true,
   controla_estoque: true,
   controla_estoque_original: true,
+  granel_produto_id: "",
+  granel_fator: "",
+  granel_original: "|",
 };
 
 function Produtos() {
@@ -297,7 +305,17 @@ function Produtos() {
         ...(form.controla_estoque !== form.controla_estoque_original
           ? { controla_estoque: form.controla_estoque }
           : {}),
+        ...(`${form.granel_produto_id}|${form.granel_fator}` !== form.granel_original
+          ? {
+              granel_produto_id: form.granel_produto_id || null,
+              granel_fator: form.granel_produto_id
+                ? (lerFatorGranel(form.granel_fator) ?? 0)
+                : null,
+            }
+          : {}),
       };
+      if (form.granel_produto_id && !lerFatorGranel(form.granel_fator))
+        throw new Error("Informe quantos kg tem o saco");
       const { error } = form.id
         ? await supabase.from("produtos").update(payload).eq("id", form.id)
         : await supabase.from("produtos").insert(payload);
@@ -501,6 +519,11 @@ function Produtos() {
                               ativo: p.ativo,
                               controla_estoque: p.controla_estoque ?? true,
                               controla_estoque_original: p.controla_estoque ?? true,
+                              granel_produto_id: p.granel_produto_id ?? "",
+                              granel_fator: p.granel_fator ? String(Number(p.granel_fator)) : "",
+                              granel_original: `${p.granel_produto_id ?? ""}|${
+                                p.granel_fator ? String(Number(p.granel_fator)) : ""
+                              }`,
                             });
                             setOpen(true);
                           }}
@@ -838,6 +861,56 @@ function Produtos() {
                 </p>
               </div>
             </div>
+
+            {form.controla_estoque && (
+              <div className="rounded-md border p-3">
+                <Label htmlFor="p-granel">Venda a granel (este produto é um saco)</Label>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Escolha o produto vendido por kg e quantos kg tem o saco. Depois, em Estoque →
+                  Venda a granel, abrir o saco baixa 1 saco e dá entrada dos kg nesse produto.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
+                  <Select
+                    value={form.granel_produto_id || "nenhum"}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        granel_produto_id: v === "nenhum" ? "" : v,
+                        granel_fator: v === "nenhum" ? "" : form.granel_fator,
+                      })
+                    }
+                  >
+                    <SelectTrigger id="p-granel" aria-label="Produto vendido a granel">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhum">Não é vendido a granel</SelectItem>
+                      {(data?.produtos ?? [])
+                        .filter(
+                          (x) =>
+                            x.id !== form.id &&
+                            x.controla_estoque !== false &&
+                            x.ativo &&
+                            !x.granel_produto_id,
+                        )
+                        .map((x) => (
+                          <SelectItem key={x.id} value={x.id}>
+                            {x.descricao}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    aria-label="Kg por saco"
+                    inputMode="decimal"
+                    placeholder="Kg por saco"
+                    disabled={!form.granel_produto_id}
+                    value={form.granel_fator}
+                    onChange={(e) => setForm({ ...form, granel_fator: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-4">
               <div>

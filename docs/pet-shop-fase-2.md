@@ -36,11 +36,13 @@ Fazer o tutor voltar: contato na hora certa, pacote de banhos pago adiantado, ve
 - Pacote vencido ou cancelado não pode ser usado; reembolso proporcional é manual.
 - **Perguntas para antes do PR 6:** o pacote vale para qualquer pet do tutor ou para um só? Banho avulso cobrado a mais quando o pacote acaba? Prazo padrão?
 
-## PR 7 — Venda a granel (decisões propostas)
+## PR 7 — Venda a granel (esta entrega)
 
-- Dois produtos ligados: o **saco** (15 kg, comprado) e o **granel** (vendido por kg).
-- Operação "abrir saco": baixa 1 saco e dá entrada de 15 kg no granel, pelo custo proporcional; nada de fração escondida em casas decimais.
-- **Pergunta:** o fator (kg por saco) fica no produto ou é informado ao abrir?
+- Dois produtos ligados: o **saco** (ex.: 15 kg, comprado e estocado em unidades) e o **granel** (vendido por kg). **O fator fica no cadastro do produto** (decisão): no saco, o campo "Venda a granel" guarda o produto do granel e os kg do saco.
+- Tela **Venda a granel** (grupo Estoque, administrador, gestor e estoquista): lista os sacos com o saldo dos dois produtos no depósito e o botão **Abrir saco**, que mostra antes quantos kg entram, o custo do kg e a margem contra o preço de venda.
+- Abrir saco baixa N sacos e dá entrada de N × fator kg no granel pelo custo proporcional (custo médio do saco ÷ kg do saco), numa só operação; se faltar saco, nada muda. O histórico fica na tela e nas movimentações de estoque ("Abertura de saco").
+- Regras do cadastro: o granel é da mesma empresa, controla estoque e não pode ser, ele mesmo, um saco (nada de cadeia); vários sacos (10 kg e 15 kg) podem alimentar o mesmo granel.
+- A venda por kg usa o caixa de sempre (a quantidade já aceita 3 casas decimais). Não há desfazer abertura: erro de contagem se corrige em Entradas e saídas.
 
 ## PR 8 — Agenda própria do profissional
 
