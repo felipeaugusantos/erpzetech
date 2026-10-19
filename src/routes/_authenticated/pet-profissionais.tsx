@@ -36,7 +36,7 @@ import {
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
-import { FUNCOES_PROFISSIONAL, rotulo } from "@/lib/pet";
+import { FUNCOES_PROFISSIONAL, UFS_CRMV, crmvValido, normalizarCrmv, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/pet-profissionais")({
   head: () => ({
@@ -60,6 +60,9 @@ type Form = {
   comissao_percentual: string;
   filial_id: string;
   ativo: boolean;
+  /** só para veterinário */
+  crmv: string;
+  crmv_uf: string;
   /** conta de acesso (perfil Profissional) ligada ao cadastro; vazio = sem acesso próprio */
   profile_id: string;
   profile_original: string;
@@ -71,6 +74,8 @@ const vazio: Form = {
   comissao_percentual: "0",
   filial_id: "",
   ativo: true,
+  crmv: "",
+  crmv_uf: "",
   profile_id: "",
   profile_original: "",
 };
@@ -106,13 +111,14 @@ function Profissionais() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, profiles(nome, email, ativo)")
-        .eq("role", "profissional");
+        .select("user_id, role, profiles(nome, email, ativo)")
+        .in("role", ["profissional", "veterinario"]);
       if (error) throw error;
       return (data ?? []).map((r) => {
         const pf = r.profiles as unknown as { nome: string; email: string; ativo: boolean } | null;
         return {
           id: r.user_id,
+          papel: r.role as string,
           nome: pf?.nome ?? pf?.email ?? "Usuário",
           ativo: pf?.ativo ?? false,
         };
@@ -122,6 +128,8 @@ function Profissionais() {
   const salvar = useMutation({
     mutationFn: async () => {
       if (!form.nome.trim()) throw new Error("Informe o nome do profissional.");
+      if (form.funcao === "veterinario" && !crmvValido(form.crmv, form.crmv_uf))
+        throw new Error("Informe o CRMV (de 3 a 12 letras ou números) e a UF do veterinário.");
       const com = Number((form.comissao_percentual || "0").replace(",", "."));
       if (!Number.isFinite(com) || com < 0 || com > 100)
         throw new Error("A comissão precisa ficar entre 0 e 100%.");
@@ -133,6 +141,9 @@ function Profissionais() {
           comissao_percentual: com,
           filial_id: form.filial_id || null,
           ativo: form.ativo,
+          ...(form.funcao === "veterinario"
+            ? { crmv: normalizarCrmv(form.crmv), crmv_uf: form.crmv_uf }
+            : {}),
         },
       });
       if (error) throw error;
@@ -228,6 +239,8 @@ function Profissionais() {
                             comissao_percentual: String(p.comissao_percentual),
                             filial_id: p.filial_id ?? "",
                             ativo: p.ativo,
+                            crmv: p.crmv ?? "",
+                            crmv_uf: p.crmv_uf ?? "",
                             profile_id: p.profile_id ?? "",
                             profile_original: p.profile_id ?? "",
                           });
@@ -285,6 +298,38 @@ function Profissionais() {
                 />
               </div>
             </div>
+            {form.funcao === "veterinario" && (
+              <div className="grid grid-cols-[1fr_6rem] gap-3">
+                <div>
+                  <Label htmlFor="pf-crmv">CRMV</Label>
+                  <Input
+                    id="pf-crmv"
+                    value={form.crmv}
+                    placeholder="Ex.: 12345"
+                    onChange={(e) => setForm({ ...form, crmv: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pf-uf">UF</Label>
+                  <Select
+                    value={form.crmv_uf || "__sem_uf"}
+                    onValueChange={(v) => setForm({ ...form, crmv_uf: v === "__sem_uf" ? "" : v })}
+                  >
+                    <SelectTrigger id="pf-uf">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__sem_uf">—</SelectItem>
+                      {UFS_CRMV.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             {filiais.length > 1 && (
               <div>
                 <Label htmlFor="pf-loja">Loja</Label>
@@ -321,7 +366,10 @@ function Profissionais() {
                     {contas
                       .filter(
                         (c) =>
-                          c.ativo && !lista.some((x) => x.profile_id === c.id && x.id !== form.id),
+                          c.ativo &&
+                          c.papel ===
+                            (form.funcao === "veterinario" ? "veterinario" : "profissional") &&
+                          !lista.some((x) => x.profile_id === c.id && x.id !== form.id),
                       )
                       .map((c) => (
                         <SelectItem key={c.id} value={c.id}>
@@ -331,8 +379,9 @@ function Profissionais() {
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Crie o usuário com o perfil Profissional em Usuários e perfis; ele entra e vê só a
-                  própria agenda.
+                  Crie o usuário em Usuários e perfis com o perfil{" "}
+                  {form.funcao === "veterinario" ? "Veterinário" : "Profissional"}; ele entra e vê
+                  só a própria agenda.
                 </p>
               </div>
             )}

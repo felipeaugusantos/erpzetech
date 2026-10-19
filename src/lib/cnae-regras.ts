@@ -1,6 +1,6 @@
 // Regras de CNAE sem dependência de tela: ficam à parte para os testes rodarem no Node.
 /** Módulos que só ficam disponíveis quando a atividade da empresa permite. */
-export type ModuloCnae = "assistencia" | "locacao" | "restaurante" | "petshop";
+export type ModuloCnae = "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica";
 
 /** Grupos de CNAE que liberam cada módulo (comparação pelo início do código). */
 const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
@@ -21,6 +21,11 @@ const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
       "47.89-0/04 — Comércio varejista de animais vivos e de artigos e alimentos para animais de estimação",
       "96.09-2/08 — Higiene e embelezamento de animais domésticos",
     ],
+  },
+  clinica: {
+    // só atividades veterinárias: o pet shop sozinho não libera prontuário nem vacina
+    prefixos: ["7500"],
+    exemplos: ["75.00-1 — Atividades veterinárias"],
   },
   assistencia: {
     prefixos: ["95", "3314", "3319", "4321", "4322", "4520", "4543"],
@@ -50,6 +55,7 @@ export const ROTULO_MODULO: Record<ModuloCnae, string> = {
   locacao: "Locação de equipamentos",
   restaurante: "Restaurante e lanchonete",
   petshop: "Pet shop e veterinária",
+  clinica: "Clínica veterinária",
 };
 
 export function exemplosCnae(modulo: ModuloCnae) {

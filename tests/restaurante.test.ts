@@ -27,6 +27,11 @@ test("perfil do salão é restrito só quando não há outro papel", () => {
   assert.equal(ehProfissionalRestrito(["profissional", "garcom"]), false);
   assert.equal(ehProfissionalRestrito(["profissional", "vendedor"]), false);
   assert.equal(ehProfissionalRestrito([]), false);
+  assert.equal(ehProfissionalRestrito(["veterinario"]), true);
+  assert.equal(ehProfissionalRestrito(["veterinario", "profissional"]), true);
+  assert.equal(ehProfissionalRestrito(["veterinario", "administrador"]), false);
+  assert.equal(ehSalaoRestrito(["veterinario"]), false);
+  assert.equal(ehSalaoRestrito(["garcom", "veterinario"]), true);
 });
 
 test("gestão e recebimento da conta", () => {

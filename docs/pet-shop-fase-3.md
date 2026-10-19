@@ -35,7 +35,9 @@ Dar à clínica veterinária o que ela usa todo dia: **consulta com prontuário*
 | 4   | **Reforços**: lista de reforços vencendo com "Chamar no WhatsApp" e "Já falei" (reaproveita o PR 5 da Fase 2)            | não       | PR 3                                                          |
 | 5   | **Cobrança clínica**: consulta e vacina cobradas no caixa, NFS-e em rascunho, comissão do veterinário                    | sim       | contador: nota de consulta e de vacina (serviço x mercadoria) |
 
-## PR 1 — Base da clínica
+## PR 1 — Base da clínica (entregue)
+
+> Como foi feito: o perfil Veterinário entra no mesmo isolamento do Profissional (não lê loja, caixa nem restaurante). A leitura dos pets, da agenda e do texto clínico será dada **só a esse perfil** nas tabelas do PR 2, por política própria. Administrador e gestor que também são veterinários precisam receber o perfil Veterinário.
 
 - Módulo `clinica` em `useModulosCnae()` (CNAE `7500` ou ramo "Clínica"). Grupo de menu **Clínica**, separado de Pet shop.
 - Perfil `veterinario` no `app_role` (arquivo de migration próprio, como `garcom` e `profissional`). Quem tem só esse perfil usa a clínica, a agenda e a própria lista de pets; o isolamento segue o desenho do perfil Profissional (a função de isolamento passa a conhecê-lo; nada da loja, do caixa ou do financeiro).

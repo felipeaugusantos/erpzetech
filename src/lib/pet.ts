@@ -32,6 +32,9 @@ export const CATEGORIAS_SERVICO = [
   { value: "banho", label: "Banho" },
   { value: "tosa", label: "Tosa" },
   { value: "estetica", label: "Estética" },
+  { value: "consulta", label: "Consulta" },
+  { value: "vacina", label: "Vacina" },
+  { value: "exame", label: "Exame" },
   { value: "outro", label: "Outro" },
 ] as const;
 
@@ -284,3 +287,42 @@ export function somarDiasISO(iso: string, dias: number): string {
   const [a, m, d] = iso.split("-").map(Number);
   return new Date(Date.UTC(a!, m! - 1, d! + dias)).toISOString().slice(0, 10);
 }
+
+// ---------- clínica ----------
+
+export const UFS_CRMV = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+] as const;
+
+/** Número do CRMV como o banco guarda: maiúsculas e sem pontuação ("sp-12.345" → "SP12345"). */
+export const normalizarCrmv = (texto: string) => texto.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+
+/** CRMV aceito pelo banco: de 3 a 12 letras/números e uma UF válida. */
+export const crmvValido = (crmv: string, uf: string) =>
+  /^[0-9A-Z]{3,12}$/.test(normalizarCrmv(crmv)) && (UFS_CRMV as readonly string[]).includes(uf);
