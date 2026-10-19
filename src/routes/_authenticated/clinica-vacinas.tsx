@@ -284,8 +284,7 @@ function Vacinas() {
                   <SelectItem value="__nenhum">Escolha o lote</SelectItem>
                   {lotes.data?.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
-                      {l.lote} · {l.validade ? `vence ${dateBR(l.validade)}` : "sem validade"} ·{" "}
-                      {l.quantidade} dose(s) · {l.deposito}
+                      {l.lote} · vence {dateBR(l.validade)} · {l.quantidade} dose(s) · {l.deposito}
                     </SelectItem>
                   ))}
                 </SelectContent>

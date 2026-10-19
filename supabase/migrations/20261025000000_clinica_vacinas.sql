@@ -217,8 +217,8 @@ BEGIN
   IF v_doses = 1 THEN v_inter := NULL; END IF;
   IF v_reforco IS NULL OR v_reforco < 1 OR v_reforco > 1100 THEN RAISE EXCEPTION 'Informe o intervalo do reforço em dias (1 a 1100)'; END IF;
   IF v_idade IS NOT NULL AND (v_idade < 0 OR v_idade > 3650) THEN RAISE EXCEPTION 'Idade mínima inválida'; END IF;
-  PERFORM 1 FROM public.produtos WHERE id = v_prod AND tenant_id = v_tenant AND controla_estoque;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Escolha o produto da dose (um produto de estoque desta empresa)'; END IF;
+  PERFORM 1 FROM public.produtos WHERE id = v_prod AND tenant_id = v_tenant AND controla_estoque AND controla_lote;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Escolha o produto da dose: um produto de estoque desta empresa que controle lote'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended('clinica_vacina:' || v_tenant::text, 0));
   IF EXISTS (SELECT 1 FROM public.pet_vacinas_catalogo c WHERE c.tenant_id = v_tenant AND lower(btrim(c.nome)) = lower(v_nome)
                 AND c.especie = v_especie AND c.id IS DISTINCT FROM v_id) THEN
@@ -240,7 +240,7 @@ REVOKE ALL ON FUNCTION public.clinica_vacina_catalogo_salvar(jsonb) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.clinica_vacina_catalogo_salvar(jsonb) TO authenticated;
 
 -- ============ apoio do veterinário na aplicação ============
--- Lotes com saldo e dentro da validade do produto do item (o veterinário não lê o estoque direto).
+-- Lotes com saldo, com validade registrada e dentro dela, nos depósitos da filial do veterinário (ele não lê o estoque direto).
 CREATE OR REPLACE FUNCTION public.clinica_lotes_vacina(p_catalogo_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -259,7 +259,8 @@ BEGIN
       JOIN public.estoque_lotes l ON l.produto_id = c.produto_id AND l.tenant_id = c.tenant_id
       JOIN public.depositos d ON d.id = l.deposito_id
      WHERE c.id = p_catalogo_id AND c.tenant_id = public.current_tenant_id()
-       AND l.quantidade >= 1 AND (l.validade IS NULL OR l.validade >= v_hoje)
+       -- vacina sem validade registrada não é aplicada; e só os depósitos da filial do veterinário
+       AND l.quantidade >= 1 AND l.validade IS NOT NULL AND l.validade >= v_hoje AND public.pode_filial(d.filial_id)
   ), '[]'::jsonb);
 END $$;
 REVOKE ALL ON FUNCTION public.clinica_lotes_vacina(uuid) FROM PUBLIC, anon;
@@ -335,7 +336,10 @@ BEGIN
   -- o lote precisa ser do produto do item, ter dose e estar na validade; trava o lote antes de baixar
   SELECT * INTO l FROM public.estoque_lotes WHERE id = v_lote AND tenant_id = v_tenant AND produto_id = c.produto_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Escolha um lote deste produto'; END IF;
-  IF l.validade IS NOT NULL AND l.validade < v_em THEN RAISE EXCEPTION 'O lote % está vencido', l.lote; END IF;
+  IF l.validade IS NULL THEN RAISE EXCEPTION 'O lote % não tem validade registrada: corrija o lote no estoque', l.lote; END IF;
+  IF l.validade < v_em THEN RAISE EXCEPTION 'O lote % está vencido', l.lote; END IF;
+  PERFORM 1 FROM public.depositos d WHERE d.id = l.deposito_id AND public.pode_filial(d.filial_id);
+  IF NOT FOUND THEN RAISE EXCEPTION 'O lote % está em depósito de outra filial', l.lote; END IF;
   IF l.quantidade < 1 THEN RAISE EXCEPTION 'O lote % não tem saldo', l.lote; END IF;
 
   v_dose := public._clinica_proxima_dose(pt.id, c.id);

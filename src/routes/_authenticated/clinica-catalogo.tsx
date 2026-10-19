@@ -116,6 +116,7 @@ function Catalogo() {
         .select("id, descricao, codigo_interno")
         .eq("ativo", true)
         .eq("controla_estoque", true)
+        .eq("controla_lote", true)
         .order("descricao")
         .limit(1000);
       if (error) throw error;
@@ -362,7 +363,7 @@ function Catalogo() {
               />
             </div>
             <div>
-              <Label htmlFor="v-prod">Produto da dose (baixa o lote)</Label>
+              <Label htmlFor="v-prod">Produto da dose (controla lote; baixa o lote)</Label>
               <Select
                 value={form.produto_id || "__nenhum"}
                 onValueChange={(v) => setForm({ ...form, produto_id: v === "__nenhum" ? "" : v })}

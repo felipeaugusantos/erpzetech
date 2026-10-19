@@ -3782,7 +3782,7 @@ DECLARE
   t0 timestamptz := date_trunc('day', now()) + interval '13 days' + interval '9 hours';
   ramo_ant text; cnae_ant text; cnae2_ant text;
   tutor uuid; cao uuid; gato uuid; cao2 uuid; vacserv uuid; banho uuid; pvet uuid; ag uuid; ag_banho uuid;
-  prod uuid; prod_b uuid; prod_serv uuid; dep uuid; l_ok uuid; l_venc uuid; l_zero uuid; l_outro uuid; cat uuid; cat_gato uuid; cat_verm uuid;
+  prod uuid; prod_b uuid; prod_serv uuid; prod_sem_lote uuid; dep uuid; dep_x uuid; fx uuid; fy uuid; l_ok uuid; l_venc uuid; l_zero uuid; l_outro uuid; l_semval uuid; l_fil uuid; cat uuid; cat_gato uuid; cat_verm uuid;
   r jsonb; a1 uuid; a2 uuid; a3 uuid; a4 uuid; ext uuid; n numeric; est0 numeric;
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
@@ -3795,6 +3795,10 @@ BEGIN
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAC-V10-CI', 'Vacina V10 CI', 'UN', 0, true) RETURNING id INTO prod;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAC-OUTRO-CI', 'Outro produto CI', 'UN', 0, true) RETURNING id INTO prod_b;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'VAC-SERV-CI', 'Serviço CI', 'UN', 10, false) RETURNING id INTO prod_serv;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (demo, 'VAC-SEMLOTE-CI', 'Produto sem controle de lote CI', 'UN', 0) RETURNING id INTO prod_sem_lote;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, '22222222-2222-2222-2222-222222222222', 'Filial Vacina X') RETURNING id INTO fx;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, '22222222-2222-2222-2222-222222222222', 'Filial Vacina Y') RETURNING id INTO fy;
+  INSERT INTO depositos (tenant_id, filial_id, nome) VALUES (demo, fx, 'Vacinas filial X CI') RETURNING id INTO dep_x;
   PERFORM ci.entrar(adm);
   PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
   l_ok := estoque_lote_lancar(prod, dep, 'L-OK', '', '', 'entrada', 5, 'ci');
@@ -3802,9 +3806,13 @@ BEGIN
   l_zero := estoque_lote_lancar(prod, dep, 'L-ZERO', '', '', 'entrada', 1, 'ci');
   l_outro := estoque_lote_lancar(prod_b, dep, 'L-OUTRO', '', '', 'entrada', 2, 'ci');
   PERFORM estoque_lote_lancar(prod, dep, 'L-ZERO', '', '', 'saida', 1, 'ci');
+  l_semval := estoque_lote_lancar(prod, dep, 'L-SEMVAL', '', '', 'entrada', 4, 'ci');
+  PERFORM registrar_movimentacao(prod, dep_x, 'entrada'::mov_tipo, 2, 'ci', 'ci');
+  l_fil := estoque_lote_lancar(prod, dep_x, 'L-FILIAL', '', '', 'entrada', 2, 'ci');
   PERFORM ci.sair();
   UPDATE estoque_lotes SET validade = hoje + 90 WHERE id = l_ok;
   UPDATE estoque_lotes SET validade = hoje - 1 WHERE id = l_venc;
+  UPDATE estoque_lotes SET validade = hoje + 90 WHERE id = l_fil;
 
   PERFORM ci.entrar(gest);
   vacserv := pet_servico_salvar('{"nome":"Vacinação Clinica CI","categoria":"vacina","duracao_min":15}'::jsonb);
@@ -3821,6 +3829,7 @@ BEGIN
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',0,'produto_id',%L))$c$, prod), 'reforço zero');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','','reforco_dias',365,'produto_id',%L))$c$, prod), 'item sem nome');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',365,'produto_id',%L))$c$, prod_serv), 'produto que é serviço');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',365,'produto_id',%L))$c$, prod_sem_lote), 'produto que não controla lote');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',365,'produto_id',%L,'tipo','soro'))$c$, prod), 'tipo inválido');
   PERFORM ci.entrar(gest);
   cat := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'V10 CI', 'tipo', 'vacina', 'especie', 'cao', 'doses_serie', 3, 'intervalo_serie_dias', 21,
@@ -3854,6 +3863,7 @@ BEGIN
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag_banho, cat, l_ok), 'agendamento sem serviço de vacina');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_venc), 'lote vencido');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_zero), 'lote sem saldo');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_semval), 'lote sem validade registrada');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_outro), 'lote de outro produto');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat_gato, l_ok), 'vacina de gato em cão');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'aplicada_em',%L))$c$, ag, cat, l_ok, hoje + 1), 'aplicação no futuro');
@@ -3861,6 +3871,16 @@ BEGIN
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'aplicador_id',%L))$c$, ag, cat, l_ok, gen_random_uuid()), 'aplicador que não existe');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L,'proxima_dose_em',%L))$c$, ag, cat, l_ok, hoje - 1), 'próxima dose antes da aplicação');
   PERFORM ci.exige((SELECT quantidade FROM estoque_lotes WHERE id = l_ok) = 5, 'aplicação recusada não baixa o lote');
+  -- veterinário preso a uma filial: não vê nem usa lote de depósito de outra filial
+  UPDATE profiles SET filial_id = fy WHERE id = vg;
+  PERFORM ci.entrar(vg);
+  r := clinica_lotes_vacina(cat);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'lote' IN ('L-FILIAL', 'L-SEMVAL', 'L-VENC', 'L-ZERO')) AND jsonb_array_length(r) = 1,
+                   'a lista de lotes some com lote sem validade, vencido, zerado e de outra filial');
+  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_fil), 'lote de depósito de outra filial');
+  UPDATE profiles SET filial_id = NULL WHERE id = vg;
+  UPDATE estoque_lotes SET quantidade = 0 WHERE id = l_fil;
   SELECT quantidade INTO est0 FROM estoques WHERE produto_id = prod AND deposito_id = dep;
 
   PERFORM ci.entrar(vg);
