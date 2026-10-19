@@ -2519,3 +2519,103 @@ BEGIN
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM produtos WHERE tenant_id = tb), 'a outra empresa não recebeu produtos');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM clientes WHERE tenant_id = tb), 'a outra empresa não recebeu clientes');
 END $$;
+
+-- 34. Extrato bancário (OFX): linhas entram uma vez, conciliam o lançamento igual e o resto fica pendente
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  fin  constant uuid := 'a0000000-0000-0000-0000-0000000000b2';
+  conta uuid; conta2 uuid; m1 uuid; m2 uuid; m3 uuid; r jsonb; lin uuid; mov uuid; tb uuid; contab uuid;
+BEGIN
+  INSERT INTO contas_bancarias (tenant_id, apelido, saldo_inicial) VALUES (demo, 'Extrato CI A', 0) RETURNING id INTO conta;
+  INSERT INTO contas_bancarias (tenant_id, apelido, saldo_inicial) VALUES (demo, 'Extrato CI B', 0) RETURNING id INTO conta2;
+  INSERT INTO banco_movimentos (tenant_id, conta_id, data, tipo, valor, descricao) VALUES (demo, conta, '2026-10-05', 'entrada', 1500, 'Recebimento cliente') RETURNING id INTO m1;
+  INSERT INTO banco_movimentos (tenant_id, conta_id, data, tipo, valor, descricao) VALUES (demo, conta, '2026-10-07', 'saida', 300, 'Pagamento fornecedor') RETURNING id INTO m2;
+  INSERT INTO banco_movimentos (tenant_id, conta_id, data, tipo, valor, descricao) VALUES (demo, conta, '2026-09-01', 'entrada', 99, 'Muito antigo') RETURNING id INTO m3;
+
+  -- quem pode
+  PERFORM ci.deve_falhar(vend, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"}]'::jsonb)$c$, conta), 'vendedor importa extrato');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"}]'::jsonb)$c$, conta), 'caixa importa extrato');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"}]'::jsonb)$c$, conta), 'garçom importa extrato');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"}]'::jsonb)$c$, conta), 'anon importa extrato');
+  PERFORM ci.deve_falhar(adm, $c$SELECT banco_extrato_importar(gen_random_uuid(), '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"}]'::jsonb)$c$, 'conta que não existe');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, '[]'::jsonb)$c$, conta), 'extrato vazio');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":0,"descricao":"x"}]'::jsonb)$c$, conta), 'valor zerado');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-13-45","valor":1,"descricao":"x"}]'::jsonb)$c$, conta), 'data inválida');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":"1","descricao":"x"}]'::jsonb)$c$, conta), 'valor em texto');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, '[{"fitid":"X","data":"2026-10-05","valor":1,"descricao":"x"},{"fitid":"X","data":"2026-10-05","valor":2,"descricao":"y"}]'::jsonb)$c$, conta), 'FITID repetido no arquivo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT banco_extrato_importar(%L, (SELECT jsonb_agg(jsonb_build_object('fitid','L'||g,'data','2026-10-05','valor',1,'descricao','x')) FROM generate_series(1,2001) g))$c$, conta), 'mais de 2000 lançamentos');
+
+  -- simulação não grava nada
+  PERFORM ci.entrar(fin);
+  r := banco_extrato_importar(conta, '[{"fitid":"A1","data":"2026-10-06","valor":1500,"descricao":"PIX cliente"},
+                                       {"fitid":"A2","data":"2026-10-07","valor":-300,"descricao":"Boleto fornecedor"},
+                                       {"fitid":"A3","data":"2026-10-08","valor":-12.5,"descricao":"Tarifa"},
+                                       {"fitid":"A4","data":"2026-10-09","valor":99,"descricao":"Longe demais"}]'::jsonb, 'out.ofx', true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'simulado')::boolean AND (r ->> 'conciliadas')::int = 2 AND (r ->> 'pendentes')::int = 2 AND (r ->> 'repetidas')::int = 0,
+                   'a simulação separa o que concilia sozinho (valor, sentido e até 3 dias) do que fica pendente');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM banco_extrato_linhas WHERE conta_id = conta) AND (SELECT NOT conciliado FROM banco_movimentos WHERE id = m1),
+                   'simular não grava linha nem concilia');
+
+  -- importação de verdade (financeiro)
+  PERFORM ci.entrar(fin);
+  r := banco_extrato_importar(conta, '[{"fitid":"A1","data":"2026-10-06","valor":1500,"descricao":"PIX cliente"},
+                                       {"fitid":"A2","data":"2026-10-07","valor":-300,"descricao":"Boleto fornecedor"},
+                                       {"fitid":"A3","data":"2026-10-08","valor":-12.5,"descricao":"Tarifa"},
+                                       {"fitid":"A4","data":"2026-10-09","valor":99,"descricao":"Longe demais"}]'::jsonb, 'out.ofx');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'conciliadas')::int = 2 AND (r ->> 'pendentes')::int = 2, 'importa e concilia');
+  PERFORM ci.exige((SELECT conciliado FROM banco_movimentos WHERE id = m1) AND (SELECT conciliado FROM banco_movimentos WHERE id = m2),
+                   'os lançamentos iguais ficam conciliados');
+  PERFORM ci.exige(NOT (SELECT conciliado FROM banco_movimentos WHERE id = m3), 'lançamento de outra data não é tocado');
+  PERFORM ci.exige((SELECT movimento_id = m1 AND situacao = 'conciliada' FROM banco_extrato_linhas WHERE conta_id = conta AND fitid = 'A1'), 'a linha guarda o lançamento que conciliou');
+
+  -- importar de novo não duplica nem concilia outra vez
+  PERFORM ci.entrar(adm);
+  r := banco_extrato_importar(conta, '[{"fitid":"A1","data":"2026-10-06","valor":1500,"descricao":"PIX cliente"},
+                                       {"fitid":"A5","data":"2026-10-10","valor":-300,"descricao":"Outro de 300"}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetidas')::int = 1 AND (r ->> 'pendentes')::int = 1 AND (r ->> 'conciliadas')::int = 0, 'linha já importada é pulada; lançamento já conciliado não casa de novo');
+  PERFORM ci.exige((SELECT count(*) = 5 FROM banco_extrato_linhas WHERE conta_id = conta), 'cada FITID existe uma vez só');
+
+  -- a mesma linha em outra conta é outra linha
+  PERFORM ci.entrar(adm);
+  r := banco_extrato_importar(conta2, '[{"fitid":"A1","data":"2026-10-06","valor":1500,"descricao":"PIX cliente"}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetidas')::int = 0 AND (r ->> 'pendentes')::int = 1, 'o FITID vale por conta');
+
+  -- tratar pendências
+  SELECT id INTO lin FROM banco_extrato_linhas WHERE conta_id = conta AND fitid = 'A3';
+  PERFORM ci.deve_falhar(vend, format($c$SELECT banco_extrato_lancar(%L)$c$, lin), 'vendedor lança linha do extrato');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT banco_extrato_ignorar(%L)$c$, lin), 'caixa ignora linha do extrato');
+  PERFORM ci.entrar(fin);
+  mov := banco_extrato_lancar(lin, 'tarifa bancaria');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo = 'saida' AND valor = 12.5 AND conciliado AND origem = 'extrato' AND data = '2026-10-08' AND categoria = 'tarifa bancaria'
+                      FROM banco_movimentos WHERE id = mov), 'linha negativa vira saída já conciliada');
+  PERFORM ci.exige((SELECT situacao = 'conciliada' AND movimento_id = mov FROM banco_extrato_linhas WHERE id = lin), 'a linha passa a apontar para o lançamento');
+  PERFORM ci.deve_falhar(fin, format($c$SELECT banco_extrato_lancar(%L)$c$, lin), 'lançar duas vezes a mesma linha');
+  SELECT id INTO lin FROM banco_extrato_linhas WHERE conta_id = conta AND fitid = 'A4';
+  PERFORM ci.entrar(fin);
+  PERFORM banco_extrato_ignorar(lin);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'ignorada' FROM banco_extrato_linhas WHERE id = lin), 'ignorar');
+  PERFORM ci.deve_falhar(fin, format($c$SELECT banco_extrato_lancar(%L)$c$, lin), 'linha ignorada não vira lançamento');
+  PERFORM ci.entrar(fin);
+  PERFORM banco_extrato_ignorar(lin, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pendente' FROM banco_extrato_linhas WHERE id = lin), 'desfazer o ignorar');
+
+  -- leitura só financeiro/gestão/administrador; sem escrita direta; outra empresa não vê
+  PERFORM ci.exige(ci.contar(fin, 'SELECT count(*) FROM banco_extrato_linhas') > 0 AND ci.contar(vend, 'SELECT count(*) FROM banco_extrato_linhas') = 0
+                   AND ci.contar(cxa, 'SELECT count(*) FROM banco_extrato_linhas') = 0, 'vendedor e caixa não leem o extrato importado');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO banco_extrato_linhas (conta_id, fitid, data, valor, descricao) VALUES (%L, 'DIRETO', current_date, 1, 'x')$c$, conta), 'escrita direta no extrato');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE banco_extrato_linhas SET situacao = 'ignorada' WHERE conta_id = %L$c$, conta), 'alteração direta no extrato');
+  INSERT INTO tenants (nome) VALUES ('Extrato B') RETURNING id INTO tb;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM banco_extrato_linhas WHERE tenant_id = tb), 'a outra empresa não recebeu linhas');
+END $$;
