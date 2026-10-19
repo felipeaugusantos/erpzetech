@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ClipboardList,
   FileText,
+  FlaskConical,
   Gauge,
   HardHat,
   IdCard,
@@ -201,6 +202,7 @@ const groups: Group[] = [
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+      { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
     ],
   },
@@ -409,6 +411,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
             if (i.to === "/clinica-prontuario") return souVeterinario;
             if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
+            if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
             // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
             if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
             if (
@@ -488,6 +491,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+                  { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
                 ]
               : []),
           ],
@@ -521,6 +525,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-prontuario",
       "/clinica-atendimento",
       "/clinica-catalogo",
+      "/clinica-exames-modelos",
       "/clinica-vacinas",
       "/clinica-cartao",
     ];

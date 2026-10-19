@@ -528,7 +528,10 @@ DECLARE
     'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias',
     -- vacinas: catálogo e cartão para a gestão, o veterinário e a recepção; aplicação só do veterinário
     'clinica_vacinas_catalogo', 'clinica_vacina_catalogo_salvar', 'clinica_lotes_vacina', 'clinica_aplicadores', 'clinica_vacina_aplicar',
-    'clinica_vacina_registrar_externa', 'clinica_vacina_cancelar', 'clinica_cartao_vacinacao'];
+    'clinica_vacina_registrar_externa', 'clinica_vacina_cancelar', 'clinica_cartao_vacinacao',
+    -- modelos de exame: gestão e veterinário mantêm; cada função confere o perfil e a clínica liberada
+    'clinica_exame_modelos', 'clinica_exame_modelo_salvar', 'clinica_exame_campo_salvar', 'clinica_exame_campo_mover',
+    'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4081,5 +4084,171 @@ BEGIN
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(vend, 'SELECT clinica_reforcos_pendentes()', 'reforços sem a clínica liberada');
   PERFORM ci.deve_falhar(vend, format($c$SELECT pet_contato_registrar(%L, 'reforco', %L, 'whatsapp')$c$, pb, hoje + 16), 'contato de reforço sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 47. Clínica (modelos de exame): gestão e veterinário mantêm; modelos iniciais; campo calculado; faixa por espécie; sem acesso direto
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  novo constant uuid := 'a0000000-0000-0000-0000-000000000004';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  vh   constant uuid := 'a0000000-0000-0000-0000-0000000000f5';
+  ramo_ant text; cnae_ant text; cnae2_ant text; emp_novo uuid; t_novo uuid;
+  r jsonb; m_hemo uuid; m_prop uuid; m_novo uuid; c_hb uuid; c_ht uuid; c_leuco uuid; c_seg uuid; c_abs uuid; c_txt uuid; c_esc uuid; c_outro uuid;
+  o_hb int; o_ht int; n int; c_primeiro uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (vh, 'vetexame@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = vh;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vh, demo, 'veterinario');
+
+  -- quem mexe nos modelos: gestão e veterinário; recepção, garçom e profissional não
+  PERFORM ci.deve_falhar(gar, 'SELECT clinica_exame_modelos()', 'garçom lê modelos de exame');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_exame_modelos()', 'recepção lê modelos de exame');
+  PERFORM ci.deve_falhar(pban, 'SELECT clinica_exame_modelos()', 'profissional de banho lê modelos de exame');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_exame_modelos_iniciais()', 'recepção cria modelos iniciais');
+  PERFORM ci.deve_falhar(gar, $c$SELECT clinica_exame_modelo_salvar('{"nome":"X","tipo":"outro"}'::jsonb)$c$, 'garçom cria modelo');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_exame_modelos', 'gestão lê a tabela de modelos direto');
+  PERFORM ci.deve_falhar(vh, 'SELECT count(*) FROM pet_exame_campos', 'veterinário lê a tabela de campos direto');
+  PERFORM ci.deve_falhar(vh, 'SELECT count(*) FROM pet_exame_referencias', 'veterinário lê a tabela de faixas direto');
+  PERFORM ci.deve_falhar(gest, $c$INSERT INTO pet_exame_modelos (nome, tipo) VALUES ('Direto', 'outro')$c$, 'gestão grava modelo direto na tabela');
+
+  -- modelos iniciais: três modelos, idempotente
+  PERFORM ci.entrar(gest);
+  n := clinica_exame_modelos_iniciais();
+  PERFORM ci.exige(n = 3, 'modelos iniciais criam hemograma, bioquímica e urina');
+  PERFORM ci.exige(clinica_exame_modelos_iniciais() = 0, 'chamar de novo não duplica');
+  r := clinica_exame_modelos();
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 3, 'a empresa tem 3 modelos');
+  m_hemo := (SELECT (e ->> 'id')::uuid FROM jsonb_array_elements(r) e WHERE e ->> 'nome' = 'Hemograma');
+  PERFORM ci.exige((SELECT jsonb_array_length(e -> 'campos') FROM jsonb_array_elements(r) e WHERE e ->> 'nome' = 'Hemograma') = 26, 'hemograma inicial tem 26 campos');
+  PERFORM ci.exige((SELECT jsonb_array_length(e -> 'campos') FROM jsonb_array_elements(r) e WHERE e ->> 'nome' = 'Bioquímica sanguínea') = 22, 'bioquímica inicial tem os 21 itens e as observações');
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_campos WHERE modelo_id = m_hemo AND forma = 'calculado' AND total_campo_id IS NOT NULL AND pct_campo_id IS NOT NULL) = 7,
+                   'o hemograma tem 7 absolutos calculados, ligados ao total e ao percentual');
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome IN ('VCM', 'HCM', 'CHCM', 'RDW')) = 4, 'hemograma traz VCM, HCM, CHCM e RDW');
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_referencias WHERE tenant_id = demo) = 0, 'o sistema não traz faixa de referência pronta');
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_campos c JOIN pet_exame_modelos m ON m.id = c.modelo_id WHERE m.tenant_id = demo AND m.nome = 'Urina' AND c.forma = 'escolha') = 6,
+                   'a urina tem 6 campos de escolha');
+
+  SELECT id INTO c_hb FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Hemoglobina';
+  SELECT id INTO c_ht FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Hematócrito';
+  SELECT id INTO c_leuco FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Leucócitos totais';
+  SELECT id INTO c_seg FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Segmentados (%)';
+  SELECT id INTO c_abs FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Segmentados (abs.)';
+  SELECT id INTO c_txt FROM pet_exame_campos WHERE modelo_id = m_hemo AND nome = 'Observações';
+
+  -- veterinário (perfil restrito) também mantém os modelos
+  PERFORM ci.entrar(vh);
+  m_prop := clinica_exame_modelo_salvar(jsonb_build_object('nome', 'Exame próprio CI', 'tipo', 'outro', 'material', 'Soro'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(m_prop IS NOT NULL, 'veterinário cria um modelo');
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_exame_modelo_salvar('{"nome":" exame PRÓPRIO ci ","tipo":"outro"}'::jsonb)$c$, 'nome de modelo repetido (sem diferenciar maiúsculas)');
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_exame_modelo_salvar('{"nome":"Tipo ruim","tipo":"raiox"}'::jsonb)$c$, 'tipo de modelo inválido');
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_exame_modelo_salvar('{"nome":"","tipo":"outro"}'::jsonb)$c$, 'modelo sem nome');
+
+  -- campos: regras de cada forma
+  PERFORM ci.entrar(vh);
+  c_esc := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m_prop, 'nome', 'Resultado', 'forma', 'escolha', 'opcoes', jsonb_build_array('Reagente', 'Não reagente', 'Reagente')));
+  c_outro := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m_prop, 'nome', 'Valor', 'unidade', 'mg/dL', 'forma', 'numero', 'casas', 1));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT jsonb_array_length(opcoes) FROM pet_exame_campos WHERE id = c_esc) = 2, 'opção repetida entra uma vez só');
+  PERFORM ci.exige((SELECT opcoes FROM pet_exame_campos WHERE id = c_esc) = '["Reagente", "Não reagente"]'::jsonb, 'as opções ficam na ordem digitada, sem repetir');
+  PERFORM ci.exige((SELECT c.opcoes FROM pet_exame_campos c JOIN pet_exame_modelos m ON m.id = c.modelo_id WHERE m.tenant_id = demo AND m.nome = 'Urina' AND c.nome = 'Corpos cetônicos') = '["Negativo", "Traços", "+", "++", "+++"]'::jsonb,
+                   'a ordem das opções dos modelos iniciais é a da semente');
+  PERFORM ci.exige((SELECT ordem FROM pet_exame_campos WHERE id = c_outro) = (SELECT ordem + 1 FROM pet_exame_campos WHERE id = c_esc), 'campo novo vai para o fim do modelo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Casas', 'forma', 'numero', 'casas', 7))$c$, m_prop), 'casas decimais acima de 6');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Sem opção', 'forma', 'escolha'))$c$, m_prop), 'escolha sem opções');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Forma ruim', 'forma', 'imagem'))$c$, m_prop), 'forma de valor inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', ' valor ', 'forma', 'numero'))$c$, m_prop), 'nome de campo repetido no mesmo grupo');
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', gen_random_uuid(), 'nome', 'Órfão', 'forma', 'texto'))$c$, 'campo em modelo que não existe');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Garçom', 'forma', 'texto'))$c$, m_prop), 'garçom cria campo');
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m_prop, 'nome', 'Valor', 'grupo', 'Outro grupo', 'forma', 'texto'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_campos WHERE modelo_id = m_prop AND nome = 'Valor') = 2, 'o mesmo nome vale em grupos diferentes');
+
+  -- campo calculado: total e percentual numéricos, do mesmo modelo
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Calc texto', 'forma', 'calculado', 'total_campo_id', %L, 'pct_campo_id', %L))$c$, m_hemo, c_leuco, c_txt), 'calculado apontando para campo de texto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Calc igual', 'forma', 'calculado', 'total_campo_id', %L, 'pct_campo_id', %L))$c$, m_hemo, c_leuco, c_leuco), 'calculado com o mesmo campo no total e no percentual');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Calc de fora', 'forma', 'calculado', 'total_campo_id', %L, 'pct_campo_id', %L))$c$, m_prop, c_leuco, c_seg), 'calculado com campos de outro modelo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Calc sem ligação', 'forma', 'calculado'))$c$, m_hemo), 'calculado sem total e percentual');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('id', %L, 'nome', 'Leucócitos totais', 'grupo', 'Leucograma', 'forma', 'texto'))$c$, c_leuco), 'campo que alimenta um cálculo virar texto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('id', %L, 'nome', 'Segmentados (%%)', 'grupo', 'Leucograma — relativo', 'forma', 'numero', 'casas', 0, 'ativo', false))$c$, c_seg), 'campo que alimenta um cálculo sair de uso');
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_salvar(jsonb_build_object('id', c_abs, 'nome', 'Segmentados (abs.)', 'grupo', 'Leucograma — absoluto', 'unidade', 'cél/mm³', 'forma', 'calculado', 'casas', 0,
+                                                       'total_campo_id', c_leuco, 'pct_campo_id', c_seg, 'ativo', true));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT unidade FROM pet_exame_campos WHERE id = c_abs) = 'cél/mm³', 'campo calculado editável (unidade)');
+
+  -- faixa de referência por espécie
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_hb), 'recepção grava faixa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'passaro', 1, 2)$c$, c_hb), 'espécie inválida na faixa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 5, 2)$c$, c_hb), 'mínimo maior que o máximo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_txt), 'faixa em campo de texto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_esc), 'faixa em campo de escolha');
+  PERFORM ci.entrar(vh);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'cao', 12, 18);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'gato', 8, 15);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'cao', 11, 19);
+  PERFORM clinica_exame_referencia_salvar(c_abs, 'outro', NULL, 9000);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_referencias WHERE campo_id = c_hb) = 2, 'uma faixa por espécie (gravar de novo troca)');
+  PERFORM ci.exige((SELECT minimo FROM pet_exame_referencias WHERE campo_id = c_hb AND especie = 'cao') = 11, 'a faixa do cão ficou com o último valor');
+  PERFORM ci.exige((SELECT minimo IS NULL AND maximo = 9000 FROM pet_exame_referencias WHERE campo_id = c_abs AND especie = 'outro'), 'faixa só com máximo, em campo calculado e espécie outro');
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_referencia_salvar(c_hb, 'gato', NULL, NULL);
+  r := clinica_exame_modelos();
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_referencias WHERE campo_id = c_hb) = 1, 'mínimo e máximo em branco tiram a faixa');
+  PERFORM ci.exige((SELECT jsonb_array_length(c -> 'referencias') FROM jsonb_array_elements(r) e, jsonb_array_elements(e -> 'campos') c WHERE (c ->> 'id')::uuid = c_hb) = 1,
+                   'a lista de modelos traz as faixas de cada campo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('id', %L, 'nome', 'Hemoglobina', 'grupo', 'Eritrograma', 'forma', 'texto'))$c$, c_hb), 'trocar para texto um campo que tem faixa');
+
+  -- ordem dos campos
+  SELECT ordem INTO o_hb FROM pet_exame_campos WHERE id = c_hb;
+  SELECT ordem INTO o_ht FROM pet_exame_campos WHERE id = c_ht;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_exame_campo_mover(%L, 1)$c$, c_hb), 'recepção reordena campo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_mover(%L, 2)$c$, c_hb), 'mover mais de uma posição');
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_mover(c_hb, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT ordem FROM pet_exame_campos WHERE id = c_hb) = o_ht AND (SELECT ordem FROM pet_exame_campos WHERE id = c_ht) = o_hb, 'mover desce o campo e sobe o vizinho');
+  SELECT id INTO c_primeiro FROM pet_exame_campos WHERE modelo_id = m_hemo ORDER BY ordem, id LIMIT 1;
+  PERFORM ci.entrar(gest);
+  PERFORM clinica_exame_campo_mover(c_hb, -1);
+  PERFORM clinica_exame_campo_mover(c_primeiro, -1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT ordem FROM pet_exame_campos WHERE id = c_hb) = o_hb, 'mover de volta restaura a ordem');
+  PERFORM ci.exige((SELECT min(ordem) FROM pet_exame_campos WHERE modelo_id = m_hemo) = 0, 'subir o primeiro campo não faz nada');
+
+  -- outra empresa não enxerga nem mexe
+  SELECT tenant_id INTO t_novo FROM profiles WHERE id = novo;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (t_novo, 'Outra clínica exame CI', 'clinica') RETURNING id INTO emp_novo;
+  PERFORM ci.entrar(novo);
+  r := clinica_exame_modelos();
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 0, 'outra empresa não vê os modelos');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('id', %L, 'nome', 'Invasor', 'forma', 'texto'))$c$, c_txt), 'outra empresa edita campo alheio');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Invasor', 'forma', 'texto'))$c$, m_hemo), 'outra empresa cria campo em modelo alheio');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_hb), 'outra empresa grava faixa em campo alheio');
+  PERFORM ci.deve_falhar(novo, format($c$SELECT clinica_exame_campo_mover(%L, 1)$c$, c_hb), 'outra empresa reordena campo alheio');
+  PERFORM ci.entrar(novo);
+  PERFORM ci.exige(clinica_exame_modelos_iniciais() = 3, 'outra empresa tem os próprios modelos iniciais');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM pet_exame_modelos WHERE tenant_id = demo) = 4, 'os modelos da empresa não mudaram');
+  DELETE FROM empresas WHERE id = emp_novo;
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_exame_modelos()', 'modelos sem a clínica liberada');
+  PERFORM ci.deve_falhar(vh, 'SELECT clinica_exame_modelos_iniciais()', 'modelos iniciais sem a clínica liberada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Sem clínica', 'forma', 'texto'))$c$, m_prop), 'campo sem a clínica liberada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_referencia_salvar(%L, 'cao', 1, 2)$c$, c_hb), 'faixa sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
