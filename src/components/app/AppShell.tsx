@@ -62,6 +62,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  ehEmpresaAlimentacao,
+  GRUPOS_FORA_DA_ALIMENTACAO,
+  TELAS_FORA_DA_ALIMENTACAO,
+} from "@/lib/ramo-alimentacao";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
@@ -326,6 +331,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const empresaMenu = data?.empresa as
     { ramo_atividade?: string | null; faz_personalizacao?: boolean } | null | undefined;
   const ehConstrucao = (empresaMenu?.ramo_atividade ?? "construcao") === "construcao";
+  const soAlimentacao = ehEmpresaAlimentacao(
+    data?.empresa as { ramo_atividade?: string | null; cnae?: string | null } | null | undefined,
+  );
   const fazPersonalizacao = Boolean(empresaMenu?.faz_personalizacao);
   const gruposLoja = useMemo(
     () =>
@@ -334,11 +342,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
+          if (soAlimentacao && (GRUPOS_FORA_DA_ALIMENTACAO as readonly string[]).includes(g.label))
+            return false;
           return true;
         })
         .map((g) => ({
           ...g,
           items: g.items.filter((i) => {
+            if (
+              soAlimentacao &&
+              (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
+            )
+              return false;
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
             if (i.to === "/assistencia-lojas" || i.to === "/relatorio-assistencia")
@@ -355,7 +370,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return true;
           }),
         })),
-    [modulos.assistencia, modulos.locacao, modulos.restaurante, ehConstrucao, fazPersonalizacao],
+    [
+      modulos.assistencia,
+      modulos.locacao,
+      modulos.restaurante,
+      ehConstrucao,
+      fazPersonalizacao,
+      soAlimentacao,
+    ],
   );
 
   /** Telas do restaurante que o perfil pode abrir. */
