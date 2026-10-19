@@ -69,7 +69,12 @@ export const Route = createFileRoute("/_authenticated/clinica-exames-modelos")({
 
 type FormModelo = { id?: string; nome: string; tipo: string; material: string; ativo: boolean };
 type FaixaForm = Record<string, { minimo: string; maximo: string }>;
-type FormCampoTela = FormCampo & { id?: string; ativo: boolean; faixas: FaixaForm };
+type FormCampoTela = FormCampo & {
+  id?: string;
+  observacao: string;
+  ativo: boolean;
+  faixas: FaixaForm;
+};
 
 const modeloVazio: FormModelo = { nome: "", tipo: "outro", material: "", ativo: true };
 
@@ -85,6 +90,7 @@ const campoVazio: FormCampoTela = {
   opcoes: "",
   total_campo_id: "",
   pct_campo_id: "",
+  observacao: "",
   ativo: true,
   faixas: faixasVazias(),
 };
@@ -182,6 +188,7 @@ function Modelos() {
           opcoes: f.forma === "escolha" ? opcoesDoTexto(f.opcoes) : null,
           total_campo_id: f.forma === "calculado" ? f.total_campo_id : "",
           pct_campo_id: f.forma === "calculado" ? f.pct_campo_id : "",
+          observacao: f.observacao.trim(),
           ativo: f.ativo,
         },
       });
@@ -234,6 +241,7 @@ function Modelos() {
         opcoes: (c.opcoes ?? []).join("\n"),
         total_campo_id: c.total_campo_id ?? "",
         pct_campo_id: c.pct_campo_id ?? "",
+        observacao: c.observacao ?? "",
         ativo: c.ativo,
         faixas,
       });
@@ -685,6 +693,15 @@ function Modelos() {
                 </p>
               </div>
             )}
+            <div>
+              <Label htmlFor="ca-obs">Observação do campo (opcional)</Label>
+              <Input
+                id="ca-obs"
+                maxLength={300}
+                value={formCampo.observacao}
+                onChange={(e) => setFormCampo({ ...formCampo, observacao: e.target.value })}
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Switch
                 id="ca-ativo"

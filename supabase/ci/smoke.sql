@@ -4158,6 +4158,9 @@ BEGIN
   c_outro := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m_prop, 'nome', 'Valor', 'unidade', 'mg/dL', 'forma', 'numero', 'casas', 1));
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT jsonb_array_length(opcoes) FROM pet_exame_campos WHERE id = c_esc) = 2, 'opção repetida entra uma vez só');
+  PERFORM ci.exige((SELECT opcoes FROM pet_exame_campos WHERE id = c_esc) = '["Reagente", "Não reagente"]'::jsonb, 'as opções ficam na ordem digitada, sem repetir');
+  PERFORM ci.exige((SELECT c.opcoes FROM pet_exame_campos c JOIN pet_exame_modelos m ON m.id = c.modelo_id WHERE m.tenant_id = demo AND m.nome = 'Urina' AND c.nome = 'Corpos cetônicos') = '["Negativo", "Traços", "+", "++", "+++"]'::jsonb,
+                   'a ordem das opções dos modelos iniciais é a da semente');
   PERFORM ci.exige((SELECT ordem FROM pet_exame_campos WHERE id = c_outro) = (SELECT ordem + 1 FROM pet_exame_campos WHERE id = c_esc), 'campo novo vai para o fim do modelo');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Casas', 'forma', 'numero', 'casas', 7))$c$, m_prop), 'casas decimais acima de 6');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_exame_campo_salvar(jsonb_build_object('modelo_id', %L, 'nome', 'Sem opção', 'forma', 'escolha'))$c$, m_prop), 'escolha sem opções');

@@ -212,7 +212,9 @@ BEGIN
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_opcoes) o WHERE jsonb_typeof(o) <> 'string' OR btrim(o #>> '{}') = '' OR length(o #>> '{}') > 60) THEN
       RAISE EXCEPTION 'Cada opção precisa ter texto, de até 60 letras';
     END IF;
-    v_opcoes := (SELECT jsonb_agg(DISTINCT btrim(o #>> '{}')) FROM jsonb_array_elements(v_opcoes) o);
+    -- tira repetidas mantendo a primeira aparição e a ordem digitada (a ordem da lista é a da escolha na tela)
+    v_opcoes := (SELECT jsonb_agg(to_jsonb(q.op) ORDER BY q.pos)
+                   FROM (SELECT btrim(e #>> '{}') AS op, min(n) AS pos FROM jsonb_array_elements(v_opcoes) WITH ORDINALITY t(e, n) GROUP BY 1) q);
   ELSE
     v_opcoes := NULL;
   END IF;
