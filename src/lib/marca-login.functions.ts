@@ -6,7 +6,10 @@ export type MarcaLogin = { nome: string; cor: string | null; logoUrl: string | n
 /** Dados públicos da marca da empresa para a tela de login personalizada (/nome-da-empresa). */
 export const buscarMarcaLogin = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => {
-    const slug = String(d?.slug ?? "").toLowerCase().trim().slice(0, 60);
+    const slug = String(d?.slug ?? "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 60);
     return { slug };
   })
   .handler(async ({ data }): Promise<MarcaLogin | null> => {
@@ -26,7 +29,9 @@ export const buscarMarcaLogin = createServerFn({ method: "GET" })
         : {},
     });
     const { data: rows } = await sb.rpc("empresa_por_slug", { p_slug: data.slug });
-    const row = (rows as { nome: string; cor_primaria: string | null; logo_path: string | null }[] | null)?.[0];
+    const row = (
+      rows as { nome: string; cor_primaria: string | null; logo_path: string | null }[] | null
+    )?.[0];
     if (!row) return null;
     let logoUrl: string | null = null;
     if (row.logo_path) {
