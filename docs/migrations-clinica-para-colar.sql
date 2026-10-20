@@ -1,4 +1,900 @@
 
+-- ===== 20261019000000_pet_shop_base.sql =====
+-- Base do módulo Pet shop: produto que é serviço (banho, tosa, consulta) não controla estoque.
+-- A isenção fica no ponto único por onde todo movimento de estoque passa (registrar_movimentacao_interno): venda, cancelamento,
+-- devolução, reserva e importação de saldo ignoram o produto marcado, sem saldo e sem erro de estoque insuficiente.
+
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS controla_estoque boolean NOT NULL DEFAULT true;
+
+DO $$
+DECLARE
+  def text;
+  nova text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid) INTO def
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'registrar_movimentacao_interno';
+  IF def IS NULL THEN RAISE EXCEPTION 'registrar_movimentacao_interno não encontrada'; END IF;
+  IF position('controla_estoque' IN def) > 0 THEN RETURN; END IF;
+  nova := replace(def,
+    E'  if p_quantidade is null or p_quantidade <= 0 then raise exception ''Informe uma quantidade maior que zero''; end if;\n',
+    E'  if p_quantidade is null or p_quantidade <= 0 then raise exception ''Informe uma quantidade maior que zero''; end if;\n'
+    || E'  -- serviço (controla_estoque = false): não há saldo nem movimento\n'
+    || E'  if exists (select 1 from public.produtos px where px.id = p_produto_id and px.tenant_id = v_tenant and not px.controla_estoque) then\n'
+    || E'    return null;\n'
+    || E'  end if;\n');
+  IF nova = def THEN RAISE EXCEPTION 'registrar_movimentacao_interno: trecho esperado não encontrado'; END IF;
+  EXECUTE nova;
+END $$;
+
+-- ===== 20261019000001_pet_cadastros.sql =====
+-- Pet shop (PR 2): tutores e pets, serviços com preço por porte/raça/pelagem e profissionais.
+-- Escrita só por funções (papel + trava do salão). O tutor é um cliente comum; o serviço é um produto sem controle de estoque.
+
+-- ============ pets ============
+CREATE TABLE IF NOT EXISTS public.pets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  cliente_id uuid NOT NULL REFERENCES public.clientes(id),
+  nome text NOT NULL CHECK (length(btrim(nome)) > 0),
+  especie text NOT NULL DEFAULT 'cao' CHECK (especie IN ('cao', 'gato', 'outro')),
+  raca text,
+  porte text CHECK (porte IN ('mini', 'pequeno', 'medio', 'grande', 'gigante')),
+  sexo text CHECK (sexo IN ('macho', 'femea')),
+  pelagem text CHECK (pelagem IN ('curta', 'media', 'longa', 'dupla', 'crespa', 'sem_pelo')),
+  peso_kg numeric(6,2) CHECK (peso_kg > 0),
+  nascimento date,
+  castrado boolean,
+  alergias text,
+  observacoes text,
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pets_tenant_idx ON public.pets (tenant_id, ativo, nome);
+CREATE INDEX IF NOT EXISTS pets_cliente_idx ON public.pets (cliente_id);
+
+-- ============ serviços ============
+CREATE TABLE IF NOT EXISTS public.pet_servicos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  nome text NOT NULL CHECK (length(btrim(nome)) > 0),
+  categoria text NOT NULL DEFAULT 'banho' CHECK (categoria IN ('banho', 'tosa', 'estetica', 'outro')),
+  duracao_min integer NOT NULL DEFAULT 60 CHECK (duracao_min BETWEEN 5 AND 720),
+  produto_id uuid NOT NULL REFERENCES public.produtos(id),
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS pet_servicos_nome_idx ON public.pet_servicos (tenant_id, lower(btrim(nome)));
+CREATE UNIQUE INDEX IF NOT EXISTS pet_servicos_produto_idx ON public.pet_servicos (produto_id);
+
+-- Cada critério vazio vale para qualquer pet. Vence o preço mais específico (raça 4 > pelagem 2 > porte 1).
+CREATE TABLE IF NOT EXISTS public.pet_servico_precos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  servico_id uuid NOT NULL REFERENCES public.pet_servicos(id) ON DELETE CASCADE,
+  porte text CHECK (porte IN ('mini', 'pequeno', 'medio', 'grande', 'gigante')),
+  raca text CHECK (raca IS NULL OR length(btrim(raca)) > 0),
+  pelagem text CHECK (pelagem IN ('curta', 'media', 'longa', 'dupla', 'crespa', 'sem_pelo')),
+  preco numeric(14,2) NOT NULL CHECK (preco >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS pet_servico_precos_combinacao_idx ON public.pet_servico_precos
+  (servico_id, coalesce(porte, ''), coalesce(lower(btrim(raca)), ''), coalesce(pelagem, ''));
+
+-- ============ profissionais ============
+CREATE TABLE IF NOT EXISTS public.pet_profissionais (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  filial_id uuid REFERENCES public.filiais(id),
+  nome text NOT NULL CHECK (length(btrim(nome)) > 0),
+  funcao text NOT NULL DEFAULT 'tosador' CHECK (funcao IN ('banhista', 'tosador', 'groomer', 'veterinario', 'auxiliar', 'outro')),
+  comissao_percentual numeric(5,2) NOT NULL DEFAULT 0 CHECK (comissao_percentual BETWEEN 0 AND 100),
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pet_profissionais_tenant_idx ON public.pet_profissionais (tenant_id, ativo, nome);
+
+-- ============ acesso: leitura da empresa, escrita só pelas funções ============
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['pets', 'pet_servicos', 'pet_servico_precos', 'pet_profissionais'] LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);
+    EXECUTE format('GRANT SELECT ON public.%I TO authenticated', t);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
+    EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (tenant_id = public.current_tenant_id())', t || '_ler', t);
+    EXECUTE format('CREATE POLICY salao_restrito ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()))', t);
+    EXECUTE format('CREATE TRIGGER %I BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at()', 'trg_' || t || '_updated', t);
+  END LOOP;
+END $$;
+
+-- ============ funções ============
+-- Tutor e pet: a recepção também cadastra.
+CREATE OR REPLACE FUNCTION public.pet_salvar(p_dados jsonb)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  v_id uuid := nullif(p_dados ->> 'id', '')::uuid;
+  v_cliente uuid := nullif(p_dados ->> 'cliente_id', '')::uuid;
+  v_nome text := btrim(coalesce(p_dados ->> 'nome', ''));
+  v_peso numeric := nullif(p_dados ->> 'peso_kg', '')::numeric;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  IF v_nome = '' THEN RAISE EXCEPTION 'Informe o nome do pet'; END IF;
+  IF v_peso IS NOT NULL AND v_peso <= 0 THEN RAISE EXCEPTION 'O peso precisa ser maior que zero'; END IF;
+  IF coalesce(p_dados ->> 'especie', 'cao') NOT IN ('cao', 'gato', 'outro') THEN RAISE EXCEPTION 'Espécie inválida'; END IF;
+  IF nullif(p_dados ->> 'porte', '') IS NOT NULL AND p_dados ->> 'porte' NOT IN ('mini', 'pequeno', 'medio', 'grande', 'gigante') THEN RAISE EXCEPTION 'Porte inválido'; END IF;
+  IF nullif(p_dados ->> 'pelagem', '') IS NOT NULL AND p_dados ->> 'pelagem' NOT IN ('curta', 'media', 'longa', 'dupla', 'crespa', 'sem_pelo') THEN RAISE EXCEPTION 'Pelagem inválida'; END IF;
+  IF nullif(p_dados ->> 'sexo', '') IS NOT NULL AND p_dados ->> 'sexo' NOT IN ('macho', 'femea') THEN RAISE EXCEPTION 'Sexo inválido'; END IF;
+  IF v_cliente IS NULL OR NOT EXISTS (SELECT 1 FROM public.clientes c WHERE c.id = v_cliente AND c.tenant_id = v_tenant) THEN
+    RAISE EXCEPTION 'Escolha o tutor (cliente) do pet';
+  END IF;
+
+  IF v_id IS NULL THEN
+    INSERT INTO public.pets (tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo)
+    VALUES (v_tenant, v_cliente, v_nome, coalesce(nullif(p_dados ->> 'especie', ''), 'cao'), nullif(btrim(p_dados ->> 'raca'), ''),
+            nullif(p_dados ->> 'porte', ''), nullif(p_dados ->> 'sexo', ''), nullif(p_dados ->> 'pelagem', ''), v_peso,
+            nullif(p_dados ->> 'nascimento', '')::date, (p_dados ->> 'castrado')::boolean, nullif(btrim(p_dados ->> 'alergias'), ''),
+            nullif(btrim(p_dados ->> 'observacoes'), ''), coalesce((p_dados ->> 'ativo')::boolean, true))
+    RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.pets SET cliente_id = v_cliente, nome = v_nome, especie = coalesce(nullif(p_dados ->> 'especie', ''), 'cao'),
+           raca = nullif(btrim(p_dados ->> 'raca'), ''), porte = nullif(p_dados ->> 'porte', ''), sexo = nullif(p_dados ->> 'sexo', ''),
+           pelagem = nullif(p_dados ->> 'pelagem', ''), peso_kg = v_peso, nascimento = nullif(p_dados ->> 'nascimento', '')::date,
+           castrado = (p_dados ->> 'castrado')::boolean, alergias = nullif(btrim(p_dados ->> 'alergias'), ''),
+           observacoes = nullif(btrim(p_dados ->> 'observacoes'), ''), ativo = coalesce((p_dados ->> 'ativo')::boolean, true)
+     WHERE id = v_id AND tenant_id = v_tenant;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Pet não encontrado'; END IF;
+  END IF;
+  RETURN v_id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_salvar(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_salvar(jsonb) TO authenticated;
+
+-- Serviço: cria (ou atualiza) o produto que entra na frente de caixa, sem controle de estoque.
+CREATE OR REPLACE FUNCTION public.pet_servico_salvar(p_dados jsonb)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  v_id uuid := nullif(p_dados ->> 'id', '')::uuid;
+  v_nome text := btrim(coalesce(p_dados ->> 'nome', ''));
+  v_cat text := coalesce(nullif(p_dados ->> 'categoria', ''), 'banho');
+  v_dur integer := coalesce(nullif(p_dados ->> 'duracao_min', '')::integer, 60);
+  v_base numeric := coalesce(nullif(p_dados ->> 'preco_base', '')::numeric, 0);
+  v_ativo boolean := coalesce((p_dados ->> 'ativo')::boolean, true);
+  v_prod uuid;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
+  IF v_nome = '' THEN RAISE EXCEPTION 'Informe o nome do serviço'; END IF;
+  IF v_cat NOT IN ('banho', 'tosa', 'estetica', 'outro') THEN RAISE EXCEPTION 'Categoria inválida'; END IF;
+  IF v_dur < 5 OR v_dur > 720 THEN RAISE EXCEPTION 'A duração precisa ficar entre 5 e 720 minutos'; END IF;
+  IF v_base < 0 THEN RAISE EXCEPTION 'O preço não pode ser negativo'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('pet_servico:' || v_tenant::text, 0));
+  IF EXISTS (SELECT 1 FROM public.pet_servicos s WHERE s.tenant_id = v_tenant AND lower(btrim(s.nome)) = lower(v_nome) AND s.id IS DISTINCT FROM v_id) THEN
+    RAISE EXCEPTION 'Já existe um serviço com este nome';
+  END IF;
+
+  IF v_id IS NULL THEN
+    INSERT INTO public.produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque, ativo)
+    VALUES (v_tenant, '', v_nome, 'UN', v_base, false, v_ativo)
+    RETURNING id INTO v_prod;
+    INSERT INTO public.pet_servicos (tenant_id, nome, categoria, duracao_min, produto_id, ativo)
+    VALUES (v_tenant, v_nome, v_cat, v_dur, v_prod, v_ativo)
+    RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.pet_servicos SET nome = v_nome, categoria = v_cat, duracao_min = v_dur, ativo = v_ativo
+     WHERE id = v_id AND tenant_id = v_tenant
+    RETURNING produto_id INTO v_prod;
+    IF v_prod IS NULL THEN RAISE EXCEPTION 'Serviço não encontrado'; END IF;
+    UPDATE public.produtos SET descricao = v_nome, preco_venda = v_base, ativo = v_ativo WHERE id = v_prod AND tenant_id = v_tenant;
+  END IF;
+  RETURN v_id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_servico_salvar(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_servico_salvar(jsonb) TO authenticated;
+
+-- Preço por critério: grava ou atualiza a linha da combinação.
+CREATE OR REPLACE FUNCTION public.pet_preco_salvar(
+  p_servico_id uuid, p_porte text, p_raca text, p_pelagem text, p_preco numeric)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  v_porte text := nullif(btrim(p_porte), '');
+  v_raca text := nullif(btrim(p_raca), '');
+  v_pelagem text := nullif(btrim(p_pelagem), '');
+  v_id uuid;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
+  IF p_preco IS NULL OR p_preco < 0 THEN RAISE EXCEPTION 'Informe um preço válido'; END IF;
+  IF v_porte IS NOT NULL AND v_porte NOT IN ('mini', 'pequeno', 'medio', 'grande', 'gigante') THEN RAISE EXCEPTION 'Porte inválido'; END IF;
+  IF v_pelagem IS NOT NULL AND v_pelagem NOT IN ('curta', 'media', 'longa', 'dupla', 'crespa', 'sem_pelo') THEN RAISE EXCEPTION 'Pelagem inválida'; END IF;
+  PERFORM 1 FROM public.pet_servicos WHERE id = p_servico_id AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Serviço não encontrado'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('pet_preco:' || p_servico_id::text, 0));
+
+  SELECT id INTO v_id FROM public.pet_servico_precos
+   WHERE servico_id = p_servico_id AND coalesce(porte, '') = coalesce(v_porte, '')
+     AND coalesce(lower(btrim(raca)), '') = coalesce(lower(v_raca), '') AND coalesce(pelagem, '') = coalesce(v_pelagem, '');
+  IF v_id IS NULL THEN
+    INSERT INTO public.pet_servico_precos (tenant_id, servico_id, porte, raca, pelagem, preco)
+    VALUES (v_tenant, p_servico_id, v_porte, v_raca, v_pelagem, round(p_preco, 2)) RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.pet_servico_precos SET preco = round(p_preco, 2) WHERE id = v_id;
+  END IF;
+  RETURN v_id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_preco_salvar(uuid, text, text, text, numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_preco_salvar(uuid, text, text, text, numeric) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.pet_preco_remover(p_preco_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
+  DELETE FROM public.pet_servico_precos WHERE id = p_preco_id AND tenant_id = public.current_tenant_id();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Preço não encontrado'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_preco_remover(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_preco_remover(uuid) TO authenticated;
+
+-- Qual preço vale para este pet: o mais específico entre os que batem (mesma regra de src/lib/pet.ts).
+CREATE OR REPLACE FUNCTION public.pet_preco_calcular(p_servico_id uuid, p_pet_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  pt public.pets%ROWTYPE;
+  r record;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  SELECT * INTO pt FROM public.pets WHERE id = p_pet_id AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Pet não encontrado'; END IF;
+  PERFORM 1 FROM public.pet_servicos WHERE id = p_servico_id AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Serviço não encontrado'; END IF;
+  SELECT p.id, p.preco, p.porte, p.raca, p.pelagem,
+         (CASE WHEN p.raca IS NOT NULL THEN 4 ELSE 0 END + CASE WHEN p.pelagem IS NOT NULL THEN 2 ELSE 0 END
+          + CASE WHEN p.porte IS NOT NULL THEN 1 ELSE 0 END) AS pontos
+    INTO r
+    FROM public.pet_servico_precos p
+   WHERE p.servico_id = p_servico_id AND p.tenant_id = v_tenant
+     AND (p.porte IS NULL OR p.porte = pt.porte)
+     AND (p.raca IS NULL OR lower(btrim(p.raca)) = lower(btrim(coalesce(pt.raca, ''))))
+     AND (p.pelagem IS NULL OR p.pelagem = pt.pelagem)
+   ORDER BY 6 DESC
+   LIMIT 1;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('preco_id', r.id, 'preco', r.preco, 'porte', r.porte, 'raca', r.raca, 'pelagem', r.pelagem, 'pontos', r.pontos);
+END $$;
+REVOKE ALL ON FUNCTION public.pet_preco_calcular(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_preco_calcular(uuid, uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.pet_profissional_salvar(p_dados jsonb)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  v_id uuid := nullif(p_dados ->> 'id', '')::uuid;
+  v_nome text := btrim(coalesce(p_dados ->> 'nome', ''));
+  v_funcao text := coalesce(nullif(p_dados ->> 'funcao', ''), 'tosador');
+  v_com numeric := coalesce(nullif(p_dados ->> 'comissao_percentual', '')::numeric, 0);
+  v_filial uuid := nullif(p_dados ->> 'filial_id', '')::uuid;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
+  IF v_nome = '' THEN RAISE EXCEPTION 'Informe o nome do profissional'; END IF;
+  IF v_funcao NOT IN ('banhista', 'tosador', 'groomer', 'veterinario', 'auxiliar', 'outro') THEN RAISE EXCEPTION 'Função inválida'; END IF;
+  IF v_com < 0 OR v_com > 100 THEN RAISE EXCEPTION 'A comissão precisa ficar entre 0 e 100%%'; END IF;
+  IF v_filial IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.filiais f WHERE f.id = v_filial AND f.tenant_id = v_tenant) THEN
+    RAISE EXCEPTION 'Loja não encontrada';
+  END IF;
+  IF v_id IS NULL THEN
+    INSERT INTO public.pet_profissionais (tenant_id, filial_id, nome, funcao, comissao_percentual, ativo)
+    VALUES (v_tenant, v_filial, v_nome, v_funcao, v_com, coalesce((p_dados ->> 'ativo')::boolean, true))
+    RETURNING id INTO v_id;
+  ELSE
+    UPDATE public.pet_profissionais SET filial_id = v_filial, nome = v_nome, funcao = v_funcao, comissao_percentual = v_com,
+           ativo = coalesce((p_dados ->> 'ativo')::boolean, true)
+     WHERE id = v_id AND tenant_id = v_tenant;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Profissional não encontrado'; END IF;
+  END IF;
+  RETURN v_id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_profissional_salvar(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_profissional_salvar(jsonb) TO authenticated;
+
+-- ===== 20261019000002_pet_agenda.sql =====
+-- Pet shop (PR 3): agenda de banho e tosa. Só a recepção agenda; o profissional não pode ter dois atendimentos ao mesmo tempo.
+-- A cobrança ("retirado") entra no PR seguinte: aqui o atendimento vai até "pronto".
+-- A escrita passa só pelas funções, que travam o profissional (lock) antes de conferir a sobreposição.
+
+CREATE TABLE IF NOT EXISTS public.pet_agendamentos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  filial_id uuid REFERENCES public.filiais(id),
+  pet_id uuid NOT NULL REFERENCES public.pets(id),
+  cliente_id uuid NOT NULL REFERENCES public.clientes(id),
+  profissional_id uuid NOT NULL REFERENCES public.pet_profissionais(id),
+  inicio timestamptz NOT NULL,
+  fim timestamptz NOT NULL,
+  situacao text NOT NULL DEFAULT 'agendado'
+    CHECK (situacao IN ('agendado', 'confirmado', 'em_atendimento', 'pronto', 'retirado', 'cancelado', 'faltou')),
+  observacoes text,
+  taxi_dog boolean NOT NULL DEFAULT false,
+  motivo text,
+  venda_id uuid REFERENCES public.pedidos(id),
+  criado_por uuid DEFAULT auth.uid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (fim > inicio)
+);
+CREATE INDEX IF NOT EXISTS pet_agendamentos_dia_idx ON public.pet_agendamentos (tenant_id, inicio);
+CREATE INDEX IF NOT EXISTS pet_agendamentos_prof_idx ON public.pet_agendamentos (profissional_id, inicio) WHERE situacao NOT IN ('cancelado', 'faltou');
+CREATE INDEX IF NOT EXISTS pet_agendamentos_pet_idx ON public.pet_agendamentos (pet_id, inicio DESC);
+
+-- Preço e duração ficam congelados na hora de agendar.
+CREATE TABLE IF NOT EXISTS public.pet_agendamento_itens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  agendamento_id uuid NOT NULL REFERENCES public.pet_agendamentos(id) ON DELETE CASCADE,
+  servico_id uuid NOT NULL REFERENCES public.pet_servicos(id),
+  preco_aplicado numeric(14,2) NOT NULL CHECK (preco_aplicado >= 0),
+  duracao_min integer NOT NULL CHECK (duracao_min > 0),
+  preco_avulso boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (agendamento_id, servico_id)
+);
+
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['pet_agendamentos', 'pet_agendamento_itens'] LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);
+    EXECUTE format('GRANT SELECT ON public.%I TO authenticated', t);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
+    EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (tenant_id = public.current_tenant_id())', t || '_ler', t);
+    EXECUTE format('CREATE POLICY salao_restrito ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()))', t);
+  END LOOP;
+  EXECUTE 'CREATE TRIGGER trg_pet_agendamentos_updated BEFORE UPDATE ON public.pet_agendamentos FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at()';
+END $$;
+
+-- Apoio: o profissional já tem atendimento que cruza este intervalo? (intervalo aberto no fim: um começa quando o outro termina)
+CREATE OR REPLACE FUNCTION public._pet_conflito(p_prof uuid, p_ini timestamptz, p_fim timestamptz, p_ignorar uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.pet_agendamentos a
+     WHERE a.profissional_id = p_prof AND a.situacao NOT IN ('cancelado', 'faltou')
+       AND a.id IS DISTINCT FROM p_ignorar
+       AND a.inicio < p_fim AND a.fim > p_ini)
+$$;
+REVOKE ALL ON FUNCTION public._pet_conflito(uuid, timestamptz, timestamptz, uuid) FROM PUBLIC, anon, authenticated;
+
+-- p_dados: {pet_id, profissional_id, inicio, servicos: [{servico_id, preco_avulso?}], observacoes?, taxi_dog?}
+CREATE OR REPLACE FUNCTION public.pet_agendar(p_dados jsonb)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  pt public.pets%ROWTYPE;
+  pf public.pet_profissionais%ROWTYPE;
+  v_ini timestamptz := nullif(p_dados ->> 'inicio', '')::timestamptz;
+  v_fim timestamptz;
+  v_dur integer := 0;
+  v_gestao boolean;
+  it jsonb;
+  sv public.pet_servicos%ROWTYPE;
+  v_calc jsonb;
+  v_preco numeric;
+  v_avulso boolean;
+  v_itens jsonb := '[]'::jsonb;
+  v_vistos uuid[] := '{}';
+  v_id uuid;
+  r jsonb;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  v_gestao := public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor');
+  IF v_ini IS NULL THEN RAISE EXCEPTION 'Informe o dia e a hora do atendimento'; END IF;
+  IF jsonb_typeof(p_dados -> 'servicos') IS DISTINCT FROM 'array' OR jsonb_array_length(p_dados -> 'servicos') = 0 THEN
+    RAISE EXCEPTION 'Escolha ao menos um serviço';
+  END IF;
+
+  SELECT * INTO pt FROM public.pets WHERE id = nullif(p_dados ->> 'pet_id', '')::uuid AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Pet não encontrado'; END IF;
+  IF NOT pt.ativo THEN RAISE EXCEPTION 'Este pet está inativo'; END IF;
+  SELECT * INTO pf FROM public.pet_profissionais WHERE id = nullif(p_dados ->> 'profissional_id', '')::uuid AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Profissional não encontrado'; END IF;
+  IF NOT pf.ativo THEN RAISE EXCEPTION 'Este profissional está inativo'; END IF;
+
+  FOR it IN SELECT value FROM jsonb_array_elements(p_dados -> 'servicos') LOOP
+    SELECT * INTO sv FROM public.pet_servicos WHERE id = nullif(it ->> 'servico_id', '')::uuid AND tenant_id = v_tenant;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Serviço não encontrado'; END IF;
+    IF NOT sv.ativo THEN RAISE EXCEPTION 'O serviço % está inativo', sv.nome; END IF;
+    IF sv.id = ANY (v_vistos) THEN RAISE EXCEPTION 'O serviço % foi escolhido duas vezes', sv.nome; END IF;
+    v_vistos := v_vistos || sv.id;
+
+    v_calc := public.pet_preco_calcular(sv.id, pt.id);
+    v_avulso := false;
+    IF v_calc IS NOT NULL THEN
+      v_preco := (v_calc ->> 'preco')::numeric;
+    ELSIF nullif(it ->> 'preco_avulso', '') IS NOT NULL THEN
+      IF NOT v_gestao THEN RAISE EXCEPTION 'Sem preço cadastrado para % neste pet; só administrador ou gestor informa preço avulso', sv.nome; END IF;
+      v_preco := (it ->> 'preco_avulso')::numeric;
+      IF v_preco < 0 THEN RAISE EXCEPTION 'O preço avulso não pode ser negativo'; END IF;
+      v_avulso := true;
+    ELSE
+      RAISE EXCEPTION 'O serviço % não tem preço cadastrado para este pet', sv.nome;
+    END IF;
+    v_dur := v_dur + sv.duracao_min;
+    v_itens := v_itens || jsonb_build_object('servico_id', sv.id, 'preco', round(v_preco, 2), 'duracao', sv.duracao_min, 'avulso', v_avulso);
+  END LOOP;
+
+  v_fim := v_ini + make_interval(mins => v_dur);
+  PERFORM pg_advisory_xact_lock(hashtextextended('pet_agenda:' || pf.id::text, 0));
+  IF public._pet_conflito(pf.id, v_ini, v_fim, NULL) THEN
+    RAISE EXCEPTION '% já tem atendimento neste horário', pf.nome;
+  END IF;
+
+  INSERT INTO public.pet_agendamentos (tenant_id, filial_id, pet_id, cliente_id, profissional_id, inicio, fim, observacoes, taxi_dog)
+  VALUES (v_tenant, pf.filial_id, pt.id, pt.cliente_id, pf.id, v_ini, v_fim, nullif(btrim(p_dados ->> 'observacoes'), ''),
+          coalesce((p_dados ->> 'taxi_dog')::boolean, false))
+  RETURNING id INTO v_id;
+  FOR r IN SELECT value FROM jsonb_array_elements(v_itens) LOOP
+    INSERT INTO public.pet_agendamento_itens (tenant_id, agendamento_id, servico_id, preco_aplicado, duracao_min, preco_avulso)
+    VALUES (v_tenant, v_id, (r ->> 'servico_id')::uuid, (r ->> 'preco')::numeric, (r ->> 'duracao')::integer, (r ->> 'avulso')::boolean);
+  END LOOP;
+  RETURN v_id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_agendar(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_agendar(jsonb) TO authenticated;
+
+-- Situação: agendado → confirmado → em_atendimento → pronto. Cancelar e faltar valem enquanto o atendimento não começou.
+-- "retirado" só sai da cobrança (próximo PR); por aqui não se alcança.
+CREATE OR REPLACE FUNCTION public.pet_agenda_situacao(p_id uuid, p_para text, p_motivo text DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  a public.pet_agendamentos%ROWTYPE;
+  v_ok boolean;
+  v_motivo text := nullif(btrim(p_motivo), '');
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  SELECT * INTO a FROM public.pet_agendamentos WHERE id = p_id AND tenant_id = public.current_tenant_id() FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Agendamento não encontrado'; END IF;
+  v_ok := CASE a.situacao
+    WHEN 'agendado' THEN p_para IN ('confirmado', 'em_atendimento', 'cancelado', 'faltou')
+    WHEN 'confirmado' THEN p_para IN ('em_atendimento', 'cancelado', 'faltou')
+    WHEN 'em_atendimento' THEN p_para = 'pronto'
+    ELSE false END;
+  IF NOT v_ok THEN
+    RAISE EXCEPTION 'Não é possível passar de "%" para "%"', a.situacao, p_para;
+  END IF;
+  IF p_para IN ('cancelado', 'faltou') AND v_motivo IS NULL THEN
+    RAISE EXCEPTION 'Informe o motivo';
+  END IF;
+  UPDATE public.pet_agendamentos SET situacao = p_para, motivo = CASE WHEN p_para IN ('cancelado', 'faltou') THEN v_motivo ELSE motivo END
+   WHERE id = a.id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_agenda_situacao(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_agenda_situacao(uuid, text, text) TO authenticated;
+
+-- Remarcar: só antes de começar; o profissional pode mudar; a duração dos serviços já combinados se mantém.
+CREATE OR REPLACE FUNCTION public.pet_reagendar(p_id uuid, p_inicio timestamptz, p_profissional_id uuid DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  a public.pet_agendamentos%ROWTYPE;
+  pf public.pet_profissionais%ROWTYPE;
+  v_dur integer;
+  v_fim timestamptz;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  IF p_inicio IS NULL THEN RAISE EXCEPTION 'Informe o novo horário'; END IF;
+  SELECT * INTO a FROM public.pet_agendamentos WHERE id = p_id AND tenant_id = v_tenant FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Agendamento não encontrado'; END IF;
+  IF a.situacao NOT IN ('agendado', 'confirmado') THEN
+    RAISE EXCEPTION 'Só dá para remarcar atendimento agendado ou confirmado';
+  END IF;
+  SELECT * INTO pf FROM public.pet_profissionais WHERE id = coalesce(p_profissional_id, a.profissional_id) AND tenant_id = v_tenant;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Profissional não encontrado'; END IF;
+  IF NOT pf.ativo THEN RAISE EXCEPTION 'Este profissional está inativo'; END IF;
+  SELECT coalesce(sum(duracao_min), 0) INTO v_dur FROM public.pet_agendamento_itens WHERE agendamento_id = a.id;
+  v_fim := p_inicio + make_interval(mins => v_dur);
+  PERFORM pg_advisory_xact_lock(hashtextextended('pet_agenda:' || pf.id::text, 0));
+  IF public._pet_conflito(pf.id, p_inicio, v_fim, a.id) THEN
+    RAISE EXCEPTION '% já tem atendimento neste horário', pf.nome;
+  END IF;
+  UPDATE public.pet_agendamentos SET inicio = p_inicio, fim = v_fim, profissional_id = pf.id, filial_id = pf.filial_id WHERE id = a.id;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_reagendar(uuid, timestamptz, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_reagendar(uuid, timestamptz, uuid) TO authenticated;
+
+-- ===== 20261019000003_pet_cobranca.sql =====
+-- Pet shop (PR 4): cobrança do atendimento pronto ("Retirar e cobrar"), comissão do profissional e NFS-e em rascunho.
+-- A venda é feita pela frente de caixa de sempre (o operador escolhe a forma de pagamento); depois pet_agenda_retirar
+-- confere que a venda é aquela mesma, liga os dois, calcula a comissão e deixa a NFS-e do serviço em rascunho.
+
+CREATE UNIQUE INDEX IF NOT EXISTS pet_agendamentos_venda_idx ON public.pet_agendamentos (venda_id) WHERE venda_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS public.pet_comissoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  profissional_id uuid NOT NULL REFERENCES public.pet_profissionais(id),
+  agendamento_id uuid NOT NULL UNIQUE REFERENCES public.pet_agendamentos(id),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id),
+  base numeric(14,2) NOT NULL CHECK (base >= 0),
+  percentual numeric(5,2) NOT NULL CHECK (percentual BETWEEN 0 AND 100),
+  valor numeric(14,2) NOT NULL CHECK (valor >= 0),
+  situacao text NOT NULL DEFAULT 'a_aprovar' CHECK (situacao IN ('a_aprovar', 'aprovada', 'paga', 'cancelada')),
+  aprovada_em timestamptz,
+  aprovada_por uuid,
+  pago_em timestamptz,
+  pago_por uuid,
+  forma_pagamento text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pet_comissoes_prof_idx ON public.pet_comissoes (tenant_id, profissional_id, situacao);
+
+ALTER TABLE public.pet_comissoes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.pet_comissoes FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.pet_comissoes TO authenticated;
+GRANT ALL ON public.pet_comissoes TO service_role;
+CREATE POLICY pet_comissoes_ler ON public.pet_comissoes FOR SELECT TO authenticated
+  USING (tenant_id = public.current_tenant_id()
+         AND (public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor')
+              OR public.has_role(auth.uid(), 'financeiro')));
+CREATE POLICY salao_restrito ON public.pet_comissoes AS RESTRICTIVE FOR ALL TO authenticated
+  USING ((SELECT NOT public.eh_salao_restrito()));
+CREATE TRIGGER trg_pet_comissoes_updated BEFORE UPDATE ON public.pet_comissoes
+  FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+
+-- NFS-e do serviço, como rascunho (com as pendências de configuração) ou pronta, no molde da locação.
+-- Interna: só é chamada por pet_agenda_retirar.
+CREATE OR REPLACE FUNCTION public._pet_nfse_rascunho(p_agendamento_id uuid, p_pedido_id uuid, p_liquido numeric)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  a public.pet_agendamentos%ROWTYPE;
+  v_ped record; v_cli record; v_emp record; v_fil record;
+  v_fil_cfg record; v_emp_cfg record; v_cfg record;
+  v_nfe uuid; v_numero integer; v_pend text[] := '{}';
+  v_doc text; v_iss numeric; v_codigo text; v_cert text; v_municipio text;
+  v_bruto numeric;
+BEGIN
+  SELECT * INTO a FROM public.pet_agendamentos WHERE id = p_agendamento_id AND tenant_id = v_tenant;
+  SELECT * INTO v_ped FROM public.pedidos WHERE id = p_pedido_id AND tenant_id = v_tenant;
+  SELECT * INTO v_cli FROM public.clientes WHERE id = a.cliente_id;
+  SELECT * INTO v_fil FROM public.filiais WHERE id = v_ped.filial_id;
+  SELECT * INTO v_emp FROM public.empresas
+   WHERE tenant_id = v_tenant AND id = coalesce(v_ped.empresa_id, v_fil.empresa_id);
+  IF v_emp IS NULL THEN
+    SELECT * INTO v_emp FROM public.empresas WHERE tenant_id = v_tenant ORDER BY created_at, id LIMIT 1;
+  END IF;
+  IF v_emp IS NULL THEN RAISE EXCEPTION 'Empresa emitente não encontrada'; END IF;
+
+  SELECT * INTO v_fil_cfg FROM public.fiscal_config WHERE tenant_id = v_tenant AND filial_id = v_ped.filial_id LIMIT 1;
+  SELECT * INTO v_emp_cfg FROM public.fiscal_config
+   WHERE tenant_id = v_tenant AND filial_id IS NULL AND (empresa_id = v_emp.id OR empresa_id IS NULL)
+   ORDER BY empresa_id NULLS LAST LIMIT 1;
+  IF v_fil_cfg IS NULL AND v_emp_cfg IS NULL THEN
+    INSERT INTO public.fiscal_config (tenant_id, empresa_id) VALUES (v_tenant, v_emp.id) RETURNING * INTO v_emp_cfg;
+  END IF;
+  -- registro não encontrado vira linha de campos nulos: escolhe pela chave, não por coalesce
+  IF v_fil_cfg.id IS NOT NULL THEN v_cfg := v_fil_cfg; ELSE v_cfg := v_emp_cfg; END IF;
+
+  v_iss := coalesce(nullif(v_fil_cfg.aliquota_iss, 0), nullif(v_emp_cfg.aliquota_iss, 0), 0);
+  v_codigo := coalesce(nullif(v_fil_cfg.codigo_servico, ''), nullif(v_emp_cfg.codigo_servico, ''), '');
+  v_cert := coalesce(nullif(v_fil_cfg.certificado_nome, ''), nullif(v_emp_cfg.certificado_nome, ''), '');
+  v_municipio := coalesce(nullif(v_fil_cfg.nfse_prefeitura, ''), nullif(v_emp_cfg.nfse_prefeitura, ''), coalesce(v_fil.cidade, v_emp.cidade, ''));
+
+  v_doc := coalesce(v_cli.cnpj, v_cli.cpf);
+  IF v_doc IS NULL OR length(regexp_replace(v_doc, '\D', '', 'g')) NOT IN (11, 14) THEN
+    v_pend := array_append(v_pend, 'CPF/CNPJ do tutor inválido ou ausente');
+  END IF;
+  IF coalesce(v_emp.cnpj, '') = '' THEN v_pend := array_append(v_pend, 'CNPJ da empresa ausente'); END IF;
+  IF coalesce(v_emp.inscricao_municipal, '') = '' THEN
+    v_pend := array_append(v_pend, 'Inscrição municipal da empresa ausente (obrigatória na nota de serviço)');
+  END IF;
+  IF v_codigo = '' THEN v_pend := array_append(v_pend, 'Código do serviço municipal não configurado'); END IF;
+  IF v_iss <= 0 THEN v_pend := array_append(v_pend, 'Alíquota de ISS não configurada'); END IF;
+  IF v_cert = '' THEN v_pend := array_append(v_pend, 'Certificado digital (A1 ou A3) não configurado'); END IF;
+
+  IF array_length(v_pend, 1) IS NULL THEN
+    v_numero := coalesce(v_cfg.proximo_numero_nfse, 1);
+    UPDATE public.fiscal_config SET proximo_numero_nfse = coalesce(proximo_numero_nfse, 1) + 1 WHERE id = v_cfg.id;
+  END IF;
+
+  SELECT coalesce(sum(preco_aplicado), 0) INTO v_bruto FROM public.pet_agendamento_itens WHERE agendamento_id = a.id;
+
+  INSERT INTO public.nfe (
+    tenant_id, empresa_id, filial_id, pedido_id, cliente_id, numero, serie, situacao, ambiente, modelo,
+    codigo_servico, municipio_prestacao, iss_retido, natureza_operacao, cfop,
+    valor_produtos, valor_desconto, valor_total, valor_iss, emitente, destinatario, pendencias, mensagem
+  ) VALUES (
+    v_tenant, v_emp.id, v_ped.filial_id, v_ped.id, a.cliente_id, v_numero, coalesce(v_cfg.serie_nfse, 1),
+    CASE WHEN array_length(v_pend, 1) IS NULL THEN 'pronta' ELSE 'rascunho' END,
+    v_cfg.ambiente, 'nfse', v_codigo, v_municipio, coalesce(v_cfg.nfse_iss_retido, false),
+    'Prestação de serviço — banho, tosa e estética de animais', NULL,
+    v_bruto, greatest(v_bruto - p_liquido, 0), p_liquido, round(p_liquido * v_iss / 100, 2),
+    jsonb_build_object('razao_social', v_emp.razao_social, 'cnpj', v_emp.cnpj, 'inscricao_municipal', v_emp.inscricao_municipal,
+      'inscricao_estadual', v_emp.inscricao_estadual, 'endereco', v_emp.endereco, 'numero', v_emp.numero, 'bairro', v_emp.bairro,
+      'cidade', v_emp.cidade, 'estado', v_emp.estado, 'cep', v_emp.cep, 'filial', v_fil.nome),
+    jsonb_build_object('nome', v_cli.nome, 'tipo', v_cli.tipo::text, 'cnpj', v_cli.cnpj, 'cpf', v_cli.cpf,
+      'endereco', v_cli.endereco, 'numero', v_cli.numero, 'bairro', v_cli.bairro, 'cidade', v_cli.cidade,
+      'estado', v_cli.estado, 'cep', v_cli.cep, 'telefone', v_cli.telefone, 'email', v_cli.email),
+    v_pend,
+    CASE WHEN array_length(v_pend, 1) IS NULL
+      THEN 'Nota fiscal de serviço (NFS-e) pronta para transmissão à prefeitura.'
+      ELSE 'NFS-e em rascunho: resolva as pendências listadas.' END
+  ) RETURNING id INTO v_nfe;
+
+  INSERT INTO public.nfe_pedidos (tenant_id, nfe_id, pedido_id) VALUES (v_tenant, v_nfe, p_pedido_id);
+
+  INSERT INTO public.nfe_itens (tenant_id, nfe_id, descricao, unidade, quantidade, preco_unitario, total, cst_csosn)
+  SELECT v_tenant, v_nfe, s.nome || ' — ' || pt.nome, 'UN', 1, i.preco_aplicado, i.preco_aplicado, '400'
+    FROM public.pet_agendamento_itens i
+    JOIN public.pet_servicos s ON s.id = i.servico_id
+    JOIN public.pets pt ON pt.id = a.pet_id
+   WHERE i.agendamento_id = a.id;
+
+  PERFORM public.nfe_calcular_impostos_interno(v_nfe);
+  RETURN v_nfe;
+END $$;
+REVOKE ALL ON FUNCTION public._pet_nfse_rascunho(uuid, uuid, numeric) FROM PUBLIC, anon, authenticated;
+
+-- Retirar e cobrar: liga o atendimento "pronto" à venda do caixa (por pedido ou pela chave da venda).
+CREATE OR REPLACE FUNCTION public.pet_agenda_retirar(p_agendamento_id uuid, p_pedido_id uuid DEFAULT NULL, p_chave uuid DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  a public.pet_agendamentos%ROWTYPE;
+  pf public.pet_profissionais%ROWTYPE;
+  v_ped public.pedidos%ROWTYPE;
+  v_pedido uuid := p_pedido_id;
+  r record;
+  v_bruto numeric; v_liquido numeric; v_valor numeric; v_nfe uuid;
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  SELECT * INTO a FROM public.pet_agendamentos WHERE id = p_agendamento_id AND tenant_id = v_tenant FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Agendamento não encontrado'; END IF;
+  IF a.situacao = 'retirado' AND a.venda_id IS NOT NULL AND (a.venda_id = p_pedido_id OR p_pedido_id IS NULL) THEN
+    -- repetir a chamada (resposta perdida) devolve o mesmo resultado
+    RETURN jsonb_build_object('pedido_id', a.venda_id, 'nfe_id', (SELECT id FROM public.nfe WHERE pedido_id = a.venda_id AND modelo = 'nfse' AND situacao <> 'cancelada' LIMIT 1), 'repetido', true);
+  END IF;
+  IF a.situacao <> 'pronto' THEN RAISE EXCEPTION 'Só dá para retirar e cobrar atendimento pronto (situação atual: %)', a.situacao; END IF;
+
+  IF v_pedido IS NULL AND p_chave IS NOT NULL THEN
+    SELECT id INTO v_pedido FROM public.pedidos WHERE tenant_id = v_tenant AND chave_idempotencia = p_chave;
+  END IF;
+  IF v_pedido IS NULL THEN RAISE EXCEPTION 'Informe a venda do caixa'; END IF;
+  SELECT * INTO v_ped FROM public.pedidos WHERE id = v_pedido AND tenant_id = v_tenant;
+  IF NOT FOUND OR NOT public.pode_filial(v_ped.filial_id) THEN RAISE EXCEPTION 'Venda não encontrada'; END IF;
+  IF v_ped.situacao = 'cancelado' THEN RAISE EXCEPTION 'Esta venda está cancelada'; END IF;
+  IF coalesce(v_ped.origem, '') <> 'pdv' THEN RAISE EXCEPTION 'A cobrança do pet shop é feita na frente de caixa'; END IF;
+  IF EXISTS (SELECT 1 FROM public.pet_agendamentos o WHERE o.venda_id = v_pedido AND o.id <> a.id) THEN
+    RAISE EXCEPTION 'Esta venda já cobrou outro atendimento';
+  END IF;
+
+  -- a venda precisa ter cada serviço do atendimento, pelo valor combinado
+  FOR r IN SELECT i.servico_id, i.preco_aplicado, s.produto_id, s.nome
+             FROM public.pet_agendamento_itens i JOIN public.pet_servicos s ON s.id = i.servico_id
+            WHERE i.agendamento_id = a.id LOOP
+    IF NOT EXISTS (SELECT 1 FROM public.pedido_itens pi WHERE pi.pedido_id = v_pedido AND pi.produto_id = r.produto_id
+                    AND pi.preco_unitario = r.preco_aplicado AND pi.quantidade >= 1) THEN
+      RAISE EXCEPTION 'A venda não traz o serviço "%" pelo valor combinado (%)', r.nome, r.preco_aplicado;
+    END IF;
+  END LOOP;
+
+  SELECT coalesce(sum(preco_aplicado), 0) INTO v_bruto FROM public.pet_agendamento_itens WHERE agendamento_id = a.id;
+  -- o desconto da venda reparte-se por igual entre todos os itens: o serviço fica com a parte proporcional
+  v_liquido := CASE WHEN coalesce(v_ped.subtotal, 0) > 0 THEN round(v_bruto * v_ped.total / v_ped.subtotal, 2) ELSE v_bruto END;
+
+  UPDATE public.pet_agendamentos SET situacao = 'retirado', venda_id = v_pedido WHERE id = a.id;
+
+  SELECT * INTO pf FROM public.pet_profissionais WHERE id = a.profissional_id;
+  v_valor := round(v_liquido * pf.comissao_percentual / 100, 2);
+  IF v_valor > 0 THEN
+    INSERT INTO public.pet_comissoes (tenant_id, profissional_id, agendamento_id, pedido_id, base, percentual, valor)
+    VALUES (v_tenant, a.profissional_id, a.id, v_pedido, v_liquido, pf.comissao_percentual, v_valor)
+    -- cobrar de novo depois de uma venda cancelada reativa a comissão cancelada (uma por atendimento)
+    ON CONFLICT (agendamento_id) DO UPDATE
+       SET pedido_id = EXCLUDED.pedido_id, base = EXCLUDED.base, percentual = EXCLUDED.percentual, valor = EXCLUDED.valor,
+           situacao = 'a_aprovar', aprovada_em = NULL, aprovada_por = NULL
+     WHERE public.pet_comissoes.situacao = 'cancelada';
+  END IF;
+
+  v_nfe := public._pet_nfse_rascunho(a.id, v_pedido, v_liquido);
+  RETURN jsonb_build_object('pedido_id', v_pedido, 'nfe_id', v_nfe, 'comissao', v_valor, 'repetido', false);
+END $$;
+REVOKE ALL ON FUNCTION public.pet_agenda_retirar(uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_agenda_retirar(uuid, uuid, uuid) TO authenticated;
+
+-- Venda cancelada no caixa: o atendimento volta a "pronto", a comissão não paga é cancelada e o rascunho da NFS-e sai.
+CREATE OR REPLACE FUNCTION public.pet_venda_cancelada()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NEW.situacao = 'cancelado' AND OLD.situacao IS DISTINCT FROM 'cancelado'
+     AND EXISTS (SELECT 1 FROM public.pet_agendamentos WHERE venda_id = NEW.id) THEN
+    UPDATE public.pet_comissoes SET situacao = 'cancelada' WHERE pedido_id = NEW.id AND situacao IN ('a_aprovar', 'aprovada');
+    DELETE FROM public.nfe WHERE pedido_id = NEW.id AND modelo = 'nfse' AND situacao IN ('rascunho', 'pronta');
+    UPDATE public.pet_agendamentos SET situacao = 'pronto', venda_id = NULL WHERE venda_id = NEW.id AND situacao = 'retirado';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_venda_cancelada() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER trg_pet_venda_cancelada AFTER UPDATE OF situacao ON public.pedidos
+  FOR EACH ROW EXECUTE FUNCTION public.pet_venda_cancelada();
+
+-- Comissão: a_aprovar → aprovada → paga (o pagamento em si é feito fora; aqui fica o registro de quem e quando).
+CREATE OR REPLACE FUNCTION public.pet_comissao_aprovar(p_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'financeiro']);
+  UPDATE public.pet_comissoes SET situacao = 'aprovada', aprovada_em = now(), aprovada_por = auth.uid()
+   WHERE id = p_id AND tenant_id = public.current_tenant_id() AND situacao = 'a_aprovar';
+  IF NOT FOUND THEN RAISE EXCEPTION 'Comissão não encontrada ou já tratada'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_comissao_aprovar(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_comissao_aprovar(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.pet_comissao_pagar(p_id uuid, p_forma text DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'financeiro']);
+  UPDATE public.pet_comissoes SET situacao = 'paga', pago_em = now(), pago_por = auth.uid(), forma_pagamento = nullif(btrim(p_forma), '')
+   WHERE id = p_id AND tenant_id = public.current_tenant_id() AND situacao = 'aprovada';
+  IF NOT FOUND THEN RAISE EXCEPTION 'Só dá para pagar comissão aprovada'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.pet_comissao_pagar(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_comissao_pagar(uuid, text) TO authenticated;
+
+-- Relatório "Serviços por profissional" (atendimentos retirados no período).
+CREATE OR REPLACE FUNCTION public.pet_servicos_por_profissional(p_de date, p_ate date)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE v_tenant uuid := public.current_tenant_id();
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'financeiro']);
+  IF p_de IS NULL OR p_ate IS NULL OR p_ate < p_de THEN RAISE EXCEPTION 'Informe um período válido'; END IF;
+  RETURN coalesce((
+    SELECT jsonb_agg(l ORDER BY l ->> 'nome') FROM (
+      SELECT jsonb_build_object(
+        'profissional_id', pf.id, 'nome', pf.nome,
+        'atendimentos', count(DISTINCT a.id),
+        'servicos', coalesce(sum(it.qtd), 0),
+        'faturamento', coalesce(sum(it.valor), 0),
+        'comissao_a_aprovar', coalesce((SELECT sum(c.valor) FROM public.pet_comissoes c JOIN public.pet_agendamentos x ON x.id = c.agendamento_id
+                                         WHERE c.profissional_id = pf.id AND c.situacao = 'a_aprovar' AND x.inicio::date BETWEEN p_de AND p_ate), 0),
+        'comissao_aprovada', coalesce((SELECT sum(c.valor) FROM public.pet_comissoes c JOIN public.pet_agendamentos x ON x.id = c.agendamento_id
+                                        WHERE c.profissional_id = pf.id AND c.situacao = 'aprovada' AND x.inicio::date BETWEEN p_de AND p_ate), 0),
+        'comissao_paga', coalesce((SELECT sum(c.valor) FROM public.pet_comissoes c JOIN public.pet_agendamentos x ON x.id = c.agendamento_id
+                                    WHERE c.profissional_id = pf.id AND c.situacao = 'paga' AND x.inicio::date BETWEEN p_de AND p_ate), 0)
+      ) AS l
+        FROM public.pet_profissionais pf
+        JOIN public.pet_agendamentos a ON a.profissional_id = pf.id AND a.tenant_id = v_tenant AND a.situacao = 'retirado'
+             AND a.inicio::date BETWEEN p_de AND p_ate
+        LEFT JOIN LATERAL (SELECT count(*) AS qtd, sum(i.preco_aplicado) AS valor FROM public.pet_agendamento_itens i WHERE i.agendamento_id = a.id) it ON true
+       WHERE pf.tenant_id = v_tenant
+       GROUP BY pf.id, pf.nome
+    ) t), '[]'::jsonb);
+END $$;
+REVOKE ALL ON FUNCTION public.pet_servicos_por_profissional(date, date) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.pet_servicos_por_profissional(date, date) TO authenticated;
+
+-- NFC-e: só a mercadoria entra (serviço vai para a NFS-e). Venda só de serviço não gera NFC-e.
+DO $$
+DECLARE
+  def text;
+  nova text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid) INTO def
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'nfce_criar';
+  IF def IS NULL THEN RAISE EXCEPTION 'nfce_criar não encontrada'; END IF;
+  IF position('controla_estoque' IN def) > 0 THEN RETURN; END IF;
+  nova := def;
+  -- 1) declaração
+  nova := replace(nova, E'  v_total numeric;\nBEGIN', E'  v_total numeric;\n  v_serv numeric := 0;\nBEGIN');
+  -- 2) "tem itens" olha só a mercadoria
+  nova := replace(nova, E'IF NOT EXISTS (SELECT 1 FROM public.pedido_itens WHERE pedido_id = p_pedido_id) THEN',
+                        E'IF NOT EXISTS (SELECT 1 FROM public.pedido_itens pi JOIN public.produtos pp ON pp.id = pi.produto_id WHERE pi.pedido_id = p_pedido_id AND pp.controla_estoque) THEN');
+  -- 3) conferência dos itens: só mercadoria
+  nova := replace(nova, E'                 WHERE i.pedido_id = p_pedido_id LOOP', E'                 WHERE i.pedido_id = p_pedido_id AND p.controla_estoque LOOP');
+  -- 4) totais: tira a parte do serviço (e do desconto proporcional)
+  nova := replace(nova, E'  v_total := coalesce(v_ped.total, 0);\n',
+    E'  v_total := coalesce(v_ped.total, 0);\n'
+    || E'  SELECT coalesce(sum(i.total), 0) INTO v_serv FROM public.pedido_itens i JOIN public.produtos pp ON pp.id = i.produto_id\n'
+    || E'   WHERE i.pedido_id = p_pedido_id AND NOT pp.controla_estoque;\n'
+    || E'  IF v_serv > 0 THEN\n'
+    || E'    IF v_prod <= 0 THEN RAISE EXCEPTION ''A venda só tem serviços: a nota é de serviço (NFS-e)''; END IF;\n'
+    || E'    v_desc := round(v_desc * v_prod / (v_prod + v_serv), 2);\n'
+    || E'    v_total := greatest(v_prod - v_desc + v_frete, 0);\n'
+    || E'  END IF;\n');
+  -- 5) itens da nota: só mercadoria
+  nova := replace(nova, E'   WHERE i.pedido_id = p_pedido_id;\n\n  PERFORM public.nfe_calcular_impostos(v_nfe);',
+                        E'   WHERE i.pedido_id = p_pedido_id AND p.controla_estoque;\n\n  PERFORM public.nfe_calcular_impostos(v_nfe);');
+  IF (length(nova) - length(replace(nova, 'controla_estoque', ''))) / length('controla_estoque') <> 4 THEN
+    RAISE EXCEPTION 'nfce_criar: algum trecho esperado não foi encontrado';
+  END IF;
+  EXECUTE nova;
+END $$;
+
 -- ===== 20261020000000_pet_contatos.sql =====
 -- Pet shop, Fase 2 (PR 5): contatos com o tutor. Aniversário do pet e retorno de banho viram listas para a recepção;
 -- o contato registrado tira o pet da lista naquela ocasião. Sem envio automático: o clique é da recepção.
