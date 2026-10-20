@@ -549,7 +549,9 @@ DECLARE
     -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
     'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar',
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
-    'clinica_servicos_consulta', 'clinica_meu_veterinario'];
+    'clinica_servicos_consulta', 'clinica_meu_veterinario',
+    -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
+    'assinante_link_sugerido'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5808,4 +5810,23 @@ BEGIN
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM empresa_por_slug('link-que-nao-existe-ci')), 'link inexistente não abre');
   DELETE FROM saas_clientes WHERE id = c;
   DELETE FROM tenants WHERE id = t;
+END $$;
+
+-- 62. Link sugerido no primeiro acesso: só o do próprio tenant
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  c uuid; v text;
+BEGIN
+  INSERT INTO saas_clientes (nome, link_acesso, tenant_id) VALUES ('Assinante Sugestão CI', 'sugestao-link-ci', demo) RETURNING id INTO c;
+  PERFORM ci.entrar(gest);
+  v := assinante_link_sugerido();
+  PERFORM ci.sair();
+  PERFORM ci.exige(v = 'sugestao-link-ci', 'o administrador vê o link combinado para o próprio tenant');
+  DELETE FROM saas_clientes WHERE id = c;
+  PERFORM ci.entrar(gest);
+  v := assinante_link_sugerido();
+  PERFORM ci.sair();
+  PERFORM ci.exige(v IS NULL OR v <> 'sugestao-link-ci', 'sem assinante ligado ao tenant não há sugestão');
 END $$;

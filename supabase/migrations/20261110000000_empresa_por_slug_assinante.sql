@@ -18,3 +18,27 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
 $$;
 REVOKE ALL ON FUNCTION public.empresa_por_slug(text) FROM public;
 GRANT EXECUTE ON FUNCTION public.empresa_por_slug(text) TO anon, authenticated, service_role;
+
+-- No primeiro acesso, a tela Empresa mostra o link que a equipe Ze Tech combinou no cadastro do assinante (só o do próprio tenant).
+CREATE OR REPLACE FUNCTION public.assinante_link_sugerido()
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT s.link_acesso FROM public.saas_clientes s
+   WHERE s.tenant_id = public.current_tenant_id() AND s.link_acesso IS NOT NULL
+   LIMIT 1
+$$;
+REVOKE ALL ON FUNCTION public.assinante_link_sugerido() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assinante_link_sugerido() TO authenticated;
+
+-- Ajuste do espelho empresa -> assinante: se o link já é de outro cadastro (por exemplo, o que acabou de aplicá-lo à empresa), não se repete.
+CREATE OR REPLACE FUNCTION public.empresas_link_para_assinante() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  IF NEW.tenant_id IS NOT NULL AND (NEW.slug IS NULL OR NEW.slug ~ '^[a-z0-9-]{3,50}$') THEN
+    UPDATE public.saas_clientes SET link_acesso = NEW.slug
+     WHERE tenant_id = NEW.tenant_id AND link_acesso IS DISTINCT FROM NEW.slug
+       AND (NEW.slug IS NULL OR NOT EXISTS (SELECT 1 FROM public.saas_clientes o WHERE lower(o.link_acesso) = lower(NEW.slug)));
+  END IF;
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION public.empresas_link_para_assinante() FROM PUBLIC, anon, authenticated;

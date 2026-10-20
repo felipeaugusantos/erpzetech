@@ -9869,6 +9869,7 @@ export type Database = {
       clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
       clinica_liberada: { Args: never; Returns: boolean }
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
+      assinante_link_sugerido: { Args: never; Returns: string }
       clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
       clinica_pet_alergias: {
