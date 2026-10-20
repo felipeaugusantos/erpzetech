@@ -198,19 +198,23 @@ export function operacaoDeSalvar(
   );
 }
 
-/** Fechar espera o registro do atendimento e o último salvar (que leva o texto final). */
+/**
+ * Fechar espera o registro do atendimento e o último salvar (que leva o texto final), e também a abertura dos exames feitos nele
+ * (o banco só abre exame em atendimento aberto).
+ */
 export function operacaoDeFechar(
   r: RascunhoAtendimento,
   salvarOpId: string,
   agora: Date = new Date(),
   id?: string,
+  tambemEspera: readonly string[] = [],
 ): OperacaoFila {
   return novaOperacao(
     {
       tipo: TIPO_ATENDIMENTO_FECHAR,
       descricao: `Fechar atendimento: ${r.petNome}`,
       payload: { atendimento_id: r.atendimentoId },
-      dependeDe: [r.registrarOpId, salvarOpId],
+      dependeDe: [r.registrarOpId, salvarOpId, ...tambemEspera],
     },
     id,
     agora,
@@ -232,6 +236,7 @@ export type PacienteParaAtender = {
   petId: string;
   petNome: string;
   tutorNome: string;
+  especie: string;
   cadastroOpId?: string;
 };
 
@@ -245,6 +250,7 @@ export function petsDaAgenda(copia: { dados: { agenda: unknown[] } }): PacienteP
     vistos.set(a.pet.id, {
       petId: a.pet.id,
       petNome: a.pet.nome,
+      especie: typeof a.pet.especie === "string" ? a.pet.especie : "cao",
       tutorNome: typeof a.tutor?.nome === "string" ? a.tutor.nome : "",
     });
   }
@@ -256,7 +262,12 @@ export const PREFIXO_PACIENTE = "paciente:";
 /** Chave do cofre com os agendamentos já atendidos e enviados (a cópia da visita continua listando-os como pendentes). */
 export const CHAVE_CONSUMIDOS = "consumidos";
 
-export type PacienteGuardado = PacienteParaAtender & { operacaoId: string; guardadoEm: string };
+export type PacienteGuardado = Omit<PacienteParaAtender, "especie" | "cadastroOpId"> & {
+  /** Registros guardados antes do 5d não trazem a espécie. */
+  especie?: string;
+  operacaoId: string;
+  guardadoEm: string;
+};
 
 /** Pacientes guardados que ainda valem (a cópia da visita vence em 7 dias), com a dependência só enquanto o cadastro está na fila. */
 export function pacientesGuardados(
@@ -269,7 +280,12 @@ export function pacientesGuardados(
   return guardados
     .filter((p) => new Date(p.guardadoEm).getTime() > limite)
     .map((p) => {
-      const base = { petId: p.petId, petNome: p.petNome, tutorNome: p.tutorNome };
+      const base = {
+        petId: p.petId,
+        petNome: p.petNome,
+        tutorNome: p.tutorNome,
+        especie: p.especie ?? "cao",
+      };
       return fila.some((op) => op.id === p.operacaoId)
         ? { ...base, cadastroOpId: p.operacaoId }
         : base;

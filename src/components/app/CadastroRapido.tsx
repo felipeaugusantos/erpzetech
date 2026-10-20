@@ -59,6 +59,7 @@ export function CadastroRapido({
           petId: novo.petId,
           petNome: novo.petNome,
           tutorNome: novo.tutorNome,
+          especie: novo.especie,
           operacaoId: novo.operacaoId,
           guardadoEm: new Date().toISOString(),
         });

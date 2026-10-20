@@ -4,6 +4,8 @@ import { Lock, LockOpen, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { AtendimentosVisita } from "@/components/app/AtendimentosVisita";
+import { ExamesVisita } from "@/components/app/ExamesVisita";
+import { TrocarLoteDialog, VacinasVisita } from "@/components/app/VacinasVisita";
 import { CadastroRapido } from "@/components/app/CadastroRapido";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -44,6 +46,7 @@ import {
   travarCofre,
   useCofre,
 } from "@/lib/cofre-sessao";
+import { TIPO_VACINA_APLICAR } from "@/lib/vacina-offline";
 import { enviarOperacao } from "@/lib/fila-executores";
 import {
   ordenar,
@@ -319,6 +322,7 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
   const [enviando, setEnviando] = useState(false);
   const [descartando, setDescartando] = useState<OperacaoFila | null>(null);
   const [apagandoTudo, setApagandoTudo] = useState(false);
+  const [trocandoLote, setTrocandoLote] = useState<OperacaoFila | null>(null);
   const enviandoRef = useRef(false);
 
   const recarregar = useCallback(async () => {
@@ -515,6 +519,22 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
         aoGuardar={recarregar}
       />
 
+      <VacinasVisita
+        cofre={cofre}
+        copia={copia}
+        fila={fila}
+        online={online}
+        aoGuardar={recarregar}
+      />
+
+      <ExamesVisita
+        cofre={cofre}
+        copia={copia}
+        fila={fila}
+        online={online}
+        aoGuardar={recarregar}
+      />
+
       <div className="panel grid gap-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-semibold">Pendências de envio</h2>
@@ -557,6 +577,11 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
                       <Button variant="outline" size="sm" onClick={() => void tentarDeNovo(op)}>
                         Tentar de novo
                       </Button>
+                      {op.tipo === TIPO_VACINA_APLICAR && (
+                        <Button variant="outline" size="sm" onClick={() => setTrocandoLote(op)}>
+                          Trocar o lote…
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => void copiarDados(op)}>
                         Copiar dados
                       </Button>
@@ -583,6 +608,21 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
           <Trash2 className="size-4" /> Apagar o cofre deste notebook
         </Button>
       </div>
+
+      {trocandoLote && (
+        <TrocarLoteDialog
+          operacao={trocandoLote}
+          copia={copia}
+          fila={fila}
+          aoFechar={() => setTrocandoLote(null)}
+          aoTrocar={async (nova) => {
+            await cofre.gravar("fila", nova.id, nova);
+            setTrocandoLote(null);
+            await recarregar();
+            if (online) void enviarPendencias(false);
+          }}
+        />
+      )}
 
       <Dialog open={!!descartando} onOpenChange={(o) => !o && setDescartando(null)}>
         <DialogContent className="max-w-lg">

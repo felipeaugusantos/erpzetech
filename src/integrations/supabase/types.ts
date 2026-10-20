@@ -9102,6 +9102,14 @@ export type Database = {
       }
       clinica_anexo_abrir: { Args: { p_id: string }; Returns: Json }
       clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
+      clinica_vacina_offline: {
+        Args: { p_acao: string; p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_exame_offline: {
+        Args: { p_acao: string; p_chave: string; p_dados: Json }
+        Returns: Json
+      }
       clinica_visita_registrar: { Args: { p_chave: string; p_dados: Json }; Returns: Json }
       clinica_atendimento_offline: {
         Args: { p_acao: string; p_chave: string; p_dados?: Json; p_id: string }
