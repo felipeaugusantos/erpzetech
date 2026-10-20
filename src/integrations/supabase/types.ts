@@ -165,6 +165,76 @@ export type Database = {
           },
         ]
       }
+      banco_extrato_linhas: {
+        Row: {
+          arquivo: string | null
+          conta_id: string
+          created_at: string
+          data: string
+          descricao: string
+          documento: string | null
+          fitid: string
+          id: string
+          movimento_id: string | null
+          situacao: string
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          arquivo?: string | null
+          conta_id: string
+          created_at?: string
+          data: string
+          descricao: string
+          documento?: string | null
+          fitid: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          arquivo?: string | null
+          conta_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          documento?: string | null
+          fitid?: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_extrato_linhas_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_extrato_linhas_movimento_id_fkey"
+            columns: ["movimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_movimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_extrato_linhas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banco_movimentos: {
         Row: {
           categoria: string | null
@@ -9287,6 +9357,23 @@ export type Database = {
       }
       banco_conta_padrao: {
         Args: { p_filial?: string; p_tenant: string }
+        Returns: string
+      }
+      banco_extrato_ignorar: {
+        Args: { p_ignorar?: boolean; p_linha_id: string }
+        Returns: undefined
+      }
+      banco_extrato_importar: {
+        Args: {
+          p_arquivo?: string
+          p_conta_id: string
+          p_linhas: Json
+          p_simular?: boolean
+        }
+        Returns: Json
+      }
+      banco_extrato_lancar: {
+        Args: { p_categoria?: string; p_linha_id: string }
         Returns: string
       }
       banco_lancar: {
