@@ -8482,6 +8482,7 @@ export type Database = {
           filiais_extras: number
           id: string
           implantacao_paga: boolean
+          link_acesso: string | null
           inicio: string
           nome: string
           numero: string | null
@@ -8513,6 +8514,7 @@ export type Database = {
           filiais_extras?: number
           id?: string
           implantacao_paga?: boolean
+          link_acesso?: string | null
           inicio?: string
           nome: string
           numero?: string | null
@@ -8544,6 +8546,7 @@ export type Database = {
           filiais_extras?: number
           id?: string
           implantacao_paga?: boolean
+          link_acesso?: string | null
           inicio?: string
           nome?: string
           numero?: string | null
