@@ -42,3 +42,20 @@ BEGIN
   RETURN NULL;
 END $$;
 REVOKE ALL ON FUNCTION public.empresas_link_para_assinante() FROM PUBLIC, anon, authenticated;
+
+-- O link reservado no cadastro de outro assinante (que ainda não cadastrou a empresa) não pode ser tomado por outra empresa: a empresa tem
+-- prioridade na busca, então ela desviaria o endereço do assinante. O link do próprio tenant continua valendo.
+CREATE OR REPLACE FUNCTION public.empresas_link_livre() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  IF NEW.slug IS NOT NULL AND EXISTS (
+       SELECT 1 FROM public.saas_clientes s
+        WHERE lower(s.link_acesso) = lower(NEW.slug) AND s.tenant_id IS DISTINCT FROM NEW.tenant_id) THEN
+    RAISE EXCEPTION 'Esse link já é usado por outra empresa.' USING ERRCODE = '23505';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.empresas_link_livre() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_empresas_link_livre ON public.empresas;
+CREATE TRIGGER trg_empresas_link_livre BEFORE INSERT OR UPDATE OF slug ON public.empresas
+  FOR EACH ROW EXECUTE FUNCTION public.empresas_link_livre();

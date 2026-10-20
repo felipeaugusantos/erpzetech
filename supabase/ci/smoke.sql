@@ -5804,6 +5804,8 @@ BEGIN
   INSERT INTO empresas (tenant_id, razao_social, nome_fantasia) VALUES (t, 'Razão Loja CI', 'Fantasia Loja CI') RETURNING id INTO e;
   SELECT * INTO r FROM empresa_por_slug('loja-sem-empresa-ci');
   PERFORM ci.exige(r.nome = 'Fantasia Loja CI', 'com a empresa cadastrada, a marca da empresa tem prioridade');
+  -- outra empresa não toma o link reservado no cadastro deste assinante
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE empresas SET slug = 'loja-sem-empresa-ci' WHERE tenant_id = '11111111-1111-1111-1111-111111111111'$c$), 'empresa de outro tenant toma o link reservado do assinante');
   DELETE FROM empresas WHERE id = e;
   UPDATE saas_clientes SET situacao = 'cancelado' WHERE id = c;
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM empresa_por_slug('loja-sem-empresa-ci')), 'assinante cancelado não abre a tela de login');
