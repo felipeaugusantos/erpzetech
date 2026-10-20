@@ -2,19 +2,26 @@
 import type { Armazem } from "@/lib/cofre";
 
 const BANCO = "zt-cofre-clinica";
-const LOJAS = ["meta", "fila", "copia"] as const;
+const LOJAS = ["meta", "fila", "copia", "arquivo"] as const;
 
 let aberto: Promise<IDBDatabase> | null = null;
 
 function abrirBanco(): Promise<IDBDatabase> {
   aberto ??= new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open(BANCO, 1);
+    const req = indexedDB.open(BANCO, 2);
     req.onupgradeneeded = () => {
       for (const loja of LOJAS) {
         if (!req.result.objectStoreNames.contains(loja)) req.result.createObjectStore(loja);
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      // uma aba mais nova atualizando o banco não fica esperando esta
+      req.result.onversionchange = () => {
+        req.result.close();
+        aberto = null;
+      };
+      resolve(req.result);
+    };
     req.onerror = () => {
       aberto = null;
       reject(req.error ?? new Error("Não foi possível abrir o armazenamento deste navegador"));

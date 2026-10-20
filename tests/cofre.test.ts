@@ -136,3 +136,53 @@ describe("Cofre", () => {
     assert.deepEqual(await perdedora.ler("fila", "x"), { ok: true });
   });
 });
+
+describe("Cofre: arquivos", () => {
+  it("guarda arquivo cifrado, devolve os mesmos bytes e não entra em listar", async () => {
+    const arm = armazemEmMemoria();
+    const cofre = new Cofre(arm, RAPIDO);
+    await cofre.criar("senha-do-notebook");
+    const bytes = new TextEncoder().encode("LAUDO-SECRETO-DO-REX").buffer as ArrayBuffer;
+    await cofre.gravarArquivo("op-1", bytes);
+    const lido = await cofre.lerArquivo("op-1");
+    assert.equal(new TextDecoder().decode(lido), "LAUDO-SECRETO-DO-REX");
+    assert.equal(await cofre.lerArquivo("outro"), undefined);
+    assert.deepEqual(await cofre.listar("fila"), { itens: [], ilegiveis: [] });
+    const bruto = [...arm.bruto.values()]
+      .map((v) =>
+        JSON.stringify(v, (_, x) =>
+          x instanceof ArrayBuffer ? [...new Uint8Array(x)].join(",") : x,
+        ),
+      )
+      .join("");
+    const claro = [...new TextEncoder().encode("LAUDO-SECRETO")].join(",");
+    assert.equal(bruto.includes(claro), false);
+  });
+
+  it("travado não lê nem grava; arquivo trocado de nome não abre; apagar é seguro sem arquivo", async () => {
+    const arm = armazemEmMemoria();
+    const cofre = new Cofre(arm, RAPIDO);
+    await cofre.criar("senha-do-notebook");
+    await cofre.gravarArquivo("a", new Uint8Array([1, 2, 3]).buffer as ArrayBuffer);
+    // o mesmo conteúdo cifrado copiado para outra chave não abre (a chave entra na autenticação)
+    const bruto = await arm.ler("arquivo", "a");
+    await arm.gravar("arquivo", "b", bruto);
+    await assert.rejects(() => cofre.lerArquivo("b"));
+    cofre.travar();
+    await assert.rejects(() => cofre.lerArquivo("a"), /travado/);
+    await assert.rejects(() => cofre.gravarArquivo("c", new ArrayBuffer(1)), /travado/);
+    await cofre.destravar("senha-do-notebook");
+    await cofre.apagarArquivo("nunca-existiu");
+    await cofre.apagarArquivo("a");
+    assert.equal(await cofre.lerArquivo("a"), undefined);
+  });
+
+  it("apagarTudo leva os arquivos", async () => {
+    const arm = armazemEmMemoria();
+    const cofre = new Cofre(arm, RAPIDO);
+    await cofre.criar("senha-do-notebook");
+    await cofre.gravarArquivo("a", new ArrayBuffer(4));
+    await cofre.apagarTudo();
+    assert.equal(arm.bruto.size, 0);
+  });
+});
