@@ -42,6 +42,9 @@ export const TELAS_FORA_DA_CLINICA = [
   "/veiculos",
   "/motoristas",
   "/importar-cte",
+  // estoque sem internet (a clínica tem o próprio trabalho sem internet)
+  "/lotes-offline",
+  "/conferencia-offline",
   // venda com vendedor comissionado
   "/vendedores",
   "/comissoes",
@@ -50,3 +53,6 @@ export const TELAS_FORA_DA_CLINICA = [
 
 /** Grupos inteiros que somem do menu de quem só tem clínica. */
 export const GRUPOS_FORA_DA_CLINICA = ["Logística"] as const;
+
+/** Nome da tela de lotes para a clínica: ali ficam os lotes de vacina e medicamento (validade e saldo). */
+export const ROTULO_LOTES_CLINICA = "Lotes (vacinas e medicamentos)";

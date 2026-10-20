@@ -7,7 +7,9 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionData } from "@/hooks/useSessionData";
 import { num } from "@/lib/format";
+import { ROTULO_LOTES_CLINICA, ehEmpresaSoClinica } from "@/lib/ramo-clinica";
 
 export const Route = createFileRoute("/_authenticated/estoque-lotes")({
   head: () => ({
@@ -47,6 +49,19 @@ const vazio = {
 
 function Lotes() {
   const qc = useQueryClient();
+  const { data: sessao } = useSessionData();
+  const soClinica = ehEmpresaSoClinica(
+    sessao?.empresa as
+      | {
+          ramo_atividade?: string | null;
+          cnae?: string | null;
+          cnpj?: string | null;
+          modulos_sem_cnpj?: string[] | null;
+          modulos_liberados?: string[] | null;
+        }
+      | null
+      | undefined,
+  );
   const [f, setF] = useState(vazio);
   const [busca, setBusca] = useState("");
 
@@ -142,8 +157,12 @@ function Lotes() {
   return (
     <>
       <PageHeader
-        title="Lotes e tonalidades"
-        description="Para pisos, revestimentos e tintas: o cliente leva tudo do mesmo lote e da mesma tonalidade."
+        title={soClinica ? ROTULO_LOTES_CLINICA : "Lotes e tonalidades"}
+        description={
+          soClinica
+            ? "Cada lote de vacina ou medicamento com o saldo guardado: a aplicação da vacina baixa do lote escolhido."
+            : "Para pisos, revestimentos e tintas: o cliente leva tudo do mesmo lote e da mesma tonalidade."
+        }
       />
 
       <section className="panel mb-6 grid gap-3 p-4 md:grid-cols-4">
