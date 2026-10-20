@@ -79,6 +79,8 @@ export type ClienteSaas = {
   admin_email: string | null;
   admin_user_id: string | null;
   admin_criado_em: string | null;
+  /** Nome do link da tela de login da loja (empresas.slug). */
+  link_acesso: string | null;
 };
 
 export const SITUACAO_SAAS: Record<string, string> = {

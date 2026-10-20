@@ -31,18 +31,8 @@ import {
   type ModuloCnae,
 } from "@/lib/cnae";
 import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
+import { normalizarSlug } from "@/lib/link-acesso";
 import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
-
-/** Link da tela de login da empresa: minúsculas, sem acento, números e hífen. */
-function normalizarSlug(v: string) {
-  return v
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+/, "")
-    .slice(0, 50);
-}
 
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({

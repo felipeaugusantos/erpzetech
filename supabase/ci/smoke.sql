@@ -5744,3 +5744,49 @@ BEGIN
   PERFORM ci.deve_falhar(vz, 'SELECT clinica_servicos_consulta()', 'serviços de consulta sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 60. Assinante: link de acesso combinado no cadastro vale para a empresa (já existente ou futura) e acompanha a mudança feita na empresa
+DO $$
+DECLARE
+  t1 uuid; t2 uuid; c1 uuid; c2 uuid; e1 uuid; e2 uuid;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Assinante Link CI 1') RETURNING id INTO t1;
+  INSERT INTO tenants (nome) VALUES ('Assinante Link CI 2') RETURNING id INTO t2;
+  INSERT INTO saas_clientes (nome, link_acesso, tenant_id) VALUES ('Assinante Link 1', ' Loja-Link-CI ', t1) RETURNING id INTO c1;
+  PERFORM ci.exige((SELECT link_acesso FROM saas_clientes WHERE id = c1) = 'loja-link-ci', 'o link é gravado em minúsculas e sem espaços');
+
+  -- empresa criada depois nasce com o link do assinante
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (t1, 'Loja Link 1') RETURNING id INTO e1;
+  PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) = 'loja-link-ci', 'a empresa nova usa o link combinado no cadastro');
+
+  -- mudar o link no cadastro muda a empresa existente
+  UPDATE saas_clientes SET link_acesso = 'loja-link-novo' WHERE id = c1;
+  PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) = 'loja-link-novo', 'mudar o link no cadastro muda o da empresa');
+
+  -- mudar o link na empresa muda o cadastro do assinante
+  UPDATE empresas SET slug = 'loja-link-admin' WHERE id = e1;
+  PERFORM ci.exige((SELECT link_acesso FROM saas_clientes WHERE id = c1) = 'loja-link-admin', 'o link mudado pelo administrador volta para o cadastro');
+
+  -- outro assinante não pode repetir o link nem usar o de uma empresa
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Assinante Link 2', t2) RETURNING id INTO c2;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'loja-link-admin' WHERE id = %L$c$, c2), 'link de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'admin' WHERE id = %L$c$, c2), 'link reservado pelo sistema');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = '-loja-x' WHERE id = %L$c$, c2), 'link com hífen na ponta');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'ab' WHERE id = %L$c$, c2), 'link curto demais');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'Com Espaço' WHERE id = %L$c$, c2), 'link com espaço');
+
+  -- limpa o link: a empresa fica sem link
+  UPDATE saas_clientes SET link_acesso = NULL WHERE id = c1;
+  PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) IS NULL, 'sem link no cadastro, a empresa fica sem link');
+
+  -- assinante antigo (empresa com link, cadastro sem): editar outro dado, com o campo do link igual, não apaga o link da empresa
+  ALTER TABLE empresas DISABLE TRIGGER trg_empresas_link_para_assinante;
+  UPDATE empresas SET slug = 'link-legado-ci' WHERE id = e1;
+  ALTER TABLE empresas ENABLE TRIGGER trg_empresas_link_para_assinante;
+  UPDATE saas_clientes SET nome = 'Assinante Link 1 editado', link_acesso = NULL WHERE id = c1;
+  PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) = 'link-legado-ci', 'editar o assinante sem mexer no link não apaga o link da empresa');
+
+  DELETE FROM empresas WHERE id = e1;
+  DELETE FROM saas_clientes WHERE id IN (c1, c2);
+  DELETE FROM tenants WHERE id IN (t1, t2);
+END $$;

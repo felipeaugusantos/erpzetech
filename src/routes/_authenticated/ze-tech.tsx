@@ -53,6 +53,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { erroDoLink, linkFinal, normalizarSlug } from "@/lib/link-acesso";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/ze-tech")({
@@ -546,6 +547,7 @@ type Form = {
   teste_ate: string;
   implantacao_paga: boolean;
   observacoes: string;
+  link_acesso: string;
 };
 
 function ClienteDialog({
@@ -577,6 +579,7 @@ function ClienteDialog({
     teste_ate: "",
     implantacao_paga: false,
     observacoes: "",
+    link_acesso: "",
   };
   const [form, setForm] = useState<Form>(vazio);
   const [carregado, setCarregado] = useState<string | null>(null);
@@ -601,6 +604,7 @@ function ClienteDialog({
       teste_ate: cliente.teste_ate ?? "",
       implantacao_paga: cliente.implantacao_paga,
       observacoes: cliente.observacoes ?? "",
+      link_acesso: cliente.link_acesso ?? "",
     });
   }
   if (aberto && !cliente && carregado !== "novo") {
@@ -611,6 +615,9 @@ function ClienteDialog({
   const salvar = useMutation({
     mutationFn: async () => {
       if (!form.nome.trim()) throw new Error("Informe o nome do cliente.");
+      const link = linkFinal(form.link_acesso);
+      const erroLink = erroDoLink(link);
+      if (erroLink) throw new Error(erroLink);
       const payload = {
         nome: form.nome.trim(),
         documento: form.documento.trim() || null,
@@ -628,11 +635,15 @@ function ClienteDialog({
         teste_ate: form.teste_ate || null,
         implantacao_paga: form.implantacao_paga,
         observacoes: form.observacoes.trim() || null,
+        link_acesso: link,
       };
       const res = cliente
         ? await supabase.from("saas_clientes").update(payload).eq("id", cliente.id)
         : await supabase.from("saas_clientes").insert(payload);
-      if (res.error) throw res.error;
+      if (res.error) {
+        if (res.error.code === "23505") throw new Error("Esse link já é usado por outro cliente.");
+        throw res.error;
+      }
     },
     onSuccess: () => {
       toast.success(cliente ? "Cliente atualizado." : "Cliente cadastrado.");
@@ -667,6 +678,26 @@ function ClienteDialog({
               value={form.nome}
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
             />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor="c-link">Link de acesso da loja</Label>
+            <div className="flex items-center gap-1 text-sm">
+              <span className="text-muted-foreground">
+                {typeof window !== "undefined" ? window.location.host : "erpzetech.lovable.app"}/
+              </span>
+              <Input
+                id="c-link"
+                className="max-w-xs"
+                value={form.link_acesso}
+                placeholder="nome-da-loja"
+                onChange={(e) => setForm({ ...form, link_acesso: normalizarSlug(e.target.value) })}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tela de login com a marca da loja. Letras minúsculas, números e hífen (de 3 a 50). A
+              loja passa a usar este link assim que a empresa for cadastrada; depois, o
+              administrador também pode alterá-lo em Empresa.
+            </p>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="c-doc">CNPJ ou CPF</Label>
