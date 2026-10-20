@@ -14,7 +14,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ? {
           // mostra formatado até o que já estava gravado sem pontuação
           ...(typeof value === "string" ? { value: aplicarMascara(mascara, value) } : {}),
-          inputMode: mascara === "telefone" ? ("tel" as const) : ("numeric" as const),
+          // CNPJ pode ter letras (alfanumérico): sem teclado só numérico
+          inputMode:
+            mascara === "telefone"
+              ? ("tel" as const)
+              : mascara === "cnpj" || mascara === "cpfcnpj"
+                ? ("text" as const)
+                : ("numeric" as const),
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
             e.target.value = aplicarMascara(mascara, e.target.value);
             onChange?.(e);

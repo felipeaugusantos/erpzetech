@@ -45,6 +45,21 @@ test("cnpj", () => {
   assert.equal(mascaraCnpj("112223330001819999"), "11.222.333/0001-81");
 });
 
+test("cnpj alfanumérico mantém as letras (maiúsculas) e só números nos dígitos verificadores", () => {
+  assert.equal(mascaraCnpj("00000000E08G12"), "00.000.000/E08G-12");
+  assert.equal(mascaraCnpj("00.000.000/e08g-12"), "00.000.000/E08G-12");
+  assert.equal(mascaraCnpj("12ABC34501DE35"), "12.ABC.345/01DE-35");
+  // letra nos 2 últimos caracteres não entra
+  assert.equal(mascaraCnpj("00000000E08GAB12"), "00.000.000/E08G-12");
+  assert.equal(mascaraCnpj("00000000E08G"), "00.000.000/E08G");
+});
+
+test("cpf ou cnpj: letra ou mais de 11 caracteres vira CNPJ, número curto continua CPF", () => {
+  assert.equal(mascaraCpfCnpj("00000000E08G12"), "00.000.000/E08G-12");
+  assert.equal(mascaraCpfCnpj("12AB"), "12.AB");
+  assert.equal(mascaraCpfCnpj("529982247"), "529.982.247");
+});
+
 test("cpf ou cnpj muda sozinho pelo tamanho", () => {
   assert.equal(mascaraCpfCnpj("52998224725"), "529.982.247-25");
   assert.equal(mascaraCpfCnpj("529982247251"), "52.998.224/7251");

@@ -29,9 +29,18 @@ export function mascaraCpf(valor: string): string {
   return partes.join(".") + (dv ? `-${dv}` : "");
 }
 
-/** 00.000.000/0000-00 */
+/** Letras e números em maiúsculas: o CNPJ alfanumérico (a partir de 2026) tem letras nas 12 primeiras posições. */
+const alfanumerico = (s: string) => s.toUpperCase().replace(/[^0-9A-Z]/g, "");
+
+/** 00.000.000/0000-00; aceita letras nas 12 primeiras posições (CNPJ alfanumérico) e só números nos 2 dígitos verificadores. */
 export function mascaraCnpj(valor: string): string {
-  const d = somenteDigitos(valor).slice(0, 14);
+  const bruto = alfanumerico(valor);
+  let d = "";
+  for (const c of bruto) {
+    if (d.length >= 14) break;
+    if (d.length >= 12 && !/\d/.test(c)) continue;
+    d += c;
+  }
   let s = d.slice(0, 2);
   if (d.length > 2) s += `.${d.slice(2, 5)}`;
   if (d.length > 5) s += `.${d.slice(5, 8)}`;
@@ -40,9 +49,11 @@ export function mascaraCnpj(valor: string): string {
   return s;
 }
 
-/** CPF até 11 dígitos; passando disso, vira CNPJ (campo "CNPJ ou CPF"). */
-export const mascaraCpfCnpj = (valor: string) =>
-  somenteDigitos(valor).length > 11 ? mascaraCnpj(valor) : mascaraCpf(valor);
+/** CPF (só números, até 11); com letra ou passando de 11 caracteres, vira CNPJ (campo "CNPJ ou CPF"). */
+export function mascaraCpfCnpj(valor: string): string {
+  const a = alfanumerico(valor);
+  return /[A-Z]/.test(a) || a.length > 11 ? mascaraCnpj(valor) : mascaraCpf(valor);
+}
 
 /** 00000-000 */
 export function mascaraCep(valor: string): string {
