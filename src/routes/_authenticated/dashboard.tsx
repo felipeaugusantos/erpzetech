@@ -30,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { hojeISO, somaDias } from "@/lib/financeiro";
 import { usePeriodo } from "@/lib/periodo";
+import { ehEmpresaSoClinica } from "@/lib/ramo-clinica";
+import { useSessionData } from "@/hooks/useSessionData";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader, StatCard, EmptyState } from "@/components/app/PageHeader";
@@ -77,6 +79,20 @@ function Dashboard() {
   const hoje = hojeISO();
   const em7 = somaDias(hoje, 7);
   const { periodo, setDe, setAte } = usePeriodo();
+  // clínica veterinária: sem pedidos, orçamentos, entregas nem crediário de obra
+  const { data: sessao } = useSessionData();
+  const soClinica = ehEmpresaSoClinica(
+    sessao?.empresa as
+      | {
+          ramo_atividade?: string | null;
+          cnae?: string | null;
+          cnpj?: string | null;
+          modulos_sem_cnpj?: string[] | null;
+          modulos_liberados?: string[] | null;
+        }
+      | null
+      | undefined,
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -348,12 +364,18 @@ function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        description="Pedidos em andamento, orçamentos, contas a receber e a pagar, alertas de vencimento e saúde do estoque."
+        description={
+          soClinica
+            ? "Contas a receber e a pagar, alertas de vencimento e saúde do estoque."
+            : "Pedidos em andamento, orçamentos, contas a receber e a pagar, alertas de vencimento e saúde do estoque."
+        }
         actions={
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/pedidos">Pedidos</Link>
-            </Button>
+            {!soClinica && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pedidos">Pedidos</Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link to="/fluxo-caixa">Fluxo de caixa</Link>
             </Button>
@@ -384,20 +406,24 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Pedidos em andamento"
-          value={num(pedidosAndamento.length, 0)}
-          icon={ClipboardList}
-          tone="accent"
-          hint={`${brl(valorAndamento)} em carteira`}
-        />
-        <StatCard
-          label="Orçamentos expirados"
-          value={num(orcamentosExpirados.length, 0)}
-          icon={CalendarClock}
-          tone={orcamentosExpirados.length > 0 ? "warning" : "default"}
-          hint={`${orcamentosAbertos.length} em negociação`}
-        />
+        {!soClinica && (
+          <StatCard
+            label="Pedidos em andamento"
+            value={num(pedidosAndamento.length, 0)}
+            icon={ClipboardList}
+            tone="accent"
+            hint={`${brl(valorAndamento)} em carteira`}
+          />
+        )}
+        {!soClinica && (
+          <StatCard
+            label="Orçamentos expirados"
+            value={num(orcamentosExpirados.length, 0)}
+            icon={CalendarClock}
+            tone={orcamentosExpirados.length > 0 ? "warning" : "default"}
+            hint={`${orcamentosAbertos.length} em negociação`}
+          />
+        )}
         <StatCard
           label="A receber em aberto"
           value={brl(saldoReceber)}
@@ -425,12 +451,14 @@ function Dashboard() {
           icon={CalendarClock}
           hint="Planeje o caixa da semana"
         />
-        <StatCard
-          label="Entregas em rota"
-          value={num(data.entregas.filter((e) => e.situacao === "em_rota").length, 0)}
-          icon={Truck}
-          hint={`${data.entregas.filter((e) => e.situacao === "planejada").length} planejadas`}
-        />
+        {!soClinica && (
+          <StatCard
+            label="Entregas em rota"
+            value={num(data.entregas.filter((e) => e.situacao === "em_rota").length, 0)}
+            icon={Truck}
+            hint={`${data.entregas.filter((e) => e.situacao === "planejada").length} planejadas`}
+          />
+        )}
         <StatCard
           label="Valor do estoque (custo)"
           value={brl(valorCusto)}
@@ -439,118 +467,120 @@ function Dashboard() {
         />
       </div>
 
-      <div className="panel mt-6 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-sm font-semibold">
-              Fechamento de clientes (compras marcadas)
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Vendas no crediário que ainda não foram acertadas, somadas por cliente.
-            </p>
+      {!soClinica && (
+        <div className="panel mt-6 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-sm font-semibold">
+                Fechamento de clientes (compras marcadas)
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Vendas no crediário que ainda não foram acertadas, somadas por cliente.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/extrato-receber">Ver extrato completo</Link>
+            </Button>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/extrato-receber">Ver extrato completo</Link>
-          </Button>
-        </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Total a acertar"
-            value={brl(totalCrediario)}
-            icon={Wallet}
-            tone="accent"
-            hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
-          />
-          <StatCard
-            label="Já recebido"
-            value={brl(recebidoCrediario)}
-            icon={Wallet}
-            tone="success"
-            hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
-          />
-          <StatCard
-            label="Já vencido"
-            value={brl(vencidoCrediario)}
-            icon={AlertTriangle}
-            tone={vencidoCrediario > 0 ? "danger" : "default"}
-            hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
-          />
-          <StatCard
-            label="A vencer"
-            value={brl(totalCrediario - vencidoCrediario)}
-            icon={CalendarClock}
-            tone="success"
-            hint="Próximos fechamentos"
-          />
-        </div>
-
-        {fechamentoClientes.length === 0 ? (
-          <EmptyState
-            className="mt-4 border-0 shadow-none"
-            title="Nenhum cliente com compras marcadas em aberto."
-          />
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr className="border-b border-border">
-                  <th className="py-2 pr-2">Cliente</th>
-                  <th className="py-2 pr-2 text-right">Compras</th>
-                  <th className="py-2 pr-2">Próximo fechamento</th>
-                  <th className="py-2 pr-2 text-right">Faturado</th>
-                  <th className="py-2 pr-2 text-right">Já recebido</th>
-                  <th className="py-2 pr-2 text-right">Vencido</th>
-                  <th className="py-2 pr-2 text-right">Total a acertar</th>
-                  <th className="py-2">Limite</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {fechamentoClientes.slice(0, 10).map((l) => {
-                  const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
-                  return (
-                    <tr key={l.nome}>
-                      <td className="py-2 pr-2 font-medium">{l.nome}</td>
-                      <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
-                      <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
-                      <td className="py-2 pr-2 text-right text-numeric">{brl(l.faturado)}</td>
-                      <td className="py-2 pr-2 text-right text-numeric text-success">
-                        {l.recebido ? brl(l.recebido) : "—"}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-numeric text-destructive">
-                        {l.vencido ? brl(l.vencido) : "—"}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-numeric font-semibold">
-                        {brl(l.saldo)}
-                      </td>
-                      <td className="py-2">
-                        {l.limite <= 0 ? (
-                          <span className="text-xs text-muted-foreground">Sem limite</span>
-                        ) : uso >= 100 ? (
-                          <Badge className="bg-destructive/15 text-destructive">
-                            Acima do limite
-                          </Badge>
-                        ) : uso >= 80 ? (
-                          <Badge className="bg-warning/15 text-warning">
-                            {num(uso, 0)}% do limite
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {num(uso, 0)}% de {brl(l.limite)}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="Total a acertar"
+              value={brl(totalCrediario)}
+              icon={Wallet}
+              tone="accent"
+              hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
+            />
+            <StatCard
+              label="Já recebido"
+              value={brl(recebidoCrediario)}
+              icon={Wallet}
+              tone="success"
+              hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
+            />
+            <StatCard
+              label="Já vencido"
+              value={brl(vencidoCrediario)}
+              icon={AlertTriangle}
+              tone={vencidoCrediario > 0 ? "danger" : "default"}
+              hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
+            />
+            <StatCard
+              label="A vencer"
+              value={brl(totalCrediario - vencidoCrediario)}
+              icon={CalendarClock}
+              tone="success"
+              hint="Próximos fechamentos"
+            />
           </div>
-        )}
-      </div>
+
+          {fechamentoClientes.length === 0 ? (
+            <EmptyState
+              className="mt-4 border-0 shadow-none"
+              title="Nenhum cliente com compras marcadas em aberto."
+            />
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2 pr-2">Cliente</th>
+                    <th className="py-2 pr-2 text-right">Compras</th>
+                    <th className="py-2 pr-2">Próximo fechamento</th>
+                    <th className="py-2 pr-2 text-right">Faturado</th>
+                    <th className="py-2 pr-2 text-right">Já recebido</th>
+                    <th className="py-2 pr-2 text-right">Vencido</th>
+                    <th className="py-2 pr-2 text-right">Total a acertar</th>
+                    <th className="py-2">Limite</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {fechamentoClientes.slice(0, 10).map((l) => {
+                    const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
+                    return (
+                      <tr key={l.nome}>
+                        <td className="py-2 pr-2 font-medium">{l.nome}</td>
+                        <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
+                        <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
+                        <td className="py-2 pr-2 text-right text-numeric">{brl(l.faturado)}</td>
+                        <td className="py-2 pr-2 text-right text-numeric text-success">
+                          {l.recebido ? brl(l.recebido) : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-right text-numeric text-destructive">
+                          {l.vencido ? brl(l.vencido) : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-right text-numeric font-semibold">
+                          {brl(l.saldo)}
+                        </td>
+                        <td className="py-2">
+                          {l.limite <= 0 ? (
+                            <span className="text-xs text-muted-foreground">Sem limite</span>
+                          ) : uso >= 100 ? (
+                            <Badge className="bg-destructive/15 text-destructive">
+                              Acima do limite
+                            </Badge>
+                          ) : uso >= 80 ? (
+                            <Badge className="bg-warning/15 text-warning">
+                              {num(uso, 0)}% do limite
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {num(uso, 0)}% de {brl(l.limite)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="panel p-4 lg:col-span-2">
+        <div className={`panel p-4 ${soClinica ? "lg:col-span-3" : "lg:col-span-2"}`}>
           <h2 className="font-display text-sm font-semibold">
             Caixa projetado (7 dias para trás e 7 para frente)
           </h2>
@@ -581,51 +611,55 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Orçamentos por situação</h2>
-          <div className="mt-4 h-72">
-            {orcData.length === 0 ? (
-              <EmptyState className="border-0 shadow-none" title="Nenhum orçamento registrado." />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orcData}
-                    dataKey="valor"
-                    nameKey="nome"
-                    innerRadius={45}
-                    outerRadius={80}
-                  >
-                    {orcData.map((_, i) => (
-                      <Cell key={i} fill={chartColors[i % chartColors.length]} />
-                    ))}
-                  </Pie>
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+        {!soClinica && (
+          <div className="panel p-4">
+            <h2 className="font-display text-sm font-semibold">Orçamentos por situação</h2>
+            <div className="mt-4 h-72">
+              {orcData.length === 0 ? (
+                <EmptyState className="border-0 shadow-none" title="Nenhum orçamento registrado." />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={orcData}
+                      dataKey="valor"
+                      nameKey="nome"
+                      innerRadius={45}
+                      outerRadius={80}
+                    >
+                      {orcData.map((_, i) => (
+                        <Cell key={i} fill={chartColors[i % chartColors.length]} />
+                      ))}
+                    </Pie>
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Pedidos por etapa</h2>
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={etapas} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                <YAxis dataKey="nome" type="category" width={110} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="valor" fill="var(--chart-2)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        {!soClinica && (
+          <div className="panel p-4">
+            <h2 className="font-display text-sm font-semibold">Pedidos por etapa</h2>
+            <div className="mt-4 h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={etapas} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="nome" type="category" width={110} tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Bar dataKey="valor" fill="var(--chart-2)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="panel p-4 lg:col-span-2">
+        <div className={`panel p-4 ${soClinica ? "lg:col-span-3" : "lg:col-span-2"}`}>
           <h2 className="font-display text-sm font-semibold">Alertas de vencimento</h2>
           {alertas.length === 0 ? (
             <EmptyState
@@ -753,32 +787,34 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Orçamentos vencidos sem resposta</h2>
-          {orcamentosExpirados.length === 0 ? (
-            <EmptyState
-              className="mt-4 border-0 shadow-none"
-              title="Nenhum orçamento expirado."
-              description="Todos dentro da validade."
-            />
-          ) : (
-            <ul className="mt-3 divide-y divide-border">
-              {orcamentosExpirados.slice(0, 8).map((o) => (
-                <li key={o.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                  <span className="text-numeric text-xs text-muted-foreground">
-                    #{String(o.numero).padStart(4, "0")}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{nomeCliente(o.clientes)}</span>
-                  <span className="text-xs text-muted-foreground">
-                    validade {o.validade ? dateBR(o.validade) : "—"}
-                  </span>
-                  <span className="text-numeric font-semibold">{brl(Number(o.total))}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      <div className={`mt-4 grid gap-4 ${soClinica ? "" : "lg:grid-cols-2"}`}>
+        {!soClinica && (
+          <div className="panel p-4">
+            <h2 className="font-display text-sm font-semibold">Orçamentos vencidos sem resposta</h2>
+            {orcamentosExpirados.length === 0 ? (
+              <EmptyState
+                className="mt-4 border-0 shadow-none"
+                title="Nenhum orçamento expirado."
+                description="Todos dentro da validade."
+              />
+            ) : (
+              <ul className="mt-3 divide-y divide-border">
+                {orcamentosExpirados.slice(0, 8).map((o) => (
+                  <li key={o.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                    <span className="text-numeric text-xs text-muted-foreground">
+                      #{String(o.numero).padStart(4, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{nomeCliente(o.clientes)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      validade {o.validade ? dateBR(o.validade) : "—"}
+                    </span>
+                    <span className="text-numeric font-semibold">{brl(Number(o.total))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Atenção no estoque</h2>
