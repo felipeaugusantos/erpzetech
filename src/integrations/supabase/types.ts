@@ -3767,6 +3767,77 @@ export type Database = {
         }
         Relationships: []
       }
+      granel_aberturas: {
+        Row: {
+          created_at: string
+          custo_kg: number
+          custo_saco: number
+          deposito_id: string
+          granel_produto_id: string
+          id: string
+          kg: number
+          saco_produto_id: string
+          sacos: number
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_kg?: number
+          custo_saco?: number
+          deposito_id: string
+          granel_produto_id: string
+          id?: string
+          kg: number
+          saco_produto_id: string
+          sacos: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_kg?: number
+          custo_saco?: number
+          deposito_id?: string
+          granel_produto_id?: string
+          id?: string
+          kg?: number
+          saco_produto_id?: string
+          sacos?: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "granel_aberturas_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_granel_produto_id_fkey"
+            columns: ["granel_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_saco_produto_id_fkey"
+            columns: ["saco_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       importacoes: {
         Row: {
           arquivo: string | null
@@ -7722,6 +7793,8 @@ export type Database = {
           fabricante: string | null
           fator_conversao: number
           fornecedor_id: string | null
+          granel_fator: number | null
+          granel_produto_id: string | null
           id: string
           imagem_url: string | null
           largura: number | null
@@ -7760,6 +7833,8 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
+          granel_fator?: number | null
+          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -7798,6 +7873,8 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
+          granel_fator?: number | null
+          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -7826,6 +7903,13 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_granel_produto_id_fkey"
+            columns: ["granel_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
           {
@@ -9828,6 +9912,14 @@ export type Database = {
         Returns: string
       }
       gerar_premiacoes: { Args: never; Returns: number }
+      granel_abrir_saco: {
+        Args: {
+          p_deposito_id: string
+          p_saco_produto_id: string
+          p_sacos?: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
