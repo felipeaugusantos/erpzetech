@@ -2402,6 +2402,7 @@ export type Database = {
           ramo_atividade: string
           razao_social: string
           regime_tributario: string
+          show_ao_vivo: boolean
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -2432,6 +2433,7 @@ export type Database = {
           ramo_atividade?: string
           razao_social: string
           regime_tributario?: string
+          show_ao_vivo?: boolean
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -2462,6 +2464,7 @@ export type Database = {
           ramo_atividade?: string
           razao_social?: string
           regime_tributario?: string
+          show_ao_vivo?: boolean
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
