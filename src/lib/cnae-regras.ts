@@ -84,3 +84,23 @@ export function cnaesDaEmpresa(
 export function moduloLiberadoPorCnae(cnaes: string[], modulo: ModuloCnae) {
   return cnaes.some((c) => REGRAS[modulo].prefixos.some((p) => c.startsWith(p)));
 }
+
+export type EmpresaModulos = {
+  cnpj?: string | null;
+  cnae?: string | null;
+  cnae_secundarios?: string | null;
+  ramo_atividade?: string | null;
+  modulos_sem_cnpj?: string[] | null;
+};
+
+export const semCnpj = (empresa?: EmpresaModulos | null) =>
+  somenteDigitos(empresa?.cnpj ?? "").length < 14;
+
+export function moduloLiberadoEmpresa(empresa: EmpresaModulos | null | undefined, modulo: ModuloCnae): boolean {
+  if (semCnpj(empresa) && empresa?.modulos_sem_cnpj?.includes(modulo)) return true;
+  if (modulo === "petshop" && moduloLiberadoEmpresa(empresa, "clinica")) return true;
+  if (modulo === "restaurante" && empresa?.ramo_atividade === "restaurante") return true;
+  if (modulo === "clinica" && empresa?.ramo_atividade === "clinica") return true;
+  if (modulo === "petshop" && empresa?.ramo_atividade === "petshop") return true;
+  return moduloLiberadoPorCnae(cnaesDaEmpresa(empresa), modulo);
+}

@@ -1,7 +1,28 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { cnaesDaEmpresa, moduloLiberadoPorCnae } from "../src/lib/cnae-regras.ts";
+import { cnaesDaEmpresa, moduloLiberadoPorCnae, moduloLiberadoEmpresa } from "../src/lib/cnae-regras.ts";
+
+test("sem CNPJ pode escolher cada módulo sem informar CNAE", () => {
+  for (const m of ["assistencia", "locacao", "restaurante", "petshop", "clinica"] as const) {
+    assert.equal(moduloLiberadoEmpresa({ cnpj: "", modulos_sem_cnpj: [m] }, m), true);
+    assert.equal(moduloLiberadoEmpresa({ cnpj: "", modulos_sem_cnpj: [] }, m), false);
+  }
+});
+
+test("CPF não exige CNAE para selecionar módulo", () => {
+  assert.equal(moduloLiberadoEmpresa({ cnpj: "529.982.247-25", modulos_sem_cnpj: ["locacao"] }, "locacao"), true);
+});
+
+test("com CNPJ seleção manual não substitui CNAE ou ramo", () => {
+  assert.equal(moduloLiberadoEmpresa({ cnpj: "12.345.678/0001-95", modulos_sem_cnpj: ["assistencia"] }, "assistencia"), false);
+  assert.equal(moduloLiberadoEmpresa({ cnpj: "12.345.678/0001-95", cnae: "9511-8/00" }, "assistencia"), true);
+});
+
+test("selecionar clínica também libera petshop mas petshop não libera clínica", () => {
+  assert.equal(moduloLiberadoEmpresa({ modulos_sem_cnpj: ["clinica"] }, "petshop"), true);
+  assert.equal(moduloLiberadoEmpresa({ modulos_sem_cnpj: ["petshop"] }, "clinica"), false);
+});
 
 test("CNAE 4321 (elétrica/CFTV) libera assistência técnica", () => {
   assert.equal(moduloLiberadoPorCnae(cnaesDaEmpresa({ cnae: "4321-5/00" }), "assistencia"), true);

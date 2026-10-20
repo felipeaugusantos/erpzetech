@@ -15,8 +15,8 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloCnae }) {
         {ROTULO_MODULO[modulo]} ainda não está liberado
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
-        Este módulo é liberado pela atividade da empresa. Informe no cadastro da empresa o CNAE
-        principal e os CNAEs secundários compatíveis para ativá-lo.
+         Este módulo é liberado pela atividade da empresa. No cadastro, informe os CNAEs compatíveis
+         ou, se ainda não tem CNPJ, selecione o módulo em Módulos sem CNPJ.
       </p>
       <ul className="mx-auto mt-4 max-w-md space-y-1 text-left text-xs text-muted-foreground">
         {exemplosCnae(modulo).map((e) => (
