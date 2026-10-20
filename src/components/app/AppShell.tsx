@@ -78,6 +78,11 @@ import {
   GRUPOS_FORA_DA_ALIMENTACAO,
   TELAS_FORA_DA_ALIMENTACAO,
 } from "@/lib/ramo-alimentacao";
+import {
+  GRUPOS_FORA_DA_CLINICA,
+  TELAS_FORA_DA_CLINICA,
+  ehEmpresaSoClinica,
+} from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
@@ -387,6 +392,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const soAlimentacao = ehEmpresaAlimentacao(
     data?.empresa as { ramo_atividade?: string | null; cnae?: string | null } | null | undefined,
   );
+  const soClinica = ehEmpresaSoClinica(
+    data?.empresa as
+      | {
+          ramo_atividade?: string | null;
+          cnae?: string | null;
+          cnpj?: string | null;
+          modulos_sem_cnpj?: string[] | null;
+        }
+      | null
+      | undefined,
+  );
   const fazPersonalizacao = Boolean(empresaMenu?.faz_personalizacao);
   const gruposLoja = useMemo(
     () =>
@@ -401,6 +417,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return modulos.clinica && (souVeterinario || souGestao || souRecepcao);
           if (soAlimentacao && (GRUPOS_FORA_DA_ALIMENTACAO as readonly string[]).includes(g.label))
             return false;
+          if (soClinica && (GRUPOS_FORA_DA_CLINICA as readonly string[]).includes(g.label))
+            return false;
           return true;
         })
         .map((g) => ({
@@ -410,6 +428,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               soAlimentacao &&
               (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
             )
+              return false;
+            if (soClinica && (TELAS_FORA_DA_CLINICA as readonly string[]).includes(i.to ?? ""))
               return false;
             if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
               return ehConstrucao;
@@ -451,6 +471,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ehConstrucao,
       fazPersonalizacao,
       soAlimentacao,
+      soClinica,
     ],
   );
 
