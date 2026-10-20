@@ -5832,3 +5832,28 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(v IS NULL OR v <> 'sugestao-link-ci', 'sem assinante ligado ao tenant não há sugestão');
 END $$;
+
+-- 63. Estoque: o lançamento de lote grava e corrige a validade; sem validade informada, a do lote não muda
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  prod uuid; dep uuid; l1 uuid; l2 uuid;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Validade de lote CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAL-LOTE-CI', 'Produto validade CI', 'UN', 0, true) RETURNING id INTO prod;
+  PERFORM ci.entrar(adm);
+  l1 := estoque_lote_lancar(prod, dep, 'V1', '', '', 'entrada', 5, 'ci', NULL, hoje + 200);
+  l2 := estoque_lote_lancar(prod, dep, 'V2', '', '', 'entrada', 2, 'ci');
+  PERFORM ci.exige((SELECT validade FROM estoque_lotes WHERE id = l1) = hoje + 200, 'o lançamento grava a validade do lote');
+  PERFORM ci.exige((SELECT validade FROM estoque_lotes WHERE id = l2) IS NULL, 'sem validade informada, o lote fica sem validade');
+  PERFORM estoque_lote_lancar(prod, dep, 'V1', '', '', 'entrada', 1, 'ci');
+  PERFORM ci.exige((SELECT validade FROM estoque_lotes WHERE id = l1) = hoje + 200, 'um lançamento sem validade não apaga a validade do lote');
+  PERFORM estoque_lote_lancar(prod, dep, 'V2', '', '', 'entrada', 1, 'ci', NULL, hoje + 90);
+  PERFORM ci.exige((SELECT validade FROM estoque_lotes WHERE id = l2) = hoje + 90, 'informar a validade corrige um lote que estava sem ela');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT estoque_lote_lancar(%L, %L, 'V3', '', '', 'entrada', 1, 'ci', NULL, DATE '1990-01-01')$c$, prod, dep), 'validade absurda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT estoque_lote_lancar(%L, %L, 'V4', '', '', 'entrada', 1, 'ci', NULL, CURRENT_DATE + 30)$c$, prod, dep), 'vendedor lança lote');
+END $$;

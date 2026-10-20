@@ -10074,6 +10074,7 @@ export type Database = {
           p_quantidade: number
           p_tipo: string
           p_tonalidade: string
+          p_validade?: string
         }
         Returns: string
       }

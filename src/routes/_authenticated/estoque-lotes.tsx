@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
-import { num } from "@/lib/format";
+import { dateBR, num } from "@/lib/format";
 import { ROTULO_LOTES_CLINICA, ehEmpresaSoClinica } from "@/lib/ramo-clinica";
 
 export const Route = createFileRoute("/_authenticated/estoque-lotes")({
@@ -30,6 +30,7 @@ type Lote = {
   tonalidade: string;
   calibre: string;
   quantidade: number;
+  validade: string | null;
   produto_id: string;
   produtos: { descricao: string; codigo_interno: string | null; unidade: string | null } | null;
   depositos: { nome: string } | null;
@@ -40,6 +41,7 @@ const vazio = {
   deposito_id: "",
   lote: "",
   tonalidade: "",
+  validade: "",
   calibre: "",
   tipo: "entrada",
   quantidade: "",
@@ -92,7 +94,7 @@ function Lotes() {
       const { data, error } = await supabase
         .from("estoque_lotes")
         .select(
-          "id, lote, tonalidade, calibre, quantidade, produto_id, produtos(descricao, codigo_interno, unidade), depositos(nome)",
+          "id, lote, tonalidade, calibre, quantidade, validade, produto_id, produtos(descricao, codigo_interno, unidade), depositos(nome)",
         )
         .order("updated_at", { ascending: false })
         .limit(2000);
@@ -125,6 +127,7 @@ function Lotes() {
         p_calibre: f.calibre,
         p_tipo: f.tipo,
         p_quantidade: Number(f.quantidade.replace(",", ".")),
+        ...(f.validade ? { p_validade: f.validade } : {}),
         ...(f.documento ? { p_documento: f.documento } : {}),
         ...(f.motivo ? { p_motivo: f.motivo } : {}),
       });
@@ -231,6 +234,14 @@ function Lotes() {
           />
         </label>
         <label className="text-xs">
+          Validade{soClinica && f.tipo === "entrada" ? " (obrigatória)" : ""}
+          <Input
+            type="date"
+            value={f.validade}
+            onChange={(e) => setF({ ...f, validade: e.target.value })}
+          />
+        </label>
+        <label className="text-xs">
           Operação
           <select
             className={sel}
@@ -267,6 +278,8 @@ function Lotes() {
               !f.deposito_id ||
               !f.lote.trim() ||
               !f.quantidade ||
+              // vacina e medicamento só são aplicados de lote com validade
+              (soClinica && f.tipo === "entrada" && !f.validade) ||
               (f.tipo === "ajuste" && !f.motivo.trim())
             }
             onClick={() => lancar.mutate()}
@@ -294,6 +307,7 @@ function Lotes() {
               <th className="px-3 py-2">Lote</th>
               <th className="px-3 py-2">Tonalidade</th>
               <th className="px-3 py-2">Calibre</th>
+              <th className="px-3 py-2">Validade</th>
               <th className="px-3 py-2 text-right">Saldo</th>
             </tr>
           </thead>
@@ -305,6 +319,7 @@ function Lotes() {
                 <td className="px-3 py-2 font-medium">{l.lote}</td>
                 <td className="px-3 py-2">{l.tonalidade || "—"}</td>
                 <td className="px-3 py-2">{l.calibre || "—"}</td>
+                <td className="px-3 py-2">{l.validade ? dateBR(l.validade) : "—"}</td>
                 <td className="px-3 py-2 text-right">
                   {num(Number(l.quantidade))} {l.produtos?.unidade ?? ""}
                 </td>
