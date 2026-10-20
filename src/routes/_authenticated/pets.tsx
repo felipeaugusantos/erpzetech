@@ -5,6 +5,7 @@ import { PawPrint, Pencil, Plus, Search, Syringe } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,10 @@ const NENHUM = "__nenhum";
 type Form = {
   id?: string;
   cliente_id: string;
+  /** tutor novo cadastrado aqui mesmo, sem passar por Clientes */
+  tutor_novo: boolean;
+  novo_tutor_nome: string;
+  novo_tutor_telefone: string;
   nome: string;
   especie: string;
   raca: string;
@@ -75,6 +80,9 @@ type Form = {
 
 const vazio: Form = {
   cliente_id: "",
+  tutor_novo: false,
+  novo_tutor_nome: "",
+  novo_tutor_telefone: "",
   nome: "",
   especie: "cao",
   raca: "",
@@ -127,6 +135,9 @@ function Pets() {
   const pets = data?.pets ?? [];
   const clientes = data?.clientes ?? [];
   const tutor = (id: string) => clientes.find((c) => c.id === id);
+  const parecidos = form.tutor_novo
+    ? tutoresParecidos(clientes, form.novo_tutor_nome, form.novo_tutor_telefone)
+    : [];
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -142,15 +153,40 @@ function Pets() {
 
   const salvar = useMutation({
     mutationFn: async () => {
-      if (!form.cliente_id) throw new Error("Escolha o tutor (cliente) do pet.");
+      if (form.tutor_novo) {
+        const erroTutor = erroDoTutorNovo(form.novo_tutor_nome, form.novo_tutor_telefone);
+        if (erroTutor) throw new Error(erroTutor);
+      } else if (!form.cliente_id) throw new Error("Escolha o tutor (cliente) do pet.");
       if (!form.nome.trim()) throw new Error("Informe o nome do pet.");
       const peso = form.peso_kg.trim() ? Number(form.peso_kg.replace(",", ".")) : null;
       if (peso !== null && (!Number.isFinite(peso) || peso <= 0))
         throw new Error("Informe um peso válido.");
+      let clienteId = form.cliente_id;
+      if (form.tutor_novo) {
+        const fone = form.novo_tutor_telefone.trim();
+        const { data: criado, error: erroTutor } = await supabase
+          .from("clientes")
+          .insert({
+            tenant_id: session?.profile?.tenant_id as string,
+            empresa_id: session?.profile?.empresa_id ?? null,
+            filial_id: session?.profile?.filial_id ?? null,
+            tipo: "PF",
+            nome: form.novo_tutor_nome.trim(),
+            telefone: fone || null,
+            whatsapp: fone || null,
+          })
+          .select("id")
+          .single();
+        if (erroTutor) throw erroTutor;
+        clienteId = criado.id;
+        // o tutor já existe: se o pet falhar, salvar de novo usa este tutor em vez de criar outro
+        setForm((f) => ({ ...f, cliente_id: criado.id, tutor_novo: false }));
+        void qc.invalidateQueries({ queryKey: ["clientes"] });
+      }
       const { error } = await supabase.rpc("pet_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
-          cliente_id: form.cliente_id,
+          cliente_id: clienteId,
           nome: form.nome.trim(),
           especie: form.especie,
           raca: form.raca.trim() || null,
@@ -203,7 +239,7 @@ function Pets() {
     <div>
       <PageHeader
         title="Pets e tutores"
-        description="Cada pet pertence a um tutor (cliente). Porte, raça e pelagem definem o preço dos serviços."
+        description="Cada pet pertence a um tutor (cliente), que pode ser cadastrado aqui mesmo. Porte, raça e pelagem definem o preço dos serviços."
         actions={
           podeEditar ? (
             <Button
@@ -310,6 +346,9 @@ function Pets() {
                             setForm({
                               id: p.id,
                               cliente_id: p.cliente_id,
+                              tutor_novo: false,
+                              novo_tutor_nome: "",
+                              novo_tutor_telefone: "",
                               nome: p.nome,
                               especie: p.especie,
                               raca: p.raca ?? "",
@@ -345,16 +384,102 @@ function Pets() {
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label>Tutor (cliente)</Label>
-              <ClienteCombobox
-                clientes={clientes}
-                value={form.cliente_id}
-                onChange={(id) => setForm({ ...form, cliente_id: id })}
-                placeholder="Digite o nome do tutor…"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                O tutor precisa estar em <strong>Clientes</strong>; cadastre lá antes, se for novo.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label>Tutor</Label>
+                {!form.id && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        tutor_novo: !form.tutor_novo,
+                        cliente_id: form.tutor_novo ? form.cliente_id : "",
+                      })
+                    }
+                  >
+                    {form.tutor_novo ? "Escolher tutor já cadastrado" : "Tutor novo"}
+                  </Button>
+                )}
+              </div>
+              {form.tutor_novo ? (
+                <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="tutor-nome" className="text-xs">
+                      Nome do tutor
+                    </Label>
+                    <Input
+                      id="tutor-nome"
+                      value={form.novo_tutor_nome}
+                      maxLength={120}
+                      onChange={(e) => setForm({ ...form, novo_tutor_nome: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tutor-fone" className="text-xs">
+                      Telefone / WhatsApp (com DDD)
+                    </Label>
+                    <Input
+                      id="tutor-fone"
+                      inputMode="tel"
+                      value={form.novo_tutor_telefone}
+                      maxLength={30}
+                      onChange={(e) => setForm({ ...form, novo_tutor_telefone: e.target.value })}
+                    />
+                  </div>
+                  {parecidos.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2 text-xs sm:col-span-2">
+                      <p className="font-medium">Já existe tutor parecido:</p>
+                      <ul className="mt-1 grid gap-1">
+                        {parecidos.map((t) => (
+                          <li key={t.id} className="flex items-center justify-between gap-2">
+                            <span>
+                              {t.nome}
+                              {t.telefone ? ` · ${t.telefone}` : ""}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  tutor_novo: false,
+                                  cliente_id: t.id,
+                                  novo_tutor_nome: "",
+                                  novo_tutor_telefone: "",
+                                })
+                              }
+                            >
+                              Usar este
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    O tutor é cadastrado junto com o pet e já aparece em Clientes; os demais dados
+                    (CPF, endereço) podem ser completados depois.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ClienteCombobox
+                    clientes={clientes}
+                    value={form.cliente_id}
+                    onChange={(id) => setForm({ ...form, cliente_id: id })}
+                    placeholder="Digite o nome do tutor…"
+                  />
+                  {!form.id && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Não achou? Use <strong>Tutor novo</strong> para cadastrar aqui mesmo.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             <div>
               <Label htmlFor="pet-nome">Nome do pet</Label>
