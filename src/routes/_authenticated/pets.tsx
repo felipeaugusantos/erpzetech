@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PawPrint, Pencil, Plus, Search, Syringe } from "lucide-react";
@@ -114,6 +114,8 @@ function Pets() {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  // identificador do tutor novo, gerado aqui: repetir o salvamento (resposta perdida) reaproveita o mesmo e não cria outro tutor
+  const tutorNovoId = useRef<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pets"],
@@ -164,23 +166,23 @@ function Pets() {
       let clienteId = form.cliente_id;
       if (form.tutor_novo) {
         const fone = form.novo_tutor_telefone.trim();
-        const { data: criado, error: erroTutor } = await supabase
-          .from("clientes")
-          .insert({
-            tenant_id: session?.profile?.tenant_id as string,
-            empresa_id: session?.profile?.empresa_id ?? null,
-            filial_id: session?.profile?.filial_id ?? null,
-            tipo: "PF",
-            nome: form.novo_tutor_nome.trim(),
-            telefone: fone || null,
-            whatsapp: fone || null,
-          })
-          .select("id")
-          .single();
-        if (erroTutor) throw erroTutor;
-        clienteId = criado.id;
+        tutorNovoId.current ??= crypto.randomUUID();
+        const idTutor = tutorNovoId.current;
+        const { error: erroTutor } = await supabase.from("clientes").insert({
+          id: idTutor,
+          tenant_id: session?.profile?.tenant_id as string,
+          empresa_id: session?.profile?.empresa_id ?? null,
+          filial_id: session?.profile?.filial_id ?? null,
+          tipo: "PF",
+          nome: form.novo_tutor_nome.trim(),
+          telefone: fone || null,
+          whatsapp: fone || null,
+        });
+        // chave repetida: este mesmo tutor já foi criado na tentativa anterior (a resposta se perdeu)
+        if (erroTutor && erroTutor.code !== "23505") throw erroTutor;
+        clienteId = idTutor;
         // o tutor já existe: se o pet falhar, salvar de novo usa este tutor em vez de criar outro
-        setForm((f) => ({ ...f, cliente_id: criado.id, tutor_novo: false }));
+        setForm((f) => ({ ...f, cliente_id: idTutor, tutor_novo: false }));
         void qc.invalidateQueries({ queryKey: ["clientes"] });
       }
       const { error } = await supabase.rpc("pet_salvar", {
@@ -205,6 +207,7 @@ function Pets() {
     },
     onSuccess: () => {
       toast.success(form.id ? "Pet atualizado." : "Pet cadastrado.");
+      tutorNovoId.current = null;
       setAberto(false);
       setForm(vazio);
       void qc.invalidateQueries({ queryKey: ["pets"] });
@@ -245,6 +248,7 @@ function Pets() {
             <Button
               onClick={() => {
                 setForm(vazio);
+                tutorNovoId.current = null;
                 setAberto(true);
               }}
             >
@@ -362,6 +366,7 @@ function Pets() {
                               observacoes: p.observacoes ?? "",
                               ativo: p.ativo,
                             });
+                            tutorNovoId.current = null;
                             setAberto(true);
                           }}
                         >

@@ -35,6 +35,22 @@ test("acha tutor parecido pelo nome igual, sem acento nem caixa", () => {
   );
 });
 
+test("DDD diferente com o mesmo número não é o mesmo tutor", () => {
+  const lista = [
+    { id: "a", nome: "Tutor A", telefone: "(16) 99999-0000" },
+    { id: "b", nome: "Tutor B", telefone: "(66) 99999-0000" },
+  ];
+  assert.deepEqual(
+    tutoresParecidos(lista, "Novo", "(66) 99999-0000").map((t) => t.id),
+    ["b"],
+  );
+  assert.deepEqual(
+    tutoresParecidos(lista, "Novo", "55 66 99999 0000").map((t) => t.id),
+    ["b"],
+  );
+  assert.deepEqual(tutoresParecidos(lista, "Novo", "(11) 99999-0000"), []);
+});
+
 test("nome parecido mas diferente, ou telefone curto, não conta", () => {
   assert.deepEqual(tutoresParecidos(tutores, "João Silva", "1699"), []);
   assert.deepEqual(tutoresParecidos(tutores, "Ana Paula", ""), []);
