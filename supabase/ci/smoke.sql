@@ -539,7 +539,9 @@ DECLARE
     'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
     '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler',
     -- cópia para o trabalho sem internet: só o veterinário
-    'clinica_visita_preparar'];
+    'clinica_visita_preparar',
+    -- cadastro rápido de tutor e pet pelo veterinário (também sem internet): só o veterinário
+    'clinica_cadastro_rapido'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4824,5 +4826,127 @@ BEGIN
   -- clínica deixa de estar liberada
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(va, 'SELECT clinica_visita_preparar()', 'preparar visita sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 51. Clínica (cadastro rápido, trabalho sem internet): só o veterinário; ids nascidos no notebook; reenvio não duplica; duplicado é marcado
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  novo constant uuid := 'a0000000-0000-0000-0000-000000000004';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000fc';
+  ramo_ant text; cnae_ant text; cnae2_ant text; t_novo uuid; emp_novo uuid;
+  k1 uuid := gen_random_uuid(); k2 uuid := gen_random_uuid(); k3 uuid := gen_random_uuid(); k4 uuid := gen_random_uuid();
+  c1 uuid := gen_random_uuid(); p1 uuid := gen_random_uuid(); p2 uuid := gen_random_uuid(); c3 uuid := gen_random_uuid(); p3 uuid := gen_random_uuid();
+  c4 uuid := gen_random_uuid(); p4 uuid := gen_random_uuid();
+  existente uuid; r jsonb; r2 jsonb; n_cli bigint; n_pet bigint; n_reg bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (va, 'vetcad@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = va;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario');
+  INSERT INTO clientes (tenant_id, nome, telefone) VALUES (demo, 'Tutor Antigo Cadastro CI', '(16) 97777-6666') RETURNING id INTO existente;
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_vincular(pet_profissional_salvar('{"nome":"Vet Cadastro CI","funcao":"veterinario","crmv":"5551","crmv_uf":"SP"}'::jsonb), va);
+  PERFORM ci.sair();
+
+  -- só o veterinário usa o cadastro rápido
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_cadastro_rapido(%L, '{"cliente":{"id":"%s","nome":"X Y"},"pet":{"id":"%s","nome":"P"}}'::jsonb)$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'gestor usa o cadastro rápido da clínica');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_cadastro_rapido(%L, '{"cliente":{"id":"%s","nome":"X Y"},"pet":{"id":"%s","nome":"P"}}'::jsonb)$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'recepção usa o cadastro rápido da clínica');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_cadastro_rapido(%L, '{"cliente":{"id":"%s","nome":"X Y"},"pet":{"id":"%s","nome":"P"}}'::jsonb)$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'garçom usa o cadastro rápido da clínica');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_cadastro_rapido(%L, '{"cliente":{"id":"%s","nome":"X Y"},"pet":{"id":"%s","nome":"P"}}'::jsonb)$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'profissional de banho usa o cadastro rápido da clínica');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM clinica_cadastros_rapidos', 'leitura direta do registro dos cadastros rápidos');
+
+  -- tutor e pet novos, com os ids nascidos no notebook
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(k1, jsonb_build_object('cliente', jsonb_build_object('id', c1, 'nome', 'Maria da Fazenda CI', 'telefone', '(16) 98888-1111'),
+         'pet', jsonb_build_object('id', p1, 'nome', 'Toby Fazenda CI', 'especie', 'cao', 'raca', 'SRD', 'sexo', 'macho', 'porte', 'medio',
+                                   'nascimento', '2023-03-10', 'peso_kg', '12,5', 'castrado', true, 'alergias', 'frango')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'cliente_id' = c1::text AND r ->> 'pet_id' = p1::text AND (r ->> 'repetido')::boolean = false AND r -> 'possivel_duplicado_de' = 'null'::jsonb,
+                   'o cadastro usa os ids do notebook e não tem duplicado');
+  PERFORM ci.exige((SELECT nome = 'Maria da Fazenda CI' AND telefone = '(16) 98888-1111' AND whatsapp = '(16) 98888-1111' AND observacoes LIKE 'Cadastro rápido da clínica%' AND observacoes NOT LIKE '%duplicado%'
+                      FROM clientes WHERE id = c1 AND tenant_id = demo), 'tutor criado com nome, telefone e a marca de cadastro rápido');
+  PERFORM ci.exige((SELECT nome = 'Toby Fazenda CI' AND especie = 'cao' AND peso_kg = 12.5 AND castrado AND alergias = 'frango' AND cliente_id = c1 AND ativo
+                      FROM pets WHERE id = p1 AND tenant_id = demo), 'pet criado com os dados e ligado ao tutor');
+  PERFORM ci.exige(ci.contar(va, format($c$SELECT count(*) FROM jsonb_array_elements(clinica_pacientes('Toby Fazenda')) x WHERE x ->> 'id' = %L$c$, p1)) = 1, 'o pet novo aparece na busca de pacientes do veterinário');
+
+  -- reenvio da mesma chave: devolve o mesmo e não duplica
+  SELECT count(*) INTO n_cli FROM clientes WHERE tenant_id = demo;
+  SELECT count(*) INTO n_pet FROM pets WHERE tenant_id = demo;
+  SELECT count(*) INTO n_reg FROM clinica_cadastros_rapidos WHERE tenant_id = demo;
+  PERFORM ci.entrar(va);
+  r2 := clinica_cadastro_rapido(k1, jsonb_build_object('cliente', jsonb_build_object('id', c1, 'nome', 'Maria da Fazenda CI'), 'pet', jsonb_build_object('id', p1, 'nome', 'Toby Fazenda CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r2 ->> 'cliente_id' = c1::text AND r2 ->> 'pet_id' = p1::text AND (r2 ->> 'repetido')::boolean, 'reenviar a mesma chave devolve o mesmo resultado');
+  PERFORM ci.exige((SELECT count(*) FROM clientes WHERE tenant_id = demo) = n_cli AND (SELECT count(*) FROM pets WHERE tenant_id = demo) = n_pet
+               AND (SELECT count(*) FROM clinica_cadastros_rapidos WHERE tenant_id = demo) = n_reg, 'o reenvio não cria tutor, pet nem registro de novo');
+
+  -- outro pet para o tutor que já existe
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(k2, jsonb_build_object('cliente_id', c1, 'pet', jsonb_build_object('id', p2, 'nome', 'Mimi Fazenda CI', 'especie', 'gato')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'cliente_id' = c1::text AND (SELECT cliente_id = c1 AND especie = 'gato' FROM pets WHERE id = p2), 'segundo pet para o mesmo tutor');
+  PERFORM ci.exige((SELECT count(*) FROM clientes WHERE tenant_id = demo) = n_cli, 'o segundo pet não cria outro tutor');
+
+  -- mesmo telefone de um cadastro existente: cria e marca para a recepção unir
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(k3, jsonb_build_object('cliente', jsonb_build_object('id', c3, 'nome', 'Tutor Novo Mesmo Fone CI', 'telefone', '16 97777 6666'),
+         'pet', jsonb_build_object('id', p3, 'nome', 'Bidu CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'possivel_duplicado_de' = existente::text, 'o telefone igual aponta o cadastro existente');
+  PERFORM ci.exige((SELECT observacoes LIKE '%Possível duplicado do cadastro "Tutor Antigo Cadastro CI"%' FROM clientes WHERE id = c3), 'a marca de duplicado fica nas observações do cadastro novo, para a recepção');
+  PERFORM ci.exige((SELECT nome = 'Tutor Antigo Cadastro CI' AND observacoes IS NULL AND ativo FROM clientes WHERE id = existente), 'o cadastro antigo não é alterado');
+  PERFORM ci.exige((SELECT possivel_duplicado_de = existente FROM clinica_cadastros_rapidos WHERE chave = k3), 'o registro guarda o possível duplicado');
+
+  -- o mesmo telefone com o código do país (+55) também é duplicado, nos dois sentidos
+  UPDATE clientes SET created_at = now() - interval '2 days' WHERE id = existente;  -- o cadastro antigo é o mais antigo de verdade (o teste roda numa transação só)
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(k4, jsonb_build_object('cliente', jsonb_build_object('id', c4, 'nome', 'Tutor Com Codigo Pais CI', 'telefone', '+55 (16) 97777-6666'),
+         'pet', jsonb_build_object('id', p4, 'nome', 'Fido CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'possivel_duplicado_de' = existente::text, 'telefone com +55 é reconhecido como o mesmo número');
+  PERFORM ci.exige(public._fone_normalizado('+55 (16) 98888-1111') = '16988881111' AND public._fone_normalizado('(16) 98888-1111') = '16988881111'
+               AND public._fone_normalizado('55 16 3333-4444') = '1633334444' AND public._fone_normalizado('5511') = '5511' AND public._fone_normalizado(NULL) = '',
+               'a normalização tira só o 55 do país');
+  UPDATE clientes SET telefone = '+55 16 95555-4444' WHERE id = existente;
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(gen_random_uuid(), jsonb_build_object('cliente', jsonb_build_object('id', gen_random_uuid(), 'nome', 'Tutor Sem Codigo Pais CI', 'telefone', '(16) 95555-4444'),
+         'pet', jsonb_build_object('id', gen_random_uuid(), 'nome', 'Rex2 CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'possivel_duplicado_de' = existente::text, 'cadastro antigo com +55 e telefone novo sem o código também casam');
+
+  -- regras
+  PERFORM ci.deve_falhar(va, 'SELECT clinica_cadastro_rapido(NULL, ''{}''::jsonb)', 'cadastro sem chave de repetição');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, '{"cliente":{"id":"%s","nome":"Fulano Tal"}}'::jsonb)$c$, gen_random_uuid(), gen_random_uuid()), 'cadastro sem pet');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Vaca', 'especie', 'outro')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'espécie fora de cão e gato');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', '  ')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'pet sem nome');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'F'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'tutor com nome curto demais');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal', 'telefone', '12345'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'telefone sem DDD');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex', 'peso_kg', '-3')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'peso negativo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex', 'sexo', 'indefinido')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'sexo inválido');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex', 'nascimento', current_date + 5)))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'nascimento no futuro');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex', 'castrado', 'talvez')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'castrado que não é sim ou não');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente_id', %L, 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()), 'tutor que não existe');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente_id', %L, 'cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), c1, gen_random_uuid(), gen_random_uuid()), 'tutor existente e tutor novo ao mesmo tempo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), c1, gen_random_uuid()), 'identificador de tutor já usado por outra chave');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), gen_random_uuid(), p1), 'identificador de pet já usado por outra chave');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente', jsonb_build_object('id', %L, 'nome', 'Fulano Tal'), 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), 'não-é-uuid', gen_random_uuid()), 'identificador que não é UUID');
+  PERFORM ci.exige((SELECT count(*) FROM clientes WHERE tenant_id = demo AND nome = 'Fulano Tal') = 0, 'cadastro recusado não deixa tutor para trás');
+
+  -- outra empresa não usa tutor nem chave alheios
+  SELECT tenant_id INTO t_novo FROM profiles WHERE id = novo;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (t_novo, 'Outra clínica cadastro CI', 'clinica') RETURNING id INTO emp_novo;
+  PERFORM ci.deve_falhar(novo, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente_id', %L, 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), c1, gen_random_uuid()), 'perfil sem veterinário em outra empresa');
+  DELETE FROM empresas WHERE id = emp_novo;
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente_id', %L, 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), c1, gen_random_uuid()), 'cadastro rápido sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

@@ -38,3 +38,21 @@ export function resumoDaCopia(copia: CopiaVisita) {
     modelos: d.modelos_exame.length,
   };
 }
+
+export type TutorDaCopia = { id: string; nome: string; telefone: string | null };
+
+/** Tutores da agenda baixada, sem repetir, em ordem de nome (para o cadastro rápido de outro pet de um tutor que já existe). */
+export function tutoresDaCopia(copia: Pick<CopiaVisita, "dados">): TutorDaCopia[] {
+  const vistos = new Map<string, TutorDaCopia>();
+  for (const item of copia.dados.agenda) {
+    const t = (item as { tutor?: { id?: unknown; nome?: unknown; telefone?: unknown } } | null)
+      ?.tutor;
+    if (!t || typeof t.id !== "string" || typeof t.nome !== "string" || vistos.has(t.id)) continue;
+    vistos.set(t.id, {
+      id: t.id,
+      nome: t.nome,
+      telefone: typeof t.telefone === "string" ? t.telefone : null,
+    });
+  }
+  return [...vistos.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}

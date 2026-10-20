@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Lock, LockOpen, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
+import { CadastroRapido } from "@/components/app/CadastroRapido";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -502,6 +503,8 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
           !copiaApagada && <p className="text-sm text-muted-foreground">Nenhuma cópia no cofre.</p>
         )}
       </div>
+
+      <CadastroRapido cofre={cofre} copia={copia} online={online} aoGuardar={recarregar} />
 
       <div className="panel grid gap-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
