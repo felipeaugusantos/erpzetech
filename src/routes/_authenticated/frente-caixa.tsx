@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { interpretarBusca } from "@/lib/busca-pdv";
+import { trocarOperador as trocarOperadorLogin } from "@/lib/login-cliente";
 import { brl, num } from "@/lib/format";
 import {
   CREDENCIADORA_SIMULADA,
@@ -993,11 +994,7 @@ function FrenteCaixa() {
 
   const trocarOperador = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: opEmail,
-        password: opSenha,
-      });
-      if (error) throw new Error("E-mail ou senha incorretos");
+      await trocarOperadorLogin(opEmail, opSenha);
     },
     onSuccess: () => {
       setModal(null);
@@ -1873,7 +1870,7 @@ function FrenteCaixa() {
             <DialogTitle>Entrar como outro operador</DialogTitle>
           </DialogHeader>
           <div>
-            <Label>E-mail</Label>
+            <Label>Usuário ou e-mail</Label>
             <Input autoFocus value={opEmail} onChange={(e) => setOpEmail(e.target.value)} />
           </div>
           <div>

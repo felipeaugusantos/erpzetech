@@ -65,6 +65,7 @@ const perfis = [...PERFIS];
 
 const formVazio = {
   nome: "",
+  usuario: "",
   email: "",
   senha: "",
   telefone: "",
@@ -82,7 +83,10 @@ function Usuarios() {
     queryKey: ["usuarios"],
     queryFn: async () => {
       const [perfilsRes, rolesRes, permsRes] = await Promise.all([
-        supabase.from("profiles").select("id, nome, codigo, email, ativo, filial_id").order("nome"),
+        supabase
+          .from("profiles")
+          .select("id, nome, usuario, codigo, email, ativo, filial_id")
+          .order("nome"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("role_permissoes").select("*").order("modulo"),
       ]);
@@ -145,6 +149,8 @@ function Usuarios() {
   const [editando, setEditando] = useState<{
     id: string;
     nome: string;
+    usuario: string;
+    email: string;
     telefone: string;
     codigo: string;
     filialId: string;
@@ -164,6 +170,7 @@ function Usuarios() {
       fnCriar({
         data: {
           nome: form.nome,
+          usuario: form.usuario,
           email: form.email,
           senha: form.senha,
           telefone: form.telefone,
@@ -174,7 +181,7 @@ function Usuarios() {
       }),
     onSuccess: () => {
       toast.success("Operador cadastrado", {
-        description: "Ele já pode entrar com o e-mail e a senha informados.",
+        description: "Ele já pode entrar com o usuário e a senha informados.",
       });
       setOpenNovo(false);
       setForm(formVazio);
@@ -189,6 +196,8 @@ function Usuarios() {
         data: {
           userId: editando!.id,
           nome: editando!.nome,
+          usuario: editando!.usuario,
+          email: editando!.email,
           telefone: editando!.telefone,
           codigo: editando!.codigo,
           filialId: editando!.filialId || null,
@@ -251,7 +260,8 @@ function Usuarios() {
                   <TableRow>
                     <TableHead className="min-w-56">Usuário</TableHead>
                     <TableHead className="w-24 text-center">Código</TableHead>
-                    <TableHead className="min-w-56">E-mail</TableHead>
+                    <TableHead className="min-w-40">Usuário de acesso</TableHead>
+                    <TableHead className="min-w-56">E-mail de contato</TableHead>
                     <TableHead className="w-56">Perfis</TableHead>
                     <TableHead className="w-40">Filial</TableHead>
                     <TableHead className="w-28 text-center">Situação</TableHead>
@@ -287,6 +297,9 @@ function Usuarios() {
                         ) : (
                           <span className="font-mono text-sm">{u.codigo ?? "—"}</span>
                         )}
+                      </TableCell>
+                      <TableCell className="align-middle font-mono text-sm">
+                        {u.usuario ?? "—"}
                       </TableCell>
                       <TableCell className="align-middle text-sm text-muted-foreground">
                         {u.email ?? "—"}
@@ -325,6 +338,8 @@ function Usuarios() {
                                 setEditando({
                                   id: u.id,
                                   nome: u.nome ?? "",
+                                  usuario: u.usuario ?? "",
+                                  email: u.email ?? "",
                                   telefone: "",
                                   codigo: u.codigo ?? "",
                                   filialId: u.filial_id ?? "",
@@ -433,13 +448,30 @@ function Usuarios() {
               />
             </div>
             <div>
-              <Label htmlFor="n-email">E-mail de acesso</Label>
+              <Label htmlFor="n-usuario">Usuário de acesso</Label>
+              <Input
+                id="n-usuario"
+                autoComplete="off"
+                value={form.usuario}
+                placeholder="ex.: bruna.silva"
+                onChange={(e) => setForm({ ...form, usuario: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Letras minúsculas, números, ponto, hífen ou sublinhado. É com ele que a pessoa
+                entra.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="n-email">E-mail de contato (opcional)</Label>
               <Input
                 id="n-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pode ser o mesmo de outros usuários.
+              </p>
             </div>
             <div>
               <Label htmlFor="n-senha">Senha provisória</Label>
@@ -522,6 +554,24 @@ function Usuarios() {
                   id="e-nome"
                   value={editando.nome}
                   onChange={(e) => setEditando({ ...editando, nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-usuario">Usuário de acesso</Label>
+                <Input
+                  id="e-usuario"
+                  autoComplete="off"
+                  value={editando.usuario}
+                  onChange={(e) => setEditando({ ...editando, usuario: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="e-email">E-mail de contato</Label>
+                <Input
+                  id="e-email"
+                  type="email"
+                  value={editando.email}
+                  onChange={(e) => setEditando({ ...editando, email: e.target.value })}
                 />
               </div>
               <div>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { entrarComUsuarioOuEmail } from "@/lib/login-cliente";
 import { lovable } from "@/integrations/lovable/index";
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
@@ -59,6 +60,7 @@ function NaoEncontrada() {
 
 function LoginEmpresa() {
   const marca = Route.useLoaderData();
+  const params = Route.useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -71,12 +73,14 @@ function LoginEmpresa() {
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setLoading("login");
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    setLoading(null);
-    if (error) {
-      toast.error("Não foi possível entrar", { description: error.message });
+    try {
+      await entrarComUsuarioOuEmail(email, senha, params.empresa);
+    } catch (erro) {
+      setLoading(null);
+      toast.error("Não foi possível entrar", { description: (erro as Error).message });
       return;
     }
+    setLoading(null);
     navigate({ to: "/dashboard" });
   }
 
@@ -125,12 +129,24 @@ function LoginEmpresa() {
 
           <form onSubmit={entrar} className="mt-6 space-y-3">
             <div>
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Label htmlFor="email">Usuário ou e-mail</Label>
+              <Input
+                id="email"
+                required
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="senha">Senha</Label>
-              <Input id="senha" type="password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
+              <Input
+                id="senha"
+                type="password"
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading === "login"}>
               {loading === "login" && <Loader2 className="mr-2 size-4 animate-spin" />}
@@ -141,7 +157,12 @@ function LoginEmpresa() {
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
           </div>
-          <Button variant="outline" className="w-full" onClick={google} disabled={loading === "google"}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={google}
+            disabled={loading === "google"}
+          >
             {loading === "google" && <Loader2 className="mr-2 size-4 animate-spin" />}
             Continuar com Google
           </Button>
