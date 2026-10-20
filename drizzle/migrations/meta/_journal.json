@@ -435,6 +435,27 @@
       "when": 1792458314429,
       "tag": "0061_cancelar_venda_salao_show",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792498031036,
+      "tag": "0062_empresa_link_login",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792498244742,
+      "tag": "0063_extrato_bancario",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792498286131,
+      "tag": "0064_pet_granel",
+      "breakpoints": true
     }
   ]
 }

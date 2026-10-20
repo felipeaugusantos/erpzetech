@@ -165,6 +165,76 @@ export type Database = {
           },
         ]
       }
+      banco_extrato_linhas: {
+        Row: {
+          arquivo: string | null
+          conta_id: string
+          created_at: string
+          data: string
+          descricao: string
+          documento: string | null
+          fitid: string
+          id: string
+          movimento_id: string | null
+          situacao: string
+          tenant_id: string
+          usuario_id: string | null
+          valor: number
+        }
+        Insert: {
+          arquivo?: string | null
+          conta_id: string
+          created_at?: string
+          data: string
+          descricao: string
+          documento?: string | null
+          fitid: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor: number
+        }
+        Update: {
+          arquivo?: string | null
+          conta_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          documento?: string | null
+          fitid?: string
+          id?: string
+          movimento_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_extrato_linhas_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_extrato_linhas_movimento_id_fkey"
+            columns: ["movimento_id"]
+            isOneToOne: false
+            referencedRelation: "banco_movimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_extrato_linhas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banco_movimentos: {
         Row: {
           categoria: string | null
@@ -2559,6 +2629,7 @@ export type Database = {
           razao_social: string
           regime_tributario: string
           show_ao_vivo: boolean
+          slug: string | null
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -2590,6 +2661,7 @@ export type Database = {
           razao_social: string
           regime_tributario?: string
           show_ao_vivo?: boolean
+          slug?: string | null
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -2621,6 +2693,7 @@ export type Database = {
           razao_social?: string
           regime_tributario?: string
           show_ao_vivo?: boolean
+          slug?: string | null
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
@@ -3693,6 +3766,77 @@ export type Database = {
           usado_em?: string | null
         }
         Relationships: []
+      }
+      granel_aberturas: {
+        Row: {
+          created_at: string
+          custo_kg: number
+          custo_saco: number
+          deposito_id: string
+          granel_produto_id: string
+          id: string
+          kg: number
+          saco_produto_id: string
+          sacos: number
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_kg?: number
+          custo_saco?: number
+          deposito_id: string
+          granel_produto_id: string
+          id?: string
+          kg: number
+          saco_produto_id: string
+          sacos: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_kg?: number
+          custo_saco?: number
+          deposito_id?: string
+          granel_produto_id?: string
+          id?: string
+          kg?: number
+          saco_produto_id?: string
+          sacos?: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "granel_aberturas_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_granel_produto_id_fkey"
+            columns: ["granel_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_saco_produto_id_fkey"
+            columns: ["saco_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "granel_aberturas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       importacoes: {
         Row: {
@@ -7649,6 +7793,8 @@ export type Database = {
           fabricante: string | null
           fator_conversao: number
           fornecedor_id: string | null
+          granel_fator: number | null
+          granel_produto_id: string | null
           id: string
           imagem_url: string | null
           largura: number | null
@@ -7687,6 +7833,8 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
+          granel_fator?: number | null
+          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -7725,6 +7873,8 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
+          granel_fator?: number | null
+          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -7753,6 +7903,13 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_granel_produto_id_fkey"
+            columns: ["granel_produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
           {
@@ -9286,6 +9443,23 @@ export type Database = {
         Args: { p_filial?: string; p_tenant: string }
         Returns: string
       }
+      banco_extrato_ignorar: {
+        Args: { p_ignorar?: boolean; p_linha_id: string }
+        Returns: undefined
+      }
+      banco_extrato_importar: {
+        Args: {
+          p_arquivo?: string
+          p_conta_id: string
+          p_linhas: Json
+          p_simular?: boolean
+        }
+        Returns: Json
+      }
+      banco_extrato_lancar: {
+        Args: { p_categoria?: string; p_linha_id: string }
+        Returns: string
+      }
       banco_lancar: {
         Args: {
           p_categoria?: string
@@ -9553,6 +9727,14 @@ export type Database = {
       eh_profissional_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      empresa_por_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          cor_primaria: string
+          logo_path: string
+          nome: string
+        }[]
+      }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       empresa_zerar_dados: {
         Args: { _confirmacao: string; _modo: string }
@@ -9730,6 +9912,14 @@ export type Database = {
         Returns: string
       }
       gerar_premiacoes: { Args: never; Returns: number }
+      granel_abrir_saco: {
+        Args: {
+          p_deposito_id: string
+          p_saco_produto_id: string
+          p_sacos?: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

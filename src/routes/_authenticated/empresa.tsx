@@ -26,6 +26,17 @@ import { ROTULO_MODULO, cnaesDaEmpresa, exemplosCnae, moduloLiberadoPorCnae } fr
 import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
 import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
 
+/** Link da tela de login da empresa: minúsculas, sem acento, números e hífen. */
+function normalizarSlug(v: string) {
+  return v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 50);
+}
+
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
     meta: [
@@ -84,6 +95,7 @@ function Empresa() {
   const [form, setForm] = useState(vazio);
   const [personaliza, setPersonaliza] = useState(false);
   const [showAoVivo, setShowAoVivo] = useState(false);
+  const [slug, setSlug] = useState("");
   /** Identidade visual da loja: logo e cor principal do sistema. */
   const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
     logo: null,
@@ -155,6 +167,7 @@ function Empresa() {
     setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
     setPersonaliza(data.faz_personalizacao ?? false);
     setShowAoVivo(data.show_ao_vivo ?? false);
+    setSlug((data as { slug?: string | null }).slug ?? "");
   }, [data]);
 
   const salvar = useMutation({
@@ -173,6 +186,17 @@ function Empresa() {
         .update({ faz_personalizacao: personaliza })
         .eq("tenant_id", session.profile.tenant_id);
       if (errPers) throw errPers;
+      const slugFinal = slug.replace(/^-+|-+$/g, "") || null;
+      if (slugFinal !== ((data as { slug?: string | null } | null)?.slug ?? null)) {
+        const { error: errSlug } = await supabase
+          .from("empresas")
+          .update({ slug: slugFinal })
+          .eq("tenant_id", session.profile.tenant_id);
+        if (errSlug) {
+          if (errSlug.code === "23505") throw new Error("Esse link já é usado por outra empresa.");
+          throw errSlug;
+        }
+      }
       // coluna à parte: só grava quando mudou, para o cadastro não depender dela
       if (showAoVivo !== (data?.show_ao_vivo ?? false)) {
         const { error: errShow } = await supabase
@@ -242,6 +266,24 @@ function Empresa() {
                 Esses dados aparecem em orçamentos, pedidos, cupons e notas fiscais.
               </p>
             </div>
+          </div>
+
+          <div className="rounded-md border border-border p-3">
+            <Label htmlFor="emp-slug">Link de acesso da equipe</Label>
+            <div className="mt-1 flex items-center gap-1 text-sm">
+              <span className="text-muted-foreground">{typeof window !== "undefined" ? window.location.host : "erpzetech.lovable.app"}/</span>
+              <Input
+                id="emp-slug"
+                className="max-w-xs"
+                value={slug}
+                disabled={!isAdmin}
+                placeholder="nome-da-empresa"
+                onChange={(e) => setSlug(normalizarSlug(e.target.value))}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Tela de login com a logo, o nome e a cor da empresa. Use letras minúsculas, números e hífen.
+            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmpresaRouteImport } from './routes/$empresa'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
@@ -148,6 +149,11 @@ import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.publ
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpresaRoute = EmpresaRouteImport.update({
+  id: '/$empresa',
+  path: '/$empresa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -898,6 +904,7 @@ const ApiPublicWebhooksProvedorRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$empresa': typeof EmpresaRoute
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
@@ -1034,6 +1041,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$empresa': typeof EmpresaRoute
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
@@ -1172,6 +1180,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/$empresa': typeof EmpresaRoute
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
@@ -1310,6 +1319,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$empresa'
     | '/auth'
     | '/boas-vindas'
     | '/contato'
@@ -1446,6 +1456,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$empresa'
     | '/auth'
     | '/boas-vindas'
     | '/contato'
@@ -1583,6 +1594,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/$empresa'
     | '/auth'
     | '/boas-vindas'
     | '/contato'
@@ -1721,6 +1733,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  EmpresaRoute: typeof EmpresaRoute
   AuthRoute: typeof AuthRoute
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
@@ -1735,6 +1748,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$empresa': {
+      id: '/$empresa'
+      path: '/$empresa'
+      fullPath: '/$empresa'
+      preLoaderRoute: typeof EmpresaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -2950,6 +2970,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  EmpresaRoute: EmpresaRoute,
   AuthRoute: AuthRoute,
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
