@@ -7942,6 +7942,7 @@ export type Database = {
           telefone: string | null
           tenant_id: string | null
           updated_at: string
+          usuario: string | null
           vender_outras_lojas: boolean
         }
         Insert: {
@@ -7961,6 +7962,7 @@ export type Database = {
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
+          usuario?: string | null
           vender_outras_lojas?: boolean
         }
         Update: {
@@ -7980,6 +7982,7 @@ export type Database = {
           telefone?: string | null
           tenant_id?: string | null
           updated_at?: string
+          usuario?: string | null
           vender_outras_lojas?: boolean
         }
         Relationships: [
