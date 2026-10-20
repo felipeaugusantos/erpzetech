@@ -23,7 +23,7 @@ export const buscarMarcaLogin = createServerFn({ method: "GET" })
               return fetch(input, { ...init, headers: h });
             },
           }
-        : undefined,
+        : {},
     });
     const { data: rows } = await sb.rpc("empresa_por_slug", { p_slug: data.slug });
     const row = (rows as { nome: string; cor_primaria: string | null; logo_path: string | null }[] | null)?.[0];
