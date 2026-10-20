@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   acertoDaCaucao,
   avariaVazia,
+  cobrancaNaDevolucao,
+  diasReaisDaLocacao,
   erroDaVistoria,
   totalDasAvarias,
   valorDigitado,
@@ -86,5 +88,43 @@ describe("envio", () => {
         avarias: [{ descricao: "Cabo", valor: "120.5", perda_total: true }],
       },
     ]);
+  });
+});
+
+describe("cobrança na devolução", () => {
+  it("dias reais: mínimo de 1 e conta a partir da entrega", () => {
+    assert.equal(diasReaisDaLocacao("2026-10-01", "2026-10-02", "2026-10-07"), 5);
+    assert.equal(diasReaisDaLocacao("2026-10-01", null, "2026-10-04"), 3);
+    assert.equal(diasReaisDaLocacao("2026-10-01", "2026-10-01", "2026-10-01"), 1);
+  });
+  it("locação não cobrada: gera a locação inteira pelo valor final", () => {
+    assert.deepEqual(
+      cobrancaNaDevolucao({ valorDiaria: 100, dias: 3, valorFaturado: 0, diasReais: 3 }),
+      { gerar: "locacao", valorFinal: 300, extras: 0, valor: 300 },
+    );
+    assert.deepEqual(
+      cobrancaNaDevolucao({ valorDiaria: 100, dias: 2, valorFaturado: 0, diasReais: 5 }),
+      { gerar: "locacao", valorFinal: 500, extras: 300, valor: 500 },
+    );
+  });
+  it("locação já cobrada: só os dias a mais, e nada se voltou no prazo", () => {
+    assert.deepEqual(
+      cobrancaNaDevolucao({ valorDiaria: 100, dias: 2, valorFaturado: 200, diasReais: 5 }),
+      { gerar: "extras", valorFinal: 500, extras: 300, valor: 300 },
+    );
+    assert.equal(
+      cobrancaNaDevolucao({ valorDiaria: 100, dias: 2, valorFaturado: 200, diasReais: 2 }).gerar,
+      "nada",
+    );
+    assert.equal(
+      cobrancaNaDevolucao({ valorDiaria: 100, dias: 2, valorFaturado: 200, diasReais: 1 }).gerar,
+      "nada",
+    );
+  });
+  it("locação sem valor não gera nada", () => {
+    assert.equal(
+      cobrancaNaDevolucao({ valorDiaria: 0, dias: 1, valorFaturado: 0, diasReais: 1 }).gerar,
+      "nada",
+    );
   });
 });
