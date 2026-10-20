@@ -2622,6 +2622,7 @@ export type Database = {
           inscricao_estadual: string | null
           inscricao_municipal: string | null
           logo_path: string | null
+          modulos_sem_cnpj: string[]
           nome_fantasia: string | null
           numero: string | null
           pdv_desconto_limite: number
@@ -2654,6 +2655,7 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           logo_path?: string | null
+          modulos_sem_cnpj?: string[]
           nome_fantasia?: string | null
           numero?: string | null
           pdv_desconto_limite?: number
@@ -2686,6 +2688,7 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           logo_path?: string | null
+          modulos_sem_cnpj?: string[]
           nome_fantasia?: string | null
           numero?: string | null
           pdv_desconto_limite?: number

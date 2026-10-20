@@ -456,6 +456,13 @@
       "when": 1792498286131,
       "tag": "0064_pet_granel",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1792499322930,
+      "tag": "0065_modulos_sem_cnpj",
+      "breakpoints": true
     }
   ]
 }
