@@ -15,6 +15,8 @@ export type CopiaVisita = {
     catalogo_vacinas: { lotes?: unknown[] }[];
     modelos_exame: unknown[];
     aplicadores: unknown[];
+    /** Serviços de consulta, para atender sem consulta marcada (cópias antigas não trazem). */
+    servicos_consulta?: unknown[];
   };
 };
 

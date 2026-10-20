@@ -134,6 +134,13 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - **Cadastro duplicado:** tutor novo com o **mesmo telefone** de um cadastro existente é criado mesmo assim e marcado nas observações ("Possível duplicado do cadastro … a recepção confere e une"); o registro guarda o apontamento e **o cadastro antigo não é alterado**. A união em si continua com a recepção (ainda não há tela de unir cadastros).
 - Limite desta etapa: a cópia da visita traz só os tutores da agenda; quem não está nela vira cadastro novo (e a recepção une depois).
 
+**5c — entregue (atendimento).** Seção **Atendimentos da visita** na tela Trabalho sem internet, com ou sem sinal:
+
+- **Consulta marcada:** a agenda baixada lista as consultas do veterinário que ainda podem ser atendidas (agendada, confirmada ou em atendimento). **Visita sem consulta marcada:** o veterinário escolhe o paciente (da agenda ou cadastrado sem sinal, ainda na fila) e o serviço de consulta do catálogo (a cópia da visita agora traz `servicos_consulta`); o preço vem da tabela de preços do serviço conferida na hora de enviar, e o sistema recusa se não houver preço.
+- O atendimento **nasce no notebook** com id e hora do aparelho (aceita de 30 dias atrás a 10 minutos à frente). O rascunho fica **criptografado no cofre** a cada salvamento; ao fechar, vira só leitura e o banco passa a consulta para "pronto" (a recepção cobra). Depois de fechado e enviado, o rascunho some do notebook.
+- Operações da fila e dependências: abrir (`visita_registrar`) espera o cadastro do pet novo; salvar espera a abertura (um novo salvamento substitui o anterior ainda pendente); fechar espera a abertura e o último salvamento. Recusa de uma etapa bloqueia as seguintes e fica guardada com o motivo.
+- No banco: `clinica_visita_registrar(chave, dados)` e `clinica_atendimento_offline(chave, acao, id, dados)` são **idempotentes** (tabela de chaves `clinica_operacoes_offline`, sem acesso direto): reenviar devolve o mesmo resultado; chave de outro usuário, tenant ou tipo é recusada. Visita avulsa não confere sobreposição de horário (a consulta já aconteceu); atendimento fechado continua imutável.
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |

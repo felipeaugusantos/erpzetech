@@ -2,6 +2,11 @@
 // (cadastro, atendimento, vacina, exame); a chave de repetição da operação vai junto, para a função do banco aceitar o reenvio.
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  TIPO_ATENDIMENTO_FECHAR,
+  TIPO_ATENDIMENTO_SALVAR,
+  TIPO_VISITA_REGISTRAR,
+} from "@/lib/atendimento-offline";
 import { TIPO_CADASTRO_RAPIDO } from "@/lib/cadastro-rapido";
 import type { OperacaoFila } from "@/lib/fila-clinica";
 
@@ -13,6 +18,33 @@ export const EXECUTORES: Record<string, Executor> = {
     const { error } = await supabase.rpc("clinica_cadastro_rapido", {
       p_chave: chave,
       p_dados: payload as Json,
+    });
+    if (error) throw error;
+  },
+  // abre o atendimento (consulta marcada ou visita avulsa) com o id e a hora que nasceram no notebook
+  [TIPO_VISITA_REGISTRAR]: async (payload, chave) => {
+    const { error } = await supabase.rpc("clinica_visita_registrar", {
+      p_chave: chave,
+      p_dados: payload as Json,
+    });
+    if (error) throw error;
+  },
+  [TIPO_ATENDIMENTO_SALVAR]: async (payload, chave) => {
+    const p = payload as { atendimento_id: string; dados: Json };
+    const { error } = await supabase.rpc("clinica_atendimento_offline", {
+      p_chave: chave,
+      p_acao: "salvar",
+      p_id: p.atendimento_id,
+      p_dados: p.dados,
+    });
+    if (error) throw error;
+  },
+  [TIPO_ATENDIMENTO_FECHAR]: async (payload, chave) => {
+    const p = payload as { atendimento_id: string };
+    const { error } = await supabase.rpc("clinica_atendimento_offline", {
+      p_chave: chave,
+      p_acao: "fechar",
+      p_id: p.atendimento_id,
     });
     if (error) throw error;
   },
