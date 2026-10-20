@@ -50,3 +50,13 @@ export const TELAS_FORA_DA_CLINICA = [
 
 /** Grupos inteiros que somem do menu de quem só tem clínica. */
 export const GRUPOS_FORA_DA_CLINICA = ["Logística"] as const;
+
+/** Clínica veterinária ou pet shop: o dashboard mostra agenda, atendimentos e retorno dos clientes em vez de pedidos e entregas. */
+export function ehEmpresaPet(empresa?: EmpresaModulos | null): boolean {
+  if (!empresa) return false;
+  if (ehEmpresaSoClinica(empresa)) return true;
+  if ((empresa.modulos_liberados ?? []).some((m) => m !== "clinica" && m !== "petshop"))
+    return false;
+  if (empresa.ramo_atividade === "petshop") return true;
+  return cnaesDaEmpresa({ cnae: empresa.cnae ?? null })[0]?.startsWith("4789004") ?? false;
+}
