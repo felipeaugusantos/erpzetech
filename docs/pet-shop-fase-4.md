@@ -132,6 +132,7 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - Os **identificadores nascem no notebook**: a operação da fila leva os ids do tutor e do pet, então o pet novo já pode receber atendimento (5c) antes de sincronizar (`pacientesLocais` lista os que ainda estão na fila).
 - No banco, `clinica_cadastro_rapido(chave, dados)` é **idempotente**: a chave é o id da operação; reenviar devolve o mesmo resultado e não cria nada de novo. Recusa espécie fora de cão e gato, telefone sem DDD, peso ou nascimento fora do esperado e identificador já usado, sem deixar tutor para trás.
 - **Cadastro duplicado:** tutor novo com o **mesmo telefone** de um cadastro existente é criado mesmo assim e marcado nas observações ("Possível duplicado do cadastro … a recepção confere e une"); o registro guarda o apontamento e **o cadastro antigo não é alterado**. A união em si continua com a recepção (ainda não há tela de unir cadastros).
+- **No prontuário:** o botão **Cadastrar paciente** abre o mesmo cadastro (tutor novo e pet, cão ou gato) para o paciente que chegou direto à clínica sem passar pela recepção. O envio é na hora, pela mesma função idempotente; sem internet, a tela manda usar o cadastro rápido do Trabalho sem internet. Depois de cadastrar, abre a ficha do paciente.
 - Limite desta etapa: a cópia da visita traz só os tutores da agenda; quem não está nela vira cadastro novo (e a recepção une depois).
 
 **5c — entregue (atendimento).** Seção **Atendimentos da visita** na tela Trabalho sem internet, com ou sem sinal:
