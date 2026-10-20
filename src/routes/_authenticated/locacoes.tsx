@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   Code2,
   Download,
   FileText,
@@ -30,6 +31,7 @@ import {
   type NotaArquivo,
 } from "@/lib/nfe-arquivos";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { DevolucaoVistoria, VistoriaRegistrada } from "@/components/app/DevolucaoVistoria";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,12 +161,18 @@ function Locacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("locacoes")
-        .select("*, clientes(nome), obras(nome), locacao_equipamentos(nome, codigo)")
+        .select(
+          "*, clientes(nome), obras(nome), locacao_equipamentos(nome, codigo, valor_aquisicao)",
+        )
         .order("numero", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+
+  // devolução passa pela vistoria; a locação devolvida pode ter a vistoria consultada
+  const [devolvendo, setDevolvendo] = useState<(typeof locacoes)[number] | null>(null);
+  const [vendoVistoria, setVendoVistoria] = useState<{ id: string; numero: number } | null>(null);
 
   /** Notas de serviço já geradas, com itens, para baixar em PDF e XML. */
   const { data: notasServico = [] } = useQuery({
@@ -320,13 +328,7 @@ function Locacoes() {
   };
 
   const acao = useMutation({
-    mutationFn: async ({
-      id,
-      tipo,
-    }: {
-      id: string;
-      tipo: "aprovar" | "entregar" | "devolver" | "cancelar";
-    }) => {
+    mutationFn: async ({ id, tipo }: { id: string; tipo: "aprovar" | "entregar" | "cancelar" }) => {
       if (tipo === "aprovar") {
         const { error } = await supabase.rpc("locacao_aprovar", { p_locacao_id: id });
         if (error) throw error;
@@ -339,16 +341,6 @@ function Locacoes() {
         });
         if (error) throw error;
         return "Equipamento entregue ao cliente.";
-      }
-      if (tipo === "devolver") {
-        const { error } = await supabase.rpc("locacao_devolver", {
-          p_locacao_id: id,
-          p_data: hojeISO(),
-          p_observacao: "",
-          p_multa: 0,
-        });
-        if (error) throw error;
-        return "Devolução registrada — o valor foi recalculado pelos dias reais.";
       }
       const { error } = await supabase
         .from("locacoes")
@@ -563,12 +555,17 @@ function Locacoes() {
                           </Button>
                         )}
                         {l.situacao === "em_andamento" && (
+                          <Button variant="ghost" size="sm" onClick={() => setDevolvendo(l)}>
+                            <CheckCircle2 className="size-4" /> Devolver
+                          </Button>
+                        )}
+                        {l.situacao === "devolvida" && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => acao.mutate({ id: l.id, tipo: "devolver" })}
+                            onClick={() => setVendoVistoria({ id: l.id, numero: l.numero })}
                           >
-                            <CheckCircle2 className="size-4" /> Devolver
+                            <ClipboardCheck className="size-4" /> Vistoria
                           </Button>
                         )}
                         {l.situacao !== "cancelada" && Number(l.valor_faturado ?? 0) <= 0 && (
@@ -816,6 +813,24 @@ function Locacoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {devolvendo && (
+        <DevolucaoVistoria
+          locacao={devolvendo}
+          aoFechar={() => setDevolvendo(null)}
+          aoConcluir={() => {
+            setDevolvendo(null);
+            recarregar();
+          }}
+        />
+      )}
+      {vendoVistoria && (
+        <VistoriaRegistrada
+          locacaoId={vendoVistoria.id}
+          numero={vendoVistoria.numero}
+          aoFechar={() => setVendoVistoria(null)}
+        />
+      )}
     </div>
   );
 }
