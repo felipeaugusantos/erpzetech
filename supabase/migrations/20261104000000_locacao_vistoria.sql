@@ -163,7 +163,8 @@ BEGIN
 
   IF cardinality(v_vistos) <> cardinality(v_esperados) THEN RAISE EXCEPTION 'Faça a vistoria de todos os equipamentos da locação'; END IF;
 
-  v_caucao := coalesce(v_loc.caucao, 0);
+  -- caução negativa (a coluna permite) não pode virar cobrança indevida: conta como zero
+  v_caucao := greatest(coalesce(v_loc.caucao, 0), 0);
   v_abatida := least(v_caucao, v_avarias);
   v_cobrar := v_avarias - v_abatida;
   v_devolver := v_caucao - v_abatida;
@@ -208,3 +209,32 @@ GRANT EXECUTE ON FUNCTION public.locacao_devolver_vistoriada(uuid, date, text, j
 
 -- a devolução sem vistoria deixa de existir: a tela e qualquer chamada passam pela função acima
 REVOKE EXECUTE ON FUNCTION public.locacao_devolver(uuid, date, text, numeric) FROM authenticated;
+
+-- ============ equipamento em manutenção ou fora de uso não sai para o cliente ============
+-- Vale para qualquer caminho que ponha a locação em andamento (entregar, balcão, ajuste direto): a reserva futura de um equipamento que
+-- voltou danificado fica parada até o reparo ser registrado ou o equipamento ser trocado.
+CREATE OR REPLACE FUNCTION public.locacao_equipamento_apto()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_nome text;
+BEGIN
+  IF NEW.situacao <> 'em_andamento' OR (TG_OP = 'UPDATE' AND OLD.situacao = 'em_andamento') THEN RETURN NEW; END IF;
+  SELECT e.nome INTO v_nome
+    FROM public.locacao_equipamentos e
+   WHERE (e.id = NEW.equipamento_id OR e.id IN (SELECT i.equipamento_id FROM public.locacao_itens i WHERE i.locacao_id = NEW.id))
+     AND (e.situacao = 'manutencao' OR NOT e.ativo)
+   LIMIT 1;
+  IF v_nome IS NOT NULL THEN
+    RAISE EXCEPTION 'O equipamento "%" está em manutenção ou fora de uso e não pode ser entregue', v_nome;
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.locacao_equipamento_apto() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS locacoes_equipamento_apto ON public.locacoes;
+CREATE TRIGGER locacoes_equipamento_apto BEFORE INSERT OR UPDATE OF situacao ON public.locacoes
+  FOR EACH ROW EXECUTE FUNCTION public.locacao_equipamento_apto();

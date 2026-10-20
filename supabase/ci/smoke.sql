@@ -5300,7 +5300,7 @@ DECLARE
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
-  cli uuid; eq_a uuid; eq_b uuid; eq_c uuid; eq_d uuid; loc1 uuid; loc2 uuid; loc3 uuid; loc4 uuid;
+  cli uuid; eq_e uuid; loc5 uuid; eq_a uuid; eq_b uuid; eq_c uuid; eq_d uuid; loc1 uuid; loc2 uuid; loc3 uuid; loc4 uuid;
   r jsonb; n bigint;
 BEGIN
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Vistoria CI', '52998224725') RETURNING id INTO cli;
@@ -5354,6 +5354,12 @@ BEGIN
   PERFORM ci.exige((SELECT count(*) = 2 AND sum(valor_avarias) = 150 FROM locacao_vistorias WHERE locacao_id = loc1), 'cada equipamento tem a sua vistoria');
   PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, '[]'::jsonb)$c$, loc1), 'devolver de novo');
 
+  -- a reserva futura de um equipamento que voltou danificado não sai para o cliente, nem pela função nem por ajuste direto
+  UPDATE locacoes SET aprovada = true WHERE id = loc4;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_entregar(%L)$c$, loc4), 'entregar reserva de equipamento em manutenção');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE locacoes SET situacao = 'em_andamento' WHERE id = %L$c$, loc4), 'pôr em andamento locação de equipamento em manutenção, nem o dono do banco');
+  PERFORM ci.exige((SELECT situacao = 'reservada' FROM locacoes WHERE id = loc4), 'a reserva do equipamento danificado segue parada');
+
   -- perda total com caução maior que o dano: não cobra e devolve o resto; o equipamento sai de uso
   PERFORM ci.entrar(adm);
   r := locacao_devolver_vistoriada(loc2, current_date, NULL, jsonb_build_array(
@@ -5362,6 +5368,16 @@ BEGIN
   PERFORM ci.exige((r ->> 'a_cobrar')::numeric = 0 AND (r ->> 'caucao_abatida')::numeric = 300 AND (r ->> 'caucao_a_devolver')::numeric = 200 AND r ->> 'conta_receber_id' IS NULL,
                    'dano menor que a caução: não cobra e mostra o resto a devolver');
   PERFORM ci.exige((SELECT NOT ativo AND situacao = 'manutencao' FROM locacao_equipamentos WHERE id = eq_c), 'perda total tira o equipamento de uso');
+
+  -- caução negativa conta como zero: devolução sem dano não vira cobrança
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Esmerilhadeira Vistoria CI', 20, 300) RETURNING id INTO eq_e;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_e, current_date - 1, current_date - 1, 1, 20, 20, -100, 'em_andamento') RETURNING id INTO loc5;
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(loc5, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', eq_e)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'a_cobrar')::numeric = 0 AND (r ->> 'caucao_abatida')::numeric = 0 AND (r ->> 'caucao_a_devolver')::numeric = 0 AND r ->> 'conta_receber_id' IS NULL,
+                   'caução negativa conta como zero e não gera cobrança');
 
   -- sem dano: nada a cobrar e o equipamento volta a ficar disponível
   PERFORM ci.entrar(adm);
