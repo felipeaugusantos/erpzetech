@@ -38,11 +38,14 @@ export function AnexosVisita({
   cofre,
   fila,
   online,
+  enviando,
   aoGuardar,
 }: {
   cofre: Cofre;
   fila: OperacaoFila[];
   online: boolean;
+  /** Envio da fila em andamento: o que já saiu para o banco não se cancela daqui. */
+  enviando: boolean;
   aoGuardar: () => Promise<void>;
 }) {
   const [opcoes, setOpcoes] = useState<Opcao[]>([]);
@@ -130,6 +133,7 @@ export function AnexosVisita({
   }
 
   async function remover(op: OperacaoFila) {
+    if (enviando) return;
     try {
       await cofre.apagar("fila", op.id);
       await cofre.apagarArquivo(op.id);
@@ -236,6 +240,8 @@ export function AnexosVisita({
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={enviando}
+                        title={enviando ? "Aguarde o envio terminar" : undefined}
                         aria-label={`Remover ${d.nome_arquivo}`}
                         onClick={() => void remover(op)}
                       >

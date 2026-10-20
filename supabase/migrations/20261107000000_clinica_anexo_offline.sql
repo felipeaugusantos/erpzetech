@@ -32,6 +32,11 @@ BEGIN
     IF FOUND AND (a.situacao <> 'pendente' OR a.created_at > now() - interval '50 minutes') THEN
       RETURN jsonb_build_object('anexo_id', a.id, 'caminho', a.caminho, 'mime', a.mime, 'situacao', a.situacao, 'repetido', true);
     END IF;
+    -- reserva antiga: se o arquivo já chegou ao armazenamento (a confirmação é que se perdeu), a mesma reserva continua valendo e o
+    -- envio seguinte só confirma; refazer deixaria o arquivo antigo e a reserva pendente órfãos (nenhum dos dois pode ser apagado)
+    IF FOUND AND EXISTS (SELECT 1 FROM storage.objects WHERE bucket_id = 'clinica-anexos' AND name = a.caminho) THEN
+      RETURN jsonb_build_object('anexo_id', a.id, 'caminho', a.caminho, 'mime', a.mime, 'situacao', a.situacao, 'repetido', true);
+    END IF;
     -- reserva antiga sem o arquivo enviado: o envio não vale mais, reserva de novo
   END IF;
 

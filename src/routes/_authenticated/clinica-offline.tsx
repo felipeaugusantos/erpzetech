@@ -558,7 +558,13 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
         aoGuardar={recarregar}
       />
 
-      <AnexosVisita cofre={cofre} fila={fila} online={online} aoGuardar={recarregar} />
+      <AnexosVisita
+        cofre={cofre}
+        fila={fila}
+        online={online}
+        enviando={enviando}
+        aoGuardar={recarregar}
+      />
 
       <div className="panel grid gap-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">

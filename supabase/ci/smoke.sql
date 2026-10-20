@@ -5673,6 +5673,17 @@ BEGIN
   PERFORM ci.exige((r2 ->> 'anexo_id') <> (r ->> 'anexo_id') AND NOT (r2 ->> 'repetido')::boolean AND (SELECT (resultado ->> 'anexo_id') = r2 ->> 'anexo_id' FROM clinica_operacoes_offline WHERE chave = kd),
                    'reserva antiga sem envio é refeita e a chave passa a apontar para a nova');
 
+  -- reserva velha cujo arquivo já chegou ao armazenamento (só a confirmação se perdeu): continua a mesma, não se refaz
+  ALTER TABLE pet_exame_anexos DISABLE TRIGGER trg_clinica_anexo_guarda;
+  UPDATE pet_exame_anexos SET created_at = now() - interval '2 hours' WHERE id = (r2 ->> 'anexo_id')::uuid;
+  ALTER TABLE pet_exame_anexos ENABLE TRIGGER trg_clinica_anexo_guarda;
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":8000,"mimetype":"application/pdf"}')$c$, r2 ->> 'caminho', vx);
+  PERFORM ci.entrar(vx);
+  r := clinica_anexo_offline_preparar(kd, jsonb_build_object('exame_abrir_chave', kex, 'categoria', 'laboratorial', 'descricao', 'Hemograma do laboratório', 'nome_arquivo', 'hemo.pdf', 'mime', 'application/pdf', 'tamanho', 8000));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'anexo_id') = (r2 ->> 'anexo_id') AND (r ->> 'repetido')::boolean AND (r ->> 'caminho') = (r2 ->> 'caminho'),
+                   'reserva velha com o arquivo já no armazenamento é reaproveitada para só confirmar');
+
   -- clínica deixa de estar liberada
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, ke, atend), 'anexo sem a clínica liberada');

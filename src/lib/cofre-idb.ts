@@ -14,7 +14,23 @@ function abrirBanco(): Promise<IDBDatabase> {
         if (!req.result.objectStoreNames.contains(loja)) req.result.createObjectStore(loja);
       }
     };
+    let desistiu = false;
+    // outra aba ainda com a versão antiga aberta segura a atualização: avisa em vez de deixar a tela esperando para sempre
+    req.onblocked = () => {
+      desistiu = true;
+      aberto = null;
+      reject(
+        new Error(
+          "Feche as outras abas do sistema neste navegador (elas usam a versão antiga) e recarregue a página",
+        ),
+      );
+    };
     req.onsuccess = () => {
+      if (desistiu) {
+        // a outra aba fechou depois do aviso: esta conexão não é mais usada
+        req.result.close();
+        return;
+      }
       // uma aba mais nova atualizando o banco não fica esperando esta
       req.result.onversionchange = () => {
         req.result.close();
