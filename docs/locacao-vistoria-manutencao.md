@@ -21,6 +21,15 @@ Devolver agora abre a **vistoria**: cada equipamento do contrato é conferido an
 - A vistoria **não se altera nem se apaga** depois de registrada (nem pelo dono do banco). A devolução antiga (sem vistoria) deixou de ser chamável.
 - Locação devolvida tem o botão **Vistoria** para consultar o que foi registrado.
 
+### Cobrança na devolução
+
+A devolução também **cobra a locação**:
+
+- **Locação ainda não cobrada** (criada na tela de locações, que só gerava conta no botão Cobrar): a devolução gera as contas a receber pelo **valor final, com os dias reais**, na forma de pagamento escolhida (dinheiro, PIX e débito entram no caixa aberto; as demais ficam em contas a receber).
+- **Locação já cobrada e devolvida depois do prazo** (por exemplo, a do balcão): gera uma conta à parte só com os **dias a mais**.
+- **Já cobrada e devolvida no prazo:** nada de novo. Locação sem valor devolve sem cobrança.
+- O vencimento escolhido na devolução vale para as cobranças da locação e das avarias.
+
 ## Parte 2 — Plano de manutenção por equipamento (a fazer)
 
 Decisões já tomadas: conta **dias de locação acumulados**; ao vencer, **avisa e bloqueia** nova locação até registrar a manutenção; ao registrar, a contagem recomeça.

@@ -10108,9 +10108,12 @@ export type Database = {
       }
       locacao_devolver_vistoriada: {
         Args: {
+          p_caixa_id?: string
           p_data?: string
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
           p_locacao_id: string
           p_observacao?: string
+          p_parcelas?: number
           p_vencimento?: string
           p_vistorias?: Json
         }

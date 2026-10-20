@@ -72,3 +72,41 @@ export function vistoriasParaEnvio(vistorias: readonly VistoriaForm[]) {
     })),
   }));
 }
+
+/** Dias reais da locação até a devolução (no mínimo 1), como o banco conta. */
+export function diasReaisDaLocacao(
+  inicio: string,
+  entregueEm: string | null,
+  devolucao: string,
+): number {
+  const dia = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
+  return Math.max(Math.round(dia(devolucao) - dia(entregueEm ?? inicio)), 1);
+}
+
+export type CobrancaNaDevolucao = {
+  /** O que a devolução gera: a locação inteira (ainda não cobrada), só os dias a mais (já cobrada e atrasada) ou nada. */
+  gerar: "locacao" | "extras" | "nada";
+  valorFinal: number;
+  extras: number;
+  /** Valor da conta que será gerada (zero quando nada). */
+  valor: number;
+};
+
+/** Mesma regra do banco: valor final pelos dias reais; só cobra de novo os dias a mais se a locação já tinha sido cobrada. */
+export function cobrancaNaDevolucao(l: {
+  valorDiaria: number;
+  dias: number;
+  valorFaturado: number;
+  diasReais: number;
+}): CobrancaNaDevolucao {
+  const valorFinal = Math.round(l.valorDiaria * Math.max(l.diasReais, l.dias) * 100) / 100;
+  const extras =
+    l.diasReais > l.dias ? Math.round((l.diasReais - l.dias) * l.valorDiaria * 100) / 100 : 0;
+  if (l.valorFaturado <= 0)
+    return valorFinal > 0
+      ? { gerar: "locacao", valorFinal, extras, valor: valorFinal }
+      : { gerar: "nada", valorFinal, extras, valor: 0 };
+  return extras > 0
+    ? { gerar: "extras", valorFinal, extras, valor: extras }
+    : { gerar: "nada", valorFinal, extras, valor: 0 };
+}

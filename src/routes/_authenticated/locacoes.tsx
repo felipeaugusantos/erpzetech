@@ -817,10 +817,12 @@ function Locacoes() {
       {devolvendo && (
         <DevolucaoVistoria
           locacao={devolvendo}
+          {...(caixaAberto?.id ? { caixaId: caixaAberto.id } : {})}
           aoFechar={() => setDevolvendo(null)}
           aoConcluir={() => {
             setDevolvendo(null);
             recarregar();
+            void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
           }}
         />
       )}

@@ -14,14 +14,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { brl, dateBR } from "@/lib/format";
-import { hojeISO } from "@/lib/financeiro";
+import { formasPagamento, hojeISO } from "@/lib/financeiro";
 import {
   acertoDaCaucao,
   avariaVazia,
+  cobrancaNaDevolucao,
+  diasReaisDaLocacao,
   erroDaVistoria,
   totalDasAvarias,
   valorSugeridoPerdaTotal,
@@ -34,6 +43,11 @@ type LocacaoParaDevolver = {
   numero: number;
   caucao: number;
   equipamento_id: string;
+  inicio: string;
+  entregue_em: string | null;
+  dias: number;
+  valor_diaria: number;
+  valor_faturado: number | null;
   locacao_equipamentos: { nome: string; valor_aquisicao?: number } | null;
 };
 
@@ -45,10 +59,13 @@ type EquipamentoDoContrato = { id: string; nome: string; valor_aquisicao: number
  */
 export function DevolucaoVistoria({
   locacao,
+  caixaId,
   aoConcluir,
   aoFechar,
 }: {
   locacao: LocacaoParaDevolver;
+  /** Caixa aberto: pagamento à vista da locação entra nele na hora. */
+  caixaId?: string;
   aoConcluir: () => void;
   aoFechar: () => void;
 }) {
@@ -90,6 +107,8 @@ export function DevolucaoVistoria({
   const [data, setData] = useState(hojeISO());
   const [vencimento, setVencimento] = useState(hojeISO());
   const [enviando, setEnviando] = useState(false);
+  const [forma, setForma] = useState("dinheiro");
+  const [parcelas, setParcelas] = useState("1");
 
   useEffect(() => {
     if (itens && vistorias.length === 0)
@@ -106,7 +125,19 @@ export function DevolucaoVistoria({
 
   const dano = useMemo(() => totalDasAvarias(vistorias), [vistorias]);
   const acerto = acertoDaCaucao(Number(locacao.caucao ?? 0), dano);
-  const erro = erroDaVistoria(vistorias);
+  const cobranca = cobrancaNaDevolucao({
+    valorDiaria: Number(locacao.valor_diaria ?? 0),
+    dias: locacao.dias,
+    valorFaturado: Number(locacao.valor_faturado ?? 0),
+    diasReais: diasReaisDaLocacao(locacao.inicio, locacao.entregue_em, data),
+  });
+  const nParcelas = Number(parcelas);
+  const erroCobranca =
+    cobranca.gerar === "locacao" &&
+    (!Number.isInteger(nParcelas) || nParcelas < 1 || nParcelas > 48)
+      ? "Informe de 1 a 48 parcelas"
+      : null;
+  const erro = erroDaVistoria(vistorias) ?? erroCobranca;
 
   const mexe = (i: number, parte: Partial<VistoriaForm>) =>
     setVistorias((vs) => vs.map((v, k) => (k === i ? { ...v, ...parte } : v)));
@@ -121,6 +152,13 @@ export function DevolucaoVistoria({
         p_observacao: observacao,
         p_vistorias: vistoriasParaEnvio(vistorias) as unknown as Json,
         p_vencimento: vencimento,
+        ...(cobranca.gerar === "locacao"
+          ? {
+              p_forma: forma as never,
+              p_parcelas: nParcelas,
+              ...(caixaId ? { p_caixa_id: caixaId } : {}),
+            }
+          : {}),
       });
       if (error) throw error;
       const res = r as unknown as {
@@ -260,7 +298,7 @@ export function DevolucaoVistoria({
                 />
               </div>
               <div>
-                <Label htmlFor="dv-venc">Vencimento da cobrança</Label>
+                <Label htmlFor="dv-venc">Vencimento das cobranças</Label>
                 <Input
                   id="dv-venc"
                   type="date"
@@ -278,6 +316,56 @@ export function DevolucaoVistoria({
                 />
               </div>
             </div>
+
+            {cobranca.gerar === "locacao" && (
+              <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
+                <div className="sm:col-span-3 text-sm">
+                  <p className="font-medium">
+                    Cobrança da locação: {brl(cobranca.valor)} (dias reais)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Esta locação ainda não foi cobrada: a devolução gera as contas a receber pelo
+                    valor final.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="dv-forma">Forma de pagamento</Label>
+                  <Select value={forma} onValueChange={setForma}>
+                    <SelectTrigger id="dv-forma">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formasPagamento.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="dv-parc">Parcelas</Label>
+                  <Input
+                    id="dv-parc"
+                    inputMode="numeric"
+                    value={parcelas}
+                    onChange={(e) => setParcelas(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground sm:col-span-3">
+                  {caixaId
+                    ? "Dinheiro, PIX e cartão de débito entram no caixa aberto na hora; as outras formas ficam em contas a receber."
+                    : "Sem caixa aberto: a conta fica em aberto em contas a receber."}{" "}
+                  O primeiro vencimento é a data abaixo.
+                </p>
+              </div>
+            )}
+            {cobranca.gerar === "extras" && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Devolução depois do prazo: os dias a mais ({brl(cobranca.extras)}) serão cobrados
+                numa conta a receber à parte.
+              </div>
+            )}
 
             <div className="rounded-md bg-muted p-3 text-sm">
               <p>

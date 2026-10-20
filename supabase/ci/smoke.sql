@@ -5310,15 +5310,15 @@ BEGIN
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Serra Vistoria CI', 40, 800) RETURNING id INTO eq_d;
 
   -- locação 1: dois equipamentos, caução de 100; locação 2: perda total; locação 3: sem dano; locação 4: ainda reservada
-  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
-    VALUES (demo, cli, eq_a, current_date - 5, current_date - 5, 3, 150, 450, 100, 'em_andamento') RETURNING id INTO loc1;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, caucao, situacao)
+    VALUES (demo, cli, eq_a, current_date - 5, current_date - 5, 3, 150, 450, 450, 100, 'em_andamento') RETURNING id INTO loc1;
   INSERT INTO locacao_itens (tenant_id, locacao_id, equipamento_id, quantidade, dias, valor_diaria, total) VALUES (demo, loc1, eq_a, 1, 3, 100, 300), (demo, loc1, eq_b, 1, 3, 50, 150);
-  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
-    VALUES (demo, cli, eq_c, current_date - 2, current_date - 2, 2, 30, 60, 500, 'em_andamento') RETURNING id INTO loc2;
-  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
-    VALUES (demo, cli, eq_d, current_date - 1, current_date - 1, 1, 40, 40, 0, 'em_andamento') RETURNING id INTO loc3;
-  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, dias, valor_diaria, valor_total, caucao, situacao)
-    VALUES (demo, cli, eq_a, current_date + 5, 1, 100, 100, 0, 'reservada') RETURNING id INTO loc4;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, caucao, situacao)
+    VALUES (demo, cli, eq_c, current_date - 2, current_date - 2, 2, 30, 60, 60, 500, 'em_andamento') RETURNING id INTO loc2;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, caucao, situacao)
+    VALUES (demo, cli, eq_d, current_date - 1, current_date - 1, 1, 40, 40, 40, 0, 'em_andamento') RETURNING id INTO loc3;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, dias, valor_diaria, valor_total, valor_faturado, caucao, situacao)
+    VALUES (demo, cli, eq_a, current_date + 5, 1, 100, 100, 100, 0, 'reservada') RETURNING id INTO loc4;
 
   -- perfis e regras de entrada
   PERFORM ci.deve_falhar(gar, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, '[]'::jsonb)$c$, loc1), 'perfil do salão devolve locação');
@@ -5371,8 +5371,8 @@ BEGIN
 
   -- caução negativa conta como zero: devolução sem dano não vira cobrança
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Esmerilhadeira Vistoria CI', 20, 300) RETURNING id INTO eq_e;
-  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
-    VALUES (demo, cli, eq_e, current_date - 1, current_date - 1, 1, 20, 20, -100, 'em_andamento') RETURNING id INTO loc5;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, caucao, situacao)
+    VALUES (demo, cli, eq_e, current_date - 1, current_date - 1, 1, 20, 20, 20, -100, 'em_andamento') RETURNING id INTO loc5;
   PERFORM ci.entrar(adm);
   r := locacao_devolver_vistoriada(loc5, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', eq_e)));
   PERFORM ci.sair();
@@ -5391,4 +5391,73 @@ BEGIN
   PERFORM ci.deve_falhar_dono(format($c$DELETE FROM locacao_vistoria_avarias WHERE vistoria_id IN (SELECT id FROM locacao_vistorias WHERE locacao_id = %L)$c$, loc1), 'apagar avaria registrada, nem o dono do banco');
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_vistorias (locacao_id, equipamento_id, situacao) VALUES (%L, %L, 'sem_avarias')$c$, loc4, eq_a), 'gravar vistoria direto na tabela');
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM locacao_vistorias') >= 4, 'a empresa lê as vistorias dela');
+END $$;
+
+-- 57. Locação (cobrança na devolução): locação não cobrada gera as contas pelo valor final; já cobrada e atrasada gera só os dias a mais
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  cli uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid;
+  n1 integer; n2 integer; n3 integer; n4 integer; n5 integer; r jsonb;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Cobranca Devolucao CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 1 CI', 100) RETURNING id INTO f1;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 2 CI', 100) RETURNING id INTO f2;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 3 CI', 100) RETURNING id INTO f3;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 4 CI', 100) RETURNING id INTO f4;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 5 CI', 0) RETURNING id INTO f5;
+
+  -- l1: não cobrada, no prazo; l2: não cobrada, atrasada; l3: cobrada e atrasada; l4: cobrada e no prazo; l5: sem valor
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, situacao)
+    VALUES (demo, cli, f1, current_date - 3, current_date - 3, 3, 100, 300, 0, 'em_andamento') RETURNING id INTO l1;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, situacao)
+    VALUES (demo, cli, f2, current_date - 5, current_date - 5, 2, 100, 200, 0, 'em_andamento') RETURNING id INTO l2;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, situacao)
+    VALUES (demo, cli, f3, current_date - 5, current_date - 5, 2, 100, 200, 200, 'em_andamento') RETURNING id INTO l3;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, situacao)
+    VALUES (demo, cli, f4, current_date - 2, current_date - 2, 2, 100, 200, 200, 'em_andamento') RETURNING id INTO l4;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, valor_faturado, situacao)
+    VALUES (demo, cli, f5, current_date - 1, current_date - 1, 1, 0, 0, 0, 'em_andamento') RETURNING id INTO l5;
+
+  -- locação ainda não cobrada exige a forma de pagamento na devolução, e a recusa não deixa nada para trás
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L)))$c$, l1, f1), 'devolver locação não cobrada sem informar a forma de pagamento');
+  PERFORM ci.exige((SELECT situacao = 'em_andamento' FROM locacoes WHERE id = l1) AND NOT EXISTS (SELECT 1 FROM locacao_vistorias WHERE locacao_id = l1), 'devolução recusada pela cobrança não deixa vistoria nem encerra a locação');
+
+  -- l1: gera as contas pelo valor final (2 parcelas de 150)
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(l1, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f1)), current_date + 5, 'boleto'::forma_pagamento, 2);
+  PERFORM ci.sair();
+  SELECT count(*) INTO n1 FROM contas_receber WHERE cliente_id = cli AND descricao LIKE 'Locação nº ' || (SELECT numero FROM locacoes WHERE id = l1) || ' %';
+  PERFORM ci.exige(n1 = 2 AND (SELECT sum(valor) = 300 FROM contas_receber WHERE cliente_id = cli AND descricao LIKE 'Locação nº ' || (SELECT numero FROM locacoes WHERE id = l1) || ' %'), 'devolver locação não cobrada gera as contas a receber pelo valor final');
+  PERFORM ci.exige((SELECT valor_faturado = 300 AND situacao = 'devolvida' FROM locacoes WHERE id = l1) AND r ->> 'locacao_conta_receber_id' IS NOT NULL AND r ->> 'extras_conta_receber_id' IS NULL, 'a locação fica faturada e devolvida');
+  PERFORM ci.exige((SELECT vencimento = current_date + 5 FROM contas_receber WHERE id = (r ->> 'locacao_conta_receber_id')::uuid), 'a primeira conta vence na data escolhida');
+
+  -- l2: atrasada e não cobrada: cobra tudo pelos dias reais (5 x 100)
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(l2, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f2)), current_date, 'boleto'::forma_pagamento, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(valor) = 500 FROM contas_receber WHERE cliente_id = cli AND descricao LIKE 'Locação nº ' || (SELECT numero FROM locacoes WHERE id = l2) || ' %')
+               AND (SELECT valor_faturado = 500 FROM locacoes WHERE id = l2) AND r ->> 'extras_conta_receber_id' IS NULL, 'locação atrasada e não cobrada é cobrada pelos dias reais, numa conta só');
+
+  -- l3: já cobrada e atrasada: gera só os dias a mais (3 x 100)
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(l3, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f3)), current_date + 3);
+  PERFORM ci.sair();
+  SELECT count(*) INTO n3 FROM contas_receber WHERE cliente_id = cli AND descricao = 'Dias a mais da locação nº ' || (SELECT numero FROM locacoes WHERE id = l3);
+  PERFORM ci.exige(n3 = 1 AND (SELECT valor = 300 AND vencimento = current_date + 3 FROM contas_receber WHERE id = (r ->> 'extras_conta_receber_id')::uuid), 'locação já cobrada e atrasada gera uma conta só com os dias a mais');
+  PERFORM ci.exige((SELECT valor_faturado = 500 FROM locacoes WHERE id = l3) AND r ->> 'locacao_conta_receber_id' IS NULL, 'o faturado sobe pelos dias a mais e a locação não é cobrada de novo');
+
+  -- l4: já cobrada e no prazo: nada de novo
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(l4, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f4)));
+  PERFORM ci.sair();
+  SELECT count(*) INTO n4 FROM contas_receber WHERE cliente_id = cli AND descricao LIKE '%locação nº ' || (SELECT numero FROM locacoes WHERE id = l4);
+  PERFORM ci.exige(n4 = 0 AND r ->> 'extras_conta_receber_id' IS NULL AND r ->> 'locacao_conta_receber_id' IS NULL AND (SELECT valor_faturado = 200 FROM locacoes WHERE id = l4), 'locação já cobrada e devolvida no prazo não gera conta nova');
+
+  -- l5: sem valor: devolve sem exigir cobrança
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(l5, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f5)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'devolvida' FROM locacoes WHERE id = l5) AND r ->> 'locacao_conta_receber_id' IS NULL, 'locação sem valor devolve sem cobrança');
 END $$;
