@@ -4842,6 +4842,7 @@ DECLARE
   ramo_ant text; cnae_ant text; cnae2_ant text; t_novo uuid; emp_novo uuid;
   k1 uuid := gen_random_uuid(); k2 uuid := gen_random_uuid(); k3 uuid := gen_random_uuid(); k4 uuid := gen_random_uuid();
   c1 uuid := gen_random_uuid(); p1 uuid := gen_random_uuid(); p2 uuid := gen_random_uuid(); c3 uuid := gen_random_uuid(); p3 uuid := gen_random_uuid();
+  c4 uuid := gen_random_uuid(); p4 uuid := gen_random_uuid();
   existente uuid; r jsonb; r2 jsonb; n_cli bigint; n_pet bigint; n_reg bigint;
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
@@ -4902,6 +4903,23 @@ BEGIN
   PERFORM ci.exige((SELECT observacoes LIKE '%Possível duplicado do cadastro "Tutor Antigo Cadastro CI"%' FROM clientes WHERE id = c3), 'a marca de duplicado fica nas observações do cadastro novo, para a recepção');
   PERFORM ci.exige((SELECT nome = 'Tutor Antigo Cadastro CI' AND observacoes IS NULL AND ativo FROM clientes WHERE id = existente), 'o cadastro antigo não é alterado');
   PERFORM ci.exige((SELECT possivel_duplicado_de = existente FROM clinica_cadastros_rapidos WHERE chave = k3), 'o registro guarda o possível duplicado');
+
+  -- o mesmo telefone com o código do país (+55) também é duplicado, nos dois sentidos
+  UPDATE clientes SET created_at = now() - interval '2 days' WHERE id = existente;  -- o cadastro antigo é o mais antigo de verdade (o teste roda numa transação só)
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(k4, jsonb_build_object('cliente', jsonb_build_object('id', c4, 'nome', 'Tutor Com Codigo Pais CI', 'telefone', '+55 (16) 97777-6666'),
+         'pet', jsonb_build_object('id', p4, 'nome', 'Fido CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'possivel_duplicado_de' = existente::text, 'telefone com +55 é reconhecido como o mesmo número');
+  PERFORM ci.exige(public._fone_normalizado('+55 (16) 98888-1111') = '16988881111' AND public._fone_normalizado('(16) 98888-1111') = '16988881111'
+               AND public._fone_normalizado('55 16 3333-4444') = '1633334444' AND public._fone_normalizado('5511') = '5511' AND public._fone_normalizado(NULL) = '',
+               'a normalização tira só o 55 do país');
+  UPDATE clientes SET telefone = '+55 16 95555-4444' WHERE id = existente;
+  PERFORM ci.entrar(va);
+  r := clinica_cadastro_rapido(gen_random_uuid(), jsonb_build_object('cliente', jsonb_build_object('id', gen_random_uuid(), 'nome', 'Tutor Sem Codigo Pais CI', 'telefone', '(16) 95555-4444'),
+         'pet', jsonb_build_object('id', gen_random_uuid(), 'nome', 'Rex2 CI')));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'possivel_duplicado_de' = existente::text, 'cadastro antigo com +55 e telefone novo sem o código também casam');
 
   -- regras
   PERFORM ci.deve_falhar(va, 'SELECT clinica_cadastro_rapido(NULL, ''{}''::jsonb)', 'cadastro sem chave de repetição');

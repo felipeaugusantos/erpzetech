@@ -20,6 +20,17 @@ REVOKE ALL ON public.clinica_cadastros_rapidos FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.clinica_cadastros_rapidos TO service_role;
 CREATE POLICY salao_restrito ON public.clinica_cadastros_rapidos AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
 
+-- Telefone só em dígitos e sem o 55 do país (quando sobram 10 ou 11 dígitos): "+55 (16) 98888-1111" e "(16) 98888-1111" são o mesmo número.
+CREATE OR REPLACE FUNCTION public._fone_normalizado(p_fone text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE WHEN d ~ '^55[0-9]{10,11}$' THEN substr(d, 3) ELSE d END
+    FROM (SELECT regexp_replace(coalesce(p_fone, ''), '\D', '', 'g') AS d) x
+$$;
+REVOKE ALL ON FUNCTION public._fone_normalizado(text) FROM PUBLIC, anon, authenticated;
+
 -- p_dados: cliente_id (tutor que já existe) OU cliente {id, nome, telefone} (tutor novo, com o id nascido no notebook);
 -- pet {id, nome, especie (cao|gato), raca, sexo, porte, nascimento, peso_kg, castrado, alergias}.
 CREATE OR REPLACE FUNCTION public.clinica_cadastro_rapido(p_chave uuid, p_dados jsonb)
@@ -39,6 +50,7 @@ DECLARE
   v_nome_tutor text;
   v_fone text;
   v_digitos text;
+  v_norm text;
   v_dup_id uuid;
   v_dup_nome text;
   v_obs text;
@@ -97,15 +109,18 @@ BEGIN
     IF v_cli_id IS NULL THEN RAISE EXCEPTION 'O tutor precisa de um identificador'; END IF;
     IF length(v_nome_tutor) < 2 OR length(v_nome_tutor) > 120 THEN RAISE EXCEPTION 'Informe o nome do tutor (de 2 a 120 letras)'; END IF;
     v_digitos := regexp_replace(coalesce(v_fone, ''), '\D', '', 'g');
+    v_norm := public._fone_normalizado(v_fone);
     IF v_fone IS NOT NULL AND (length(v_digitos) < 10 OR length(v_digitos) > 13 OR length(v_fone) > 30) THEN
       RAISE EXCEPTION 'Telefone inválido: informe com DDD';
     END IF;
     IF EXISTS (SELECT 1 FROM public.clientes WHERE id = v_cli_id) THEN RAISE EXCEPTION 'Identificador do tutor já usado'; END IF;
-    -- o mesmo telefone em outro cadastro: cria assim mesmo e avisa a recepção (sem mexer no cadastro antigo)
-    IF length(v_digitos) >= 10 THEN
+    -- o mesmo telefone em outro cadastro: cria assim mesmo e avisa a recepção (sem mexer no cadastro antigo).
+    -- Duas sincronizações do mesmo tutor ao mesmo tempo (aparelhos diferentes, chaves diferentes) esperam uma pela outra: a segunda enxerga a primeira.
+    IF length(v_norm) >= 10 THEN
+      PERFORM pg_advisory_xact_lock(hashtextextended('clinica_cadastro_fone:' || v_tenant::text || ':' || v_norm, 0));
       SELECT c.id, c.nome INTO v_dup_id, v_dup_nome FROM public.clientes c
        WHERE c.tenant_id = v_tenant AND c.ativo AND c.deleted_at IS NULL
-         AND (regexp_replace(coalesce(c.telefone, ''), '\D', '', 'g') = v_digitos OR regexp_replace(coalesce(c.whatsapp, ''), '\D', '', 'g') = v_digitos)
+         AND (public._fone_normalizado(c.telefone) = v_norm OR public._fone_normalizado(c.whatsapp) = v_norm)
        ORDER BY c.created_at LIMIT 1;
     END IF;
     v_obs := 'Cadastro rápido da clínica (veterinário).';
