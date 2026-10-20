@@ -78,6 +78,7 @@ import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authe
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
 import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authenticated/lotes-offline'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
+import { Route as AuthenticatedModulosSemCnpjRouteImport } from './routes/_authenticated/modulos-sem-cnpj'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
@@ -528,6 +529,12 @@ const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
   path: '/lucro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedModulosSemCnpjRoute =
+  AuthenticatedModulosSemCnpjRouteImport.update({
+    id: '/modulos-sem-cnpj',
+    path: '/modulos-sem-cnpj',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMotoristaRoute = AuthenticatedMotoristaRouteImport.update({
   id: '/motorista',
   path: '/motorista',
@@ -971,6 +978,7 @@ export interface FileRoutesByFullPath {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
@@ -1108,6 +1116,7 @@ export interface FileRoutesByTo {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
@@ -1247,6 +1256,7 @@ export interface FileRoutesById {
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
   '/_authenticated/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
+  '/_authenticated/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
@@ -1386,6 +1396,7 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
@@ -1523,6 +1534,7 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
     | '/movimentacoes'
@@ -1661,6 +1673,7 @@ export interface FileRouteTypes {
     | '/_authenticated/locacoes'
     | '/_authenticated/lotes-offline'
     | '/_authenticated/lucro'
+    | '/_authenticated/modulos-sem-cnpj'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/movimentacoes'
@@ -2226,6 +2239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLucroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/modulos-sem-cnpj': {
+      id: '/_authenticated/modulos-sem-cnpj'
+      path: '/modulos-sem-cnpj'
+      fullPath: '/modulos-sem-cnpj'
+      preLoaderRoute: typeof AuthenticatedModulosSemCnpjRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/motorista': {
       id: '/_authenticated/motorista'
       path: '/motorista'
@@ -2761,6 +2781,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
   AuthenticatedLotesOfflineRoute: typeof AuthenticatedLotesOfflineRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
+  AuthenticatedModulosSemCnpjRoute: typeof AuthenticatedModulosSemCnpjRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
@@ -2893,6 +2914,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
   AuthenticatedLotesOfflineRoute: AuthenticatedLotesOfflineRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
+  AuthenticatedModulosSemCnpjRoute: AuthenticatedModulosSemCnpjRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
