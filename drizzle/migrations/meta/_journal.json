@@ -421,6 +421,13 @@
       "when": 1792358014157,
       "tag": "0059_importacao_planilha",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792458209112,
+      "tag": "0060_liberar_modulos_felipe",
+      "breakpoints": true
     }
   ]
 }
