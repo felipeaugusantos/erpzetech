@@ -547,7 +547,9 @@ DECLARE
     -- cadastro rápido de tutor e pet pelo veterinário (também sem internet): só o veterinário
     'clinica_cadastro_rapido',
     -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
-    'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar'];
+    'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar',
+    -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
+    'clinica_servicos_consulta', 'clinica_meu_veterinario'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5687,5 +5689,58 @@ BEGIN
   -- clínica deixa de estar liberada
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, ke, atend), 'anexo sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 59. Clínica (Prontuário): serviços de consulta para iniciar atendimento sem consulta marcada; só o veterinário, só com a clínica liberada
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  vz   constant uuid := 'a0000000-0000-0000-0000-0000000000e5';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; cons uuid; pvz uuid; atend uuid := gen_random_uuid(); chave uuid := gen_random_uuid();
+  r jsonb; lista jsonb;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Iniciar Atendimento CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (vz, 'vetiniciar@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = vz;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vz, demo, 'veterinario');
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Iniciar CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 120);
+  pvz := pet_profissional_salvar('{"nome":"Vet Z Iniciar","funcao":"veterinario","crmv":"8883","crmv_uf":"SP"}'::jsonb);
+  PERFORM pet_profissional_vincular(pvz, vz);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Paciente Iniciar CI', 'especie', 'gato'));
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(vz);
+  lista := clinica_servicos_consulta();
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(lista) x WHERE x ->> 'id' = cons::text AND (x ->> 'duracao_min')::int = 30), 'o veterinário lista o serviço de consulta ativo');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(lista) x WHERE x ->> 'id' IN (SELECT id::text FROM pet_servicos WHERE categoria <> 'consulta')), 'só serviços de consulta');
+  PERFORM ci.entrar(vz);
+  PERFORM ci.exige(clinica_meu_veterinario() = pvz, 'o veterinário recebe o próprio cadastro profissional');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_meu_veterinario()', 'gestor pede o cadastro de veterinário');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_meu_veterinario()', 'recepção pede o cadastro de veterinário');
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_servicos_consulta()', 'gestor lista os serviços de consulta da clínica');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_servicos_consulta()', 'recepção lista os serviços de consulta da clínica');
+
+  -- iniciar o atendimento no Prontuário é a mesma visita avulsa do trabalho sem internet; repetir a chave não duplica
+  PERFORM ci.entrar(vz);
+  r := clinica_visita_registrar(chave, jsonb_build_object('atendimento_id', atend, 'pet_id', pet, 'servico_id', cons, 'aberto_em', now()));
+  PERFORM ci.exige(r ->> 'modo' = 'visita_avulsa' AND NOT (r ->> 'repetido')::boolean, 'atendimento iniciado sem consulta marcada');
+  r := clinica_visita_registrar(chave, jsonb_build_object('atendimento_id', atend, 'pet_id', pet, 'servico_id', cons, 'aberto_em', now()));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) FROM pet_atendimentos_clinicos WHERE pet_id = pet) = 1, 'repetir o início do atendimento não cria outro');
+
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vz, 'SELECT clinica_servicos_consulta()', 'serviços de consulta sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

@@ -129,6 +129,8 @@ function Atendimento() {
       if (!r) return;
       setConfirmando(false);
       guardar(r);
+      // a ficha do paciente guarda o histórico em cache: sem isso ela continuaria mostrando este atendimento como aberto
+      void qc.invalidateQueries({ queryKey: ["clinica-historico"] });
       toast.success("Atendimento fechado", {
         description: "A consulta foi para pronto; a recepção faz a cobrança.",
       });

@@ -159,6 +159,8 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - **Recusa:** como as demais operações, fica guardada com o motivo (por exemplo, arquivo que não confere); descartar a operação apaga o arquivo do cofre. Antes do envio, o anexo pode ser removido da lista "Esperando envio".
 - O anexo continua imutável depois de confirmado (cancelamento só com motivo, como no anexo normal).
 
+**Iniciar atendimento no Prontuário (sem consulta marcada).** Na ficha do paciente, o botão **Iniciar atendimento** abre uma escolha do serviço de consulta (já vem escolhido se houver só um) e cria a consulta e o atendimento de uma vez, levando à tela de atendimento. Usa a mesma função do trabalho sem internet (`clinica_visita_registrar`, visita avulsa): o preço é o cadastrado para o serviço e o paciente, e o pedido repetido (conexão que caiu) não abre dois atendimentos. Se o paciente já tem atendimento aberto, o botão vira **Continuar atendimento**. Sem sinal, o caminho continua sendo o Trabalho sem internet. No banco: `clinica_servicos_consulta()` e `clinica_meu_veterinario()` (só o veterinário, clínica liberada); "Continuar" só aparece para o atendimento aberto pelo próprio veterinário.
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |
