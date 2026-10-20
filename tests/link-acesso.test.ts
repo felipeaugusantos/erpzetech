@@ -21,5 +21,11 @@ describe("link de acesso", () => {
     assert.equal(erroDoLink("vet"), null);
     assert.match(erroDoLink("ab") ?? "", /3 a 50/);
     assert.match(erroDoLink("Com Espaço") ?? "", /3 a 50/);
+    assert.match(erroDoLink("-loja") ?? "", /3 a 50/);
+  });
+
+  it("recusa os nomes reservados do sistema", () => {
+    for (const r of ["admin", "login", "auth", "ze-tech", "dashboard"])
+      assert.match(erroDoLink(r) ?? "", /reservado/, r);
   });
 });

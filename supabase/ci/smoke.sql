@@ -5770,12 +5770,21 @@ BEGIN
   -- outro assinante não pode repetir o link nem usar o de uma empresa
   INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Assinante Link 2', t2) RETURNING id INTO c2;
   PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'loja-link-admin' WHERE id = %L$c$, c2), 'link de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'admin' WHERE id = %L$c$, c2), 'link reservado pelo sistema');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = '-loja-x' WHERE id = %L$c$, c2), 'link com hífen na ponta');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'ab' WHERE id = %L$c$, c2), 'link curto demais');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'Com Espaço' WHERE id = %L$c$, c2), 'link com espaço');
 
   -- limpa o link: a empresa fica sem link
   UPDATE saas_clientes SET link_acesso = NULL WHERE id = c1;
   PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) IS NULL, 'sem link no cadastro, a empresa fica sem link');
+
+  -- assinante antigo (empresa com link, cadastro sem): editar outro dado, com o campo do link igual, não apaga o link da empresa
+  ALTER TABLE empresas DISABLE TRIGGER trg_empresas_link_para_assinante;
+  UPDATE empresas SET slug = 'link-legado-ci' WHERE id = e1;
+  ALTER TABLE empresas ENABLE TRIGGER trg_empresas_link_para_assinante;
+  UPDATE saas_clientes SET nome = 'Assinante Link 1 editado', link_acesso = NULL WHERE id = c1;
+  PERFORM ci.exige((SELECT slug FROM empresas WHERE id = e1) = 'link-legado-ci', 'editar o assinante sem mexer no link não apaga o link da empresa');
 
   DELETE FROM empresas WHERE id = e1;
   DELETE FROM saas_clientes WHERE id IN (c1, c2);

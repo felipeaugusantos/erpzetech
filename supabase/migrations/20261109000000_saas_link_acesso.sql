@@ -4,14 +4,24 @@
 ALTER TABLE public.saas_clientes ADD COLUMN IF NOT EXISTS link_acesso text;
 CREATE UNIQUE INDEX IF NOT EXISTS saas_clientes_link_acesso_uq ON public.saas_clientes (lower(link_acesso)) WHERE link_acesso IS NOT NULL;
 
+-- assinantes que já têm empresa com link: o cadastro passa a refletir esse link (antes de ligar a propagação, que nunca apaga um link existente
+-- por um campo que ninguém mexeu)
+UPDATE public.saas_clientes s SET link_acesso = e.slug
+  FROM (SELECT DISTINCT ON (tenant_id) tenant_id, slug FROM public.empresas WHERE tenant_id IS NOT NULL ORDER BY tenant_id, created_at) e
+ WHERE s.tenant_id = e.tenant_id AND s.link_acesso IS NULL AND e.slug IS NOT NULL AND e.slug ~ '^[a-z0-9]([a-z0-9-]{1,48}[a-z0-9])$';
+
 -- valida o formato e conflito com outra empresa
 CREATE OR REPLACE FUNCTION public.saas_clientes_link_valida() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 BEGIN
   NEW.link_acesso := nullif(lower(btrim(coalesce(NEW.link_acesso, ''))), '');
   IF NEW.link_acesso IS NOT NULL THEN
-    IF NEW.link_acesso !~ '^[a-z0-9-]{3,50}$' THEN
-      RAISE EXCEPTION 'O link de acesso aceita de 3 a 50 letras minúsculas, números e hífen';
+    -- mesmas regras de empresas.slug (empresa_slug_valida): senão a empresa não poderia ser criada com o link combinado
+    IF NEW.link_acesso !~ '^[a-z0-9]([a-z0-9-]{1,48}[a-z0-9])$' THEN
+      RAISE EXCEPTION 'O link de acesso aceita de 3 a 50 letras minúsculas, números e hífen, sem hífen no começo ou no fim';
+    END IF;
+    IF NEW.link_acesso IN ('auth','api','contato','boas-vindas','ze-tech','ze-tech-login','dashboard','admin','login','app','www','empresa','assets','static') THEN
+      RAISE EXCEPTION 'Esse link é reservado pelo sistema. Escolha outro.';
     END IF;
     IF EXISTS (SELECT 1 FROM public.empresas e WHERE e.slug = NEW.link_acesso AND e.tenant_id IS DISTINCT FROM NEW.tenant_id) THEN
       RAISE EXCEPTION 'Esse link já é usado por outra empresa';
@@ -28,11 +38,14 @@ CREATE TRIGGER trg_saas_clientes_link_valida BEFORE INSERT OR UPDATE OF link_ace
 CREATE OR REPLACE FUNCTION public.saas_clientes_link_aplica() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 BEGIN
-  IF NEW.tenant_id IS NOT NULL THEN
+  -- só age quando o link foi informado ou mudou (o formulário envia o campo em toda edição; um valor igual não pode apagar o link da empresa)
+  IF NEW.tenant_id IS NOT NULL AND (
+       (TG_OP = 'INSERT' AND NEW.link_acesso IS NOT NULL)
+    OR (TG_OP = 'UPDATE' AND NEW.link_acesso IS DISTINCT FROM OLD.link_acesso)
+    OR (TG_OP = 'UPDATE' AND NEW.tenant_id IS DISTINCT FROM OLD.tenant_id AND NEW.link_acesso IS NOT NULL)) THEN
     UPDATE public.empresas SET slug = NEW.link_acesso
      WHERE id = (SELECT id FROM public.empresas WHERE tenant_id = NEW.tenant_id ORDER BY created_at LIMIT 1)
-       AND slug IS DISTINCT FROM NEW.link_acesso
-       AND (NEW.link_acesso IS NOT NULL OR TG_OP = 'UPDATE');
+       AND slug IS DISTINCT FROM NEW.link_acesso;
   END IF;
   RETURN NULL;
 END $$;
