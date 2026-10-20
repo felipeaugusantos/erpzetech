@@ -353,7 +353,9 @@ function Locacoes() {
       if (error) throw error;
       return "Locação cancelada.";
     },
-    onSuccess: (msg) => {
+    onSuccess: (msg, { tipo }) => {
+      // a lista padrão mostra só reservadas e em locação: ao cancelar, mostra as canceladas para o registro não "sumir"
+      if (tipo === "cancelar") setFiltro("cancelada");
       toast.success(msg);
       recarregar();
     },
@@ -826,6 +828,8 @@ function Locacoes() {
           aoFechar={() => setDevolvendo(null)}
           aoConcluir={() => {
             setDevolvendo(null);
+            // idem: a locação devolvida sai de "reservadas e em locação"; leva a pessoa para onde ela está
+            setFiltro("devolvida");
             recarregar();
             void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
           }}
