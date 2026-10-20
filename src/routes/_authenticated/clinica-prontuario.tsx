@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, TriangleAlert } from "lucide-react";
+import { Search, TriangleAlert, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
+import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,8 @@ function Prontuario() {
   const navegar = useNavigate();
   const [busca, setBusca] = useState("");
   const [termo, setTermo] = useState("");
+  const [cadastrando, setCadastrando] = useState(false);
+  const qc = useQueryClient();
 
   const achados = useQuery({
     queryKey: ["clinica-pacientes", termo],
@@ -68,7 +71,22 @@ function Prontuario() {
       <PageHeader
         title="Prontuário"
         description="Ficha e histórico do paciente. Só o veterinário vê o texto clínico; cada abertura de ficha fica registrada."
+        actions={
+          <Button variant="outline" onClick={() => setCadastrando(true)}>
+            <UserPlus className="size-4" /> Cadastrar paciente
+          </Button>
+        }
       />
+      {cadastrando && (
+        <NovoPacienteDialog
+          aoFechar={() => setCadastrando(false)}
+          aoCadastrar={(petId) => {
+            setCadastrando(false);
+            void qc.invalidateQueries({ queryKey: ["clinica-pacientes"] });
+            void navegar({ to: "/clinica-prontuario", search: { pet: petId } });
+          }}
+        />
+      )}
 
       <form
         className="mb-4 flex max-w-xl gap-2"
