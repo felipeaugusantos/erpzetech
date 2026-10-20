@@ -54,7 +54,7 @@ function ModulosSemCnpj() {
       if (!data) throw new Error("Não foi possível salvar os módulos da empresa.");
     },
     onSuccess: async () => {
-      await Promise.all([qc.invalidateQueries({ queryKey: ["session-data"] }), qc.invalidateQueries({ queryKey: ["empresa"] })]);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["session-data"] }), qc.invalidateQueries({ queryKey: ["empresa-cadastro"] }), qc.invalidateQueries({ queryKey: ["configuracoes"] })]);
       toast.success("Módulos salvos");
     },
     onError: (e: Error) => toast.error("Não foi possível salvar", { description: e.message }),
@@ -62,7 +62,7 @@ function ModulosSemCnpj() {
   const roles = session?.roles ?? [];
   const veterinario = roles.includes("veterinario");
   const gestao = roles.some((r) => ["administrador", "gestor"].includes(r));
-  const recepcao = roles.includes("recepcao");
+  const recepcao = roles.some((r) => r === "vendedor" || r === "caixa");
   const clinicaMenu = [
     ...(veterinario ? ["Prontuário", "Exames", "Trabalho sem internet"] : []),
     ...(veterinario || gestao ? ["Catálogo de vacinas", "Modelos de exame"] : []),
