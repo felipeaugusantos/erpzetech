@@ -56,6 +56,7 @@ export const Route = createFileRoute("/_authenticated/operadores")({
 type Op = {
   id: string;
   nome: string;
+  usuario: string | null;
   email: string | null;
   ativo: boolean | null;
   pode_abrir_caixa: boolean;
@@ -72,7 +73,7 @@ function Operadores() {
   const senhaFn = useServerFn(redefinirSenhaUsuario);
   const [novo, setNovo] = useState<null | {
     nome: string;
-    email: string;
+    usuario: string;
     senha: string;
     abrir: boolean;
     ver: boolean;
@@ -87,7 +88,7 @@ function Operadores() {
       const [{ data: perfis, error }, { data: roles }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, nome, email, ativo, pode_abrir_caixa, pode_ver_fechamento")
+          .select("id, nome, usuario, email, ativo, pode_abrir_caixa, pode_ver_fechamento")
           .order("nome"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
@@ -116,19 +117,15 @@ function Operadores() {
   const salvarNovo = useMutation({
     mutationFn: async () => {
       const n = novo!;
-      await criar({ data: { nome: n.nome, email: n.email, senha: n.senha, perfis: ["caixa"] } });
-      await new Promise((r) => setTimeout(r, 300));
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", n.email)
-        .maybeSingle();
-      if (p)
-        await supabase.rpc("operador_definir_permissoes", {
-          p_user_id: p.id,
-          p_abrir: n.abrir,
-          p_ver: n.ver,
-        });
+      // o e-mail deixou de ser único: o id do usuário criado vem na resposta
+      const criado = await criar({
+        data: { nome: n.nome, usuario: n.usuario, senha: n.senha, perfis: ["caixa"] },
+      });
+      await supabase.rpc("operador_definir_permissoes", {
+        p_user_id: criado.id,
+        p_abrir: n.abrir,
+        p_ver: n.ver,
+      });
     },
     onSuccess: () => {
       toast.success("Operador cadastrado");
@@ -161,7 +158,7 @@ function Operadores() {
         actions={
           ehAdmin ? (
             <Button
-              onClick={() => setNovo({ nome: "", email: "", senha: "", abrir: true, ver: false })}
+              onClick={() => setNovo({ nome: "", usuario: "", senha: "", abrir: true, ver: false })}
             >
               Novo operador
             </Button>
@@ -192,7 +189,7 @@ function Operadores() {
                 <TableRow key={o.id}>
                   <TableCell>
                     <b>{o.nome}</b>
-                    <p className="text-xs text-muted-foreground">{o.email}</p>
+                    <p className="text-xs text-muted-foreground">{o.usuario ?? o.email}</p>
                   </TableCell>
                   <TableCell className="text-xs">{o.perfis.join(", ") || "—"}</TableCell>
                   <TableCell className="text-center">
@@ -253,11 +250,12 @@ function Operadores() {
                 />
               </div>
               <div>
-                <Label>E-mail (login)</Label>
+                <Label>Usuário (login)</Label>
                 <Input
-                  type="email"
-                  value={novo.email}
-                  onChange={(e) => setNovo({ ...novo, email: e.target.value })}
+                  autoComplete="off"
+                  value={novo.usuario}
+                  placeholder="ex.: caixa.maria"
+                  onChange={(e) => setNovo({ ...novo, usuario: e.target.value })}
                 />
               </div>
               <div>

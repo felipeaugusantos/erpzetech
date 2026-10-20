@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { HardHat, Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { entrarComUsuarioOuEmail } from "@/lib/login-cliente";
+import { pareceEmail } from "@/lib/usuario-login";
 import { lovable } from "@/integrations/lovable/index";
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
@@ -32,16 +34,21 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
+  // quem entra por usuário informa também a empresa (o link dela); quem entra por e-mail não precisa
+  const [empresa, setEmpresa] = useState("");
+  const [usuarioOuEmail, setUsuarioOuEmail] = useState("");
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setLoading("login");
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    setLoading(null);
-    if (error) {
-      toast.error("Não foi possível entrar", { description: error.message });
+    try {
+      await entrarComUsuarioOuEmail(usuarioOuEmail, senha, empresa);
+    } catch (erro) {
+      setLoading(null);
+      toast.error("Não foi possível entrar", { description: (erro as Error).message });
       return;
     }
+    setLoading(null);
     navigate({ to: "/dashboard" });
   }
 
@@ -110,7 +117,7 @@ function AuthPage() {
           </div>
           <h1 className="font-display text-2xl font-bold">Acessar o sistema</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use seu e-mail corporativo ou sua conta Google.
+            Entre com seu usuário (ou e-mail) e senha, ou com sua conta Google.
           </p>
 
           <Tabs defaultValue="login" className="mt-6">
@@ -122,16 +129,31 @@ function AuthPage() {
             <TabsContent value="login">
               <form onSubmit={entrar} className="space-y-3">
                 <div>
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="usuario">Usuário ou e-mail</Label>
                   <Input
-                    id="email"
-                    type="email"
+                    id="usuario"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="voce@empresa.com.br"
+                    autoComplete="username"
+                    value={usuarioOuEmail}
+                    onChange={(e) => setUsuarioOuEmail(e.target.value)}
+                    placeholder="seu usuário ou voce@empresa.com.br"
                   />
                 </div>
+                {usuarioOuEmail.trim() !== "" && !pareceEmail(usuarioOuEmail) && (
+                  <div>
+                    <Label htmlFor="empresa">Empresa</Label>
+                    <Input
+                      id="empresa"
+                      required
+                      value={empresa}
+                      onChange={(e) => setEmpresa(e.target.value)}
+                      placeholder="o link da sua empresa, ex.: minha-loja"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      É o nome no endereço de acesso da empresa. Pergunte ao administrador.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="senha">Senha</Label>
                   <Input

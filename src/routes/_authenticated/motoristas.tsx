@@ -90,11 +90,11 @@ function Motoristas() {
     mutationFn: async () => {
       if (!loginMotorista) return;
       await criarLoginMotorista({
-        data: { motoristaId: loginMotorista.id, email: loginEmail, senha: loginSenha },
+        data: { motoristaId: loginMotorista.id, usuario: loginEmail, senha: loginSenha },
       });
     },
     onSuccess: () => {
-      toast.success("Login do motorista criado. Passe o e-mail e a senha para ele.");
+      toast.success("Login do motorista criado. Passe o usuário e a senha para ele.");
       setLoginMotorista(null);
       void queryClient.invalidateQueries({ queryKey: ["motoristas"] });
     },
@@ -425,14 +425,14 @@ function Motoristas() {
           </DialogHeader>
           <div className="grid gap-3">
             <p className="text-sm text-muted-foreground">
-              O motorista entra com este e-mail e senha e vê somente as entregas da própria rota.
+              O motorista entra com este usuário e senha (na página de acesso da empresa) e vê
+              somente as entregas da própria rota.
             </p>
             <div>
-              <Label>E-mail do motorista</Label>
+              <Label>Usuário do motorista</Label>
               <Input
-                type="email"
                 value={loginEmail}
-                placeholder="motorista@email.com"
+                placeholder="ex.: joao.silva"
                 onChange={(e) => setLoginEmail(e.target.value)}
               />
             </div>

@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { emailInterno, erroDoUsuario, normalizarUsuario } from "@/lib/usuario-login";
 
-type Entrada = { motoristaId: string; email: string; senha: string };
+type Entrada = { motoristaId: string; usuario: string; senha: string };
 
 /**
  * Cria (ou vincula) um login próprio para um motorista.
@@ -10,14 +11,13 @@ type Entrada = { motoristaId: string; email: string; senha: string };
 export const criarLoginMotorista = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Entrada) => {
-    const email = String(input.email ?? "")
-      .trim()
-      .toLowerCase();
+    const usuario = normalizarUsuario(String(input.usuario ?? ""));
     const senha = String(input.senha ?? "");
     if (!input.motoristaId) throw new Error("Motorista não informado");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("E-mail inválido");
+    const erroUsuario = erroDoUsuario(usuario);
+    if (erroUsuario) throw new Error(erroUsuario);
     if (senha.length < 8) throw new Error("A senha deve ter pelo menos 8 caracteres");
-    return { motoristaId: input.motoristaId, email, senha };
+    return { motoristaId: input.motoristaId, usuario, senha };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -48,8 +48,18 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const repetido = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("tenant_id", motorista.tenant_id)
+      .eq("usuario", data.usuario)
+      .maybeSingle();
+    if (repetido.error) throw repetido.error;
+    if (repetido.data)
+      throw new Error("Já existe um usuário com esse nome de acesso nesta empresa. Escolha outro.");
+
     const criado = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
+      email: emailInterno(data.usuario, motorista.tenant_id),
       password: data.senha,
       email_confirm: true,
       user_metadata: { nome: motorista.nome },
@@ -76,7 +86,7 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
       const perfil = await supabaseAdmin.from("profiles").upsert({
         id: novoId,
         nome: motorista.nome,
-        email: data.email,
+        usuario: data.usuario,
         tenant_id: motorista.tenant_id,
         empresa_id: motorista.empresa_id,
         filial_id: motorista.filial_id,
@@ -101,5 +111,5 @@ export const criarLoginMotorista = createServerFn({ method: "POST" })
       throw erro;
     }
 
-    return { ok: true, email: data.email };
+    return { ok: true, usuario: data.usuario };
   });

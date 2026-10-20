@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type Perfil = {
   id: string;
   nome: string;
+  usuario: string | null;
   email: string | null;
   tenant_id: string | null;
   empresa_id: string | null;
@@ -23,7 +24,7 @@ export function useSessionData() {
         await Promise.all([
           supabase
             .from("profiles")
-            .select("id, nome, email, tenant_id, empresa_id, filial_id")
+            .select("id, nome, usuario, email, tenant_id, empresa_id, filial_id")
             .eq("id", user.id)
             .maybeSingle(),
           supabase.from("user_roles").select("role").eq("user_id", user.id),

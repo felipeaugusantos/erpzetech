@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { emailInterno, erroDoUsuario, normalizarUsuario } from "@/lib/usuario-login";
 
 /** Perfis operacionais disponíveis para os operadores da loja. */
 export const PERFIS = [
@@ -22,7 +23,10 @@ export type Perfil = (typeof PERFIS)[number];
 
 type CriarEntrada = {
   nome: string;
-  email: string;
+  /** Nome de acesso, único dentro da empresa. */
+  usuario: string;
+  /** E-mail de contato (opcional; pode se repetir entre usuários). */
+  email?: string | null;
   senha: string;
   telefone?: string | null;
   codigo?: string | null;
@@ -33,6 +37,8 @@ type CriarEntrada = {
 type AtualizarEntrada = {
   userId: string;
   nome?: string;
+  usuario?: string;
+  email?: string | null;
   telefone?: string | null;
   codigo?: string | null;
   filialId?: string | null;
@@ -41,6 +47,31 @@ type AtualizarEntrada = {
 };
 
 type SenhaEntrada = { userId: string; senha: string };
+
+/** E-mail de contato: opcional, só confere o formato. */
+function validaContato(email: unknown): string | null {
+  const v = String(email ?? "")
+    .trim()
+    .toLowerCase();
+  if (!v) return null;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) throw new Error("E-mail de contato inválido");
+  return v;
+}
+
+function validaUsuario(bruto: unknown): string {
+  const usuario = normalizarUsuario(String(bruto ?? ""));
+  const erro = erroDoUsuario(usuario);
+  if (erro) throw new Error(erro);
+  return usuario;
+}
+
+const USUARIO_REPETIDO =
+  "Já existe um usuário com esse nome de acesso nesta empresa. Escolha outro.";
+
+function ehUsuarioRepetido(erro: unknown): boolean {
+  const e = erro as { code?: string; message?: string } | null;
+  return e?.code === "23505" && /usuario/i.test(e.message ?? "");
+}
 
 function validaPerfis(perfis: unknown): Perfil[] {
   const lista = Array.isArray(perfis) ? perfis.map(String) : [];
@@ -107,15 +138,14 @@ export const criarUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: CriarEntrada) => {
     const nome = String(input.nome ?? "").trim();
-    const email = String(input.email ?? "")
-      .trim()
-      .toLowerCase();
     const senha = String(input.senha ?? "");
     if (nome.length < 3) throw new Error("Informe o nome do operador");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("E-mail inválido");
+    const usuario = validaUsuario(input.usuario);
+    const email = validaContato(input.email);
     if (senha.length < 8) throw new Error("A senha deve ter pelo menos 8 caracteres");
     return {
       nome,
+      usuario,
       email,
       senha,
       telefone: input.telefone?.trim() || null,
@@ -129,21 +159,24 @@ export const criarUsuario = createServerFn({ method: "POST" })
     await validaFilial(context.supabase, ctx, data.filialId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const repetido = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("tenant_id", ctx.tenantId)
+      .eq("usuario", data.usuario)
+      .maybeSingle();
+    if (repetido.error) throw repetido.error;
+    if (repetido.data) throw new Error(USUARIO_REPETIDO);
+
+    // o login técnico é um endereço interno único por empresa e usuário; o e-mail de contato fica só no perfil e pode se repetir
     const criado = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
+      email: emailInterno(data.usuario, ctx.tenantId),
       password: data.senha,
       email_confirm: true,
       user_metadata: { nome: data.nome },
     });
     if (criado.error || !criado.data.user) {
-      const ja =
-        (criado.error as { code?: string } | null)?.code === "email_exists" ||
-        /already been registered/i.test(criado.error?.message ?? "");
-      throw new Error(
-        ja
-          ? `O e-mail ${data.email} já tem login no sistema. Use outro e-mail.`
-          : (criado.error?.message ?? "Não foi possível criar o usuário"),
-      );
+      throw new Error(criado.error?.message ?? "Não foi possível criar o usuário");
     }
     const novoId = criado.data.user.id;
 
@@ -152,6 +185,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
       const perfil = await supabaseAdmin.from("profiles").upsert({
         id: novoId,
         nome: data.nome,
+        usuario: data.usuario,
         email: data.email,
         telefone: data.telefone,
         codigo: data.codigo,
@@ -174,10 +208,10 @@ export const criarUsuario = createServerFn({ method: "POST" })
       if (papeis.error) throw papeis.error;
     } catch (erro) {
       await supabaseAdmin.auth.admin.deleteUser(novoId).catch(() => undefined);
-      throw erro;
+      throw ehUsuarioRepetido(erro) ? new Error(USUARIO_REPETIDO) : erro;
     }
 
-    return { ok: true, id: novoId, email: data.email };
+    return { ok: true, id: novoId, usuario: data.usuario };
   });
 
 /** Atualiza dados, situação e perfis de um operador da mesma empresa. */
@@ -188,6 +222,8 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
     return {
       userId: input.userId,
       nome: input.nome?.trim() || undefined,
+      usuario: input.usuario === undefined ? undefined : validaUsuario(input.usuario),
+      email: input.email === undefined ? undefined : validaContato(input.email),
       telefone: input.telefone === undefined ? undefined : input.telefone?.trim() || null,
       codigo: input.codigo === undefined ? undefined : input.codigo?.trim() || null,
       filialId: input.filialId === undefined ? undefined : input.filialId || null,
@@ -219,12 +255,16 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
 
     const patch: {
       nome?: string;
+      usuario?: string;
+      email?: string | null;
       telefone?: string | null;
       codigo?: string | null;
       filial_id?: string | null;
       ativo?: boolean;
     } = {};
     if (data.nome !== undefined) patch.nome = data.nome;
+    if (data.usuario !== undefined) patch.usuario = data.usuario;
+    if (data.email !== undefined) patch.email = data.email;
     if (data.telefone !== undefined) patch.telefone = data.telefone;
     if (data.codigo !== undefined) patch.codigo = data.codigo;
     if (data.filialId !== undefined) patch.filial_id = data.filialId;
@@ -232,7 +272,7 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
 
     if (Object.keys(patch).length > 0) {
       const upd = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
-      if (upd.error) throw upd.error;
+      if (upd.error) throw ehUsuarioRepetido(upd.error) ? new Error(USUARIO_REPETIDO) : upd.error;
     }
 
     if (data.perfis) {

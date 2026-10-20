@@ -23,7 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
-import { ROTULO_MODULO, exemplosCnae, moduloLiberadoEmpresa, semCnpj, type ModuloCnae } from "@/lib/cnae";
+import {
+  ROTULO_MODULO,
+  exemplosCnae,
+  moduloLiberadoEmpresa,
+  semCnpj,
+  type ModuloCnae,
+} from "@/lib/cnae";
 import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
 import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
 
@@ -274,7 +280,9 @@ function Empresa() {
           <div className="rounded-md border border-border p-3">
             <Label htmlFor="emp-slug">Link de acesso da equipe</Label>
             <div className="mt-1 flex items-center gap-1 text-sm">
-              <span className="text-muted-foreground">{typeof window !== "undefined" ? window.location.host : "erpzetech.lovable.app"}/</span>
+              <span className="text-muted-foreground">
+                {typeof window !== "undefined" ? window.location.host : "erpzetech.lovable.app"}/
+              </span>
               <Input
                 id="emp-slug"
                 className="max-w-xs"
@@ -285,7 +293,8 @@ function Empresa() {
               />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Tela de login com a logo, o nome e a cor da empresa. Use letras minúsculas, números e hífen.
+              Tela de login com a logo, o nome e a cor da empresa. Use letras minúsculas, números e
+              hífen.
             </p>
           </div>
 
@@ -414,18 +423,37 @@ function Empresa() {
             {semCnpj(form) && (
               <fieldset className="mb-5">
                 <legend className="font-display text-sm font-semibold">Módulos sem CNPJ</legend>
-                <Button asChild variant="link" className="px-0"><Link to="/modulos-sem-cnpj">Ver módulos e opções no menu</Link></Button>
-                <p className="mt-1 text-xs text-muted-foreground">Selecione as atividades do negócio. Não é necessário informar CNAE; as permissões de cada usuário continuam valendo.</p>
+                <Button asChild variant="link" className="px-0">
+                  <Link to="/modulos-sem-cnpj">Ver módulos e opções no menu</Link>
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Selecione as atividades do negócio. Não é necessário informar CNAE; as permissões
+                  de cada usuário continuam valendo.
+                </p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {(Object.keys(ROTULO_MODULO) as ModuloCnae[]).map((m) => (
                     <div key={m} className="flex items-center gap-2">
-                      <Checkbox id={`modulo-${m}`} checked={modulos.includes(m)} disabled={!isAdmin}
-                        onCheckedChange={(checked) => setModulos((atual) => checked === true ? [...new Set([...atual, m])] : atual.filter((v) => v !== m))} />
+                      <Checkbox
+                        id={`modulo-${m}`}
+                        checked={modulos.includes(m)}
+                        disabled={!isAdmin}
+                        onCheckedChange={(checked) =>
+                          setModulos((atual) =>
+                            checked === true
+                              ? [...new Set([...atual, m])]
+                              : atual.filter((v) => v !== m),
+                          )
+                        }
+                      />
                       <Label htmlFor={`modulo-${m}`}>{ROTULO_MODULO[m]}</Label>
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">Clínica veterinária também libera os cadastros do Pet shop. Esta seleção não habilita emissão fiscal. Ao cadastrar CNPJ, a liberação volta a seguir o ramo e os CNAEs.</p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Clínica veterinária também libera os cadastros do Pet shop. Esta seleção não
+                  habilita emissão fiscal. Ao cadastrar CNPJ, a liberação volta a seguir o ramo e os
+                  CNAEs.
+                </p>
               </fieldset>
             )}
             <p className="font-display text-sm font-semibold">Atividades (CNAE)</p>
@@ -446,10 +474,7 @@ function Empresa() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {(["assistencia", "locacao", "petshop", "clinica"] as const).map((m) => {
-                const liberado = moduloLiberadoEmpresa(
-                  { ...form, modulos_sem_cnpj: modulos },
-                  m,
-                );
+                const liberado = moduloLiberadoEmpresa({ ...form, modulos_sem_cnpj: modulos }, m);
                 return (
                   <div key={m} className="rounded-md border border-border p-3">
                     <p className="text-sm font-semibold">

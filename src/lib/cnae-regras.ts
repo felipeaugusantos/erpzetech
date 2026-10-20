@@ -96,7 +96,10 @@ export type EmpresaModulos = {
 export const semCnpj = (empresa?: EmpresaModulos | null) =>
   somenteDigitos(empresa?.cnpj ?? "").length < 14;
 
-export function moduloLiberadoEmpresa(empresa: EmpresaModulos | null | undefined, modulo: ModuloCnae): boolean {
+export function moduloLiberadoEmpresa(
+  empresa: EmpresaModulos | null | undefined,
+  modulo: ModuloCnae,
+): boolean {
   if (semCnpj(empresa) && empresa?.modulos_sem_cnpj?.includes(modulo)) return true;
   if (modulo === "petshop" && moduloLiberadoEmpresa(empresa, "clinica")) return true;
   if (modulo === "restaurante" && empresa?.ramo_atividade === "restaurante") return true;

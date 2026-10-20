@@ -516,7 +516,9 @@ DECLARE
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
-    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco', 'filial_irrestrita', 'pode_filial', 'contato_enviar',
+    'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
+    -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
+    'empresa_por_slug', 'filial_irrestrita', 'pode_filial', 'contato_enviar',
     -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
     'motorista_enviar_posicao',
     -- agenda do profissional: só quem tem o perfil profissional (e a conta ligada a um cadastro) passa
@@ -5242,4 +5244,50 @@ BEGIN
   PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'externa', jsonb_build_object('pet_id', %L, 'catalogo_id', %L, 'aplicada_em', %L, 'informado_por', 'x'))$c$, gen_random_uuid(), pet3, cat, hoje - 40), 'vacina sem a clínica liberada');
   PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'abrir', jsonb_build_object('pet_id', %L, 'modelo_id', %L, 'laboratorio', 'L'))$c$, gen_random_uuid(), pet3, m), 'exame sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 54. Login por usuário: usuário único por empresa, formato, só o administrador troca, repetido em outra empresa vale
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  outro constant uuid := 'a0000000-0000-0000-0000-0000000000f0';
+  tenant_x uuid;
+  n bigint;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Empresa X usuarios CI') RETURNING id INTO tenant_x;
+  INSERT INTO auth.users (id, email) VALUES (outro, 'outro-usuario@ci');
+  UPDATE profiles SET tenant_id = tenant_x WHERE id = outro;
+
+  -- o administrador define; dois usuários da mesma empresa não repetem
+  PERFORM ci.entrar(adm);
+  UPDATE profiles SET usuario = 'maria.ci' WHERE id = vend;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT usuario = 'maria.ci' FROM profiles WHERE id = vend), 'o administrador define o usuário de acesso');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE profiles SET usuario = 'maria.ci' WHERE id = %L$c$, gest), 'mesmo usuário duas vezes na mesma empresa');
+
+  -- formato: minúsculas, números, ponto, hífen e sublinhado, de 3 a 30
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE profiles SET usuario = 'Maria' WHERE id = %L$c$, gest), 'usuário com maiúscula');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE profiles SET usuario = 'ab' WHERE id = %L$c$, gest), 'usuário curto demais');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE profiles SET usuario = 'joao silva' WHERE id = %L$c$, gest), 'usuário com espaço');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE profiles SET usuario = %L WHERE id = %L$c$, repeat('a', 31), gest), 'usuário com mais de 30 letras');
+
+  -- a própria pessoa não troca o usuário pelo perfil, mas segue mexendo no resto
+  PERFORM ci.deve_falhar(vend, format($c$UPDATE profiles SET usuario = 'outro.nome' WHERE id = %L$c$, vend), 'o próprio usuário troca o seu usuário de acesso');
+  PERFORM ci.entrar(vend);
+  UPDATE profiles SET telefone = '11999990000' WHERE id = vend;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT usuario = 'maria.ci' AND telefone = '11999990000' FROM profiles WHERE id = vend), 'a pessoa ainda edita os próprios dados, sem mexer no usuário');
+
+  -- outra empresa pode ter o mesmo usuário
+  UPDATE profiles SET usuario = 'maria.ci' WHERE id = outro;
+  SELECT count(*) INTO n FROM profiles WHERE usuario = 'maria.ci';
+  PERFORM ci.exige(n = 2, 'o mesmo usuário vale em empresas diferentes');
+
+  -- o e-mail é só contato: pode se repetir entre usuários da mesma empresa
+  UPDATE profiles SET email = 'contato.repetido@ci' WHERE id IN (vend, gest);
+  SELECT count(*) INTO n FROM profiles WHERE email = 'contato.repetido@ci';
+  PERFORM ci.exige(n = 2, 'o e-mail de contato pode se repetir');
 END $$;

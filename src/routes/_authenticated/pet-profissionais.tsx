@@ -111,15 +111,20 @@ function Profissionais() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, role, profiles(nome, email, ativo)")
+        .select("user_id, role, profiles(nome, usuario, email, ativo)")
         .in("role", ["profissional", "veterinario"]);
       if (error) throw error;
       return (data ?? []).map((r) => {
-        const pf = r.profiles as unknown as { nome: string; email: string; ativo: boolean } | null;
+        const pf = r.profiles as unknown as {
+          nome: string;
+          usuario: string | null;
+          email: string;
+          ativo: boolean;
+        } | null;
         return {
           id: r.user_id,
           papel: r.role as string,
-          nome: pf?.nome ?? pf?.email ?? "Usuário",
+          nome: `${pf?.nome ?? pf?.email ?? "Usuário"}${pf?.usuario ? ` (${pf.usuario})` : ""}`,
           ativo: pf?.ativo ?? false,
         };
       });
