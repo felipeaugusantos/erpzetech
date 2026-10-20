@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
+import { usePacientesVisita } from "@/hooks/usePacientesVisita";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,21 +24,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   CHAVE_CONSUMIDOS,
-  PREFIXO_PACIENTE,
   PREFIXO_RASCUNHO,
-  pacientesGuardados,
-  type PacienteGuardado,
   abrirAtendimento,
   consultasDaCopia,
   operacaoDeFechar,
   operacaoDeSalvar,
-  petsDaAgenda,
   rascunhoJaEnviado,
   salvamentosSubstituidos,
   servicosDeConsulta,
-  type PacienteParaAtender,
   type RascunhoAtendimento,
 } from "@/lib/atendimento-offline";
+import { aberturasDoAtendimento } from "@/lib/exame-offline";
 import { erroDosSinais, faltaParaFechar, type FormAtendimento } from "@/lib/clinica";
 import type { Cofre } from "@/lib/cofre";
 import type { OperacaoFila } from "@/lib/fila-clinica";
@@ -78,7 +75,6 @@ export function AtendimentosVisita({
   aoGuardar: () => Promise<void>;
 }) {
   const [rascunhos, setRascunhos] = useState<RascunhoAtendimento[]>([]);
-  const [guardados, setGuardados] = useState<PacienteGuardado[]>([]);
   const [consumidos, setConsumidos] = useState<string[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
   const [pacienteSel, setPacienteSel] = useState("");
@@ -101,9 +97,6 @@ export function AtendimentosVisita({
       } else lista.push(r);
     }
     setConsumidos(usados);
-    setGuardados(
-      itens.filter(([k]) => k.startsWith(PREFIXO_PACIENTE)).map(([, p]) => p as PacienteGuardado),
-    );
     setRascunhos(lista.sort((a, b) => b.abertoEm.localeCompare(a.abertoEm)));
   }, [cofre, fila]);
 
@@ -121,12 +114,7 @@ export function AtendimentosVisita({
     ? consultasDaCopia(copia).filter((c) => !comRascunho.has(c.agendamentoId))
     : [];
   const servicos = copia ? servicosDeConsulta(copia) : [];
-  const pacientes = useMemo(() => {
-    const lista = pacientesGuardados(guardados, fila);
-    const ids = new Set(lista.map((p) => p.petId));
-    for (const p of copia ? petsDaAgenda(copia) : []) if (!ids.has(p.petId)) lista.push(p);
-    return lista;
-  }, [guardados, fila, copia]);
+  const pacientes = usePacientesVisita(cofre, copia, fila);
 
   async function iniciar(origem: Parameters<typeof abrirAtendimento>[0]) {
     try {
@@ -152,7 +140,13 @@ export function AtendimentosVisita({
     for (const id of salvamentosSubstituidos(naFila, r.atendimentoId))
       await cofre.apagar("fila", id);
     if (fechar) {
-      const op = operacaoDeFechar(r, salvar.id);
+      const op = operacaoDeFechar(
+        r,
+        salvar.id,
+        new Date(),
+        undefined,
+        aberturasDoAtendimento(naFila, r.atendimentoId),
+      );
       await cofre.gravar("fila", op.id, op);
     }
     await cofre.gravar("copia", PREFIXO_RASCUNHO + r.atendimentoId, {

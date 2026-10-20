@@ -141,6 +141,15 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - Operações da fila e dependências: abrir (`visita_registrar`) espera o cadastro do pet novo; salvar espera a abertura (um novo salvamento substitui o anterior ainda pendente); fechar espera a abertura e o último salvamento. Recusa de uma etapa bloqueia as seguintes e fica guardada com o motivo.
 - No banco: `clinica_visita_registrar(chave, dados)` e `clinica_atendimento_offline(chave, acao, id, dados)` são **idempotentes** (tabela de chaves `clinica_operacoes_offline`, sem acesso direto): reenviar devolve o mesmo resultado; chave de outro usuário, tenant ou tipo é recusada. Visita avulsa não confere sobreposição de horário (a consulta já aconteceu); atendimento fechado continua imutável.
 
+**5d — entregue (vacina e exame).** Seções **Vacinas e vermífugos da visita** e **Exames da visita** na tela Trabalho sem internet, com ou sem sinal:
+
+- **Vacina aplicada agora:** numa consulta de vacina da agenda baixada ou **sem agendamento** (a função do banco cria o atendimento de vacina já em andamento, com o preço do serviço de vacina, que a cópia agora traz em `servicos_vacina`). O lote e o saldo vêm da cópia; o notebook desconta as doses que ele mesmo já aplicou e ainda não enviou. A dose da série e a próxima dose são calculadas pelo banco no envio.
+- **Vacina aplicada em outro local:** entra no cartão sem baixa de estoque, com quem informou e, se souber, o lote.
+- **Lote que acabou antes do envio:** o banco recusa, **não grava nada** (nem a chave) e a operação fica guardada com o motivo. Em Pendências, **Trocar o lote…** escolhe outro lote da cópia e devolve a mesma operação à fila, com a mesma chave; nada se perde.
+- **Exame:** abre a partir de um modelo ativo baixado, com ou sem atendimento aberto no notebook (o exame do atendimento espera o registro dele e o atendimento só fecha depois da abertura do exame), preenche (números, texto e escolha; os campos calculados aparecem depois do envio) e fecha, com confirmação. Fechado, só se lê no notebook; o banco continua recusando alteração de exame fechado.
+- No banco: `clinica_vacina_offline(chave, acao, dados)` e `clinica_exame_offline(chave, acao, dados)` aceitam repetição pela chave da operação (reenviar devolve o mesmo resultado). O id do exame nasce no banco: salvar e fechar apontam para a chave da operação de abrir e dizem os resultados pelo campo do modelo.
+- O paciente cadastrado sem internet passa a poder receber vacina e exame, mesmo antes de o cadastro ser enviado.
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |

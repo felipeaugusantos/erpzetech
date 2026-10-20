@@ -17,6 +17,8 @@ export type CopiaVisita = {
     aplicadores: unknown[];
     /** Serviços de consulta, para atender sem consulta marcada (cópias antigas não trazem). */
     servicos_consulta?: unknown[];
+    /** Serviços de vacina, para aplicar sem agendamento (cópias antigas não trazem). */
+    servicos_vacina?: unknown[];
   };
 };
 

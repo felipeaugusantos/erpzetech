@@ -195,4 +195,4 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 2 — Exames: modelos de hemograma (com VCM, HCM, CHCM e RDW), bioquímica e urina, com unidade e faixa por espécie; faixa guardada no resultado
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
-- [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame · 5e anexos
+- [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame ✔ · 5e anexos

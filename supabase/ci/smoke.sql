@@ -543,7 +543,7 @@ DECLARE
     -- cadastro rápido de tutor e pet pelo veterinário (também sem internet): só o veterinário
     'clinica_cadastro_rapido',
     -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
-    'clinica_visita_registrar', 'clinica_atendimento_offline'];
+    'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5104,5 +5104,142 @@ BEGIN
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet3, cons), 'registrar visita sem a clínica liberada');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a2), 'preencher atendimento sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 53. Clínica (vacina e exame sem internet): aplicar com ou sem agendamento, vacina de outro local, lote que acabou, exame aberto no notebook
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vc   constant uuid := 'a0000000-0000-0000-0000-0000000000ff';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '22 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet1 uuid; pet2 uuid; pet3 uuid; vacserv uuid; vacserv_sempreco uuid; pvc uuid; ag_vac uuid;
+  prod uuid; dep uuid; l_a uuid; l_b uuid; cat uuid; m uuid; c_num uuid; c_txt uuid; atend uuid := gen_random_uuid();
+  k uuid[] := ARRAY(SELECT gen_random_uuid() FROM generate_series(1, 14));
+  r jsonb; r2 jsonb; n bigint; ex uuid; saldo0 numeric;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (vc, 'vetvacoff@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = vc;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vc, demo, 'veterinario');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Vacinas Offline CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_lote) VALUES (demo, 'VAC-OFF-CI', 'Vacina Offline CI', 'UN', 0, true) RETURNING id INTO prod;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  l_a := estoque_lote_lancar(prod, dep, 'OFF-A', '', '', 'entrada', 1, 'ci');
+  l_b := estoque_lote_lancar(prod, dep, 'OFF-B', '', '', 'entrada', 5, 'ci');
+  PERFORM ci.sair();
+  UPDATE estoque_lotes SET validade = hoje + 90 WHERE id IN (l_a, l_b);
+
+  PERFORM ci.entrar(gest);
+  vacserv := pet_servico_salvar('{"nome":"Vacina Offline CI","categoria":"vacina","duracao_min":15}'::jsonb);
+  vacserv_sempreco := pet_servico_salvar('{"nome":"Vacina Sem Preco Offline CI","categoria":"vacina","duracao_min":15}'::jsonb);
+  PERFORM pet_preco_salvar(vacserv, NULL, NULL, NULL, 90);
+  pvc := pet_profissional_salvar('{"nome":"Vet Vacina Offline","funcao":"veterinario","crmv":"7771","crmv_uf":"SP"}'::jsonb);
+  PERFORM pet_profissional_vincular(pvc, vc);
+  cat := clinica_vacina_catalogo_salvar(jsonb_build_object('nome', 'V10 Offline CI', 'tipo', 'vacina', 'especie', 'cao', 'doses_serie', 3, 'intervalo_serie_dias', 21, 'reforco_dias', 365, 'produto_id', prod));
+  m := clinica_exame_modelo_salvar(jsonb_build_object('nome', 'Exame Offline CI', 'tipo', 'outro', 'material', 'Soro'));
+  c_num := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m, 'nome', 'Glicose', 'unidade', 'mg/dL', 'forma', 'numero', 'casas', 1));
+  c_txt := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', m, 'nome', 'Observação do laudo', 'forma', 'texto'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  pet1 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Vacina Avulsa Offline CI', 'especie', 'cao'));
+  pet2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Vacina Agenda Offline CI', 'especie', 'cao'));
+  pet3 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Exame Offline CI', 'especie', 'cao'));
+  ag_vac := pet_agendar(jsonb_build_object('pet_id', pet2, 'profissional_id', pvc, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', vacserv))));
+  PERFORM ci.sair();
+
+  -- só o veterinário
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('agendamento_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L))$c$, gen_random_uuid(), ag_vac, cat, l_b), 'gestor aplica vacina sem internet');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_exame_offline(%L, 'abrir', jsonb_build_object('pet_id', %L, 'modelo_id', %L, 'laboratorio', 'Lab'))$c$, gen_random_uuid(), pet3, m), 'recepção abre exame sem internet');
+
+  -- a cópia leva os serviços de vacina
+  PERFORM ci.entrar(vc);
+  r := clinica_visita_preparar();
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'servicos_vacina') x WHERE x ->> 'id' = vacserv::text), 'a cópia da visita traz os serviços de vacina');
+
+  -- aplicar numa consulta de vacina da agenda
+  PERFORM ci.entrar(vc);
+  r := clinica_vacina_offline(k[1], 'aplicar', jsonb_build_object('agendamento_id', ag_vac, 'catalogo_id', cat, 'estoque_lote_id', l_b, 'aplicada_em', hoje));
+  r2 := clinica_vacina_offline(k[1], 'aplicar', jsonb_build_object('agendamento_id', ag_vac, 'catalogo_id', cat, 'estoque_lote_id', l_b, 'aplicada_em', hoje));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'dose_tipo') = 'serie' AND (r ->> 'dose_numero')::int = 1 AND (r ->> 'repetido')::boolean = false, 'aplicar na agenda registra a primeira dose da série');
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND r2 ->> 'vacinacao_id' = r ->> 'vacinacao_id', 'reenviar a mesma chave devolve a mesma aplicação');
+  PERFORM ci.exige((SELECT count(*) FROM pet_vacinacoes WHERE pet_id = pet2) = 1 AND (SELECT quantidade = 4 FROM estoque_lotes WHERE id = l_b), 'reenviar não aplica nem baixa de novo');
+
+  -- sem agendamento: a função cria o atendimento de vacina, com o preço do serviço
+  PERFORM ci.entrar(vc);
+  r := clinica_vacina_offline(k[2], 'aplicar', jsonb_build_object('pet_id', pet1, 'servico_id', vacserv, 'catalogo_id', cat, 'estoque_lote_id', l_b, 'aplicada_em', hoje - 2));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT a.situacao = 'em_atendimento' AND a.profissional_id = pvc AND i.preco_aplicado = 90 AND i.servico_id = vacserv
+                      FROM pet_agendamentos a JOIN pet_agendamento_itens i ON i.agendamento_id = a.id WHERE a.id = (r ->> 'agendamento_id')::uuid),
+                   'aplicar sem agendamento cria o atendimento de vacina em andamento com o preço do serviço');
+  PERFORM ci.exige((SELECT aplicada_em = hoje - 2 AND estoque_lote_id = l_b FROM pet_vacinacoes WHERE id = (r ->> 'vacinacao_id')::uuid), 'a aplicação guarda a data e o lote do notebook');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('pet_id', %L, 'servico_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L, 'aplicada_em', %L))$c$, gen_random_uuid(), pet1, vacserv_sempreco, cat, l_b, hoje), 'serviço de vacina sem preço');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('pet_id', %L, 'servico_id', %L, 'agendamento_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L))$c$, gen_random_uuid(), pet1, vacserv, ag_vac, cat, l_b), 'agendamento e serviço ao mesmo tempo');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('pet_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L))$c$, gen_random_uuid(), pet1, cat, l_b), 'sem agendamento nem serviço');
+  PERFORM ci.exige((SELECT count(*) FROM pet_agendamentos WHERE pet_id = pet1) = 1, 'operação recusada não deixa atendimento para trás');
+
+  -- lote que acabou: recusa sem gravar nada; a mesma chave serve depois com outro lote
+  PERFORM ci.entrar(vc);
+  r := clinica_vacina_offline(k[3], 'aplicar', jsonb_build_object('agendamento_id', ag_vac, 'catalogo_id', cat, 'estoque_lote_id', l_a, 'aplicada_em', hoje));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 0 FROM estoque_lotes WHERE id = l_a), 'o último frasco do lote foi usado');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('agendamento_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L, 'aplicada_em', %L))$c$, k[4], ag_vac, cat, l_a, hoje), 'lote que acabou antes do envio');
+  SELECT count(*) INTO n FROM clinica_operacoes_offline WHERE chave = k[4];
+  PERFORM ci.exige(n = 0, 'a recusa não grava a chave');
+  PERFORM ci.entrar(vc);
+  r := clinica_vacina_offline(k[4], 'aplicar', jsonb_build_object('agendamento_id', ag_vac, 'catalogo_id', cat, 'estoque_lote_id', l_b, 'aplicada_em', hoje));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean = false AND (SELECT estoque_lote_id = l_b FROM pet_vacinacoes WHERE id = (r ->> 'vacinacao_id')::uuid), 'reenviar com outro lote, pela mesma chave, aplica');
+
+  -- outro local
+  PERFORM ci.entrar(vc);
+  r := clinica_vacina_offline(k[5], 'externa', jsonb_build_object('pet_id', pet3, 'catalogo_id', cat, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira do tutor', 'lote', 'X1'));
+  r2 := clinica_vacina_offline(k[5], 'externa', jsonb_build_object('pet_id', pet3, 'catalogo_id', cat, 'aplicada_em', hoje - 30, 'informado_por', 'Carteira do tutor'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT origem = 'outro_local' AND aplicada_em = hoje - 30 FROM pet_vacinacoes WHERE id = (r ->> 'vacinacao_id')::uuid) AND (r2 ->> 'repetido')::boolean, 'vacina de outro local entra uma vez só');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'externa', jsonb_build_object('pet_id', %L, 'catalogo_id', %L, 'aplicada_em', %L))$c$, gen_random_uuid(), pet3, cat, hoje - 3), 'vacina de outro local sem quem informou');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'aplicar', jsonb_build_object('agendamento_id', %L, 'catalogo_id', %L, 'estoque_lote_id', %L))$c$, k[5], ag_vac, cat, l_b), 'chave de outro tipo de operação');
+
+  -- exame aberto no notebook: abrir, salvar pelo campo do modelo, fechar
+  PERFORM ci.entrar(vc);
+  r := clinica_exame_offline(k[6], 'abrir', jsonb_build_object('pet_id', pet3, 'modelo_id', m, 'laboratorio', 'Lab Offline', 'data_coleta', hoje - 1));
+  r2 := clinica_exame_offline(k[6], 'abrir', jsonb_build_object('pet_id', pet3, 'modelo_id', m, 'laboratorio', 'Lab Offline', 'data_coleta', hoje - 1));
+  PERFORM ci.sair();
+  ex := (r ->> 'exame_id')::uuid;
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND (SELECT count(*) FROM pet_exames WHERE pet_id = pet3) = 1, 'reenviar a abertura não abre outro exame');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'salvar', jsonb_build_object('abrir_chave', %L))$c$, gen_random_uuid(), gen_random_uuid()), 'salvar exame cuja abertura não chegou');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'salvar', jsonb_build_object('abrir_chave', %L, 'resultados', jsonb_build_array(jsonb_build_object('campo_id', %L, 'valor', '90'))))$c$, gen_random_uuid(), k[6], gen_random_uuid()), 'campo que não é do exame');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'fechar', jsonb_build_object('abrir_chave', %L))$c$, gen_random_uuid(), k[6]), 'fechar exame sem nenhum resultado');
+  PERFORM ci.entrar(vc);
+  r := clinica_exame_offline(k[7], 'salvar', jsonb_build_object('abrir_chave', k[6], 'observacoes', 'coletado em jejum',
+         'resultados', jsonb_build_array(jsonb_build_object('campo_id', c_num, 'valor', '92,5'), jsonb_build_object('campo_id', c_txt, 'valor', 'normal', 'nota', 'sem hemólise'))));
+  r2 := clinica_exame_offline(k[7], 'salvar', jsonb_build_object('abrir_chave', k[6], 'resultados', jsonb_build_array(jsonb_build_object('campo_id', c_num, 'valor', '1'))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor_num = 92.5 FROM pet_exame_resultados WHERE exame_id = ex AND campo_id = c_num)
+               AND (SELECT valor_texto = 'normal' AND nota = 'sem hemólise' FROM pet_exame_resultados WHERE exame_id = ex AND campo_id = c_txt)
+               AND (SELECT observacoes = 'coletado em jejum' FROM pet_exames WHERE id = ex), 'salvar grava os resultados pelo campo do modelo');
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND (SELECT valor_num = 92.5 FROM pet_exame_resultados WHERE exame_id = ex AND campo_id = c_num), 'reenviar o salvamento não regrava');
+  PERFORM ci.entrar(vc);
+  r := clinica_exame_offline(k[8], 'fechar', jsonb_build_object('abrir_chave', k[6]));
+  r2 := clinica_exame_offline(k[8], 'fechar', jsonb_build_object('abrir_chave', k[6]));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'fechado' AND (r2 ->> 'repetido')::boolean AND r2 ->> 'situacao' = 'fechado', 'fechar o exame aceita repetição');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'salvar', jsonb_build_object('abrir_chave', %L, 'resultados', jsonb_build_array(jsonb_build_object('campo_id', %L, 'valor', '5'))))$c$, gen_random_uuid(), k[6], c_num), 'salvar exame já fechado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_exame_resultados SET valor_num = 1 WHERE exame_id = %L AND campo_id = %L$c$, ex, c_num), 'alterar resultado de exame fechado, nem o dono do banco');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_vacina_offline(%L, 'externa', jsonb_build_object('pet_id', %L, 'catalogo_id', %L, 'aplicada_em', %L, 'informado_por', 'x'))$c$, gen_random_uuid(), pet3, cat, hoje - 40), 'vacina sem a clínica liberada');
+  PERFORM ci.deve_falhar(vc, format($c$SELECT clinica_exame_offline(%L, 'abrir', jsonb_build_object('pet_id', %L, 'modelo_id', %L, 'laboratorio', 'L'))$c$, gen_random_uuid(), pet3, m), 'exame sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
