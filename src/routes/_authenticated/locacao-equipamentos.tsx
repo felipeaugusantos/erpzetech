@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Hammer, Pencil, Plus, Search } from "lucide-react";
+import { Hammer, Pencil, Plus, Search, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ import { useModulosCnae } from "@/lib/cnae";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl } from "@/lib/format";
+import { AvisoManutencao } from "@/components/app/AvisoManutencao";
+import { ManutencaoEquipamento } from "@/components/app/ManutencaoEquipamento";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +113,12 @@ function Equipamentos() {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
+  const [manutencaoDe, setManutencaoDe] = useState<{
+    id: string;
+    nome: string;
+    situacao: string;
+    ativo: boolean;
+  } | null>(null);
   const [form, setForm] = useState<Form>(vazio);
 
   const { data: equipamentos = [], isLoading } = useQuery({
@@ -192,6 +200,8 @@ function Equipamentos() {
           </Button>
         }
       />
+
+      <AvisoManutencao />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Equipamentos" value={String(equipamentos.length)} icon={Hammer} />
@@ -339,12 +349,19 @@ function Equipamentos() {
                     >
                       <Pencil className="size-4" /> Editar
                     </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setManutencaoDe(e)}>
+                      <Wrench className="size-4" /> Manutenção
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {manutencaoDe && (
+        <ManutencaoEquipamento equipamento={manutencaoDe} aoFechar={() => setManutencaoDe(null)} />
       )}
 
       <Dialog open={aberto} onOpenChange={setAberto}>

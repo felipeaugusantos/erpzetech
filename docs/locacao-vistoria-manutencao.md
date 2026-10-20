@@ -30,12 +30,14 @@ A devolução também **cobra a locação**:
 - **Já cobrada e devolvida no prazo:** nada de novo. Locação sem valor devolve sem cobrança.
 - O vencimento escolhido na devolução vale para as cobranças da locação e das avarias.
 
-## Parte 2 — Plano de manutenção por equipamento (a fazer)
+## Parte 2 — Plano de manutenção por equipamento (entregue)
 
-Decisões já tomadas: conta **dias de locação acumulados**; ao vencer, **avisa e bloqueia** nova locação até registrar a manutenção; ao registrar, a contagem recomeça.
+Cada equipamento pode ter **planos de manutenção** (ex.: troca de óleo a cada 60 dias locados), em **Equipamentos › Manutenção**.
 
-- Cadastro do plano por equipamento: nome do plano (ex.: troca de óleo), intervalo em dias locados e se bloqueia ao vencer.
-- Contagem: soma dos dias reais de cada locação devolvida desde a última manutenção do plano.
-- Painel de locação e tela de equipamentos: equipamentos com manutenção vencida ou próxima de vencer.
-- Registro da manutenção: data, o que foi feito, custo e quem fez; recomeça a contagem do plano, tira o equipamento de manutenção quando é um reparo de avaria e soma ao custo de manutenção do equipamento.
-- Bloqueio: não se reserva nem se entrega equipamento com manutenção vencida (aviso claro na tela de nova locação).
+- **Contagem:** soma dos dias de locação (em andamento ou devolvida, do contrato ou dos itens) **depois da última manutenção do plano**. A locação em andamento conta até hoje. Uma locação que começou antes da manutenção só conta os dias depois dela.
+- **Situação:** em dia; **vence em breve** quando faltam 20% do intervalo ou menos; **vencida** quando os dias locados chegam ao intervalo.
+- **Avisa:** faixa de aviso nos Equipamentos e no Painel de locação, com os planos mais urgentes, e etiqueta "manutenção vencida" onde se escolhe o equipamento (nova locação e balcão).
+- **Bloqueia:** plano vencido impede pôr a locação em andamento (entregar, balcão ou ajuste direto, a regra está no banco) até a manutenção ser registrada. Reserva futura pode existir; o que trava é a entrega.
+- **Registrar manutenção** (`locacao_manutencao_registrar`): data, o que foi feito, custo, quem fez e o tipo. Preventiva do plano **recomeça a contagem**; corretiva (reparo de defeito) **tira o equipamento de "manutenção"** se ele não estiver fora de uso. O custo soma ao "custo de manutenção" do equipamento. Não se registra manutenção de equipamento locado.
+- O registro **não se altera nem se apaga** (corrige-se com um novo registro). Plano pode ser editado (nome e intervalo) e desativado.
+- Equipamentos com `quantidade` maior que 1: o plano é do cadastro inteiro. Para controlar cada unidade, cadastre cada uma como equipamento próprio.
