@@ -158,6 +158,16 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const [iniciando, setIniciando] = useState(false);
   const navegar = useNavigate();
 
+  const meuVeterinario = useQuery({
+    queryKey: ["clinica-meu-veterinario"],
+    staleTime: Number.POSITIVE_INFINITY,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_meu_veterinario");
+      if (error) throw error;
+      return data as string;
+    },
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-historico", petId],
     staleTime: Number.POSITIVE_INFINITY,
@@ -213,7 +223,17 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   const p = data.pet;
   const evolucao = evolucaoDoPeso(data.atendimentos);
-  const aberto = atendimentoAbertoDoPaciente(data.atendimentos);
+  // continuar só vale para o atendimento aberto por este veterinário; o de outro não abre nem edita por aqui
+  const aberto = atendimentoAbertoDoPaciente(
+    data.atendimentos.filter(
+      (a) => meuVeterinario.data && a.veterinario.id === meuVeterinario.data,
+    ),
+  );
+  const abertoDeOutro =
+    !aberto &&
+    data.atendimentos.some(
+      (a) => a.situacao === "aberto" && a.veterinario.id !== meuVeterinario.data,
+    );
 
   return (
     <div className="grid gap-4">
@@ -235,6 +255,11 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </Button>
           )}
         </div>
+        {abertoDeOutro && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Há atendimento aberto por outro(a) veterinário(a); só quem o abriu continua nele.
+          </p>
+        )}
         {iniciando && (
           <IniciarAtendimentoDialog
             petId={petId}

@@ -15,3 +15,18 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.clinica_servicos_consulta() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_servicos_consulta() TO authenticated;
+
+-- Cadastro profissional do veterinário que está logado: a ficha do paciente só oferece "Continuar atendimento" para o atendimento aberto por ele
+-- (o de outro veterinário não abre nem edita por este usuário).
+CREATE OR REPLACE FUNCTION public.clinica_meu_veterinario()
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  RETURN public._clinica_vet();
+END $$;
+REVOKE ALL ON FUNCTION public.clinica_meu_veterinario() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.clinica_meu_veterinario() TO authenticated;

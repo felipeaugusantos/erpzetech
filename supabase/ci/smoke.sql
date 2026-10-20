@@ -549,7 +549,7 @@ DECLARE
     -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
     'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar',
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
-    'clinica_servicos_consulta'];
+    'clinica_servicos_consulta', 'clinica_meu_veterinario'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5724,6 +5724,11 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(lista) x WHERE x ->> 'id' = cons::text AND (x ->> 'duracao_min')::int = 30), 'o veterinário lista o serviço de consulta ativo');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(lista) x WHERE x ->> 'id' IN (SELECT id::text FROM pet_servicos WHERE categoria <> 'consulta')), 'só serviços de consulta');
+  PERFORM ci.entrar(vz);
+  PERFORM ci.exige(clinica_meu_veterinario() = pvz, 'o veterinário recebe o próprio cadastro profissional');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_meu_veterinario()', 'gestor pede o cadastro de veterinário');
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_meu_veterinario()', 'recepção pede o cadastro de veterinário');
   PERFORM ci.deve_falhar(gest, 'SELECT clinica_servicos_consulta()', 'gestor lista os serviços de consulta da clínica');
   PERFORM ci.deve_falhar(vend, 'SELECT clinica_servicos_consulta()', 'recepção lista os serviços de consulta da clínica');
 

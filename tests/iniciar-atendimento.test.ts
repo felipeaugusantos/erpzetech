@@ -5,7 +5,9 @@ import {
   atendimentoAbertoDoPaciente,
   dadosDaVisitaAvulsa,
   servicoInicial,
+  encerrarTentativaDaVisita,
   servicosDaResposta,
+  tentativaDaVisita,
 } from "../src/lib/iniciar-atendimento.ts";
 
 describe("iniciar atendimento", () => {
@@ -45,5 +47,45 @@ describe("iniciar atendimento", () => {
       servicosDaResposta([{ id: "a", nome: "C", duracao_min: "30" }, { id: 1 }, null]),
       [{ id: "a", nome: "C", duracao_min: 30 }],
     );
+  });
+});
+
+function armazem() {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+  };
+}
+
+describe("tentativa guardada fora da janela", () => {
+  it("o mesmo paciente e serviço reaproveitam a chave depois de fechar a janela", () => {
+    const a = armazem();
+    const primeira = tentativaDaVisita("pet", "serv", a);
+    const segunda = tentativaDaVisita("pet", "serv", a);
+    assert.deepEqual(segunda, primeira);
+  });
+
+  it("outro paciente ou serviço começa tentativa nova", () => {
+    const a = armazem();
+    const primeira = tentativaDaVisita("pet", "serv", a);
+    assert.notEqual(tentativaDaVisita("outro", "serv", a).chave, primeira.chave);
+    assert.notEqual(tentativaDaVisita("pet", "outro", a).chave, primeira.chave);
+  });
+
+  it("resultado conhecido encerra a tentativa", () => {
+    const a = armazem();
+    const primeira = tentativaDaVisita("pet", "serv", a);
+    encerrarTentativaDaVisita(a);
+    assert.notEqual(tentativaDaVisita("pet", "serv", a).chave, primeira.chave);
+  });
+
+  it("sem armazenamento ou com conteúdo estragado, segue com tentativa nova", () => {
+    assert.ok(tentativaDaVisita("pet", "serv", null).chave);
+    const a = armazem();
+    a.setItem("zt-iniciar-atendimento", "{ não é json");
+    assert.ok(tentativaDaVisita("pet", "serv", a).chave);
+    encerrarTentativaDaVisita(null);
   });
 });

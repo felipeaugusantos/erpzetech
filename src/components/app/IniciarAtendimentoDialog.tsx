@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -20,12 +20,14 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  dadosDaVisitaAvulsa,
+  encerrarTentativaDaVisita,
   servicoInicial,
   servicosDaResposta,
-  type DadosVisitaAvulsa,
+  tentativaDaVisita,
 } from "@/lib/iniciar-atendimento";
 import { ehErroDeRede } from "@/lib/offline";
+
+const armazemDaAba = () => (typeof sessionStorage === "undefined" ? null : sessionStorage);
 
 /**
  * Abre o atendimento de um paciente que chegou sem consulta marcada: cria a consulta e o atendimento de uma vez e leva à tela de atendimento.
@@ -45,8 +47,6 @@ export function IniciarAtendimentoDialog({
 }) {
   const [servico, setServico] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
-  // o mesmo pedido repetido leva os mesmos identificadores: o banco não abre dois atendimentos
-  const tentativa = useRef<{ chave: string; dados: DadosVisitaAvulsa } | null>(null);
 
   const servicos = useQuery({
     queryKey: ["clinica-servicos-consulta"],
@@ -64,28 +64,27 @@ export function IniciarAtendimentoDialog({
     if (!escolhido) return;
     setSalvando(true);
     try {
-      if (
-        tentativa.current?.dados.servico_id !== escolhido ||
-        tentativa.current.dados.pet_id !== petId
-      )
-        tentativa.current = {
-          chave: crypto.randomUUID(),
-          dados: dadosDaVisitaAvulsa(petId, escolhido),
-        };
-      const { chave, dados } = tentativa.current;
+      // o mesmo pedido repetido (inclusive depois de fechar a janela) leva os mesmos identificadores: o banco não abre dois atendimentos
+      const { chave, dados } = tentativaDaVisita(petId, escolhido, armazemDaAba());
       const { data, error } = await supabase.rpc("clinica_visita_registrar", {
         p_chave: chave,
         p_dados: dados,
       });
       if (error) throw error;
+      encerrarTentativaDaVisita(armazemDaAba());
       aoIniciar(String((data as unknown as { agendamento_id: string }).agendamento_id));
     } catch (e) {
       const msg = (e as Error).message;
       if (ehErroDeRede(msg))
-        toast.error("Sem internet", {
-          description: "Use Trabalho sem internet: ele guarda o atendimento e envia depois.",
+        toast.error("Sem conexão", {
+          description:
+            "Tente de novo quando houver sinal: se o atendimento chegou a abrir, ele não é aberto duas vezes. Sem sinal por um tempo, use Trabalho sem internet.",
         });
-      else toast.error("Não foi possível iniciar o atendimento", { description: msg });
+      else {
+        // recusa do banco: nada foi aberto, o próximo pedido é novo
+        encerrarTentativaDaVisita(armazemDaAba());
+        toast.error("Não foi possível iniciar o atendimento", { description: msg });
+      }
     } finally {
       setSalvando(false);
     }
