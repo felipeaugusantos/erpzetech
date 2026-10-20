@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { brl, dateBR, num } from "@/lib/format";
+import { AvisoManutencao } from "@/components/app/AvisoManutencao";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -208,6 +209,8 @@ function PainelLocacao() {
           </Button>
         }
       />
+
+      <AvisoManutencao comLink />
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

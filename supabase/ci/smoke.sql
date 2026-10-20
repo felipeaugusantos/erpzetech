@@ -5392,3 +5392,118 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_vistorias (locacao_id, equipamento_id, situacao) VALUES (%L, %L, 'sem_avarias')$c$, loc4, eq_a), 'gravar vistoria direto na tabela');
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM locacao_vistorias') >= 4, 'a empresa lê as vistorias dela');
 END $$;
+
+-- 56. Locação (plano de manutenção): dias locados acumulados, aviso e bloqueio ao vencer, registro recomeça a contagem
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cli uuid; eq1 uuid; eq2 uuid; eq3 uuid; plano uuid; plano2 uuid; locb uuid; loca uuid; locc uuid; locd uuid;
+  r jsonb; s jsonb; n bigint;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Manutencao CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Compactador Manut CI', 100) RETURNING id INTO eq1;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, situacao) VALUES (demo, 'Gerador Manut CI', 100, 'manutencao') RETURNING id INTO eq2;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, situacao, ativo) VALUES (demo, 'Perdido Manut CI', 100, 'manutencao', false) RETURNING id INTO eq3;
+
+  -- perfil do salão não mexe
+  PERFORM ci.deve_falhar(gar, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'Troca de óleo', 'intervalo_dias', 10))$c$, eq1), 'perfil do salão cria plano de manutenção');
+  PERFORM ci.deve_falhar(gar, 'SELECT locacao_manutencao_situacao()', 'perfil do salão vê a situação dos planos');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'descricao', 'Revisão'))$c$, eq1), 'perfil do salão registra manutenção');
+
+  -- regras do plano
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'X', 'intervalo_dias', 10))$c$, eq1), 'plano com nome curto demais');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'Troca de óleo', 'intervalo_dias', 0))$c$, eq1), 'plano com intervalo zero');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'Troca de óleo', 'intervalo_dias', 4000))$c$, eq1), 'plano com intervalo acima de 3650');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'Troca de óleo', 'intervalo_dias', 10, 'referencia_em', current_date + 1))$c$, eq1), 'última manutenção no futuro');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', 'Troca de óleo', 'intervalo_dias', 10))$c$, gen_random_uuid()), 'plano de equipamento que não existe');
+
+  PERFORM ci.entrar(adm);
+  plano := locacao_plano_salvar(jsonb_build_object('equipamento_id', eq1, 'nome', 'Troca de óleo', 'intervalo_dias', 12, 'referencia_em', current_date - 30));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_plano_salvar(jsonb_build_object('equipamento_id', %L, 'nome', ' troca de ÓLEO ', 'intervalo_dias', 5))$c$, eq1), 'dois planos ativos com o mesmo nome no equipamento');
+
+  -- sem locação nenhuma: em dia
+  PERFORM ci.entrar(adm);
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(s) = 1 AND (s -> 0 ->> 'dias')::int = 0 AND s -> 0 ->> 'situacao' = 'em_dia' AND (s -> 0 ->> 'restantes')::int = 12, 'sem locação, o plano está em dia e com o intervalo todo pela frente');
+
+  -- locação que começou antes da última manutenção só conta os dias depois dela (5); a seguinte conta inteira (6): 11 de 12 = próxima
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, devolvido_em, dias, valor_diaria, valor_total, situacao)
+    VALUES (demo, cli, eq1, current_date - 35, current_date - 35, current_date - 25, 10, 100, 1000, 'devolvida') RETURNING id INTO locb;
+  PERFORM ci.entrar(adm);
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((s -> 0 ->> 'dias')::int = 5 AND s -> 0 ->> 'situacao' = 'em_dia', 'locação que começou antes da última manutenção conta só os dias depois dela');
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, devolvido_em, dias, valor_diaria, valor_total, situacao)
+    VALUES (demo, cli, eq1, current_date - 20, current_date - 20, current_date - 14, 6, 100, 600, 'devolvida') RETURNING id INTO loca;
+  PERFORM ci.entrar(adm);
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((s -> 0 ->> 'dias')::int = 11 AND (s -> 0 ->> 'restantes')::int = 1 AND s -> 0 ->> 'situacao' = 'proxima', 'faltando 20% ou menos do intervalo, o plano avisa (próxima)');
+
+  -- a locação em andamento conta até hoje e vence o plano
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, situacao)
+    VALUES (demo, cli, eq1, current_date - 2, current_date - 2, 5, 100, 500, 'em_andamento') RETURNING id INTO locc;
+  PERFORM ci.entrar(adm);
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((s -> 0 ->> 'dias')::int = 13 AND s -> 0 ->> 'situacao' = 'vencida', 'a locação em andamento conta os dias até hoje e vence o plano');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM locacao_planos_manutencao') >= 1, 'a empresa lê os planos dela');
+
+  -- vencido: não sai para um novo cliente (nem pela função, nem por ajuste direto)
+  UPDATE locacoes SET situacao = 'devolvida', devolvido_em = current_date WHERE id = locc;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, dias, valor_diaria, valor_total, situacao, aprovada)
+    VALUES (demo, cli, eq1, current_date, 1, 100, 100, 'reservada', true) RETURNING id INTO locd;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_entregar(%L)$c$, locd), 'entregar equipamento com manutenção vencida');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE locacoes SET situacao = 'em_andamento' WHERE id = %L$c$, locd), 'pôr em andamento equipamento com manutenção vencida, nem o dono do banco');
+
+  -- registrar a manutenção: validações
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', ''))$c$, eq1, plano), 'manutenção sem descrição');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo', 'realizada_em', current_date + 1))$c$, eq1, plano), 'manutenção no futuro');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo', 'realizada_em', current_date - 40))$c$, eq1, plano), 'manutenção anterior à última do plano');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo', 'custo', 'abc'))$c$, eq1, plano), 'custo que não é número');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo', 'custo', '-1'))$c$, eq1, plano), 'custo negativo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo', 'tipo', 'qualquer'))$c$, eq1, plano), 'tipo de manutenção inválido');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'plano_id', %L, 'descricao', 'Troca de óleo'))$c$, eq2, plano), 'plano de outro equipamento');
+
+  -- registro recomeça a contagem, soma o custo e libera a entrega
+  PERFORM ci.entrar(adm);
+  r := locacao_manutencao_registrar(jsonb_build_object('equipamento_id', eq1, 'plano_id', plano, 'descricao', 'Troca de óleo e filtro', 'custo', '150,50', 'responsavel', 'Oficina CI'));
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((s -> 0 ->> 'dias')::int = 0 AND s -> 0 ->> 'situacao' = 'em_dia' AND (s -> 0 ->> 'restantes')::int = 12, 'registrar a manutenção recomeça a contagem do plano');
+  PERFORM ci.exige((SELECT referencia_em = current_date FROM locacao_planos_manutencao WHERE id = plano), 'o plano passa a contar da data da manutenção');
+  PERFORM ci.exige((SELECT custo_manutencao = 150.5 FROM locacao_equipamentos WHERE id = eq1), 'o custo da manutenção soma ao do equipamento');
+  PERFORM ci.exige((SELECT tipo = 'preventiva' AND plano_id = plano AND responsavel = 'Oficina CI' FROM locacao_manutencoes WHERE id = (r ->> 'manutencao_id')::uuid), 'a manutenção fica registrada como preventiva do plano');
+  PERFORM ci.entrar(adm);
+  PERFORM locacao_entregar(locd);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'em_andamento' FROM locacoes WHERE id = locd), 'depois da manutenção o equipamento volta a poder ser entregue');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_manutencao_registrar(jsonb_build_object('equipamento_id', %L, 'descricao', 'Revisão'))$c$, eq1), 'registrar manutenção de equipamento locado');
+
+  -- reparo de avaria libera o equipamento; equipamento fora de uso não volta
+  PERFORM ci.entrar(adm);
+  r := locacao_manutencao_registrar(jsonb_build_object('equipamento_id', eq2, 'tipo', 'corretiva', 'descricao', 'Troca do cabo', 'custo', '80'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'liberado')::boolean AND (SELECT situacao = 'disponivel' FROM locacao_equipamentos WHERE id = eq2), 'reparo de avaria tira o equipamento de manutenção');
+  PERFORM ci.entrar(adm);
+  r := locacao_manutencao_registrar(jsonb_build_object('equipamento_id', eq3, 'tipo', 'corretiva', 'descricao', 'Tentativa de reparo'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'liberado')::boolean AND (SELECT situacao = 'manutencao' AND NOT ativo FROM locacao_equipamentos WHERE id = eq3), 'equipamento fora de uso não volta para a locação');
+
+  -- registro de manutenção não muda nem some, e não se grava à mão
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE locacao_manutencoes SET custo = 0 WHERE equipamento_id = %L$c$, eq1), 'alterar manutenção registrada, nem o dono do banco');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM locacao_manutencoes WHERE equipamento_id = %L$c$, eq1), 'apagar manutenção registrada, nem o dono do banco');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_manutencoes (equipamento_id, tipo, realizada_em, descricao) VALUES (%L, 'preventiva', current_date, 'Direto')$c$, eq1), 'gravar manutenção direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_planos_manutencao (equipamento_id, nome, intervalo_dias) VALUES (%L, 'Direto', 5)$c$, eq1), 'gravar plano direto na tabela');
+
+  -- plano desativado sai da conta e do bloqueio
+  PERFORM ci.entrar(adm);
+  plano2 := locacao_plano_salvar(jsonb_build_object('id', plano, 'nome', 'Troca de óleo', 'intervalo_dias', 1, 'ativo', false));
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(plano2 = plano AND jsonb_array_length(s) = 0, 'plano desativado deixa de aparecer e de bloquear');
+END $$;
