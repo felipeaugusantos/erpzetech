@@ -56,3 +56,25 @@ export const GRUPOS_FORA_DA_CLINICA = ["Logística"] as const;
 
 /** Nome da tela de lotes para a clínica: ali ficam os lotes de vacina e medicamento (validade e saldo). */
 export const ROTULO_LOTES_CLINICA = "Lotes (vacinas e medicamentos)";
+
+/**
+ * Clínica veterinária ou pet shop: o dashboard mostra agenda, atendimentos e retorno dos clientes em vez de pedidos e entregas.
+ * Vale para quem é só clínica, para o ramo ou o CNAE principal de pet shop, e para a liberação do módulo de pet shop ou clínica (explícita ou,
+ * sem CNPJ, escolhida em Módulos sem CNPJ) quando não há outro módulo liberado. CNAE de pet shop só como secundário não conta: a empresa
+ * que tem outra atividade principal continua com o dashboard de vendas.
+ */
+export function ehEmpresaPet(empresa?: EmpresaModulos | null): boolean {
+  if (!empresa) return false;
+  if (ehEmpresaSoClinica(empresa)) return true;
+  const liberados = empresa.modulos_liberados ?? [];
+  if (liberados.some((m) => m !== "clinica" && m !== "petshop")) return false;
+  if (liberados.includes("petshop") || liberados.includes("clinica")) return true;
+  const escolhidos = semCnpj(empresa) ? (empresa.modulos_sem_cnpj ?? []) : [];
+  if (
+    escolhidos.includes("petshop") &&
+    !["assistencia", "locacao", "restaurante"].some((m) => escolhidos.includes(m))
+  )
+    return true;
+  if (empresa.ramo_atividade === "petshop") return true;
+  return cnaesDaEmpresa({ cnae: empresa.cnae ?? null })[0]?.startsWith("4789004") ?? false;
+}
