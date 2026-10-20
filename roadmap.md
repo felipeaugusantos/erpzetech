@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Seleção de módulos no Cadastro da empresa para negócios sem CNPJ, preservando permissões e CNAEs.
+
 - [x] Redefinir senha do administrador em Editar cliente assinante: cinco testes de proteção passaram e campos/confirmar/cancelar conferidos com conta autenticada; nenhuma senha real alterada na verificação.
 
 - [x] Corrigir a leitura do PDF com dois DACTEs: quatro testes passaram e a tela reconheceu 727506 e 727538 com suas respectivas chaves; vínculo existente conferido por consulta, sem lançar novo frete.
