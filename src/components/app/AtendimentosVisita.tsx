@@ -22,7 +22,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CHAVE_CONSUMIDOS,
+  PREFIXO_PACIENTE,
   PREFIXO_RASCUNHO,
+  pacientesGuardados,
+  type PacienteGuardado,
   abrirAtendimento,
   consultasDaCopia,
   operacaoDeFechar,
@@ -34,12 +38,11 @@ import {
   type PacienteParaAtender,
   type RascunhoAtendimento,
 } from "@/lib/atendimento-offline";
-import { pacientesLocais } from "@/lib/cadastro-rapido";
 import { erroDosSinais, faltaParaFechar, type FormAtendimento } from "@/lib/clinica";
 import type { Cofre } from "@/lib/cofre";
 import type { OperacaoFila } from "@/lib/fila-clinica";
 import { dateTimeBR } from "@/lib/format";
-import { tutoresDaCopia, type CopiaVisita } from "@/lib/visita";
+import type { CopiaVisita } from "@/lib/visita";
 
 const CAMPOS_TEXTO: { chave: keyof FormAtendimento; rotulo: string; linhas: number }[] = [
   { chave: "queixa", rotulo: "Queixa principal", linhas: 2 },
@@ -75,19 +78,32 @@ export function AtendimentosVisita({
   aoGuardar: () => Promise<void>;
 }) {
   const [rascunhos, setRascunhos] = useState<RascunhoAtendimento[]>([]);
+  const [guardados, setGuardados] = useState<PacienteGuardado[]>([]);
+  const [consumidos, setConsumidos] = useState<string[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
   const [pacienteSel, setPacienteSel] = useState("");
   const [servicoSel, setServicoSel] = useState("");
 
   const carregar = useCallback(async () => {
-    const { itens } = await cofre.listar<RascunhoAtendimento>("copia");
+    const { itens } = await cofre.listar<unknown>("copia");
+    let usados = (itens.find(([k]) => k === CHAVE_CONSUMIDOS)?.[1] as string[] | undefined) ?? [];
     const lista: RascunhoAtendimento[] = [];
-    for (const [chave, r] of itens) {
+    for (const [chave, valor] of itens) {
       if (!chave.startsWith(PREFIXO_RASCUNHO)) continue;
-      // fechado e já enviado: o servidor guarda, o notebook solta
-      if (rascunhoJaEnviado(r, fila)) await cofre.apagar("copia", chave);
-      else lista.push(r);
+      const r = valor as RascunhoAtendimento;
+      // fechado e já enviado: o servidor guarda, o notebook solta (e lembra só que a consulta marcada já foi atendida)
+      if (rascunhoJaEnviado(r, fila)) {
+        if (r.agendamentoId && !usados.includes(r.agendamentoId)) {
+          usados = [...usados, r.agendamentoId];
+          await cofre.gravar("copia", CHAVE_CONSUMIDOS, usados);
+        }
+        await cofre.apagar("copia", chave);
+      } else lista.push(r);
     }
+    setConsumidos(usados);
+    setGuardados(
+      itens.filter(([k]) => k.startsWith(PREFIXO_PACIENTE)).map(([, p]) => p as PacienteGuardado),
+    );
     setRascunhos(lista.sort((a, b) => b.abertoEm.localeCompare(a.abertoEm)));
   }, [cofre, fila]);
 
@@ -97,26 +113,20 @@ export function AtendimentosVisita({
     );
   }, [carregar]);
 
-  const comRascunho = new Set(rascunhos.map((r) => r.agendamentoId).filter(Boolean));
+  const comRascunho = new Set([
+    ...rascunhos.map((r) => r.agendamentoId).filter(Boolean),
+    ...consumidos,
+  ]);
   const consultas = copia
     ? consultasDaCopia(copia).filter((c) => !comRascunho.has(c.agendamentoId))
     : [];
   const servicos = copia ? servicosDeConsulta(copia) : [];
-  const tutores = Object.fromEntries(
-    (copia ? tutoresDaCopia(copia) : []).map((t) => [t.id, t.nome]),
-  );
   const pacientes = useMemo(() => {
-    const lista: PacienteParaAtender[] = pacientesLocais(fila, tutores).map((p) => ({
-      petId: p.petId,
-      petNome: p.petNome,
-      tutorNome: p.tutorNome,
-      cadastroOpId: p.operacaoId,
-    }));
+    const lista = pacientesGuardados(guardados, fila);
     const ids = new Set(lista.map((p) => p.petId));
     for (const p of copia ? petsDaAgenda(copia) : []) if (!ids.has(p.petId)) lista.push(p);
     return lista;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fila, copia]);
+  }, [guardados, fila, copia]);
 
   async function iniciar(origem: Parameters<typeof abrirAtendimento>[0]) {
     try {

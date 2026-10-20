@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Cofre } from "@/lib/cofre";
+import { PREFIXO_PACIENTE } from "@/lib/atendimento-offline";
 import {
   ESPECIES_CADASTRO,
   cadastroVazio,
   erroDoCadastroRapido,
   operacaoDoCadastroRapido,
+  pacientesLocais,
   type FormCadastroRapido,
 } from "@/lib/cadastro-rapido";
 import { tutoresDaCopia, type CopiaVisita } from "@/lib/visita";
@@ -50,6 +52,16 @@ export function CadastroRapido({
       const existente = tutores.find((t) => t.id === form.tutorId);
       const op = operacaoDoCadastroRapido(form, existente?.nome);
       await cofre.gravar("fila", op.id, op);
+      // o paciente novo segue disponível para atender mesmo depois que o cadastro for enviado e sair da fila
+      const [novo] = pacientesLocais([op], Object.fromEntries(tutores.map((t) => [t.id, t.nome])));
+      if (novo)
+        await cofre.gravar("copia", PREFIXO_PACIENTE + novo.petId, {
+          petId: novo.petId,
+          petNome: novo.petNome,
+          tutorNome: novo.tutorNome,
+          operacaoId: novo.operacaoId,
+          guardadoEm: new Date().toISOString(),
+        });
       // o próximo cadastro do mesmo tutor segue com ele escolhido
       setForm({
         ...cadastroVazio,

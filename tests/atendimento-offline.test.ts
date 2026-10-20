@@ -9,6 +9,7 @@ import {
   consultasDaCopia,
   formAtendimentoVazio,
   operacaoDeFechar,
+  pacientesGuardados,
   operacaoDeSalvar,
   rascunhoJaEnviado,
   salvamentosSubstituidos,
@@ -142,5 +143,36 @@ describe("salvar e fechar", () => {
     assert.equal(rascunhoJaEnviado({ ...rascunho, fechado: false }, []), false);
     assert.equal(rascunhoJaEnviado({ ...rascunho, fechado: true }, [s]), false);
     assert.equal(rascunhoJaEnviado({ ...rascunho, fechado: true }, []), true);
+  });
+});
+
+describe("pacientesGuardados", () => {
+  const g = (guardadoEm: string, operacaoId = "cad-1") => ({
+    petId: "p",
+    petNome: "Mia",
+    tutorNome: "Zé",
+    operacaoId,
+    guardadoEm,
+  });
+  it("continua listando o paciente depois que o cadastro saiu da fila", () => {
+    const r = pacientesGuardados([g("2026-10-19T12:00:00Z")], [], agora);
+    assert.equal(r.length, 1);
+    assert.equal(r[0]?.cadastroOpId, undefined);
+  });
+  it("depende do cadastro enquanto ele está na fila", () => {
+    const cad = abrirAtendimento(
+      {
+        tipo: "visita_avulsa",
+        paciente: { petId: "p", petNome: "Mia", tutorNome: "Zé" },
+        servicoId: "s",
+      },
+      agora,
+      { operacao: "cad-1" },
+    ).operacao;
+    const r = pacientesGuardados([g("2026-10-19T12:00:00Z")], [cad], agora);
+    assert.equal(r[0]?.cadastroOpId, "cad-1");
+  });
+  it("some depois de 7 dias", () => {
+    assert.equal(pacientesGuardados([g("2026-10-01T12:00:00Z")], [], agora).length, 0);
   });
 });

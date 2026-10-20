@@ -250,3 +250,28 @@ export function petsDaAgenda(copia: { dados: { agenda: unknown[] } }): PacienteP
   }
   return [...vistos.values()].sort((x, y) => x.petNome.localeCompare(y.petNome, "pt-BR"));
 }
+
+/** Prefixo da chave de um paciente cadastrado sem internet, guardado no cofre mesmo depois que o cadastro sai da fila. */
+export const PREFIXO_PACIENTE = "paciente:";
+/** Chave do cofre com os agendamentos já atendidos e enviados (a cópia da visita continua listando-os como pendentes). */
+export const CHAVE_CONSUMIDOS = "consumidos";
+
+export type PacienteGuardado = PacienteParaAtender & { operacaoId: string; guardadoEm: string };
+
+/** Pacientes guardados que ainda valem (a cópia da visita vence em 7 dias), com a dependência só enquanto o cadastro está na fila. */
+export function pacientesGuardados(
+  guardados: readonly PacienteGuardado[],
+  fila: readonly OperacaoFila[],
+  agora: Date = new Date(),
+  validadeDias = 7,
+): PacienteParaAtender[] {
+  const limite = agora.getTime() - validadeDias * 86_400_000;
+  return guardados
+    .filter((p) => new Date(p.guardadoEm).getTime() > limite)
+    .map((p) => {
+      const base = { petId: p.petId, petNome: p.petNome, tutorNome: p.tutorNome };
+      return fila.some((op) => op.id === p.operacaoId)
+        ? { ...base, cadastroOpId: p.operacaoId }
+        : base;
+    });
+}
