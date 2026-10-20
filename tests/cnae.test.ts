@@ -7,6 +7,14 @@ import {
   moduloLiberadoEmpresa,
 } from "../src/lib/cnae-regras.ts";
 
+test("liberação explícita da empresa libera todos os módulos sem mudar CNPJ ou CNAE", () => {
+  const empresa = { cnpj: "44.543.662/0001-83", cnae: "6911-7/03", modulos_liberados: ["assistencia", "locacao", "restaurante", "petshop", "clinica", "obras"] };
+  for (const modulo of ["assistencia", "locacao", "restaurante", "petshop", "clinica"] as const) {
+    assert.equal(moduloLiberadoEmpresa(empresa, modulo), true);
+    assert.equal(moduloLiberadoEmpresa({ ...empresa, modulos_liberados: [] }, modulo), false);
+  }
+});
+
 test("sem CNPJ pode escolher cada módulo sem informar CNAE", () => {
   for (const m of ["assistencia", "locacao", "restaurante", "petshop", "clinica"] as const) {
     assert.equal(moduloLiberadoEmpresa({ cnpj: "", modulos_sem_cnpj: [m] }, m), true);
