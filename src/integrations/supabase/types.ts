@@ -165,54 +165,6 @@ export type Database = {
           },
         ]
       }
-      banco_extrato_linhas: {
-        Row: {
-          arquivo: string | null
-          conta_id: string
-          created_at: string
-          data: string
-          descricao: string
-          documento: string | null
-          fitid: string
-          id: string
-          movimento_id: string | null
-          situacao: string
-          tenant_id: string
-          usuario_id: string | null
-          valor: number
-        }
-        Insert: {
-          arquivo?: string | null
-          conta_id: string
-          created_at?: string
-          data: string
-          descricao: string
-          documento?: string | null
-          fitid: string
-          id?: string
-          movimento_id?: string | null
-          situacao?: string
-          tenant_id?: string
-          usuario_id?: string | null
-          valor: number
-        }
-        Update: {
-          arquivo?: string | null
-          conta_id?: string
-          created_at?: string
-          data?: string
-          descricao?: string
-          documento?: string | null
-          fitid?: string
-          id?: string
-          movimento_id?: string | null
-          situacao?: string
-          tenant_id?: string
-          usuario_id?: string | null
-          valor?: number
-        }
-        Relationships: []
-      }
       banco_movimentos: {
         Row: {
           categoria: string | null
@@ -869,6 +821,162 @@ export type Database = {
           },
           {
             foreignKeyName: "clientes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinica_acessos: {
+        Row: {
+          acao: string
+          anexo_id: string | null
+          atendimento_id: string | null
+          created_at: string
+          id: string
+          pet_id: string
+          profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          acao: string
+          anexo_id?: string | null
+          atendimento_id?: string | null
+          created_at?: string
+          id?: string
+          pet_id: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Update: {
+          acao?: string
+          anexo_id?: string | null
+          atendimento_id?: string | null
+          created_at?: string
+          id?: string
+          pet_id?: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_acessos_anexo_id_fkey"
+            columns: ["anexo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_anexos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_acessos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_acessos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_acessos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinica_cadastros_rapidos: {
+        Row: {
+          chave: string
+          cliente_id: string
+          created_at: string
+          criado_por: string
+          pet_id: string
+          possivel_duplicado_de: string | null
+          tenant_id: string
+        }
+        Insert: {
+          chave: string
+          cliente_id: string
+          created_at?: string
+          criado_por?: string
+          pet_id: string
+          possivel_duplicado_de?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          chave?: string
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string
+          pet_id?: string
+          possivel_duplicado_de?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_cadastros_rapidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_cadastros_rapidos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_cadastros_rapidos_possivel_duplicado_de_fkey"
+            columns: ["possivel_duplicado_de"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_cadastros_rapidos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinica_operacoes_offline: {
+        Row: {
+          chave: string
+          created_at: string
+          profile_id: string
+          resultado: Json
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          profile_id?: string
+          resultado: Json
+          tenant_id?: string
+          tipo: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          profile_id?: string
+          resultado?: Json
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_operacoes_offline_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2440,7 +2548,6 @@ export type Database = {
           endereco: string | null
           estado: string | null
           faz_personalizacao: boolean
-          show_ao_vivo: boolean
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
@@ -2451,6 +2558,7 @@ export type Database = {
           ramo_atividade: string
           razao_social: string
           regime_tributario: string
+          show_ao_vivo: boolean
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -2471,7 +2579,6 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           faz_personalizacao?: boolean
-          show_ao_vivo?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2482,6 +2589,7 @@ export type Database = {
           ramo_atividade?: string
           razao_social: string
           regime_tributario?: string
+          show_ao_vivo?: boolean
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -2502,7 +2610,6 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           faz_personalizacao?: boolean
-          show_ao_vivo?: boolean
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
@@ -2513,6 +2620,7 @@ export type Database = {
           ramo_atividade?: string
           razao_social?: string
           regime_tributario?: string
+          show_ao_vivo?: boolean
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
@@ -3585,115 +3693,6 @@ export type Database = {
           usado_em?: string | null
         }
         Relationships: []
-      }
-      granel_aberturas: {
-        Row: {
-          created_at: string
-          custo_kg: number
-          custo_saco: number
-          deposito_id: string
-          granel_produto_id: string
-          id: string
-          kg: number
-          saco_produto_id: string
-          sacos: number
-          tenant_id: string
-          usuario_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          custo_kg?: number
-          custo_saco?: number
-          deposito_id: string
-          granel_produto_id: string
-          id?: string
-          kg: number
-          saco_produto_id: string
-          sacos: number
-          tenant_id?: string
-          usuario_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          custo_kg?: number
-          custo_saco?: number
-          deposito_id?: string
-          granel_produto_id?: string
-          id?: string
-          kg?: number
-          saco_produto_id?: string
-          sacos?: number
-          tenant_id?: string
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "granel_aberturas_deposito_id_fkey"
-            columns: ["deposito_id"]
-            isOneToOne: false
-            referencedRelation: "depositos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "granel_aberturas_granel_produto_id_fkey"
-            columns: ["granel_produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "granel_aberturas_saco_produto_id_fkey"
-            columns: ["saco_produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinica_acessos: {
-        Row: {
-          acao: string
-          atendimento_id: string | null
-          created_at: string
-          id: string
-          pet_id: string
-          profile_id: string
-          tenant_id: string
-        }
-        Insert: {
-          acao: string
-          atendimento_id?: string | null
-          created_at?: string
-          id?: string
-          pet_id: string
-          profile_id?: string
-          tenant_id?: string
-        }
-        Update: {
-          acao?: string
-          atendimento_id?: string | null
-          created_at?: string
-          id?: string
-          pet_id?: string
-          profile_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinica_acessos_atendimento_id_fkey"
-            columns: ["atendimento_id"]
-            isOneToOne: false
-            referencedRelation: "pet_atendimentos_clinicos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinica_acessos_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pets"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       importacoes: {
         Row: {
@@ -5253,852 +5252,6 @@ export type Database = {
           },
         ]
       }
-      pet_agendamento_itens: {
-        Row: {
-          agendamento_id: string
-          created_at: string
-          duracao_min: number
-          id: string
-          preco_aplicado: number
-          preco_avulso: boolean
-          servico_id: string
-          tenant_id: string
-        }
-        Insert: {
-          agendamento_id: string
-          created_at?: string
-          duracao_min: number
-          id?: string
-          preco_aplicado: number
-          preco_avulso?: boolean
-          servico_id: string
-          tenant_id?: string
-        }
-        Update: {
-          agendamento_id?: string
-          created_at?: string
-          duracao_min?: number
-          id?: string
-          preco_aplicado?: number
-          preco_avulso?: boolean
-          servico_id?: string
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      pet_agendamentos: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          criado_por: string | null
-          filial_id: string | null
-          fim: string
-          id: string
-          inicio: string
-          motivo: string | null
-          observacoes: string | null
-          pet_id: string
-          profissional_id: string
-          situacao: string
-          taxi_dog: boolean
-          tenant_id: string
-          updated_at: string
-          venda_id: string | null
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          criado_por?: string | null
-          filial_id?: string | null
-          fim: string
-          id?: string
-          inicio: string
-          motivo?: string | null
-          observacoes?: string | null
-          pet_id: string
-          profissional_id: string
-          situacao?: string
-          taxi_dog?: boolean
-          tenant_id?: string
-          updated_at?: string
-          venda_id?: string | null
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          criado_por?: string | null
-          filial_id?: string | null
-          fim?: string
-          id?: string
-          inicio?: string
-          motivo?: string | null
-          observacoes?: string | null
-          pet_id?: string
-          profissional_id?: string
-          situacao?: string
-          taxi_dog?: boolean
-          tenant_id?: string
-          updated_at?: string
-          venda_id?: string | null
-        }
-        Relationships: []
-      }
-      pet_comissoes: {
-        Row: {
-          agendamento_id: string
-          aprovada_em: string | null
-          aprovada_por: string | null
-          base: number
-          created_at: string
-          forma_pagamento: string | null
-          id: string
-          pago_em: string | null
-          pago_por: string | null
-          pedido_id: string | null
-          percentual: number
-          profissional_id: string
-          situacao: string
-          tenant_id: string
-          updated_at: string
-          valor: number
-        }
-        Insert: {
-          agendamento_id: string
-          aprovada_em?: string | null
-          aprovada_por?: string | null
-          base: number
-          created_at?: string
-          forma_pagamento?: string | null
-          id?: string
-          pago_em?: string | null
-          pago_por?: string | null
-          pedido_id: string
-          percentual: number
-          profissional_id: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor: number
-        }
-        Update: {
-          agendamento_id?: string
-          aprovada_em?: string | null
-          aprovada_por?: string | null
-          base?: number
-          created_at?: string
-          forma_pagamento?: string | null
-          id?: string
-          pago_em?: string | null
-          pago_por?: string | null
-          pedido_id?: string
-          percentual?: number
-          profissional_id?: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor?: number
-        }
-        Relationships: []
-      }
-      pet_atendimento_adendos: {
-        Row: {
-          atendimento_id: string
-          created_at: string
-          crmv: string
-          crmv_uf: string
-          id: string
-          tenant_id: string
-          texto: string
-          veterinario_id: string
-        }
-        Insert: {
-          atendimento_id: string
-          created_at?: string
-          crmv: string
-          crmv_uf: string
-          id?: string
-          tenant_id?: string
-          texto: string
-          veterinario_id: string
-        }
-        Update: {
-          atendimento_id?: string
-          created_at?: string
-          crmv?: string
-          crmv_uf?: string
-          id?: string
-          tenant_id?: string
-          texto?: string
-          veterinario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_atendimento_adendos_atendimento_id_fkey"
-            columns: ["atendimento_id"]
-            isOneToOne: false
-            referencedRelation: "pet_atendimentos_clinicos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_atendimento_adendos_veterinario_id_fkey"
-            columns: ["veterinario_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profissionais"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pet_atendimentos_clinicos: {
-        Row: {
-          agendamento_id: string
-          aberto_em: string
-          anamnese: string | null
-          cliente_id: string
-          conduta: string | null
-          created_at: string
-          crmv: string
-          crmv_uf: string
-          diagnostico: string | null
-          exame_fisico: string | null
-          fechado_em: string | null
-          freq_cardiaca: number | null
-          freq_respiratoria: number | null
-          id: string
-          observacoes: string | null
-          pet_id: string
-          peso_kg: number | null
-          queixa: string | null
-          retorno_em: string | null
-          situacao: string
-          temperatura_c: number | null
-          tenant_id: string
-          updated_at: string
-          veterinario_id: string
-        }
-        Insert: {
-          agendamento_id: string
-          aberto_em?: string
-          anamnese?: string | null
-          cliente_id: string
-          conduta?: string | null
-          created_at?: string
-          crmv: string
-          crmv_uf: string
-          diagnostico?: string | null
-          exame_fisico?: string | null
-          fechado_em?: string | null
-          freq_cardiaca?: number | null
-          freq_respiratoria?: number | null
-          id?: string
-          observacoes?: string | null
-          pet_id: string
-          peso_kg?: number | null
-          queixa?: string | null
-          retorno_em?: string | null
-          situacao?: string
-          temperatura_c?: number | null
-          tenant_id?: string
-          updated_at?: string
-          veterinario_id: string
-        }
-        Update: {
-          agendamento_id?: string
-          aberto_em?: string
-          anamnese?: string | null
-          cliente_id?: string
-          conduta?: string | null
-          created_at?: string
-          crmv?: string
-          crmv_uf?: string
-          diagnostico?: string | null
-          exame_fisico?: string | null
-          fechado_em?: string | null
-          freq_cardiaca?: number | null
-          freq_respiratoria?: number | null
-          id?: string
-          observacoes?: string | null
-          pet_id?: string
-          peso_kg?: number | null
-          queixa?: string | null
-          retorno_em?: string | null
-          situacao?: string
-          temperatura_c?: number | null
-          tenant_id?: string
-          updated_at?: string
-          veterinario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_atendimentos_clinicos_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "pet_agendamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_atendimentos_clinicos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_atendimentos_clinicos_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_atendimentos_clinicos_veterinario_id_fkey"
-            columns: ["veterinario_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profissionais"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pet_vacinacoes: {
-        Row: {
-          agendamento_id: string | null
-          aplicada_em: string
-          aplicador_id: string | null
-          cancelada_em: string | null
-          cancelada_motivo: string | null
-          cancelada_por: string | null
-          catalogo_id: string
-          created_at: string
-          deposito_id: string | null
-          dose_numero: number
-          dose_tipo: string
-          estoque_lote_id: string | null
-          id: string
-          informado_por: string | null
-          local_aplicacao: string | null
-          lote: string | null
-          nome: string
-          observacoes: string | null
-          origem: string
-          pet_id: string
-          proxima_dose_em: string | null
-          registrado_por: string | null
-          situacao: string
-          tenant_id: string
-          tipo: string
-          validade_lote: string | null
-          veterinario_id: string | null
-        }
-        Insert: {
-          agendamento_id?: string | null
-          aplicada_em: string
-          aplicador_id?: string | null
-          cancelada_em?: string | null
-          cancelada_motivo?: string | null
-          cancelada_por?: string | null
-          catalogo_id: string
-          created_at?: string
-          deposito_id?: string | null
-          dose_numero: number
-          dose_tipo: string
-          estoque_lote_id?: string | null
-          id?: string
-          informado_por?: string | null
-          local_aplicacao?: string | null
-          lote?: string | null
-          nome: string
-          observacoes?: string | null
-          origem: string
-          pet_id: string
-          proxima_dose_em?: string | null
-          registrado_por?: string | null
-          situacao?: string
-          tenant_id?: string
-          tipo: string
-          validade_lote?: string | null
-          veterinario_id?: string | null
-        }
-        Update: {
-          agendamento_id?: string | null
-          aplicada_em?: string
-          aplicador_id?: string | null
-          cancelada_em?: string | null
-          cancelada_motivo?: string | null
-          cancelada_por?: string | null
-          catalogo_id?: string
-          created_at?: string
-          deposito_id?: string | null
-          dose_numero?: number
-          dose_tipo?: string
-          estoque_lote_id?: string | null
-          id?: string
-          informado_por?: string | null
-          local_aplicacao?: string | null
-          lote?: string | null
-          nome?: string
-          observacoes?: string | null
-          origem?: string
-          pet_id?: string
-          proxima_dose_em?: string | null
-          registrado_por?: string | null
-          situacao?: string
-          tenant_id?: string
-          tipo?: string
-          validade_lote?: string | null
-          veterinario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_vacinacoes_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "pet_agendamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_aplicador_id_fkey"
-            columns: ["aplicador_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profissionais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_catalogo_id_fkey"
-            columns: ["catalogo_id"]
-            isOneToOne: false
-            referencedRelation: "pet_vacinas_catalogo"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_deposito_id_fkey"
-            columns: ["deposito_id"]
-            isOneToOne: false
-            referencedRelation: "depositos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_estoque_lote_id_fkey"
-            columns: ["estoque_lote_id"]
-            isOneToOne: false
-            referencedRelation: "estoque_lotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pet_vacinacoes_veterinario_id_fkey"
-            columns: ["veterinario_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profissionais"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pet_vacinas_catalogo: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          doses_serie: number
-          especie: string
-          id: string
-          idade_minima_dias: number | null
-          intervalo_serie_dias: number | null
-          nome: string
-          produto_id: string
-          reforco_dias: number
-          tenant_id: string
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          doses_serie?: number
-          especie?: string
-          id?: string
-          idade_minima_dias?: number | null
-          intervalo_serie_dias?: number | null
-          nome: string
-          produto_id: string
-          reforco_dias: number
-          tenant_id?: string
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          doses_serie?: number
-          especie?: string
-          id?: string
-          idade_minima_dias?: number | null
-          intervalo_serie_dias?: number | null
-          nome?: string
-          produto_id?: string
-          reforco_dias?: number
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_vacinas_catalogo_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pet_pacote_modelos: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          id: string
-          nome: string
-          preco: number
-          produto_id: string
-          quantidade: number
-          servico_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome: string
-          preco: number
-          produto_id: string
-          quantidade: number
-          servico_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome?: string
-          preco?: number
-          produto_id?: string
-          quantidade?: number
-          servico_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pet_pacote_usos: {
-        Row: {
-          agendamento_id: string
-          agendamento_item_id: string
-          created_at: string
-          desfeito: boolean
-          id: string
-          pacote_id: string
-          tenant_id: string
-          usado_em: string
-          valor: number
-        }
-        Insert: {
-          agendamento_id: string
-          agendamento_item_id: string
-          created_at?: string
-          desfeito?: boolean
-          id?: string
-          pacote_id: string
-          tenant_id?: string
-          usado_em: string
-          valor: number
-        }
-        Update: {
-          agendamento_id?: string
-          agendamento_item_id?: string
-          created_at?: string
-          desfeito?: boolean
-          id?: string
-          pacote_id?: string
-          tenant_id?: string
-          usado_em?: string
-          valor?: number
-        }
-        Relationships: []
-      }
-      pet_pacotes: {
-        Row: {
-          cliente_id: string
-          comprado_em: string
-          created_at: string
-          id: string
-          modelo_id: string
-          motivo: string | null
-          pet_id: string
-          quantidade: number
-          servico_id: string
-          situacao: string
-          tenant_id: string
-          updated_at: string
-          validade_dias: number
-          valor: number
-          vence_em: string
-          venda_id: string
-        }
-        Insert: {
-          cliente_id: string
-          comprado_em: string
-          created_at?: string
-          id?: string
-          modelo_id: string
-          motivo?: string | null
-          pet_id: string
-          quantidade: number
-          servico_id: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          validade_dias: number
-          valor: number
-          vence_em: string
-          venda_id: string
-        }
-        Update: {
-          cliente_id?: string
-          comprado_em?: string
-          created_at?: string
-          id?: string
-          modelo_id?: string
-          motivo?: string | null
-          pet_id?: string
-          quantidade?: number
-          servico_id?: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          validade_dias?: number
-          valor?: number
-          vence_em?: string
-          venda_id?: string
-        }
-        Relationships: []
-      }
-      pet_contatos: {
-        Row: {
-          canal: string
-          contatado_em: string
-          contatado_por: string | null
-          id: string
-          observacao: string | null
-          pet_id: string
-          referencia: string
-          tenant_id: string
-          tipo: string
-        }
-        Insert: {
-          canal?: string
-          contatado_em?: string
-          contatado_por?: string | null
-          id?: string
-          observacao?: string | null
-          pet_id: string
-          referencia: string
-          tenant_id?: string
-          tipo: string
-        }
-        Update: {
-          canal?: string
-          contatado_em?: string
-          contatado_por?: string | null
-          id?: string
-          observacao?: string | null
-          pet_id?: string
-          referencia?: string
-          tenant_id?: string
-          tipo?: string
-        }
-        Relationships: []
-      }
-      pet_profissionais: {
-        Row: {
-          ativo: boolean
-          comissao_percentual: number
-          created_at: string
-          crmv: string | null
-          crmv_uf: string | null
-          filial_id: string | null
-          funcao: string
-          id: string
-          nome: string
-          profile_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          comissao_percentual?: number
-          created_at?: string
-          crmv?: string | null
-          crmv_uf?: string | null
-          filial_id?: string | null
-          funcao?: string
-          id?: string
-          nome: string
-          profile_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          comissao_percentual?: number
-          created_at?: string
-          crmv?: string | null
-          crmv_uf?: string | null
-          filial_id?: string | null
-          funcao?: string
-          id?: string
-          nome?: string
-          profile_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pet_servico_precos: {
-        Row: {
-          created_at: string
-          id: string
-          pelagem: string | null
-          porte: string | null
-          preco: number
-          raca: string | null
-          servico_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          pelagem?: string | null
-          porte?: string | null
-          preco: number
-          raca?: string | null
-          servico_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          pelagem?: string | null
-          porte?: string | null
-          preco?: number
-          raca?: string | null
-          servico_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pet_servicos: {
-        Row: {
-          ativo: boolean
-          categoria: string
-          created_at: string
-          duracao_min: number
-          id: string
-          nome: string
-          produto_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          duracao_min?: number
-          id?: string
-          nome: string
-          produto_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          duracao_min?: number
-          id?: string
-          nome?: string
-          produto_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      pets: {
-        Row: {
-          ativo: boolean
-          alergias: string | null
-          castrado: boolean | null
-          cliente_id: string
-          created_at: string
-          especie: string
-          id: string
-          nascimento: string | null
-          nome: string
-          observacoes: string | null
-          pelagem: string | null
-          peso_kg: number | null
-          porte: string | null
-          raca: string | null
-          sexo: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          alergias?: string | null
-          castrado?: boolean | null
-          cliente_id: string
-          created_at?: string
-          especie?: string
-          id?: string
-          nascimento?: string | null
-          nome: string
-          observacoes?: string | null
-          pelagem?: string | null
-          peso_kg?: number | null
-          porte?: string | null
-          raca?: string | null
-          sexo?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          alergias?: string | null
-          castrado?: boolean | null
-          cliente_id?: string
-          created_at?: string
-          especie?: string
-          id?: string
-          nascimento?: string | null
-          nome?: string
-          observacoes?: string | null
-          pelagem?: string | null
-          peso_kg?: number | null
-          porte?: string | null
-          raca?: string | null
-          sexo?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       pedido_itens: {
         Row: {
           created_at: string
@@ -6557,6 +5710,1695 @@ export type Database = {
           },
         ]
       }
+      pet_agendamento_itens: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          duracao_min: number
+          id: string
+          preco_aplicado: number
+          preco_avulso: boolean
+          servico_id: string
+          tenant_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          duracao_min: number
+          id?: string
+          preco_aplicado: number
+          preco_avulso?: boolean
+          servico_id: string
+          tenant_id?: string
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          preco_aplicado?: number
+          preco_avulso?: boolean
+          servico_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_agendamento_itens_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamento_itens_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pet_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamento_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_agendamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          filial_id: string | null
+          fim: string
+          id: string
+          inicio: string
+          motivo: string | null
+          observacoes: string | null
+          pet_id: string
+          profissional_id: string
+          situacao: string
+          taxi_dog: boolean
+          tenant_id: string
+          updated_at: string
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          filial_id?: string | null
+          fim: string
+          id?: string
+          inicio: string
+          motivo?: string | null
+          observacoes?: string | null
+          pet_id: string
+          profissional_id: string
+          situacao?: string
+          taxi_dog?: boolean
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          filial_id?: string | null
+          fim?: string
+          id?: string
+          inicio?: string
+          motivo?: string | null
+          observacoes?: string | null
+          pet_id?: string
+          profissional_id?: string
+          situacao?: string
+          taxi_dog?: boolean
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamentos_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamentos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamentos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_agendamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_atendimento_adendos: {
+        Row: {
+          atendimento_id: string
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          id: string
+          tenant_id: string
+          texto: string
+          veterinario_id: string
+        }
+        Insert: {
+          atendimento_id: string
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          id?: string
+          tenant_id?: string
+          texto: string
+          veterinario_id: string
+        }
+        Update: {
+          atendimento_id?: string
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          id?: string
+          tenant_id?: string
+          texto?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_atendimento_adendos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimento_adendos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimento_adendos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_atendimentos_clinicos: {
+        Row: {
+          aberto_em: string
+          agendamento_id: string
+          anamnese: string | null
+          cliente_id: string
+          conduta: string | null
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          diagnostico: string | null
+          exame_fisico: string | null
+          fechado_em: string | null
+          freq_cardiaca: number | null
+          freq_respiratoria: number | null
+          id: string
+          observacoes: string | null
+          peso_kg: number | null
+          pet_id: string
+          queixa: string | null
+          retorno_em: string | null
+          situacao: string
+          temperatura_c: number | null
+          tenant_id: string
+          updated_at: string
+          veterinario_id: string
+        }
+        Insert: {
+          aberto_em?: string
+          agendamento_id: string
+          anamnese?: string | null
+          cliente_id: string
+          conduta?: string | null
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          diagnostico?: string | null
+          exame_fisico?: string | null
+          fechado_em?: string | null
+          freq_cardiaca?: number | null
+          freq_respiratoria?: number | null
+          id?: string
+          observacoes?: string | null
+          peso_kg?: number | null
+          pet_id: string
+          queixa?: string | null
+          retorno_em?: string | null
+          situacao?: string
+          temperatura_c?: number | null
+          tenant_id?: string
+          updated_at?: string
+          veterinario_id: string
+        }
+        Update: {
+          aberto_em?: string
+          agendamento_id?: string
+          anamnese?: string | null
+          cliente_id?: string
+          conduta?: string | null
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          diagnostico?: string | null
+          exame_fisico?: string | null
+          fechado_em?: string | null
+          freq_cardiaca?: number | null
+          freq_respiratoria?: number | null
+          id?: string
+          observacoes?: string | null
+          peso_kg?: number | null
+          pet_id?: string
+          queixa?: string | null
+          retorno_em?: string | null
+          situacao?: string
+          temperatura_c?: number | null
+          tenant_id?: string
+          updated_at?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: true
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_atendimentos_clinicos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_comissoes: {
+        Row: {
+          agendamento_id: string
+          aprovada_em: string | null
+          aprovada_por: string | null
+          base: number
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          pago_em: string | null
+          pago_por: string | null
+          pedido_id: string | null
+          percentual: number
+          profissional_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          agendamento_id: string
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id?: string | null
+          percentual: number
+          profissional_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          agendamento_id?: string
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base?: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id?: string | null
+          percentual?: number
+          profissional_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_comissoes_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: true
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_comissoes_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_comissoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_contatos: {
+        Row: {
+          canal: string
+          contatado_em: string
+          contatado_por: string | null
+          id: string
+          observacao: string | null
+          pet_id: string
+          referencia: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          canal?: string
+          contatado_em?: string
+          contatado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pet_id: string
+          referencia: string
+          tenant_id?: string
+          tipo: string
+        }
+        Update: {
+          canal?: string
+          contatado_em?: string
+          contatado_por?: string | null
+          id?: string
+          observacao?: string | null
+          pet_id?: string
+          referencia?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_contatos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_contatos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_adendos: {
+        Row: {
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          exame_id: string
+          id: string
+          tenant_id: string
+          texto: string
+          veterinario_id: string
+        }
+        Insert: {
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          exame_id: string
+          id?: string
+          tenant_id?: string
+          texto: string
+          veterinario_id: string
+        }
+        Update: {
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          exame_id?: string
+          id?: string
+          tenant_id?: string
+          texto?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_adendos_exame_id_fkey"
+            columns: ["exame_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_adendos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_adendos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_anexos: {
+        Row: {
+          atendimento_id: string | null
+          caminho: string
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          cancelado_por: string | null
+          categoria: string
+          confirmado_em: string | null
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          descricao: string
+          enviado_por: string
+          exame_id: string | null
+          id: string
+          mime: string
+          nome_arquivo: string
+          pet_id: string
+          situacao: string
+          tamanho: number
+          tenant_id: string
+          veterinario_id: string
+        }
+        Insert: {
+          atendimento_id?: string | null
+          caminho: string
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          categoria: string
+          confirmado_em?: string | null
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          descricao: string
+          enviado_por?: string
+          exame_id?: string | null
+          id?: string
+          mime: string
+          nome_arquivo: string
+          pet_id: string
+          situacao?: string
+          tamanho: number
+          tenant_id?: string
+          veterinario_id: string
+        }
+        Update: {
+          atendimento_id?: string | null
+          caminho?: string
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por?: string | null
+          categoria?: string
+          confirmado_em?: string | null
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          descricao?: string
+          enviado_por?: string
+          exame_id?: string | null
+          id?: string
+          mime?: string
+          nome_arquivo?: string
+          pet_id?: string
+          situacao?: string
+          tamanho?: number
+          tenant_id?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_anexos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_anexos_exame_id_fkey"
+            columns: ["exame_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_anexos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_anexos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_anexos_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_campos: {
+        Row: {
+          ativo: boolean
+          casas: number | null
+          created_at: string
+          forma: string
+          grupo: string | null
+          id: string
+          modelo_id: string
+          nome: string
+          observacao: string | null
+          opcoes: Json | null
+          ordem: number
+          pct_campo_id: string | null
+          tenant_id: string
+          total_campo_id: string | null
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          casas?: number | null
+          created_at?: string
+          forma: string
+          grupo?: string | null
+          id?: string
+          modelo_id: string
+          nome: string
+          observacao?: string | null
+          opcoes?: Json | null
+          ordem: number
+          pct_campo_id?: string | null
+          tenant_id?: string
+          total_campo_id?: string | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          casas?: number | null
+          created_at?: string
+          forma?: string
+          grupo?: string | null
+          id?: string
+          modelo_id?: string
+          nome?: string
+          observacao?: string | null
+          opcoes?: Json | null
+          ordem?: number
+          pct_campo_id?: string | null
+          tenant_id?: string
+          total_campo_id?: string | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_campos_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_campos_pct_campo_id_fkey"
+            columns: ["pct_campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_campos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_campos_total_campo_id_fkey"
+            columns: ["total_campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_campos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          material: string | null
+          nome: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          material?: string | null
+          nome: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          material?: string | null
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_referencias: {
+        Row: {
+          campo_id: string
+          created_at: string
+          especie: string
+          id: string
+          maximo: number | null
+          minimo: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          campo_id: string
+          created_at?: string
+          especie: string
+          id?: string
+          maximo?: number | null
+          minimo?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          campo_id?: string
+          created_at?: string
+          especie?: string
+          id?: string
+          maximo?: number | null
+          minimo?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_referencias_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_referencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exame_resultados: {
+        Row: {
+          campo_id: string | null
+          casas: number | null
+          exame_id: string
+          faixa_max: number | null
+          faixa_min: number | null
+          forma: string
+          grupo: string | null
+          id: string
+          nome: string
+          nota: string | null
+          opcoes: Json | null
+          ordem: number
+          pct_id: string | null
+          tenant_id: string
+          total_id: string | null
+          unidade: string | null
+          valor_num: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          campo_id?: string | null
+          casas?: number | null
+          exame_id: string
+          faixa_max?: number | null
+          faixa_min?: number | null
+          forma: string
+          grupo?: string | null
+          id?: string
+          nome: string
+          nota?: string | null
+          opcoes?: Json | null
+          ordem: number
+          pct_id?: string | null
+          tenant_id?: string
+          total_id?: string | null
+          unidade?: string | null
+          valor_num?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          campo_id?: string | null
+          casas?: number | null
+          exame_id?: string
+          faixa_max?: number | null
+          faixa_min?: number | null
+          forma?: string
+          grupo?: string | null
+          id?: string
+          nome?: string
+          nota?: string | null
+          opcoes?: Json | null
+          ordem?: number
+          pct_id?: string | null
+          tenant_id?: string
+          total_id?: string | null
+          unidade?: string | null
+          valor_num?: number | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_resultados_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_resultados_exame_id_fkey"
+            columns: ["exame_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_resultados_pct_id_fkey"
+            columns: ["pct_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_resultados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_resultados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_resultados_total_id_fkey"
+            columns: ["total_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_resultados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_exames: {
+        Row: {
+          aberto_em: string
+          atendimento_id: string | null
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          data_coleta: string
+          fechado_em: string | null
+          id: string
+          laboratorio: string | null
+          material: string | null
+          modelo_id: string
+          nome: string
+          observacoes: string | null
+          pet_id: string
+          situacao: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          veterinario_id: string
+        }
+        Insert: {
+          aberto_em?: string
+          atendimento_id?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          created_at?: string
+          crmv: string
+          crmv_uf: string
+          data_coleta: string
+          fechado_em?: string | null
+          id?: string
+          laboratorio?: string | null
+          material?: string | null
+          modelo_id: string
+          nome: string
+          observacoes?: string | null
+          pet_id: string
+          situacao?: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+          veterinario_id: string
+        }
+        Update: {
+          aberto_em?: string
+          atendimento_id?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          created_at?: string
+          crmv?: string
+          crmv_uf?: string
+          data_coleta?: string
+          fechado_em?: string | null
+          id?: string
+          laboratorio?: string | null
+          material?: string | null
+          modelo_id?: string
+          nome?: string
+          observacoes?: string | null
+          pet_id?: string
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          veterinario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exames_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_atendimentos_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exames_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_exame_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exames_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exames_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exames_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_pacote_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          preco: number
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          preco: number
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          preco?: number
+          produto_id?: string
+          quantidade?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_pacote_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacote_modelos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pet_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacote_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_pacote_usos: {
+        Row: {
+          agendamento_id: string
+          agendamento_item_id: string
+          created_at: string
+          desfeito: boolean
+          id: string
+          pacote_id: string
+          tenant_id: string
+          usado_em: string
+          valor: number
+        }
+        Insert: {
+          agendamento_id: string
+          agendamento_item_id: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          pacote_id: string
+          tenant_id?: string
+          usado_em: string
+          valor: number
+        }
+        Update: {
+          agendamento_id?: string
+          agendamento_item_id?: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          pacote_id?: string
+          tenant_id?: string
+          usado_em?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_pacote_usos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacote_usos_agendamento_item_id_fkey"
+            columns: ["agendamento_item_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacote_usos_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "pet_pacotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacote_usos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_pacotes: {
+        Row: {
+          cliente_id: string
+          comprado_em: string
+          created_at: string
+          id: string
+          modelo_id: string
+          motivo: string | null
+          pet_id: string
+          quantidade: number
+          servico_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          validade_dias: number
+          valor: number
+          vence_em: string
+          venda_id: string
+        }
+        Insert: {
+          cliente_id: string
+          comprado_em: string
+          created_at?: string
+          id?: string
+          modelo_id: string
+          motivo?: string | null
+          pet_id: string
+          quantidade: number
+          servico_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          validade_dias: number
+          valor: number
+          vence_em: string
+          venda_id: string
+        }
+        Update: {
+          cliente_id?: string
+          comprado_em?: string
+          created_at?: string
+          id?: string
+          modelo_id?: string
+          motivo?: string | null
+          pet_id?: string
+          quantidade?: number
+          servico_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          validade_dias?: number
+          valor?: number
+          vence_em?: string
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_pacotes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacotes_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_pacote_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacotes_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacotes_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pet_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_pacotes_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_profissionais: {
+        Row: {
+          ativo: boolean
+          comissao_percentual: number
+          created_at: string
+          crmv: string | null
+          crmv_uf: string | null
+          filial_id: string | null
+          funcao: string
+          id: string
+          nome: string
+          profile_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          crmv?: string | null
+          crmv_uf?: string | null
+          filial_id?: string | null
+          funcao?: string
+          id?: string
+          nome: string
+          profile_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          crmv?: string | null
+          crmv_uf?: string | null
+          filial_id?: string | null
+          funcao?: string
+          id?: string
+          nome?: string
+          profile_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_profissionais_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_profissionais_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_profissionais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_servico_precos: {
+        Row: {
+          created_at: string
+          id: string
+          pelagem: string | null
+          porte: string | null
+          preco: number
+          raca: string | null
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pelagem?: string | null
+          porte?: string | null
+          preco: number
+          raca?: string | null
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pelagem?: string | null
+          porte?: string | null
+          preco?: number
+          raca?: string | null
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_servico_precos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pet_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_servico_precos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_servicos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          duracao_min: number
+          id: string
+          nome: string
+          produto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome: string
+          produto_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome?: string
+          produto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_servicos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_vacinacoes: {
+        Row: {
+          agendamento_id: string | null
+          aplicada_em: string
+          aplicador_id: string | null
+          cancelada_em: string | null
+          cancelada_motivo: string | null
+          cancelada_por: string | null
+          catalogo_id: string
+          created_at: string
+          deposito_id: string | null
+          dose_numero: number
+          dose_tipo: string
+          estoque_lote_id: string | null
+          id: string
+          informado_por: string | null
+          local_aplicacao: string | null
+          lote: string | null
+          nome: string
+          observacoes: string | null
+          origem: string
+          pet_id: string
+          proxima_dose_em: string | null
+          registrado_por: string | null
+          situacao: string
+          tenant_id: string
+          tipo: string
+          validade_lote: string | null
+          veterinario_id: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          aplicada_em: string
+          aplicador_id?: string | null
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          catalogo_id: string
+          created_at?: string
+          deposito_id?: string | null
+          dose_numero: number
+          dose_tipo: string
+          estoque_lote_id?: string | null
+          id?: string
+          informado_por?: string | null
+          local_aplicacao?: string | null
+          lote?: string | null
+          nome: string
+          observacoes?: string | null
+          origem: string
+          pet_id: string
+          proxima_dose_em?: string | null
+          registrado_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo: string
+          validade_lote?: string | null
+          veterinario_id?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          aplicada_em?: string
+          aplicador_id?: string | null
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          catalogo_id?: string
+          created_at?: string
+          deposito_id?: string | null
+          dose_numero?: number
+          dose_tipo?: string
+          estoque_lote_id?: string | null
+          id?: string
+          informado_por?: string | null
+          local_aplicacao?: string | null
+          lote?: string | null
+          nome?: string
+          observacoes?: string | null
+          origem?: string
+          pet_id?: string
+          proxima_dose_em?: string | null
+          registrado_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          validade_lote?: string | null
+          veterinario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_vacinacoes_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_aplicador_id_fkey"
+            columns: ["aplicador_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_vacinas_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_estoque_lote_id_fkey"
+            columns: ["estoque_lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinacoes_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_vacinas_catalogo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          doses_serie: number
+          especie: string
+          id: string
+          idade_minima_dias: number | null
+          intervalo_serie_dias: number | null
+          nome: string
+          produto_id: string
+          reforco_dias: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          doses_serie?: number
+          especie?: string
+          id?: string
+          idade_minima_dias?: number | null
+          intervalo_serie_dias?: number | null
+          nome: string
+          produto_id: string
+          reforco_dias: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          doses_serie?: number
+          especie?: string
+          id?: string
+          idade_minima_dias?: number | null
+          intervalo_serie_dias?: number | null
+          nome?: string
+          produto_id?: string
+          reforco_dias?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_vacinas_catalogo_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vacinas_catalogo_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          alergias: string | null
+          ativo: boolean
+          castrado: boolean | null
+          cliente_id: string
+          created_at: string
+          especie: string
+          id: string
+          nascimento: string | null
+          nome: string
+          observacoes: string | null
+          pelagem: string | null
+          peso_kg: number | null
+          porte: string | null
+          raca: string | null
+          sexo: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          alergias?: string | null
+          ativo?: boolean
+          castrado?: boolean | null
+          cliente_id: string
+          created_at?: string
+          especie?: string
+          id?: string
+          nascimento?: string | null
+          nome: string
+          observacoes?: string | null
+          pelagem?: string | null
+          peso_kg?: number | null
+          porte?: string | null
+          raca?: string | null
+          sexo?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          alergias?: string | null
+          ativo?: boolean
+          castrado?: boolean | null
+          cliente_id?: string
+          created_at?: string
+          especie?: string
+          id?: string
+          nascimento?: string | null
+          nome?: string
+          observacoes?: string | null
+          pelagem?: string | null
+          peso_kg?: number | null
+          porte?: string | null
+          raca?: string | null
+          sexo?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       premiacao_abatimentos: {
         Row: {
           conta_receber_id: string
@@ -6794,8 +7636,8 @@ export type Database = {
           codigo_barras: string | null
           codigo_interno: string
           comprimento: number | null
-          controla_lote: boolean
           controla_estoque: boolean
+          controla_lote: boolean
           created_at: string
           cst_csosn: string | null
           custo: number
@@ -6807,8 +7649,6 @@ export type Database = {
           fabricante: string | null
           fator_conversao: number
           fornecedor_id: string | null
-          granel_fator: number | null
-          granel_produto_id: string | null
           id: string
           imagem_url: string | null
           largura: number | null
@@ -6834,8 +7674,8 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno: string
           comprimento?: number | null
-          controla_lote?: boolean
           controla_estoque?: boolean
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -6847,8 +7687,6 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
-          granel_fator?: number | null
-          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -6874,8 +7712,8 @@ export type Database = {
           codigo_barras?: string | null
           codigo_interno?: string
           comprimento?: number | null
-          controla_lote?: boolean
           controla_estoque?: boolean
+          controla_lote?: boolean
           created_at?: string
           cst_csosn?: string | null
           custo?: number
@@ -6887,8 +7725,6 @@ export type Database = {
           fabricante?: string | null
           fator_conversao?: number
           fornecedor_id?: string | null
-          granel_fator?: number | null
-          granel_produto_id?: string | null
           id?: string
           imagem_url?: string | null
           largura?: number | null
@@ -8248,11 +9084,132 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _clinica_agendamento_avulso: {
+        Args: {
+          p_categoria: string
+          p_inicio: string
+          p_pet: string
+          p_servico: string
+        }
+        Returns: string
+      }
+      _clinica_anexo_pode_enviar: {
+        Args: { p_caminho: string }
+        Returns: boolean
+      }
+      _clinica_anexo_pode_ler: { Args: { p_caminho: string }; Returns: boolean }
+      _clinica_atendimento_json: { Args: { p_id: string }; Returns: Json }
+      _clinica_exame_json: { Args: { p_id: string }; Returns: Json }
+      _clinica_exame_meu_aberto: {
+        Args: { p_id: string; p_vet: string }
+        Returns: {
+          aberto_em: string
+          atendimento_id: string | null
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          created_at: string
+          crmv: string
+          crmv_uf: string
+          data_coleta: string
+          fechado_em: string | null
+          id: string
+          laboratorio: string | null
+          material: string | null
+          modelo_id: string
+          nome: string
+          observacoes: string | null
+          pet_id: string
+          situacao: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          veterinario_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pet_exames"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _clinica_exame_recalcular: {
+        Args: { p_exame_id: string }
+        Returns: undefined
+      }
+      _clinica_exame_semear: {
+        Args: {
+          p_campos: Json
+          p_material: string
+          p_nome: string
+          p_tenant: string
+          p_tipo: string
+        }
+        Returns: boolean
+      }
+      _clinica_exige_leitura: { Args: never; Returns: undefined }
+      _clinica_exige_modelos: { Args: never; Returns: undefined }
+      _clinica_movimentar_dose: {
+        Args: {
+          p_deposito_id: string
+          p_documento: string
+          p_motivo: string
+          p_produto_id: string
+          p_tipo: Database["public"]["Enums"]["mov_tipo"]
+        }
+        Returns: undefined
+      }
+      _clinica_op_repetida: {
+        Args: { p_chave: string; p_tipo: string }
+        Returns: Json
+      }
+      _clinica_op_resultado: {
+        Args: { p_chave: string; p_tipo: string }
+        Returns: Json
+      }
+      _clinica_proxima_dose: {
+        Args: { p_catalogo_id: string; p_pet_id: string }
+        Returns: Json
+      }
+      _clinica_vet: { Args: never; Returns: string }
+      _fone_normalizado: { Args: { p_fone: string }; Returns: string }
       _imp_erro: {
         Args: { p_linha: number; p_lista: Json; p_msg: string }
         Returns: Json
       }
       _imp_num: { Args: { p_campo: string; p_item: Json }; Returns: number }
+      _pet_cobertura: {
+        Args: { p_agendamento_id: string }
+        Returns: {
+          item_id: string
+          pacote_id: string
+          restam: number
+          servico_id: string
+          valor_uso: number
+          vence_em: string
+        }[]
+      }
+      _pet_conflito: {
+        Args: {
+          p_fim: string
+          p_ignorar: string
+          p_ini: string
+          p_prof: string
+        }
+        Returns: boolean
+      }
+      _pet_exige_clinica_se_vet: { Args: never; Returns: undefined }
+      _pet_meu_profissional: { Args: never; Returns: string }
+      _pet_nfse_criar: {
+        Args: {
+          p_cliente_id: string
+          p_itens: Json
+          p_liquido: number
+          p_natureza: string
+          p_pedido_id: string
+        }
+        Returns: string
+      }
+      _pet_pacote_restam: { Args: { p_pacote_id: string }; Returns: number }
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -8321,18 +9278,6 @@ export type Database = {
         }
         Returns: string
       }
-      banco_extrato_importar: {
-        Args: { p_arquivo?: string; p_conta_id: string; p_linhas: Json; p_simular?: boolean }
-        Returns: Json
-      }
-      banco_extrato_ignorar: {
-        Args: { p_ignorar?: boolean; p_linha_id: string }
-        Returns: undefined
-      }
-      banco_extrato_lancar: {
-        Args: { p_categoria?: string; p_linha_id: string }
-        Returns: string
-      }
       banco_conciliar: {
         Args: { p_conciliado?: boolean; p_mov_id: string }
         Returns: undefined
@@ -8388,6 +9333,122 @@ export type Database = {
           p_valor: number
         }
         Returns: string
+      }
+      clinica_adendo_criar: {
+        Args: { p_atendimento_id: string; p_texto: string }
+        Returns: Json
+      }
+      clinica_anexo_abrir: { Args: { p_id: string }; Returns: Json }
+      clinica_anexo_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_anexo_confirmar: { Args: { p_id: string }; Returns: undefined }
+      clinica_anexo_preparar: { Args: { p_dados: Json }; Returns: Json }
+      clinica_anexos: {
+        Args: { p_atendimento_id?: string; p_exame_id?: string }
+        Returns: Json
+      }
+      clinica_aplicadores: { Args: never; Returns: Json }
+      clinica_atendimento_abrir: {
+        Args: { p_agendamento_id: string }
+        Returns: Json
+      }
+      clinica_atendimento_fechar: { Args: { p_id: string }; Returns: Json }
+      clinica_atendimento_offline: {
+        Args: { p_acao: string; p_chave: string; p_dados?: Json; p_id: string }
+        Returns: Json
+      }
+      clinica_atendimento_salvar: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: Json
+      }
+      clinica_cadastro_rapido: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_exame_abrir: {
+        Args: { p_dados?: Json; p_modelo_id: string; p_pet_id: string }
+        Returns: Json
+      }
+      clinica_exame_adendo_criar: {
+        Args: { p_exame_id: string; p_texto: string }
+        Returns: Json
+      }
+      clinica_exame_campo_mover: {
+        Args: { p_campo_id: string; p_delta: number }
+        Returns: undefined
+      }
+      clinica_exame_campo_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_exame_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: Json
+      }
+      clinica_exame_evolucao: {
+        Args: { p_nome: string; p_pet_id: string; p_unidade?: string }
+        Returns: Json
+      }
+      clinica_exame_fechar: { Args: { p_id: string }; Returns: Json }
+      clinica_exame_get: { Args: { p_id: string }; Returns: Json }
+      clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_exame_modelos: { Args: never; Returns: Json }
+      clinica_exame_modelos_iniciais: { Args: never; Returns: number }
+      clinica_exame_offline: {
+        Args: { p_acao: string; p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_exame_referencia_salvar: {
+        Args: {
+          p_campo_id: string
+          p_especie: string
+          p_maximo: number
+          p_minimo: number
+        }
+        Returns: undefined
+      }
+      clinica_exame_salvar: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: Json
+      }
+      clinica_exames_do_pet: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_liberada: { Args: never; Returns: boolean }
+      clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
+      clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
+      clinica_pet_alergias: {
+        Args: { p_alergias: string; p_pet_id: string }
+        Returns: undefined
+      }
+      clinica_reforcos_pendentes: {
+        Args: { p_atraso?: number; p_janela?: number }
+        Returns: Json
+      }
+      clinica_vacina_aplicar: {
+        Args: { p_agendamento_id: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_vacina_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_vacina_catalogo_salvar: {
+        Args: { p_dados: Json }
+        Returns: string
+      }
+      clinica_vacina_offline: {
+        Args: { p_acao: string; p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_vacina_registrar_externa: {
+        Args: { p_dados: Json; p_pet_id: string }
+        Returns: Json
+      }
+      clinica_vacinas_catalogo: { Args: never; Returns: Json }
+      clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
+      clinica_visita_registrar: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
       }
       comissionar_pedido_id: { Args: { p_pedido_id: string }; Returns: boolean }
       compra_aplicar_cotacao: {
@@ -8489,6 +9550,7 @@ export type Database = {
         Returns: string
       }
       eh_motorista_restrito: { Args: never; Returns: boolean }
+      eh_profissional_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
@@ -8668,10 +9730,6 @@ export type Database = {
         Returns: string
       }
       gerar_premiacoes: { Args: never; Returns: number }
-      granel_abrir_saco: {
-        Args: { p_deposito_id: string; p_sacos?: number; p_saco_produto_id: string }
-        Returns: Json
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -8982,6 +10040,97 @@ export type Database = {
         }
         Returns: string
       }
+      pet_agenda_cobertura: {
+        Args: { p_agendamento_id: string }
+        Returns: Json
+      }
+      pet_agenda_desfazer_retirada: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      pet_agenda_retirar: {
+        Args: {
+          p_agendamento_id: string
+          p_chave?: string
+          p_pedido_id?: string
+          p_usar_pacote?: boolean
+        }
+        Returns: Json
+      }
+      pet_agenda_situacao: {
+        Args: { p_id: string; p_motivo?: string; p_para: string }
+        Returns: undefined
+      }
+      pet_agendar: { Args: { p_dados: Json }; Returns: string }
+      pet_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
+      pet_comissao_pagar: {
+        Args: { p_forma?: string; p_id: string }
+        Returns: undefined
+      }
+      pet_contato_registrar: {
+        Args: {
+          p_canal?: string
+          p_observacao?: string
+          p_pet_id: string
+          p_referencia: string
+          p_tipo: string
+        }
+        Returns: undefined
+      }
+      pet_contatos_pendentes: {
+        Args: { p_dias?: number; p_janela?: number; p_tipo: string }
+        Returns: Json
+      }
+      pet_minha_agenda: { Args: { p_ate: string; p_de: string }; Returns: Json }
+      pet_minha_situacao: {
+        Args: { p_id: string; p_para: string }
+        Returns: undefined
+      }
+      pet_pacote_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      pet_pacote_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_pacote_vender: {
+        Args: {
+          p_chave?: string
+          p_modelo_id: string
+          p_pedido_id?: string
+          p_pet_id: string
+          p_validade_dias: number
+        }
+        Returns: Json
+      }
+      pet_preco_calcular: {
+        Args: { p_pet_id: string; p_servico_id: string }
+        Returns: Json
+      }
+      pet_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
+      pet_preco_salvar: {
+        Args: {
+          p_pelagem: string
+          p_porte: string
+          p_preco: number
+          p_raca: string
+          p_servico_id: string
+        }
+        Returns: string
+      }
+      pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_profissional_vincular: {
+        Args: { p_profile_id: string; p_profissional_id: string }
+        Returns: undefined
+      }
+      pet_reagendar: {
+        Args: { p_id: string; p_inicio: string; p_profissional_id?: string }
+        Returns: undefined
+      }
+      pet_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_servicos_por_profissional: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
       planejar_entrega: {
         Args: {
           p_itens: Json
@@ -9004,192 +10153,6 @@ export type Database = {
         }
         Returns: string
       }
-      pet_agenda_situacao: {
-        Args: { p_id: string; p_motivo?: string; p_para: string }
-        Returns: undefined
-      }
-      pet_agendar: { Args: { p_dados: Json }; Returns: string }
-      pet_reagendar: {
-        Args: { p_id: string; p_inicio: string; p_profissional_id?: string }
-        Returns: undefined
-      }
-      pet_agenda_retirar: {
-        Args: {
-          p_agendamento_id: string
-          p_chave?: string
-          p_pedido_id?: string
-          p_usar_pacote?: boolean
-        }
-        Returns: Json
-      }
-      pet_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
-      pet_comissao_pagar: {
-        Args: { p_forma?: string; p_id: string }
-        Returns: undefined
-      }
-      pet_servicos_por_profissional: {
-        Args: { p_ate: string; p_de: string }
-        Returns: Json
-      }
-      pet_agenda_cobertura: { Args: { p_agendamento_id: string }; Returns: Json }
-      pet_agenda_desfazer_retirada: { Args: { p_id: string }; Returns: undefined }
-      pet_pacote_cancelar: {
-        Args: { p_id: string; p_motivo: string }
-        Returns: undefined
-      }
-      pet_pacote_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
-      pet_pacote_vender: {
-        Args: {
-          p_chave?: string
-          p_modelo_id: string
-          p_pedido_id?: string
-          p_pet_id: string
-          p_validade_dias: number
-        }
-        Returns: Json
-      }
-      pet_contato_registrar: {
-        Args: {
-          p_canal?: string
-          p_observacao?: string
-          p_pet_id: string
-          p_referencia: string
-          p_tipo: string
-        }
-        Returns: undefined
-      }
-      pet_contatos_pendentes: {
-        Args: { p_dias?: number; p_janela?: number; p_tipo: string }
-        Returns: Json
-      }
-      pet_preco_calcular: {
-        Args: { p_pet_id: string; p_servico_id: string }
-        Returns: Json
-      }
-      pet_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
-      pet_preco_salvar: {
-        Args: {
-          p_pelagem: string
-          p_porte: string
-          p_preco: number
-          p_raca: string
-          p_servico_id: string
-        }
-        Returns: string
-      }
-      clinica_reforcos_pendentes: {
-        Args: { p_atraso?: number; p_janela?: number }
-        Returns: Json
-      }
-      clinica_adendo_criar: {
-        Args: { p_atendimento_id: string; p_texto: string }
-        Returns: Json
-      }
-      clinica_aplicadores: { Args: never; Returns: Json }
-      clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
-      clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
-      clinica_vacina_aplicar: {
-        Args: { p_agendamento_id: string; p_dados: Json }
-        Returns: Json
-      }
-      clinica_vacina_cancelar: {
-        Args: { p_id: string; p_motivo: string }
-        Returns: undefined
-      }
-      clinica_cadastro_rapido: {
-        Args: { p_chave: string; p_dados: Json }
-        Returns: Json
-      }
-      clinica_anexo_abrir: { Args: { p_id: string }; Returns: Json }
-      clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
-      clinica_vacina_offline: {
-        Args: { p_acao: string; p_chave: string; p_dados: Json }
-        Returns: Json
-      }
-      clinica_exame_offline: {
-        Args: { p_acao: string; p_chave: string; p_dados: Json }
-        Returns: Json
-      }
-      clinica_visita_registrar: { Args: { p_chave: string; p_dados: Json }; Returns: Json }
-      clinica_atendimento_offline: {
-        Args: { p_acao: string; p_chave: string; p_dados?: Json; p_id: string }
-        Returns: Json
-      }
-      clinica_anexo_cancelar: {
-        Args: { p_id: string; p_motivo: string }
-        Returns: undefined
-      }
-      clinica_anexo_confirmar: { Args: { p_id: string }; Returns: undefined }
-      clinica_anexo_preparar: { Args: { p_dados: Json }; Returns: Json }
-      clinica_anexos: {
-        Args: { p_atendimento_id?: string; p_exame_id?: string }
-        Returns: Json
-      }
-      clinica_exame_abrir: {
-        Args: { p_dados?: Json; p_modelo_id: string; p_pet_id: string }
-        Returns: Json
-      }
-      clinica_exame_adendo_criar: {
-        Args: { p_exame_id: string; p_texto: string }
-        Returns: Json
-      }
-      clinica_exame_cancelar: {
-        Args: { p_id: string; p_motivo: string }
-        Returns: Json
-      }
-      clinica_exame_evolucao: {
-        Args: { p_nome: string; p_pet_id: string; p_unidade?: string }
-        Returns: Json
-      }
-      clinica_exame_fechar: { Args: { p_id: string }; Returns: Json }
-      clinica_exame_get: { Args: { p_id: string }; Returns: Json }
-      clinica_exame_salvar: {
-        Args: { p_dados: Json; p_id: string }
-        Returns: Json
-      }
-      clinica_exames_do_pet: { Args: { p_pet_id: string }; Returns: Json }
-      clinica_exame_campo_mover: {
-        Args: { p_campo_id: string; p_delta: number }
-        Returns: undefined
-      }
-      clinica_exame_campo_salvar: { Args: { p_dados: Json }; Returns: string }
-      clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
-      clinica_exame_modelos: { Args: never; Returns: Json }
-      clinica_exame_modelos_iniciais: { Args: never; Returns: number }
-      clinica_exame_referencia_salvar: {
-        Args: {
-          p_campo_id: string
-          p_especie: string
-          p_maximo: number
-          p_minimo: number
-        }
-        Returns: undefined
-      }
-      clinica_vacina_catalogo_salvar: { Args: { p_dados: Json }; Returns: string }
-      clinica_vacina_registrar_externa: {
-        Args: { p_dados: Json; p_pet_id: string }
-        Returns: Json
-      }
-      clinica_vacinas_catalogo: { Args: never; Returns: Json }
-      clinica_atendimento_abrir: { Args: { p_agendamento_id: string }; Returns: Json }
-      clinica_atendimento_fechar: { Args: { p_id: string }; Returns: Json }
-      clinica_atendimento_salvar: { Args: { p_dados: Json; p_id: string }; Returns: Json }
-      clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
-      clinica_liberada: { Args: never; Returns: boolean }
-      clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
-      clinica_pet_alergias: {
-        Args: { p_alergias: string; p_pet_id: string }
-        Returns: undefined
-      }
-      pet_minha_agenda: { Args: { p_ate: string; p_de: string }; Returns: Json }
-      pet_minha_situacao: { Args: { p_id: string; p_para: string }; Returns: undefined }
-      pet_profissional_vincular: {
-        Args: { p_profile_id: string; p_profissional_id: string }
-        Returns: undefined
-      }
-      pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
-      pet_salvar: { Args: { p_dados: Json }; Returns: string }
-      pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       produto_proximo_codigo: { Args: { p_tenant?: string }; Returns: string }
       profissional_converter_em_cliente: {
         Args: { p_profissional_id: string }
