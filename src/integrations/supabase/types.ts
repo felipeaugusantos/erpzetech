@@ -2559,6 +2559,7 @@ export type Database = {
           razao_social: string
           regime_tributario: string
           show_ao_vivo: boolean
+          slug: string | null
           telefone: string | null
           tenant_id: string
           updated_at: string
@@ -2590,6 +2591,7 @@ export type Database = {
           razao_social: string
           regime_tributario?: string
           show_ao_vivo?: boolean
+          slug?: string | null
           telefone?: string | null
           tenant_id: string
           updated_at?: string
@@ -2621,6 +2623,7 @@ export type Database = {
           razao_social?: string
           regime_tributario?: string
           show_ao_vivo?: boolean
+          slug?: string | null
           telefone?: string | null
           tenant_id?: string
           updated_at?: string
@@ -9553,6 +9556,14 @@ export type Database = {
       eh_profissional_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
+      empresa_por_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          cor_primaria: string
+          logo_path: string
+          nome: string
+        }[]
+      }
       empresa_salvar: { Args: { p_dados: Json }; Returns: string }
       empresa_zerar_dados: {
         Args: { _confirmacao: string; _modo: string }

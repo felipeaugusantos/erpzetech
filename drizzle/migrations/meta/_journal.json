@@ -435,6 +435,13 @@
       "when": 1792458314429,
       "tag": "0061_cancelar_venda_salao_show",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792498031036,
+      "tag": "0062_empresa_link_login",
+      "breakpoints": true
     }
   ]
 }
