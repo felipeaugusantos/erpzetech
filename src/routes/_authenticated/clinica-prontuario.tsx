@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, TriangleAlert, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
+import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { evolucaoDoPeso, type AtendimentoClinico, type PetClinico } from "@/lib/clinica";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
+import { atendimentoAbertoDoPaciente } from "@/lib/iniciar-atendimento";
 import { ESPECIES, PELAGENS, PORTES, idadeDoPet, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/clinica-prontuario")({
@@ -153,6 +155,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const qc = useQueryClient();
   const [alergias, setAlergias] = useState<string | null>(null);
   const [adendo, setAdendo] = useState<{ id: string; texto: string } | null>(null);
+  const [iniciando, setIniciando] = useState(false);
+  const navegar = useNavigate();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-historico", petId],
@@ -209,6 +213,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   const p = data.pet;
   const evolucao = evolucaoDoPeso(data.atendimentos);
+  const aberto = atendimentoAbertoDoPaciente(data.atendimentos);
 
   return (
     <div className="grid gap-4">
@@ -217,6 +222,31 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <h2 className="font-display text-lg font-semibold">{p.nome}</h2>
           <span className="text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
         </div>
+        <div className="mt-2">
+          {aberto ? (
+            <Button asChild size="sm">
+              <Link to="/clinica-atendimento" search={{ agendamento: aberto.agendamento_id }}>
+                Continuar atendimento
+              </Link>
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => setIniciando(true)}>
+              Iniciar atendimento
+            </Button>
+          )}
+        </div>
+        {iniciando && (
+          <IniciarAtendimentoDialog
+            petId={petId}
+            petNome={p.nome}
+            aoFechar={() => setIniciando(false)}
+            aoIniciar={(agendamento) => {
+              setIniciando(false);
+              void qc.invalidateQueries({ queryKey: ["clinica-historico", petId] });
+              void navegar({ to: "/clinica-atendimento", search: { agendamento } });
+            }}
+          />
+        )}
         <Link
           to="/clinica-vacinas"
           search={{ pet: petId, agendamento: undefined }}
