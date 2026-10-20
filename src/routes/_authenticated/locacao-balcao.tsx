@@ -5,7 +5,9 @@ import { CalendarClock, FileText, Minus, Plus, Receipt, Search, Trash2 } from "l
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { usePlanosManutencao } from "@/hooks/usePlanosManutencao";
 import { useModulosCnae } from "@/lib/cnae";
+import { equipamentosComManutencaoVencida } from "@/lib/manutencao-locacao";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { brl } from "@/lib/format";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
@@ -150,6 +152,9 @@ function Balcao() {
     [carrinho, numeroDias],
   );
 
+  const { data: planosManutencao = [] } = usePlanosManutencao();
+  const vencidos = equipamentosComManutencaoVencida(planosManutencao);
+
   const adicionar = (eq: (typeof equipamentos)[number]) => {
     setCarrinho((atual) => {
       const existe = atual.find((i) => i.equipamento_id === eq.id);
@@ -281,8 +286,9 @@ function Balcao() {
                 <button
                   key={eq.id}
                   type="button"
+                  disabled={eq.situacao === "manutencao" || vencidos.has(eq.id)}
                   onClick={() => adicionar(eq)}
-                  className="rounded-lg border p-3 text-left transition hover:border-primary hover:bg-secondary/60"
+                  className="rounded-lg border p-3 text-left transition hover:border-primary hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:bg-transparent"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -291,6 +297,12 @@ function Balcao() {
                         {eq.codigo ?? "—"}
                         {eq.marca ? ` · ${eq.marca}` : ""}
                       </p>
+                      {eq.situacao === "manutencao" && (
+                        <p className="text-xs text-destructive">Em manutenção</p>
+                      )}
+                      {vencidos.has(eq.id) && (
+                        <p className="text-xs text-destructive">Manutenção vencida</p>
+                      )}
                     </div>
                     <Badge variant="secondary">{brl(Number(eq.valor_diaria ?? 0))}/dia</Badge>
                   </div>

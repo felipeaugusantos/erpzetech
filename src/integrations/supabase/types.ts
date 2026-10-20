@@ -4132,6 +4132,84 @@ export type Database = {
           },
         ]
       }
+      locacao_manutencoes: {
+        Row: {
+          created_at: string
+          custo: number
+          descricao: string
+          equipamento_id: string
+          id: string
+          plano_id: string | null
+          realizada_em: string
+          responsavel: string | null
+          tenant_id: string
+          tipo: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo?: number
+          descricao: string
+          equipamento_id: string
+          id?: string
+          plano_id?: string | null
+          realizada_em: string
+          responsavel?: string | null
+          tenant_id?: string
+          tipo: string
+          usuario_id?: string
+        }
+        Update: {
+          created_at?: string
+          custo?: number
+          descricao?: string
+          equipamento_id?: string
+          id?: string
+          plano_id?: string | null
+          realizada_em?: string
+          responsavel?: string | null
+          tenant_id?: string
+          tipo?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      locacao_planos_manutencao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          equipamento_id: string
+          id: string
+          intervalo_dias: number
+          nome: string
+          referencia_em: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          equipamento_id: string
+          id?: string
+          intervalo_dias: number
+          nome: string
+          referencia_em?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          equipamento_id?: string
+          id?: string
+          intervalo_dias?: number
+          nome?: string
+          referencia_em?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locacao_vistoria_avarias: {
         Row: {
           created_at: string
@@ -10106,6 +10184,9 @@ export type Database = {
         }
         Returns: Json
       }
+      locacao_manutencao_registrar: { Args: { p_dados: Json }; Returns: Json }
+      locacao_manutencao_situacao: { Args: { p_equipamento_id?: string }; Returns: Json }
+      locacao_plano_salvar: { Args: { p_dados: Json }; Returns: string }
       locacao_devolver_vistoriada: {
         Args: {
           p_data?: string

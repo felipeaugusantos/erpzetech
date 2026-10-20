@@ -31,6 +31,8 @@ import {
   type NotaArquivo,
 } from "@/lib/nfe-arquivos";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { usePlanosManutencao } from "@/hooks/usePlanosManutencao";
+import { equipamentosComManutencaoVencida } from "@/lib/manutencao-locacao";
 import { DevolucaoVistoria, VistoriaRegistrada } from "@/components/app/DevolucaoVistoria";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -170,6 +172,8 @@ function Locacoes() {
     },
   });
 
+  const { data: planosManutencao = [] } = usePlanosManutencao();
+  const vencidos = equipamentosComManutencaoVencida(planosManutencao);
   // devolução passa pela vistoria; a locação devolvida pode ter a vistoria consultada
   const [devolvendo, setDevolvendo] = useState<(typeof locacoes)[number] | null>(null);
   const [vendoVistoria, setVendoVistoria] = useState<{ id: string; numero: number } | null>(null);
@@ -682,6 +686,7 @@ function Locacoes() {
                     <SelectItem key={e.id} value={e.id} disabled={e.situacao === "manutencao"}>
                       {e.nome}
                       {e.situacao === "locado" ? " (locado)" : ""}
+                      {vencidos.has(e.id) ? " (manutenção vencida: faça antes da entrega)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
