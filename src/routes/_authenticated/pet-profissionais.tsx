@@ -177,6 +177,7 @@ function Profissionais() {
       // depois de salvo, salvar de novo (se o acesso falhar) atualiza este cadastro em vez de criar outro
       setForm((f) => ({ ...f, id: id as string }));
       if (criarAcesso) {
+        let novoId: string;
         try {
           const novo = await fnCriarUsuario({
             data: {
@@ -187,18 +188,25 @@ function Profissionais() {
               perfis: [perfilDoProfissional(form.funcao)],
             },
           });
-          const lig = await supabase.rpc("pet_profissional_vincular", {
-            p_profissional_id: id as string,
-            p_profile_id: novo.id,
-          });
-          if (lig.error) throw lig.error;
-          void qc.invalidateQueries({ queryKey: ["pet-profissional-contas"] });
-          return;
+          novoId = novo.id;
         } catch (e) {
           throw new Error(
             `Profissional salvo, mas o acesso não foi criado: ${(e as Error).message}`,
           );
         }
+        void qc.invalidateQueries({ queryKey: ["pet-profissional-contas"] });
+        const lig = await supabase.rpc("pet_profissional_vincular", {
+          p_profissional_id: id as string,
+          p_profile_id: novoId,
+        });
+        if (lig.error) {
+          // a conta já existe: o formulário passa a apontar para ela, e salvar de novo só tenta a ligação
+          setForm((f) => ({ ...f, profile_id: novoId, criar_acesso: false, nova_senha: "" }));
+          throw new Error(
+            `Profissional salvo e acesso criado, mas a conta não foi ligada (${lig.error.message}). Salve de novo para ligar.`,
+          );
+        }
+        return;
       }
       if (form.profile_id !== form.profile_original) {
         const lig = await supabase.rpc("pet_profissional_vincular", {
