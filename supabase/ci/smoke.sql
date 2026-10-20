@@ -5399,7 +5399,7 @@ DECLARE
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
-  cli uuid; eq1 uuid; eq2 uuid; eq3 uuid; plano uuid; plano2 uuid; locb uuid; loca uuid; locc uuid; locd uuid;
+  cli uuid; eq1 uuid; eq2 uuid; eq3 uuid; plano uuid; plano2 uuid; plano3 uuid; locb uuid; loca uuid; locc uuid; locd uuid;
   r jsonb; s jsonb; n bigint;
 BEGIN
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Manutencao CI', '52998224725') RETURNING id INTO cli;
@@ -5500,10 +5500,20 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_manutencoes (equipamento_id, tipo, realizada_em, descricao) VALUES (%L, 'preventiva', current_date, 'Direto')$c$, eq1), 'gravar manutenção direto na tabela');
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_planos_manutencao (equipamento_id, nome, intervalo_dias) VALUES (%L, 'Direto', 5)$c$, eq1), 'gravar plano direto na tabela');
 
+  -- reparo de defeito ligado a um plano não recomeça a contagem dele (só a preventiva recomeça)
+  UPDATE locacoes SET situacao = 'devolvida', devolvido_em = current_date WHERE id = locd;
+  PERFORM ci.entrar(adm);
+  plano3 := locacao_plano_salvar(jsonb_build_object('equipamento_id', eq1, 'nome', 'Revisão do motor', 'intervalo_dias', 1, 'referencia_em', current_date - 30));
+  PERFORM locacao_manutencao_registrar(jsonb_build_object('equipamento_id', eq1, 'plano_id', plano3, 'tipo', 'corretiva', 'descricao', 'Conserto do cabo'));
+  s := locacao_manutencao_situacao(eq1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT referencia_em = current_date - 30 FROM locacao_planos_manutencao WHERE id = plano3)
+               AND EXISTS (SELECT 1 FROM jsonb_array_elements(s) x WHERE x ->> 'plano_id' = plano3::text AND x ->> 'situacao' = 'vencida'), 'reparo corretivo não recomeça a contagem do plano (só a preventiva)');
+
   -- plano desativado sai da conta e do bloqueio
   PERFORM ci.entrar(adm);
   plano2 := locacao_plano_salvar(jsonb_build_object('id', plano, 'nome', 'Troca de óleo', 'intervalo_dias', 1, 'ativo', false));
   s := locacao_manutencao_situacao(eq1);
   PERFORM ci.sair();
-  PERFORM ci.exige(plano2 = plano AND jsonb_array_length(s) = 0, 'plano desativado deixa de aparecer e de bloquear');
+  PERFORM ci.exige(plano2 = plano AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(s) x WHERE x ->> 'plano_id' = plano::text), 'plano desativado deixa de aparecer e de bloquear');
 END $$;

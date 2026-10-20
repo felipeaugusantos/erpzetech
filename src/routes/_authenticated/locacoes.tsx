@@ -683,14 +683,10 @@ function Locacoes() {
                 </SelectTrigger>
                 <SelectContent>
                   {equipamentos.map((e) => (
-                    <SelectItem
-                      key={e.id}
-                      value={e.id}
-                      disabled={e.situacao === "manutencao" || vencidos.has(e.id)}
-                    >
+                    <SelectItem key={e.id} value={e.id} disabled={e.situacao === "manutencao"}>
                       {e.nome}
                       {e.situacao === "locado" ? " (locado)" : ""}
-                      {vencidos.has(e.id) ? " (manutenção vencida)" : ""}
+                      {vencidos.has(e.id) ? " (manutenção vencida: faça antes da entrega)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

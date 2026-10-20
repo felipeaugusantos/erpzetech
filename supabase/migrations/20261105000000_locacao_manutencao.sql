@@ -217,15 +217,15 @@ BEGIN
   IF v_plano IS NOT NULL THEN
     SELECT * INTO pl FROM public.locacao_planos_manutencao WHERE id = v_plano AND tenant_id = v_tenant AND equipamento_id = e.id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Plano não encontrado neste equipamento'; END IF;
-    IF v_em < pl.referencia_em THEN RAISE EXCEPTION 'A manutenção não pode ser anterior à última registrada neste plano (%)', to_char(pl.referencia_em, 'DD/MM/YYYY'); END IF;
+    IF v_tipo = 'preventiva' AND v_em < pl.referencia_em THEN RAISE EXCEPTION 'A manutenção não pode ser anterior à última registrada neste plano (%)', to_char(pl.referencia_em, 'DD/MM/YYYY'); END IF;
   END IF;
   IF e.situacao = 'locado' THEN RAISE EXCEPTION 'O equipamento está locado: registre a manutenção depois da devolução'; END IF;
 
   INSERT INTO public.locacao_manutencoes (tenant_id, equipamento_id, plano_id, tipo, realizada_em, descricao, custo, responsavel)
   VALUES (v_tenant, e.id, v_plano, v_tipo, v_em, v_desc, round(v_custo, 2), v_resp) RETURNING id INTO v_id;
 
-  -- recomeça a contagem do plano e soma o custo ao do equipamento
-  IF v_plano IS NOT NULL THEN
+  -- só a manutenção preventiva recomeça a contagem do plano; o reparo de um defeito não faz um serviço vencido parecer em dia
+  IF v_plano IS NOT NULL AND v_tipo = 'preventiva' THEN
     UPDATE public.locacao_planos_manutencao SET referencia_em = v_em, updated_at = now() WHERE id = v_plano;
   END IF;
   UPDATE public.locacao_equipamentos
