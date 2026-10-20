@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Scissors } from "lucide-react";
@@ -36,6 +37,12 @@ import {
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
+import {
+  erroDoAcessoNovo,
+  perfilDoProfissional,
+  usuarioSugeridoDoNome,
+} from "@/lib/profissional-acesso";
+import { criarUsuario } from "@/lib/usuario-admin.functions";
 import { FUNCOES_PROFISSIONAL, UFS_CRMV, crmvValido, normalizarCrmv, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/pet-profissionais")({
@@ -66,6 +73,10 @@ type Form = {
   /** conta de acesso (perfil Profissional) ligada ao cadastro; vazio = sem acesso próprio */
   profile_id: string;
   profile_original: string;
+  /** criar o acesso junto com o cadastro (só o administrador) */
+  criar_acesso: boolean;
+  novo_usuario: string;
+  nova_senha: string;
 };
 
 const vazio: Form = {
@@ -78,6 +89,9 @@ const vazio: Form = {
   crmv_uf: "",
   profile_id: "",
   profile_original: "",
+  criar_acesso: false,
+  novo_usuario: "",
+  nova_senha: "",
 };
 
 function ProfissionaisModulo() {
@@ -92,6 +106,9 @@ function Profissionais() {
   const { data: session } = useSessionData();
   const filiais = session?.filiais ?? [];
   const podeEditar = (session?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
+  // criar o login é do administrador (o servidor confere de novo)
+  const souAdmin = (session?.roles ?? []).includes("administrador");
+  const fnCriarUsuario = useServerFn(criarUsuario);
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
 
@@ -138,6 +155,11 @@ function Profissionais() {
       const com = Number((form.comissao_percentual || "0").replace(",", "."));
       if (!Number.isFinite(com) || com < 0 || com > 100)
         throw new Error("A comissão precisa ficar entre 0 e 100%.");
+      const criarAcesso = form.criar_acesso && souAdmin && !form.profile_id;
+      if (criarAcesso) {
+        const erroAcesso = erroDoAcessoNovo(form.novo_usuario, form.nova_senha);
+        if (erroAcesso) throw new Error(erroAcesso);
+      }
       const { data: id, error } = await supabase.rpc("pet_profissional_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
@@ -152,6 +174,40 @@ function Profissionais() {
         },
       });
       if (error) throw error;
+      // depois de salvo, salvar de novo (se o acesso falhar) atualiza este cadastro em vez de criar outro
+      setForm((f) => ({ ...f, id: id as string }));
+      if (criarAcesso) {
+        let novoId: string;
+        try {
+          const novo = await fnCriarUsuario({
+            data: {
+              nome: form.nome.trim(),
+              usuario: form.novo_usuario,
+              senha: form.nova_senha,
+              filialId: form.filial_id || null,
+              perfis: [perfilDoProfissional(form.funcao)],
+            },
+          });
+          novoId = novo.id;
+        } catch (e) {
+          throw new Error(
+            `Profissional salvo, mas o acesso não foi criado: ${(e as Error).message}`,
+          );
+        }
+        void qc.invalidateQueries({ queryKey: ["pet-profissional-contas"] });
+        const lig = await supabase.rpc("pet_profissional_vincular", {
+          p_profissional_id: id as string,
+          p_profile_id: novoId,
+        });
+        if (lig.error) {
+          // a conta já existe: o formulário passa a apontar para ela, e salvar de novo só tenta a ligação
+          setForm((f) => ({ ...f, profile_id: novoId, criar_acesso: false, nova_senha: "" }));
+          throw new Error(
+            `Profissional salvo e acesso criado, mas a conta não foi ligada (${lig.error.message}). Salve de novo para ligar.`,
+          );
+        }
+        return;
+      }
       if (form.profile_id !== form.profile_original) {
         const lig = await supabase.rpc("pet_profissional_vincular", {
           p_profissional_id: id as string,
@@ -248,6 +304,9 @@ function Profissionais() {
                             crmv_uf: p.crmv_uf ?? "",
                             profile_id: p.profile_id ?? "",
                             profile_original: p.profile_id ?? "",
+                            criar_acesso: false,
+                            novo_usuario: "",
+                            nova_senha: "",
                           });
                           setAberto(true);
                         }}
@@ -384,10 +443,55 @@ function Profissionais() {
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Crie o usuário em Usuários e perfis com o perfil{" "}
-                  {form.funcao === "veterinario" ? "Veterinário" : "Profissional"}; ele entra e vê
-                  só a própria agenda.
+                  Escolha uma conta que já existe ou crie o acesso agora (abaixo). Ele entra e vê só
+                  a própria agenda
+                  {form.funcao === "veterinario" ? " e o prontuário" : ""}.
                 </p>
+              </div>
+            )}
+            {podeEditar && souAdmin && !form.profile_id && (
+              <div className="grid gap-2 rounded-md border border-border p-3">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="pf-criar-acesso"
+                    checked={form.criar_acesso}
+                    onCheckedChange={(v) =>
+                      setForm({
+                        ...form,
+                        criar_acesso: v,
+                        novo_usuario: form.novo_usuario || usuarioSugeridoDoNome(form.nome),
+                      })
+                    }
+                  />
+                  <Label htmlFor="pf-criar-acesso">Criar o acesso agora</Label>
+                </div>
+                {form.criar_acesso && (
+                  <>
+                    <div>
+                      <Label htmlFor="pf-usuario">Usuário</Label>
+                      <Input
+                        id="pf-usuario"
+                        autoComplete="off"
+                        value={form.novo_usuario}
+                        onChange={(e) => setForm({ ...form, novo_usuario: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pf-senha">Senha (mínimo 8 caracteres)</Label>
+                      <Input
+                        id="pf-senha"
+                        type="password"
+                        autoComplete="new-password"
+                        value={form.nova_senha}
+                        onChange={(e) => setForm({ ...form, nova_senha: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      O perfil {form.funcao === "veterinario" ? "Veterinário" : "Profissional"} é
+                      dado sozinho e a conta já fica ligada a este cadastro.
+                    </p>
+                  </>
+                )}
               </div>
             )}
             <div className="flex items-center gap-2">
