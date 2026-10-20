@@ -282,6 +282,7 @@ const groups: Group[] = [
     icon: ShieldCheck,
     items: [
       { label: "Cadastro da empresa", to: "/empresa", icon: Building2 },
+      { label: "Módulos sem CNPJ", to: "/modulos-sem-cnpj", icon: Settings },
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
