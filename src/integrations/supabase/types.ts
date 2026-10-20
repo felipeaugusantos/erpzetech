@@ -4172,7 +4172,29 @@ export type Database = {
           tipo?: string
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locacao_manutencoes_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_manutencoes_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_planos_manutencao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_manutencoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locacao_planos_manutencao: {
         Row: {
@@ -4208,7 +4230,22 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locacao_planos_manutencao_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_planos_manutencao_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locacao_vistoria_avarias: {
         Row: {
@@ -4238,7 +4275,22 @@ export type Database = {
           valor?: number
           vistoria_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locacao_vistoria_avarias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_vistoria_avarias_vistoria_id_fkey"
+            columns: ["vistoria_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_vistorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locacao_vistorias: {
         Row: {
@@ -4277,13 +4329,35 @@ export type Database = {
           usuario_id?: string
           valor_avarias?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locacao_vistorias_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "locacao_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_vistorias_locacao_id_fkey"
+            columns: ["locacao_id"]
+            isOneToOne: false
+            referencedRelation: "locacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locacao_vistorias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locacoes: {
         Row: {
           aprovada: boolean
-          avarias_conta_receber_id: string | null
           aprovado_em: string | null
+          avarias_conta_receber_id: string | null
           caucao: number
           caucao_abatida: number
           caucao_devolver: number
@@ -4309,8 +4383,8 @@ export type Database = {
           solicitado_em: string
           tenant_id: string
           updated_at: string
-          valor_diaria: number
           valor_avarias: number
+          valor_diaria: number
           valor_extras: number
           valor_faturado: number
           valor_total: number
@@ -4318,8 +4392,8 @@ export type Database = {
         }
         Insert: {
           aprovada?: boolean
-          avarias_conta_receber_id?: string | null
           aprovado_em?: string | null
+          avarias_conta_receber_id?: string | null
           caucao?: number
           caucao_abatida?: number
           caucao_devolver?: number
@@ -4345,8 +4419,8 @@ export type Database = {
           solicitado_em?: string
           tenant_id: string
           updated_at?: string
-          valor_diaria?: number
           valor_avarias?: number
+          valor_diaria?: number
           valor_extras?: number
           valor_faturado?: number
           valor_total?: number
@@ -4354,8 +4428,8 @@ export type Database = {
         }
         Update: {
           aprovada?: boolean
-          avarias_conta_receber_id?: string | null
           aprovado_em?: string | null
+          avarias_conta_receber_id?: string | null
           caucao?: number
           caucao_abatida?: number
           caucao_devolver?: number
@@ -4381,14 +4455,21 @@ export type Database = {
           solicitado_em?: string
           tenant_id?: string
           updated_at?: string
-          valor_diaria?: number
           valor_avarias?: number
+          valor_diaria?: number
           valor_extras?: number
           valor_faturado?: number
           valor_total?: number
           vistoria_em?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "locacoes_avarias_conta_receber_id_fkey"
+            columns: ["avarias_conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "locacoes_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -9525,6 +9606,7 @@ export type Database = {
         Returns: Json
       }
       _imp_num: { Args: { p_campo: string; p_item: Json }; Returns: number }
+      _locacao_plano_dias: { Args: { p_plano_id: string }; Returns: number }
       _pet_cobertura: {
         Args: { p_agendamento_id: string }
         Returns: {
@@ -9709,6 +9791,10 @@ export type Database = {
         Returns: undefined
       }
       clinica_anexo_confirmar: { Args: { p_id: string }; Returns: undefined }
+      clinica_anexo_offline_preparar: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
       clinica_anexo_preparar: { Args: { p_dados: Json }; Returns: Json }
       clinica_anexos: {
         Args: { p_atendimento_id?: string; p_exame_id?: string }
@@ -9758,10 +9844,6 @@ export type Database = {
       clinica_exame_get: { Args: { p_id: string }; Returns: Json }
       clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
       clinica_exame_modelos: { Args: never; Returns: Json }
-      clinica_anexo_offline_preparar: {
-        Args: { p_chave: string; p_dados: Json }
-        Returns: Json
-      }
       clinica_exame_modelos_iniciais: { Args: never; Returns: number }
       clinica_exame_offline: {
         Args: { p_acao: string; p_chave: string; p_dados: Json }
@@ -9784,6 +9866,7 @@ export type Database = {
       clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
       clinica_liberada: { Args: never; Returns: boolean }
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
+      clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
       clinica_pet_alergias: {
         Args: { p_alergias: string; p_pet_id: string }
@@ -9793,6 +9876,7 @@ export type Database = {
         Args: { p_atraso?: number; p_janela?: number }
         Returns: Json
       }
+      clinica_servicos_consulta: { Args: never; Returns: Json }
       clinica_vacina_aplicar: {
         Args: { p_agendamento_id: string; p_dados: Json }
         Returns: Json
@@ -9815,8 +9899,6 @@ export type Database = {
       }
       clinica_vacinas_catalogo: { Args: never; Returns: Json }
       clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
-      clinica_meu_veterinario: { Args: never; Returns: string }
-      clinica_servicos_consulta: { Args: never; Returns: Json }
       clinica_visita_registrar: {
         Args: { p_chave: string; p_dados: Json }
         Returns: Json
@@ -10190,9 +10272,15 @@ export type Database = {
         }
         Returns: Json
       }
-      locacao_manutencao_registrar: { Args: { p_dados: Json }; Returns: Json }
-      locacao_manutencao_situacao: { Args: { p_equipamento_id?: string }; Returns: Json }
-      locacao_plano_salvar: { Args: { p_dados: Json }; Returns: string }
+      locacao_devolver: {
+        Args: {
+          p_data?: string
+          p_locacao_id: string
+          p_multa?: number
+          p_observacao?: string
+        }
+        Returns: number
+      }
       locacao_devolver_vistoriada: {
         Args: {
           p_caixa_id?: string
@@ -10205,15 +10293,6 @@ export type Database = {
           p_vistorias?: Json
         }
         Returns: Json
-      }
-      locacao_devolver: {
-        Args: {
-          p_data?: string
-          p_locacao_id: string
-          p_multa?: number
-          p_observacao?: string
-        }
-        Returns: number
       }
       locacao_entregar: {
         Args: { p_data?: string; p_locacao_id: string }
@@ -10231,6 +10310,12 @@ export type Database = {
       }
       locacao_gerar_nfe: { Args: { p_locacao_id: string }; Returns: string }
       locacao_gerar_nfse: { Args: { p_locacao_id: string }; Returns: string }
+      locacao_manutencao_registrar: { Args: { p_dados: Json }; Returns: Json }
+      locacao_manutencao_situacao: {
+        Args: { p_equipamento_id?: string }
+        Returns: Json
+      }
+      locacao_plano_salvar: { Args: { p_dados: Json }; Returns: string }
       motorista_enviar_posicao: {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
