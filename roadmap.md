@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Seleção de módulos no Cadastro da empresa para negócios sem CNPJ, preservando permissões e CNAEs.
+- [x] Seleção de módulos sem CNPJ: campo salvo na empresa, regra central e clínica alinhadas, 13 testes passaram; caixinhas e ocultação com CNPJ conferidas na sessão autenticada, sem salvar alterações na empresa real.
 
 - [x] Redefinir senha do administrador em Editar cliente assinante: cinco testes de proteção passaram e campos/confirmar/cancelar conferidos com conta autenticada; nenhuma senha real alterada na verificação.
 
