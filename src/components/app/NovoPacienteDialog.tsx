@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ import {
   type FormCadastroRapido,
 } from "@/lib/cadastro-rapido";
 import { enviarOperacao } from "@/lib/fila-executores";
+import type { OperacaoFila } from "@/lib/fila-clinica";
 import { ehErroDeRede } from "@/lib/offline";
 
 /**
@@ -35,6 +36,8 @@ export function NovoPacienteDialog({
 }) {
   const [form, setForm] = useState<FormCadastroRapido>(cadastroVazio);
   const [salvando, setSalvando] = useState(false);
+  // o mesmo formulário reenviado (por exemplo, depois de a conexão cair) leva a mesma chave: o banco não cria o paciente duas vezes
+  const tentativa = useRef<{ assinatura: string; op: OperacaoFila } | null>(null);
   const erro = erroDoCadastroRapido(form);
   const mexe = (parte: Partial<FormCadastroRapido>) => setForm((f) => ({ ...f, ...parte }));
 
@@ -42,7 +45,10 @@ export function NovoPacienteDialog({
     if (erro) return;
     setSalvando(true);
     try {
-      const op = operacaoDoCadastroRapido(form);
+      const assinatura = JSON.stringify(form);
+      if (tentativa.current?.assinatura !== assinatura)
+        tentativa.current = { assinatura, op: operacaoDoCadastroRapido(form) };
+      const op = tentativa.current.op;
       await enviarOperacao(op);
       const petId = String((op.payload as CadastroRapidoPayload).pet["id"]);
       toast.success(`${form.petNome.trim()} cadastrado`);
@@ -60,7 +66,7 @@ export function NovoPacienteDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => !o && aoFechar()}>
+    <Dialog open onOpenChange={(o) => !o && !salvando && aoFechar()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -76,7 +82,7 @@ export function NovoPacienteDialog({
           <p className="text-sm text-destructive">{erro}</p>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={aoFechar}>
+          <Button variant="outline" onClick={aoFechar} disabled={salvando}>
             Cancelar
           </Button>
           <Button onClick={() => void cadastrar()} disabled={salvando || !!erro}>
