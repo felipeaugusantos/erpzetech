@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Lock, LockOpen, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
+import { AtendimentosVisita } from "@/components/app/AtendimentosVisita";
 import { CadastroRapido } from "@/components/app/CadastroRapido";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -505,6 +506,14 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
       </div>
 
       <CadastroRapido cofre={cofre} copia={copia} online={online} aoGuardar={recarregar} />
+
+      <AtendimentosVisita
+        cofre={cofre}
+        copia={copia}
+        fila={fila}
+        online={online}
+        aoGuardar={recarregar}
+      />
 
       <div className="panel grid gap-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">

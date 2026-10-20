@@ -541,7 +541,9 @@ DECLARE
     -- cópia para o trabalho sem internet: só o veterinário
     'clinica_visita_preparar',
     -- cadastro rápido de tutor e pet pelo veterinário (também sem internet): só o veterinário
-    'clinica_cadastro_rapido'];
+    'clinica_cadastro_rapido',
+    -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
+    'clinica_visita_registrar', 'clinica_atendimento_offline'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -4948,5 +4950,159 @@ BEGIN
   -- clínica deixa de estar liberada
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_cadastro_rapido(%L, jsonb_build_object('cliente_id', %L, 'pet', jsonb_build_object('id', %L, 'nome', 'Rex')))$c$, gen_random_uuid(), c1, gen_random_uuid()), 'cadastro rápido sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 52. Clínica (atendimento sem internet): visita avulsa e consulta marcada com o id do notebook; salvar e fechar aceitam repetição
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  pban constant uuid := 'a0000000-0000-0000-0000-0000000000e3';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000fd';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000fe';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  t0 timestamptz := date_trunc('day', now()) + interval '20 days' + interval '9 hours';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet1 uuid; pet2 uuid; pet3 uuid; pet4 uuid; cons uuid; cons_sempreco uuid; banho uuid; pva uuid; pvb uuid;
+  ag_cons uuid; ag_banho uuid; ag_canc uuid; ag_outro uuid; ag_novo uuid;
+  k1 uuid := gen_random_uuid(); k2 uuid := gen_random_uuid(); k3 uuid := gen_random_uuid(); k4 uuid := gen_random_uuid();
+  a1 uuid := gen_random_uuid(); a2 uuid := gen_random_uuid(); a3 uuid := gen_random_uuid();
+  r jsonb; r2 jsonb; n bigint; agv uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Atendimento Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (va, 'vetoffa@ci'), (vb, 'vetoffb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
+
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Offline CI","categoria":"consulta","duracao_min":40}'::jsonb);
+  cons_sempreco := pet_servico_salvar('{"nome":"Consulta Sem Preco Offline CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  banho := pet_servico_salvar('{"nome":"Banho Offline CI","categoria":"banho","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 150);
+  PERFORM pet_preco_salvar(banho, NULL, NULL, NULL, 60);
+  pva := pet_profissional_salvar('{"nome":"Vet A Offline","funcao":"veterinario","crmv":"6661","crmv_uf":"SP"}'::jsonb);
+  pvb := pet_profissional_salvar('{"nome":"Vet B Offline","funcao":"veterinario","crmv":"6662","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pva, va);
+  PERFORM pet_profissional_vincular(pvb, vb);
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(vend);
+  pet1 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Visita Avulsa CI', 'especie', 'cao'));
+  pet2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Consulta Marcada CI', 'especie', 'gato'));
+  pet3 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Outro Vet Offline CI', 'especie', 'cao'));
+  pet4 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Banho Offline CI', 'especie', 'cao'));
+  ag_cons := pet_agendar(jsonb_build_object('pet_id', pet2, 'profissional_id', pva, 'inicio', t0, 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  ag_banho := pet_agendar(jsonb_build_object('pet_id', pet4, 'profissional_id', pva, 'inicio', t0 + interval '2 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', banho))));
+  ag_canc := pet_agendar(jsonb_build_object('pet_id', pet1, 'profissional_id', pva, 'inicio', t0 + interval '4 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  PERFORM pet_agenda_situacao(ag_canc, 'cancelado', 'tutor desistiu');
+  ag_outro := pet_agendar(jsonb_build_object('pet_id', pet3, 'profissional_id', pvb, 'inicio', t0 + interval '5 hours', 'servicos', jsonb_build_array(jsonb_build_object('servico_id', cons))));
+  PERFORM ci.sair();
+
+  -- só o veterinário usa as duas funções
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet1, cons), 'gestor registra visita');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet1, cons), 'recepção registra visita');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet1, cons), 'garçom registra visita');
+  PERFORM ci.deve_falhar(pban, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'profissional de banho preenche atendimento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'gestor preenche atendimento');
+
+  -- a cópia da visita passa a levar os serviços de consulta
+  PERFORM ci.entrar(va);
+  r := clinica_visita_preparar();
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'servicos_consulta') x WHERE x ->> 'id' = cons::text AND x ->> 'nome' = 'Consulta Offline CI')
+               AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'servicos_consulta') x WHERE x ->> 'id' = banho::text), 'a cópia da visita traz os serviços de consulta (e só eles)');
+
+  -- visita avulsa: cria a consulta (já em atendimento) e o atendimento, com o id do notebook
+  PERFORM ci.entrar(va);
+  r := clinica_visita_registrar(k1, jsonb_build_object('atendimento_id', a1, 'pet_id', pet1, 'servico_id', cons, 'aberto_em', now() - interval '3 hours'));
+  PERFORM ci.sair();
+  agv := (r ->> 'agendamento_id')::uuid;
+  PERFORM ci.exige(r ->> 'atendimento_id' = a1::text AND r ->> 'modo' = 'visita_avulsa' AND (r ->> 'repetido')::boolean = false, 'a visita avulsa usa o id do atendimento nascido no notebook');
+  PERFORM ci.exige((SELECT situacao = 'em_atendimento' AND profissional_id = pva AND pet_id = pet1 AND fim - inicio = interval '40 minutes' AND observacoes LIKE 'Visita registrada pela clínica%'
+                      FROM pet_agendamentos WHERE id = agv), 'a consulta da visita nasce em atendimento, com a duração do serviço');
+  PERFORM ci.exige((SELECT preco_aplicado = 150 AND servico_id = cons FROM pet_agendamento_itens WHERE agendamento_id = agv), 'o preço da consulta fica congelado como a agenda calcularia');
+  PERFORM ci.exige((SELECT veterinario_id = pva AND crmv = '6661' AND agendamento_id = agv AND situacao = 'aberto' AND aberto_em < now() - interval '2 hours' FROM pet_atendimentos_clinicos WHERE id = a1),
+                   'o atendimento guarda o veterinário, o CRMV e a hora em que foi aberto no notebook');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE atendimento_id = a1 AND acao = 'atendimento' AND profile_id = va) = 1, 'abrir a visita fica na auditoria');
+
+  -- reenvio da mesma chave: devolve o mesmo e não duplica
+  SELECT count(*) INTO n FROM pet_agendamentos WHERE tenant_id = demo;
+  PERFORM ci.entrar(va);
+  r2 := clinica_visita_registrar(k1, jsonb_build_object('atendimento_id', a1, 'pet_id', pet1, 'servico_id', cons));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r2 ->> 'agendamento_id' = agv::text AND (r2 ->> 'repetido')::boolean, 'reenviar a mesma chave devolve a mesma visita');
+  PERFORM ci.exige((SELECT count(*) FROM pet_agendamentos WHERE tenant_id = demo) = n AND (SELECT count(*) FROM pet_atendimentos_clinicos WHERE pet_id = pet1) = 1, 'o reenvio não cria consulta nem atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), a1, pet1, cons), 'identificador do atendimento já usado por outra chave');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, k1, gen_random_uuid(), pet1, cons), 'chave de repetição de outro veterinário');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_offline(%L, 'fechar', %L)$c$, k1, a1), 'chave de uma operação usada em outro tipo');
+
+  -- regras da visita avulsa
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet3, banho), 'serviço que não é de consulta');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet3, cons_sempreco), 'consulta sem preço cadastrado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L, 'aberto_em', now() + interval '1 hour'))$c$, gen_random_uuid(), gen_random_uuid(), pet3, cons), 'hora do atendimento no futuro');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L, 'aberto_em', now() - interval '40 days'))$c$, gen_random_uuid(), gen_random_uuid(), pet3, cons), 'hora do atendimento de mais de 30 dias atrás');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet3), 'sem consulta marcada nem serviço');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet2, cons, ag_cons), 'consulta marcada e serviço ao mesmo tempo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), cons), 'paciente que não existe');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', 'não-é-uuid', 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), pet3, cons), 'identificador que não é UUID');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(NULL, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), pet3, cons), 'visita sem chave de repetição');
+  PERFORM ci.exige((SELECT count(*) FROM pet_agendamentos WHERE tenant_id = demo AND pet_id = pet3 AND observacoes LIKE 'Visita registrada%') = 0, 'visita recusada não deixa consulta para trás');
+
+  -- a visita avulsa não passa pela regra de horário livre: o atendimento já aconteceu (o veterinário B já tem consulta a partir de t0 + 5h)
+  PERFORM ci.entrar(vb);
+  r := clinica_visita_registrar(gen_random_uuid(), jsonb_build_object('atendimento_id', gen_random_uuid(), 'pet_id', pet3, 'servico_id', cons, 'aberto_em', now() - interval '1 hour'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'modo' = 'visita_avulsa', 'visita avulsa de quem já tem outra consulta marcada no mesmo período');
+
+  -- consulta já marcada na agenda do veterinário abre com o id do notebook
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet2, ag_cons), 'consulta marcada de outro veterinário');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet2, ag_banho), 'agendamento sem serviço de consulta (ou de outro paciente)');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet4, ag_banho), 'agendamento de banho');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet1, ag_canc), 'consulta cancelada');
+  PERFORM ci.entrar(va);
+  r := clinica_visita_registrar(k2, jsonb_build_object('atendimento_id', a2, 'pet_id', pet2, 'agendamento_id', ag_cons));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'modo' = 'consulta_marcada' AND r ->> 'agendamento_id' = ag_cons::text, 'consulta marcada abre o atendimento com o id do notebook');
+  PERFORM ci.exige((SELECT situacao = 'em_atendimento' FROM pet_agendamentos WHERE id = ag_cons), 'abrir começa a consulta marcada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet2, ag_cons), 'consulta já aberta em outro aparelho');
+
+  -- preencher e fechar, com chave de repetição
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'apagar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'ação inválida');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x"}'::jsonb)$c$, gen_random_uuid(), a1), 'outro veterinário preenche o atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x","peso_kg":"500"}'::jsonb)$c$, gen_random_uuid(), a1), 'peso absurdo (a regra do prontuário vale também aqui)');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_offline(k3, 'salvar', a1, '{"queixa":"Tosse há 3 dias","peso_kg":"12,5","temperatura_c":"38,6","conduta":"Repouso e hidratação"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'aberto' AND (r ->> 'repetido')::boolean = false, 'preencher sem internet grava e segue aberto');
+  PERFORM ci.exige((SELECT queixa = 'Tosse há 3 dias' AND peso_kg = 12.5 AND temperatura_c = 38.6 AND conduta = 'Repouso e hidratação' FROM pet_atendimentos_clinicos WHERE id = a1), 'o atendimento ficou com o que foi preenchido');
+  PERFORM ci.entrar(va);
+  r2 := clinica_atendimento_offline(k3, 'salvar', a1, '{"queixa":"OUTRA COISA"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND (SELECT queixa = 'Tosse há 3 dias' FROM pet_atendimentos_clinicos WHERE id = a1), 'reenviar a mesma chave não regrava o atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'fechar', %L)$c$, gen_random_uuid(), a2), 'fechar atendimento sem queixa nem conduta');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_offline(k4, 'fechar', a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'fechado' AND (SELECT situacao = 'fechado' FROM pet_atendimentos_clinicos WHERE id = a1) AND (SELECT situacao = 'pronto' FROM pet_agendamentos WHERE id = agv),
+                   'fechar sem internet fecha o atendimento e leva a consulta para pronto (a recepção cobra)');
+  PERFORM ci.entrar(va);
+  r2 := clinica_atendimento_offline(k4, 'fechar', a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND r2 ->> 'situacao' = 'fechado', 'reenviar o fechamento devolve o mesmo resultado em vez de recusar');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"depois de fechado"}'::jsonb)$c$, gen_random_uuid(), a1), 'preencher atendimento já fechado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'fechar', %L)$c$, gen_random_uuid(), a1), 'fechar de novo com outra chave');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimentos_clinicos SET queixa = 'x' WHERE id = %L$c$, a1), 'alterar atendimento fechado, nem o dono do banco');
+  PERFORM ci.exige((SELECT queixa = 'Tosse há 3 dias' FROM pet_atendimentos_clinicos WHERE id = a1), 'o atendimento fechado continua o mesmo');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM clinica_operacoes_offline', 'leitura direta do registro das operações sem internet');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'servico_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet3, cons), 'registrar visita sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a2), 'preencher atendimento sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
