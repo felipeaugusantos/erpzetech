@@ -4,6 +4,7 @@ import { Lock, LockOpen, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { AtendimentosVisita } from "@/components/app/AtendimentosVisita";
+import { AnexosVisita } from "@/components/app/AnexosVisita";
 import { ExamesVisita } from "@/components/app/ExamesVisita";
 import { TrocarLoteDialog, VacinasVisita } from "@/components/app/VacinasVisita";
 import { CadastroRapido } from "@/components/app/CadastroRapido";
@@ -445,6 +446,8 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
   async function descartar() {
     if (!descartando) return;
     await cofre.apagar("fila", descartando.id);
+    // anexo descartado leva o arquivo junto (sem arquivo guardado não faz nada)
+    await cofre.apagarArquivo(descartando.id);
     setDescartando(null);
     await recarregar();
     toast.success("Operação descartada");
@@ -552,6 +555,14 @@ function CofreAberto({ cofre, online }: { cofre: Cofre; online: boolean }) {
         copia={copia}
         fila={fila}
         online={online}
+        aoGuardar={recarregar}
+      />
+
+      <AnexosVisita
+        cofre={cofre}
+        fila={fila}
+        online={online}
+        enviando={enviando}
         aoGuardar={recarregar}
       />
 

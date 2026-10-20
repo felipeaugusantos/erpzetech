@@ -151,6 +151,14 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - No banco: `clinica_vacina_offline(chave, acao, dados)` e `clinica_exame_offline(chave, acao, dados)` aceitam repetição pela chave da operação (reenviar devolve o mesmo resultado). O id do exame nasce no banco: salvar e fechar apontam para a chave da operação de abrir e dizem os resultados pelo campo do modelo.
 - O paciente cadastrado sem internet passa a poder receber vacina e exame, mesmo antes de o cadastro ser enviado.
 
+**5e — entregue (anexos).** Seção **Anexos da visita** na tela Trabalho sem internet: foto ou PDF (JPEG, PNG, PDF, até 15 MB) de um atendimento ou exame feito no notebook, com ou sem sinal:
+
+- **Cifrado no cofre:** o arquivo vai para uma loja própria do cofre (`arquivo`), cifrado com AES-GCM e autenticado pelo nome (um arquivo copiado para outro nome não abre). Não entra na lista de registros de texto. Sem a senha, não abre.
+- **Limites do navegador:** antes de guardar, confere o espaço que o navegador informa (`navigator.storage.estimate`, com folga de 30 MB), o teto de **150 MB** de anexos esperando envio e o limite de **20 por atendimento ou exame**; falta de espaço na gravação vira mensagem clara. O sistema também pede ao navegador armazenamento persistente.
+- **Envio:** a fila ganha a operação `anexo_enviar`, que espera a abertura do atendimento ou do exame. Ao enviar: reserva o caminho no banco (`clinica_anexo_offline_preparar`, repetível pela chave), envia o arquivo ao armazenamento privado, confirma e só então tira o arquivo do cofre. Reenviar em qualquer ponto é seguro: reserva repetida devolve a mesma, envio que já tinha chegado cai na confirmação, confirmar duas vezes vale uma. Reserva sem envio há mais de 50 minutos é refeita (o armazenamento só aceita o envio na primeira hora).
+- **Recusa:** como as demais operações, fica guardada com o motivo (por exemplo, arquivo que não confere); descartar a operação apaga o arquivo do cofre. Antes do envio, o anexo pode ser removido da lista "Esperando envio".
+- O anexo continua imutável depois de confirmado (cancelamento só com motivo, como no anexo normal).
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |

@@ -547,7 +547,7 @@ DECLARE
     -- cadastro rápido de tutor e pet pelo veterinário (também sem internet): só o veterinário
     'clinica_cadastro_rapido',
     -- atendimento sem internet: cria a visita e preenche e fecha com chave de repetição; só o veterinário
-    'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline'];
+    'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5585,4 +5585,107 @@ BEGIN
   r := locacao_devolver_vistoriada(l5, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', f5)));
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'devolvida' FROM locacoes WHERE id = l5) AND r ->> 'locacao_conta_receber_id' IS NULL, 'locação sem valor devolve sem cobrança');
+END $$;
+
+-- 58. Clínica (anexo sem internet): reserva pela chave da operação, sem repetir; aponta para o exame aberto no notebook; reserva velha é refeita
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  vx   constant uuid := 'a0000000-0000-0000-0000-0000000000e0';
+  vy   constant uuid := 'a0000000-0000-0000-0000-0000000000e4';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; modelo uuid; campo uuid; pvx uuid; pvy uuid; atend uuid := gen_random_uuid(); cons uuid;
+  ka uuid := gen_random_uuid(); kb uuid := gen_random_uuid(); kc uuid := gen_random_uuid(); kd uuid := gen_random_uuid(); ke uuid := gen_random_uuid();
+  kf uuid := gen_random_uuid(); kex uuid := gen_random_uuid(); kreg uuid := gen_random_uuid();
+  r jsonb; r2 jsonb; an uuid; an2 uuid; ex uuid; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO auth.users (id, email) VALUES (vx, 'vetanexooff@ci'), (vy, 'vetanexooffb@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (vx, vy);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vx, demo, 'veterinario'), (vy, demo, 'veterinario');
+  PERFORM ci.entrar(gest);
+  cons := pet_servico_salvar('{"nome":"Consulta Anexo Offline CI","categoria":"consulta","duracao_min":30}'::jsonb);
+  PERFORM pet_preco_salvar(cons, NULL, NULL, NULL, 100);
+  pvx := pet_profissional_salvar('{"nome":"Vet X Anexo","funcao":"veterinario","crmv":"8881","crmv_uf":"SP"}'::jsonb);
+  pvy := pet_profissional_salvar('{"nome":"Vet Y Anexo","funcao":"veterinario","crmv":"8882","crmv_uf":"RJ"}'::jsonb);
+  PERFORM pet_profissional_vincular(pvx, vx);
+  PERFORM pet_profissional_vincular(pvy, vy);
+  modelo := clinica_exame_modelo_salvar(jsonb_build_object('nome', 'Exame Anexo Offline CI', 'tipo', 'outro'));
+  campo := clinica_exame_campo_salvar(jsonb_build_object('modelo_id', modelo, 'nome', 'Valor', 'forma', 'numero'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Paciente Anexo Offline CI', 'especie', 'cao'));
+  PERFORM ci.sair();
+
+  -- só o veterinário
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, gen_random_uuid(), atend), 'gestor reserva anexo sem internet');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, gen_random_uuid(), atend), 'recepção reserva anexo sem internet');
+
+  -- o atendimento nasce no notebook; o anexo aponta para o id dele
+  PERFORM ci.entrar(vx);
+  PERFORM clinica_visita_registrar(kreg, jsonb_build_object('atendimento_id', atend, 'pet_id', pet, 'servico_id', cons));
+  r := clinica_anexo_offline_preparar(ka, jsonb_build_object('atendimento_id', atend, 'categoria', 'imagem', 'descricao', 'Raio-x do tórax', 'nome_arquivo', 'rx.png', 'mime', 'image/png', 'tamanho', 4096));
+  r2 := clinica_anexo_offline_preparar(ka, jsonb_build_object('atendimento_id', atend, 'categoria', 'imagem', 'descricao', 'Raio-x do tórax', 'nome_arquivo', 'rx.png', 'mime', 'image/png', 'tamanho', 4096));
+  PERFORM ci.sair();
+  an := (r ->> 'anexo_id')::uuid;
+  PERFORM ci.exige((r ->> 'situacao') = 'pendente' AND NOT (r ->> 'repetido')::boolean AND (SELECT atendimento_id = atend AND situacao = 'pendente' AND tamanho = 4096 FROM pet_exame_anexos WHERE id = an), 'a reserva do anexo aponta para o atendimento nascido no notebook');
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean AND r2 ->> 'anexo_id' = r ->> 'anexo_id' AND r2 ->> 'caminho' = r ->> 'caminho' AND (SELECT count(*) = 1 FROM pet_exame_anexos WHERE atendimento_id = atend), 'reenviar a mesma chave devolve a mesma reserva, sem criar outra');
+
+  -- depois do envio e da confirmação, repetir a operação só avisa que o anexo já vale
+  PERFORM ci.entrar(vx);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":4096,"mimetype":"image/png"}')$c$, r ->> 'caminho', vx);
+  PERFORM clinica_anexo_confirmar(an);
+  r2 := clinica_anexo_offline_preparar(ka, jsonb_build_object('atendimento_id', atend, 'categoria', 'imagem', 'descricao', 'Raio-x do tórax', 'nome_arquivo', 'rx.png', 'mime', 'image/png', 'tamanho', 4096));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'situacao') = 'ativo' AND (r2 ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM pet_exame_anexos WHERE atendimento_id = atend), 'anexo já confirmado: repetir a operação não reserva outro');
+
+  -- chave de outro veterinário ou de outro tipo de operação é recusada
+  PERFORM ci.deve_falhar(vy, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, ka, atend), 'chave de reserva de outro veterinário');
+  PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, kreg, atend), 'chave de outro tipo de operação');
+
+  -- regras do anexo normal continuam valendo (a reserva falha inteira e a chave fica livre)
+  PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.zip', 'mime', 'application/zip', 'tamanho', 100))$c$, kb, atend), 'formato que não é JPEG, PNG nem PDF');
+  PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 15728641))$c$, kb, atend), 'arquivo acima de 15 MB');
+  SELECT count(*) INTO n FROM clinica_operacoes_offline WHERE chave = kb;
+  PERFORM ci.exige(n = 0, 'reserva recusada não grava a chave');
+  PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('exame_abrir_chave', %L, 'categoria', 'laudo', 'descricao', 'x', 'nome_arquivo', 'x.pdf', 'mime', 'application/pdf', 'tamanho', 100))$c$, kc, gen_random_uuid()), 'anexo de exame cuja abertura não chegou ao servidor');
+
+  -- exame aberto no notebook: o anexo aponta para a chave da abertura
+  PERFORM ci.entrar(vx);
+  r := clinica_exame_offline(kex, 'abrir', jsonb_build_object('pet_id', pet, 'modelo_id', modelo, 'atendimento_id', atend));
+  ex := (r ->> 'exame_id')::uuid;
+  r := clinica_anexo_offline_preparar(kd, jsonb_build_object('exame_abrir_chave', kex, 'categoria', 'laboratorial', 'descricao', 'Hemograma do laboratório', 'nome_arquivo', 'hemo.pdf', 'mime', 'application/pdf', 'tamanho', 8000));
+  PERFORM ci.sair();
+  an2 := (r ->> 'anexo_id')::uuid;
+  PERFORM ci.exige((SELECT exame_id = ex AND atendimento_id IS NULL AND categoria = 'laboratorial' FROM pet_exame_anexos WHERE id = an2), 'o anexo do exame aberto no notebook aponta para o exame criado pela chave da abertura');
+
+  -- reserva de mais de 50 minutos sem envio é refeita (o armazenamento só aceita o envio na primeira hora); a chave guarda a mais nova
+  ALTER TABLE pet_exame_anexos DISABLE TRIGGER trg_clinica_anexo_guarda;
+  UPDATE pet_exame_anexos SET created_at = now() - interval '2 hours' WHERE id = an2;
+  ALTER TABLE pet_exame_anexos ENABLE TRIGGER trg_clinica_anexo_guarda;
+  PERFORM ci.entrar(vx);
+  r2 := clinica_anexo_offline_preparar(kd, jsonb_build_object('exame_abrir_chave', kex, 'categoria', 'laboratorial', 'descricao', 'Hemograma do laboratório', 'nome_arquivo', 'hemo.pdf', 'mime', 'application/pdf', 'tamanho', 8000));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'anexo_id') <> (r ->> 'anexo_id') AND NOT (r2 ->> 'repetido')::boolean AND (SELECT (resultado ->> 'anexo_id') = r2 ->> 'anexo_id' FROM clinica_operacoes_offline WHERE chave = kd),
+                   'reserva antiga sem envio é refeita e a chave passa a apontar para a nova');
+
+  -- reserva velha cujo arquivo já chegou ao armazenamento (só a confirmação se perdeu): continua a mesma, não se refaz
+  ALTER TABLE pet_exame_anexos DISABLE TRIGGER trg_clinica_anexo_guarda;
+  UPDATE pet_exame_anexos SET created_at = now() - interval '2 hours' WHERE id = (r2 ->> 'anexo_id')::uuid;
+  ALTER TABLE pet_exame_anexos ENABLE TRIGGER trg_clinica_anexo_guarda;
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('clinica-anexos', %L, %L, '{"size":8000,"mimetype":"application/pdf"}')$c$, r2 ->> 'caminho', vx);
+  PERFORM ci.entrar(vx);
+  r := clinica_anexo_offline_preparar(kd, jsonb_build_object('exame_abrir_chave', kex, 'categoria', 'laboratorial', 'descricao', 'Hemograma do laboratório', 'nome_arquivo', 'hemo.pdf', 'mime', 'application/pdf', 'tamanho', 8000));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'anexo_id') = (r2 ->> 'anexo_id') AND (r ->> 'repetido')::boolean AND (r ->> 'caminho') = (r2 ->> 'caminho'),
+                   'reserva velha com o arquivo já no armazenamento é reaproveitada para só confirmar');
+
+  -- clínica deixa de estar liberada
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vx, format($c$SELECT clinica_anexo_offline_preparar(%L, jsonb_build_object('atendimento_id', %L, 'categoria', 'imagem', 'descricao', 'x', 'nome_arquivo', 'x.png', 'mime', 'image/png', 'tamanho', 100))$c$, ke, atend), 'anexo sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

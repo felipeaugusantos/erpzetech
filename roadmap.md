@@ -21,6 +21,7 @@
 - [x] Menus novos no AppShell (Assistência técnica, Locação, Painel fiscal, Notas emitidas)
 
 ## Rodada 2
+
 - [x] Tela de clientes da Ze Tech com histórico de cobranças, filiais e situação (`/ze-tech-clientes`)
 - [x] Impostos da nota calculados pela filial emitente (interna/interestadual pela UF)
 - [x] Contas a pagar no painel Ze Tech (`/ze-tech-contas-pagar`, tabela `saas_contas_pagar`)
@@ -31,26 +32,31 @@
 - [x] Tempo real das lojas no painel Ze Tech (`/ze-tech-tempo-real` + RPC `saas_tempo_real_por_cliente`)
 
 ## Rodada 3
+
 - [x] Painel Ze Tech de custo por técnico (`/ze-tech-tecnicos` + RPC `saas_custo_por_tecnico`, horas em `os_ordens.horas_trabalhadas`)
 - [x] Relatório de assistência por loja com exportação em PDF (`/relatorio-assistencia` + RPC `assistencia_ordens_relatorio`)
 - [x] Módulos de assistência e locação liberados pelo CNAE principal/secundários (`src/lib/cnae.ts`, `empresas.cnae_secundarios`)
 
 ## Rodada 4 — Balcão de locação e NFS-e (concluída)
+
 - [x] Balcão de locação (/locacao-balcao): vários equipamentos, período, pagamento à vista ou parcelado
 - [x] Tabela locacao_itens e RPC locacao_balcao_registrar
 - [x] Nota fiscal de serviço (NFS-e) da locação: RPC locacao_gerar_nfse, modelo/código do serviço/ISS na nfe
 - [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e sair pronta
 
 ## Rodada 5 — Frente de caixa
+
 - [x] Frente de caixa em tela cheia com atalhos (`/frente-caixa`)
 - [x] Sugestão de produtos por IA a partir de texto livre
 - [x] Caixa por operador, troca de operador, senha do gestor (cancelar, desconto acima do limite, sangria)
 - [x] Relatório de fechamento por operador (`/fechamento-operador`)
 
 ## Rodada 6 — Segurança, qualidade e paridade com ERPs de mercado
+
 Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/Olist, Omie, Conta Azul, TOTVS, Linx, Sankhya). O comparativo vem de conhecimento geral dos produtos; confirmar antes de investir. O que consta como ausente é o que não foi encontrado no código.
 
 ### Segurança e qualidade (concluído)
+
 - [x] Cadastro público deixa de dar administrador do primeiro tenant; perfil nasce sem tenant e sem papel
 - [x] Onboarding de quem se cadastra sozinho (`/boas-vindas` + RPC `onboarding_criar_espaco`)
 - [x] `has_role` considera o tenant do perfil; papéis sem tenant herdam o do perfil
@@ -60,12 +66,14 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [x] Lint limpo (0 erros)
 
 ### Prioridade alta — recebimento e fiscal no balcão
+
 - [ ] NFC-e no PDV e na frente de caixa (hoje só NF-e modelo 55 e NFS-e; o cupom do PDV não é fiscal)
 - [ ] Boleto registrado e Pix com cobrança automática e baixa automática (hoje boleto é só forma de pagamento; a cobrança Ze Tech usa link e linha digitável informados à mão)
 - [x] Importação de extrato bancário (OFX) na conciliação: lê o arquivo, concilia sozinho o que bate (valor, sentido, até 3 dias) e deixa o resto em "Pendências do extrato" para lançar ou ignorar (`banco_extrato_importar`, `src/lib/ofx.ts`). Pendente: API bancária (Open Finance) e vínculo manual com lançamento existente
 - [ ] TEF integrado à maquininha (hoje há cadastro de credenciadora e painel, sem integração com a maquininha)
 
 ### Prioridade média
+
 - [ ] SPED Fiscal e Contribuições e exportação de arquivos para a contabilidade
 - [ ] Importação em massa por planilha: produtos, clientes e saldos de estoque (hoje só cotações)
 - [ ] Integrações: e-commerce e marketplaces, WhatsApp automático, API pública e webhooks
@@ -74,11 +82,13 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [ ] Configurar inscrição municipal, código do serviço e alíquota de ISS reais para a NFS-e (item pendente da Rodada 4)
 
 ### Prioridade baixa
+
 - [ ] Auditoria ligada: registrar quem alterou preço, desconto e estoque (a tabela `auditoria` existe, mas nada grava nela)
 - [ ] Relatórios: filtros salvos, exportação para planilha em todas as telas e painéis por meta
 - [ ] Diferenciais de construção: cálculo de quantidade (m² de piso, sacos de cimento) e lista de materiais por obra
 
 ### Dívida técnica
+
 - [ ] Testes automatizados do front, começando pelo cálculo de impostos, XML da NF-e e fluxo de caixa
 - [ ] Lockfile reproduzível na CI (o `bun.lock` aponta para um registro privado do Lovable; a CI instala sem trava de versões)
 - [ ] Quebrar as telas maiores (`pedidos.$id.tsx` e `compras.$id.tsx`) em componentes
@@ -86,9 +96,11 @@ Origem: auditoria de segurança e comparativo com ERPs de mercado (Bling, Tiny/O
 - [ ] Medir o custo de `has_role` nas policies com dados reais
 
 ## Rodada 7 — Restaurante e lanchonete (novo ramo)
+
 Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empresa, estoque, financeiro e fiscal), com telas próprias para salão e cozinha. Primeira versão: à la carte e lanchonete com mesas e comandas, sem delivery.
 
 ### Etapa R1 — Salão
+
 - [x] Banco: cardápio (categorias, itens, grupos de opções com obrigatório e máximo, opções com acréscimo), mesas e comandas
 - [x] Perfis `garcom` e `cozinha` no banco; ramo "Restaurante e lanchonete". **Ainda não atribuíveis pela tela de usuários**: hoje as políticas das demais tabelas (clientes, produtos, contas...) valem para qualquer usuário da empresa, então um garçom ou cozinheiro veria dados que não deve
 - [x] Isolamento dos perfis do salão: política restritiva `salao_restrito` em toda tabela com RLS (fora da lista liberada: sessão, cardápio, mesas e comandas), trava `exige_nao_salao()` nas funções chamáveis, menu e redirecionamento próprios; `garcom` e `cozinha` liberados em `PERFIS`. O `smoke.sql` falha se surgir tabela ou função nova sem a proteção
@@ -103,6 +115,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Módulo liberado pelo ramo "restaurante" ou CNAE 56.xx, com menu "Restaurante"
 
 ### Etapas seguintes
+
 - [x] R2 — Ficha técnica: insumos por prato e por opção (ex.: bacon extra), com perda de preparo; custo, lucro e CMV de cada prato; baixa de estoque ao enviar à cozinha (depósito da cozinha configurável); bebida de revenda ligada a um produto baixa 1 unidade; cancelar na fila devolve os insumos, depois de iniciado o preparo não volta. Pendente: conversão de unidades (g ↔ kg), produção de preparos (molhos, bases) e relatório de perdas
 - [x] R3 — Delivery próprio: pedido com cliente, endereço, zona/taxa e pagamento previsto; painel por etapa (montando, cozinha, pronto, em rota, entregue); impressão do pedido
 - [ ] R3b — Integração iFood (o banco já tem `canal` e `codigo_externo`; falta credencial de parceiro)
@@ -110,11 +123,13 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] NFC-e (depende da Fase 2): obrigatória para operar restaurante
 
 ## Maquininha simulada (teste antes da ponte real)
+
 - [x] Modo `simulado` na configuração do TEF: a frente de caixa mostra o painel "MODO DE TESTE" com "Simular aprovação" (NSU `SIM-…`, autorização e bandeira de exemplo) e "Simular recusa"; a venda segue o mesmo caminho do TEF real (`frente_venda` + `frente_registrar_tef`) e o cupom sai marcado como simulado
 - [x] Teste de segurança do banco com a venda completa (transação, caixa, estoque, recusa, isolamento entre empresas, cancelamento e estorno)
 - [x] Correção: cancelar venda de balcão com lançamento no caixa falhava por tipo de `forma_pagamento`
 
 ## Rodada 7 — Especialização em materiais de construção (em sequência, com conferência entre etapas)
+
 - [x] P0 Segurança: notas fiscais exigem administrador/gestor/financeiro e conferem empresa da nota; status do emissor só para administrador e só da própria empresa; filial validada na gestão de usuários; criação de usuário e login de motorista desfazem a conta se uma etapa falhar e evitam vínculo duplicado
 - [x] P1 Venda e entrega: retirada/entrega parcial com trava de saldo e chave contra reenvio, ocorrências (falta/sobra/avaria/substituição), agendamento/reagendamento com motivo, visão por item no pedido (orçamento→pedido já existia)
 - [x] P1 resto: romaneio impresso por entrega (`/entregas` e pedido: quantidade, item, data, saldo e assinaturas), leitura de código de barras no novo pedido, na separação, na conferência e na saída (`3*código`), histórico unificado da obra (`/obra-historico`)
@@ -128,6 +143,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Implantação: importação por planilha e passos iniciais
 
 ## Etapa 2/3 — complemento
+
 - [x] Lotes, tonalidade e calibre por depósito (`/estoque-lotes`, RPC `estoque_lote_lancar`, histórico permanente)
 - [x] Conferência sem internet mostra mínimo e o que falta
 - [x] App do motorista no celular (`/motorista`) já atualiza entregas e histórico da obra
@@ -139,6 +155,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Teste do app do motorista "não entregue" (nenhum motorista tem login e nenhuma entrega está em rota)
 
 ## Fase 0 — Diagnóstico e estabilização
+
 - [x] Mapa dos fluxos, núcleo compartilhado, revisão de papéis, empresa e filial, gravações em etapas e trabalho sem internet: `docs/diagnostico-fase-0.md`
 - [x] Script que repete a verificação de papéis e de isolamento entre empresas: `docs/fase-0/verificacao-papeis-e-tenant.sql`
 - [x] P0: papéis no banco (R1) e papel na nota fiscal e nos dados do emitente (R2), pela tabela de papéis aprovada
@@ -156,6 +173,7 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] P1: referências entre empresas (R5), criação de cliente SaaS e troca de papéis sem desfazer (R6, R7), regime tributário ao salvar a empresa (R8)
 
 ## Fase 2 — Recebimento e fiscal no balcão
+
 - [x] Base da NFC-e no banco (migration `20261016000000_nfce_base.sql`): configuração com CSC secreto e numeração própria (`nfce_config`, só administrador e gestor), nota modelo 65 criada pelo pedido (`nfce_criar`, idempotente, com CPF opcional e lista de pendências), número reservado só quando a nota está pronta, campos de contingência e tentativas protegidos como o andamento da nota, auditoria sem o token
 - [x] Tela de pendências fiscais (`/pendencias-fiscais`): notas rejeitadas, em contingência, sem retorno há mais de 15 minutos e NFC-e em rascunho; eventos de pagamento que falharam, foram ignorados ou ficaram sem resposta (só administrador, gestor e financeiro)
 - [ ] Transmissão da NFC-e pela ACBr, com contingência e nova tentativa (depende de liberar `dev.acbr.api.br` ou da documentação da API de NFC-e)
@@ -167,12 +185,14 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Produção baixa o saldo por tamanho quando o pedido sai de "Aguardando arte" (cancelamento devolve)
 
 ## Fase 1 — Entrada de dados
+
 - [x] Importação por planilha de produtos, clientes e saldos de estoque (`/importacao`, migration `20261017000000_importacao_planilha.sql`): CSV (separador `;`, `,` ou tabulação, UTF-8 ou Latin-1), modelo para baixar, colunas por apelido, pré-visualização com erro por linha e conferência no banco antes de gravar (código já existente, depósito, saldo reservado); entra tudo ou nada, até 5000 linhas por vez, uma importação por vez por empresa e tipo; categorias novas são criadas; "atualizar os que já existem" muda só os campos preenchidos; saldos entram como ajuste de estoque com histórico; histórico das importações; relatório de erros em CSV
 - [ ] Importação direta de arquivo `.xlsx` (hoje salvar como CSV no Excel)
 - [ ] Importar fornecedores, obras e preços por tabela; limite por plano de assinatura
 - [ ] Passos iniciais de implantação (checklist guiado depois do cadastro da empresa)
 
 ## Rodada 8 — Pet shop e veterinária (`docs/pet-shop-fase-1.md`)
+
 - [x] Base: módulo liberado por CNAE (`7500`, `4789004`, `9609208`, a confirmar com a contabilidade) ou pelo ramo "Pet shop e veterinária"; produto marcado como serviço (`produtos.controla_estoque = false`) não tem saldo nem movimento (venda, cancelamento, reserva e importação ignoram), fora de reposição e giro
 - [x] Pets e tutores (`/pets`), serviços e preço por porte/raça/pelagem (`/pet-servicos`, com simulação "quanto custa para este pet") e profissionais com comissão (`/pet-profissionais`); grupo de menu "Pet shop" (`pet_salvar`, `pet_servico_salvar`, `pet_preco_salvar`, `pet_preco_calcular`, `pet_profissional_salvar`)
 - [x] Agenda de banho e tosa (`/pet-agenda`): agendamento só pela recepção, profissional sem dois atendimentos ao mesmo tempo, preço e duração congelados, situações agendado → confirmado → em atendimento → pronto, cancelar/faltar com motivo, remarcar (`pet_agendar`, `pet_agenda_situacao`, `pet_reagendar`). "Retirado" sai da cobrança (próximo PR)
@@ -180,14 +200,15 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Clínica veterinária (escopo próprio)
 
 ## Rodada 9 — Pet shop, Fase 2 (`docs/pet-shop-fase-2.md`)
+
 - [x] PR 5 — Contatos com o tutor (`/pet-contatos`): aniversário do pet e retorno de banho, com link do WhatsApp e mensagem editável; quem foi chamado sai da lista (`pet_contatos_pendentes`, `pet_contato_registrar`). Sem envio automático
 - [x] PR 6 — Pacotes de banho (`/pet-pacotes`): um pacote por pet, validade de 30/60/90 dias, vendido adiantado no caixa; o banho sai do pacote na retirada (sem cobrar de novo); agenda e cobrança avisam no penúltimo banho que resta só mais um; NFS-e na venda do pacote; comissão pelo valor de cada uso (`pet_pacote_vender`, `pet_agenda_retirar` com `p_usar_pacote`, `pet_agenda_cobertura`). Confirmar com a contabilidade quando a NFS-e do pacote deve sair
 - [x] PR 7 — Venda a granel (`/granel`, grupo Estoque): o saco guarda o produto vendido por kg e os kg do saco (`produtos.granel_produto_id`/`granel_fator`, informados no cadastro do produto); "abrir saco" baixa o saco e dá entrada dos kg no granel pelo custo proporcional, com histórico (`granel_abrir_saco`, `granel_aberturas`). A venda por kg segue o caixa normal
 - [x] PR 8 — Agenda própria do profissional (`/pet-minha-agenda`): perfil novo **Profissional** (mesmo isolamento do salão: não lê nada da loja), conta ligada ao cadastro (`pet_profissionais.profile_id`, `pet_profissional_vincular`), vê só os atendimentos dele (sem preço, telefone nem documento) e avança Começar/Pronto (`pet_minha_agenda`, `pet_minha_situacao`)
 - [ ] Lembretes automáticos (depende da integração oficial do WhatsApp)
 
-
 ## Rodada 10 — Pet shop, Fase 3: clínica (`docs/pet-shop-fase-3.md`)
+
 - [ ] Escopo desenhado; decisões registradas (só o veterinário lê o prontuário; guarda do prontuário segue em aberto com o responsável técnico — nada é apagado)
 - [x] PR 1 — Base da clínica: módulo `clinica` (CNAE 7500 ou ramo "Clínica veterinária"), perfil **Veterinário** (mesmo isolamento do Profissional; agenda própria vale para os dois), CRMV e UF obrigatórios para a função veterinário, conta ligada precisa combinar com a função, categorias de serviço consulta/vacina/exame. O isolamento do texto clínico em si vem com as tabelas, no PR 2
 - [x] PR 2 — Consulta e prontuário (`/clinica-prontuario`, `/clinica-atendimento`): só o perfil Veterinário lê e escreve o texto clínico, sempre por funções (as tabelas não têm acesso direto, nem para administrador); atendimento aberto pela consulta agendada, fechado fica imutável (nem o dono do banco altera) e a consulta vai para pronto; correção só por adendo com nome e CRMV; histórico do paciente, busca, alergia do pet e registro de quem abriu cada ficha; tudo exige a clínica liberada
@@ -196,9 +217,10 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] PR 5 — Cobrança clínica (caixa, NFS-e em rascunho, comissão do veterinário)
 
 ## Rodada 11 — Pet shop, Fase 4: exames, lembretes e trabalho sem internet (`docs/pet-shop-fase-4.md`)
+
 - [x] Escopo desenhado; decisões respondidas: só cães e gatos, offline cobre cadastro, atendimento, vacina e exame. Em aberto: outras fichas do sistema atual e 3 pontos do PR 5 (quem leva o notebook, validade da cópia, bloqueio e senha)
 - [x] PR 1 — Atalhos da próxima dose (21 dias, 30 dias, 1 ano)
 - [x] PR 2 — Exames: modelos de hemograma (com VCM, HCM, CHCM e RDW), bioquímica e urina, com unidade e faixa por espécie; faixa guardada no resultado
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
-- [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame ✔ · 5e anexos
+- [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame ✔ · 5e anexos ✔

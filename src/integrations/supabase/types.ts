@@ -9758,6 +9758,10 @@ export type Database = {
       clinica_exame_get: { Args: { p_id: string }; Returns: Json }
       clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
       clinica_exame_modelos: { Args: never; Returns: Json }
+      clinica_anexo_offline_preparar: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
       clinica_exame_modelos_iniciais: { Args: never; Returns: number }
       clinica_exame_offline: {
         Args: { p_acao: string; p_chave: string; p_dados: Json }

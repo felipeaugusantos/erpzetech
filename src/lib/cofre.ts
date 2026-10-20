@@ -7,7 +7,7 @@ export const ITERACOES_PADRAO = 600_000;
 export const SENHA_MINIMA = 8;
 
 export type LojaCofre = "fila" | "copia";
-type LojaBruta = LojaCofre | "meta";
+type LojaBruta = LojaCofre | "meta" | "arquivo";
 
 /** Onde os registros ficam (já cifrados). */
 export interface Armazem {
@@ -88,6 +88,30 @@ async function decifrar(chave: CryptoKey, aad: string, dado: Cifrado): Promise<u
   );
   return JSON.parse(dec.decode(claro));
 }
+
+/** Arquivo cifrado: os bytes ficam como estão (sem base64), só cifrados. */
+type CifradoBinario = { v: 1; iv: Uint8Array<ArrayBuffer>; c: ArrayBuffer };
+
+async function cifrarBytes(
+  chave: CryptoKey,
+  aad: string,
+  bytes: ArrayBuffer,
+): Promise<CifradoBinario> {
+  const iv = aleatorio(12);
+  const c = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv, additionalData: enc.encode(aad) },
+    chave,
+    bytes,
+  );
+  return { v: 1, iv, c };
+}
+
+const ehCifradoBinario = (x: unknown): x is CifradoBinario =>
+  typeof x === "object" &&
+  x !== null &&
+  (x as CifradoBinario).v === 1 &&
+  (x as CifradoBinario).iv instanceof Uint8Array &&
+  (x as CifradoBinario).c instanceof ArrayBuffer;
 
 const ehCifrado = (x: unknown): x is Cifrado =>
   typeof x === "object" &&
@@ -198,12 +222,39 @@ export class Cofre {
     return { itens, ilegiveis };
   }
 
+  /** Guarda um arquivo (anexo) cifrado, à parte dos registros de texto: ele nunca entra em `listar`. */
+  async gravarArquivo(chave: string, bytes: ArrayBuffer): Promise<void> {
+    await this.armazem.gravar(
+      "arquivo",
+      chave,
+      await cifrarBytes(this.exigeAberto(), `arquivo:${chave}`, bytes),
+    );
+  }
+
+  async lerArquivo(chave: string): Promise<ArrayBuffer | undefined> {
+    const k = this.exigeAberto();
+    const dado = await this.armazem.ler("arquivo", chave);
+    if (dado === undefined) return undefined;
+    if (!ehCifradoBinario(dado)) throw new Error("Arquivo do cofre ilegível");
+    return crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: dado.iv, additionalData: enc.encode(`arquivo:${chave}`) },
+      k,
+      dado.c,
+    );
+  }
+
+  /** Sem erro se o arquivo não existe (descartar uma operação sem arquivo é comum). */
+  async apagarArquivo(chave: string): Promise<void> {
+    this.exigeAberto();
+    await this.armazem.apagar("arquivo", chave);
+  }
+
   async apagar(loja: LojaCofre, chave: string): Promise<void> {
     this.exigeAberto();
     await this.armazem.apagar(loja, chave);
   }
 
-  /** Apaga tudo: senha, fila e cópia. Sem volta. */
+  /** Apaga tudo: senha, fila, cópia e arquivos. Sem volta. */
   async apagarTudo(): Promise<void> {
     await this.armazem.limpar();
     this.chave = null;
