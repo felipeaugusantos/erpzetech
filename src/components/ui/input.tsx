@@ -1,9 +1,32 @@
 import * as React from "react";
 
+import { aplicarMascara, type TipoMascara } from "@/lib/mascaras";
 import { cn } from "@/lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+type InputProps = React.ComponentProps<"input"> & {
+  /** Formata o que é digitado ou colado (telefone, CPF, CNPJ, CPF ou CNPJ, CEP); quem lê `onChange` já recebe o texto formatado. */
+  mascara?: TipoMascara;
+};
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, mascara, value, onChange, ...props }, ref) => {
+    const comMascara = mascara
+      ? {
+          // mostra formatado até o que já estava gravado sem pontuação
+          ...(typeof value === "string" ? { value: aplicarMascara(mascara, value) } : {}),
+          // CNPJ pode ter letras (alfanumérico): sem teclado só numérico
+          inputMode:
+            mascara === "telefone"
+              ? ("tel" as const)
+              : mascara === "cnpj" || mascara === "cpfcnpj"
+                ? ("text" as const)
+                : ("numeric" as const),
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+            e.target.value = aplicarMascara(mascara, e.target.value);
+            onChange?.(e);
+          },
+        }
+      : { ...(value !== undefined ? { value } : {}), ...(onChange ? { onChange } : {}) };
     return (
       <input
         type={type}
@@ -13,6 +36,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         )}
         ref={ref}
         {...props}
+        {...comMascara}
       />
     );
   },

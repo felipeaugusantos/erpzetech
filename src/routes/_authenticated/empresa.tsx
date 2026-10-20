@@ -234,12 +234,13 @@ function Empresa() {
   const campo = (
     id: keyof typeof vazio,
     label: string,
-    extra?: { maxLength?: number; upper?: boolean },
+    extra?: { maxLength?: number; upper?: boolean; mascara?: "telefone" | "cep" },
   ) => (
     <div>
       <Label htmlFor={`emp-${id}`}>{label}</Label>
       <Input
         id={`emp-${id}`}
+        {...(extra?.mascara ? { mascara: extra.mascara } : {})}
         value={form[id]}
         maxLength={extra?.maxLength}
         disabled={!isAdmin}
@@ -309,6 +310,7 @@ function Empresa() {
               <Label htmlFor="emp-cnpj">CNPJ</Label>
               <div className="flex gap-2">
                 <Input
+                  mascara="cnpj"
                   id="emp-cnpj"
                   value={form.cnpj}
                   disabled={!isAdmin}
@@ -411,9 +413,9 @@ function Empresa() {
               </div>
             )}
 
-            {campo("telefone", "Telefone")}
+            {campo("telefone", "Telefone", { mascara: "telefone" })}
             {campo("email", "E-mail")}
-            {campo("cep", "CEP")}
+            {campo("cep", "CEP", { mascara: "cep" })}
             {campo("endereco", "Endereço")}
             {campo("numero", "Número")}
             {campo("complemento", "Complemento")}

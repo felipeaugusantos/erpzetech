@@ -85,6 +85,7 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
           <div>
             <Label htmlFor="nfce-cpf">CPF na nota (opcional)</Label>
             <Input
+              mascara="cpf"
               id="nfce-cpf"
               className="mt-1"
               inputMode="numeric"

@@ -232,6 +232,7 @@ function Configuracoes() {
               <div>
                 <Label htmlFor="e-cnpj">CNPJ</Label>
                 <Input
+                  mascara="cnpj"
                   id="e-cnpj"
                   value={empresa.cnpj}
                   onChange={(e) => setEmpresa({ ...empresa, cnpj: e.target.value })}
@@ -248,6 +249,7 @@ function Configuracoes() {
               <div>
                 <Label htmlFor="e-tel">Telefone</Label>
                 <Input
+                  mascara="telefone"
                   id="e-tel"
                   value={empresa.telefone}
                   onChange={(e) => setEmpresa({ ...empresa, telefone: e.target.value })}
@@ -264,6 +266,7 @@ function Configuracoes() {
               <div>
                 <Label htmlFor="e-cep">CEP</Label>
                 <Input
+                  mascara="cep"
                   id="e-cep"
                   value={empresa.cep}
                   onChange={(e) => setEmpresa({ ...empresa, cep: e.target.value })}
@@ -378,6 +381,7 @@ function Configuracoes() {
               <div>
                 <Label htmlFor="u-tel">Telefone</Label>
                 <Input
+                  mascara="telefone"
                   id="u-tel"
                   value={perfil.telefone}
                   onChange={(e) => setPerfil({ ...perfil, telefone: e.target.value })}
@@ -434,6 +438,7 @@ function Configuracoes() {
             <div>
               <Label htmlFor="f-tel">Telefone</Label>
               <Input
+                mascara="telefone"
                 id="f-tel"
                 value={filial.telefone}
                 onChange={(e) => setFilial({ ...filial, telefone: e.target.value })}

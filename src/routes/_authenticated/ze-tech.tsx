@@ -703,6 +703,7 @@ function ClienteDialog({
             <Label htmlFor="c-doc">CNPJ ou CPF</Label>
             <Input
               id="c-doc"
+              mascara="cpfcnpj"
               value={form.documento}
               onChange={(e) => setForm({ ...form, documento: e.target.value })}
             />
@@ -726,6 +727,7 @@ function ClienteDialog({
           <div className="grid gap-1.5">
             <Label htmlFor="c-zap">WhatsApp</Label>
             <Input
+              mascara="telefone"
               id="c-zap"
               value={form.whatsapp}
               onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}

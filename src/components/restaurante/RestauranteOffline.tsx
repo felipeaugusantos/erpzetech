@@ -437,7 +437,11 @@ function NovaComanda({
                 </div>
                 <div>
                   <Label>Telefone</Label>
-                  <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                  <Input
+                    mascara="telefone"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                  />
                 </div>
               </div>
               <div>

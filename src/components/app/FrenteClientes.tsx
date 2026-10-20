@@ -215,6 +215,7 @@ export function FrenteClientes({
               <div className="flex gap-2">
                 <Input
                   autoFocus
+                  mascara="cpfcnpj"
                   value={novo.doc}
                   onChange={(e) => setNovo({ ...novo, doc: e.target.value })}
                 />
@@ -239,6 +240,7 @@ export function FrenteClientes({
             <div>
               <Label>Telefone</Label>
               <Input
+                mascara="telefone"
                 value={novo.telefone}
                 onChange={(e) => setNovo({ ...novo, telefone: e.target.value })}
               />
@@ -252,7 +254,11 @@ export function FrenteClientes({
             </div>
             <div>
               <Label>CEP</Label>
-              <Input value={novo.cep} onChange={(e) => setNovo({ ...novo, cep: e.target.value })} />
+              <Input
+                mascara="cep"
+                value={novo.cep}
+                onChange={(e) => setNovo({ ...novo, cep: e.target.value })}
+              />
             </div>
             <div>
               <Label>Endereço</Label>

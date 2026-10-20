@@ -109,6 +109,7 @@ export function NovoDeliveryDialog({
           <div>
             <Label htmlFor="dl-tel">Telefone</Label>
             <Input
+              mascara="telefone"
               id="dl-tel"
               inputMode="tel"
               autoFocus
