@@ -380,7 +380,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const modulos = useModulosCnae();
   /** Obras respeita o ramo ou a liberação explícita da empresa. */
   const empresaMenu = data?.empresa as
-    { ramo_atividade?: string | null; faz_personalizacao?: boolean; modulos_liberados?: string[] } | null | undefined;
+    | { ramo_atividade?: string | null; faz_personalizacao?: boolean; modulos_liberados?: string[] }
+    | null
+    | undefined;
   const ehConstrucao = obrasLiberadasEmpresa(empresaMenu);
   const soAlimentacao = ehEmpresaAlimentacao(
     data?.empresa as { ramo_atividade?: string | null; cnae?: string | null } | null | undefined,

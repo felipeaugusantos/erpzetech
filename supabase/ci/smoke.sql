@@ -514,7 +514,9 @@ DECLARE
   demo   constant uuid := '11111111-1111-1111-1111-111111111111';
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
-    'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega'];
+    'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
+    -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
+    'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
@@ -5290,4 +5292,103 @@ BEGIN
   UPDATE profiles SET email = 'contato.repetido@ci' WHERE id IN (vend, gest);
   SELECT count(*) INTO n FROM profiles WHERE email = 'contato.repetido@ci';
   PERFORM ci.exige(n = 2, 'o e-mail de contato pode se repetir');
+END $$;
+
+-- 55. Locação (vistoria na devolução): dano sai da caução e a diferença vira conta a receber; equipamento com dano vai para manutenção
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cli uuid; eq_e uuid; loc5 uuid; eq_a uuid; eq_b uuid; eq_c uuid; eq_d uuid; loc1 uuid; loc2 uuid; loc3 uuid; loc4 uuid;
+  r jsonb; n bigint;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Vistoria CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Betoneira Vistoria CI', 100, 4000) RETURNING id INTO eq_a;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Andaime Vistoria CI', 50, 1000) RETURNING id INTO eq_b;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Furadeira Vistoria CI', 30, 600) RETURNING id INTO eq_c;
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Serra Vistoria CI', 40, 800) RETURNING id INTO eq_d;
+
+  -- locação 1: dois equipamentos, caução de 100; locação 2: perda total; locação 3: sem dano; locação 4: ainda reservada
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_a, current_date - 5, current_date - 5, 3, 150, 450, 100, 'em_andamento') RETURNING id INTO loc1;
+  INSERT INTO locacao_itens (tenant_id, locacao_id, equipamento_id, quantidade, dias, valor_diaria, total) VALUES (demo, loc1, eq_a, 1, 3, 100, 300), (demo, loc1, eq_b, 1, 3, 50, 150);
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_c, current_date - 2, current_date - 2, 2, 30, 60, 500, 'em_andamento') RETURNING id INTO loc2;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_d, current_date - 1, current_date - 1, 1, 40, 40, 0, 'em_andamento') RETURNING id INTO loc3;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_a, current_date + 5, 1, 100, 100, 0, 'reservada') RETURNING id INTO loc4;
+
+  -- perfis e regras de entrada
+  PERFORM ci.deve_falhar(gar, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, '[]'::jsonb)$c$, loc1), 'perfil do salão devolve locação');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver(%L, current_date, NULL, 0)$c$, loc1), 'devolução antiga, sem vistoria, não é mais chamável');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, '[]'::jsonb)$c$, loc1), 'devolver sem vistoriar nenhum equipamento');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a), 'devolver sem vistoriar todos os equipamentos');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L), jsonb_build_object('equipamento_id', %L), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b, eq_c), 'vistoriar equipamento que não é da locação');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L), jsonb_build_object('equipamento_id', %L), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b, eq_b), 'vistoriar o mesmo equipamento duas vezes');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L, 'avarias', jsonb_build_array(jsonb_build_object('descricao', 'Cabo', 'valor', 'abc'))), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b), 'valor da avaria que não é número');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L, 'avarias', jsonb_build_array(jsonb_build_object('descricao', '', 'valor', '10'))), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b), 'avaria sem descrição');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L, 'avarias', jsonb_build_array(jsonb_build_object('descricao', 'Cabo', 'valor', '-5'))), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b), 'avaria com valor negativo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date + 1, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L), jsonb_build_object('equipamento_id', %L)))$c$, loc1, eq_a, eq_b), 'devolução com data no futuro');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', %L)))$c$, loc4, eq_a), 'devolver locação que ainda não foi entregue');
+  SELECT count(*) INTO n FROM locacao_vistorias WHERE locacao_id = loc1;
+  PERFORM ci.exige(n = 0, 'devolução recusada não deixa vistoria para trás');
+  PERFORM ci.exige((SELECT situacao = 'em_andamento' FROM locacoes WHERE id = loc1), 'devolução recusada mantém a locação em andamento');
+
+  -- dano de 150 com caução de 100: abate a caução e cobra 50; só o equipamento danificado vai para manutenção
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(loc1, current_date, 'Devolvido com um cabo partido', jsonb_build_array(
+         jsonb_build_object('equipamento_id', eq_a, 'observacoes', 'Cabo do motor partido',
+                            'avarias', jsonb_build_array(jsonb_build_object('descricao', 'Cabo do motor', 'valor', '120,50'), jsonb_build_object('descricao', 'Pintura', 'valor', '29,50'))),
+         jsonb_build_object('equipamento_id', eq_b)), current_date + 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'valor_avarias')::numeric = 150 AND (r ->> 'caucao_abatida')::numeric = 100 AND (r ->> 'a_cobrar')::numeric = 50 AND (r ->> 'caucao_a_devolver')::numeric = 0,
+                   'dano maior que a caução: abate a caução toda e cobra a diferença');
+  PERFORM ci.exige((SELECT valor = 50 AND cliente_id = cli AND vencimento = current_date + 7 FROM contas_receber WHERE id = (r ->> 'conta_receber_id')::uuid),
+                   'a diferença vira conta a receber do cliente, com o vencimento escolhido');
+  PERFORM ci.exige((SELECT situacao = 'devolvida' AND valor_avarias = 150 AND caucao_abatida = 100 AND vistoria_em IS NOT NULL AND avarias_conta_receber_id IS NOT NULL FROM locacoes WHERE id = loc1),
+                   'a locação guarda o acerto da devolução');
+  PERFORM ci.exige((SELECT situacao = 'manutencao' AND ativo FROM locacao_equipamentos WHERE id = eq_a), 'equipamento com dano vai para manutenção');
+  PERFORM ci.exige((SELECT situacao = 'disponivel' FROM locacao_equipamentos WHERE id = eq_b), 'equipamento sem dano volta a ficar disponível');
+  PERFORM ci.exige((SELECT count(*) = 2 AND sum(valor_avarias) = 150 FROM locacao_vistorias WHERE locacao_id = loc1), 'cada equipamento tem a sua vistoria');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_devolver_vistoriada(%L, current_date, NULL, '[]'::jsonb)$c$, loc1), 'devolver de novo');
+
+  -- a reserva futura de um equipamento que voltou danificado não sai para o cliente, nem pela função nem por ajuste direto
+  UPDATE locacoes SET aprovada = true WHERE id = loc4;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT locacao_entregar(%L)$c$, loc4), 'entregar reserva de equipamento em manutenção');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE locacoes SET situacao = 'em_andamento' WHERE id = %L$c$, loc4), 'pôr em andamento locação de equipamento em manutenção, nem o dono do banco');
+  PERFORM ci.exige((SELECT situacao = 'reservada' FROM locacoes WHERE id = loc4), 'a reserva do equipamento danificado segue parada');
+
+  -- perda total com caução maior que o dano: não cobra e devolve o resto; o equipamento sai de uso
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(loc2, current_date, NULL, jsonb_build_array(
+         jsonb_build_object('equipamento_id', eq_c, 'avarias', jsonb_build_array(jsonb_build_object('descricao', 'Furadeira perdida', 'valor', '300', 'perda_total', true)))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'a_cobrar')::numeric = 0 AND (r ->> 'caucao_abatida')::numeric = 300 AND (r ->> 'caucao_a_devolver')::numeric = 200 AND r ->> 'conta_receber_id' IS NULL,
+                   'dano menor que a caução: não cobra e mostra o resto a devolver');
+  PERFORM ci.exige((SELECT NOT ativo AND situacao = 'manutencao' FROM locacao_equipamentos WHERE id = eq_c), 'perda total tira o equipamento de uso');
+
+  -- caução negativa conta como zero: devolução sem dano não vira cobrança
+  INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Esmerilhadeira Vistoria CI', 20, 300) RETURNING id INTO eq_e;
+  INSERT INTO locacoes (tenant_id, cliente_id, equipamento_id, inicio, entregue_em, dias, valor_diaria, valor_total, caucao, situacao)
+    VALUES (demo, cli, eq_e, current_date - 1, current_date - 1, 1, 20, 20, -100, 'em_andamento') RETURNING id INTO loc5;
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(loc5, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', eq_e)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'a_cobrar')::numeric = 0 AND (r ->> 'caucao_abatida')::numeric = 0 AND (r ->> 'caucao_a_devolver')::numeric = 0 AND r ->> 'conta_receber_id' IS NULL,
+                   'caução negativa conta como zero e não gera cobrança');
+
+  -- sem dano: nada a cobrar e o equipamento volta a ficar disponível
+  PERFORM ci.entrar(adm);
+  r := locacao_devolver_vistoriada(loc3, current_date, NULL, jsonb_build_array(jsonb_build_object('equipamento_id', eq_d)));
+  PERFORM ci.exige((SELECT situacao = 'disponivel' FROM locacao_equipamentos WHERE id = eq_d), 'equipamento devolvido sem dano volta a ficar disponível');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'valor_avarias')::numeric = 0 AND r ->> 'conta_receber_id' IS NULL AND (SELECT situacao = 'sem_avarias' FROM locacao_vistorias WHERE locacao_id = loc3), 'vistoria sem dano não cobra nada');
+
+  -- a vistoria registrada não muda nem some, e não se grava à mão
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE locacao_vistorias SET valor_avarias = 0 WHERE locacao_id = %L$c$, loc1), 'alterar vistoria registrada, nem o dono do banco');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM locacao_vistoria_avarias WHERE vistoria_id IN (SELECT id FROM locacao_vistorias WHERE locacao_id = %L)$c$, loc1), 'apagar avaria registrada, nem o dono do banco');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO locacao_vistorias (locacao_id, equipamento_id, situacao) VALUES (%L, %L, 'sem_avarias')$c$, loc4, eq_a), 'gravar vistoria direto na tabela');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM locacao_vistorias') >= 4, 'a empresa lê as vistorias dela');
 END $$;

@@ -5,6 +5,8 @@ export type LiberacoesEmpresa = {
 };
 
 export function obrasLiberadasEmpresa(empresa?: LiberacoesEmpresa | null) {
-  return empresa?.modulos_liberados?.includes("obras") === true ||
-    (empresa?.ramo_atividade ?? "construcao") === "construcao";
+  return (
+    empresa?.modulos_liberados?.includes("obras") === true ||
+    (empresa?.ramo_atividade ?? "construcao") === "construcao"
+  );
 }

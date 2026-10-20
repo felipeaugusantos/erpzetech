@@ -45,8 +45,14 @@ export function useSessionData() {
         user,
         profile: (profile ?? null) as Perfil | null,
         roles: (roles ?? []).map((r) => r.role as string),
-        empresa: empresa ? { ...empresa, modulos_liberados: (liberacoes.data ?? [])
-          .filter((m) => m.empresa_id === empresa.id).map((m) => m.modulo) } : null,
+        empresa: empresa
+          ? {
+              ...empresa,
+              modulos_liberados: (liberacoes.data ?? [])
+                .filter((m) => m.empresa_id === empresa.id)
+                .map((m) => m.modulo),
+            }
+          : null,
         filiais: filiais ?? [],
       };
     },

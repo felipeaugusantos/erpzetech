@@ -4132,11 +4132,83 @@ export type Database = {
           },
         ]
       }
+      locacao_vistoria_avarias: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          perda_total: boolean
+          tenant_id: string
+          valor: number
+          vistoria_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          perda_total?: boolean
+          tenant_id?: string
+          valor: number
+          vistoria_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          perda_total?: boolean
+          tenant_id?: string
+          valor?: number
+          vistoria_id?: string
+        }
+        Relationships: []
+      }
+      locacao_vistorias: {
+        Row: {
+          created_at: string
+          equipamento_id: string
+          id: string
+          locacao_id: string
+          observacoes: string | null
+          realizada_em: string
+          situacao: string
+          tenant_id: string
+          usuario_id: string
+          valor_avarias: number
+        }
+        Insert: {
+          created_at?: string
+          equipamento_id: string
+          id?: string
+          locacao_id: string
+          observacoes?: string | null
+          realizada_em?: string
+          situacao: string
+          tenant_id?: string
+          usuario_id?: string
+          valor_avarias?: number
+        }
+        Update: {
+          created_at?: string
+          equipamento_id?: string
+          id?: string
+          locacao_id?: string
+          observacoes?: string | null
+          realizada_em?: string
+          situacao?: string
+          tenant_id?: string
+          usuario_id?: string
+          valor_avarias?: number
+        }
+        Relationships: []
+      }
       locacoes: {
         Row: {
           aprovada: boolean
+          avarias_conta_receber_id: string | null
           aprovado_em: string | null
           caucao: number
+          caucao_abatida: number
+          caucao_devolver: number
           cliente_id: string | null
           conta_receber_id: string | null
           created_at: string
@@ -4160,14 +4232,19 @@ export type Database = {
           tenant_id: string
           updated_at: string
           valor_diaria: number
+          valor_avarias: number
           valor_extras: number
           valor_faturado: number
           valor_total: number
+          vistoria_em: string | null
         }
         Insert: {
           aprovada?: boolean
+          avarias_conta_receber_id?: string | null
           aprovado_em?: string | null
           caucao?: number
+          caucao_abatida?: number
+          caucao_devolver?: number
           cliente_id?: string | null
           conta_receber_id?: string | null
           created_at?: string
@@ -4191,14 +4268,19 @@ export type Database = {
           tenant_id: string
           updated_at?: string
           valor_diaria?: number
+          valor_avarias?: number
           valor_extras?: number
           valor_faturado?: number
           valor_total?: number
+          vistoria_em?: string | null
         }
         Update: {
           aprovada?: boolean
+          avarias_conta_receber_id?: string | null
           aprovado_em?: string | null
           caucao?: number
+          caucao_abatida?: number
+          caucao_devolver?: number
           cliente_id?: string | null
           conta_receber_id?: string | null
           created_at?: string
@@ -4222,9 +4304,11 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
           valor_diaria?: number
+          valor_avarias?: number
           valor_extras?: number
           valor_faturado?: number
           valor_total?: number
+          vistoria_em?: string | null
         }
         Relationships: [
           {
@@ -10019,6 +10103,16 @@ export type Database = {
           p_observacoes?: string
           p_parcelas?: number
           p_vencimento?: string
+        }
+        Returns: Json
+      }
+      locacao_devolver_vistoriada: {
+        Args: {
+          p_data?: string
+          p_locacao_id: string
+          p_observacao?: string
+          p_vencimento?: string
+          p_vistorias?: Json
         }
         Returns: Json
       }
