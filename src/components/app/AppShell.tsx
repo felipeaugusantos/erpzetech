@@ -58,6 +58,7 @@ import { initials } from "@/lib/format";
 import { contaParaExibir } from "@/lib/usuario-login";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
+import { obrasLiberadasEmpresa } from "@/lib/modulos-empresa";
 import { ehGestaoSalao, ehProfissionalRestrito, ehSalaoRestrito } from "@/lib/restaurante";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
@@ -377,10 +378,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Assistência técnica e locação dependem do CNAE informado no cadastro da empresa. */
   const modulos = useModulosCnae();
-  /** Obras só existem para lojas de materiais de construção. */
+  /** Obras respeita o ramo ou a liberação explícita da empresa. */
   const empresaMenu = data?.empresa as
-    { ramo_atividade?: string | null; faz_personalizacao?: boolean } | null | undefined;
-  const ehConstrucao = (empresaMenu?.ramo_atividade ?? "construcao") === "construcao";
+    { ramo_atividade?: string | null; faz_personalizacao?: boolean; modulos_liberados?: string[] } | null | undefined;
+  const ehConstrucao = obrasLiberadasEmpresa(empresaMenu);
   const soAlimentacao = ehEmpresaAlimentacao(
     data?.empresa as { ramo_atividade?: string | null; cnae?: string | null } | null | undefined,
   );

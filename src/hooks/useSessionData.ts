@@ -20,7 +20,7 @@ export function useSessionData() {
       const user = userData.user;
       if (!user) return null;
 
-      const [{ data: profile }, { data: roles }, { data: empresa }, { data: filiais }] =
+      const [{ data: profile }, { data: roles }, { data: empresa }, { data: filiais }, liberacoes] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -36,13 +36,17 @@ export function useSessionData() {
             .limit(1)
             .maybeSingle(),
           supabase.from("filiais").select("id, nome, codigo").order("nome"),
+          supabase.from("empresa_modulos_liberados").select("empresa_id, modulo"),
         ]);
+
+      if (liberacoes.error) throw liberacoes.error;
 
       return {
         user,
         profile: (profile ?? null) as Perfil | null,
         roles: (roles ?? []).map((r) => r.role as string),
-        empresa: empresa ?? null,
+        empresa: empresa ? { ...empresa, modulos_liberados: (liberacoes.data ?? [])
+          .filter((m) => m.empresa_id === empresa.id).map((m) => m.modulo) } : null,
         filiais: filiais ?? [],
       };
     },
