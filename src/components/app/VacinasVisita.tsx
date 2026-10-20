@@ -55,12 +55,15 @@ export function VacinasVisita({
   copia,
   fila,
   online,
+  aplicadas,
   aoGuardar,
 }: {
   cofre: Cofre;
   copia: CopiaVisita | null;
   fila: OperacaoFila[];
   online: boolean;
+  /** Doses já enviadas por lote desde que a cópia foi baixada. */
+  aplicadas: Record<string, number>;
   aoGuardar: () => Promise<void>;
 }) {
   const pacientes = usePacientesVisita(cofre, copia, fila);
@@ -92,7 +95,7 @@ export function VacinasVisita({
   ];
   const destinoAtual = opcoesDestino.find((o) => o.valor === destino) ?? opcoesDestino[0] ?? null;
   const itemAplic = itens.find((i) => i.id === aplic.catalogoId) ?? null;
-  const lotes = itemAplic ? lotesDisponiveis(itemAplic, fila, hoje) : [];
+  const lotes = itemAplic ? lotesDisponiveis(itemAplic, fila, hoje, aplicadas) : [];
   const erro =
     modo === "aplicar"
       ? (erroDaAplicacao(aplic, hoje) ?? (destinoAtual ? null : "Sem serviço de vacina na cópia"))
@@ -343,12 +346,14 @@ export function TrocarLoteDialog({
   operacao,
   copia,
   fila,
+  aplicadas,
   aoTrocar,
   aoFechar,
 }: {
   operacao: OperacaoFila;
   copia: CopiaVisita | null;
   fila: OperacaoFila[];
+  aplicadas: Record<string, number>;
   aoTrocar: (nova: OperacaoFila) => Promise<void>;
   aoFechar: () => void;
 }) {
@@ -361,6 +366,7 @@ export function TrocarLoteDialog({
         item,
         fila.filter((o) => o.id !== operacao.id),
         hojeISO(),
+        aplicadas,
       )
     : [];
   return (

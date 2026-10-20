@@ -331,7 +331,16 @@ function FormularioExame({
   const [trabalhando, setTrabalhando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const somenteLeitura = rascunho.fechado;
-  const erro = erroDoExame(form, rascunho.modelo);
+  const erro =
+    erroDaAbertura(
+      {
+        laboratorio: form.laboratorio,
+        material: form.material,
+        dataColeta: form.dataColeta,
+        atendimentoId: rascunho.atendimentoId,
+      },
+      hojeISO(),
+    ) ?? erroDoExame(form, rascunho.modelo);
   const faltaResultado = !temResultado(form, rascunho.modelo);
   const faixaDaEspecie = (campoId: string) => {
     const c = rascunho.modelo.campos.find((x) => x.id === campoId);

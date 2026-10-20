@@ -120,14 +120,44 @@ export function dosesReservadas(fila: readonly OperacaoFila[], loteId: string): 
   ).length;
 }
 
-/** Lotes que ainda servem: na validade e com saldo depois de descontar o que este notebook já aplicou e não enviou. */
+/** Chave do cofre com as doses que este notebook já aplicou e enviou depois de baixar a cópia (a cópia continua com o saldo antigo). */
+export const CHAVE_DOSES = "doses-aplicadas";
+
+export type DosesAplicadas = { copiaGeradaEm: string; porLote: Record<string, number> };
+
+/** Soma uma dose enviada ao lote; uma cópia nova (saldo atualizado pelo servidor) zera a conta. */
+export function somarDose(
+  atual: DosesAplicadas | null | undefined,
+  copiaGeradaEm: string,
+  loteId: string,
+): DosesAplicadas {
+  const base = atual && atual.copiaGeradaEm === copiaGeradaEm ? atual.porLote : {};
+  return { copiaGeradaEm, porLote: { ...base, [loteId]: (base[loteId] ?? 0) + 1 } };
+}
+
+/** Doses já enviadas por lote desde que a cópia atual foi baixada. */
+export function dosesDaCopia(
+  atual: DosesAplicadas | null | undefined,
+  copiaGeradaEm: string,
+): Record<string, number> {
+  return atual && atual.copiaGeradaEm === copiaGeradaEm ? atual.porLote : {};
+}
+
+/**
+ * Lotes que ainda servem: na validade e com saldo depois de descontar o que este notebook já aplicou, enviado ou não
+ * (`aplicadas`: doses enviadas desde que a cópia foi baixada; as ainda na fila saem da conta da fila).
+ */
 export function lotesDisponiveis(
   item: Pick<ItemDaCopia, "lotes">,
   fila: readonly OperacaoFila[],
   hoje: string,
+  aplicadas: Readonly<Record<string, number>> = {},
 ): (LoteDaCopia & { saldo: number })[] {
   return item.lotes
-    .map((l) => ({ ...l, saldo: l.quantidade - dosesReservadas(fila, l.id) }))
+    .map((l) => ({
+      ...l,
+      saldo: l.quantidade - dosesReservadas(fila, l.id) - (aplicadas[l.id] ?? 0),
+    }))
     .filter((l) => l.validade >= hoje && l.saldo >= 1);
 }
 

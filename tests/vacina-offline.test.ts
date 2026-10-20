@@ -6,6 +6,7 @@ import {
   TIPO_VACINA_EXTERNA,
   aplicacaoVazia,
   consultasDeVacina,
+  dosesDaCopia,
   dosesReservadas,
   erroDaAplicacao,
   erroDaExterna,
@@ -15,6 +16,7 @@ import {
   operacaoDeAplicar,
   operacaoDeExterna,
   servicosDeVacina,
+  somarDose,
   trocarLote,
 } from "../src/lib/vacina-offline.ts";
 import { situacaoNaFila } from "../src/lib/fila-clinica.ts";
@@ -107,6 +109,24 @@ describe("lotes", () => {
       ["l-3"],
     );
     assert.equal(dosesReservadas([{ ...op, estado: "recusada" }], "l-1"), 0);
+  });
+});
+
+describe("doses já enviadas", () => {
+  const item = itensDaCopia(copia, "cao")[0]!;
+  it("o lote de uma dose só continua esgotado depois do envio", () => {
+    const doses = somarDose(null, "t1", "l-1");
+    assert.deepEqual(dosesDaCopia(doses, "t1"), { "l-1": 1 });
+    assert.deepEqual(
+      lotesDisponiveis(item, [], hoje, dosesDaCopia(doses, "t1")).map((l) => l.id),
+      ["l-3"],
+    );
+    assert.deepEqual(somarDose(doses, "t1", "l-1").porLote, { "l-1": 2 });
+  });
+  it("uma cópia nova zera a conta", () => {
+    const doses = somarDose(null, "t1", "l-1");
+    assert.deepEqual(dosesDaCopia(doses, "t2"), {});
+    assert.deepEqual(somarDose(doses, "t2", "l-3").porLote, { "l-3": 1 });
   });
 });
 
