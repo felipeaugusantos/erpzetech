@@ -112,13 +112,31 @@ export function servicosMaisVendidos(
   return [...mapa.values()].sort((x, y) => y.total - x.total).slice(0, n);
 }
 
-/** Atendimentos concluídos por dia do período (dias sem atendimento aparecem com zero). */
+/** Datas AAAA-MM-DD válidas (um campo de data apagado chega como texto vazio). */
+const dataValida = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
+
+/** Tamanho do grupo do gráfico: por dia até ~2 meses, por semana até ~13 meses, depois por mês (30 dias). */
+export function diasPorGrupo(de: string, ate: string): number {
+  const dias = Math.round((Date.parse(ate) - Date.parse(de)) / 86_400_000) + 1;
+  return dias <= 62 ? 1 : dias <= 400 ? 7 : 30;
+}
+
+/**
+ * Atendimentos concluídos ao longo de todo o período: por dia, ou agrupados (semana, mês) quando o período é longo, para o gráfico nunca
+ * cortar o fim do período. Cada grupo é identificado pela primeira data dele. Período inválido ou invertido não gera nada.
+ */
 export function atendimentosPorDia(ags: readonly AgendamentoDash[], de: string, ate: string) {
+  if (!dataValida(de) || !dataValida(ate) || de > ate) return [];
+  const passo = diasPorGrupo(de, ate);
   const contagem = new Map<string, number>();
-  for (const a of noPeriodo(ags, de, ate).filter((x) => CONCLUIDAS.includes(x.situacao)))
-    contagem.set(dia(a.inicio), (contagem.get(dia(a.inicio)) ?? 0) + 1);
+  for (const a of noPeriodo(ags, de, ate).filter((x) => CONCLUIDAS.includes(x.situacao))) {
+    const d = dia(a.inicio);
+    const deslocamento = Math.floor((Date.parse(d) - Date.parse(de)) / 86_400_000);
+    const inicioGrupo = somaDiasISO(de, deslocamento - (deslocamento % passo));
+    contagem.set(inicioGrupo, (contagem.get(inicioGrupo) ?? 0) + 1);
+  }
   const lista: { dia: string; atendimentos: number }[] = [];
-  for (let d = de; d <= ate && lista.length < 62; d = somaDiasISO(d, 1))
+  for (let d = de; d <= ate; d = somaDiasISO(d, passo))
     lista.push({ dia: d, atendimentos: contagem.get(d) ?? 0 });
   return lista;
 }

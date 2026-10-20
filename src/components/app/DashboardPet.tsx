@@ -64,24 +64,33 @@ const hora = (inicio: string) =>
 export function DashboardPet({ clinica }: { clinica: boolean }) {
   const hoje = isoBrasilia();
   const { periodo, setDe, setAte } = usePeriodo();
+  // 12 meses para o retorno dos clientes, e mais para trás se o período escolhido começar antes disso
+  const umAno = somaDiasISO(hoje, -365);
+  const desde = /^\d{4}-\d{2}-\d{2}$/.test(periodo.de) && periodo.de < umAno ? periodo.de : umAno;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-pet"],
+    queryKey: ["dashboard-pet", desde],
     queryFn: async () => {
-      const desde = `${somaDiasISO(hoje, -365)}T00:00:00-03:00`;
-      const [agenda, receber, pagar] = await Promise.all([
-        supabase
+      // a agenda vem em páginas (o banco limita cada resposta): nenhum agendamento do período fica de fora
+      const linhas: LinhaAgenda[] = [];
+      for (let pagina = 0; pagina < 40; pagina++) {
+        const { data: lote, error } = await supabase
           .from("pet_agendamentos")
           .select(
             "id, inicio, situacao, cliente_id, pets(nome), pet_profissionais(nome), pet_agendamento_itens(preco_aplicado, pet_servicos(nome))",
           )
-          .gte("inicio", desde)
+          .gte("inicio", `${desde}T00:00:00-03:00`)
           .order("inicio", { ascending: false })
-          .limit(5000),
+          .order("id")
+          .range(pagina * 1000, pagina * 1000 + 999);
+        if (error) throw error;
+        linhas.push(...((lote ?? []) as unknown as LinhaAgenda[]));
+        if ((lote ?? []).length < 1000) break;
+      }
+      const [receber, pagar] = await Promise.all([
         supabase.from("contas_receber").select("valor, valor_recebido, situacao, vencimento"),
         supabase.from("contas_pagar").select("valor, valor_pago, situacao, vencimento"),
       ]);
-      const linhas = (agenda.data ?? []) as unknown as LinhaAgenda[];
       return { linhas, receber: receber.data ?? [], pagar: pagar.data ?? [] };
     },
   });

@@ -6,6 +6,7 @@ import {
   agendaDoDia,
   atendimentosPorDia,
   clientesSemRetorno,
+  diasPorGrupo,
   faltas,
   faturamento,
   servicosMaisVendidos,
@@ -107,6 +108,25 @@ test("atendimentos por dia completa os dias sem atendimento", () => {
   ]);
 });
 
+test("gráfico cobre o período inteiro: semana em período longo, mês em período muito longo", () => {
+  const tres = atendimentosPorDia(lista, "2026-08-01", "2026-10-31"); // 92 dias
+  assert.equal(tres[0]?.dia, "2026-08-01");
+  assert.ok((tres.at(-1)?.dia ?? "") >= "2026-10-24");
+  assert.equal(
+    tres.reduce((s, x) => s + x.atendimentos, 0),
+    2,
+  );
+  assert.equal(diasPorGrupo("2026-01-01", "2026-02-01"), 1);
+  assert.equal(diasPorGrupo("2026-01-01", "2026-06-30"), 7);
+  assert.equal(diasPorGrupo("2025-01-01", "2026-10-31"), 30);
+});
+
+test("período com data apagada ou invertido não gera gráfico nem erro", () => {
+  assert.deepEqual(atendimentosPorDia(lista, "", "2026-10-20"), []);
+  assert.deepEqual(atendimentosPorDia(lista, "2026-10-20", ""), []);
+  assert.deepEqual(atendimentosPorDia(lista, "2026-10-20", "2026-10-01"), []);
+});
+
 test("soma de dias de data", () => {
   assert.equal(somaDiasISO("2026-10-31", 1), "2026-11-01");
   assert.equal(somaDiasISO("2026-03-01", -1), "2026-02-28");
@@ -118,5 +138,31 @@ test("dashboard pet: clínica, ramo pet shop e CNAE de pet shop; liberação de 
   assert.equal(ehEmpresaPet({ cnae: "4789-0/04", cnpj: "11222333000181" }), true);
   assert.equal(ehEmpresaPet({ ramo_atividade: "petshop", modulos_liberados: ["obras"] }), false);
   assert.equal(ehEmpresaPet({ ramo_atividade: "construcao" }), false);
+  // liberação explícita e escolha sem CNPJ (resolvidas pelo mesmo critério do menu)
+  assert.equal(
+    ehEmpresaPet({ ramo_atividade: "construcao", modulos_liberados: ["petshop"] }),
+    true,
+  );
+  assert.equal(
+    ehEmpresaPet({ ramo_atividade: "construcao", modulos_liberados: ["clinica"] }),
+    true,
+  );
+  assert.equal(
+    ehEmpresaPet({ ramo_atividade: "construcao", cnpj: "", modulos_sem_cnpj: ["petshop"] }),
+    true,
+  );
+  assert.equal(
+    ehEmpresaPet({
+      ramo_atividade: "construcao",
+      cnpj: "",
+      modulos_sem_cnpj: ["petshop", "locacao"],
+    }),
+    false,
+  );
+  // CNAE de pet shop só como secundário não troca o dashboard
+  assert.equal(
+    ehEmpresaPet({ cnae: "4744-0/01", cnae_secundarios: "4789-0/04", cnpj: "11222333000181" }),
+    false,
+  );
   assert.equal(ehEmpresaPet(null), false);
 });
