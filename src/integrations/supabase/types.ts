@@ -9096,6 +9096,10 @@ export type Database = {
         Args: { p_id: string; p_motivo: string }
         Returns: undefined
       }
+      clinica_cadastro_rapido: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
       clinica_anexo_abrir: { Args: { p_id: string }; Returns: Json }
       clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
       clinica_anexo_cancelar: {

@@ -5,6 +5,7 @@ import {
   VALIDADE_COPIA_DIAS,
   copiaVencida,
   resumoDaCopia,
+  tutoresDaCopia,
   validadeDaCopia,
   type CopiaVisita,
 } from "../src/lib/visita.ts";
@@ -39,5 +40,39 @@ describe("resumoDaCopia", () => {
       },
     } satisfies CopiaVisita;
     assert.deepEqual(resumoDaCopia(copia), { consultas: 2, vacinas: 3, lotes: 2, modelos: 3 });
+  });
+});
+
+describe("tutoresDaCopia", () => {
+  const copia = (agenda: unknown[]) =>
+    ({
+      dados: {
+        de: "",
+        ate: "",
+        veterinario: { id: "", nome: "", crmv: "", crmv_uf: "" },
+        agenda,
+        catalogo_vacinas: [],
+        modelos_exame: [],
+        aplicadores: [],
+      },
+    }) satisfies Pick<CopiaVisita, "dados">;
+  it("junta os tutores da agenda sem repetir, em ordem de nome", () => {
+    const t = tutoresDaCopia(
+      copia([
+        { tutor: { id: "2", nome: "Zélia", telefone: "(16) 99999-0000" } },
+        { tutor: { id: "1", nome: "Ana", telefone: null } },
+        { tutor: { id: "2", nome: "Zélia", telefone: "(16) 99999-0000" } },
+      ]),
+    );
+    assert.deepEqual(t, [
+      { id: "1", nome: "Ana", telefone: null },
+      { id: "2", nome: "Zélia", telefone: "(16) 99999-0000" },
+    ]);
+  });
+  it("ignora item sem tutor ou fora do formato", () => {
+    assert.deepEqual(
+      tutoresDaCopia(copia([null, {}, { tutor: { id: 5, nome: "x" } }, { tutor: { id: "3" } }])),
+      [],
+    );
   });
 });

@@ -126,6 +126,14 @@ Hoje o sistema tem fila sem internet para frente de caixa, salão, delivery e co
 - Ainda não há operação real na fila: os tipos de operação entram a partir do 5b (cada um com a sua função idempotente no banco).
 - O cache do navegador já não guarda nenhuma consulta da clínica (PR 3), então nada clínico vai para o armazenamento em texto simples.
 
+**5b — entregue (cadastros).** **Cadastro rápido de tutor e pet** (cão ou gato) na tela Trabalho sem internet, com ou sem sinal:
+
+- O veterinário (perfil restrito, que não usa o cadastro de clientes e pets) cria só o essencial: nome e telefone do tutor (ou um **tutor que já existe**, escolhido entre os da agenda baixada) e o pet (nome, espécie, raça, sexo, castrado, nascimento, peso, alergias). A espécie é só cão ou gato, como decidido.
+- Os **identificadores nascem no notebook**: a operação da fila leva os ids do tutor e do pet, então o pet novo já pode receber atendimento (5c) antes de sincronizar (`pacientesLocais` lista os que ainda estão na fila).
+- No banco, `clinica_cadastro_rapido(chave, dados)` é **idempotente**: a chave é o id da operação; reenviar devolve o mesmo resultado e não cria nada de novo. Recusa espécie fora de cão e gato, telefone sem DDD, peso ou nascimento fora do esperado e identificador já usado, sem deixar tutor para trás.
+- **Cadastro duplicado:** tutor novo com o **mesmo telefone** de um cadastro existente é criado mesmo assim e marcado nas observações ("Possível duplicado do cadastro … a recepção confere e une"); o registro guarda o apontamento e **o cadastro antigo não é alterado**. A união em si continua com a recepção (ainda não há tela de unir cadastros).
+- Limite desta etapa: a cópia da visita traz só os tutores da agenda; quem não está nela vira cadastro novo (e a recepção une depois).
+
 ### Pontos a confirmar antes do PR 5a
 
 | #   | Pergunta                                                                                                                                  | Sugestão                                                                                                                                                                                                              |
