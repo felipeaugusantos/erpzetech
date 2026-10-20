@@ -77,8 +77,22 @@ export const entrarPorUsuario = createServerFn({ method: "POST" })
       .eq("slug", data.slug)
       .eq("ativo", true)
       .maybeSingle();
-    if (empresa.error || !empresa.data?.tenant_id) throw new Error(GENERICO);
-    return entrarNaEmpresa(empresa.data.tenant_id, data.usuario, data.senha);
+    if (empresa.error) throw new Error(GENERICO);
+    let tenantId = empresa.data?.tenant_id ?? null;
+    if (!tenantId) {
+      // link combinado no cadastro do assinante, antes de a empresa ser cadastrada
+      const assinante = await supabaseAdmin
+        .from("saas_clientes")
+        .select("tenant_id")
+        .eq("link_acesso", data.slug)
+        .neq("situacao", "cancelado")
+        .not("tenant_id", "is", null)
+        .maybeSingle();
+      if (assinante.error) throw new Error(GENERICO);
+      tenantId = assinante.data?.tenant_id ?? null;
+    }
+    if (!tenantId) throw new Error(GENERICO);
+    return entrarNaEmpresa(tenantId, data.usuario, data.senha);
   });
 
 /** Troca de operador no caixa: quem já está logado informa o usuário (e a senha) de outro colega da mesma empresa. */

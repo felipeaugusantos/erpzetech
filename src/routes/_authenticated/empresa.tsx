@@ -130,6 +130,16 @@ function Empresa() {
       toast.error("Não foi possível consultar o CNPJ", { description: e.message }),
   });
 
+  // primeiro acesso: o link combinado pela equipe Ze Tech já vem preenchido
+  const { data: linkSugerido } = useQuery({
+    queryKey: ["assinante-link-sugerido"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("assinante_link_sugerido");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["empresa-cadastro"],
     queryFn: async () => {
@@ -168,6 +178,10 @@ function Empresa() {
     setShowAoVivo(data.show_ao_vivo ?? false);
     setSlug((data as { slug?: string | null }).slug ?? "");
   }, [data]);
+
+  useEffect(() => {
+    if (!isLoading && !data && linkSugerido) setSlug((atual) => atual || linkSugerido);
+  }, [isLoading, data, linkSugerido]);
 
   const salvar = useMutation({
     mutationFn: async () => {
