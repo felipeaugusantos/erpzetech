@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Imported purchase notes
+- Optional module availability is resolved centrally by moduloLiberadoEmpresa; manual selections apply only without a 14-digit CNPJ, and clinical database gates mirror this rule without changing user roles.
 - Subscriber administrator password resets run through an authenticated server function, authorize Ze Tech operators first, and derive the target from the saved subscriber linkage with matching tenant and administrator role; this prevents arbitrary-account resets.
 - Show imported NF-e details through a read-only dialog querying the saved purchase and its items with the existing RLS client; the original XML is not stored, so never present reconstructed data as the original fiscal document.
 - Parse combined DACTE PDFs per document, accepting spaced headings and isolating 44-digit keys from adjacent number columns, then deduplicate by CT-e key to avoid mixing freight or charging repeated copies.

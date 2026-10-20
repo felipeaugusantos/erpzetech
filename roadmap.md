@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Seleção de módulos sem CNPJ: campo salvo na empresa, regra central e clínica alinhadas, 13 testes passaram; caixinhas e ocultação com CNPJ conferidas na sessão autenticada, sem salvar alterações na empresa real.
+
 - [x] Redefinir senha do administrador em Editar cliente assinante: cinco testes de proteção passaram e campos/confirmar/cancelar conferidos com conta autenticada; nenhuma senha real alterada na verificação.
 
 - [x] Corrigir a leitura do PDF com dois DACTEs: quatro testes passaram e a tela reconheceu 727506 e 727538 com suas respectivas chaves; vínculo existente conferido por consulta, sem lançar novo frete.

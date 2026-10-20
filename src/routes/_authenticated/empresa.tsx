@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
-import { ROTULO_MODULO, cnaesDaEmpresa, exemplosCnae, moduloLiberadoPorCnae } from "@/lib/cnae";
+import { ROTULO_MODULO, exemplosCnae, moduloLiberadoEmpresa, semCnpj, type ModuloCnae } from "@/lib/cnae";
 import { COR_PADRAO, LogoEmpresaUpload, aplicarCorEmpresa } from "@/components/app/MarcaEmpresa";
 import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
 
@@ -96,6 +97,7 @@ function Empresa() {
   const [personaliza, setPersonaliza] = useState(false);
   const [showAoVivo, setShowAoVivo] = useState(false);
   const [slug, setSlug] = useState("");
+  const [modulos, setModulos] = useState<string[]>([]);
   /** Identidade visual da loja: logo e cor principal do sistema. */
   const [marca, setMarca] = useState<{ logo: string | null; cor: string }>({
     logo: null,
@@ -166,6 +168,7 @@ function Empresa() {
     });
     setMarca({ logo: data.logo_path ?? null, cor: data.cor_primaria ?? COR_PADRAO });
     setPersonaliza(data.faz_personalizacao ?? false);
+    setModulos(data.modulos_sem_cnpj ?? []);
     setShowAoVivo(data.show_ao_vivo ?? false);
     setSlug((data as { slug?: string | null }).slug ?? "");
   }, [data]);
@@ -183,7 +186,7 @@ function Empresa() {
       if (error) throw error;
       const { error: errPers } = await supabase
         .from("empresas")
-        .update({ faz_personalizacao: personaliza })
+        .update({ faz_personalizacao: personaliza, modulos_sem_cnpj: modulos })
         .eq("tenant_id", session.profile.tenant_id);
       if (errPers) throw errPers;
       const slugFinal = slug.replace(/^-+|-+$/g, "") || null;
@@ -377,8 +380,7 @@ function Empresa() {
               </div>
             </div>
 
-            {(form.ramo_atividade === "restaurante" ||
-              moduloLiberadoPorCnae(cnaesDaEmpresa(form), "restaurante")) && (
+            {moduloLiberadoEmpresa({ ...form, modulos_sem_cnpj: modulos }, "restaurante") && (
               <div className="flex items-start gap-3 rounded-md border p-3 sm:col-span-2 lg:col-span-3">
                 <Switch
                   id="emp-show-ao-vivo"
@@ -409,6 +411,22 @@ function Empresa() {
           </div>
 
           <div className="mt-6 border-t border-border pt-5">
+            {semCnpj(form) && (
+              <fieldset className="mb-5">
+                <legend className="font-display text-sm font-semibold">Módulos sem CNPJ</legend>
+                <p className="mt-1 text-xs text-muted-foreground">Selecione as atividades do negócio. Não é necessário informar CNAE; as permissões de cada usuário continuam valendo.</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {(Object.keys(ROTULO_MODULO) as ModuloCnae[]).map((m) => (
+                    <div key={m} className="flex items-center gap-2">
+                      <Checkbox id={`modulo-${m}`} checked={modulos.includes(m)} disabled={!isAdmin}
+                        onCheckedChange={(checked) => setModulos((atual) => checked === true ? [...new Set([...atual, m])] : atual.filter((v) => v !== m))} />
+                      <Label htmlFor={`modulo-${m}`}>{ROTULO_MODULO[m]}</Label>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">Clínica veterinária também libera os cadastros do Pet shop. Esta seleção não habilita emissão fiscal. Ao cadastrar CNPJ, a liberação volta a seguir o ramo e os CNAEs.</p>
+              </fieldset>
+            )}
             <p className="font-display text-sm font-semibold">Atividades (CNAE)</p>
             <p className="mb-3 text-xs text-muted-foreground">
               O CNAE principal e os secundários liberam os módulos de Assistência técnica e Locação
@@ -427,8 +445,8 @@ function Empresa() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {(["assistencia", "locacao", "petshop", "clinica"] as const).map((m) => {
-                const liberado = moduloLiberadoPorCnae(
-                  cnaesDaEmpresa({ cnae: form.cnae, cnae_secundarios: form.cnae_secundarios }),
+                const liberado = moduloLiberadoEmpresa(
+                  { ...form, modulos_sem_cnpj: modulos },
                   m,
                 );
                 return (
