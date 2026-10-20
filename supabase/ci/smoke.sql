@@ -5790,3 +5790,22 @@ BEGIN
   DELETE FROM saas_clientes WHERE id IN (c1, c2);
   DELETE FROM tenants WHERE id IN (t1, t2);
 END $$;
+
+-- 61. Link do assinante abre a tela de login antes de a empresa existir; a empresa tem prioridade; cancelado não abre
+DO $$
+DECLARE t uuid; c uuid; e uuid; r record;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Assinante Link Login CI') RETURNING id INTO t;
+  INSERT INTO saas_clientes (nome, link_acesso, tenant_id) VALUES ('Loja Sem Empresa CI', 'loja-sem-empresa-ci', t) RETURNING id INTO c;
+  SELECT * INTO r FROM empresa_por_slug('Loja-Sem-Empresa-CI');
+  PERFORM ci.exige(r.nome = 'Loja Sem Empresa CI', 'o link do assinante abre o login antes de a empresa ser cadastrada');
+  INSERT INTO empresas (tenant_id, razao_social, nome_fantasia) VALUES (t, 'Razão Loja CI', 'Fantasia Loja CI') RETURNING id INTO e;
+  SELECT * INTO r FROM empresa_por_slug('loja-sem-empresa-ci');
+  PERFORM ci.exige(r.nome = 'Fantasia Loja CI', 'com a empresa cadastrada, a marca da empresa tem prioridade');
+  DELETE FROM empresas WHERE id = e;
+  UPDATE saas_clientes SET situacao = 'cancelado' WHERE id = c;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM empresa_por_slug('loja-sem-empresa-ci')), 'assinante cancelado não abre a tela de login');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM empresa_por_slug('link-que-nao-existe-ci')), 'link inexistente não abre');
+  DELETE FROM saas_clientes WHERE id = c;
+  DELETE FROM tenants WHERE id = t;
+END $$;
