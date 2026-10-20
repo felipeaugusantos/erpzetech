@@ -428,7 +428,7 @@ function Pets() {
                     </Label>
                     <Input
                       id="tutor-fone"
-                      inputMode="tel"
+                      mascara="telefone"
                       value={form.novo_tutor_telefone}
                       maxLength={30}
                       onChange={(e) => setForm({ ...form, novo_tutor_telefone: e.target.value })}
