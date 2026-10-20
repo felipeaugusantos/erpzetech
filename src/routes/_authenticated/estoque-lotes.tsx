@@ -7,7 +7,9 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { num } from "@/lib/format";
+import { useSessionData } from "@/hooks/useSessionData";
+import { dateBR, num } from "@/lib/format";
+import { ROTULO_LOTES_CLINICA, ehEmpresaSoClinica } from "@/lib/ramo-clinica";
 
 export const Route = createFileRoute("/_authenticated/estoque-lotes")({
   head: () => ({
@@ -28,6 +30,7 @@ type Lote = {
   tonalidade: string;
   calibre: string;
   quantidade: number;
+  validade: string | null;
   produto_id: string;
   produtos: { descricao: string; codigo_interno: string | null; unidade: string | null } | null;
   depositos: { nome: string } | null;
@@ -38,6 +41,7 @@ const vazio = {
   deposito_id: "",
   lote: "",
   tonalidade: "",
+  validade: "",
   calibre: "",
   tipo: "entrada",
   quantidade: "",
@@ -47,6 +51,19 @@ const vazio = {
 
 function Lotes() {
   const qc = useQueryClient();
+  const { data: sessao } = useSessionData();
+  const soClinica = ehEmpresaSoClinica(
+    sessao?.empresa as
+      | {
+          ramo_atividade?: string | null;
+          cnae?: string | null;
+          cnpj?: string | null;
+          modulos_sem_cnpj?: string[] | null;
+          modulos_liberados?: string[] | null;
+        }
+      | null
+      | undefined,
+  );
   const [f, setF] = useState(vazio);
   const [busca, setBusca] = useState("");
 
@@ -77,7 +94,7 @@ function Lotes() {
       const { data, error } = await supabase
         .from("estoque_lotes")
         .select(
-          "id, lote, tonalidade, calibre, quantidade, produto_id, produtos(descricao, codigo_interno, unidade), depositos(nome)",
+          "id, lote, tonalidade, calibre, quantidade, validade, produto_id, produtos(descricao, codigo_interno, unidade), depositos(nome)",
         )
         .order("updated_at", { ascending: false })
         .limit(2000);
@@ -110,6 +127,7 @@ function Lotes() {
         p_calibre: f.calibre,
         p_tipo: f.tipo,
         p_quantidade: Number(f.quantidade.replace(",", ".")),
+        ...(f.validade ? { p_validade: f.validade } : {}),
         ...(f.documento ? { p_documento: f.documento } : {}),
         ...(f.motivo ? { p_motivo: f.motivo } : {}),
       });
@@ -142,8 +160,12 @@ function Lotes() {
   return (
     <>
       <PageHeader
-        title="Lotes e tonalidades"
-        description="Para pisos, revestimentos e tintas: o cliente leva tudo do mesmo lote e da mesma tonalidade."
+        title={soClinica ? ROTULO_LOTES_CLINICA : "Lotes e tonalidades"}
+        description={
+          soClinica
+            ? "Cada lote de vacina ou medicamento com o saldo guardado: a aplicação da vacina baixa do lote escolhido."
+            : "Para pisos, revestimentos e tintas: o cliente leva tudo do mesmo lote e da mesma tonalidade."
+        }
       />
 
       <section className="panel mb-6 grid gap-3 p-4 md:grid-cols-4">
@@ -212,6 +234,14 @@ function Lotes() {
           />
         </label>
         <label className="text-xs">
+          Validade{soClinica && f.tipo === "entrada" ? " (obrigatória)" : ""}
+          <Input
+            type="date"
+            value={f.validade}
+            onChange={(e) => setF({ ...f, validade: e.target.value })}
+          />
+        </label>
+        <label className="text-xs">
           Operação
           <select
             className={sel}
@@ -248,6 +278,8 @@ function Lotes() {
               !f.deposito_id ||
               !f.lote.trim() ||
               !f.quantidade ||
+              // vacina e medicamento só são aplicados de lote com validade
+              (soClinica && f.tipo === "entrada" && !f.validade) ||
               (f.tipo === "ajuste" && !f.motivo.trim())
             }
             onClick={() => lancar.mutate()}
@@ -275,6 +307,7 @@ function Lotes() {
               <th className="px-3 py-2">Lote</th>
               <th className="px-3 py-2">Tonalidade</th>
               <th className="px-3 py-2">Calibre</th>
+              <th className="px-3 py-2">Validade</th>
               <th className="px-3 py-2 text-right">Saldo</th>
             </tr>
           </thead>
@@ -286,6 +319,7 @@ function Lotes() {
                 <td className="px-3 py-2 font-medium">{l.lote}</td>
                 <td className="px-3 py-2">{l.tonalidade || "—"}</td>
                 <td className="px-3 py-2">{l.calibre || "—"}</td>
+                <td className="px-3 py-2">{l.validade ? dateBR(l.validade) : "—"}</td>
                 <td className="px-3 py-2 text-right">
                   {num(Number(l.quantidade))} {l.produtos?.unidade ?? ""}
                 </td>

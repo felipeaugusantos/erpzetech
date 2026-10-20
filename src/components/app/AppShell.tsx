@@ -80,6 +80,7 @@ import {
 } from "@/lib/ramo-alimentacao";
 import {
   GRUPOS_FORA_DA_CLINICA,
+  ROTULO_LOTES_CLINICA,
   TELAS_FORA_DA_CLINICA,
   ehEmpresaSoClinica,
 } from "@/lib/ramo-clinica";
@@ -424,43 +425,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         })
         .map((g) => ({
           ...g,
-          items: g.items.filter((i) => {
-            if (
-              soAlimentacao &&
-              (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
+          items: g.items
+            .map((i) =>
+              soClinica && i.to === "/estoque-lotes" ? { ...i, label: ROTULO_LOTES_CLINICA } : i,
             )
-              return false;
-            if (soClinica && (TELAS_FORA_DA_CLINICA as readonly string[]).includes(i.to ?? ""))
-              return false;
-            if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
-              return ehConstrucao;
-            if (i.to === "/assistencia-lojas" || i.to === "/relatorio-assistencia")
-              return modulos.assistencia;
-            if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
-              return modulos.locacao;
-            if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
-            // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
-            if (
-              i.to === "/clinica-prontuario" ||
-              i.to === "/clinica-exames" ||
-              i.to === "/clinica-offline"
-            )
-              return souVeterinario;
-            if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
-            if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
-            // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
-            if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
-            if (
-              i.to === "/personalizacao" ||
-              i.to === "/custo-par" ||
-              i.to === "/producao" ||
-              i.to === "/movimento-grade"
-            )
-              return fazPersonalizacao;
-            return true;
-          }),
+            .filter((i) => {
+              if (
+                soAlimentacao &&
+                (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
+              )
+                return false;
+              if (soClinica && (TELAS_FORA_DA_CLINICA as readonly string[]).includes(i.to ?? ""))
+                return false;
+              // transferência só faz sentido com mais de uma loja
+              if (soClinica && i.to === "/transferencias" && (data?.filiais.length ?? 0) <= 1)
+                return false;
+              if (i.to === "/obras" || i.to === "/obra-historico" || i.to === "/clientes-obras")
+                return ehConstrucao;
+              if (i.to === "/assistencia-lojas" || i.to === "/relatorio-assistencia")
+                return modulos.assistencia;
+              if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
+                return modulos.locacao;
+              if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
+              // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
+              if (
+                i.to === "/clinica-prontuario" ||
+                i.to === "/clinica-exames" ||
+                i.to === "/clinica-offline"
+              )
+                return souVeterinario;
+              if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
+              if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
+              // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
+              if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
+              if (
+                i.to === "/personalizacao" ||
+                i.to === "/custo-par" ||
+                i.to === "/producao" ||
+                i.to === "/movimento-grade"
+              )
+                return fazPersonalizacao;
+              return true;
+            }),
         })),
     [
+      data?.filiais.length,
       modulos.assistencia,
       modulos.locacao,
       modulos.restaurante,
