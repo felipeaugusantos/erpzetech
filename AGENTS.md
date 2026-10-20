@@ -11,6 +11,7 @@
 
 ## Imported purchase notes
 - Optional module availability is resolved centrally by moduloLiberadoEmpresa; manual selections apply only without a 14-digit CNPJ, and clinical database gates mirror this rule without changing user roles.
+- Explicit company module releases are stored in empresa_modulos_liberados with tenant-scoped reads and service-only writes; availability resolvers and clinical database gates honor them without altering fiscal activities, business segment, or user permissions.
 - The dedicated module selection screen uses the same availability resolver as the company form and menu; saves update only the current company's manual selections through its existing RLS client.
 - Subscriber administrator password resets run through an authenticated server function, authorize Ze Tech operators first, and derive the target from the saved subscriber linkage with matching tenant and administrator role; this prevents arbitrary-account resets.
 - Show imported NF-e details through a read-only dialog querying the saved purchase and its items with the existing RLS client; the original XML is not stored, so never present reconstructed data as the original fiscal document.

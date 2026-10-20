@@ -2601,6 +2601,29 @@ export type Database = {
           },
         ]
       }
+      empresa_modulos_liberados: {
+        Row: {
+          empresa_id: string
+          modulo: string
+        }
+        Insert: {
+          empresa_id: string
+          modulo: string
+        }
+        Update: {
+          empresa_id?: string
+          modulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_modulos_liberados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean

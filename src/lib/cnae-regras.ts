@@ -91,6 +91,7 @@ export type EmpresaModulos = {
   cnae_secundarios?: string | null;
   ramo_atividade?: string | null;
   modulos_sem_cnpj?: string[] | null;
+  modulos_liberados?: string[] | null;
 };
 
 export const semCnpj = (empresa?: EmpresaModulos | null) =>
@@ -100,6 +101,7 @@ export function moduloLiberadoEmpresa(
   empresa: EmpresaModulos | null | undefined,
   modulo: ModuloCnae,
 ): boolean {
+  if (empresa?.modulos_liberados?.includes(modulo)) return true;
   if (semCnpj(empresa) && empresa?.modulos_sem_cnpj?.includes(modulo)) return true;
   if (modulo === "petshop" && moduloLiberadoEmpresa(empresa, "clinica")) return true;
   if (modulo === "restaurante" && empresa?.ramo_atividade === "restaurante") return true;

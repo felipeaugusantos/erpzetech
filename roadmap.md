@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Liberar todos os módulos para empresa-modelo, incluindo Personalização e Obras, preservando cadastro fiscal e permissões; liberações conferidas no banco, 22 testes passaram e Obras/Personalização abriram com sessão autenticada.
+
 - [x] Tela Módulos sem CNPJ no menu Administração, com caixinhas e prévia das opções; 17 testes passaram e tela autenticada conferida sem erros, sem alterar a empresa real. Salvamento em negócio sem CNPJ não exercitado nesta verificação.
 
 - [x] Seleção de módulos sem CNPJ: campo salvo na empresa, regra central e clínica alinhadas, 13 testes passaram; caixinhas e ocultação com CNPJ conferidas na sessão autenticada, sem salvar alterações na empresa real.
