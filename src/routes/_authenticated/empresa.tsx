@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Search } from "lucide-react";
@@ -414,6 +414,7 @@ function Empresa() {
             {semCnpj(form) && (
               <fieldset className="mb-5">
                 <legend className="font-display text-sm font-semibold">Módulos sem CNPJ</legend>
+                <Button asChild variant="link" className="px-0"><Link to="/modulos-sem-cnpj">Ver módulos e opções no menu</Link></Button>
                 <p className="mt-1 text-xs text-muted-foreground">Selecione as atividades do negócio. Não é necessário informar CNAE; as permissões de cada usuário continuam valendo.</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {(Object.keys(ROTULO_MODULO) as ModuloCnae[]).map((m) => (
