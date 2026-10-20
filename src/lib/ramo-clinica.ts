@@ -3,11 +3,14 @@
 import { cnaesDaEmpresa, semCnpj, type EmpresaModulos } from "./cnae-regras.ts";
 
 /**
- * A empresa é só clínica quando o ramo é clínica, o CNAE principal é de atividades veterinárias (7500) ou, sem CNPJ, a clínica foi
+ * Liberação explícita de outro módulo desfaz o "só clínica". A empresa é só clínica quando o ramo é clínica, o CNAE principal é de atividades veterinárias (7500) ou, sem CNPJ, a clínica foi
  * escolhida em "Módulos sem CNPJ" sem assistência técnica, locação ou restaurante.
  */
 export function ehEmpresaSoClinica(empresa?: EmpresaModulos | null): boolean {
   if (!empresa) return false;
+  // liberação explícita da Ze Tech de outro módulo (obras, assistência, locação…) vale mais que o ramo: a empresa não é só clínica
+  if ((empresa.modulos_liberados ?? []).some((m) => m !== "clinica" && m !== "petshop"))
+    return false;
   if (empresa.ramo_atividade === "clinica") return true;
   if (cnaesDaEmpresa({ cnae: empresa.cnae ?? null })[0]?.startsWith("7500")) return true;
   const escolhidos = empresa.modulos_sem_cnpj ?? [];

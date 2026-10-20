@@ -88,6 +88,7 @@ function Dashboard() {
           cnae?: string | null;
           cnpj?: string | null;
           modulos_sem_cnpj?: string[] | null;
+          modulos_liberados?: string[] | null;
         }
       | null
       | undefined,

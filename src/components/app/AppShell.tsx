@@ -399,6 +399,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           cnae?: string | null;
           cnpj?: string | null;
           modulos_sem_cnpj?: string[] | null;
+          modulos_liberados?: string[] | null;
         }
       | null
       | undefined,

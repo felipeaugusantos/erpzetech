@@ -42,6 +42,14 @@ test("com CNPJ, a escolha manual não vale; CNAE 7500 só como secundário não 
   assert.equal(ehEmpresaSoClinica({ ramo_atividade: "construcao" }), false);
 });
 
+test("liberação explícita de outro módulo desfaz o só clínica; clínica e pet shop liberados não", () => {
+  const clinica = { ramo_atividade: "clinica" };
+  assert.equal(ehEmpresaSoClinica({ ...clinica, modulos_liberados: ["obras"] }), false);
+  assert.equal(ehEmpresaSoClinica({ ...clinica, modulos_liberados: ["locacao"] }), false);
+  assert.equal(ehEmpresaSoClinica({ ...clinica, modulos_liberados: ["clinica", "petshop"] }), true);
+  assert.equal(ehEmpresaSoClinica({ ...clinica, modulos_liberados: [] }), true);
+});
+
 test("as telas escondidas existem no menu e o que a clínica usa nunca é escondido", () => {
   const fonte = readFileSync("src/components/app/AppShell.tsx", "utf8");
   for (const to of TELAS_FORA_DA_CLINICA) assert.ok(fonte.includes(`"${to}"`), to);
