@@ -325,10 +325,12 @@ function Locacoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  /** Atualiza a lista; a promessa termina quando a lista nova chegou (ou falhou). */
   const recarregar = () => {
-    void queryClient.invalidateQueries({ queryKey: ["locacoes"] });
+    const lista = queryClient.invalidateQueries({ queryKey: ["locacoes"] });
     void queryClient.invalidateQueries({ queryKey: ["locacao-equipamentos"] });
     void queryClient.invalidateQueries({ queryKey: ["locacao-notas-servico"] });
+    return lista;
   };
 
   const acao = useMutation({
@@ -353,9 +355,15 @@ function Locacoes() {
       if (error) throw error;
       return "Locação cancelada.";
     },
-    onSuccess: (msg) => {
+    onSuccess: async (msg, { tipo }) => {
       toast.success(msg);
-      recarregar();
+      const atualizada = recarregar();
+      // a lista padrão mostra só reservadas e em locação: ao cancelar, mostra as canceladas para o registro não "sumir"
+      // (só depois de a lista nova chegar, para o registro já aparecer com a situação nova)
+      if (tipo === "cancelar") {
+        await atualizada;
+        setFiltro("cancelada");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -826,8 +834,9 @@ function Locacoes() {
           aoFechar={() => setDevolvendo(null)}
           aoConcluir={() => {
             setDevolvendo(null);
-            recarregar();
             void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
+            // idem: a locação devolvida sai de "reservadas e em locação"; leva a pessoa para onde ela está, com a lista já atualizada
+            void recarregar().then(() => setFiltro("devolvida"));
           }}
         />
       )}
