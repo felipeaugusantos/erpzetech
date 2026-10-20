@@ -693,6 +693,7 @@ function CobrancaZeTech() {
                   <Label htmlFor="g-doc">CNPJ / CPF</Label>
                   <Input
                     id="g-doc"
+                    mascara="cpfcnpj"
                     value={cfg.documento ?? ""}
                     onChange={(e) => setCfg({ ...cfg, documento: e.target.value })}
                   />
@@ -734,6 +735,7 @@ function CobrancaZeTech() {
                 <div className="grid gap-1.5">
                   <Label htmlFor="g-zap">WhatsApp de cobrança</Label>
                   <Input
+                    mascara="telefone"
                     id="g-zap"
                     value={cfg.whatsapp_cobranca ?? ""}
                     onChange={(e) => setCfg({ ...cfg, whatsapp_cobranca: e.target.value })}

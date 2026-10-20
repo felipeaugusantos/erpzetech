@@ -66,6 +66,7 @@ export function CamposCadastroRapido({
           <div>
             <Label htmlFor="cr-tfone">Telefone (com DDD)</Label>
             <Input
+              mascara="telefone"
               id="cr-tfone"
               inputMode="tel"
               value={form.tutorTelefone}

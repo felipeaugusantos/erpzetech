@@ -718,6 +718,7 @@ function Profissionais() {
             <div>
               <Label>CPF</Label>
               <Input
+                mascara="cpf"
                 className="mt-1"
                 value={form.cpf}
                 onChange={(e) => setForm({ ...form, cpf: e.target.value })}
@@ -726,6 +727,7 @@ function Profissionais() {
             <div>
               <Label>WhatsApp</Label>
               <Input
+                mascara="telefone"
                 className="mt-1"
                 value={form.whatsapp}
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
@@ -734,6 +736,7 @@ function Profissionais() {
             <div>
               <Label>Telefone</Label>
               <Input
+                mascara="telefone"
                 className="mt-1"
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}

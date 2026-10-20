@@ -346,6 +346,7 @@ function Motoristas() {
             <div>
               <Label>Telefone</Label>
               <Input
+                mascara="telefone"
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}
               />

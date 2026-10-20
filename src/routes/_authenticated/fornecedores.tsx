@@ -366,6 +366,7 @@ function Fornecedores() {
             <div>
               <Label>CNPJ</Label>
               <Input
+                mascara="cnpj"
                 value={form.cnpj}
                 onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
               />
@@ -380,6 +381,7 @@ function Fornecedores() {
             <div>
               <Label>Telefone</Label>
               <Input
+                mascara="telefone"
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}
               />
@@ -387,6 +389,7 @@ function Fornecedores() {
             <div>
               <Label>WhatsApp</Label>
               <Input
+                mascara="telefone"
                 value={form.whatsapp}
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
               />

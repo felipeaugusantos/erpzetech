@@ -341,6 +341,7 @@ function Obras() {
               <div>
                 <Label htmlFor="o-cep">CEP</Label>
                 <Input
+                  mascara="cep"
                   id="o-cep"
                   value={form.cep}
                   onChange={(e) => setForm({ ...form, cep: e.target.value })}
@@ -401,6 +402,7 @@ function Obras() {
               <div>
                 <Label htmlFor="o-tel">Telefone</Label>
                 <Input
+                  mascara="telefone"
                   id="o-tel"
                   value={form.telefone}
                   onChange={(e) => setForm({ ...form, telefone: e.target.value })}

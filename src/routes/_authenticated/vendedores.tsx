@@ -382,6 +382,7 @@ function Vendedores() {
             <div>
               <Label>Telefone de contato</Label>
               <Input
+                mascara="telefone"
                 inputMode="tel"
                 placeholder="(16) 90000-0000"
                 value={form.telefone}

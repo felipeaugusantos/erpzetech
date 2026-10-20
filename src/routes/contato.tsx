@@ -224,6 +224,7 @@ function Contato() {
                   <div>
                     <Label htmlFor="whatsapp">WhatsApp</Label>
                     <Input
+                      mascara="telefone"
                       id="whatsapp"
                       inputMode="tel"
                       className="mt-1"

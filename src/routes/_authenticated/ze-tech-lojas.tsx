@@ -513,6 +513,7 @@ function LojasZeTech() {
               <Label htmlFor="l-doc">CNPJ</Label>
               <Input
                 id="l-doc"
+                mascara="cpfcnpj"
                 value={form.documento}
                 onChange={(e) => setForm({ ...form, documento: e.target.value })}
               />
@@ -528,6 +529,7 @@ function LojasZeTech() {
             <div className="grid gap-1.5">
               <Label htmlFor="l-tel">Telefone</Label>
               <Input
+                mascara="telefone"
                 id="l-tel"
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}
@@ -536,6 +538,7 @@ function LojasZeTech() {
             <div className="grid gap-1.5">
               <Label htmlFor="l-zap">WhatsApp</Label>
               <Input
+                mascara="telefone"
                 id="l-zap"
                 value={form.whatsapp}
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
@@ -553,6 +556,7 @@ function LojasZeTech() {
             <div className="grid gap-1.5">
               <Label htmlFor="l-cep">CEP</Label>
               <Input
+                mascara="cep"
                 id="l-cep"
                 value={form.cep}
                 onChange={(e) => setForm({ ...form, cep: e.target.value })}

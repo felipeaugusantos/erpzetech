@@ -485,6 +485,7 @@ function Usuarios() {
             <div>
               <Label htmlFor="n-tel">Telefone</Label>
               <Input
+                mascara="telefone"
                 id="n-tel"
                 value={form.telefone}
                 onChange={(e) => setForm({ ...form, telefone: e.target.value })}
@@ -577,6 +578,7 @@ function Usuarios() {
               <div>
                 <Label htmlFor="e-tel">Telefone</Label>
                 <Input
+                  mascara="telefone"
                   id="e-tel"
                   value={editando.telefone}
                   onChange={(e) => setEditando({ ...editando, telefone: e.target.value })}

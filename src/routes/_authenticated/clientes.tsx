@@ -423,6 +423,7 @@ function Clientes() {
                 <div>
                   <Label htmlFor="c-cpf">CPF</Label>
                   <Input
+                    mascara="cpf"
                     id="c-cpf"
                     value={form.cpf}
                     onChange={(e) => setForm({ ...form, cpf: e.target.value })}
@@ -434,6 +435,7 @@ function Clientes() {
                     <Label htmlFor="c-cnpj">CNPJ</Label>
                     <div className="flex gap-2">
                       <Input
+                        mascara="cnpj"
                         id="c-cnpj"
                         value={form.cnpj}
                         placeholder="00.000.000/0000-00"
@@ -469,6 +471,7 @@ function Clientes() {
               <div>
                 <Label htmlFor="c-tel">Telefone</Label>
                 <Input
+                  mascara="telefone"
                   id="c-tel"
                   value={form.telefone}
                   onChange={(e) => setForm({ ...form, telefone: e.target.value })}
@@ -477,6 +480,7 @@ function Clientes() {
               <div>
                 <Label htmlFor="c-wpp">WhatsApp</Label>
                 <Input
+                  mascara="telefone"
                   id="c-wpp"
                   value={form.whatsapp}
                   onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
@@ -497,6 +501,7 @@ function Clientes() {
               <div>
                 <Label htmlFor="c-cep">CEP</Label>
                 <Input
+                  mascara="cep"
                   id="c-cep"
                   value={form.cep}
                   onChange={(e) => setForm({ ...form, cep: e.target.value })}
