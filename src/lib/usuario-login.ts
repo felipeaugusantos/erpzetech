@@ -37,3 +37,18 @@ export function usuarioSugerido(email: string): string {
     .slice(0, USUARIO_MAXIMO - 4);
   return base.length >= USUARIO_MINIMO ? base : "usuario";
 }
+
+const DOMINIO_INTERNO = "@usuarios.erpzetech.invalid";
+
+/** O endereço é o login técnico de quem entra por usuário (não é um e-mail de verdade e não deve aparecer para ninguém). */
+export const ehEmailInterno = (email: string | null | undefined) =>
+  !!email && email.endsWith(DOMINIO_INTERNO);
+
+/** O que mostrar como identificação da conta: o e-mail de quem entra por e-mail; para quem entra por usuário, o usuário (ou o contato). */
+export function contaParaExibir(
+  emailDoLogin: string | null | undefined,
+  perfil: { usuario?: string | null; email?: string | null } | null | undefined,
+): string {
+  if (emailDoLogin && !ehEmailInterno(emailDoLogin)) return emailDoLogin;
+  return perfil?.usuario ?? perfil?.email ?? "";
+}

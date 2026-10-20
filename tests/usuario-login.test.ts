@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  contaParaExibir,
+  ehEmailInterno,
   emailInterno,
   erroDoUsuario,
   normalizarUsuario,
@@ -53,5 +55,26 @@ describe("usuário sugerido", () => {
   });
   it("respeita o limite de tamanho com folga para um número no fim", () => {
     assert.ok(usuarioSugerido(`${"a".repeat(60)}@x.com`).length <= 26);
+  });
+});
+
+describe("identificação da conta na tela", () => {
+  const t = "11111111-2222-3333-4444-555555555555";
+  it("reconhece o endereço técnico", () => {
+    assert.equal(ehEmailInterno(emailInterno("bruna", t)), true);
+    assert.equal(ehEmailInterno("bruna@gmail.com"), false);
+    assert.equal(ehEmailInterno(null), false);
+  });
+  it("quem entra por e-mail vê o e-mail; quem entra por usuário vê o usuário, nunca o endereço técnico", () => {
+    assert.equal(contaParaExibir("ana@x.com", { usuario: "ana" }), "ana@x.com");
+    assert.equal(
+      contaParaExibir(emailInterno("bruna", t), { usuario: "bruna", email: "b@x.com" }),
+      "bruna",
+    );
+    assert.equal(
+      contaParaExibir(emailInterno("bruna", t), { usuario: null, email: "b@x.com" }),
+      "b@x.com",
+    );
+    assert.equal(contaParaExibir(emailInterno("bruna", t), null), "");
   });
 });

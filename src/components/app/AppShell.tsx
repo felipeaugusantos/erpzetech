@@ -55,6 +55,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useSincronizacaoOffline } from "@/hooks/useSincronizacaoOffline";
 import { initials } from "@/lib/format";
+import { contaParaExibir } from "@/lib/usuario-login";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
 import { ehGestaoSalao, ehProfissionalRestrito, ehSalaoRestrito } from "@/lib/restaurante";
@@ -366,6 +367,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /** Profissional do pet shop puro só enxerga a própria agenda (o banco também o isola). */
   const somenteProfissional = useMemo(() => ehProfissionalRestrito(data?.roles ?? []), [data]);
   const souVeterinario = (data?.roles ?? []).includes("veterinario");
+  /** Quem entra por usuário não mostra o endereço técnico de login: aparece o usuário. */
+  const conta = contaParaExibir(data?.user.email, data?.profile);
   const souGestao = (data?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
   const souRecepcao = (data?.roles ?? []).some((r) => r === "vendedor" || r === "caixa");
 
@@ -696,12 +699,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <button className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-secondary">
                   <Avatar className="size-8">
                     <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-                      {initials(data?.profile?.nome ?? data?.user.email)}
+                      {initials(data?.profile?.nome ?? conta)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden text-left leading-tight sm:block">
                     <p className="max-w-[9rem] truncate text-xs font-semibold">
-                      {data?.profile?.nome || data?.user.email}
+                      {data?.profile?.nome || conta}
                     </p>
                     <p className="text-[10px] capitalize text-muted-foreground">
                       {data?.roles[0] ?? "usuário"}
@@ -710,7 +713,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="truncate">{data?.user.email}</DropdownMenuLabel>
+                <DropdownMenuLabel className="truncate">{conta}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="flex flex-wrap gap-1 px-2 py-1.5">
                   {(data?.roles ?? []).map((r) => (

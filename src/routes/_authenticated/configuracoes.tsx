@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ramos } from "@/lib/ramo";
+import { contaParaExibir } from "@/lib/usuario-login";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -383,8 +384,8 @@ function Configuracoes() {
                 />
               </div>
               <div>
-                <Label>E-mail</Label>
-                <Input value={session?.user.email ?? ""} readOnly />
+                <Label>Usuário ou e-mail de acesso</Label>
+                <Input value={contaParaExibir(session?.user.email, session?.profile)} readOnly />
               </div>
               <div>
                 <Label>Perfis de acesso</Label>
