@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -21,8 +21,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useZonasEntrega } from "@/hooks/useZonasEntrega";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  acharContato,
+  zonaDoBairro,
+  type ClienteCadastro,
+  type PedidoAnterior,
+} from "@/lib/delivery-busca";
 import { ROTULO_PAGAMENTO, formatarTelefone, soDigitos, telefoneValido } from "@/lib/delivery";
-import { CHAVE_REST, rpcRestaurante, tabela, type Comanda } from "@/lib/restaurante-dados";
+import { CHAVE_REST, rpcRestaurante, tabela } from "@/lib/restaurante-dados";
 
 const numero = (v: string) => Number(v.replace(",", ".")) || 0;
 
@@ -42,36 +49,99 @@ export function NovoDeliveryDialog({
   const [bairro, setBairro] = useState("");
   const [referencia, setReferencia] = useState("");
   const [taxa, setTaxa] = useState("0");
+  const [zonaId, setZonaId] = useState("");
   const [pagamento, setPagamento] = useState("dinheiro");
   const [troco, setTroco] = useState("");
   const [observacao, setObservacao] = useState("");
 
-  // cliente que já pediu: o telefone traz nome e endereço do último pedido (só onde o campo estiver vazio)
+  // o telefone traz nome e endereço: do último pedido de delivery com esse número ou, se nunca pediu, do cadastro de clientes (só onde o campo
+  // estiver vazio). Vale com ou sem DDD e com ou sem o 55.
+  const ultimaBusca = useRef("");
+  // o telefone mais recente do campo e o que a busca anterior preencheu sozinha (para trocar pelo do número corrigido, sem tocar no que o operador digitou)
+  const telefoneAtual = useRef(telefone);
+  telefoneAtual.current = telefone;
+  const preenchido = useRef({ cliente: "", endereco: "", bairro: "", referencia: "" });
   async function buscarPeloTelefone() {
     const d = soDigitos(telefone);
-    if (d.length < 8) return;
-    const { data } = await tabela("comandas")
-      .select("cliente_nome, entrega_endereco, entrega_bairro, entrega_referencia")
+    if (d.length < 8 || ultimaBusca.current === d) return;
+    ultimaBusca.current = d;
+    const { data: pedidosBrutos } = await tabela("comandas")
+      .select(
+        "cliente_nome, entrega_telefone, entrega_endereco, entrega_bairro, entrega_referencia",
+      )
       .eq("tipo", "delivery")
-      .eq("entrega_telefone", d)
+      .not("entrega_telefone", "is", null)
       .order("aberta_em", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const c = data as unknown as Pick<
-      Comanda,
-      "cliente_nome" | "entrega_endereco" | "entrega_bairro" | "entrega_referencia"
-    > | null;
+      .limit(500);
+    const pedidos = (pedidosBrutos ?? []) as unknown as PedidoAnterior[];
+    let clientes: ClienteCadastro[] = [];
+    // quem atende o delivery pode não ler o cadastro de clientes: sem permissão, só os pedidos anteriores valem
+    try {
+      clientes = await qc.fetchQuery({
+        queryKey: [CHAVE_REST, "clientes-do-delivery"],
+        staleTime: 5 * 60_000,
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from("clientes")
+            .select("nome, telefone, whatsapp, endereco, numero, bairro")
+            .is("deleted_at", null)
+            .limit(5000);
+          if (error) throw error;
+          return (data ?? []) as ClienteCadastro[];
+        },
+      });
+    } catch {
+      clientes = [];
+    }
+    // o operador pode ter corrigido o número enquanto a busca andava: resultado de número que não está mais no campo é descartado
+    if (soDigitos(telefoneAtual.current) !== d) return;
+    const c = acharContato(telefone, pedidos, clientes);
     if (!c) return;
-    setCliente((v) => v || c.cliente_nome || "");
-    setEndereco((v) => v || c.entrega_endereco || "");
-    setBairro((v) => v || c.entrega_bairro || "");
-    setReferencia((v) => v || c.entrega_referencia || "");
-    toast.info("Dados do último pedido deste telefone preenchidos");
+    const antes = preenchido.current;
+    // preenche o que está vazio e troca o que a busca anterior preencheu (de outro número); o que o operador digitou fica
+    const troca = (v: string, anterior: string, novo: string) => (!v || v === anterior ? novo : v);
+    setCliente((v) => troca(v, antes.cliente, c.nome));
+    setEndereco((v) => troca(v, antes.endereco, c.endereco));
+    setBairro((v) => troca(v, antes.bairro, c.bairro));
+    setReferencia((v) => troca(v, antes.referencia, c.referencia));
+    preenchido.current = {
+      cliente: c.nome,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      referencia: c.referencia,
+    };
+    toast.info(
+      c.origem === "pedido"
+        ? "Dados do último pedido deste telefone preenchidos"
+        : "Dados do cadastro de clientes preenchidos",
+    );
   }
+
+  // telefone completo (DDD e número): busca sozinho, sem esperar sair do campo
+  useEffect(() => {
+    const d = soDigitos(telefone);
+    if (d.length < 8) ultimaBusca.current = "";
+    if (d.length < 10) return;
+    const t = setTimeout(() => void buscarPeloTelefone(), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [telefone]);
+
+  // bairro que bate com uma zona cadastrada escolhe a zona e a taxa (se a zona e a taxa ainda não foram definidas)
+  useEffect(() => {
+    if (zonaId || numero(taxa) > 0) return;
+    const z = zonaDoBairro(bairro, zonas);
+    if (z) {
+      setZonaId(z.id);
+      setTaxa(String(z.taxa).replace(".", ","));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bairro, zonas]);
 
   function escolherZona(id: string) {
     const z = zonas.find((x) => x.id === id);
     if (!z) return;
+    setZonaId(z.id);
     setBairro(z.nome);
     setTaxa(String(z.taxa).replace(".", ","));
   }
@@ -132,7 +202,7 @@ export function NovoDeliveryDialog({
           {zonas.some((z) => z.ativo) && (
             <div>
               <Label>Zona de entrega</Label>
-              <Select onValueChange={escolherZona}>
+              <Select value={zonaId} onValueChange={escolherZona}>
                 <SelectTrigger aria-label="Zona de entrega">
                   <SelectValue placeholder="Escolha para preencher a taxa" />
                 </SelectTrigger>
