@@ -9,6 +9,7 @@ import { consultarCnpj } from "@/lib/cnpj.functions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { limparDocumento } from "@/lib/cnpj-alfa";
 import { Label } from "@/components/ui/label";
 
 export type ClienteFrente = {
@@ -64,6 +65,7 @@ export function FrenteClientes({
   const filtrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
     const d = dig(busca);
+    const a = limparDocumento(busca);
     if (!t) return clientes.slice(0, 30);
     return clientes
       .filter(
@@ -72,13 +74,14 @@ export function FrenteClientes({
           (d.length >= 3 &&
             (dig(c.cpf ?? "").includes(d) ||
               dig(c.cnpj ?? "").includes(d) ||
-              dig(c.telefone ?? "").includes(d))),
+              dig(c.telefone ?? "").includes(d))) ||
+          (a.length >= 3 && limparDocumento(c.cnpj ?? "").includes(a)),
       )
       .slice(0, 30);
   }, [busca, clientes]);
 
   const preencherCnpj = useMutation({
-    mutationFn: async () => buscarCnpj({ data: { cnpj: dig(novo!.doc) } }),
+    mutationFn: async () => buscarCnpj({ data: { cnpj: limparDocumento(novo!.doc) } }),
     onSuccess: (r) => {
       const d = r as Record<string, string | null | undefined>;
       setNovo(
@@ -103,7 +106,7 @@ export function FrenteClientes({
   const salvar = useMutation({
     mutationFn: async () => {
       const n = novo!;
-      const d = dig(n.doc);
+      const d = limparDocumento(n.doc);
       if (!n.nome.trim()) throw new Error("Informe o nome");
       if (d.length !== 11 && d.length !== 14)
         throw new Error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)");
@@ -219,7 +222,7 @@ export function FrenteClientes({
                   value={novo.doc}
                   onChange={(e) => setNovo({ ...novo, doc: e.target.value })}
                 />
-                {dig(novo.doc).length === 14 && (
+                {limparDocumento(novo.doc).length === 14 && (
                   <Button
                     variant="outline"
                     disabled={preencherCnpj.isPending}

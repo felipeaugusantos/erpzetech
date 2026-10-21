@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { limparDocumento } from "./cnpj-alfa";
 
 /** Dados públicos da empresa retornados pela consulta de CNPJ. */
 export type DadosCnpj = {
@@ -37,8 +38,8 @@ function formatarCnae(codigo: unknown): string {
  */
 export const consultarCnpj = createServerFn({ method: "GET" })
   .inputValidator((data: { cnpj: string }) => {
-    const cnpj = digitos(data?.cnpj ?? "");
-    if (cnpj.length !== 14) throw new Error("Informe um CNPJ com 14 números.");
+    const cnpj = limparDocumento(data?.cnpj ?? "");
+    if (!/^[0-9A-Z]{12}\d{2}$/.test(cnpj)) throw new Error("Informe um CNPJ com 14 caracteres.");
     return { cnpj };
   })
   .handler(async ({ data }): Promise<DadosCnpj> => {

@@ -1,5 +1,6 @@
 // Importação por planilha (Fase 1): leitura do CSV, validação linha a linha e modelos para baixar.
 // Roda no navegador para mostrar os erros antes de enviar; o banco confere tudo de novo (e é quem grava, numa transação).
+import { cnpjAlfaValido, limparDocumento } from "./cnpj-alfa.ts";
 import { cpfValido, soDigitos } from "./nfce-consumidor.ts";
 
 export type TipoImportacao = "produtos" | "clientes" | "saldos";
@@ -277,18 +278,7 @@ export function lerNumero(texto: string): number | null {
 }
 
 export function cnpjValido(valor: string): boolean {
-  const c = soDigitos(valor);
-  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
-  const dv = (base: string) => {
-    const pesos =
-      base.length === 12
-        ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-        : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    const soma = [...base].reduce((s, d, i) => s + Number(d) * (pesos[i] ?? 0), 0);
-    const r = soma % 11;
-    return r < 2 ? 0 : 11 - r;
-  };
-  return dv(c.slice(0, 12)) === Number(c[12]) && dv(c.slice(0, 13)) === Number(c[13]);
+  return cnpjAlfaValido(valor);
 }
 
 export type LinhaPlanilha = {
@@ -386,7 +376,7 @@ function validarCampos(tipo: TipoImportacao, v: Record<string, string>, erros: s
     if (min !== null && max !== null && !Number.isNaN(min) && !Number.isNaN(max) && max < min)
       erros.push("Estoque máximo menor que o mínimo");
   } else if (tipo === "clientes") {
-    const doc = soDigitos(v["documento"] ?? "");
+    const doc = limparDocumento(v["documento"] ?? "");
     if (doc !== "") {
       if (doc.length === 11 && !cpfValido(doc)) erros.push("CPF inválido (confira os dígitos)");
       else if (doc.length === 14 && !cnpjValido(doc))
@@ -416,7 +406,7 @@ function marcarRepetidos(tipo: TipoImportacao, linhas: LinhaPlanilha[]) {
       rotulo = l.valores["codigo_interno"] ?? "";
       chave = rotulo.toLowerCase();
     } else if (tipo === "clientes") {
-      const doc = soDigitos(l.valores["documento"] ?? "");
+      const doc = limparDocumento(l.valores["documento"] ?? "");
       rotulo = doc !== "" ? doc : (l.valores["nome"] ?? "");
       chave = doc !== "" ? `d:${doc}` : `n:${(l.valores["nome"] ?? "").toLowerCase()}`;
     } else {

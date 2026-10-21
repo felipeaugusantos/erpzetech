@@ -1,4 +1,5 @@
 // Regras de CNAE sem dependência de tela: ficam à parte para os testes rodarem no Node.
+import { temCnpj } from "./cnpj-alfa.ts";
 /** Módulos que só ficam disponíveis quando a atividade da empresa permite. */
 export type ModuloCnae = "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica";
 
@@ -94,8 +95,7 @@ export type EmpresaModulos = {
   modulos_liberados?: string[] | null;
 };
 
-export const semCnpj = (empresa?: EmpresaModulos | null) =>
-  somenteDigitos(empresa?.cnpj ?? "").length < 14;
+export const semCnpj = (empresa?: EmpresaModulos | null) => !temCnpj(empresa?.cnpj);
 
 export function moduloLiberadoEmpresa(
   empresa: EmpresaModulos | null | undefined,
