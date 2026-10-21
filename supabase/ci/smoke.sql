@@ -6094,3 +6094,16 @@ BEGIN
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_obter(%L)$c$, doc2), 'ler documento sem a clínica liberada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 66. Reforma tributária: a classificação do produto no IBS/CBS vem em par (CST + cClassTrib) e o cClassTrib pertence ao CST
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+BEGIN
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib)
+  VALUES (demo, 'IBS-OK-CI', 'Produto alíquota reduzida CI', 'UN', 0, '200', '200003');
+  PERFORM ci.exige((SELECT cclasstrib = '200003' FROM produtos WHERE tenant_id = demo AND codigo_interno = 'IBS-OK-CI'), 'produto guarda a classificação do IBS/CBS');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X1', 'x', 'UN', 0, '000', '200003')$c$, demo), 'cClassTrib de outro CST');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs) VALUES (%L, 'IBS-X2', 'x', 'UN', 0, '000')$c$, demo), 'CST sem cClassTrib');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X3', 'x', 'UN', 0, 'AB1', '000001')$c$, demo), 'CST fora do formato');
+END $$;
