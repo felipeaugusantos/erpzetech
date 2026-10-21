@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
+import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { evolucaoDoPeso, type AtendimentoClinico, type PetClinico } from "@/lib/clinica";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
 import { atendimentoAbertoDoPaciente } from "@/lib/iniciar-atendimento";
@@ -325,6 +326,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           </p>
         )}
       </div>
+
+      <DocumentosClinicos
+        petId={petId}
+        pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
+        tutor={data.tutor}
+      />
 
       <h3 className="font-display text-base font-semibold">Atendimentos</h3>
       {data.atendimentos.length === 0 ? (
