@@ -2524,6 +2524,16 @@ BEGIN
   PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'atualizados')::int = 1, 'atualizar cliente pelo CPF');
   PERFORM ci.exige((SELECT nome = 'João Silva Atualizado' AND telefone = '(11) 99999-0000' FROM clientes WHERE tenant_id = demo AND cpf = '52998224725'),
                    'telefone em branco mantém o que já existe');
+  PERFORM ci.entrar(adm);
+  r := importar_clientes('[{"linha":2,"nome":"Alfa Numérica","documento":"12.abc.345/01de-35"}]'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ok')::boolean AND (r ->> 'criados')::int = 1, 'importa cliente com CNPJ alfanumérico');
+  PERFORM ci.exige((SELECT tipo = 'PJ' AND cnpj = '12ABC34501DE35' AND cpf IS NULL FROM clientes WHERE tenant_id = demo AND nome = 'Alfa Numérica'),
+                   'CNPJ alfanumérico fica em maiúsculas e vira pessoa jurídica');
+  PERFORM ci.entrar(adm);
+  r := importar_clientes('[{"linha":2,"nome":"Cpf com letra","documento":"ABC12345678"}]'::jsonb, false, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'ok')::boolean AND (r ->> 'n_erros')::int = 1, 'CPF com letras é recusado na importação');
 
   -- saldos
   PERFORM ci.entrar(est);

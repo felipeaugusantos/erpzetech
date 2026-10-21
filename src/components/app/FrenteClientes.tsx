@@ -9,7 +9,8 @@ import { consultarCnpj } from "@/lib/cnpj.functions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { limparDocumento } from "@/lib/cnpj-alfa";
+import { cnpjAlfaValido, limparDocumento } from "@/lib/cnpj-alfa";
+import { cpfValido } from "@/lib/nfce-consumidor";
 import { Label } from "@/components/ui/label";
 
 export type ClienteFrente = {
@@ -111,6 +112,9 @@ export function FrenteClientes({
       if (d.length !== 11 && d.length !== 14)
         throw new Error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)");
       const pj = d.length === 14;
+      if (!pj && !/^\d{11}$/.test(d)) throw new Error("CPF deve ter só números");
+      if (!pj && !cpfValido(d)) throw new Error("CPF inválido (confira os dígitos)");
+      if (pj && !cnpjAlfaValido(d)) throw new Error("CNPJ inválido (confira os dígitos)");
       const { data, error } = await supabase
         .from("clientes")
         .insert({
