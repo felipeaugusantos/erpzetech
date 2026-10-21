@@ -551,7 +551,10 @@ DECLARE
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
-    'assinante_link_sugerido'];
+    'assinante_link_sugerido',
+    -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
+    'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
+    'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -5866,4 +5869,119 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.deve_falhar(adm, format($c$SELECT estoque_lote_lancar(%L, %L, 'V3', '', '', 'entrada', 1, 'ci', NULL, DATE '1990-01-01')$c$, prod, dep), 'validade absurda');
   PERFORM ci.deve_falhar(vend, format($c$SELECT estoque_lote_lancar(%L, %L, 'V4', '', '', 'entrada', 1, 'ci', NULL, CURRENT_DATE + 30)$c$, prod, dep), 'vendedor lança lote');
+END $$;
+
+-- 64. Clínica (receituário e documentos): só o veterinário emite e lê; numeração; controlado recusado; imutável; cancelar com motivo; modelos
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  va   constant uuid := 'a0000000-0000-0000-0000-0000000000f1';
+  vb   constant uuid := 'a0000000-0000-0000-0000-0000000000f2';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; tutor_b uuid; pet_b uuid; tb uuid; r jsonb; r2 jsonb; doc1 uuid; doc2 uuid; modelo uuid; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutora Documento CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome, especie) VALUES (demo, tutor, 'Rex Documento CI', 'cao') RETURNING id INTO pet;
+  INSERT INTO tenants (nome) VALUES ('Clinica Documento B CI') RETURNING id INTO tb;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Doc Outra Empresa', '11144477735') RETURNING id INTO tutor_b;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor_b, 'Pet Doc Outra Empresa') RETURNING id INTO pet_b;
+
+  -- ninguém além do veterinário emite ou lê
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado','corpo','Texto do atestado'))$c$, pet), 'administrador emite documento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado','corpo','Texto do atestado'))$c$, pet), 'gestor emite documento');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_documentos_do_pet(%L)$c$, pet), 'vendedor lista documentos');
+  PERFORM ci.deve_falhar(gest, 'SELECT clinica_documento_contexto()', 'gestor abre o contexto de documentos');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT clinica_documentos_do_pet(%L)$c$, pet), 'anon lista documentos');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_documentos', 'leitura direta de documentos pelo administrador');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_documentos', 'leitura direta de documentos pelo veterinário');
+  PERFORM ci.deve_falhar(va, 'SELECT count(*) FROM pet_documento_modelos', 'leitura direta de modelos');
+  PERFORM ci.deve_falhar(va, format($c$INSERT INTO pet_documentos (tenant_id, pet_id, cliente_id, veterinario_id, crmv, crmv_uf, tipo, ano, numero, titulo, corpo) SELECT %L, %L, %L, id, '1', 'SP', 'atestado', 2026, 1, 'Direto', 'texto direto' FROM pet_profissionais LIMIT 1$c$, demo, pet, tutor), 'escrita direta de documento');
+
+  -- contexto: o veterinário da conta
+  PERFORM ci.entrar(va);
+  r := clinica_documento_contexto();
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'veterinario' ->> 'crmv' = '1111' AND r -> 'veterinario' ->> 'crmv_uf' = 'SP', 'o contexto traz o veterinário da conta com o CRMV');
+
+  -- validações
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','qualquer','pet_id',%L,'titulo','Doc','corpo','x'))$c$, pet), 'tipo inválido');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Ab','corpo','Texto do atestado'))$c$, pet), 'título curto');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado'))$c$, pet), 'atestado sem texto');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','receita','pet_id',%L,'titulo','Receita','itens','[]'::jsonb))$c$, pet), 'receita sem medicamento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','receita','pet_id',%L,'titulo','Receita','itens',jsonb_build_array(jsonb_build_object('medicamento','Amoxicilina'))))$c$, pet), 'medicamento sem posologia');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','receita','pet_id',%L,'titulo','Receita','itens',jsonb_build_array(jsonb_build_object('medicamento','Fenobarbital','posologia','1 comprimido','controlado',true))))$c$, pet), 'receita de controle especial');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','solicitacao_exame','pet_id',%L,'titulo','Exames','itens','[]'::jsonb))$c$, pet), 'solicitação sem exame');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado','corpo','Texto','itens',jsonb_build_array(jsonb_build_object('exame','x'))))$c$, pet), 'atestado com itens');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado','corpo','Texto do atestado'))$c$, pet_b), 'paciente de outra empresa');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'atendimento_id',%L,'titulo','Atestado','corpo','Texto do atestado'))$c$, pet, gen_random_uuid()), 'atendimento que não existe');
+
+  -- emitir: receita e solicitação de exames, com numeração sequencial por empresa e ano
+  PERFORM ci.entrar(va);
+  r := clinica_documento_emitir(jsonb_build_object('tipo', 'receita', 'pet_id', pet, 'titulo', 'Receita', 'corpo', 'Repouso por 5 dias',
+          'itens', jsonb_build_array(jsonb_build_object('medicamento', 'Amoxicilina 250 mg', 'posologia', '1 comprimido a cada 12 horas', 'via', 'oral', 'duracao', '7 dias'))));
+  r2 := clinica_documento_emitir(jsonb_build_object('tipo', 'solicitacao_exame', 'pet_id', pet, 'titulo', 'Exames',
+          'itens', jsonb_build_array(jsonb_build_object('exame', 'Hemograma completo'))));
+  PERFORM ci.sair();
+  doc1 := (r ->> 'id')::uuid;
+  doc2 := (r2 ->> 'id')::uuid;
+  PERFORM ci.exige((r2 ->> 'numero')::int = (r ->> 'numero')::int + 1 AND (r ->> 'ano')::int = extract(year FROM (now() AT TIME ZONE 'America/Sao_Paulo'))::int,
+                   'a numeração segue em sequência dentro do ano');
+  PERFORM ci.exige(r -> 'veterinario' ->> 'crmv' = '1111' AND r -> 'tutor' ->> 'nome' = 'Tutora Documento CI' AND r -> 'pet' ->> 'nome' = 'Rex Documento CI',
+                   'o documento traz o CRMV da emissão, o tutor e o paciente');
+  PERFORM ci.exige(r -> 'itens' -> 0 ->> 'medicamento' = 'Amoxicilina 250 mg' AND r ->> 'situacao' = 'emitido', 'a receita guarda os itens e fica emitida');
+
+  -- ler e listar: qualquer veterinário da empresa; cada leitura fica registrada
+  SELECT count(*) INTO n FROM clinica_acessos WHERE tenant_id = demo AND acao = 'documento';
+  PERFORM ci.entrar(vb);
+  r := clinica_documento_obter(doc1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'titulo' = 'Receita', 'outro veterinário da empresa lê o documento');
+  PERFORM ci.exige((SELECT count(*) FROM clinica_acessos WHERE tenant_id = demo AND acao = 'documento') = n + 1, 'a leitura do documento fica registrada');
+  PERFORM ci.entrar(va);
+  r := clinica_documentos_do_pet(pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 2 AND NOT (r -> 0 ? 'itens'), 'a lista traz o resumo dos dois documentos, sem o conteúdo');
+
+  -- imutável: nem o dono altera o conteúdo ou apaga
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET titulo = 'Outro título' WHERE id = %L$c$, doc1), 'alterar documento emitido');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET corpo = 'trocado' WHERE id = %L$c$, doc1), 'trocar o texto do documento emitido');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_documentos WHERE id = %L$c$, doc1), 'apagar documento emitido');
+
+  -- cancelar: só quem emitiu, com motivo, uma vez
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_documento_cancelar(%L, 'emitido por engano')$c$, doc1), 'outro veterinário cancela');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_documento_cancelar(%L, 'emitido por engano')$c$, doc1), 'gestor cancela');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_cancelar(%L, 'erro')$c$, doc1), 'motivo curto');
+  PERFORM ci.entrar(va);
+  r := clinica_documento_cancelar(doc1, 'emitido por engano');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'situacao' = 'cancelado' AND r ->> 'cancelado_motivo' = 'emitido por engano', 'cancelar guarda o motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_cancelar(%L, 'de novo o mesmo')$c$, doc1), 'cancelar de novo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET situacao = 'emitido', cancelado_em = NULL, cancelado_motivo = NULL WHERE id = %L$c$, doc1), 'reativar documento cancelado');
+
+  -- modelos da clínica: só o veterinário; mesmo título troca o texto
+  PERFORM ci.deve_falhar(vend, $c$SELECT clinica_documento_modelo_salvar('termo', 'Meu termo', 'Texto do meu termo de consentimento')$c$, 'vendedor guarda modelo');
+  PERFORM ci.deve_falhar(va, $c$SELECT clinica_documento_modelo_salvar('receita', 'Meu modelo', 'Texto do meu modelo de receita')$c$, 'modelo de receita');
+  PERFORM ci.deve_falhar(va, $c$SELECT clinica_documento_modelo_salvar('termo', 'Meu termo', 'curto')$c$, 'modelo curto');
+  PERFORM ci.entrar(va);
+  modelo := clinica_documento_modelo_salvar('termo', 'Meu termo', 'Texto do meu termo de consentimento');
+  PERFORM clinica_documento_modelo_salvar('termo', 'Meu termo', 'Texto novo do meu termo de consentimento');
+  r := clinica_documento_contexto();
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'modelos') = 1 AND r -> 'modelos' -> 0 ->> 'corpo' LIKE 'Texto novo%', 'o modelo guardado aparece no contexto, um por título');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_documento_modelo_excluir(%L)$c$, modelo), 'vendedor exclui modelo');
+  PERFORM ci.entrar(va);
+  PERFORM clinica_documento_modelo_excluir(modelo);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM pet_documento_modelos WHERE tenant_id = demo), 'o modelo excluído sai');
+
+  -- clínica deixa de estar liberada: nada funciona
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_emitir(jsonb_build_object('tipo','atestado','pet_id',%L,'titulo','Atestado','corpo','Texto do atestado'))$c$, pet), 'emitir sem a clínica liberada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_documento_obter(%L)$c$, doc2), 'ler documento sem a clínica liberada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

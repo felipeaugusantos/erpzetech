@@ -31,6 +31,7 @@ import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authen
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
 import { Route as AuthenticatedClinicaCartaoRouteImport } from './routes/_authenticated/clinica-cartao'
 import { Route as AuthenticatedClinicaCatalogoRouteImport } from './routes/_authenticated/clinica-catalogo'
+import { Route as AuthenticatedClinicaDocumentoRouteImport } from './routes/_authenticated/clinica-documento'
 import { Route as AuthenticatedClinicaExamesRouteImport } from './routes/_authenticated/clinica-exames'
 import { Route as AuthenticatedClinicaExamesModelosRouteImport } from './routes/_authenticated/clinica-exames-modelos'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
@@ -264,6 +265,12 @@ const AuthenticatedClinicaCatalogoRoute =
   AuthenticatedClinicaCatalogoRouteImport.update({
     id: '/clinica-catalogo',
     path: '/clinica-catalogo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaDocumentoRoute =
+  AuthenticatedClinicaDocumentoRouteImport.update({
+    id: '/clinica-documento',
+    path: '/clinica-documento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaExamesRoute =
@@ -931,6 +938,7 @@ export interface FileRoutesByFullPath {
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
@@ -1069,6 +1077,7 @@ export interface FileRoutesByTo {
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
@@ -1209,6 +1218,7 @@ export interface FileRoutesById {
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/_authenticated/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/_authenticated/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/_authenticated/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/_authenticated/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/_authenticated/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
@@ -1349,6 +1359,7 @@ export interface FileRouteTypes {
     | '/clinica-atendimento'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
     | '/clinica-offline'
@@ -1487,6 +1498,7 @@ export interface FileRouteTypes {
     | '/clinica-atendimento'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
     | '/clinica-offline'
@@ -1626,6 +1638,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-atendimento'
     | '/_authenticated/clinica-cartao'
     | '/_authenticated/clinica-catalogo'
+    | '/_authenticated/clinica-documento'
     | '/_authenticated/clinica-exames'
     | '/_authenticated/clinica-exames-modelos'
     | '/_authenticated/clinica-offline'
@@ -1908,6 +1921,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-catalogo'
       fullPath: '/clinica-catalogo'
       preLoaderRoute: typeof AuthenticatedClinicaCatalogoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-documento': {
+      id: '/_authenticated/clinica-documento'
+      path: '/clinica-documento'
+      fullPath: '/clinica-documento'
+      preLoaderRoute: typeof AuthenticatedClinicaDocumentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-exames': {
@@ -2734,6 +2754,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
   AuthenticatedClinicaCartaoRoute: typeof AuthenticatedClinicaCartaoRoute
   AuthenticatedClinicaCatalogoRoute: typeof AuthenticatedClinicaCatalogoRoute
+  AuthenticatedClinicaDocumentoRoute: typeof AuthenticatedClinicaDocumentoRoute
   AuthenticatedClinicaExamesRoute: typeof AuthenticatedClinicaExamesRoute
   AuthenticatedClinicaExamesModelosRoute: typeof AuthenticatedClinicaExamesModelosRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
@@ -2866,6 +2887,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
   AuthenticatedClinicaCartaoRoute: AuthenticatedClinicaCartaoRoute,
   AuthenticatedClinicaCatalogoRoute: AuthenticatedClinicaCatalogoRoute,
+  AuthenticatedClinicaDocumentoRoute: AuthenticatedClinicaDocumentoRoute,
   AuthenticatedClinicaExamesRoute: AuthenticatedClinicaExamesRoute,
   AuthenticatedClinicaExamesModelosRoute:
     AuthenticatedClinicaExamesModelosRoute,
@@ -3002,13 +3024,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
