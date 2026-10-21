@@ -8044,7 +8044,9 @@ export type Database = {
           altura: number | null
           ativo: boolean
           categoria_id: string | null
+          cclasstrib: string | null
           cest: string | null
+          cst_ibs_cbs: string | null
           cfop: string | null
           codigo_barras: string | null
           codigo_interno: string
@@ -8084,7 +8086,9 @@ export type Database = {
           altura?: number | null
           ativo?: boolean
           categoria_id?: string | null
+          cclasstrib?: string | null
           cest?: string | null
+          cst_ibs_cbs?: string | null
           cfop?: string | null
           codigo_barras?: string | null
           codigo_interno: string
@@ -8124,7 +8128,9 @@ export type Database = {
           altura?: number | null
           ativo?: boolean
           categoria_id?: string | null
+          cclasstrib?: string | null
           cest?: string | null
+          cst_ibs_cbs?: string | null
           cfop?: string | null
           codigo_barras?: string | null
           codigo_interno?: string

@@ -5876,3 +5876,16 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT estoque_lote_lancar(%L, %L, 'V3', '', '', 'entrada', 1, 'ci', NULL, DATE '1990-01-01')$c$, prod, dep), 'validade absurda');
   PERFORM ci.deve_falhar(vend, format($c$SELECT estoque_lote_lancar(%L, %L, 'V4', '', '', 'entrada', 1, 'ci', NULL, CURRENT_DATE + 30)$c$, prod, dep), 'vendedor lança lote');
 END $$;
+
+-- 64. Reforma tributária: a classificação do produto no IBS/CBS vem em par (CST + cClassTrib) e o cClassTrib pertence ao CST
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+BEGIN
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib)
+  VALUES (demo, 'IBS-OK-CI', 'Produto alíquota reduzida CI', 'UN', 0, '200', '200003');
+  PERFORM ci.exige((SELECT cclasstrib = '200003' FROM produtos WHERE tenant_id = demo AND codigo_interno = 'IBS-OK-CI'), 'produto guarda a classificação do IBS/CBS');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X1', 'x', 'UN', 0, '000', '200003')$c$, demo), 'cClassTrib de outro CST');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs) VALUES (%L, 'IBS-X2', 'x', 'UN', 0, '000')$c$, demo), 'CST sem cClassTrib');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X3', 'x', 'UN', 0, 'AB1', '000001')$c$, demo), 'CST fora do formato');
+END $$;

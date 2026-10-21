@@ -2,6 +2,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { cnpjAlfaValido, limparDocumento } from "./cnpj-alfa.ts";
+import {
+  TRIBUTACAO_INTEGRAL,
+  calcularItemIbsCbs,
+  crtDoRegime,
+  exigenciaIbsCbs,
+  grupoIbsCbsDoItem,
+  grupoTotalIbsCbs,
+  totaisIbsCbs,
+  type ResultadoItemIbsCbs,
+} from "./ibs-cbs.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
 
 /**
@@ -162,7 +172,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       supabase.from("clientes").select("*").eq("id", nota.cliente_id).maybeSingle(),
       supabase
         .from("nfe_itens")
-        .select("*, produtos(origem_mercadoria, cest, cfop, ncm, codigo_barras)")
+        .select(
+          "*, produtos(origem_mercadoria, cest, cfop, ncm, codigo_barras, cst_ibs_cbs, cclasstrib)",
+        )
         .eq("nfe_id", nota.id)
         .order("created_at", { ascending: true }),
     ]);
@@ -224,6 +236,14 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     const valorDesconto = num(nota.valor_desconto);
     const valorTotal = num(nota.valor_total);
 
+    const agora = new Date();
+    // Reforma tributária (NT 2025.002-RTC): regime normal informa IBS/CBS em cada item e nos totais.
+    // Simples e MEI só passam a informar a partir de 2027, com orientação em NT futura.
+    const informaIbsCbs =
+      exigenciaIbsCbs(crtDoRegime(cfg.regime_tributario), agora.toISOString().slice(0, 10)) ===
+      "obrigatorio";
+    const resultadosIbsCbs: ResultadoItemIbsCbs[] = [];
+
     const det = itens.map((item: any, indice: number) => {
       const quantidade = num(item.quantidade, 4);
       const unitario = num(item.preco_unitario, 4);
@@ -236,6 +256,31 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const cfop = so(item.cfop ?? cfg.cfop_padrao) || "5102";
       const ean = so(item.produtos?.codigo_barras);
       const unidade = String(item.unidade ?? "UN").slice(0, 6);
+      let ibsCbs: ReturnType<typeof grupoIbsCbsDoItem> | null = null;
+      if (informaIbsCbs) {
+        try {
+          const r = calcularItemIbsCbs({
+            cst: String(item.produtos?.cst_ibs_cbs ?? TRIBUTACAO_INTEGRAL.cst),
+            cClassTrib: String(item.produtos?.cclasstrib ?? TRIBUTACAO_INTEGRAL.cClassTrib),
+            // Base do IBS/CBS (UB16): valor do item menos desconto e menos PIS, COFINS e ICMS.
+            baseCalculo: Math.max(
+              0,
+              num(
+                num(quantidade * unitario) -
+                  num(item.desconto) -
+                  num(item.valor_pis) -
+                  num(item.valor_cofins) -
+                  num(item.valor_icms),
+              ),
+            ),
+            ano: agora.getFullYear(),
+          });
+          resultadosIbsCbs.push(r);
+          ibsCbs = grupoIbsCbsDoItem(r);
+        } catch (e) {
+          throw new Error(`IBS/CBS do produto ${item.descricao}: ${(e as Error).message}`);
+        }
+      }
       return {
         nItem: indice + 1,
         prod: {
@@ -285,6 +330,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
               vCOFINS: num(item.valor_cofins),
             },
           },
+          ...(ibsCbs ? { IBSCBS: ibsCbs } : {}),
         },
         ...(totalItem ? {} : {}),
       };
@@ -296,7 +342,6 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       .eq("nfe_id", nota.id);
     const primeiroPedido = (pedidosDaNota ?? [])[0]?.pedidos ?? null;
 
-    const agora = new Date();
     const payload = {
       ambiente,
       infNFe: {
@@ -370,6 +415,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             vOutro: 0,
             vNF: valorTotal,
           },
+          ...(resultadosIbsCbs.length > 0
+            ? { IBSCBSTot: grupoTotalIbsCbs(totaisIbsCbs(resultadosIbsCbs)) }
+            : {}),
         },
         transp: { modFrete: valorFrete > 0 ? 0 : 9 },
         pag: {

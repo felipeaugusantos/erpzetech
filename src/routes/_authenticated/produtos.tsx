@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
+import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
 import { consultarGtin } from "@/lib/gtin.functions";
 import { gtinValido } from "@/lib/gtin";
 import { lerFatorGranel } from "@/lib/granel";
@@ -70,6 +71,8 @@ type Form = {
   fabricante: string;
   fornecedor_id: string;
   ncm: string;
+  cst_ibs_cbs: string;
+  cclasstrib: string;
   unidade: string;
   unidade_compra: string;
   unidade_venda: string;
@@ -104,6 +107,8 @@ const vazio: Form = {
   fabricante: "",
   fornecedor_id: "",
   ncm: "",
+  cst_ibs_cbs: "",
+  cclasstrib: "",
   unidade: "UN",
   unidade_compra: "",
   unidade_venda: "",
@@ -286,6 +291,8 @@ function Produtos() {
         fabricante: form.fabricante || null,
         fornecedor_id: form.fornecedor_id || null,
         ncm: form.ncm || null,
+        cst_ibs_cbs: form.cst_ibs_cbs && form.cclasstrib ? form.cst_ibs_cbs : null,
+        cclasstrib: form.cst_ibs_cbs && form.cclasstrib ? form.cclasstrib : null,
         unidade: form.unidade || "UN",
         unidade_compra: form.unidade_compra || null,
         unidade_venda: form.unidade_venda || null,
@@ -502,6 +509,8 @@ function Produtos() {
                               fabricante: p.fabricante ?? "",
                               fornecedor_id: p.fornecedor_id ?? "",
                               ncm: p.ncm ?? "",
+                              cst_ibs_cbs: p.cst_ibs_cbs ?? "",
+                              cclasstrib: p.cclasstrib ?? "",
                               unidade: p.unidade,
                               unidade_compra: p.unidade_compra ?? "",
                               unidade_venda: p.unidade_venda ?? "",
@@ -633,6 +642,12 @@ function Produtos() {
                 />
               </div>
             </div>
+
+            <ClassificacaoIbsCbs
+              cst={form.cst_ibs_cbs}
+              cClassTrib={form.cclasstrib}
+              onChange={(cst, cclasstrib) => setForm({ ...form, cst_ibs_cbs: cst, cclasstrib })}
+            />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
