@@ -68,6 +68,8 @@ export type ResumoDocumento = {
   emitido_em: string;
   veterinario: string;
   atendimento_id: string | null;
+  /** Só quem emitiu cancela: vem do banco, que compara com o veterinário da conta. */
+  pode_cancelar: boolean;
 };
 
 export type ModeloDocumento = {

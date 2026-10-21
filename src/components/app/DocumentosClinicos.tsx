@@ -92,6 +92,12 @@ export function DocumentosClinicos({
     },
   });
 
+  /** Fechar por qualquer caminho (Voltar, Esc, fora da janela) apaga o motivo: o próximo cancelamento começa em branco. */
+  function fecharCancelamento() {
+    setCancelando(null);
+    setMotivo("");
+  }
+
   const cancelar = useMutation({
     mutationFn: async () => {
       if (!cancelando) return;
@@ -103,8 +109,7 @@ export function DocumentosClinicos({
     },
     onSuccess: () => {
       toast.success("Documento cancelado");
-      setCancelando(null);
-      setMotivo("");
+      fecharCancelamento();
       void qc.invalidateQueries({ queryKey: ["clinica-documentos"] });
     },
     onError: (e: Error) => toast.error("Não foi possível cancelar", { description: e.message }),
@@ -158,7 +163,7 @@ export function DocumentosClinicos({
                     <Printer className="size-4" /> Abrir / imprimir
                   </Link>
                 </Button>
-                {d.situacao === "emitido" && (
+                {d.pode_cancelar && (
                   <Button size="sm" variant="ghost" onClick={() => setCancelando(d)}>
                     Cancelar
                   </Button>
@@ -184,7 +189,7 @@ export function DocumentosClinicos({
         />
       )}
 
-      <Dialog open={Boolean(cancelando)} onOpenChange={(o) => !o && setCancelando(null)}>
+      <Dialog open={Boolean(cancelando)} onOpenChange={(o) => !o && fecharCancelamento()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -199,7 +204,7 @@ export function DocumentosClinicos({
             <Input id="doc-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelando(null)}>
+            <Button variant="outline" onClick={fecharCancelamento}>
               Voltar
             </Button>
             <Button

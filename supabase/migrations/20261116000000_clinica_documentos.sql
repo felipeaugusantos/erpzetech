@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.pet_documentos (
   titulo text NOT NULL CHECK (length(btrim(titulo)) BETWEEN 3 AND 120),
   corpo text CHECK (corpo IS NULL OR length(corpo) <= 8000),
   itens jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(itens) = 'array' AND jsonb_array_length(itens) <= 30),
+  -- paciente, tutor e clínica como estavam na emissão: o documento reaberto sai igual mesmo que os cadastros mudem depois
+  snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
   situacao text NOT NULL DEFAULT 'emitido' CHECK (situacao IN ('emitido', 'cancelado')),
   emitido_em timestamptz NOT NULL DEFAULT now(),
   cancelado_em timestamptz,
@@ -73,7 +75,8 @@ BEGIN
      OR NEW.atendimento_id IS DISTINCT FROM OLD.atendimento_id OR NEW.veterinario_id IS DISTINCT FROM OLD.veterinario_id
      OR NEW.crmv IS DISTINCT FROM OLD.crmv OR NEW.crmv_uf IS DISTINCT FROM OLD.crmv_uf OR NEW.tipo IS DISTINCT FROM OLD.tipo
      OR NEW.ano IS DISTINCT FROM OLD.ano OR NEW.numero IS DISTINCT FROM OLD.numero OR NEW.titulo IS DISTINCT FROM OLD.titulo
-     OR NEW.corpo IS DISTINCT FROM OLD.corpo OR NEW.itens IS DISTINCT FROM OLD.itens OR NEW.emitido_em IS DISTINCT FROM OLD.emitido_em
+     OR NEW.corpo IS DISTINCT FROM OLD.corpo OR NEW.itens IS DISTINCT FROM OLD.itens OR NEW.snapshot IS DISTINCT FROM OLD.snapshot
+     OR NEW.emitido_em IS DISTINCT FROM OLD.emitido_em
   THEN
     RAISE EXCEPTION 'Documento emitido não pode ser alterado: cancele e emita outro';
   END IF;
@@ -95,18 +98,12 @@ AS $$
       'id', d.id, 'tipo', d.tipo, 'ano', d.ano, 'numero', d.numero, 'titulo', d.titulo, 'corpo', d.corpo, 'itens', d.itens,
       'situacao', d.situacao, 'emitido_em', d.emitido_em, 'cancelado_em', d.cancelado_em, 'cancelado_motivo', d.cancelado_motivo,
       'atendimento_id', d.atendimento_id,
-      'veterinario', jsonb_build_object('id', d.veterinario_id, 'nome', v.nome, 'crmv', d.crmv, 'crmv_uf', d.crmv_uf),
-      'pet', jsonb_build_object('id', pt.id, 'nome', pt.nome, 'especie', pt.especie, 'raca', pt.raca, 'sexo', pt.sexo,
-                                'peso_kg', pt.peso_kg, 'nascimento', pt.nascimento),
-      'tutor', jsonb_build_object('nome', c.nome, 'cpf', c.cpf, 'cnpj', c.cnpj, 'telefone', c.telefone),
-      'clinica', (SELECT jsonb_build_object('nome', coalesce(nullif(e.nome_fantasia, ''), e.razao_social), 'razao_social', e.razao_social,
-                                            'cnpj', e.cnpj, 'telefone', e.telefone, 'email', e.email, 'endereco', e.endereco,
-                                            'numero', e.numero, 'bairro', e.bairro, 'cidade', e.cidade, 'estado', e.estado, 'cep', e.cep)
-                    FROM public.empresas e WHERE e.tenant_id = d.tenant_id ORDER BY e.created_at LIMIT 1))
+      'veterinario', jsonb_build_object('id', d.veterinario_id, 'nome', coalesce(d.snapshot -> 'veterinario' ->> 'nome', v.nome), 'crmv', d.crmv, 'crmv_uf', d.crmv_uf),
+      'pet', (d.snapshot -> 'pet') || jsonb_build_object('id', d.pet_id),
+      'tutor', d.snapshot -> 'tutor',
+      'clinica', d.snapshot -> 'clinica')
     FROM public.pet_documentos d
     JOIN public.pet_profissionais v ON v.id = d.veterinario_id
-    JOIN public.pets pt ON pt.id = d.pet_id
-    JOIN public.clientes c ON c.id = d.cliente_id
    WHERE d.id = p_id AND d.tenant_id = public.current_tenant_id()
 $$;
 REVOKE ALL ON FUNCTION public._clinica_documento_json(uuid) FROM PUBLIC, anon, authenticated;
@@ -135,6 +132,7 @@ DECLARE
   v_itens jsonb := '[]'::jsonb;
   v_crmv text; v_uf text;
   pt public.pets%ROWTYPE;
+  v_snap jsonb;
   atd public.pet_atendimentos_clinicos%ROWTYPE;
   it jsonb;
   v_a text; v_b text; v_c text; v_d text; v_e text;
@@ -194,10 +192,21 @@ BEGIN
   END IF;
 
   SELECT crmv, crmv_uf INTO v_crmv, v_uf FROM public.pet_profissionais WHERE id = v_vet;
+  SELECT jsonb_build_object(
+           'pet', jsonb_build_object('nome', pt.nome, 'especie', pt.especie, 'raca', pt.raca, 'sexo', pt.sexo,
+                                     'peso_kg', pt.peso_kg, 'nascimento', pt.nascimento),
+           'tutor', jsonb_build_object('nome', c.nome, 'cpf', c.cpf, 'cnpj', c.cnpj, 'telefone', c.telefone),
+           'veterinario', jsonb_build_object('nome', (SELECT nome FROM public.pet_profissionais WHERE id = v_vet)),
+           'clinica', (SELECT jsonb_build_object('nome', coalesce(nullif(e.nome_fantasia, ''), e.razao_social), 'razao_social', e.razao_social,
+                                                 'cnpj', e.cnpj, 'telefone', e.telefone, 'email', e.email, 'endereco', e.endereco,
+                                                 'numero', e.numero, 'bairro', e.bairro, 'cidade', e.cidade, 'estado', e.estado, 'cep', e.cep)
+                         FROM public.empresas e WHERE e.tenant_id = v_tenant ORDER BY e.created_at LIMIT 1))
+    INTO v_snap
+    FROM public.clientes c WHERE c.id = pt.cliente_id AND c.tenant_id = v_tenant;
   PERFORM pg_advisory_xact_lock(hashtextextended('documento:' || v_tenant::text || ':' || v_ano::text, 0));
   SELECT coalesce(max(numero), 0) + 1 INTO v_num FROM public.pet_documentos WHERE tenant_id = v_tenant AND ano = v_ano;
-  INSERT INTO public.pet_documentos (tenant_id, pet_id, cliente_id, atendimento_id, veterinario_id, crmv, crmv_uf, tipo, ano, numero, titulo, corpo, itens)
-  VALUES (v_tenant, pt.id, pt.cliente_id, v_atend_id, v_vet, v_crmv, v_uf, v_tipo, v_ano, v_num, v_titulo, v_corpo, v_itens)
+  INSERT INTO public.pet_documentos (tenant_id, pet_id, cliente_id, atendimento_id, veterinario_id, crmv, crmv_uf, tipo, ano, numero, titulo, corpo, itens, snapshot)
+  VALUES (v_tenant, pt.id, pt.cliente_id, v_atend_id, v_vet, v_crmv, v_uf, v_tipo, v_ano, v_num, v_titulo, v_corpo, v_itens, v_snap)
   RETURNING id INTO v_id;
   INSERT INTO public.clinica_acessos (tenant_id, pet_id, atendimento_id, acao) VALUES (v_tenant, pt.id, v_atend_id, 'documento');
   RETURN public._clinica_documento_json(v_id);
@@ -249,7 +258,8 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_documento_obter(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_documento_obter(uuid) TO authenticated;
 
--- Lista do paciente (ou só da consulta), do mais novo para o mais antigo. Não traz o conteúdo, só o resumo.
+-- Lista do paciente (ou só da consulta), do mais novo para o mais antigo. Não traz o conteúdo, só o resumo; `pode_cancelar` diz se o
+-- veterinário da conta emitiu o documento (só quem emitiu cancela).
 CREATE OR REPLACE FUNCTION public.clinica_documentos_do_pet(p_pet_id uuid, p_atendimento_id uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -257,13 +267,14 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
-DECLARE v_tenant uuid := public.current_tenant_id();
+DECLARE
+  v_tenant uuid := public.current_tenant_id();
+  v_vet uuid := public._clinica_vet();
 BEGIN
-  PERFORM public._clinica_vet();
   RETURN coalesce((
     SELECT jsonb_agg(jsonb_build_object('id', d.id, 'tipo', d.tipo, 'ano', d.ano, 'numero', d.numero, 'titulo', d.titulo,
                                          'situacao', d.situacao, 'emitido_em', d.emitido_em, 'veterinario', v.nome,
-                                         'atendimento_id', d.atendimento_id) ORDER BY d.emitido_em DESC)
+                                         'atendimento_id', d.atendimento_id, 'pode_cancelar', d.situacao = 'emitido' AND d.veterinario_id = v_vet) ORDER BY d.emitido_em DESC)
       FROM public.pet_documentos d JOIN public.pet_profissionais v ON v.id = d.veterinario_id
      WHERE d.tenant_id = v_tenant AND d.pet_id = p_pet_id
        AND (p_atendimento_id IS NULL OR d.atendimento_id = p_atendimento_id)

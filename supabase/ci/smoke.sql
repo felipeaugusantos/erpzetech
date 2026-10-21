@@ -5947,6 +5947,24 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(jsonb_array_length(r) = 2 AND NOT (r -> 0 ? 'itens'), 'a lista traz o resumo dos dois documentos, sem o conteúdo');
 
+  -- o documento guarda paciente, tutor e clínica da emissão: mudar o cadastro depois não muda o documento
+  UPDATE pets SET nome = 'Nome Trocado CI', raca = 'Raça Trocada' WHERE id = pet;
+  UPDATE clientes SET nome = 'Tutora Trocada CI' WHERE id = tutor;
+  PERFORM ci.entrar(va);
+  r := clinica_documento_obter(doc1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'pet' ->> 'nome' = 'Rex Documento CI' AND r -> 'tutor' ->> 'nome' = 'Tutora Documento CI' AND r -> 'pet' ->> 'id' = pet::text,
+                   'o documento reaberto traz paciente e tutor da emissão, não os cadastros de hoje');
+  PERFORM ci.entrar(va);
+  r := clinica_documentos_do_pet(pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT bool_and((e ->> 'pode_cancelar')::boolean) FROM jsonb_array_elements(r) e), 'quem emitiu vê a opção de cancelar');
+  PERFORM ci.entrar(vb);
+  r := clinica_documentos_do_pet(pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT NOT bool_or((e ->> 'pode_cancelar')::boolean) FROM jsonb_array_elements(r) e), 'outro veterinário não recebe a opção de cancelar');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET snapshot = '{}'::jsonb WHERE id = %L$c$, doc1), 'trocar o retrato do documento emitido');
+
   -- imutável: nem o dono altera o conteúdo ou apaga
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET titulo = 'Outro título' WHERE id = %L$c$, doc1), 'alterar documento emitido');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_documentos SET corpo = 'trocado' WHERE id = %L$c$, doc1), 'trocar o texto do documento emitido');
