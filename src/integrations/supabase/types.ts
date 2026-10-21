@@ -9906,6 +9906,19 @@ export type Database = {
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
       assinante_link_sugerido: { Args: never; Returns: string }
       clinica_meu_veterinario: { Args: never; Returns: string }
+      clinica_documento_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: Json }
+      clinica_documento_contexto: { Args: never; Returns: Json }
+      clinica_documento_emitir: { Args: { p_dados: Json }; Returns: Json }
+      clinica_documento_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
+      clinica_documento_modelo_salvar: {
+        Args: { p_corpo: string; p_tipo: string; p_titulo: string }
+        Returns: string
+      }
+      clinica_documento_obter: { Args: { p_id: string }; Returns: Json }
+      clinica_documentos_do_pet: {
+        Args: { p_atendimento_id?: string; p_pet_id: string }
+        Returns: Json
+      }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
       clinica_pet_alergias: {
         Args: { p_alergias: string; p_pet_id: string }

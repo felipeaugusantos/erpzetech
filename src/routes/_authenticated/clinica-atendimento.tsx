@@ -5,6 +5,7 @@ import { Lock, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -290,6 +291,15 @@ function Atendimento() {
 
       <div className="mt-4">
         <AnexosClinicos atendimentoId={data.id} />
+      </div>
+
+      <div className="mt-4">
+        <DocumentosClinicos
+          petId={data.pet_id}
+          atendimentoId={data.id}
+          pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
+          tutor={data.tutor}
+        />
       </div>
 
       <Dialog open={confirmando} onOpenChange={(o) => !o && setConfirmando(false)}>
