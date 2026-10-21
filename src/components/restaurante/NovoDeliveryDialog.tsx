@@ -57,6 +57,10 @@ export function NovoDeliveryDialog({
   // o telefone traz nome e endereço: do último pedido de delivery com esse número ou, se nunca pediu, do cadastro de clientes (só onde o campo
   // estiver vazio). Vale com ou sem DDD e com ou sem o 55.
   const ultimaBusca = useRef("");
+  // o telefone mais recente do campo e o que a busca anterior preencheu sozinha (para trocar pelo do número corrigido, sem tocar no que o operador digitou)
+  const telefoneAtual = useRef(telefone);
+  telefoneAtual.current = telefone;
+  const preenchido = useRef({ cliente: "", endereco: "", bairro: "", referencia: "" });
   async function buscarPeloTelefone() {
     const d = soDigitos(telefone);
     if (d.length < 8 || ultimaBusca.current === d) return;
@@ -89,12 +93,23 @@ export function NovoDeliveryDialog({
     } catch {
       clientes = [];
     }
+    // o operador pode ter corrigido o número enquanto a busca andava: resultado de número que não está mais no campo é descartado
+    if (soDigitos(telefoneAtual.current) !== d) return;
     const c = acharContato(telefone, pedidos, clientes);
     if (!c) return;
-    setCliente((v) => v || c.nome);
-    setEndereco((v) => v || c.endereco);
-    setBairro((v) => v || c.bairro);
-    setReferencia((v) => v || c.referencia);
+    const antes = preenchido.current;
+    // preenche o que está vazio e troca o que a busca anterior preencheu (de outro número); o que o operador digitou fica
+    const troca = (v: string, anterior: string, novo: string) => (!v || v === anterior ? novo : v);
+    setCliente((v) => troca(v, antes.cliente, c.nome));
+    setEndereco((v) => troca(v, antes.endereco, c.endereco));
+    setBairro((v) => troca(v, antes.bairro, c.bairro));
+    setReferencia((v) => troca(v, antes.referencia, c.referencia));
+    preenchido.current = {
+      cliente: c.nome,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      referencia: c.referencia,
+    };
     toast.info(
       c.origem === "pedido"
         ? "Dados do último pedido deste telefone preenchidos"
