@@ -769,6 +769,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          aceita_mensagens: boolean
           ativo: boolean
           bairro: string | null
           cep: string | null
@@ -802,6 +803,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          aceita_mensagens?: boolean
           ativo?: boolean
           bairro?: string | null
           cep?: string | null
@@ -835,6 +837,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          aceita_mensagens?: boolean
           ativo?: boolean
           bairro?: string | null
           cep?: string | null

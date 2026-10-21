@@ -5867,3 +5867,78 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT estoque_lote_lancar(%L, %L, 'V3', '', '', 'entrada', 1, 'ci', NULL, DATE '1990-01-01')$c$, prod, dep), 'validade absurda');
   PERFORM ci.deve_falhar(vend, format($c$SELECT estoque_lote_lancar(%L, %L, 'V4', '', '', 'entrada', 1, 'ci', NULL, CURRENT_DATE + 30)$c$, prod, dep), 'vendedor lança lote');
 END $$;
+
+-- 64. Mensagens ao tutor: confirmar agenda e pet pronto, WhatsApp do tutor, quem não quer mensagens, modelos da empresa
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
+  tutor uuid; p_agenda uuid; p_pronto uuid; prof uuid; r jsonb; ref date;
+BEGIN
+  INSERT INTO clientes (tenant_id, nome, telefone, whatsapp) VALUES (demo, 'Tutor Mensagem CI', '(16) 3333-4444', '(16) 99888-7777') RETURNING id INTO tutor;
+  PERFORM ci.entrar(adm);
+  prof := pet_profissional_salvar('{"nome":"Dani Mensagem"}'::jsonb);
+  p_agenda := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Msg Agendado'));
+  p_pronto := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Msg Pronto'));
+  PERFORM ci.sair();
+  INSERT INTO pet_agendamentos (tenant_id, pet_id, cliente_id, profissional_id, inicio, fim, situacao)
+  VALUES (demo, p_agenda, tutor, prof, now() + interval '20 hours', now() + interval '20 hours 30 minutes', 'agendado'),
+         (demo, p_pronto, tutor, prof, now() - interval '1 hour', now() - interval '30 minutes', 'pronto');
+
+  PERFORM ci.deve_falhar(gar, $c$SELECT pet_mensagens_pendentes('confirmacao')$c$, 'garçom vê avisos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT pet_mensagens_pendentes('confirmacao')$c$, 'anon vê avisos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_mensagens_pendentes('qualquer')$c$, 'tipo de aviso inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_mensagens_pendentes('confirmacao', 99)$c$, 'janela grande demais');
+
+  PERFORM ci.entrar(vend);
+  r := pet_mensagens_pendentes('confirmacao', 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado' AND e ->> 'telefone' = '(16) 99888-7777'),
+                   'o agendamento de amanhã entra, com o WhatsApp do tutor');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Pronto'), 'pet pronto não entra na lista de confirmação');
+
+  PERFORM ci.entrar(vend);
+  r := pet_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Pronto'), 'pet pronto entra na lista de retirada');
+
+  -- registrar tira da lista, só daquela ocasião
+  PERFORM ci.entrar(vend);
+  r := pet_mensagens_pendentes('confirmacao', 1);
+  SELECT (e ->> 'referencia')::date INTO ref FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado';
+  PERFORM pet_contato_registrar(p_agenda, 'confirmacao', ref, 'whatsapp');
+  r := pet_mensagens_pendentes('confirmacao', 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado'), 'depois de avisar, o agendamento some da lista');
+
+  -- tutor que não quer mensagens não aparece em nenhuma lista
+  UPDATE clientes SET aceita_mensagens = false WHERE id = tutor;
+  PERFORM ci.entrar(vend);
+  r := pet_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Pronto'), 'tutor que não aceita mensagens sai da lista de pronto');
+  PERFORM ci.entrar(vend);
+  r := pet_contatos_pendentes('retorno', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' IN ('Msg Agendado', 'Msg Pronto')), 'e também das listas antigas');
+  UPDATE clientes SET aceita_mensagens = true WHERE id = tutor;
+
+  -- modelos da empresa: só administrador e gestor guardam; texto em branco volta ao padrão
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_mensagem_modelo_salvar('pronto', 'Oi, {tutor}! O {pet} está pronto.')$c$, 'vendedor guarda modelo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_mensagem_modelo_salvar('qualquer', 'Oi, {tutor}! Tudo bem?')$c$, 'tipo de modelo inválido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_mensagem_modelo_salvar('pronto', 'Oi')$c$, 'modelo curto demais');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_mensagem_modelo_salvar('pronto', 'Oi, {tutor}! O {pet} está pronto.');
+  PERFORM pet_mensagem_modelo_salvar('pronto', 'Oi, {tutor}! O {pet} já pode ser retirado.');
+  PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM pet_mensagem_modelos WHERE tipo = 'pronto' AND texto LIKE '%já pode ser retirado%'$c$) = 1,
+                   'o modelo guardado vale para a equipe (um por tipo)');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_mensagem_modelo_salvar('pronto', '');
+  PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM pet_mensagem_modelos WHERE tipo = 'pronto'$c$) = 0, 'texto em branco volta ao padrão');
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO pet_mensagem_modelos (tipo, texto) VALUES ('pronto', 'texto direto na tabela')$c$, 'escrita direta em modelos');
+END $$;

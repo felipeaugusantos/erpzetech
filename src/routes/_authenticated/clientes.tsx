@@ -13,6 +13,7 @@ import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -65,6 +66,7 @@ type FormState = {
   inscricao_estadual: string;
   telefone: string;
   whatsapp: string;
+  aceita_mensagens: boolean;
   email: string;
   cep: string;
   endereco: string;
@@ -89,6 +91,7 @@ const vazio: FormState = {
   inscricao_estadual: "",
   telefone: "",
   whatsapp: "",
+  aceita_mensagens: true,
   email: "",
   cep: "",
   endereco: "",
@@ -178,6 +181,7 @@ function Clientes() {
         inscricao_estadual: form.inscricao_estadual || null,
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
+        aceita_mensagens: form.aceita_mensagens,
         email: form.email || null,
         cep: form.cep || null,
         endereco: form.endereco || null,
@@ -217,6 +221,7 @@ function Clientes() {
       inscricao_estadual: (c["inscricao_estadual"] as string) ?? "",
       telefone: (c["telefone"] as string) ?? "",
       whatsapp: (c["whatsapp"] as string) ?? "",
+      aceita_mensagens: c["aceita_mensagens"] !== false,
       email: (c["email"] as string) ?? "",
       cep: (c["cep"] as string) ?? "",
       endereco: (c["endereco"] as string) ?? "",
@@ -485,6 +490,17 @@ function Clientes() {
                   value={form.whatsapp}
                   onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                 />
+              </div>
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <Switch
+                  id="c-aceita-msg"
+                  checked={form.aceita_mensagens}
+                  onCheckedChange={(v) => setForm({ ...form, aceita_mensagens: v })}
+                />
+                <Label htmlFor="c-aceita-msg" className="font-normal">
+                  Pode receber mensagens (aniversário, retorno, vacina, agendamento). Desligue se o
+                  cliente pediu para não ser chamado.
+                </Label>
               </div>
               <div>
                 <Label htmlFor="c-mail">E-mail</Label>
