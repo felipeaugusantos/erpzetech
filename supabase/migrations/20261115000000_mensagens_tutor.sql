@@ -98,9 +98,11 @@ END $$;
 
 -- Avisos de rotina do dia. p_tipo:
 --   'confirmacao': agendamentos de banho e tosa ainda "agendado" de hoje até p_janela dias à frente (pedir para confirmar);
+--     o contato vale por pet e dia, então os agendamentos do mesmo dia entram juntos numa linha só (horários e serviços de todos);
 --   'pronto': pets "pronto" para retirar, dos últimos 2 dias;
 --   'exame': exames fechados nos últimos p_janela dias (só avisa que está pronto; nada do resultado vai na mensagem).
--- Quem já foi chamado para aquela ocasião sai da lista; tutor que não quer mensagens não entra.
+-- Quem já foi chamado para aquela ocasião sai da lista; tutor que não quer mensagens não entra. O teto de 300 linhas vale
+-- para a lista já em ordem cronológica (o mais próximo primeiro).
 CREATE OR REPLACE FUNCTION public.pet_mensagens_pendentes(p_tipo text, p_janela integer DEFAULT 1)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -120,22 +122,28 @@ BEGIN
   IF p_tipo = 'confirmacao' THEN
     RETURN coalesce((
       SELECT jsonb_agg(jsonb_build_object('pet_id', x.pet_id, 'pet', x.pet, 'tutor', x.tutor, 'telefone', x.telefone,
-                                           'referencia', x.dia, 'hora', x.hora, 'servicos', x.servicos) ORDER BY x.dia, x.hora, x.pet)
+                                           'referencia', x.dia, 'hora', x.hora, 'servicos', x.servicos) ORDER BY x.primeiro, x.pet)
         FROM (
-          SELECT DISTINCT ON (a.pet_id, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
-                 a.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
-                 (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date AS dia,
-                 to_char(a.inicio AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS hora,
-                 (SELECT string_agg(s.nome, ' e ' ORDER BY s.nome) FROM public.pet_agendamento_itens i
-                    JOIN public.pet_servicos s ON s.id = i.servico_id WHERE i.agendamento_id = a.id) AS servicos
-            FROM public.pet_agendamentos a
-            JOIN public.pets p ON p.id = a.pet_id
-            JOIN public.clientes c ON c.id = p.cliente_id
-           WHERE a.tenant_id = v_tenant AND a.situacao = 'agendado' AND p.ativo AND c.aceita_mensagens
-             AND a.inicio >= now() AND (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date <= v_hoje + p_janela
-             AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = a.pet_id AND k.tipo = 'confirmacao'
-                              AND k.referencia = (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
-           ORDER BY a.pet_id, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date, a.inicio
+          SELECT g.*
+            FROM (
+              SELECT a.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
+                     (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date AS dia,
+                     min(a.inicio) AS primeiro,
+                     string_agg(DISTINCT to_char(a.inicio AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI'), ' e ') AS hora,
+                     string_agg(DISTINCT sv.nomes, ' e ') AS servicos
+                FROM public.pet_agendamentos a
+                JOIN public.pets p ON p.id = a.pet_id
+                JOIN public.clientes c ON c.id = p.cliente_id
+                LEFT JOIN LATERAL (SELECT string_agg(s.nome, ' e ' ORDER BY s.nome) AS nomes
+                                     FROM public.pet_agendamento_itens i JOIN public.pet_servicos s ON s.id = i.servico_id
+                                    WHERE i.agendamento_id = a.id) sv ON true
+               WHERE a.tenant_id = v_tenant AND a.situacao = 'agendado' AND p.ativo AND c.aceita_mensagens
+                 AND a.inicio >= now() AND (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date <= v_hoje + p_janela
+                 AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = a.pet_id AND k.tipo = 'confirmacao'
+                                  AND k.referencia = (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
+               GROUP BY a.pet_id, p.nome, c.nome, c.whatsapp, c.telefone, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date
+            ) g
+           ORDER BY g.primeiro, g.pet
            LIMIT 300
         ) x
     ), '[]'::jsonb);
@@ -146,17 +154,20 @@ BEGIN
       SELECT jsonb_agg(jsonb_build_object('pet_id', x.pet_id, 'pet', x.pet, 'tutor', x.tutor, 'telefone', x.telefone,
                                            'referencia', x.dia) ORDER BY x.dia, x.pet)
         FROM (
-          SELECT DISTINCT ON (a.pet_id, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
-                 a.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
-                 (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date AS dia
-            FROM public.pet_agendamentos a
-            JOIN public.pets p ON p.id = a.pet_id
-            JOIN public.clientes c ON c.id = p.cliente_id
-           WHERE a.tenant_id = v_tenant AND a.situacao = 'pronto' AND p.ativo AND c.aceita_mensagens
-             AND (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date >= v_hoje - 2
-             AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = a.pet_id AND k.tipo = 'pronto'
-                              AND k.referencia = (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
-           ORDER BY a.pet_id, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date
+          SELECT g.*
+            FROM (
+              SELECT a.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
+                     (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date AS dia
+                FROM public.pet_agendamentos a
+                JOIN public.pets p ON p.id = a.pet_id
+                JOIN public.clientes c ON c.id = p.cliente_id
+               WHERE a.tenant_id = v_tenant AND a.situacao = 'pronto' AND p.ativo AND c.aceita_mensagens
+                 AND (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date >= v_hoje - 2
+                 AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = a.pet_id AND k.tipo = 'pronto'
+                                  AND k.referencia = (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date)
+               GROUP BY a.pet_id, p.nome, c.nome, c.whatsapp, c.telefone, (a.inicio AT TIME ZONE 'America/Sao_Paulo')::date
+            ) g
+           ORDER BY g.dia, g.pet
            LIMIT 300
         ) x
     ), '[]'::jsonb);
@@ -167,17 +178,20 @@ BEGIN
     SELECT jsonb_agg(jsonb_build_object('pet_id', x.pet_id, 'pet', x.pet, 'tutor', x.tutor, 'telefone', x.telefone,
                                          'referencia', x.dia) ORDER BY x.dia, x.pet)
       FROM (
-        SELECT DISTINCT ON (e.pet_id, (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date)
-               e.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
-               (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date AS dia
-          FROM public.pet_exames e
-          JOIN public.pets p ON p.id = e.pet_id
-          JOIN public.clientes c ON c.id = p.cliente_id
-         WHERE e.tenant_id = v_tenant AND e.situacao = 'fechado' AND p.ativo AND c.aceita_mensagens
-           AND (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date >= v_hoje - p_janela
-           AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = e.pet_id AND k.tipo = 'exame'
-                            AND k.referencia = (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date)
-         ORDER BY e.pet_id, (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date
+        SELECT g.*
+          FROM (
+            SELECT e.pet_id, p.nome AS pet, c.nome AS tutor, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone) AS telefone,
+                   (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date AS dia
+              FROM public.pet_exames e
+              JOIN public.pets p ON p.id = e.pet_id
+              JOIN public.clientes c ON c.id = p.cliente_id
+             WHERE e.tenant_id = v_tenant AND e.situacao = 'fechado' AND p.ativo AND c.aceita_mensagens
+               AND (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date >= v_hoje - p_janela
+               AND NOT EXISTS (SELECT 1 FROM public.pet_contatos k WHERE k.pet_id = e.pet_id AND k.tipo = 'exame'
+                                AND k.referencia = (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date)
+             GROUP BY e.pet_id, p.nome, c.nome, c.whatsapp, c.telefone, (e.fechado_em AT TIME ZONE 'America/Sao_Paulo')::date
+          ) g
+         ORDER BY g.dia, g.pet
          LIMIT 300
       ) x
   ), '[]'::jsonb);

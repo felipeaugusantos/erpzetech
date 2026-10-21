@@ -5885,7 +5885,10 @@ BEGIN
   p_pronto := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Msg Pronto'));
   PERFORM ci.sair();
   INSERT INTO pet_agendamentos (tenant_id, pet_id, cliente_id, profissional_id, inicio, fim, situacao)
-  VALUES (demo, p_agenda, tutor, prof, now() + interval '20 hours', now() + interval '20 hours 30 minutes', 'agendado'),
+  VALUES (demo, p_agenda, tutor, prof, (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') + interval '1 day 10 hours') AT TIME ZONE 'America/Sao_Paulo',
+          (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') + interval '1 day 10 hours 30 minutes') AT TIME ZONE 'America/Sao_Paulo', 'agendado'),
+         (demo, p_agenda, tutor, prof, (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') + interval '1 day 15 hours') AT TIME ZONE 'America/Sao_Paulo',
+          (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') + interval '1 day 15 hours 30 minutes') AT TIME ZONE 'America/Sao_Paulo', 'agendado'),
          (demo, p_pronto, tutor, prof, now() - interval '1 hour', now() - interval '30 minutes', 'pronto');
 
   PERFORM ci.deve_falhar(gar, $c$SELECT pet_mensagens_pendentes('confirmacao')$c$, 'garçom vê avisos');
@@ -5899,6 +5902,10 @@ BEGIN
   PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado' AND e ->> 'telefone' = '(16) 99888-7777'),
                    'o agendamento de amanhã entra, com o WhatsApp do tutor');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Pronto'), 'pet pronto não entra na lista de confirmação');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado'),
+                   'dois agendamentos do mesmo pet no mesmo dia entram numa linha só');
+  PERFORM ci.exige((SELECT e ->> 'hora' = '10:00 e 15:00' FROM jsonb_array_elements(r) e WHERE e ->> 'pet' = 'Msg Agendado'),
+                   'a linha traz os horários do dia');
 
   PERFORM ci.entrar(vend);
   r := pet_mensagens_pendentes('pronto');
