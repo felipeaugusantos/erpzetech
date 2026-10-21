@@ -8,7 +8,8 @@ ALTER TABLE public.produtos
 DO $$ BEGIN
   ALTER TABLE public.produtos ADD CONSTRAINT produtos_ibs_cbs_classificacao CHECK (
     (cst_ibs_cbs IS NULL AND cclasstrib IS NULL)
-    OR (cst_ibs_cbs ~ '^[0-9]{3}$' AND cclasstrib ~ '^[0-9]{6}$' AND left(cclasstrib, 3) = cst_ibs_cbs));
+    OR (cst_ibs_cbs IS NOT NULL AND cclasstrib IS NOT NULL
+        AND cst_ibs_cbs ~ '^[0-9]{3}$' AND cclasstrib ~ '^[0-9]{6}$' AND left(cclasstrib, 3) = cst_ibs_cbs));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 COMMENT ON COLUMN public.produtos.cst_ibs_cbs IS 'CST do IBS/CBS (tabela do Informe Técnico 2025.002 RTC); nulo = tributação integral (000).';
