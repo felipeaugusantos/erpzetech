@@ -5957,6 +5957,7 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(ci.contar(vend, $c$SELECT count(*) FROM pet_mensagem_modelos WHERE tipo = 'pronto'$c$) = 0, 'texto em branco volta ao padrão');
   PERFORM ci.deve_falhar(adm, $c$INSERT INTO pet_mensagem_modelos (tipo, texto) VALUES ('pronto', 'texto direto na tabela')$c$, 'escrita direta em modelos');
+END $$;
 
 -- 65. Reforma tributária: a classificação do produto no IBS/CBS vem em par (CST + cClassTrib) e o cClassTrib pertence ao CST
 DO $$
