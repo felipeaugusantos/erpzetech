@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- payloads dinâmicos do emissor fiscal (ACBr) e cliente Supabase sem tipos */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { cnpjAlfaValido, limparDocumento } from "./cnpj-alfa.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
 
 /**
@@ -169,8 +170,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     if (!cliente) throw new Error("Cliente da nota não encontrado");
     if (!itens || itens.length === 0) throw new Error("A nota não tem itens");
 
-    const cnpjEmitente = so(empresa.cnpj);
-    if (cnpjEmitente.length !== 14)
+    const cnpjEmitente = limparDocumento(String(empresa.cnpj ?? ""));
+    if (!cnpjAlfaValido(cnpjEmitente))
       throw new Error("CNPJ da empresa emitente inválido ou ausente.");
     if (!empresa.inscricao_estadual) throw new Error("Inscrição estadual da empresa ausente.");
 
@@ -211,11 +212,12 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     const cUF = CODIGO_UF[ufEmit];
     if (!cUF) throw new Error("UF da empresa emitente inválida.");
 
-    const docCliente = so(cliente.cnpj || cliente.cpf);
-    if (docCliente.length !== 11 && docCliente.length !== 14) {
+    // CPF só tem números; o CNPJ pode ter letras nas 12 primeiras posições (NT 2026.004).
+    const docCliente = cliente.cnpj ? limparDocumento(String(cliente.cnpj)) : so(cliente.cpf);
+    const pj = docCliente.length === 14;
+    if (!(pj ? /^[0-9A-Z]{12}\d{2}$/.test(docCliente) : docCliente.length === 11)) {
       throw new Error("CPF ou CNPJ do cliente inválido ou ausente.");
     }
-    const pj = docCliente.length === 14;
 
     const valorProdutos = num(nota.valor_produtos);
     const valorFrete = num(nota.valor_frete);
@@ -382,7 +384,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         ...(cfg.responsavel_tecnico_cnpj
           ? {
               infRespTec: {
-                CNPJ: so(cfg.responsavel_tecnico_cnpj),
+                CNPJ: limparDocumento(String(cfg.responsavel_tecnico_cnpj)),
                 xContato: String(cfg.responsavel_tecnico_contato ?? "Suporte"),
                 email: String(cfg.responsavel_tecnico_email ?? empresa.email ?? ""),
                 fone: so(cfg.responsavel_tecnico_fone ?? empresa.telefone ?? ""),

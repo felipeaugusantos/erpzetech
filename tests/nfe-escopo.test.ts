@@ -106,3 +106,19 @@ test("a conta compartilhada do emissor mostra só as empresas do cliente", async
   );
   assert.deepEqual(filtrarPorCnpj(todas, []), []);
 });
+
+test("a conta compartilhada do emissor reconhece empresa com CNPJ alfanumérico", async () => {
+  const todas = [
+    { cpfCnpj: "12.abc.345/01de-35", nome: "Minha Loja" },
+    { cpfCnpj: "12.XYZ.345/01DE-35", nome: "Outro Cliente" },
+  ];
+  const meus = await cnpjsDaEmpresa(
+    falso({ papeis: [], perfil, nota, empresas: [{ cnpj: "12.ABC.345/01DE-35" }] }),
+    "t1",
+  );
+  assert.deepEqual(meus, ["12ABC34501DE35"]);
+  assert.deepEqual(
+    filtrarPorCnpj(todas, meus).map((e) => e.nome),
+    ["Minha Loja"],
+  );
+});

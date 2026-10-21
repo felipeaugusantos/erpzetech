@@ -98,9 +98,10 @@ function numero(el: Element | null | undefined, tag: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** CPF/CNPJ sem máscara; o CNPJ pode ter letras (NT 2026.004), então mantém letras e números. */
 function somenteDigitos(v: string | null): string | null {
   if (!v) return null;
-  const d = v.replace(/\D/g, "");
+  const d = v.toUpperCase().replace(/[^0-9A-Z]/g, "");
   return d === "" ? null : d;
 }
 
