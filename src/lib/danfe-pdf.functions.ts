@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { limparChave } from "@/lib/cnpj-alfa";
 import type { NfeXmlLida } from "@/lib/nfe-xml";
 
 const n = z.number();
@@ -90,10 +91,13 @@ export const lerDanfePdf = createServerFn({ method: "POST" })
       throw new Error("Não foi possível ler o PDF. Use o XML da nota.");
     }
     const dig = (v: string | null) => (v ? v.replace(/\D/g, "") || null : null);
+    // CNPJ e chave de acesso podem ter letras (NT 2026.004).
+    const alfa = (v: string | null) =>
+      v ? v.toUpperCase().replace(/[^0-9A-Z]/g, "") || null : null;
     const venc = [...d.vencimentos].sort((a, b) => a.data.localeCompare(b.data));
     return {
       nota: {
-        chave: dig(d.chave)?.length === 44 ? dig(d.chave) : null,
+        chave: limparChave(d.chave),
         numero: dig(d.numero)?.replace(/^0+/, "") || null,
         serie: dig(d.serie)?.replace(/^0+(?=\d)/, "") ?? null,
         emissao: d.emissao,
@@ -120,11 +124,11 @@ export const lerDanfePdf = createServerFn({ method: "POST" })
       },
       fornecedor: {
         ...d.fornecedor,
-        cnpj: dig(d.fornecedor.cnpj),
+        cnpj: alfa(d.fornecedor.cnpj),
         nome_fantasia: null,
         email: null,
       },
-      destinatario: { cnpj: dig(d.destinatario.cnpj), nome: d.destinatario.nome },
+      destinatario: { cnpj: alfa(d.destinatario.cnpj), nome: d.destinatario.nome },
       itens: d.itens.map((i, idx) => ({
         seq: idx + 1,
         codigo: i.codigo,

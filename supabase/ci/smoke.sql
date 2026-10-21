@@ -1793,6 +1793,15 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT importar_nfe_entrada(%L::jsonb, %L::jsonb, %L::jsonb, %L)$c$,
     nota || jsonb_build_object('chave', 'CHAVE-XML-CI-OUTRA'), forn, itens, dep), 'mesmo número, série e fornecedor com outra chave');
   PERFORM ci.exige((SELECT count(*) = 1 FROM compras WHERE tenant_id = demo AND nfe_numero = '9001'), 'a nota repetida por número não gera outra compra');
+  -- CNPJ alfanumérico: dois CNPJs que só mudam nas letras são fornecedores diferentes
+  PERFORM ci.entrar(adm);
+  PERFORM importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-ALFA1', 'numero', '9101'),
+    jsonb_build_object('razao_social', 'Fornecedor Alfa A', 'cnpj', '12ABC34501DE35'), itens, dep);
+  PERFORM importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-ALFA2', 'numero', '9102'),
+    jsonb_build_object('razao_social', 'Fornecedor Alfa B', 'cnpj', '12XYZ34501DE35'), itens, dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 FROM fornecedores WHERE tenant_id = demo AND cnpj IN ('12ABC34501DE35', '12XYZ34501DE35')),
+                   'CNPJs alfanuméricos que só diferem nas letras viram fornecedores distintos');
   -- a mensagem diz que a nota já está importada (pela chave e por número + série + fornecedor)
   PERFORM ci.entrar(adm);
   BEGIN

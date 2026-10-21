@@ -23,3 +23,13 @@ test("limpeza e presença de CNPJ", () => {
   assert.equal(semCnpj({ cnpj: "12.ABC.345/01DE-35" }), false);
   assert.equal(semCnpj({ cnpj: "" }), true);
 });
+
+test("chave de acesso com CNPJ alfanumérico", async () => {
+  const { limparChave } = await import("../src/lib/cnpj-alfa.ts");
+  const chave = "35261012ABC34501DE35550010000130801293016607";
+  assert.equal(limparChave(`NFe${chave}`), chave);
+  assert.equal(limparChave(chave.toLowerCase()), chave);
+  assert.equal(limparChave("3526 1012 ABC3 4501 DE35 5500 1000 0130 8012 9301 6607"), chave);
+  assert.equal(limparChave("35261012ABC34501DE35"), null);
+  assert.equal(limparChave(`35261012ABC34501DE35${"A".repeat(24)}`), null);
+});
