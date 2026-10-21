@@ -11,6 +11,12 @@ export const PAPEIS_FISCAIS = [
 
 export const soDigitos = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
+/** CPF/CNPJ para comparar: letras e números em maiúsculas (o CNPJ pode ser alfanumérico). */
+const documento = (v: unknown) =>
+  String(v ?? "")
+    .toUpperCase()
+    .replace(/[^0-9A-Z]/g, "");
+
 /** Exige um papel fiscal e devolve a empresa de quem chama. */
 export async function exigirPapelFiscal(supabase: any, userId: string) {
   const respostas = await Promise.all(
@@ -57,10 +63,10 @@ export async function carregarNota(supabase: any, nfeId: string, userId: string)
 export async function cnpjsDaEmpresa(supabase: any, tenantId: string): Promise<string[]> {
   const { data, error } = await supabase.from("empresas").select("cnpj").eq("tenant_id", tenantId);
   if (error) throw error;
-  return ((data ?? []) as { cnpj: string | null }[]).map((e) => soDigitos(e.cnpj)).filter(Boolean);
+  return ((data ?? []) as { cnpj: string | null }[]).map((e) => documento(e.cnpj)).filter(Boolean);
 }
 
 /** A conta do emissor é compartilhada entre os clientes: cada um vê só as suas empresas e certificados. */
 export function filtrarPorCnpj<T extends { cpfCnpj: string }>(lista: T[], cnpjs: string[]): T[] {
-  return lista.filter((i) => cnpjs.includes(soDigitos(i.cpfCnpj)));
+  return lista.filter((i) => cnpjs.includes(documento(i.cpfCnpj)));
 }

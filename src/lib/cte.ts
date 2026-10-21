@@ -1,3 +1,5 @@
+import { limparChave } from "./cnpj-alfa.ts";
+
 /** Leitura do CT-e (conhecimento de transporte) para somar o frete da transportadora ao custo da compra. */
 export type CteLido = {
   chave: string | null;
@@ -33,7 +35,7 @@ export function lerXmlCte(xml: string): CteLido {
     tag(nome, raiz)?.textContent?.trim() || null;
   const inf = tag("infCte");
   if (!inf) throw new Error("Este XML não é um CT-e.");
-  const chave = (inf.getAttribute("Id") ?? "").replace(/\D/g, "") || null;
+  const chave = limparChave(inf.getAttribute("Id"));
   const emit = tag("emit");
   const ender = emit ? tag("enderEmit", emit) : null;
   const vPrest = tag("vPrest");
@@ -50,8 +52,8 @@ export function lerXmlCte(xml: string): CteLido {
     valor: Number((vPrest ? txt("vTPrest", vPrest) : null) ?? 0),
     icms: Number(icms?.textContent ?? 0),
     nfe_chaves: [...doc.getElementsByTagName("infNFe")]
-      .map((n) => txt("chave", n) ?? "")
-      .filter((k) => k.length === 44),
+      .map((n) => limparChave(txt("chave", n)))
+      .filter((k): k is string => k !== null),
   };
 }
 
@@ -60,12 +62,15 @@ export function lerTextoDacte(texto: string): CteLido {
   let chave: string | null = null;
   const nfes = new Set<string>();
   for (const linha of texto.split("\n")) {
-    // A chave pode vir acompanhada do número da nota na coluna seguinte.
-    // Capture só os 44 dígitos, sem juntar os números das outras colunas.
-    const blocos = linha.match(/(?<!\d)\d(?:[.\-/\s|]*\d){43}(?!\d)/g) ?? [];
+    // A chave pode vir acompanhada do número da nota na coluna seguinte e, desde 2026, com letras no CNPJ (NT 2026.004).
+    // Testa cada começo possível (um dígito seguido de 43 números ou letras maiúsculas, com pontuação no meio) e confere o formato
+    // depois, para uma palavra ou número antes da chave não "comer" a chave.
+    const blocos = [
+      ...linha.matchAll(/(?<![0-9A-Za-z])(?=(\d(?:[.\-/\s|]*[0-9A-Z]){43})(?![0-9A-Za-z]))/g),
+    ].map((m) => m[1] ?? "");
     for (const b of blocos) {
-      const d = b.replace(/\D/g, "");
-      if (d.length !== 44) continue;
+      const d = limparChave(b);
+      if (!d) continue;
       const modelo = d.slice(20, 22);
       if (modelo === "57" && !chave) chave = d;
       else if (modelo === "55") nfes.add(d);

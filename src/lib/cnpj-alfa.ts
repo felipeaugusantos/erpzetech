@@ -29,3 +29,12 @@ export function cnpjAlfaValido(valor: string): boolean {
 
 /** Tem 14 caracteres (números ou letras) — critério de "empresa com CNPJ". */
 export const temCnpj = (valor?: string | null) => limparDocumento(valor ?? "").length >= 14;
+
+/** Chave de acesso (44): 6 dígitos, CNPJ do emitente (12 alfanuméricos + 2 dígitos) e 24 dígitos. */
+export const chaveAcessoValida = (valor: string) => /^\d{6}[0-9A-Z]{12}\d{26}$/.test(valor);
+
+/** Tira prefixo (NFe/CTe), máscara e espaços da chave e a devolve em maiúsculas, ou null se não tiver 44 caracteres válidos. */
+export function limparChave(valor: string | null | undefined): string | null {
+  const c = limparDocumento((valor ?? "").replace(/^\s*(NFe|CTe)/i, ""));
+  return chaveAcessoValida(c) ? c : null;
+}
