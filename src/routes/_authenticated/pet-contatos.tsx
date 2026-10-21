@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 
+import { ModeloMensagem } from "@/components/app/ModeloMensagem";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
@@ -59,23 +59,24 @@ type Pendente = {
   referencia: string;
   anos?: number;
   dias?: number;
+  hora?: string;
+  servicos?: string | null;
 };
+
+const ROTULOS: Record<TipoContato, { lista: string; coluna: string }> = {
+  retorno: { lista: "Retorno de banho", coluna: "Último banho" },
+  aniversario: { lista: "Aniversário do pet", coluna: "Aniversário" },
+  confirmacao: { lista: "Confirmar agendamento", coluna: "Agendado para" },
+  pronto: { lista: "Pet pronto para retirar", coluna: "Atendimento" },
+  exame: { lista: "Exame pronto", coluna: "Exame fechado em" },
+};
+const USA_RPC_ANTIGA = (t: TipoContato) => t === "retorno" || t === "aniversario";
 
 function ContatosModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
   if (!modulos.petshop) return <ModuloBloqueado modulo="petshop" />;
   return <Contatos />;
-}
-
-const chaveModelo = (t: TipoContato) => `zeobra:pet-contato-modelo:${t}`;
-
-function lerModelo(t: TipoContato) {
-  try {
-    return localStorage.getItem(chaveModelo(t)) ?? MENSAGEM_PADRAO[t];
-  } catch {
-    return MENSAGEM_PADRAO[t];
-  }
 }
 
 function Contatos() {
@@ -86,38 +87,37 @@ function Contatos() {
   const [tipo, setTipo] = useState<TipoContato>("retorno");
   const [dias, setDias] = useState("30");
   const [janela, setJanela] = useState("7");
-  const [modelo, setModelo] = useState(() => lerModelo("retorno"));
+  const [modelo, setModelo] = useState(MENSAGEM_PADRAO.retorno);
   /** Canal gravado pelo botão "Já falei" (o botão do WhatsApp sempre grava "whatsapp"). */
   const [canalJaFalei, setCanalJaFalei] = useState<"telefone" | "outro">("telefone");
 
   function trocarTipo(t: TipoContato) {
     setTipo(t);
-    setModelo(lerModelo(t));
-  }
-  function mudarModelo(v: string) {
-    setModelo(v);
-    try {
-      localStorage.setItem(chaveModelo(tipo), v);
-    } catch {
-      /* sem armazenamento: a mensagem só vale nesta tela */
-    }
+    setModelo(MENSAGEM_PADRAO[t]);
+    setJanela(t === "confirmacao" ? "1" : t === "exame" ? "7" : "7");
   }
 
   const diasN = Number(dias);
   const janelaN = Number(janela);
+  const limiteJanela = tipo === "aniversario" ? 60 : 30;
   const valido =
     tipo === "retorno"
       ? Number.isInteger(diasN) && diasN >= 7 && diasN <= 365
-      : Number.isInteger(janelaN) && janelaN >= 0 && janelaN <= 60;
+      : tipo === "pronto" || (Number.isInteger(janelaN) && janelaN >= 0 && janelaN <= limiteJanela);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pet-contatos", tipo, diasN, janelaN],
     enabled: valido,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("pet_contatos_pendentes", {
-        p_tipo: tipo,
-        ...(tipo === "retorno" ? { p_dias: diasN } : { p_janela: janelaN }),
-      });
+      const { data, error } = USA_RPC_ANTIGA(tipo)
+        ? await supabase.rpc("pet_contatos_pendentes", {
+            p_tipo: tipo,
+            ...(tipo === "retorno" ? { p_dias: diasN } : { p_janela: janelaN }),
+          })
+        : await supabase.rpc("pet_mensagens_pendentes", {
+            p_tipo: tipo,
+            p_janela: tipo === "pronto" ? 1 : janelaN,
+          });
       if (error) throw error;
       return (data ?? []) as unknown as Pendente[];
     },
@@ -144,6 +144,8 @@ function Contatos() {
       loja,
       data: dateBR(l.referencia),
       ...(l.dias !== undefined ? { dias: l.dias } : {}),
+      ...(l.hora ? { hora: l.hora } : {}),
+      ...(l.servicos ? { servicos: l.servicos.toLowerCase() } : {}),
     });
 
   function chamar(l: Pendente) {
@@ -162,7 +164,7 @@ function Contatos() {
     <div>
       <PageHeader
         title="Contatos do pet shop"
-        description="Quem vale chamar hoje: aniversário dos pets e retorno de banho. O contato é feito pela recepção (sem envio automático); quem já foi chamado sai da lista."
+        description="Quem vale chamar hoje: aniversário, retorno de banho, confirmação de agendamento, pet pronto e exame pronto. O contato é feito pela recepção, com a mensagem de WhatsApp já pronta; quem já foi chamado sai da lista, e tutor que não quer mensagens não aparece."
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -173,8 +175,11 @@ function Contatos() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="retorno">Retorno de banho</SelectItem>
-              <SelectItem value="aniversario">Aniversário do pet</SelectItem>
+              {(Object.keys(ROTULOS) as TipoContato[]).map((t) => (
+                <SelectItem key={t} value={t}>
+                  {ROTULOS[t].lista}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -188,9 +193,11 @@ function Contatos() {
               onChange={(e) => setDias(e.target.value)}
             />
           </div>
-        ) : (
+        ) : tipo === "pronto" ? null : (
           <div className="w-44">
-            <Label htmlFor="ct-janela">Próximos (dias)</Label>
+            <Label htmlFor="ct-janela">
+              {tipo === "exame" ? "Fechados nos últimos (dias)" : "Próximos (dias)"}
+            </Label>
             <Input
               id="ct-janela"
               inputMode="numeric"
@@ -217,23 +224,11 @@ function Contatos() {
       </div>
       {!valido && (
         <p className="mb-3 text-sm text-destructive">
-          {tipo === "retorno" ? "Informe de 7 a 365 dias." : "Informe de 0 a 60 dias."}
+          {tipo === "retorno" ? "Informe de 7 a 365 dias." : `Informe de 0 a ${limiteJanela} dias.`}
         </p>
       )}
 
-      <div className="mb-5">
-        <Label htmlFor="ct-modelo">Mensagem do WhatsApp</Label>
-        <Textarea
-          id="ct-modelo"
-          rows={3}
-          value={modelo}
-          onChange={(e) => mudarModelo(e.target.value)}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Use {"{tutor}"}, {"{pet}"}, {"{loja}"}, {"{data}"}
-          {tipo === "retorno" ? " e {dias}" : ""}. Fica guardada neste navegador.
-        </p>
-      </div>
+      <ModeloMensagem tipo={tipo} id="ct-modelo" valor={modelo} onChange={setModelo} />
 
       {isLoading ? (
         <div className="panel h-40 animate-pulse" />
@@ -248,7 +243,7 @@ function Contatos() {
               <TableRow>
                 <TableHead>Pet</TableHead>
                 <TableHead>Tutor</TableHead>
-                <TableHead>{tipo === "retorno" ? "Último banho" : "Aniversário"}</TableHead>
+                <TableHead>{ROTULOS[tipo].coluna}</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
@@ -267,9 +262,11 @@ function Contatos() {
                     <span className="text-xs text-muted-foreground">
                       {tipo === "retorno"
                         ? `(há ${l.dias} dias)`
-                        : l.anos
-                          ? `(${l.anos} ${l.anos === 1 ? "ano" : "anos"})`
-                          : ""}
+                        : tipo === "confirmacao"
+                          ? `às ${l.hora ?? ""}${l.servicos ? ` — ${l.servicos}` : ""}`
+                          : l.anos
+                            ? `(${l.anos} ${l.anos === 1 ? "ano" : "anos"})`
+                            : ""}
                     </span>
                   </TableCell>
                   <TableCell className="space-x-2 text-right">

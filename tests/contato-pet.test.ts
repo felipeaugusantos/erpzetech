@@ -72,3 +72,31 @@ test("lista em texto", () => {
 test("{itens} sem valor fica como está", () => {
   assert.equal(montarMensagem("Com {itens}", { pet: "x" }), "Com {itens}");
 });
+
+test("modelos novos: confirmação leva data, hora e serviço; pronto e exame não pedem campo extra", async () => {
+  const { CAMPOS_MENSAGEM } = await import("../src/lib/contato-pet.ts");
+  const t = montarMensagem(MENSAGEM_PADRAO.confirmacao, {
+    tutor: "Ana Souza",
+    pet: "Thor",
+    loja: "Pet Feliz",
+    data: "22/10/2026",
+    hora: "14:30",
+    servicos: "banho e tosa",
+  });
+  assert.match(t, /confirmar o horário do Thor: banho e tosa, 22\/10\/2026 às 14:30/);
+  assert.doesNotMatch(t, /\{/);
+  for (const tipo of ["pronto", "exame"] as const) {
+    const m = montarMensagem(MENSAGEM_PADRAO[tipo], {
+      tutor: "Ana",
+      pet: "Thor",
+      loja: "Pet Feliz",
+    });
+    assert.doesNotMatch(m, /\{/);
+    assert.deepEqual(CAMPOS_MENSAGEM[tipo], []);
+  }
+  assert.equal(MENSAGEM_REFORCO, MENSAGEM_PADRAO.reforco);
+});
+
+test("o aviso de exame não carrega nada do resultado", () => {
+  assert.doesNotMatch(MENSAGEM_PADRAO.exame, /\{(itens|dias|data)\}/);
+});

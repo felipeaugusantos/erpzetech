@@ -769,6 +769,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          aceita_mensagens: boolean
           ativo: boolean
           bairro: string | null
           cep: string | null
@@ -802,6 +803,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          aceita_mensagens?: boolean
           ativo?: boolean
           bairro?: string | null
           cep?: string | null
@@ -835,6 +837,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          aceita_mensagens?: boolean
           ativo?: boolean
           bairro?: string | null
           cep?: string | null
@@ -6536,6 +6539,38 @@ export type Database = {
           },
         ]
       }
+      pet_mensagem_modelos: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          tenant_id: string
+          texto: string
+          tipo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto: string
+          tipo: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_mensagem_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_contatos: {
         Row: {
           canal: string
@@ -10559,6 +10594,11 @@ export type Database = {
       pet_comissao_pagar: {
         Args: { p_forma?: string; p_id: string }
         Returns: undefined
+      }
+      pet_mensagem_modelo_salvar: { Args: { p_texto: string; p_tipo: string }; Returns: undefined }
+      pet_mensagens_pendentes: {
+        Args: { p_janela?: number; p_tipo: string }
+        Returns: Json
       }
       pet_contato_registrar: {
         Args: {

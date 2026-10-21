@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 
+import { ModeloMensagem } from "@/components/app/ModeloMensagem";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
@@ -70,34 +70,15 @@ function ReforcosModulo() {
   return <Reforcos />;
 }
 
-const CHAVE_MODELO = "zeobra:clinica-reforco-modelo";
-
-function lerModelo() {
-  try {
-    return localStorage.getItem(CHAVE_MODELO) ?? MENSAGEM_REFORCO;
-  } catch {
-    return MENSAGEM_REFORCO;
-  }
-}
-
 function Reforcos() {
   const qc = useQueryClient();
   const { data: sessao } = useSessionData();
   const loja = sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || "nossa clínica";
   const [janela, setJanela] = useState("15");
   const [atraso, setAtraso] = useState("180");
-  const [modelo, setModelo] = useState(lerModelo);
+  const [modelo, setModelo] = useState(MENSAGEM_REFORCO);
   /** Canal gravado pelo botão "Já falei" (o botão do WhatsApp sempre grava "whatsapp"). */
   const [canalJaFalei, setCanalJaFalei] = useState<"telefone" | "outro">("telefone");
-
-  function mudarModelo(v: string) {
-    setModelo(v);
-    try {
-      localStorage.setItem(CHAVE_MODELO, v);
-    } catch {
-      /* sem armazenamento: a mensagem só vale nesta tela */
-    }
-  }
 
   const janelaN = Number(janela);
   const atrasoN = Number(atraso);
@@ -205,19 +186,7 @@ function Reforcos() {
         </p>
       )}
 
-      <div className="mb-5">
-        <Label htmlFor="rf-modelo">Mensagem do WhatsApp</Label>
-        <Textarea
-          id="rf-modelo"
-          rows={3}
-          value={modelo}
-          onChange={(e) => mudarModelo(e.target.value)}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Use {"{tutor}"}, {"{pet}"}, {"{loja}"}, {"{itens}"} e {"{data}"}. Fica guardada neste
-          navegador.
-        </p>
-      </div>
+      <ModeloMensagem tipo="reforco" id="rf-modelo" valor={modelo} onChange={setModelo} />
 
       {isLoading ? (
         <div className="panel h-40 animate-pulse" />
