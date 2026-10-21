@@ -78,7 +78,7 @@ export const lerDanfePdf = createServerFn({ method: "POST" })
         model: lovable.responses("openai/gpt-6-astra"),
         output: Output.object({ schema: Danfe }),
         system:
-          "Você extrai dados de um DANFE (NF-e brasileira) a partir do texto do PDF. Copie os valores exatamente como estão; números em formato decimal com ponto (1.234,56 vira 1234.56). Chave de acesso com 44 dígitos sem espaços. Não invente: campo ausente é null ou 0. Liste TODOS os produtos, em ordem, incluindo descrições que quebram linha. CNPJ só dígitos.",
+          "Você extrai dados de um DANFE (NF-e brasileira) a partir do texto do PDF. Copie os valores exatamente como estão; números em formato decimal com ponto (1.234,56 vira 1234.56). Chave de acesso com 44 caracteres sem espaços (números e letras maiúsculas: a partir de 2026 o CNPJ dentro da chave pode ter letras; preserve as letras). Não invente: campo ausente é null ou 0. Liste TODOS os produtos, em ordem, incluindo descrições que quebram linha. CNPJ sem pontuação, preservando as letras maiúsculas quando houver (CNPJ alfanumérico).",
         prompt: data.texto,
         providerOptions: { openai: { reasoningEffort: "low", store: false } },
       });

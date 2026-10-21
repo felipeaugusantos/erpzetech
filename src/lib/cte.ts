@@ -62,13 +62,12 @@ export function lerTextoDacte(texto: string): CteLido {
   let chave: string | null = null;
   const nfes = new Set<string>();
   for (const linha of texto.split("\n")) {
-    // A chave pode vir acompanhada do número da nota na coluna seguinte.
-    // Capture só os 44 dígitos, sem juntar os números das outras colunas.
-    // Com CNPJ alfanumérico a chave pode ter letras (NT 2026.004): 11 grupos de 4, com ou sem separador.
+    // A chave pode vir acompanhada do número da nota na coluna seguinte e, desde 2026, com letras no CNPJ (NT 2026.004).
+    // Testa cada começo possível (um dígito seguido de 43 números ou letras maiúsculas, com pontuação no meio) e confere o formato
+    // depois, para uma palavra ou número antes da chave não "comer" a chave.
     const blocos = [
-      ...(linha.match(/(?<!\d)\d(?:[.\-/\s|]*\d){43}(?!\d)/g) ?? []),
-      ...(linha.match(/(?<![0-9A-Za-z])\d{4}(?:[\s.\-/|]?[0-9A-Z]{4}){10}(?![0-9A-Za-z])/g) ?? []),
-    ];
+      ...linha.matchAll(/(?<![0-9A-Za-z])(?=(\d(?:[.\-/\s|]*[0-9A-Z]){43})(?![0-9A-Za-z]))/g),
+    ].map((m) => m[1] ?? "");
     for (const b of blocos) {
       const d = limparChave(b);
       if (!d) continue;

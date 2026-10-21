@@ -64,3 +64,15 @@ test("DACTE com CNPJ alfanumérico na chave de acesso (NT 2026.004)", () => {
   assert.deepEqual(c.nfe_chaves, [nfe]);
   assert.equal(c.cnpj, "12ABC34501DE35");
 });
+
+test("DACTE com a chave alfanumérica no layout pontuado (NT 2026.004)", () => {
+  const texto = [
+    " CNPJ 12.ABC.345/01DE-35 IE 149673729116",
+    "                     35.2610.12.ABC.345/01DE-35-57-002-000.727.506-100.175.943-4",
+    " FRETE TOTAL (R$)          144,83        VALOR A RECEBER (R$)                        144,83",
+    " NF-E: 35.2610.12.ABC.345/01DE-35-55-001-000.013.080-129.301.660-7   13080",
+  ].join("\n");
+  const c = lerTextoDacte(texto);
+  assert.equal(c.chave, "35261012ABC34501DE35570020007275061001759434");
+  assert.deepEqual(c.nfe_chaves, ["35261012ABC34501DE35550010000130801293016607"]);
+});
