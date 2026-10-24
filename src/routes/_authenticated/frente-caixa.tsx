@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
+import { useTabelaPrecoPorClienteId } from "@/hooks/useTabelaPrecoCliente";
+import { reprecificarLinhas } from "@/lib/tabela-preco";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { EmitirNfce } from "@/components/app/EmitirNfce";
 import { avisoDepoisDoUso } from "@/lib/pet";
@@ -146,6 +148,8 @@ type Linha = {
   descricao: string;
   unidade: string;
   preco: number;
+  /** Preço que entrou sozinho (produto ou tabela do cliente); se mudar à mão, deixa de acompanhar o cliente. */
+  precoAuto?: number;
   quantidade: number;
 };
 type AcaoGestor = "cancelar_venda" | "desconto" | "sangria";
@@ -590,6 +594,15 @@ function FrenteCaixa() {
     },
   });
   const produtos = base?.produtos ?? [];
+
+  // preço do cliente escolhido: a tabela de preço dele, se tiver; senão o preço normal do produto
+  const { preco: precoDoCliente } = useTabelaPrecoPorClienteId(cliente?.id);
+  useEffect(() => {
+    const preco = new Map((base?.produtos ?? []).map((p) => [p.id, p.preco_venda]));
+    setLinhas((atual) =>
+      reprecificarLinhas(atual, (id) => (preco.has(id) ? precoDoCliente(id, preco.get(id)) : null)),
+    );
+  }, [precoDoCliente, base?.produtos]);
   const [depositoId, setDepositoIdState] = useState("");
   // o depósito escolhido fica guardado no computador (vale também ao reabrir sem internet)
   useEffect(() => {
@@ -710,7 +723,8 @@ function FrenteCaixa() {
           produto_id: p.id,
           descricao: p.descricao,
           unidade: p.unidade_venda ?? p.unidade ?? "UN",
-          preco: Number(p.preco_venda ?? 0),
+          preco: precoDoCliente(p.id, p.preco_venda),
+          precoAuto: precoDoCliente(p.id, p.preco_venda),
           quantidade: q,
         },
       ];
@@ -1198,7 +1212,9 @@ function FrenteCaixa() {
                         className={`flex w-full justify-between px-3 py-2 text-left text-sm ${i === sel ? "bg-accent/30" : ""}`}
                       >
                         <span>{p.descricao}</span>
-                        <span className="text-numeric">{brl(p.preco_venda)}</span>
+                        <span className="text-numeric">
+                          {brl(precoDoCliente(p.id, p.preco_venda))}
+                        </span>
                       </button>
                     ))}
                   </div>

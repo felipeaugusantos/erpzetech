@@ -247,7 +247,8 @@ Origem: comparativo entre o erpzetech e o ERP legado (Delphi/MySQL, repositório
 
 - [ ] Tabelas de preço e faixas de desconto (legado: `CadFaixaDesc*`, `CadDescontoCliente*`, `CadDescontoMaximoPorAtividade`)
   - [x] Tabelas de preço por cliente (migration `20261119000000_tabelas_preco.sql`, tela `/tabelas-preco`, campo no cadastro do cliente): ajuste percentual sobre o preço de venda, preço fixo por produto, tabela ativa/inativa; só administrador e gestor alteram; o orçamento e o novo pedido usam o preço da tabela do cliente ao adicionar o produto (`src/lib/tabela-preco.ts`)
-  - [ ] Aplicar a tabela também no PDV, na frente de caixa (cliente opcional) e ao alterar pedido já criado; hoje o preço enviado ao banco vem da tela, sem conferência no servidor
+  - [x] Tabela aplicada no PDV e na frente de caixa: ao escolher o cliente, os produtos já no carrinho passam para o preço da tabela dele (e voltam ao normal sem cliente), exceto linhas que o operador alterou à mão ou que vieram de outra origem (serviço da agenda, modelo); a lista de busca mostra o preço do cliente. Sem internet vale o último preço guardado no aparelho
+  - [ ] Aplicar a tabela também ao alterar pedido já criado; hoje o preço enviado ao banco vem da tela, sem conferência no servidor
   - [ ] Faixa de desconto por grupo, marca e perfil (vendedor/gerente), desconto máximo por atividade, e preço por faixa de quantidade
 - [ ] Promoção, combo/kit e cupom de desconto (legado: `Promocao/`, `CadComboProdVenda`, `CadCupomDesconto`)
 - [ ] Alteração global de preço e de desconto com prévia (legado: `untAltPrecoGlobal`, `AlteracaoGlobalDescontoProdutos`)

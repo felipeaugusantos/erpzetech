@@ -30,3 +30,22 @@ export function rotuloAjuste(ajuste: number): string {
   const valor = Math.abs(ajuste).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
   return ajuste < 0 ? `${valor}% de desconto` : `${valor}% de acréscimo`;
 }
+
+/**
+ * Troca o preço das linhas do carrinho quando muda a tabela do cliente. Só mexe nas linhas que entraram pelo preço
+ * automático (`precoAuto`) e que o operador não alterou à mão (`preco === precoAuto`). Devolve o mesmo array
+ * quando nada muda, para não disparar renderização à toa.
+ */
+export function reprecificarLinhas<
+  L extends { produto_id: string; preco: number; precoAuto?: number },
+>(linhas: L[], precoDe: (produtoId: string) => number | null): L[] {
+  let mudou = false;
+  const novas = linhas.map((l) => {
+    if (l.precoAuto === undefined || l.preco !== l.precoAuto) return l;
+    const novo = precoDe(l.produto_id);
+    if (novo === null || novo === l.precoAuto) return l;
+    mudou = true;
+    return { ...l, preco: novo, precoAuto: novo };
+  });
+  return mudou ? novas : linhas;
+}

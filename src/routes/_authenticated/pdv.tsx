@@ -12,6 +12,8 @@ import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { InstalarApp } from "@/components/app/InstalarApp";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { useTabelaPrecoPorClienteId } from "@/hooks/useTabelaPrecoCliente";
+import { reprecificarLinhas } from "@/lib/tabela-preco";
 import { EmitirNfce } from "@/components/app/EmitirNfce";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +61,8 @@ type Linha = {
   descricao: string;
   unidade: string;
   preco: number;
+  /** Preço que entrou sozinho (preço do produto ou da tabela do cliente); se o operador mudar, deixa de acompanhar o cliente. */
+  precoAuto?: number;
   quantidade: number;
   /** Texto digitado, para permitir venda fracionada com vírgula (ex.: 0,500). */
   qtdTexto: string;
@@ -124,6 +128,17 @@ function Pdv() {
   const clientes = data?.clientes ?? [];
   const caixaAberto = data?.caixaAberto ?? null;
 
+  // preço do cliente escolhido: a tabela de preço dele, se tiver; senão o preço normal do produto
+  const { preco: precoDoCliente } = useTabelaPrecoPorClienteId(
+    clienteId === "balcao" ? null : clienteId,
+  );
+  useEffect(() => {
+    const base = new Map((data?.produtos ?? []).map((p) => [p.id, p.preco_venda]));
+    setLinhas((atual) =>
+      reprecificarLinhas(atual, (id) => (base.has(id) ? precoDoCliente(id, base.get(id)) : null)),
+    );
+  }, [precoDoCliente, data?.produtos]);
+
   useEffect(() => {
     const primeiro = depositos[0];
     if (!depositoId && primeiro) setDepositoId(primeiro.id);
@@ -177,7 +192,8 @@ function Pdv() {
           produto_id: p.id,
           descricao: p.descricao,
           unidade: p.unidade_venda ?? p.unidade ?? "UN",
-          preco: Number(p.preco_venda ?? 0),
+          preco: precoDoCliente(p.id, p.preco_venda),
+          precoAuto: precoDoCliente(p.id, p.preco_venda),
           quantidade,
           qtdTexto: String(quantidade).replace(".", ","),
           disponivel: disponivelPorProduto.get(p.id) ?? 0,
@@ -410,7 +426,9 @@ function Pdv() {
                         <span className="hidden text-xs text-muted-foreground sm:inline">
                           {num(disponivelPorProduto.get(p.id) ?? 0, 2)} disp.
                         </span>
-                        <span className="text-numeric">{brl(Number(p.preco_venda ?? 0))}</span>
+                        <span className="text-numeric">
+                          {brl(precoDoCliente(p.id, p.preco_venda))}
+                        </span>
                       </button>
                     </li>
                   ))}

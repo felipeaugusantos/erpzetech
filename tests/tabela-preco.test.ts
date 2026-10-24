@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { precoNaTabela, rotuloAjuste } from "../src/lib/tabela-preco.ts";
+import { precoNaTabela, reprecificarLinhas, rotuloAjuste } from "../src/lib/tabela-preco.ts";
 
 const atacado = { ajuste_percentual: -10, ativa: true };
 
@@ -36,4 +36,41 @@ test("rótulo do ajuste", () => {
   assert.equal(rotuloAjuste(0), "Preço normal");
   assert.equal(rotuloAjuste(-10), "10% de desconto");
   assert.equal(rotuloAjuste(5.5), "5,5% de acréscimo");
+});
+
+test("reprecificar troca só as linhas de preço automático que o operador não mexeu", () => {
+  const linhas = [
+    { produto_id: "a", preco: 100, precoAuto: 100 }, // automático: troca
+    { produto_id: "b", preco: 70, precoAuto: 100 }, // preço alterado à mão: mantém
+    { produto_id: "c", preco: 50 }, // veio de outra origem (serviço, modelo): mantém
+    { produto_id: "d", preco: 20, precoAuto: 20 }, // produto desconhecido: mantém
+  ];
+  const novo = reprecificarLinhas(linhas, (id) => (id === "d" ? null : 90));
+  assert.deepEqual(novo, [
+    { produto_id: "a", preco: 90, precoAuto: 90 },
+    { produto_id: "b", preco: 70, precoAuto: 100 },
+    { produto_id: "c", preco: 50 },
+    { produto_id: "d", preco: 20, precoAuto: 20 },
+  ]);
+});
+
+test("reprecificar devolve o mesmo array quando nada muda", () => {
+  const linhas = [{ produto_id: "a", preco: 100, precoAuto: 100 }];
+  assert.equal(
+    reprecificarLinhas(linhas, () => 100),
+    linhas,
+  );
+  const vazio: { produto_id: string; preco: number; precoAuto?: number }[] = [];
+  assert.equal(
+    reprecificarLinhas(vazio, () => 1),
+    vazio,
+  );
+});
+
+test("voltar ao preço normal (sem tabela) também reprecifica", () => {
+  const linhas = [{ produto_id: "a", preco: 90, precoAuto: 90 }];
+  assert.deepEqual(
+    reprecificarLinhas(linhas, () => 100),
+    [{ produto_id: "a", preco: 100, precoAuto: 100 }],
+  );
 });

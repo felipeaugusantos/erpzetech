@@ -43,3 +43,21 @@ export function useTabelaPrecoCliente(tabelaPrecoId: string | null | undefined) 
 
   return { tabela: data?.tabela && data.tabela.ativa ? data.tabela : null, preco };
 }
+
+/** Igual a `useTabelaPrecoCliente`, mas a partir do id do cliente (PDV e frente de caixa, onde o cliente é opcional). */
+export function useTabelaPrecoPorClienteId(clienteId: string | null | undefined) {
+  const { data: tabelaId } = useQuery({
+    queryKey: ["cliente-tabela-preco-id", clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("tabela_preco_id")
+        .eq("id", clienteId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.tabela_preco_id ?? null;
+    },
+  });
+  return useTabelaPrecoCliente(clienteId ? tabelaId : null);
+}
