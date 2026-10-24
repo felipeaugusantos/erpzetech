@@ -38,6 +38,7 @@ import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authe
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
 import { Route as AuthenticatedClinicaVacinasRouteImport } from './routes/_authenticated/clinica-vacinas'
+import { Route as AuthenticatedComandasFechadasRouteImport } from './routes/_authenticated/comandas-fechadas'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -307,6 +308,12 @@ const AuthenticatedClinicaVacinasRoute =
   AuthenticatedClinicaVacinasRouteImport.update({
     id: '/clinica-vacinas',
     path: '/clinica-vacinas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedComandasFechadasRoute =
+  AuthenticatedComandasFechadasRouteImport.update({
+    id: '/comandas-fechadas',
+    path: '/comandas-fechadas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
@@ -945,6 +952,7 @@ export interface FileRoutesByFullPath {
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/comandas-fechadas': typeof AuthenticatedComandasFechadasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1084,6 +1092,7 @@ export interface FileRoutesByTo {
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/comandas-fechadas': typeof AuthenticatedComandasFechadasRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1225,6 +1234,7 @@ export interface FileRoutesById {
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/_authenticated/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/_authenticated/comandas-fechadas': typeof AuthenticatedComandasFechadasRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1366,6 +1376,7 @@ export interface FileRouteTypes {
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/comandas-fechadas'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1505,6 +1516,7 @@ export interface FileRouteTypes {
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/comandas-fechadas'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1645,6 +1657,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
     | '/_authenticated/clinica-vacinas'
+    | '/_authenticated/comandas-fechadas'
     | '/_authenticated/comissoes'
     | '/_authenticated/conferencia-offline'
     | '/_authenticated/configuracoes'
@@ -1970,6 +1983,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-vacinas'
       fullPath: '/clinica-vacinas'
       preLoaderRoute: typeof AuthenticatedClinicaVacinasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/comandas-fechadas': {
+      id: '/_authenticated/comandas-fechadas'
+      path: '/comandas-fechadas'
+      fullPath: '/comandas-fechadas'
+      preLoaderRoute: typeof AuthenticatedComandasFechadasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/comissoes': {
@@ -2761,6 +2781,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
   AuthenticatedClinicaVacinasRoute: typeof AuthenticatedClinicaVacinasRoute
+  AuthenticatedComandasFechadasRoute: typeof AuthenticatedComandasFechadasRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -2895,6 +2916,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
   AuthenticatedClinicaVacinasRoute: AuthenticatedClinicaVacinasRoute,
+  AuthenticatedComandasFechadasRoute: AuthenticatedComandasFechadasRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
@@ -3024,3 +3046,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
