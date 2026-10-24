@@ -224,3 +224,59 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
 - [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame ✔ · 5e anexos ✔
+
+## Rodada 12 — Paridade com o legado Delphi (`projeto-legado`)
+
+Origem: comparativo entre o erpzetech e o ERP legado (Delphi/MySQL, repositório `felipeaugusantos/sistema`, pasta `projeto-legado`). A coluna "o que o legado tem" vem de nomes de pastas e arquivos, sem leitura das regras de negócio; antes de cada item, ler o código do legado indicado e confirmar no erpzetech que o recurso realmente não existe. Itens fora do alvo atual (tintométrico e indústria/ordem de produção) ficam em "Fora do alvo".
+
+### Etapa 12.1 — Recebimento e fiscal (prioridade alta)
+
+- [ ] NFC-e no PDV e na frente de caixa, com cupom fiscal (legado: `ecf/`, `paf/`, `DanfeNFCe.fr3`; repete o item da Rodada 6)
+- [ ] Boleto registrado, remessa/retorno CNAB 240/400 e baixa automática (legado: `boleto/`, `autban/`, `libIntegracaoContasBancarias/`, `EnviaEmailBoletoMonitor`)
+- [ ] Pix com cobrança e baixa automática, com consulta periódica de pagamentos (legado: `libIntegracaoPixCitel/`, `ConsultaPagamentosPixMonitor`, `Link.Pagamento`)
+- [ ] TEF real com a maquininha e conciliação de cartão por adquirente (legado: `libTefMultiplus/`, `libTefCitel/`, `PinPad/`, `libCartoes/`, `libIntegracaoCartoes/`)
+- [ ] SPED Fiscal, SPED Contribuições e exportação para a contabilidade (legado: `fiscal/untExecutaSPED.pas`, `libReinf/`, `Contabilidade/`, `MonitorContabil`)
+- [ ] CT-e e MDF-e emitidos pela loja (hoje só há leitura de DACTE para custo de frete)
+
+### Etapa 12.2 — Preço, promoção e cadastros em massa (prioridade alta)
+
+- [ ] Tabelas de preço com faixa de desconto por cliente, grupo, marca e perfil (vendedor/gerente), com desconto máximo por atividade (legado: `CadFaixaDesc*`, `CadDescontoCliente*`, `CadDescontoMaximoPorAtividade`)
+- [ ] Promoção, combo/kit e cupom de desconto (legado: `Promocao/`, `CadComboProdVenda`, `CadCupomDesconto`)
+- [ ] Alteração global de preço e de desconto com prévia (legado: `untAltPrecoGlobal`, `AlteracaoGlobalDescontoProdutos`)
+- [ ] Importação em massa por planilha: produtos, clientes, fornecedores e saldos de estoque (repete o item da Rodada 6; legado: `ImportacaoDados/`)
+
+### Etapa 12.3 — Gestão financeira (prioridade média)
+
+- [ ] Plano de contas, centro de custo e rateio de lançamentos (legado: `CadCentroCusto`, `CadCtaResultados`)
+- [ ] DRE, balancete e previsão orçamentária por mês (legado: `ClasseBalanceteFinanceiro`, `CadPrevisaoMensal`)
+- [ ] Cheques pré-datados e emitidos (legado: `financeiro/chequepre/`, `chequeemitido/`)
+- [ ] Open Finance / extrato bancário por API, além do OFX (legado: `libIntegracaoContasBancarias/`)
+
+### Etapa 12.4 — Operações, depósito e logística (prioridade média)
+
+- [ ] Endereçamento de depósito: armazém, rua/prateleira, doca e operador (legado: `CadArmazem`, `CadDocas`, `untEnderecamentoProduto`)
+- [ ] Número de série e controle de garantia com checklist e envio de conserto ao fornecedor (legado: `untControleNumeroSerie`, `Garantia/`)
+- [ ] Consignação, comodato, remessa e entrega futura com saldo e baixa por documento fiscal (legado: `fiscal/CFOP/`, `Entrega.Futura`, `RecalculoEntregaFuturaMonitor`)
+- [ ] Integração de frete: cotação e etiqueta com transportadoras (legado: `Intelipost`, `Jadlog`, `Mandae`, `LalaMove`, `Correios`, `Frenet`, `DataFrete`)
+- [ ] Cálculo de rota de entrega (legado: `Calculo.Rota`)
+
+### Etapa 12.5 — Relacionamento e canais (prioridade média)
+
+- [ ] CRM: leads, ocorrências, ações automáticas e histórico por cliente (legado: `crm/`)
+- [ ] Cashback e clube de fidelidade (legado: `CadCashback`, `untClubeFidelidade`)
+- [ ] Pesquisa de satisfação pós-venda (legado: `Pesquisa.Satisfacao.Tracksale`)
+- [ ] WhatsApp e SMS automáticos: aviso de pedido, entrega e cobrança (legado: `whatsapp/`, `sms/`)
+- [ ] E-commerce e marketplaces, incluindo iFood (Rodada 7, R3b) e etiqueta de despacho (legado: `MarketPlace/`, `B2W/`, `iLog/`)
+
+### Etapa 12.6 — Relatórios e qualidade (prioridade média)
+
+- [ ] Relatórios com filtros salvos, exportação para planilha em todas as telas e editor de modelos (legado: `editorRelatorios/`, ~357 modelos `.fr3`)
+- [ ] Testes automatizados de imposto (ICMS, ST, DIFAL, IPI, CFOP) usando os casos do legado como referência (legado: `TestCase/`, `TestesUnitariosStClientes` e similares)
+- [ ] Verificar se o horário gravado em vendas feitas sem internet vem do servidor, não do relógio do aparelho (o legado proíbe `Now()` por esse motivo)
+- [ ] Adotar `docs/specs/<rodada>/spec.md`, `plan.md` e `tasks.md` por rodada, no formato usado em `projeto-legado/IA/specs`
+- [ ] Quebrar `pedidos.$id.tsx` e `compras.$id.tsx` seguindo a separação em camadas do módulo `Contabilidade/` do legado
+
+### Fora do alvo (portar só se a Ze Tech atender o segmento)
+
+- [ ] Tintométrico: hub de marcas e fórmulas (legado: `autcomtinta/`, `auttin/`, `LibTintas/`)
+- [ ] Indústria: estrutura de produto, ordem de produção e custos (legado: `industrial/`, `OrdemProducaoIndustrial/`)
