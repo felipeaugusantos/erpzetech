@@ -23,6 +23,8 @@ export const Route = createFileRoute("/auth")({
       },
       { property: "og:title", content: "Entrar no ERP Ze Tech" },
       { property: "og:description", content: "Acesso ao ERP da sua loja de materiais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -141,16 +143,16 @@ function AuthPage() {
                 </div>
                 {usuarioOuEmail.trim() !== "" && !pareceEmail(usuarioOuEmail) && (
                   <div>
-                    <Label htmlFor="empresa">Empresa</Label>
+                    <Label htmlFor="empresa">Empresa (link ou código)</Label>
                     <Input
                       id="empresa"
                       required
                       value={empresa}
                       onChange={(e) => setEmpresa(e.target.value)}
-                      placeholder="o link da sua empresa, ex.: minha-loja"
+                      placeholder="Link ou código da empresa"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      É o nome no endereço de acesso da empresa. Pergunte ao administrador.
+                      Use o link personalizado ou o código informado pelo administrador.
                     </p>
                   </div>
                 )}

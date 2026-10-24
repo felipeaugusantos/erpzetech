@@ -27,6 +27,10 @@ export const Route = createFileRoute("/_authenticated/clinica-documento")({
         name: "description",
         content: "Receita, atestado, termo ou solicitação de exames para imprimir.",
       },
+      { property: "og:title", content: "Documento da clínica — ERP Ze Tech" },
+      { property: "og:description", content: "Documentos clínicos do paciente para impressão." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: DocumentoModulo,
@@ -65,7 +69,7 @@ function Documento() {
         description="Abra o documento pela ficha do paciente ou pelo atendimento."
         action={
           <Button asChild variant="outline">
-            <Link to="/clinica-prontuario">Ir para o Prontuário</Link>
+            <Link to="/clinica-prontuario" search={{ pet: undefined }}>Ir para o Prontuário</Link>
           </Button>
         }
       />

@@ -128,7 +128,9 @@ function Operadores() {
       });
     },
     onSuccess: () => {
-      toast.success("Operador cadastrado");
+      toast.success("Operador cadastrado", {
+        description: `Acesso em /auth com usuário, senha e código da empresa: ${session?.profile?.tenant_id ?? ""}`,
+      });
       setNovo(null);
       recarregar();
     },
