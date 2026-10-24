@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Verificar e corrigir o acesso por usuário em empresas sem link configurado (finding 6525bb07).
+- [ ] Corrigir e verificar a consulta de Tempo Real dos clientes (finding daf16767).
+
 - [x] Liberar todos os módulos para empresa-modelo, incluindo Personalização e Obras, preservando cadastro fiscal e permissões; liberações conferidas no banco, 22 testes passaram e Obras/Personalização abriram com sessão autenticada.
 
 - [x] Tela Módulos sem CNPJ no menu Administração, com caixinhas e prévia das opções; 17 testes passaram e tela autenticada conferida sem erros, sem alterar a empresa real. Salvamento em negócio sem CNPJ não exercitado nesta verificação.
