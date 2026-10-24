@@ -6160,3 +6160,106 @@ BEGIN
                       FROM nfe WHERE id = n1),
                    'item do cardápio sem produto fiscal deixa a NFC-e em rascunho, sem gastar número');
 END $$;
+
+-- 68. Cobrança por boleto e Pix: configuração com segredo, registro, baixa automática idempotente e isolamento
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro uuid;
+  c1 uuid; c2 uuid; c3 uuid; c4 uuid; cob1 uuid; cob2 uuid; cob3 uuid; cob4 uuid; token text; n_baixas bigint; r text;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Outra loja cobrança CI') RETURNING id INTO outro;
+  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Conta cobrança 1', current_date + 5, 100) RETURNING id INTO c1;
+  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Conta cobrança 2', current_date + 5, 100) RETURNING id INTO c2;
+  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Conta cobrança 3', current_date + 5, 100) RETURNING id INTO c3;
+  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (demo, 'Conta cobrança 4', current_date + 5, 100) RETURNING id INTO c4;
+
+  -- configuração: só administrador e gestão; a chave e o hash nunca voltam ao navegador
+  PERFORM ci.deve_falhar(gar, $c$SELECT cobranca_config_gerar_token()$c$, 'garçom gera token do webhook');
+  PERFORM ci.deve_falhar(gar, $c$SELECT cobranca_config_salvar('sandbox', 'CHAVE-DE-TESTE-0123456789')$c$, 'garçom grava a chave da API');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT cobranca_config_gerar_token()$c$, 'anon gera token do webhook');
+  PERFORM ci.deve_falhar(adm, $c$SELECT cobranca_config_salvar('sandbox', 'curta')$c$, 'chave da API curta demais');
+  PERFORM ci.deve_falhar(adm, $c$SELECT cobranca_config_salvar('sandbox', 'CHAVE-DE-TESTE-0123456789', true)$c$, 'ligar a cobrança sem o token do webhook');
+  PERFORM ci.entrar(adm);
+  token := cobranca_config_gerar_token();
+  PERFORM cobranca_config_salvar('sandbox', 'CHAVE-DE-TESTE-0123456789', true);
+  PERFORM ci.sair();
+  PERFORM ci.exige(length(token) = 64, 'o token do webhook tem 64 caracteres');
+  PERFORM ci.exige((SELECT webhook_token_hash <> token AND api_key = 'CHAVE-DE-TESTE-0123456789' AND ativo FROM cobranca_config WHERE tenant_id = demo),
+                   'no banco fica só o hash do token e a empresa fica ativa');
+  PERFORM ci.deve_falhar(adm, $c$SELECT api_key FROM cobranca_config$c$, 'administrador lê a chave da API pelo navegador');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM cobranca_config_obter() WHERE api_key_configurada AND webhook_configurado AND ativo') = 1,
+                   'a tela só fica sabendo se a chave e o webhook estão configurados');
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige(cobranca_tenant_do_token(token) = demo, 'o token resolve a empresa dona');
+  PERFORM ci.exige(cobranca_tenant_do_token(token || 'x') IS NULL AND cobranca_tenant_do_token(NULL) IS NULL, 'token errado ou vazio não resolve empresa');
+  EXECUTE 'RESET ROLE';
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_tenant_do_token(%L)$c$, token), 'usuário resolve empresa pelo token');
+
+  -- registrar
+  PERFORM ci.deve_falhar(gar, format($c$SELECT cobranca_registrar(%L, 'boleto', 'asaas', 'pay_x1', current_date + 5)$c$, c1), 'garçom registra cobrança');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_registrar(%L, 'cheque', 'asaas', 'pay_x2', current_date + 5)$c$, c1), 'tipo de cobrança inválido');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_registrar(%L, 'boleto', 'outro', 'pay_x3', current_date + 5)$c$, c1), 'provedor diferente do configurado');
+  PERFORM ci.entrar(adm);
+  cob1 := cobranca_registrar(c1, 'boleto', 'asaas', 'pay_ci_1', current_date + 5, '34191.79001 01043.510047 91020.150008 1 99990000010000', NULL, 'https://exemplo.test/boleto/1');
+  cob2 := cobranca_registrar(c2, 'pix', 'asaas', 'pay_ci_2', current_date + 5, NULL, NULL, NULL, '00020126CI');
+  cob3 := cobranca_registrar(c3, 'pix', 'asaas', 'pay_ci_3', current_date + 5, NULL, NULL, NULL, '00020126CI3');
+  cob4 := cobranca_registrar(c4, 'boleto', 'asaas', 'pay_ci_4', current_date + 5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor = 100 AND situacao = 'pendente' AND tenant_id = demo FROM cobrancas WHERE id = cob1), 'a cobrança nasce pendente, com o saldo da conta');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_registrar(%L, 'boleto', 'asaas', 'pay_ci_dup', current_date + 5)$c$, c1), 'duas cobranças em aberto do mesmo tipo na mesma conta');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM cobrancas') >= 4, 'a empresa lê as próprias cobranças');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM cobrancas') = 0, 'o garçom não lê cobranças');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO cobrancas (tenant_id, conta_receber_id, provedor, provedor_id, tipo, valor, vencimento) VALUES (%L, %L, 'asaas', 'direto', 'pix', 1, current_date)$c$, demo, c1), 'inserir cobrança direto pelo navegador');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE cobrancas SET situacao = 'paga' WHERE id = %L$c$, cob1), 'marcar cobrança como paga direto pelo navegador');
+
+  -- o aviso do provedor só vale para o servidor
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_evento(%L, 'asaas', 'pay_ci_1', 'paga', 100)$c$, demo), 'usuário dá baixa pelo aviso do provedor');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT cobranca_evento(%L, 'asaas', 'pay_ci_1', 'paga', 100)$c$, demo), 'anon dá baixa pelo aviso do provedor');
+
+  EXECUTE 'SET ROLE service_role';
+  -- pagamento integral: baixa uma vez só
+  r := cobranca_evento(demo, 'asaas', 'pay_ci_1', 'paga', 100, current_date);
+  PERFORM ci.exige(r = 'baixada', 'o aviso de pagamento baixa a conta');
+  r := cobranca_evento(demo, 'asaas', 'pay_ci_1', 'paga', 100, current_date);
+  PERFORM ci.exige(r = 'repetido', 'o mesmo aviso de novo não baixa outra vez');
+  -- empresa errada ou cobrança desconhecida
+  PERFORM ci.exige(cobranca_evento(outro, 'asaas', 'pay_ci_2', 'paga', 100) = 'nao_encontrada', 'aviso com a empresa errada não acha a cobrança');
+  PERFORM ci.exige(cobranca_evento(demo, 'asaas', 'pay_nao_existe', 'paga', 100) = 'nao_encontrada', 'cobrança desconhecida');
+  -- pago acima do saldo (juros e multa): baixa o saldo, guarda o que o provedor recebeu
+  r := cobranca_evento(demo, 'asaas', 'pay_ci_2', 'paga', 104.5, current_date);
+  PERFORM ci.exige(r = 'baixada', 'pagamento com juros baixa a conta');
+  -- pago abaixo do saldo: conta fica parcial, com alerta
+  r := cobranca_evento(demo, 'asaas', 'pay_ci_3', 'paga', 60, current_date);
+  PERFORM ci.exige(r = 'baixada', 'pagamento menor baixa parcialmente');
+  -- vencida e cancelada
+  PERFORM ci.exige(cobranca_evento(demo, 'asaas', 'pay_ci_4', 'vencida') = 'registrado', 'aviso de vencida');
+  EXECUTE 'RESET ROLE';
+
+  PERFORM ci.exige((SELECT situacao = 'pago' AND valor_recebido = 100 FROM contas_receber WHERE id = c1), 'a conta paga fica quitada');
+  SELECT count(*) INTO n_baixas FROM financeiro_baixas WHERE conta_receber_id = c1;
+  PERFORM ci.exige(n_baixas = 1, 'só uma baixa para o pagamento repetido');
+  PERFORM ci.exige((SELECT forma_pagamento = 'boleto' AND valor = 100 AND observacao LIKE '%pay_ci_1%' FROM financeiro_baixas WHERE conta_receber_id = c1), 'a baixa guarda a forma e a cobrança de origem');
+  PERFORM ci.exige((SELECT situacao = 'paga' AND baixa_id IS NOT NULL AND valor_pago = 100 FROM cobrancas WHERE id = cob1), 'a cobrança paga guarda a baixa');
+  PERFORM ci.exige((SELECT situacao = 'pago' AND valor_recebido = 100 FROM contas_receber WHERE id = c2)
+                   AND (SELECT valor = 100 AND forma_pagamento = 'pix' FROM financeiro_baixas WHERE conta_receber_id = c2)
+                   AND (SELECT valor_pago = 104.5 FROM cobrancas WHERE id = cob2), 'acima do saldo: baixa só o saldo e guarda o valor recebido');
+  PERFORM ci.exige((SELECT situacao = 'parcial' AND valor_recebido = 60 FROM contas_receber WHERE id = c3)
+                   AND (SELECT alerta LIKE 'Pagamento menor%' FROM cobrancas WHERE id = cob3), 'abaixo do saldo: conta parcial e alerta');
+  PERFORM ci.exige((SELECT situacao = 'vencida' FROM cobrancas WHERE id = cob4), 'cobrança vencida');
+
+  -- depois de paga: estorno só gera alerta (a baixa não é desfeita sozinha) e não cancela
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige(cobranca_evento(demo, 'asaas', 'pay_ci_1', 'estornada') = 'registrado', 'aviso de estorno');
+  PERFORM ci.exige(cobranca_evento(demo, 'asaas', 'pay_ci_1', 'cancelada') = 'registrado', 'aviso de cancelamento depois de paga');
+  EXECUTE 'RESET ROLE';
+  PERFORM ci.exige((SELECT situacao = 'paga' AND alerta LIKE 'Pagamento estornado%' FROM cobrancas WHERE id = cob1), 'estorno depois da baixa mantém a cobrança paga e pede conferência');
+  PERFORM ci.exige((SELECT situacao = 'pago' FROM contas_receber WHERE id = c1), 'a conta segue quitada até uma pessoa conferir');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT cobranca_cancelar(%L)$c$, cob1), 'cancelar cobrança já paga');
+  PERFORM ci.entrar(adm);
+  PERFORM cobranca_cancelar(cob4);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM cobrancas WHERE id = cob4), 'cobrança em aberto pode ser cancelada');
+END $$;

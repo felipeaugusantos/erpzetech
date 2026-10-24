@@ -233,8 +233,12 @@ Origem: comparativo entre o erpzetech e o ERP legado (Delphi/MySQL, repositório
 ### Etapa 12.1 — Recebimento e fiscal (prioridade alta)
 
 - [ ] NFC-e no PDV e na frente de caixa, com cupom fiscal (legado: `ecf/`, `paf/`, `DanfeNFCe.fr3`; repete o item da Rodada 6)
-- [ ] Boleto registrado, remessa/retorno CNAB 240/400 e baixa automática (legado: `boleto/`, `autban/`, `libIntegracaoContasBancarias/`, `EnviaEmailBoletoMonitor`)
-- [ ] Pix com cobrança e baixa automática, com consulta periódica de pagamentos (legado: `libIntegracaoPixCitel/`, `ConsultaPagamentosPixMonitor`, `Link.Pagamento`)
+- [ ] Boleto registrado e Pix com baixa automática pela **Asaas** (provedor escolhido; legado: `boleto/`, `libIntegracaoPixCitel/`, `ConsultaPagamentosPixMonitor`, `Link.Pagamento`). Cada loja usa a própria conta Asaas.
+  - [x] Base no banco, independente de provedor (migration `20261118000000_cobrancas.sql`): `cobranca_config` (chave da API só no servidor, token do webhook guardado como hash), `cobrancas` ligadas à conta a receber (uma em aberto por conta e tipo), `cobranca_registrar`/`cobranca_cancelar` e `cobranca_evento` (só `service_role`): baixa automática idempotente, com pagamento acima do saldo (juros) baixando só o saldo, pagamento menor deixando a conta parcial com alerta, e estorno só gerando alerta. 27 verificações novas no `smoke.sql`
+  - [ ] Adaptador da Asaas no servidor: criar cobrança (boleto com linha digitável, Pix copia e cola), cancelar, e receber o webhook (`asaas-access-token` → `cobranca_tenant_do_token` → `cobranca_evento`). **Bloqueado**: o ambiente da sessão não alcança `docs.asaas.com` nem `api-sandbox.asaas.com`, então a API não foi lida nem testada
+  - [ ] Tela de configuração (chave da API, ambiente, gerar token do webhook) e botão "Gerar boleto/Pix" nas contas a receber, com cópia da linha digitável e do Pix
+  - [ ] Conferir em sandbox: boleto pago, Pix pago, vencida, cancelada e estornada
+- [ ] Remessa/retorno CNAB 240/400 com o banco (legado: `autban/`, `libIntegracaoContasBancarias/`), para quem não usa provedor
 - [ ] TEF real com a maquininha e conciliação de cartão por adquirente (legado: `libTefMultiplus/`, `libTefCitel/`, `PinPad/`, `libCartoes/`, `libIntegracaoCartoes/`)
 - [ ] SPED Fiscal, SPED Contribuições e exportação para a contabilidade (legado: `fiscal/untExecutaSPED.pas`, `libReinf/`, `Contabilidade/`, `MonitorContabil`)
 - [ ] CT-e e MDF-e emitidos pela loja (hoje só há leitura de DACTE para custo de frete)
