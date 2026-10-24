@@ -249,7 +249,9 @@ Origem: comparativo entre o erpzetech e o ERP legado (Delphi/MySQL, repositório
   - [x] Tabelas de preço por cliente (migration `20261119000000_tabelas_preco.sql`, tela `/tabelas-preco`, campo no cadastro do cliente): ajuste percentual sobre o preço de venda, preço fixo por produto, tabela ativa/inativa; só administrador e gestor alteram; o orçamento e o novo pedido usam o preço da tabela do cliente ao adicionar o produto (`src/lib/tabela-preco.ts`)
   - [x] Tabela aplicada no PDV e na frente de caixa: ao escolher o cliente, os produtos já no carrinho passam para o preço da tabela dele (e voltam ao normal sem cliente), exceto linhas que o operador alterou à mão ou que vieram de outra origem (serviço da agenda, modelo); a lista de busca mostra o preço do cliente. Sem internet vale o último preço guardado no aparelho
   - [ ] Aplicar a tabela também ao alterar pedido já criado; hoje o preço enviado ao banco vem da tela, sem conferência no servidor
-  - [ ] Faixa de desconto por grupo, marca e perfil (vendedor/gerente), desconto máximo por atividade, e preço por faixa de quantidade
+  - [x] Faixas de desconto por grupo, marca e perfil (migration `20261120000000_faixas_desconto.sql`, tela `/faixas-desconto`): desconto máximo sem senha do gestor, com a faixa mais específica vencendo (grupo + marca, grupo, marca; perfil desempata) e o limite único da empresa como padrão. O servidor aplica em `frente_venda` (`desconto_limite_itens`) e a frente de caixa mostra o mesmo limite
+  - [ ] Aplicar as faixas também no PDV (hoje sem limite de desconto), no desconto por item do orçamento e do pedido e na alteração de pedido
+  - [ ] Desconto máximo por atividade da empresa e preço por faixa de quantidade
 - [ ] Promoção, combo/kit e cupom de desconto (legado: `Promocao/`, `CadComboProdVenda`, `CadCupomDesconto`)
 - [ ] Alteração global de preço e de desconto com prévia (legado: `untAltPrecoGlobal`, `AlteracaoGlobalDescontoProdutos`)
 - [ ] Importação em massa por planilha: produtos, clientes, fornecedores e saldos de estoque (repete o item da Rodada 6; legado: `ImportacaoDados/`)

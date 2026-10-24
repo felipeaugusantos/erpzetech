@@ -3372,6 +3372,57 @@ export type Database = {
           },
         ]
       }
+      faixas_desconto: {
+        Row: {
+          ativa: boolean
+          categoria_id: string | null
+          created_at: string
+          id: string
+          marca: string | null
+          percentual: number
+          perfil: Database["public"]["Enums"]["app_role"] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          percentual: number
+          perfil?: Database["public"]["Enums"]["app_role"] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          percentual?: number
+          perfil?: Database["public"]["Enums"]["app_role"] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faixas_desconto_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faixas_desconto_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       filiais: {
         Row: {
           ativo: boolean
@@ -10147,6 +10198,10 @@ export type Database = {
       decidir_autorizacao_credito: {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
+      }
+      desconto_limite_itens: {
+        Args: { p_itens: Json }
+        Returns: number
       }
       devolucao_registrar: {
         Args: {

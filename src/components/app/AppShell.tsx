@@ -124,6 +124,7 @@ const groups: Group[] = [
       { label: "Produtos", to: "/produtos", icon: PackageSearch },
       { label: "Preços e margens", to: "/precos", icon: Tag },
       { label: "Tabelas de preço", to: "/tabelas-preco", icon: Tag },
+      { label: "Faixas de desconto", to: "/faixas-desconto", icon: Percent },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
       { label: "Lotes e tonalidades", to: "/estoque-lotes", icon: Boxes },

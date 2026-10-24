@@ -650,7 +650,25 @@ function FrenteCaixa() {
   const subtotal = linhas.reduce((s, l) => s + l.quantidade * l.preco, 0);
   const descNum = Math.max(Number(desconto.replace(",", ".")) || 0, 0);
   const total = Math.max(subtotal - descNum, 0);
-  const limiteValor = Math.round(subtotal * (base?.limite ?? 5)) / 100;
+  // limite de desconto sem senha: o servidor calcula pelas faixas (grupo, marca e perfil); sem resposta vale o limite único da empresa
+  const itensDoLimite = linhas.map((l) => ({
+    produto_id: l.produto_id,
+    quantidade: l.quantidade,
+    preco_unitario: l.preco,
+  }));
+  const { data: limiteServidor } = useQuery({
+    queryKey: ["desconto-limite", JSON.stringify(itensDoLimite)],
+    enabled: itensDoLimite.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("desconto_limite_itens", {
+        p_itens: itensDoLimite,
+      });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+  });
+  const limiteValor = limiteServidor ?? Math.round(subtotal * (base?.limite ?? 5)) / 100;
   const troco = Math.max((Number(recebido.replace(",", ".")) || 0) - total, 0);
   const aPrazo = forma === "crediario" || forma === "boleto";
   const cartao = forma === "cartao_credito" || forma === "cartao_debito";
@@ -1497,8 +1515,9 @@ function FrenteCaixa() {
             <DialogTitle>Desconto na venda</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Até {brl(limiteValor)} ({num(base?.limite ?? 5)}%) sem senha. Acima disso, pede a senha
-            do gestor.
+            Até {brl(limiteValor)} (
+            {num(subtotal > 0 ? (limiteValor / subtotal) * 100 : (base?.limite ?? 5))}%) sem senha.
+            Acima disso, pede a senha do gestor.
           </p>
           <Input
             autoFocus

@@ -59,6 +59,7 @@ import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedEstoqueLotesRouteImport } from './routes/_authenticated/estoque-lotes'
 import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
+import { Route as AuthenticatedFaixasDescontoRouteImport } from './routes/_authenticated/faixas-desconto'
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
@@ -424,6 +425,12 @@ const AuthenticatedExtratoReceberRoute =
   AuthenticatedExtratoReceberRouteImport.update({
     id: '/extrato-receber',
     path: '/extrato-receber',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFaixasDescontoRoute =
+  AuthenticatedFaixasDescontoRouteImport.update({
+    id: '/faixas-desconto',
+    path: '/faixas-desconto',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedFechamentoOperadorRoute =
@@ -980,6 +987,7 @@ export interface FileRoutesByFullPath {
   '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/faixas-desconto': typeof AuthenticatedFaixasDescontoRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
@@ -1121,6 +1129,7 @@ export interface FileRoutesByTo {
   '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/faixas-desconto': typeof AuthenticatedFaixasDescontoRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
@@ -1264,6 +1273,7 @@ export interface FileRoutesById {
   '/_authenticated/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
+  '/_authenticated/faixas-desconto': typeof AuthenticatedFaixasDescontoRoute
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
@@ -1407,6 +1417,7 @@ export interface FileRouteTypes {
     | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
+    | '/faixas-desconto'
     | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
@@ -1548,6 +1559,7 @@ export interface FileRouteTypes {
     | '/estoque-lotes'
     | '/estoque-movimentos'
     | '/extrato-receber'
+    | '/faixas-desconto'
     | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
@@ -1690,6 +1702,7 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque-lotes'
     | '/_authenticated/estoque-movimentos'
     | '/_authenticated/extrato-receber'
+    | '/_authenticated/faixas-desconto'
     | '/_authenticated/fechamento-operador'
     | '/_authenticated/filial-extra'
     | '/_authenticated/fiscal'
@@ -2143,6 +2156,13 @@ declare module '@tanstack/react-router' {
       path: '/extrato-receber'
       fullPath: '/extrato-receber'
       preLoaderRoute: typeof AuthenticatedExtratoReceberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/faixas-desconto': {
+      id: '/_authenticated/faixas-desconto'
+      path: '/faixas-desconto'
+      fullPath: '/faixas-desconto'
+      preLoaderRoute: typeof AuthenticatedFaixasDescontoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fechamento-operador': {
@@ -2822,6 +2842,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueLotesRoute: typeof AuthenticatedEstoqueLotesRoute
   AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
+  AuthenticatedFaixasDescontoRoute: typeof AuthenticatedFaixasDescontoRoute
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
@@ -2958,6 +2979,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueLotesRoute: AuthenticatedEstoqueLotesRoute,
   AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
+  AuthenticatedFaixasDescontoRoute: AuthenticatedFaixasDescontoRoute,
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,

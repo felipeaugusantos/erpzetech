@@ -6312,3 +6312,87 @@ BEGIN
   PERFORM ci.exige((SELECT tabela_preco_id IS NULL FROM clientes WHERE id = cli), 'apagar a tabela solta o cliente');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM tabela_preco_itens WHERE tabela_id = t1), 'apagar a tabela apaga os preços dela');
 END $$;
+
+-- 70. Faixas de desconto por grupo, marca e perfil: quem edita, qual faixa vale e o limite da frente de caixa
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro uuid; cat_o uuid; cat_a uuid; cat_b uuid; pa uuid; pb uuid; pc uuid; dep uuid; r1 uuid; r6 uuid;
+  itens_a jsonb; itens_b jsonb; itens_c jsonb; itens_ab jsonb;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Outra loja faixas CI') RETURNING id INTO outro;
+  INSERT INTO categorias (tenant_id, nome) VALUES (outro, 'Grupo alheio') RETURNING id INTO cat_o;
+  INSERT INTO categorias (tenant_id, nome) VALUES (demo, 'Faixa A CI') RETURNING id INTO cat_a;
+  INSERT INTO categorias (tenant_id, nome) VALUES (demo, 'Faixa B CI') RETURNING id INTO cat_b;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, categoria_id, marca) VALUES (demo, 'FX-A', 'Produto A faixa', 'un', 100, cat_a, 'Votoran') RETURNING id INTO pa;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, categoria_id, marca) VALUES (demo, 'FX-B', 'Produto B faixa', 'un', 50, cat_b, 'Outra') RETURNING id INTO pb;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (demo, 'FX-C', 'Produto C faixa', 'un', 10) RETURNING id INTO pc;
+  itens_a := jsonb_build_array(jsonb_build_object('produto_id', pa, 'quantidade', 1, 'preco_unitario', 100));
+  itens_b := jsonb_build_array(jsonb_build_object('produto_id', pb, 'quantidade', 1, 'preco_unitario', 100));
+  itens_c := jsonb_build_array(jsonb_build_object('produto_id', pc, 'quantidade', 1, 'preco_unitario', 100));
+  itens_ab := jsonb_build_array(jsonb_build_object('produto_id', pa, 'quantidade', 1, 'preco_unitario', 100), jsonb_build_object('produto_id', pb, 'quantidade', 2, 'preco_unitario', 50));
+
+  -- quem edita
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO faixas_desconto (tenant_id, percentual) VALUES (%L, 10)$c$, demo), 'vendedor cria faixa');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO faixas_desconto (tenant_id, percentual) VALUES (%L, 10)$c$, demo), 'garçom cria faixa');
+  PERFORM ci.deve_falhar(NULL, format($c$INSERT INTO faixas_desconto (tenant_id, percentual) VALUES (%L, 10)$c$, demo), 'anon cria faixa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO faixas_desconto (tenant_id, percentual) VALUES (%L, 10)$c$, outro), 'gestão cria faixa em outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO faixas_desconto (categoria_id, percentual) VALUES (%L, 10)$c$, cat_o), 'faixa com grupo de outra empresa');
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO faixas_desconto (percentual) VALUES (101)$c$, 'percentual acima de 100');
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO faixas_desconto (percentual) VALUES (-1)$c$, 'percentual negativo');
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO faixas_desconto (marca, percentual) VALUES ('   ', 3)$c$, 'marca em branco');
+
+  PERFORM ci.entrar(adm);
+  INSERT INTO faixas_desconto (categoria_id, percentual) VALUES (cat_a, 2) RETURNING id INTO r1;
+  INSERT INTO faixas_desconto (marca, percentual) VALUES ('  VOTORAN ', 4);
+  INSERT INTO faixas_desconto (perfil, percentual) VALUES ('vendedor', 8);
+  INSERT INTO faixas_desconto (perfil, categoria_id, percentual) VALUES ('gestor', cat_a, 10);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO faixas_desconto (categoria_id, percentual) VALUES (%L, 3)$c$, cat_a), 'mesma combinação duas vezes');
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO faixas_desconto (marca, percentual) VALUES ('votoran', 3)$c$, 'mesma marca com outra caixa de letras');
+  PERFORM ci.exige((SELECT marca = 'VOTORAN' FROM faixas_desconto WHERE tenant_id = demo AND marca IS NOT NULL), 'a marca é guardada sem espaços nas pontas');
+  INSERT INTO faixas_desconto (tenant_id, percentual) VALUES (outro, 1);
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM faixas_desconto') = 4, 'o vendedor lê só as faixas da própria empresa');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM faixas_desconto') = 0, 'o garçom não lê faixas');
+  PERFORM ci.exige(ci.contar(vend, format($c$WITH u AS (UPDATE faixas_desconto SET percentual = 99 WHERE id = %L RETURNING 1) SELECT count(*) FROM u$c$, r1)) = 0, 'o vendedor não altera faixa (nenhuma linha)');
+
+  -- qual faixa vale
+  PERFORM ci.deve_falhar(gar, format($c$SELECT desconto_limite_itens(%L::jsonb)$c$, itens_a), 'garçom consulta o limite de desconto');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT desconto_limite_itens(%L::jsonb)$c$, itens_a), 'anon consulta o limite de desconto');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 2)::int$c$, itens_a)) = 1, 'grupo + marca: o grupo (mais específico) vence a marca e a faixa do perfil');
+  PERFORM ci.exige(ci.contar(gest, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 10)::int$c$, itens_a)) = 1, 'a faixa do perfil gestor no grupo vence a do grupo para todos');
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 2)::int$c$, itens_a)) = 1, 'administrador sem faixa própria usa a do grupo');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 8)::int$c$, itens_b)) = 1, 'sem faixa de grupo ou marca vale a do perfil vendedor');
+  PERFORM ci.exige(ci.contar(gest, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 5)::int$c$, itens_b)) = 1, 'sem nenhuma faixa vale o limite da empresa (5%)');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 8)::int$c$, itens_c)) = 1, 'produto sem grupo e sem marca: faixa do perfil');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 10)::int$c$, itens_ab)) = 1, 'vários itens somam o limite de cada um (2 + 8)');
+  PERFORM ci.exige(ci.contar(vend, $c$SELECT (desconto_limite_itens('[{"produto_id":"00000000-0000-0000-0000-000000000001","quantidade":1,"preco_unitario":100}]'::jsonb) = 8)::int$c$) = 1, 'produto desconhecido não quebra: vale a faixa do perfil');
+  PERFORM ci.exige(ci.contar(vend, $c$SELECT (desconto_limite_itens('[]'::jsonb) = 0)::int$c$) = 1, 'carrinho vazio tem limite zero');
+  PERFORM ci.deve_falhar(vend, $c$SELECT desconto_limite_itens('{"a":1}'::jsonb)$c$, 'itens que não são uma lista');
+
+  -- faixa inativa deixa de valer
+  UPDATE faixas_desconto SET ativa = false WHERE id = r1;
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 4)::int$c$, itens_a)) = 1, 'faixa inativa não vale: sobra a da marca');
+  UPDATE faixas_desconto SET ativa = true WHERE id = r1;
+
+  -- dois perfis com faixa no mesmo nível: vale a maior
+  INSERT INTO faixas_desconto (tenant_id, perfil, percentual) VALUES (demo, 'caixa', 9) RETURNING id INTO r6;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vend, demo, 'caixa');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT (desconto_limite_itens(%L::jsonb) = 9)::int$c$, itens_b)) = 1, 'usuário com dois perfis no mesmo nível: vale a maior faixa');
+  DELETE FROM user_roles WHERE user_id = vend AND role = 'caixa';
+  DELETE FROM faixas_desconto WHERE id = r6;
+
+  -- frente de caixa: o servidor recusa desconto acima da faixa e aceita até ela
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Faixas CI') RETURNING id INTO dep;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(pa, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT frente_venda(%L, %L::jsonb, 'dinheiro', NULL, 3, 1, NULL, NULL, gen_random_uuid())$c$, dep, itens_a), 'desconto de 3% num grupo com faixa de 2%');
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige(frente_venda(dep, itens_a, 'dinheiro', NULL, 2, 1, NULL, NULL, gen_random_uuid()) IS NOT NULL, 'desconto de 2% no grupo com faixa de 2% passa sem senha');
+  PERFORM ci.sair();
+END $$;
