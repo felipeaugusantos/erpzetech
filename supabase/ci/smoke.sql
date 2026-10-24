@@ -6107,3 +6107,56 @@ BEGIN
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs) VALUES (%L, 'IBS-X2', 'x', 'UN', 0, '000')$c$, demo), 'CST sem cClassTrib');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X3', 'x', 'UN', 0, 'AB1', '000001')$c$, demo), 'CST fora do formato');
 END $$;
+
+-- 67. NFC-e da comanda do restaurante: nota direto da comanda fechada, taxa de serviço e couvert como outras despesas
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa  constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  prod_ok uuid; cat uuid; it_ok uuid; it_sem uuid; c1 uuid; c2 uuid; c3 uuid; n1 uuid; n2 uuid; n_max bigint;
+BEGIN
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, ncm, cst_csosn)
+  VALUES (demo, 'NFCE-CMD', 'Hambúrguer fiscal', 'un', '16025000', '102') RETURNING id INTO prod_ok;
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'NFC-e comanda CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, produto_id) VALUES (demo, cat, 'Hambúrguer CI', 40, prod_ok) RETURNING id INTO it_ok;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco) VALUES (demo, cat, 'Refri sem produto CI', 8) RETURNING id INTO it_sem;
+  SELECT coalesce(max(numero), 0) INTO n_max FROM comandas WHERE tenant_id = demo;
+
+  INSERT INTO comandas (tenant_id, numero, situacao, pessoas, couvert_por_pessoa, subtotal, couvert, taxa_servico, desconto, total, fechada_em)
+  VALUES (demo, n_max + 1, 'fechada', 1, 5, 80, 5, 8, 3, 90, now()) RETURNING id INTO c1;
+  INSERT INTO comanda_itens (tenant_id, comanda_id, cardapio_item_id, nome, estacao, quantidade, preco_unitario, total, situacao)
+  VALUES (demo, c1, it_ok, 'Hambúrguer CI', 'cozinha', 2, 40, 80, 'entregue'),
+         (demo, c1, it_sem, 'Refri cancelado CI', 'nenhuma', 1, 8, 8, 'cancelado');
+  INSERT INTO comandas (tenant_id, numero, situacao, subtotal, total) VALUES (demo, n_max + 2, 'aberta', 8, 8) RETURNING id INTO c2;
+  INSERT INTO comandas (tenant_id, numero, situacao, subtotal, total, fechada_em) VALUES (demo, n_max + 3, 'fechada', 8, 8, now()) RETURNING id INTO c3;
+  INSERT INTO comanda_itens (tenant_id, comanda_id, cardapio_item_id, nome, estacao, quantidade, preco_unitario, total, situacao)
+  VALUES (demo, c3, it_sem, 'Refri sem produto CI', 'nenhuma', 1, 8, 8, 'entregue');
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT nfce_criar_comanda(%L)$c$, c1), 'garçom cria NFC-e da comanda');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT nfce_criar_comanda(%L)$c$, c1), 'anon cria NFC-e da comanda');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_criar_comanda(%L)$c$, c2), 'NFC-e de comanda ainda aberta');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT nfce_criar_comanda(%L, '123')$c$, gen_random_uuid()), 'NFC-e de comanda que não existe');
+
+  PERFORM ci.entrar(cxa);
+  n1 := nfce_criar_comanda(c1, '529.982.247-25');
+  n2 := nfce_criar_comanda(c1, '52998224725');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT modelo = 'nfce' AND comanda_id = c1 AND pedido_id IS NULL AND valor_produtos = 80 AND valor_desconto = 3
+                           AND valor_outras_despesas = 13 AND valor_total = 90 AND destinatario ->> 'cpf' = '52998224725'
+                      FROM nfe WHERE id = n2),
+                   'a NFC-e da comanda leva produtos, desconto e taxa de serviço + couvert como outras despesas, fechando com o total');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM nfe WHERE comanda_id = c1 AND modelo = 'nfce' AND situacao <> 'cancelada'), 'repetir não cria segunda NFC-e da comanda');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(total) = 80 AND bool_and(ncm = '16025000' AND produto_id = prod_ok)
+                      FROM nfe_itens WHERE nfe_id = n2),
+                   'a nota leva só o item não cancelado, com os dados fiscais do produto');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO nfe (tenant_id, comanda_id, modelo) VALUES (%L, %L, 'nfce')$c$, demo, c1), 'duas NFC-e vivas para a mesma comanda');
+
+  PERFORM ci.entrar(adm);
+  n1 := nfce_criar_comanda(c3);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'rascunho' AND numero IS NULL AND 'Item do cardápio sem produto fiscal: Refri sem produto CI' = ANY (pendencias)
+                      FROM nfe WHERE id = n1),
+                   'item do cardápio sem produto fiscal deixa a NFC-e em rascunho, sem gastar número');
+END $$;

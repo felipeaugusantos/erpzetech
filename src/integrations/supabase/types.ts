@@ -4743,6 +4743,7 @@ export type Database = {
           base_icms_st: number
           cancelada_em: string | null
           cfop: string | null
+          comanda_id: string | null
           chave: string | null
           cliente_id: string | null
           codigo_servico: string | null
@@ -4782,6 +4783,7 @@ export type Database = {
           valor_cofins: number
           valor_desconto: number
           valor_frete: number
+          valor_outras_despesas: number
           valor_icms: number
           valor_icms_st: number
           valor_iss: number
@@ -4797,6 +4799,7 @@ export type Database = {
           base_icms_st?: number
           cancelada_em?: string | null
           cfop?: string | null
+          comanda_id?: string | null
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
@@ -4836,6 +4839,7 @@ export type Database = {
           valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_outras_despesas?: number
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number
@@ -4851,6 +4855,7 @@ export type Database = {
           base_icms_st?: number
           cancelada_em?: string | null
           cfop?: string | null
+          comanda_id?: string | null
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
@@ -4890,6 +4895,7 @@ export type Database = {
           valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_outras_despesas?: number
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number
@@ -10407,6 +10413,10 @@ export type Database = {
       }
       nfce_criar: {
         Args: { p_cpf?: string; p_pedido_id: string }
+        Returns: string
+      }
+      nfce_criar_comanda: {
+        Args: { p_comanda_id: string; p_cpf?: string }
         Returns: string
       }
       nfe_calcular_impostos: {

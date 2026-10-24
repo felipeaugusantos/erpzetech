@@ -15,12 +15,17 @@ const COR = {
   erro: "border-destructive/40 bg-destructive/10",
 } as const;
 
-/** NFC-e da venda do balcão: CPF opcional do consumidor, criação da nota e o que falta (se faltar). */
-export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
+/**
+ * NFC-e da venda do balcão (pedido) ou da comanda fechada do restaurante: CPF opcional do consumidor,
+ * criação da nota e o que falta (se faltar). Informe `pedidoId` ou `comandaId`.
+ */
+export function EmitirNfce({ pedidoId, comandaId }: { pedidoId?: string; comandaId?: string }) {
+  const coluna = comandaId ? "comanda_id" : "pedido_id";
+  const origem = (comandaId ?? pedidoId) as string;
   const qc = useQueryClient();
   /** Texto digitado; enquanto o operador não mexe, vale o CPF já guardado na nota. */
   const [editado, setEditado] = useState<string | null>(null);
-  const chave = ["nfce-da-venda", pedidoId];
+  const chave = ["nfce-da-venda", coluna, origem];
 
   const { data: nota, isLoading } = useQuery({
     queryKey: chave,
@@ -28,7 +33,7 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
       const { data, error } = await supabase
         .from("nfe")
         .select("id, situacao, numero, serie, pendencias, mensagem, contingencia, destinatario")
-        .eq("pedido_id", pedidoId)
+        .eq(coluna, origem)
         .eq("modelo", "nfce")
         .neq("situacao", "cancelada")
         .order("created_at", { ascending: false })
@@ -46,10 +51,10 @@ export function EmitirNfce({ pedidoId }: { pedidoId: string }) {
       const problema = erroCpf(cpf);
       if (problema) throw new Error(problema);
       const digitos = soDigitos(cpf);
-      const { error } = await supabase.rpc("nfce_criar", {
-        p_pedido_id: pedidoId,
-        ...(digitos ? { p_cpf: digitos } : {}),
-      });
+      const cpfArg = digitos ? { p_cpf: digitos } : {};
+      const { error } = comandaId
+        ? await supabase.rpc("nfce_criar_comanda", { p_comanda_id: comandaId, ...cpfArg })
+        : await supabase.rpc("nfce_criar", { p_pedido_id: origem, ...cpfArg });
       if (error) throw error;
     },
     onSuccess: async () => {

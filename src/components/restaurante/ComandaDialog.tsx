@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { BaixaParcialDialog } from "@/components/restaurante/BaixaParcialDialog";
 import { DeliveryPainel } from "@/components/restaurante/DeliveryPainel";
+import { EmitirNfce } from "@/components/app/EmitirNfce";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
@@ -81,6 +82,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const [transferindo, setTransferindo] = useState(false);
   const [destino, setDestino] = useState("");
   const [fechando, setFechando] = useState(false);
+  const [nfceComanda, setNfceComanda] = useState<string | null>(null);
   const [baixando, setBaixando] = useState(false);
 
   const { data: cardapio } = useCardapio();
@@ -634,9 +636,27 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
           onFechar={() => setFechando(false)}
           onFechada={() => {
             setFechando(false);
-            onFechar();
+            // quem recebe a conta pode emitir a NFC-e na hora; os demais perfis só encerram
+            if (recebeConta(roles)) setNfceComanda(comanda.id);
+            else onFechar();
           }}
         />
+      )}
+
+      {nfceComanda && (
+        <Dialog open onOpenChange={(o) => !o && onFechar()}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>NFC-e da comanda {comanda?.numero}</DialogTitle>
+            </DialogHeader>
+            <EmitirNfce comandaId={nfceComanda} />
+            <DialogFooter>
+              <Button variant="outline" onClick={onFechar}>
+                Concluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {baixando && comanda && (
