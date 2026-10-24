@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClientes";
+import { useLimiteDesconto } from "@/hooks/useLimiteDesconto";
 import { useTabelaPrecoPorClienteId } from "@/hooks/useTabelaPrecoCliente";
 import { reprecificarLinhas } from "@/lib/tabela-preco";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
@@ -656,18 +657,7 @@ function FrenteCaixa() {
     quantidade: l.quantidade,
     preco_unitario: l.preco,
   }));
-  const { data: limiteServidor } = useQuery({
-    queryKey: ["desconto-limite", JSON.stringify(itensDoLimite)],
-    enabled: itensDoLimite.length > 0,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("desconto_limite_itens", {
-        p_itens: itensDoLimite,
-      });
-      if (error) throw error;
-      return Number(data ?? 0);
-    },
-  });
+  const limiteServidor = useLimiteDesconto(itensDoLimite);
   const limiteValor = limiteServidor ?? Math.round(subtotal * (base?.limite ?? 5)) / 100;
   const troco = Math.max((Number(recebido.replace(",", ".")) || 0) - total, 0);
   const aPrazo = forma === "crediario" || forma === "boleto";

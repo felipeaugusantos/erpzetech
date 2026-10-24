@@ -5,6 +5,7 @@ import { ArrowRight, Check, FileText, Plus, Printer, Search, Trash2, X } from "l
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { AutorizacaoGestor } from "@/components/app/AutorizacaoGestor";
 import { useTabelaPrecoCliente } from "@/hooks/useTabelaPrecoCliente";
 import { rotuloAjuste } from "@/lib/tabela-preco";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -235,8 +236,11 @@ function Orcamentos() {
     setProfissionalId(null);
   }
 
+  /** Texto do servidor quando o desconto passou da faixa: abre a senha do gestor e salva de novo com a autorização. */
+  const [pedirAut, setPedirAut] = useState<string | null>(null);
+
   const salvar = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (autorizacao?: string) => {
       // cabeçalho, itens e total numa transação só: não sobra orçamento vazio nem sem total
       const { error } = await supabase.rpc("orcamento_salvar", {
         p_cliente_id: clienteId,
@@ -251,6 +255,7 @@ function Orcamentos() {
         p_desconto: Number(desconto || 0),
         p_frete: Number(frete || 0),
         ...(observacoes ? { p_observacoes: observacoes } : {}),
+        ...(autorizacao ? { p_autorizacao: autorizacao } : {}),
         p_itens: itens.map((i) => ({
           produto_id: i.produto_id,
           quantidade: i.quantidade,
@@ -267,7 +272,10 @@ function Orcamentos() {
       limpar();
       qc.invalidateQueries({ queryKey: ["orcamentos"] });
     },
-    onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
+    onError: (e: Error) => {
+      if (/exige senha do gestor/i.test(e.message)) setPedirAut(e.message);
+      else toast.error("Erro ao salvar", { description: e.message });
+    },
   });
 
   const mudarSituacao = useMutation({
@@ -773,7 +781,7 @@ function Orcamentos() {
               Cancelar
             </Button>
             <Button
-              onClick={() => salvar.mutate()}
+              onClick={() => salvar.mutate(undefined)}
               disabled={!clienteId || itens.length === 0 || salvar.isPending}
             >
               Salvar orçamento
@@ -958,6 +966,16 @@ function Orcamentos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AutorizacaoGestor
+        aberto={!!pedirAut}
+        motivo={pedirAut ?? ""}
+        onCancelar={() => setPedirAut(null)}
+        onAutorizado={(id) => {
+          setPedirAut(null);
+          salvar.mutate(id);
+        }}
+      />
     </>
   );
 }

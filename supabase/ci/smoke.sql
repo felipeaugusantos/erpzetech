@@ -1719,9 +1719,9 @@ BEGIN
   SELECT count(*) INTO n_depois FROM orcamentos WHERE tenant_id = demo;
   PERFORM ci.exige(n_antes = n_depois, 'orçamento recusado não deixa cabeçalho para trás');
   PERFORM ci.entrar(vend);
-  orc := orcamento_salvar(cli, itens, NULL, NULL, NULL, NULL, '30 dias', NULL, 3, 2, NULL);
+  orc := orcamento_salvar(cli, itens, NULL, NULL, NULL, NULL, '30 dias', NULL, 0, 2, NULL);
   PERFORM ci.sair();
-  PERFORM ci.exige((SELECT subtotal = 24 AND total = 23 AND situacao = 'rascunho' FROM orcamentos WHERE id = orc), 'total do orçamento calculado no banco (24 - 3 + 2)');
+  PERFORM ci.exige((SELECT subtotal = 24 AND total = 26 AND situacao = 'rascunho' FROM orcamentos WHERE id = orc), 'total do orçamento calculado no banco (24 + 2 de frete; o desconto dos itens fica dentro da faixa padrão)');
   PERFORM ci.exige((SELECT count(*) = 2 FROM orcamento_itens WHERE orcamento_id = orc), 'orçamento com os dois itens');
   PERFORM ci.exige((SELECT vendedor_id = vend FROM orcamentos WHERE id = orc), 'vendedor padrão é quem salvou');
 
@@ -6395,4 +6395,69 @@ BEGIN
   PERFORM ci.entrar(adm);
   PERFORM ci.exige(frente_venda(dep, itens_a, 'dinheiro', NULL, 2, 1, NULL, NULL, gen_random_uuid()) IS NOT NULL, 'desconto de 2% no grupo com faixa de 2% passa sem senha');
   PERFORM ci.sair();
+END $$;
+
+-- 71. Faixas de desconto no PDV, no orçamento e no pedido: acima da faixa só com a autorização do gestor
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  dep uuid; pc uuid; cli uuid; itens jsonb; aut uuid; aut2 uuid; aut3 uuid; v uuid; r text;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Faixas PDV CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (demo, 'FX-PDV', 'Produto sem faixa PDV', 'un', 100) RETURNING id INTO pc;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente faixas PDV CI') RETURNING id INTO cli;
+  itens := jsonb_build_array(jsonb_build_object('produto_id', pc, 'quantidade', 1, 'preco_unitario', 100));
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(pc, dep, 'entrada'::mov_tipo, 100, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- a função interna não é chamável pelo usuário
+  PERFORM ci.deve_falhar(adm, format($c$SELECT exige_desconto_autorizado(%L::jsonb, 50, NULL)$c$, itens), 'usuário chama a conferência interna de desconto');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pdv_venda_com_faixas(%L, %L::jsonb, 'dinheiro', NULL, 0)$c$, dep, itens), 'garçom vende pelo PDV com faixas');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pdv_venda_com_faixas(%L, %L::jsonb, 'dinheiro', NULL, 0)$c$, dep, itens), 'anon vende pelo PDV com faixas');
+
+  -- PDV: limite padrão da empresa (5%) num produto sem faixa
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pdv_venda_com_faixas(%L, %L::jsonb, 'dinheiro', NULL, 6)$c$, dep, itens), 'PDV com 6% sem autorização');
+  PERFORM ci.entrar(adm);
+  v := pdv_venda_com_faixas(dep, itens, 'dinheiro', NULL, 5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 5 AND autorizado_por IS NULL FROM pedidos WHERE id = v), 'PDV com 5% passa sem autorização');
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'desconto') RETURNING id INTO aut;
+  PERFORM ci.entrar(adm);
+  v := pdv_venda_com_faixas(dep, itens, 'dinheiro', NULL, 20, 1, NULL, NULL, aut);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 20 AND autorizado_por = gest FROM pedidos WHERE id = v), 'PDV com 20% passa com a autorização e guarda o gestor');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pdv_venda_com_faixas(%L, %L::jsonb, 'dinheiro', NULL, 20, 1, NULL, NULL, %L)$c$, dep, itens, aut), 'reusar a mesma autorização');
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'sangria') RETURNING id INTO aut3;
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pdv_venda_com_faixas(%L, %L::jsonb, 'dinheiro', NULL, 20, 1, NULL, NULL, %L)$c$, dep, itens, aut3), 'autorização de outra ação no desconto');
+
+  -- orçamento: desconto do cabeçalho e dos itens somam
+  PERFORM ci.deve_falhar(adm, format($c$SELECT orcamento_salvar(%L, %L::jsonb, p_desconto => 6)$c$, cli, itens), 'orçamento com 6% no cabeçalho sem autorização');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT orcamento_salvar(%L, '[{"produto_id":"%s","quantidade":1,"preco_unitario":100,"desconto":6}]'::jsonb)$c$, cli, pc), 'orçamento com 6% no item sem autorização');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT orcamento_salvar(%L, '[{"produto_id":"%s","quantidade":1,"preco_unitario":100,"desconto":3}]'::jsonb, p_desconto => 3)$c$, cli, pc), 'item 3% + cabeçalho 3% somam 6%');
+  PERFORM ci.entrar(adm);
+  v := orcamento_salvar(cli, itens, p_desconto => 5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 5 FROM orcamentos WHERE id = v), 'orçamento com 5% passa sem autorização');
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'desconto') RETURNING id INTO aut2;
+  PERFORM ci.entrar(adm);
+  v := orcamento_salvar(cli, itens, p_desconto => 30, p_autorizacao => aut2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 30 FROM orcamentos WHERE id = v), 'orçamento com 30% passa com a autorização');
+
+  -- pedido novo
+  PERFORM ci.deve_falhar(adm, format($c$SELECT criar_pedido_direto(%L, %L, %L::jsonb, p_desconto => 6)$c$, cli, dep, itens), 'pedido com 6% sem autorização');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT criar_pedido_direto(%L, %L, '[{"produto_id":"%s","quantidade":1,"preco_unitario":100,"desconto":6}]'::jsonb)$c$, cli, dep, pc), 'pedido com 6% no item sem autorização');
+  PERFORM ci.entrar(adm);
+  v := criar_pedido_direto(cli, dep, itens, p_desconto => 5);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 5 FROM pedidos WHERE id = v), 'pedido com 5% passa sem autorização');
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'desconto') RETURNING id INTO aut2;
+  PERFORM ci.entrar(adm);
+  v := criar_pedido_direto(cli, dep, itens, p_desconto => 30, p_autorizacao => aut2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT desconto = 30 FROM pedidos WHERE id = v), 'pedido com 30% passa com a autorização');
 END $$;

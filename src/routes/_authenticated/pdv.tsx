@@ -11,6 +11,7 @@ import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro
 import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { InstalarApp } from "@/components/app/InstalarApp";
+import { AutorizacaoGestor } from "@/components/app/AutorizacaoGestor";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { useTabelaPrecoPorClienteId } from "@/hooks/useTabelaPrecoCliente";
 import { reprecificarLinhas } from "@/lib/tabela-preco";
@@ -93,6 +94,8 @@ function Pdv() {
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   const [cupom, setCupom] = useState<(CupomDados & { pedidoId: string }) | null>(null);
   const [pedidoNfce, setPedidoNfce] = useState<string | null>(null);
+  /** Texto do servidor quando o desconto passou da faixa: abre a senha do gestor e repete a venda com a autorização. */
+  const [pedirAut, setPedirAut] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pdv-base"],
@@ -252,13 +255,13 @@ function Pdv() {
       : (clientes.find((c) => c.id === clienteId)?.nome ?? "—");
 
   const finalizar = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (autorizacao?: string) => {
       if (!depositoId) throw new Error("Escolha o depósito de saída da mercadoria");
       if (linhas.length === 0) throw new Error("Inclua pelo menos um produto");
       if (linhas.some((l) => l.quantidade <= 0))
         throw new Error("Informe a quantidade de cada item (pode ser fracionada, ex.: 0,5)");
       if (!aPrazo && !caixaAberto) throw new Error("Abra o caixa antes de vender no PDV");
-      const { data, error } = await supabase.rpc("pdv_venda", {
+      const { data, error } = await supabase.rpc("pdv_venda_com_faixas", {
         p_deposito_id: depositoId,
         p_itens: linhas.map((l) => ({
           produto_id: l.produto_id,
@@ -270,6 +273,7 @@ function Pdv() {
         p_desconto: descontoNum,
         p_parcelas: Math.max(Number(parcelas) || 1, 1),
         ...(aPrazo ? { p_primeiro_vencimento: vencimento } : {}),
+        ...(autorizacao ? { p_autorizacao: autorizacao } : {}),
       });
       if (error) throw error;
       const pedidoId = data as string;
@@ -317,7 +321,10 @@ function Pdv() {
       void qc.invalidateQueries();
       buscaRef.current?.focus();
     },
-    onError: (e: Error) => toast.error("Não foi possível finalizar", { description: e.message }),
+    onError: (e: Error) => {
+      if (/exige senha do gestor/i.test(e.message)) setPedirAut(e.message);
+      else toast.error("Não foi possível finalizar", { description: e.message });
+    },
   });
 
   /** Nota fiscal do mesmo atendimento, gerada a partir do pedido da venda. */
@@ -590,7 +597,7 @@ function Pdv() {
               className="w-full"
               size="lg"
               disabled={finalizar.isPending || linhas.length === 0}
-              onClick={() => finalizar.mutate()}
+              onClick={() => finalizar.mutate(undefined)}
             >
               Finalizar venda · {brl(total)}
             </Button>
@@ -661,13 +668,23 @@ function Pdv() {
               size="lg"
               className="h-14 w-full"
               disabled={finalizar.isPending || linhas.length === 0}
-              onClick={() => finalizar.mutate()}
+              onClick={() => finalizar.mutate(undefined)}
             >
               Finalizar venda · {brl(total)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AutorizacaoGestor
+        aberto={!!pedirAut}
+        motivo={pedirAut ?? ""}
+        onCancelar={() => setPedirAut(null)}
+        onAutorizado={(id) => {
+          setPedirAut(null);
+          finalizar.mutate(id);
+        }}
+      />
 
       {/* Cupom da venda concluída */}
       <Dialog open={!!cupom} onOpenChange={(o) => !o && setCupom(null)}>

@@ -5,6 +5,7 @@ import { FileText, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { AutorizacaoGestor } from "@/components/app/AutorizacaoGestor";
 import { useTabelaPrecoCliente } from "@/hooks/useTabelaPrecoCliente";
 import { rotuloAjuste } from "@/lib/tabela-preco";
 import { brl, dateBR, num } from "@/lib/format";
@@ -267,8 +268,14 @@ function Pedidos() {
     toast.success(`${total} pares de ${p.descricao} lançados`);
   }
 
+  /** Texto do servidor quando o desconto passou da faixa: abre a senha do gestor e cria de novo com a autorização. */
+  const [pedirAut, setPedirAut] = useState<{ motivo: string; rascunho: boolean } | null>(null);
+
   const criar = useMutation({
-    mutationFn: async (rascunho: boolean = false) => {
+    mutationFn: async ({
+      rascunho = false,
+      autorizacao,
+    }: { rascunho?: boolean; autorizacao?: string } = {}) => {
       if (!clienteId) throw new Error("Escolha o cliente");
       if (!depositoId) throw new Error("Escolha o depósito de saída");
       if (itens.length === 0) throw new Error("Inclua pelo menos um produto");
@@ -293,6 +300,7 @@ function Pedidos() {
         ...(profissionalId ? { p_profissional_id: profissionalId } : {}),
         ...(observacoes ? { p_observacoes: observacoes } : {}),
         p_rascunho: rascunho,
+        ...(autorizacao ? { p_autorizacao: autorizacao } : {}),
       });
       if (error) throw error;
       const gradeFinal = grade.filter((g) => itens.some((i) => i.produto_id === g.produto_id));
@@ -325,7 +333,11 @@ function Pedidos() {
       qc.invalidateQueries({ queryKey: ["pedidos"] });
       navigate({ to: "/pedidos/$id", params: { id } });
     },
-    onError: (e: Error) => toast.error("Erro ao criar pedido", { description: e.message }),
+    onError: (e: Error, v) => {
+      if (/exige senha do gestor/i.test(e.message))
+        setPedirAut({ motivo: e.message, rascunho: !!v?.rascunho });
+      else toast.error("Erro ao criar pedido", { description: e.message });
+    },
   });
 
   /* ---------- converter orçamento(s) em pedido ---------- */
@@ -908,13 +920,13 @@ function Pedidos() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => criar.mutate(true)}
+              onClick={() => criar.mutate({ rascunho: true })}
               disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
             >
               Salvar rascunho
             </Button>
             <Button
-              onClick={() => criar.mutate(false)}
+              onClick={() => criar.mutate({ rascunho: false })}
               disabled={!clienteId || !depositoId || itens.length === 0 || criar.isPending}
             >
               Salvar pedido
@@ -1034,6 +1046,17 @@ function Pedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AutorizacaoGestor
+        aberto={!!pedirAut}
+        motivo={pedirAut?.motivo ?? ""}
+        onCancelar={() => setPedirAut(null)}
+        onAutorizado={(id) => {
+          const rascunho = pedirAut?.rascunho ?? false;
+          setPedirAut(null);
+          criar.mutate({ rascunho, autorizacao: id });
+        }}
+      />
     </>
   );
 }

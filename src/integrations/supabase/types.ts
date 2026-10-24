@@ -10190,6 +10190,7 @@ export type Database = {
           p_profissional_id?: string
           p_rascunho?: boolean
           p_vendedor_id?: string
+          p_autorizacao?: string
         }
         Returns: string
       }
@@ -10627,6 +10628,7 @@ export type Database = {
           p_profissional_id?: string
           p_validade?: string
           p_vendedor_id?: string
+          p_autorizacao?: string
         }
         Returns: string
       }
@@ -10651,6 +10653,20 @@ export type Database = {
       }
       pdv_venda: {
         Args: {
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_observacao?: string
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
+      pdv_venda_com_faixas: {
+        Args: {
+          p_autorizacao?: string
           p_cliente_id?: string
           p_deposito_id: string
           p_desconto?: number
