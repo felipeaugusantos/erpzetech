@@ -70,6 +70,11 @@ BEGIN
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon', t);
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
     EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
+    EXECUTE format('DROP POLICY IF EXISTS %1$I ON public.%2$I', t || '_leitura', t);
+    EXECUTE format('DROP POLICY IF EXISTS %1$I ON public.%2$I', t || '_inclusao', t);
+    EXECUTE format('DROP POLICY IF EXISTS %1$I ON public.%2$I', t || '_alteracao', t);
+    EXECUTE format('DROP POLICY IF EXISTS %1$I ON public.%2$I', t || '_exclusao', t);
+    EXECUTE format('DROP POLICY IF EXISTS salao_restrito ON public.%I', t);
     EXECUTE format($f$CREATE POLICY %1$I ON public.%2$I FOR SELECT TO authenticated
       USING (tenant_id = public.current_tenant_id())$f$, t || '_leitura', t);
     EXECUTE format($f$CREATE POLICY %1$I ON public.%2$I FOR INSERT TO authenticated
