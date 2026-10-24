@@ -12,6 +12,7 @@ import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { InstalarApp } from "@/components/app/InstalarApp";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { EmitirNfce } from "@/components/app/EmitirNfce";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,7 @@ function Pdv() {
   const [recebido, setRecebido] = useState("");
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   const [cupom, setCupom] = useState<(CupomDados & { pedidoId: string }) | null>(null);
+  const [pedidoNfce, setPedidoNfce] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pdv-base"],
@@ -667,6 +669,13 @@ function Pdv() {
             >
               {cupom?.nfe ? "Nota gerada" : "Emitir NF-e desta venda"}
             </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => cupom && setPedidoNfce(cupom.pedidoId)}
+            >
+              Emitir NFC-e
+            </Button>
             {cupom?.nfe && (
               <Button variant="outline" className="w-full sm:w-auto" asChild>
                 <Link to="/nfe">Ver notas fiscais</Link>
@@ -676,6 +685,15 @@ function Pdv() {
               Nova venda
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pedidoNfce} onOpenChange={(o) => !o && setPedidoNfce(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>NFC-e da venda</DialogTitle>
+          </DialogHeader>
+          {pedidoNfce ? <EmitirNfce pedidoId={pedidoNfce} /> : null}
         </DialogContent>
       </Dialog>
     </>

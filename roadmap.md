@@ -179,7 +179,8 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Transmissão da NFC-e pela ACBr, com contingência e nova tentativa (depende de liberar `dev.acbr.api.br` ou da documentação da API de NFC-e)
 - [x] Tela para cadastrar o CSC e a série da NFC-e (`/nfce-config`, só administrador e gestor): o token fica guardado e não volta para a tela; série e contingência manual; o contador é do sistema
 - [x] Botão de emitir NFC-e na frente de caixa (no cupom da venda e na lista de vendas do caixa): CPF opcional validado, mostra o número ou o que falta resolver; a venda guardada sem internet só libera o botão depois de enviada. A transmissão à Sefaz continua pendente
-- [ ] Botão de emitir NFC-e no PDV (pedido) e nas vendas do restaurante
+- [x] Botão de emitir NFC-e no PDV (cupom da venda concluída), com o mesmo painel da frente de caixa (CPF opcional, pendências, andamento). A transmissão à Sefaz continua pendente
+- [ ] Botão de emitir NFC-e nas vendas do restaurante
 - [ ] Pix com cobrança automática e boleto registrado (depende do provedor escolhido)
 - [x] Importar nota de entrada pelo PDF digital (DANFE), com conferência antes de gravar
 - [x] Produção baixa o saldo por tamanho quando o pedido sai de "Aguardando arte" (cancelamento devolve)
