@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { rotuloAjuste } from "@/lib/tabela-preco";
 import {
   Select,
   SelectContent,
@@ -79,6 +80,7 @@ type FormState = {
   saldo_utilizado: string;
   prazo_padrao_dias: string;
   desconto_maximo: string;
+  tabela_preco_id: string;
   observacoes: string;
 };
 
@@ -104,6 +106,7 @@ const vazio: FormState = {
   saldo_utilizado: "0",
   prazo_padrao_dias: "0",
   desconto_maximo: "0",
+  tabela_preco_id: "",
   observacoes: "",
 };
 
@@ -156,6 +159,19 @@ function Clientes() {
     },
   });
 
+  const { data: tabelasPreco = [] } = useQuery({
+    queryKey: ["tabelas-preco-ativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco")
+        .select("id, nome, ajuste_percentual")
+        .eq("ativa", true)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return (data?.clientes ?? []).filter((c) => {
@@ -194,6 +210,7 @@ function Clientes() {
         saldo_utilizado: Number(form.saldo_utilizado || 0),
         prazo_padrao_dias: Number(form.prazo_padrao_dias || 0),
         desconto_maximo: Number(form.desconto_maximo || 0),
+        tabela_preco_id: form.tabela_preco_id || null,
         observacoes: form.observacoes || null,
       };
       const { error } = form.id
@@ -234,6 +251,7 @@ function Clientes() {
       saldo_utilizado: String(c["saldo_utilizado"] ?? 0),
       prazo_padrao_dias: String(c["prazo_padrao_dias"] ?? 0),
       desconto_maximo: String(c["desconto_maximo"] ?? 0),
+      tabela_preco_id: (c["tabela_preco_id"] as string) ?? "",
       observacoes: (c["observacoes"] as string) ?? "",
     });
     setOpen(true);
@@ -615,6 +633,27 @@ function Clientes() {
                     value={form.desconto_maximo}
                     onChange={(e) => setForm({ ...form, desconto_maximo: e.target.value })}
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Tabela de preço</Label>
+                  <Select
+                    value={form.tabela_preco_id || "nenhuma"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, tabela_preco_id: v === "nenhuma" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhuma">Preço normal do produto</SelectItem>
+                      {tabelasPreco.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nome} ({rotuloAjuste(Number(t.ajuste_percentual))})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <p className="text-numeric mt-2 text-xs text-muted-foreground">

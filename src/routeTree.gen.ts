@@ -122,6 +122,7 @@ import { Route as AuthenticatedRelatorioPetProfissionaisRouteImport } from './ro
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
 import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
+import { Route as AuthenticatedTabelasPrecoRouteImport } from './routes/_authenticated/tabelas-preco'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
@@ -775,6 +776,12 @@ const AuthenticatedSugestaoCompraRoute =
     path: '/sugestao-compra',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTabelasPrecoRoute =
+  AuthenticatedTabelasPrecoRouteImport.update({
+    id: '/tabelas-preco',
+    path: '/tabelas-preco',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTecnicosRoute = AuthenticatedTecnicosRouteImport.update({
   id: '/tecnicos',
   path: '/tecnicos',
@@ -1036,6 +1043,7 @@ export interface FileRoutesByFullPath {
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
+  '/tabelas-preco': typeof AuthenticatedTabelasPrecoRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -1176,6 +1184,7 @@ export interface FileRoutesByTo {
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
+  '/tabelas-preco': typeof AuthenticatedTabelasPrecoRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -1318,6 +1327,7 @@ export interface FileRoutesById {
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
   '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
+  '/_authenticated/tabelas-preco': typeof AuthenticatedTabelasPrecoRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
@@ -1460,6 +1470,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/salao'
     | '/sugestao-compra'
+    | '/tabelas-preco'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1600,6 +1611,7 @@ export interface FileRouteTypes {
     | '/rota'
     | '/salao'
     | '/sugestao-compra'
+    | '/tabelas-preco'
     | '/tecnicos'
     | '/tef'
     | '/tef-painel'
@@ -1741,6 +1753,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rota'
     | '/_authenticated/salao'
     | '/_authenticated/sugestao-compra'
+    | '/_authenticated/tabelas-preco'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
     | '/_authenticated/tef-painel'
@@ -2573,6 +2586,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSugestaoCompraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tabelas-preco': {
+      id: '/_authenticated/tabelas-preco'
+      path: '/tabelas-preco'
+      fullPath: '/tabelas-preco'
+      preLoaderRoute: typeof AuthenticatedTabelasPrecoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tecnicos': {
       id: '/_authenticated/tecnicos'
       path: '/tecnicos'
@@ -2865,6 +2885,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
   AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
+  AuthenticatedTabelasPrecoRoute: typeof AuthenticatedTabelasPrecoRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
@@ -3002,6 +3023,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
   AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,
+  AuthenticatedTabelasPrecoRoute: AuthenticatedTabelasPrecoRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,

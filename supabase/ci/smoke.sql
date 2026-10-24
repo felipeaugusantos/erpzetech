@@ -6263,3 +6263,52 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'cancelada' FROM cobrancas WHERE id = cob4), 'cobrança em aberto pode ser cancelada');
 END $$;
+
+-- 69. Tabelas de preço: leitura por quem vende, escrita só da gestão, isolamento entre empresas e referências conferidas
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro uuid; t_outro uuid; t1 uuid; prod uuid; prod_outro uuid; cli uuid;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Outra loja tabela CI') RETURNING id INTO outro;
+  INSERT INTO tabelas_preco (tenant_id, nome, ajuste_percentual) VALUES (outro, 'Atacado alheio', -10) RETURNING id INTO t_outro;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (demo, 'TAB-CI-1', 'Produto tabela CI', 'un', 100) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda) VALUES (outro, 'TAB-CI-2', 'Produto alheio CI', 'un', 100) RETURNING id INTO prod_outro;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente tabela CI') RETURNING id INTO cli;
+
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO tabelas_preco (tenant_id, nome) VALUES (%L, 'Vendedor cria')$c$, demo), 'vendedor cria tabela de preço');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO tabelas_preco (tenant_id, nome) VALUES (%L, 'Garçom cria')$c$, demo), 'garçom cria tabela de preço');
+  PERFORM ci.deve_falhar(NULL, format($c$INSERT INTO tabelas_preco (tenant_id, nome) VALUES (%L, 'Anon cria')$c$, demo), 'anon cria tabela de preço');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabelas_preco (tenant_id, nome) VALUES (%L, 'De outra empresa')$c$, outro), 'gestão cria tabela em outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabelas_preco (tenant_id, nome, ajuste_percentual) VALUES (%L, 'Desconto absurdo', -101)$c$, demo), 'ajuste abaixo de -100%');
+
+  PERFORM ci.entrar(adm);
+  INSERT INTO tabelas_preco (nome, descricao, ajuste_percentual) VALUES ('Atacado CI', 'Compra em volume', -10) RETURNING id INTO t1;
+  INSERT INTO tabela_preco_itens (tabela_id, produto_id, preco) VALUES (t1, prod, 85);
+  UPDATE clientes SET tabela_preco_id = t1 WHERE id = cli;
+  PERFORM ci.sair();
+
+  PERFORM ci.deve_falhar(adm, $c$INSERT INTO tabelas_preco (nome) VALUES ('  atacado ci ')$c$, 'nome repetido na mesma empresa (sem diferenciar maiúsculas)');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabela_preco_itens (tabela_id, produto_id, preco) VALUES (%L, %L, 80)$c$, t1, prod), 'produto repetido na mesma tabela');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabela_preco_itens (tabela_id, produto_id, preco) VALUES (%L, %L, 80)$c$, t_outro, prod), 'item em tabela de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabela_preco_itens (tabela_id, produto_id, preco) VALUES (%L, %L, 80)$c$, t1, prod_outro), 'item com produto de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE clientes SET tabela_preco_id = %L WHERE id = %L$c$, t_outro, cli), 'cliente com tabela de preço de outra empresa');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO tabela_preco_itens (tabela_id, produto_id, preco) VALUES (%L, %L, -1)$c$, t1, prod), 'preço negativo');
+
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM tabelas_preco') = 1, 'o vendedor lê as tabelas da própria empresa e só elas');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM tabela_preco_itens') = 1, 'o vendedor lê os preços da tabela');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM tabelas_preco') = 0, 'o garçom não lê tabelas de preço');
+  PERFORM ci.exige(ci.contar(vend, format($c$WITH u AS (UPDATE tabelas_preco SET ajuste_percentual = -50 WHERE id = %L RETURNING 1) SELECT count(*) FROM u$c$, t1)) = 0, 'o vendedor não altera o ajuste (nenhuma linha)');
+  PERFORM ci.exige(ci.contar(vend, format($c$WITH d AS (DELETE FROM tabela_preco_itens WHERE tabela_id = %L RETURNING 1) SELECT count(*) FROM d$c$, t1)) = 0, 'o vendedor não apaga preços (nenhuma linha)');
+  PERFORM ci.exige((SELECT tabela_preco_id = t1 FROM clientes WHERE id = cli), 'o cliente guarda a tabela de preço');
+
+  -- apagar a tabela solta o cliente, sem apagar o cliente
+  PERFORM ci.entrar(adm);
+  DELETE FROM tabelas_preco WHERE id = t1;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tabela_preco_id IS NULL FROM clientes WHERE id = cli), 'apagar a tabela solta o cliente');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM tabela_preco_itens WHERE tabela_id = t1), 'apagar a tabela apaga os preços dela');
+END $$;

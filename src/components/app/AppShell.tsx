@@ -123,6 +123,7 @@ const groups: Group[] = [
     items: [
       { label: "Produtos", to: "/produtos", icon: PackageSearch },
       { label: "Preços e margens", to: "/precos", icon: Tag },
+      { label: "Tabelas de preço", to: "/tabelas-preco", icon: Tag },
       { label: "Categorias", to: "/categorias", icon: LayoutGrid },
       { label: "Estoque", to: "/estoque", icon: Boxes },
       { label: "Lotes e tonalidades", to: "/estoque-lotes", icon: Boxes },

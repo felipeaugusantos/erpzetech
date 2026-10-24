@@ -5,6 +5,8 @@ import { ArrowRight, Check, FileText, Plus, Printer, Search, Trash2, X } from "l
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useTabelaPrecoCliente } from "@/hooks/useTabelaPrecoCliente";
+import { rotuloAjuste } from "@/lib/tabela-preco";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateBR, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
@@ -143,7 +145,7 @@ function Orcamentos() {
             .order("numero", { ascending: false }),
           supabase
             .from("clientes")
-            .select("id, nome, cpf, cnpj, telefone, desconto_maximo")
+            .select("id, nome, cpf, cnpj, telefone, desconto_maximo, tabela_preco_id")
             .eq("ativo", true)
             .order("nome"),
           supabase.from("obras").select("id, nome, cliente_id").order("nome"),
@@ -206,6 +208,11 @@ function Orcamentos() {
   const obrasCliente = useMemo(
     () => (data?.obras ?? []).filter((o) => o.cliente_id === clienteId),
     [data, clienteId],
+  );
+
+  // preço do cliente: a tabela de preço dele, se tiver; senão o preço normal do produto
+  const { tabela: tabelaCliente, preco: precoDoCliente } = useTabelaPrecoCliente(
+    (data?.clientes ?? []).find((c) => c.id === clienteId)?.tabela_preco_id,
   );
 
   const subtotal = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario - i.desconto), 0);
@@ -505,6 +512,13 @@ function Orcamentos() {
                     setObraId("");
                   }}
                 />
+                {tabelaCliente ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Tabela de preço: {tabelaCliente.nome} (
+                    {rotuloAjuste(tabelaCliente.ajuste_percentual)}). Vale para os produtos que você
+                    adicionar daqui para frente.
+                  </p>
+                ) : null}
               </div>
               <div>
                 <Label>Obra (opcional)</Label>
@@ -558,7 +572,7 @@ function Orcamentos() {
                               unidade: p.unidade,
                               quantidade: 1,
                               qtdTexto: "1",
-                              preco_unitario: Number(p.preco_venda),
+                              preco_unitario: precoDoCliente(p.id, p.preco_venda),
                               desconto: 0,
                             },
                           ]);
@@ -570,7 +584,9 @@ function Orcamentos() {
                         </span>
                         <span className="flex-1 truncate">{p.descricao}</span>
                         <span className="text-xs text-muted-foreground">{p.unidade}</span>
-                        <span className="font-semibold">{brl(Number(p.preco_venda))}</span>
+                        <span className="font-semibold">
+                          {brl(precoDoCliente(p.id, p.preco_venda))}
+                        </span>
                       </button>
                     </li>
                   ))}

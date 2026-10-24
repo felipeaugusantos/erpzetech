@@ -245,7 +245,10 @@ Origem: comparativo entre o erpzetech e o ERP legado (Delphi/MySQL, repositório
 
 ### Etapa 12.2 — Preço, promoção e cadastros em massa (prioridade alta)
 
-- [ ] Tabelas de preço com faixa de desconto por cliente, grupo, marca e perfil (vendedor/gerente), com desconto máximo por atividade (legado: `CadFaixaDesc*`, `CadDescontoCliente*`, `CadDescontoMaximoPorAtividade`)
+- [ ] Tabelas de preço e faixas de desconto (legado: `CadFaixaDesc*`, `CadDescontoCliente*`, `CadDescontoMaximoPorAtividade`)
+  - [x] Tabelas de preço por cliente (migration `20261119000000_tabelas_preco.sql`, tela `/tabelas-preco`, campo no cadastro do cliente): ajuste percentual sobre o preço de venda, preço fixo por produto, tabela ativa/inativa; só administrador e gestor alteram; o orçamento e o novo pedido usam o preço da tabela do cliente ao adicionar o produto (`src/lib/tabela-preco.ts`)
+  - [ ] Aplicar a tabela também no PDV, na frente de caixa (cliente opcional) e ao alterar pedido já criado; hoje o preço enviado ao banco vem da tela, sem conferência no servidor
+  - [ ] Faixa de desconto por grupo, marca e perfil (vendedor/gerente), desconto máximo por atividade, e preço por faixa de quantidade
 - [ ] Promoção, combo/kit e cupom de desconto (legado: `Promocao/`, `CadComboProdVenda`, `CadCupomDesconto`)
 - [ ] Alteração global de preço e de desconto com prévia (legado: `untAltPrecoGlobal`, `AlteracaoGlobalDescontoProdutos`)
 - [ ] Importação em massa por planilha: produtos, clientes, fornecedores e saldos de estoque (repete o item da Rodada 6; legado: `ImportacaoDados/`)

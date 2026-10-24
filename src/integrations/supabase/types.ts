@@ -795,6 +795,7 @@ export type Database = {
           observacoes: string | null
           prazo_padrao_dias: number
           profissional_id: string | null
+          tabela_preco_id: string | null
           saldo_utilizado: number
           telefone: string | null
           tenant_id: string
@@ -829,6 +830,7 @@ export type Database = {
           observacoes?: string | null
           prazo_padrao_dias?: number
           profissional_id?: string | null
+          tabela_preco_id?: string | null
           saldo_utilizado?: number
           telefone?: string | null
           tenant_id: string
@@ -863,6 +865,7 @@ export type Database = {
           observacoes?: string | null
           prazo_padrao_dias?: number
           profissional_id?: string | null
+          tabela_preco_id?: string | null
           saldo_utilizado?: number
           telefone?: string | null
           tenant_id?: string
@@ -8962,6 +8965,96 @@ export type Database = {
           valor_mensal?: number
         }
         Relationships: []
+      }
+      tabela_preco_itens: {
+        Row: {
+          created_at: string
+          id: string
+          preco: number
+          produto_id: string
+          tabela_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco: number
+          produto_id: string
+          tabela_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco?: number
+          produto_id?: string
+          tabela_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabela_preco_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tabela_preco_itens_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tabela_preco_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tabelas_preco: {
+        Row: {
+          ajuste_percentual: number
+          ativa: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ajuste_percentual?: number
+          ativa?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ajuste_percentual?: number
+          ativa?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_preco_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tecnicos: {
         Row: {
