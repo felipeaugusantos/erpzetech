@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Verificar e corrigir o acesso por usuário em empresas sem link configurado (finding 6525bb07).
-- [ ] Corrigir e verificar a consulta de Tempo Real dos clientes (finding daf16767).
+- [x] Acesso por usuário sem link: /auth aceita código estável da empresa, exibido ao administrador e ao criar acessos; 21 testes passaram e senha incorreta recusada no servidor. Entrada com senha real de operador sem link não exercitada.
+- [x] Tempo Real corrigido para pedidos.total; tela autenticada mostrou 4 pedidos e R$ 2.036,88, consulta real conferida e prévia sem erros.
 
 - [x] Liberar todos os módulos para empresa-modelo, incluindo Personalização e Obras, preservando cadastro fiscal e permissões; liberações conferidas no banco, 22 testes passaram e Obras/Personalização abriram com sessão autenticada.
 
