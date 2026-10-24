@@ -65,7 +65,9 @@ function Documento() {
         description="Abra o documento pela ficha do paciente ou pelo atendimento."
         action={
           <Button asChild variant="outline">
-            <Link to="/clinica-prontuario">Ir para o Prontuário</Link>
+            <Link to="/clinica-prontuario" search={{ pet: undefined }}>
+              Ir para o Prontuário
+            </Link>
           </Button>
         }
       />
