@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { erroDoUsuario, normalizarUsuario } from "@/lib/usuario-login";
+import { erroDoUsuario, normalizarUsuario, tenantDoCodigoDeAcesso } from "@/lib/usuario-login";
 
 /** A mesma mensagem para usuário que não existe, inativo ou senha errada: não revela quem tem login na empresa. */
 const GENERICO = "Usuário ou senha incorretos";
@@ -69,6 +69,11 @@ export const entrarPorUsuario = createServerFn({ method: "POST" })
     senha: String(input?.senha ?? ""),
   }))
   .handler(async ({ data }): Promise<SessaoDeLogin> => {
+    const codigoTenant = tenantDoCodigoDeAcesso(data.slug);
+    if (codigoTenant) {
+      // O código identifica a empresa, mas não autoriza acesso: perfil ativo e senha continuam obrigatórios.
+      return entrarNaEmpresa(codigoTenant, data.usuario, data.senha);
+    }
     if (!/^[a-z0-9-]{3,50}$/.test(data.slug)) throw new Error(GENERICO);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const empresa = await supabaseAdmin

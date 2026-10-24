@@ -47,6 +47,8 @@ export const Route = createFileRoute("/_authenticated/motoristas")({
       },
       { property: "og:title", content: "Motoristas — ERP Ze Tech" },
       { property: "og:description", content: "Equipe responsável pelas entregas de material." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Motoristas,
@@ -94,7 +96,9 @@ function Motoristas() {
       });
     },
     onSuccess: () => {
-      toast.success("Login do motorista criado. Passe o usuário e a senha para ele.");
+      toast.success("Login do motorista criado. Passe o usuário e a senha para ele.", {
+        description: `Acesso em /auth com código da empresa: ${profile?.tenant_id ?? ""}`,
+      });
       setLoginMotorista(null);
       void queryClient.invalidateQueries({ queryKey: ["motoristas"] });
     },

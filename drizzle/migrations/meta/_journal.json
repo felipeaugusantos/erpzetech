@@ -470,6 +470,13 @@
       "when": 1792508158302,
       "tag": "0066_empresa_liberacoes_modulos",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792867223367,
+      "tag": "0067_fix_saas_tempo_real_total",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,14 @@ export function erroDoUsuario(bruto: string): string | null {
 /** O que a pessoa digitou no campo de login parece um e-mail (entra pelo caminho antigo) ou é um usuário. */
 export const pareceEmail = (s: string) => s.includes("@");
 
+/** Código estável de empresa no login geral, mesmo sem endereço personalizado. */
+export function tenantDoCodigoDeAcesso(codigo: string): string | null {
+  const valor = codigo.trim().toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(valor)
+    ? valor
+    : null;
+}
+
 /**
  * Endereço interno do login de quem entra por usuário. O provedor de autenticação exige um e-mail único por conta; este nunca recebe
  * mensagem (domínio reservado .invalid) e não aparece para ninguém. O e-mail de contato fica à parte, no perfil, e pode se repetir.

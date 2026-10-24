@@ -53,6 +53,10 @@ export const Route = createFileRoute("/_authenticated/pet-profissionais")({
         name: "description",
         content: "Banhistas, tosadores e demais profissionais, com a comissão de cada um.",
       },
+      { property: "og:title", content: "Profissionais do pet shop — ERP Ze Tech" },
+      { property: "og:description", content: "Equipe de atendimento e acessos dos profissionais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProfissionaisModulo,
@@ -218,7 +222,11 @@ function Profissionais() {
       }
     },
     onSuccess: () => {
-      toast.success(form.id ? "Profissional atualizado." : "Profissional cadastrado.");
+      toast.success(form.id ? "Profissional atualizado." : "Profissional cadastrado.", {
+        description: form.criar_acesso
+          ? `Acesso em /auth com usuário, senha e código da empresa: ${session?.profile?.tenant_id ?? ""}`
+          : undefined,
+      });
       setAberto(false);
       setForm(vazio);
       void qc.invalidateQueries({ queryKey: ["pet-profissionais"] });

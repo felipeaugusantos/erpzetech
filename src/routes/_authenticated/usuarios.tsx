@@ -56,6 +56,8 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
       },
       { property: "og:title", content: "Usuários e perfis — ERP Ze Tech" },
       { property: "og:description", content: "Controle de acesso da equipe." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Usuarios,
@@ -234,6 +236,11 @@ function Usuarios() {
         title="Usuários e perfis"
         description="Nove perfis operacionais com permissões configuráveis por módulo."
       />
+      {isAdmin && session?.profile?.tenant_id && (
+        <p className="mb-4 break-words text-sm text-muted-foreground">
+          Código da empresa para acesso em /auth: <strong className="select-all font-mono">{session.profile.tenant_id}</strong>
+        </p>
+      )}
 
       <Tabs defaultValue="usuarios">
         <TabsList>
