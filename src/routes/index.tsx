@@ -22,6 +22,7 @@ import {
 
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
+import { NOME_DO_PLANO } from "@/lib/planos-nomes";
 
 const WHATSAPP =
   "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20ERP%20Ze%20Tech";
@@ -153,7 +154,7 @@ const destaques = [
 
 const planos = [
   {
-    nome: "Balcão",
+    nome: NOME_DO_PLANO.balcao,
     preco: "R$ 149",
     resumo: "1 loja, 1 depósito, 5 usuários",
     destaque: false,
@@ -167,13 +168,13 @@ const planos = [
     ],
   },
   {
-    nome: "Loja",
+    nome: NOME_DO_PLANO.loja,
     preco: "R$ 299",
     resumo: "1 loja, depósitos ilimitados, 15 usuários",
     destaque: true,
     teste: true,
     itens: [
-      "Tudo do Balcão",
+      `Tudo do ${NOME_DO_PLANO.balcao}`,
       "Compras com cotação",
       "Separação e conferência",
       "Entregas",
@@ -182,13 +183,13 @@ const planos = [
     ],
   },
   {
-    nome: "Rede",
+    nome: NOME_DO_PLANO.rede,
     preco: "R$ 599",
     resumo: "Multiempresa e filiais, usuários ilimitados",
     destaque: false,
     teste: true,
     itens: [
-      "Tudo do Loja",
+      `Tudo do ${NOME_DO_PLANO.loja}`,
       "Roteirização automática",
       "Tela do motorista",
       "Custo por depósito",
@@ -406,7 +407,8 @@ function Landing() {
           <div className="text-center">
             <h2 className="font-display text-3xl font-extrabold">Planos</h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-              Escolha pelo tamanho da operação. Teste grátis de 15 dias nos planos Loja e Rede.
+              Escolha pelo tamanho da operação. Teste grátis de 15 dias nos planos{" "}
+              {NOME_DO_PLANO.loja} e {NOME_DO_PLANO.rede}.
             </p>
           </div>
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -456,7 +458,7 @@ function Landing() {
             <div>
               <p className="font-display text-sm font-semibold">Filial extra</p>
               <p className="text-xs text-muted-foreground">
-                Para cada loja adicional no plano Rede
+                Para cada loja adicional no plano {NOME_DO_PLANO.rede}
               </p>
             </div>
             <p className="font-display text-lg font-bold">

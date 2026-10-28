@@ -7508,3 +7508,20 @@ BEGIN
   DELETE FROM saas_clientes WHERE id IN (c1, c2);
   DELETE FROM saas_operadores WHERE user_id = op2;
 END $$;
+
+-- 78. Nomes de exibição dos planos: troca só o nome, mantém código, preços e limites, não sobrescreve nome editado
+DO $$
+BEGIN
+  PERFORM ci.exige((SELECT nome FROM saas_planos WHERE codigo = 'balcao') = 'Essencial', 'balcao exibido como Essencial');
+  PERFORM ci.exige((SELECT nome FROM saas_planos WHERE codigo = 'loja') = 'Profissional', 'loja exibido como Profissional');
+  PERFORM ci.exige((SELECT nome FROM saas_planos WHERE codigo = 'rede') = 'Empresarial', 'rede exibido como Empresarial');
+  PERFORM ci.exige('Tudo do Essencial' = ANY (SELECT unnest(recursos) FROM saas_planos WHERE codigo = 'loja'), 'item "Tudo do" do plano Profissional cita o Essencial');
+  PERFORM ci.exige('Tudo do Profissional' = ANY (SELECT unnest(recursos) FROM saas_planos WHERE codigo = 'rede'), 'item "Tudo do" do plano Empresarial cita o Profissional');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM saas_planos, unnest(recursos) r WHERE r IN ('Tudo do Balcão', 'Tudo do Loja')), 'nenhum item cita os nomes antigos');
+  PERFORM ci.exige((SELECT count(*) = 3 FROM saas_planos WHERE codigo IN ('balcao', 'loja', 'rede')), 'os três códigos internos seguem existindo');
+  PERFORM ci.exige((SELECT valor_mensal FROM saas_planos WHERE codigo = 'balcao') = 149
+                   AND (SELECT valor_mensal FROM saas_planos WHERE codigo = 'loja') = 299
+                   AND (SELECT valor_mensal FROM saas_planos WHERE codigo = 'rede') = 599, 'preços iguais');
+  PERFORM ci.exige((SELECT resumo FROM saas_planos WHERE codigo = 'loja') = '1 loja, depósitos ilimitados, 15 usuários', 'a legenda de limites segue com "1 loja"');
+  PERFORM ci.exige((SELECT plano FROM assinaturas LIMIT 1) IN ('balcao', 'loja', 'rede'), 'assinaturas seguem apontando para o código interno');
+END $$;
