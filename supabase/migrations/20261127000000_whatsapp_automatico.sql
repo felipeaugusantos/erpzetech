@@ -59,10 +59,13 @@ BEGIN
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);
     EXECUTE format('GRANT SELECT ON public.%I TO authenticated', t);
     EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_ler', t);
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (tenant_id = public.current_tenant_id())', t || '_ler', t);
+    EXECUTE format('DROP POLICY IF EXISTS salao_restrito ON public.%I', t);
     EXECUTE format('CREATE POLICY salao_restrito ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()))', t);
   END LOOP;
 END $$;
+DROP TRIGGER IF EXISTS trg_wa_mensagens_updated ON public.wa_mensagens;
 CREATE TRIGGER trg_wa_mensagens_updated BEFORE UPDATE ON public.wa_mensagens
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
