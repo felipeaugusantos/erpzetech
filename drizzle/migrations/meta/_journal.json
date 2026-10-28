@@ -484,6 +484,13 @@
       "when": 1793214270321,
       "tag": "0068_lava_veiculo_fabricante_modelo",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793214463660,
+      "tag": "0069_lava_planos_fidelidade",
+      "breakpoints": true
     }
   ]
 }
