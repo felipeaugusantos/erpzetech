@@ -14,6 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
+  // ?aba=criar abre a tela de acesso direto na aba "Criar conta" (botões de teste grátis da página inicial)
+  validateSearch: (busca: Record<string, unknown>): { aba?: "criar" } =>
+    busca["aba"] === "criar" ? { aba: "criar" } : {},
   head: () => ({
     meta: [
       { title: "Entrar — ERP Ze Tech" },
@@ -37,6 +40,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { aba } = Route.useSearch();
   const [loading, setLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -127,7 +131,7 @@ function AuthPage() {
             Entre com seu usuário e código da empresa, ou use seu e-mail cadastrado.
           </p>
 
-          <Tabs defaultValue="login" className="mt-6">
+          <Tabs defaultValue={aba === "criar" ? "signup" : "login"} className="mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
