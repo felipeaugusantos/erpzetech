@@ -319,6 +319,11 @@ DECLARE v_itens jsonb;
 BEGIN
   UPDATE public.wa_mensagens SET situacao = 'falhou', erro = 'Envio interrompido: confira no WhatsApp antes de reenviar'
    WHERE situacao = 'enviando' AND updated_at < now() - interval '5 minutes';
+  -- automático com a chave desligada (ou desconectado) não sai mais: cancela o que ficou na fila, o manual segue
+  UPDATE public.wa_mensagens m SET situacao = 'cancelada', erro = 'Envio automático desligado'
+   WHERE m.situacao = 'na_fila' AND m.origem = 'automatico'
+     AND NOT EXISTS (SELECT 1 FROM public.wa_config c WHERE c.tenant_id = m.tenant_id AND c.estado = 'conectada'
+                       AND ((m.tipo = 'pronto' AND c.auto_pronto) OR (m.tipo = 'plano_vencendo' AND c.auto_plano)));
   WITH cand AS (
     SELECT m.id, row_number() OVER (PARTITION BY m.tenant_id ORDER BY m.proxima_tentativa, m.created_at) AS pos, m.proxima_tentativa
       FROM public.wa_mensagens m

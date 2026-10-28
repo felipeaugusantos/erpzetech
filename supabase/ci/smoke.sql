@@ -7339,6 +7339,16 @@ BEGIN
   PERFORM ci.exige((SELECT origem = 'automatico' AND situacao = 'na_fila' FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), 'mensagem automática na fila');
   PERFORM ci.exige(wa_auto_varrer() = 0, 'varrer de novo não duplica');
   PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, false)) = 0, 'automático fora do horário espera');
+  -- desligar o automático cancela o que ficou na fila, sem mexer no manual
+  PERFORM ci.entrar(gest);
+  PERFORM wa_automatico_salvar(false, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, true)) = 0, 'automático desligado não envia o que ficou na fila');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND erro = 'Envio automático desligado' FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), 'mensagem automática da fila é cancelada ao desligar');
+  PERFORM ci.entrar(gest);
+  PERFORM wa_automatico_salvar(true, false);
+  PERFORM ci.sair();
+  UPDATE wa_mensagens SET situacao = 'na_fila', erro = NULL, tentativas = 0 WHERE tipo = 'pronto' AND referencia = o4::text;
   PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, true)) = 1, 'automático dentro do horário sai');
   PERFORM wa_resultado((SELECT id FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), true, 'EVO-4', '5511988887777@s.whatsapp.net', NULL, NULL);
 
