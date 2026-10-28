@@ -7173,3 +7173,193 @@ BEGIN
 
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 76. WhatsApp automático: fila só pelo banco, número vem do cadastro do cliente, uma mensagem por ocasião, resultado e entrega só pelo serviço, SAIR, automático depois de ligar
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  inst text := public.wa_nome_instancia('11111111-1111-1111-1111-111111111111');
+  cli uuid; cli_no uuid; cli_tel uuid; cli_lid uuid; v1 uuid; v2 uuid; v3 uuid; v4 uuid; v5 uuid; serv uuid; lav uuid;
+  o1 uuid; o2 uuid; o3 uuid; o4 uuid; o5 uuid; m1 uuid; m2 uuid; r jsonb; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente WhatsApp CI', '52998224725', '11999990000', '(11) 98888-7777') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg WA CI', '11144477735', '11977776666', false) RETURNING id INTO cli_no;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Cliente Sem Telefone WA CI', '39053344705', '123') RETURNING id INTO cli_tel;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Cliente Lid WA CI', '12345678909', '21955554444') RETURNING id INTO cli_lid;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'WAP1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_no, 'tipo', 'carro', 'identificacao', 'WAP2B22', 'fabricante', 'VW', 'modelo', 'Polo'));
+  v3 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_tel, 'tipo', 'carro', 'identificacao', 'WAP3C33', 'fabricante', 'GM', 'modelo', 'Onix'));
+  v4 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'WAP4D44', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  v5 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_lid, 'tipo', 'carro', 'identificacao', 'WAP5E55', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem WhatsApp","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador WhatsApp CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v3, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o4 := lr_ordem_criar(jsonb_build_object('veiculo_id', v4, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o5 := lr_ordem_criar(jsonb_build_object('veiculo_id', v5, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+  PERFORM lr_ordem_situacao(o5, 'lavando'); PERFORM lr_ordem_situacao(o5, 'pronto');
+  PERFORM ci.sair();
+
+  PERFORM ci.exige(inst = 'zt-' || left(replace(demo::text, '-', ''), 16), 'nome da instância derivado da empresa');
+
+  -- sem conexão não enfileira; quem não é do atendimento não enfileira
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o1::text), 'enfileirar com o WhatsApp desconectado');
+  INSERT INTO wa_config (tenant_id, instancia, estado, numero, conectada_em) VALUES (demo, inst, 'conectada', '5511900001111', now());
+  PERFORM ci.deve_falhar(gar, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o1::text), 'garçom enfileira');
+  PERFORM ci.deve_falhar(est, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o1::text), 'estoquista enfileira');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o1::text), 'anon enfileira');
+  PERFORM ci.deve_falhar(vend, $c$SELECT wa_enfileirar('aniversario', gen_random_uuid()::text)$c$, 'tipo inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT wa_enfileirar('pronto', 'não-é-uuid')$c$, 'referência inválida');
+  PERFORM ci.deve_falhar(vend, $c$SELECT wa_enfileirar('pronto', gen_random_uuid()::text)$c$, 'referência que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o2::text), 'cliente que não aceita mensagens');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o3::text), 'cliente sem telefone válido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('retorno', %L)$c$, o1::text), 'retorno de ordem que não foi entregue');
+
+  -- tabelas e rotinas de serviço não se mexem como usuário
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO wa_mensagens (tenant_id, tipo, referencia, cliente_id, veiculo_id, numero) VALUES (%L, 'pronto', 'x', %L, %L, '5511999990000')$c$, demo, cli, v1), 'inserir mensagem direto');
+  PERFORM ci.deve_falhar(adm, $c$UPDATE wa_config SET estado = 'conectada'$c$, 'alterar a conexão direto');
+  PERFORM ci.deve_falhar(adm, $c$SELECT wa_reservar(10, 2, true)$c$, 'reservar como usuário');
+  PERFORM ci.deve_falhar(adm, $c$SELECT wa_auto_varrer()$c$, 'varrer como usuário');
+  PERFORM ci.deve_falhar(adm, $c$SELECT wa_saida_registrar('x', '5511999990000', NULL)$c$, 'registrar saída como usuário');
+  PERFORM ci.deve_falhar(adm, $c$SELECT wa_status('x', 'y', 'lida')$c$, 'registrar entrega como usuário');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT wa_resultado(%L, true, 'x', NULL, NULL, NULL)$c$, gen_random_uuid()), 'registrar resultado como usuário');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM wa_mensagens') = 0, 'garçom não lê a fila');
+
+  -- enfileirar: número vem do cadastro do cliente (só dígitos, com DDI), uma mensagem por ocasião
+  PERFORM ci.entrar(vend);
+  m1 := wa_enfileirar('pronto', o1::text);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT numero = '5511988887777' AND situacao = 'na_fila' AND origem = 'manual' AND variaveis ->> 'veiculo' = 'WAP1A11' AND variaveis ->> 'cliente' = 'Cliente WhatsApp CI'
+                      FROM wa_mensagens WHERE id = m1), 'mensagem na fila com o WhatsApp do cadastro e os dados do aviso');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o1::text), 'enfileirar a mesma ocasião duas vezes');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM wa_mensagens') >= 1, 'recepção lê a fila');
+
+  -- reservar: só o que é da hora, uma vez só, automático respeita o horário
+  r := wa_reservar(10, 2, false);
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'id' = m1::text AND r -> 0 ->> 'instancia' = inst AND r -> 0 ->> 'numero' = '5511988887777'
+                     AND r -> 0 ->> 'loja' IS NOT NULL AND (r -> 0 ->> 'tentativas')::int = 1, 'reservar traz o envio com instância, número e loja');
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, false)) = 0, 'reservar de novo não repete o envio');
+  PERFORM ci.exige((SELECT situacao = 'enviando' FROM wa_mensagens WHERE id = m1), 'mensagem reservada fica enviando');
+
+  -- falha com nova tentativa volta para a fila só na hora marcada
+  PERFORM wa_resultado(m1, false, NULL, NULL, 'servidor fora do ar', now() + interval '10 minutes');
+  PERFORM ci.exige((SELECT situacao = 'na_fila' AND erro = 'servidor fora do ar' AND tentativas = 1 FROM wa_mensagens WHERE id = m1), 'falha com nova tentativa volta para a fila');
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, false)) = 0, 'antes da hora marcada não reserva');
+  UPDATE wa_mensagens SET proxima_tentativa = now() - interval '1 minute' WHERE id = m1;
+  r := wa_reservar(10, 2, false);
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND (r -> 0 ->> 'tentativas')::int = 2, 'na hora marcada reserva de novo, na segunda tentativa');
+
+  -- enviada: sai da lista de chamadas do lava rápido, e resultado repetido não faz nada
+  PERFORM wa_resultado(m1, true, 'EVO-1', '5511988887777@s.whatsapp.net', NULL, NULL);
+  PERFORM wa_resultado(m1, false, NULL, NULL, 'repetido', NULL);
+  PERFORM ci.exige((SELECT situacao = 'enviada' AND id_externo = 'EVO-1' AND enviada_em IS NOT NULL AND erro IS NULL FROM wa_mensagens WHERE id = m1), 'enviada guarda o id do WhatsApp e ignora resultado repetido');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_contatos WHERE tipo = 'pronto' AND referencia = o1::text AND canal = 'whatsapp'), 'enviada registra o contato do lava rápido');
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o1::text), 'enviado pelo sistema sai da lista de avisos');
+
+  -- entrega e leitura só avançam
+  PERFORM wa_status(inst, 'EVO-1', 'entregue');
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM wa_mensagens WHERE id = m1), 'entrega registrada');
+  PERFORM wa_status(inst, 'EVO-1', 'lida');
+  PERFORM wa_status(inst, 'EVO-1', 'entregue');
+  PERFORM wa_status('outra-instancia', 'EVO-1', 'lida');
+  PERFORM ci.exige((SELECT situacao = 'lida' FROM wa_mensagens WHERE id = m1), 'leitura registrada e nunca volta para entregue');
+
+  -- esgotou as tentativas: falhou, e a recepção pode reenviar
+  PERFORM ci.entrar(vend);
+  m2 := wa_enfileirar('pronto', o5::text);
+  PERFORM ci.sair();
+  PERFORM wa_reservar(10, 2, false);
+  PERFORM wa_resultado(m2, false, NULL, NULL, 'número não existe no WhatsApp', NULL);
+  PERFORM ci.exige((SELECT situacao = 'falhou' AND erro LIKE 'número não existe%' FROM wa_mensagens WHERE id = m2), 'sem nova tentativa a mensagem fica como falha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT wa_mensagem_reenviar(%L)$c$, m2), 'garçom reenvia');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_mensagem_reenviar(%L)$c$, m1), 'reenviar mensagem já lida');
+  PERFORM ci.entrar(vend);
+  PERFORM wa_mensagem_reenviar(m2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'na_fila' AND tentativas = 0 AND erro IS NULL FROM wa_mensagens WHERE id = m2), 'reenviar põe a falha de volta na fila, zerando as tentativas');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT wa_mensagem_cancelar(%L)$c$, m2), 'garçom cancela');
+  PERFORM ci.entrar(vend);
+  PERFORM wa_mensagem_cancelar(m2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM wa_mensagens WHERE id = m2), 'cancelar tira da fila');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_mensagem_cancelar(%L)$c$, m1), 'cancelar mensagem já enviada');
+
+  -- envio interrompido há mais de 5 minutos vira falha (não reenvia sozinho)
+  PERFORM ci.entrar(vend);
+  PERFORM wa_mensagem_reenviar(m2);
+  PERFORM ci.sair();
+  PERFORM wa_reservar(10, 2, false);
+  ALTER TABLE wa_mensagens DISABLE TRIGGER trg_wa_mensagens_updated;
+  UPDATE wa_mensagens SET updated_at = now() - interval '10 minutes' WHERE id = m2;
+  ALTER TABLE wa_mensagens ENABLE TRIGGER trg_wa_mensagens_updated;
+  PERFORM wa_reservar(10, 2, false);
+  PERFORM ci.exige((SELECT situacao = 'falhou' AND erro LIKE 'Envio interrompido%' FROM wa_mensagens WHERE id = m2), 'envio travado vira falha para conferência');
+
+  -- automático: só quem gerencia liga, só vale depois de ligar, só dentro do horário
+  PERFORM ci.deve_falhar(vend, $c$SELECT wa_automatico_salvar(true, false)$c$, 'vendedor liga o automático');
+  PERFORM ci.deve_falhar(gar, $c$SELECT wa_automatico_salvar(true, false)$c$, 'garçom liga o automático');
+  UPDATE lr_ordens SET pronto_em = now() - interval '2 hours' WHERE id = o3;
+  UPDATE lr_ordens SET pronto_em = now() - interval '3 hours' WHERE id = o2;
+  PERFORM ci.exige(wa_auto_varrer() = 0, 'sem o automático ligado a varredura não enfileira nada');
+  PERFORM ci.entrar(gest);
+  PERFORM wa_automatico_salvar(true, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT auto_pronto AND NOT auto_plano AND auto_desde IS NOT NULL FROM wa_config WHERE tenant_id = demo), 'automático de pronto ligado');
+  UPDATE lr_ordens SET pronto_em = now() - interval '2 hours' WHERE id IN (o1, o5);
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o4, 'lavando'); PERFORM lr_ordem_situacao(o4, 'pronto');
+  PERFORM ci.sair();
+  n := wa_auto_varrer();
+  PERFORM ci.exige(n = 1, 'a varredura enfileira só o veículo que ficou pronto depois de ligar (e que pode receber)');
+  PERFORM ci.exige((SELECT origem = 'automatico' AND situacao = 'na_fila' FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), 'mensagem automática na fila');
+  PERFORM ci.exige(wa_auto_varrer() = 0, 'varrer de novo não duplica');
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, false)) = 0, 'automático fora do horário espera');
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, true)) = 1, 'automático dentro do horário sai');
+  PERFORM wa_resultado((SELECT id FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), true, 'EVO-4', '5511988887777@s.whatsapp.net', NULL, NULL);
+
+  -- desconectar desliga o envio: nada é reservado
+  UPDATE wa_config SET estado = 'desconectada' WHERE tenant_id = demo;
+  PERFORM ci.exige(wa_auto_varrer() = 0, 'desconectada não varre');
+  UPDATE wa_config SET estado = 'conectada' WHERE tenant_id = demo;
+
+  -- SAIR: some das mensagens, cancela a fila, vale por número e por endereço oculto
+  UPDATE clientes SET aceita_mensagens = true WHERE id = cli_lid;
+  INSERT INTO wa_mensagens (tenant_id, tipo, referencia, cliente_id, veiculo_id, numero, situacao, jid, id_externo, enviada_em)
+  VALUES (demo, 'retorno', gen_random_uuid()::text, cli_lid, v5, '5521955554444', 'enviada', '99887766@lid', 'EVO-9', now());
+  PERFORM ci.exige(wa_saida_registrar(inst, NULL, '99887766@lid') = 1, 'SAIR por endereço oculto acha o cliente pelo envio anterior');
+  PERFORM ci.exige((SELECT NOT aceita_mensagens FROM clientes WHERE id = cli_lid), 'cliente que pediu SAIR deixa de aceitar mensagens');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM clientes WHERE tenant_id = demo AND NOT aceita_mensagens AND id <> cli_lid AND id <> cli_no AND telefone LIKE '%95555-4444'), 'SAIR não descadastra quem tem os mesmos dígitos finais em outro DDD');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM wa_saidas WHERE tenant_id = demo AND chave = '5521955554444'), 'saída guardada pelo número');
+  INSERT INTO wa_mensagens (tenant_id, tipo, referencia, cliente_id, veiculo_id, numero)
+  VALUES (demo, 'retorno', gen_random_uuid()::text, cli, v1, '5511988887777') RETURNING id INTO m2;
+  PERFORM ci.exige(wa_saida_registrar(inst, '5511988887777', NULL) >= 1, 'SAIR por número descadastra o cliente');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND erro = 'Cliente pediu para sair' FROM wa_mensagens WHERE id = m2), 'SAIR cancela o que estava na fila para o número');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM clientes WHERE id = cli AND aceita_mensagens), 'cliente do número deixa de aceitar mensagens');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT wa_enfileirar('pronto', %L)$c$, o4::text), 'enfileirar para quem pediu para sair');
+  PERFORM ci.exige(wa_saida_registrar('instancia-desconhecida', '5511988887777', NULL) = 0, 'saída de instância desconhecida não faz nada');
+
+  DELETE FROM wa_mensagens WHERE tenant_id = demo;
+  DELETE FROM wa_saidas WHERE tenant_id = demo;
+  DELETE FROM wa_config WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
