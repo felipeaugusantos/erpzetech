@@ -6731,3 +6731,111 @@ BEGIN
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(est, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer baixa com o módulo desligado');
 END $$;
+
+-- 71. Lava rápido (checklist de avarias): registrar, conferir "sem avarias", imutável depois de concluído, obrigatoriedade por empresa
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; v1 uuid; v2 uuid; serv uuid; lav uuid; o1 uuid; o2 uuid; av uuid; av2 uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Checklist CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'CHK1A11', 'fabricante', 'Fiat', 'modelo', 'Palio'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRCHK', 'fabricante', 'Robinson', 'modelo', 'R44'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem checklist","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Checklist CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+
+  -- sem exigência: lavar sem checklist continua valendo
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando');
+  PERFORM lr_ordem_situacao(o1, 'aguardando');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND checklist_em IS NULL FROM lr_ordens WHERE id = o1), 'por padrão o checklist não é exigido');
+
+  -- registrar avarias
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'garçom registra avaria');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'estoquista registra avaria');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'anon registra avaria');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'C', 'risco')$c$, o1), 'local curto demais');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'quebrado')$c$, o1), 'tipo de avaria inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco', repeat('x', 301))$c$, o1), 'descrição longa demais');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, gen_random_uuid()), 'ordem que não existe');
+  PERFORM ci.entrar(vend);
+  av := lr_avaria_registrar(o1, ' Capô ', 'risco', 'Risco de 10 cm');
+  av2 := lr_avaria_registrar(o1, 'Porta direita', 'amassado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lugar = 'Capô' AND tipo = 'risco' AND descricao = 'Risco de 10 cm' AND registrada_por = vend FROM lr_avarias WHERE id = av), 'a avaria guarda local, tipo, descrição e quem registrou');
+
+  -- conferir: com avarias não dá para dizer que não há, e vice-versa
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, true)$c$, o1), 'concluir sem avarias havendo avarias');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_avaria_remover(av2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_avarias WHERE ordem_id = o1), 'enquanto o checklist está aberto dá para remover um engano');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o1, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT checklist_em IS NOT NULL AND checklist_por = vend AND NOT checklist_sem_avarias FROM lr_ordens WHERE id = o1), 'checklist concluído com avarias, com quem e quando');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_remover(%L)$c$, av), 'apagar avaria depois de concluído');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, o1), 'concluir o checklist duas vezes');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM lr_avarias WHERE id = %L$c$, av), 'apagar avaria direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_ordens SET checklist_em = NULL WHERE id = %L$c$, o1), 'desfazer o checklist direto');
+
+  -- sem avarias
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, (SELECT 'x')), 'ordem inválida no checklist');
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, o2), 'concluir com avarias sem registrar nenhuma');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o2, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT checklist_sem_avarias FROM lr_ordens WHERE id = o2), 'checklist concluído sem avarias');
+  -- uma avaria achada depois: entra e o checklist deixa de dizer "sem avarias"
+  PERFORM ci.entrar(vend);
+  PERFORM lr_avaria_registrar(o2, 'Rotor de cauda', 'trinca', 'Achada na lavagem');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT NOT checklist_sem_avarias FROM lr_ordens WHERE id = o2), 'avaria achada depois tira o "sem avarias"');
+
+  -- exigência por empresa
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_config_salvar(true)$c$, 'vendedor liga a exigência');
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_config_salvar(true)$c$, 'garçom liga a exigência');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'libera');
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o1), 'lavar sem checklist quando a empresa exige');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o1, true);
+  PERFORM lr_ordem_situacao(o1, 'lavando');
+  PERFORM lr_ordem_situacao(o2, 'lavando');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'lavando' FROM lr_ordens WHERE id = o1) AND (SELECT situacao = 'lavando' FROM lr_ordens WHERE id = o2), 'com o checklist concluído a lavagem começa');
+
+  -- encerrada: não registra mais
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'avaria em ordem cancelada');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_avarias') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_avarias') >= 2, 'o garçom não lê avarias');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(false);
+  PERFORM ci.sair();
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

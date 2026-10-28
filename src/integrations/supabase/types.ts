@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      lr_avarias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lugar: string
+          ordem_id: string
+          registrada_por: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lugar: string
+          ordem_id: string
+          registrada_por?: string | null
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lugar?: string
+          ordem_id?: string
+          registrada_por?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_avarias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_config: {
+        Row: {
+          checklist_obrigatorio: boolean
+          created_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          checklist_obrigatorio?: boolean
+          created_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist_obrigatorio?: boolean
+          created_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lr_insumo_baixas: {
         Row: {
           baixado_em: string | null
@@ -639,6 +704,9 @@ export type Database = {
       lr_ordens: {
         Row: {
           box: string | null
+          checklist_em: string | null
+          checklist_por: string | null
+          checklist_sem_avarias: boolean | null
           cliente_id: string
           created_at: string
           created_by: string | null
@@ -658,6 +726,9 @@ export type Database = {
         Insert: {
           box?: string | null
           cliente_id: string
+          checklist_em?: string | null
+          checklist_por?: string | null
+          checklist_sem_avarias?: boolean | null
           created_at?: string
           created_by?: string | null
           entrada_em?: string
@@ -676,6 +747,9 @@ export type Database = {
         Update: {
           box?: string | null
           cliente_id?: string
+          checklist_em?: string | null
+          checklist_por?: string | null
+          checklist_sem_avarias?: boolean | null
           created_at?: string
           created_by?: string | null
           entrada_em?: string
@@ -10537,6 +10611,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lr_avaria_registrar: {
+        Args: { p_descricao?: string; p_local: string; p_ordem_id: string; p_tipo: string }
+        Returns: string
+      }
+      lr_avaria_remover: { Args: { p_id: string }; Returns: undefined }
+      lr_checklist_concluir: {
+        Args: { p_ordem_id: string; p_sem_avarias: boolean }
+        Returns: undefined
+      }
+      lr_config_salvar: { Args: { p_checklist_obrigatorio: boolean }; Returns: undefined }
       lr_insumo_baixa_refazer: { Args: { p_id: string }; Returns: undefined }
       lr_insumo_config_salvar: {
         Args: { p_ativo?: boolean; p_deposito_id: string }

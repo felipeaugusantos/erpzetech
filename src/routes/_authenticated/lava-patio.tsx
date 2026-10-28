@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Banknote, Clock, Plus, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Banknote,
+  ClipboardCheck,
+  Clock,
+  Plus,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { ChecklistAvarias } from "@/components/app/ChecklistAvarias";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -25,12 +34,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
 import {
   SITUACOES,
+  estadoDoChecklist,
   formatarIdentificacao,
   minutosNoPatio,
   motivoDeNaoIniciar,
@@ -40,6 +52,7 @@ import {
   rotuloSituacao,
   rotuloCobertura,
   rotuloTipo,
+  textoChecklist,
   textoTempo,
   totalCobrado,
   type SituacaoOrdem,
@@ -72,6 +85,7 @@ function Patio() {
   const navegar = useNavigate();
   const [nova, setNova] = useState(false);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [checklistDe, setChecklistDe] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -101,6 +115,16 @@ function Patio() {
         ? await supabase.from("lr_ordem_itens").select("*").in("ordem_id", ids)
         : { data: [], error: null };
       if (itens.error) throw itens.error;
+      const avarias = ids.length
+        ? await supabase
+            .from("lr_avarias")
+            .select("id, ordem_id, lugar, tipo, descricao")
+            .in("ordem_id", ids)
+            .order("created_at")
+        : { data: [], error: null };
+      if (avarias.error) throw avarias.error;
+      const cfg = await supabase.from("lr_config").select("checklist_obrigatorio").maybeSingle();
+      if (cfg.error) throw cfg.error;
       return {
         ordens: ordens.data ?? [],
         veiculos: veiculos.data ?? [],
@@ -110,6 +134,8 @@ function Patio() {
         precos: precos.data ?? [],
         produtos: produtos.data ?? [],
         itens: itens.data ?? [],
+        avarias: avarias.data ?? [],
+        checklistObrigatorio: cfg.data?.checklist_obrigatorio ?? false,
       };
     },
   });
@@ -151,6 +177,21 @@ function Patio() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: session } = useSessionData();
+  const podeConfigurar = (session?.roles ?? []).some((r) =>
+    ["administrador", "gestor"].includes(r),
+  );
+  const config = useMutation({
+    mutationFn: async (obrigatorio: boolean) => {
+      const { error } = await supabase.rpc("lr_config_salvar", {
+        p_checklist_obrigatorio: obrigatorio,
+      });
+      if (error) throw error;
+    },
+    onSuccess: atualizar,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const atribuir = useMutation({
     mutationFn: async (p: { id: string; lavadorId: string | null; box: string | null }) => {
       const { error } = await supabase.rpc("lr_ordem_atribuir", {
@@ -182,6 +223,12 @@ function Patio() {
         toast.error(aviso);
         return;
       }
+      const ordem = data?.ordens.find((x) => x.id === id);
+      if (data?.checklistObrigatorio && ordem && estadoDoChecklist(ordem) === "pendente") {
+        toast.error("Conclua o checklist de avarias antes de começar a lavagem.");
+        setChecklistDe(id);
+        return;
+      }
     }
     mudar.mutate({ id, para: prox });
   }
@@ -197,6 +244,17 @@ function Patio() {
           </Button>
         }
       />
+
+      {podeConfigurar && !isLoading && (
+        <label className="mb-4 flex items-center gap-2 text-sm">
+          <Switch
+            checked={data?.checklistObrigatorio ?? false}
+            disabled={config.isPending}
+            onCheckedChange={(v) => config.mutate(v)}
+          />
+          Exigir o checklist de avarias antes de começar a lavagem
+        </label>
+      )}
 
       {isLoading ? (
         <div className="panel h-40 animate-pulse" />
@@ -266,6 +324,17 @@ function Patio() {
                       {o.observacoes && (
                         <p className="text-xs text-muted-foreground">{o.observacoes}</p>
                       )}
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs underline-offset-2 hover:underline"
+                        onClick={() => setChecklistDe(o.id)}
+                      >
+                        <ClipboardCheck className="size-3" />
+                        {textoChecklist(
+                          estadoDoChecklist(o),
+                          (data?.avarias ?? []).filter((a) => a.ordem_id === o.id).length,
+                        )}
+                      </button>
 
                       <Select
                         value={o.lavador_id ?? SEM_LAVADOR}
@@ -364,6 +433,21 @@ function Patio() {
           ))}
         </div>
       )}
+
+      {checklistDe &&
+        data &&
+        (() => {
+          const ordem = data.ordens.find((x) => x.id === checklistDe);
+          const veic = ordem && data.veiculos.find((x) => x.id === ordem.veiculo_id);
+          return ordem && veic ? (
+            <ChecklistAvarias
+              ordem={ordem}
+              veiculo={veic}
+              avarias={data.avarias.filter((a) => a.ordem_id === ordem.id)}
+              onFechar={() => setChecklistDe(null)}
+            />
+          ) : null;
+        })()}
 
       {nova && data && (
         <NovaOrdem

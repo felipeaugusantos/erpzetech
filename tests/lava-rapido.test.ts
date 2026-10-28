@@ -10,6 +10,10 @@ import {
   TIPOS_VEICULO,
   comissaoDoLavador,
   diasParaVencer,
+  estadoDoChecklist,
+  locaisDeAvaria,
+  rotuloAvaria,
+  textoChecklist,
   MENSAGEM_LAVA_PADRAO,
   lavagensRestantes,
   montarMensagemLava,
@@ -214,4 +218,29 @@ test("quantidade de insumo sem zeros sobrando", () => {
   assert.equal(formatarQuantidade(2.5), "2,5");
   assert.equal(formatarQuantidade(0.1234), "0,123");
   assert.equal(formatarQuantidade(1000), "1.000");
+});
+
+test("checklist de avarias: estado, texto e locais por tipo de veículo", () => {
+  assert.equal(estadoDoChecklist({ checklist_em: null, checklist_sem_avarias: null }), "pendente");
+  assert.equal(
+    estadoDoChecklist({ checklist_em: "2026-11-01T10:00:00Z", checklist_sem_avarias: true }),
+    "sem_avarias",
+  );
+  assert.equal(
+    estadoDoChecklist({ checklist_em: "2026-11-01T10:00:00Z", checklist_sem_avarias: false }),
+    "com_avarias",
+  );
+  assert.equal(textoChecklist("pendente", 0), "Checklist pendente");
+  assert.equal(textoChecklist("pendente", 2), "Checklist aberto (2)");
+  assert.equal(textoChecklist("sem_avarias", 0), "Sem avarias");
+  assert.equal(textoChecklist("com_avarias", 1), "1 avaria registrada");
+  assert.equal(textoChecklist("com_avarias", 3), "3 avarias registradas");
+  assert.ok(locaisDeAvaria("carro").includes("Capô"));
+  assert.ok(locaisDeAvaria("caminhonete").includes("Caçamba"));
+  assert.ok(locaisDeAvaria("moto").includes("Tanque"));
+  assert.ok(locaisDeAvaria("aviao").includes("Hélice ou motor"));
+  assert.ok(locaisDeAvaria("helicoptero").includes("Rotor de cauda"));
+  assert.ok(!locaisDeAvaria("carro").includes("Rotor de cauda"));
+  assert.equal(rotuloAvaria("falta_peca"), "Peça faltando");
+  assert.equal(rotuloAvaria("desconhecido"), "Outro");
 });

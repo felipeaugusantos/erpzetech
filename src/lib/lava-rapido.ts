@@ -251,3 +251,78 @@ export function montarMensagemLava(
 /** Quantidade de insumo em português, até 3 casas e sem zeros sobrando (0,05 · 1 · 2,5). */
 export const formatarQuantidade = (q: number) =>
   q.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+
+export const TIPOS_AVARIA = [
+  { value: "risco", label: "Risco" },
+  { value: "amassado", label: "Amassado" },
+  { value: "trinca", label: "Trinca ou quebra" },
+  { value: "mancha", label: "Mancha" },
+  { value: "falta_peca", label: "Peça faltando" },
+  { value: "outro", label: "Outro" },
+] as const;
+
+export const rotuloAvaria = (tipo: string) =>
+  TIPOS_AVARIA.find((t) => t.value === tipo)?.label ?? "Outro";
+
+const LOCAIS_CARRO = [
+  "Frente",
+  "Capô",
+  "Teto",
+  "Traseira",
+  "Porta-malas",
+  "Lateral esquerda",
+  "Lateral direita",
+  "Para-brisa",
+  "Rodas",
+  "Interior",
+];
+
+/** Sugestões de local da avaria por tipo de veículo (o campo aceita outro texto). */
+export function locaisDeAvaria(tipo: string): string[] {
+  switch (tipo) {
+    case "moto":
+      return ["Tanque", "Carenagem", "Banco", "Rodas", "Escapamento", "Retrovisores", "Farol"];
+    case "caminhonete":
+      return [...LOCAIS_CARRO, "Caçamba"];
+    case "aviao":
+      return [
+        "Fuselagem",
+        "Asa esquerda",
+        "Asa direita",
+        "Cauda",
+        "Hélice ou motor",
+        "Trem de pouso",
+        "Para-brisa ou cabine",
+        "Interior",
+      ];
+    case "helicoptero":
+      return [
+        "Fuselagem",
+        "Cabine",
+        "Rotor principal",
+        "Rotor de cauda",
+        "Esquis ou trem de pouso",
+        "Para-brisa",
+        "Interior",
+      ];
+    default:
+      return LOCAIS_CARRO;
+  }
+}
+
+export type EstadoChecklist = "pendente" | "sem_avarias" | "com_avarias";
+
+export function estadoDoChecklist(o: {
+  checklist_em: string | null;
+  checklist_sem_avarias: boolean | null;
+}): EstadoChecklist {
+  if (!o.checklist_em) return "pendente";
+  return o.checklist_sem_avarias ? "sem_avarias" : "com_avarias";
+}
+
+export function textoChecklist(estado: EstadoChecklist, avarias: number) {
+  if (estado === "pendente")
+    return avarias > 0 ? `Checklist aberto (${avarias})` : "Checklist pendente";
+  if (estado === "sem_avarias") return "Sem avarias";
+  return avarias === 1 ? "1 avaria registrada" : `${avarias} avarias registradas`;
+}
