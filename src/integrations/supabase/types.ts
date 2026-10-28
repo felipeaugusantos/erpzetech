@@ -11056,6 +11056,164 @@ export type Database = {
           },
         ]
       }
+      wa_config: {
+        Row: {
+          atualizado_em: string
+          auto_desde: string | null
+          auto_plano: boolean
+          auto_pronto: boolean
+          conectada_em: string | null
+          estado: string
+          instancia: string
+          numero: string | null
+          tenant_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          auto_desde?: string | null
+          auto_plano?: boolean
+          auto_pronto?: boolean
+          conectada_em?: string | null
+          estado?: string
+          instancia: string
+          numero?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          atualizado_em?: string
+          auto_desde?: string | null
+          auto_plano?: boolean
+          auto_pronto?: boolean
+          conectada_em?: string | null
+          estado?: string
+          instancia?: string
+          numero?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_mensagens: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          enviada_em: string | null
+          erro: string | null
+          id: string
+          id_externo: string | null
+          jid: string | null
+          numero: string
+          origem: string
+          proxima_tentativa: string
+          referencia: string
+          situacao: string
+          tenant_id: string
+          tentativas: number
+          tipo: string
+          updated_at: string
+          variaveis: Json
+          veiculo_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          jid?: string | null
+          numero: string
+          origem?: string
+          proxima_tentativa?: string
+          referencia: string
+          situacao?: string
+          tenant_id?: string
+          tentativas?: number
+          tipo: string
+          updated_at?: string
+          variaveis?: Json
+          veiculo_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          jid?: string | null
+          numero?: string
+          origem?: string
+          proxima_tentativa?: string
+          referencia?: string
+          situacao?: string
+          tenant_id?: string
+          tentativas?: number
+          tipo?: string
+          updated_at?: string
+          variaveis?: Json
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_mensagens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_saidas: {
+        Row: {
+          chave: string
+          created_at: string
+          tenant_id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          tenant_id: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_saidas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_eventos: {
         Row: {
           erro: string | null
@@ -11262,6 +11420,22 @@ export type Database = {
       _produto_dados_modulo_erro: {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
+      }
+      _wa_enfileirar: {
+        Args: {
+          p_origem: string
+          p_reabrir: boolean
+          p_ref: string
+          p_tenant: string
+          p_tipo: string
+          p_usuario: string
+        }
+        Returns: string
+      }
+      _wa_numero: { Args: { p_texto: string }; Returns: string }
+      _wa_variaveis: {
+        Args: { p_ref: string; p_tenant: string; p_tipo: string }
+        Returns: Json
       }
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
@@ -12853,6 +13027,46 @@ export type Database = {
           p_papeis: Database["public"]["Enums"]["app_role"][]
           p_user_id: string
         }
+        Returns: undefined
+      }
+      wa_auto_varrer: { Args: never; Returns: number }
+      wa_automatico_salvar: {
+        Args: { p_plano: boolean; p_pronto: boolean }
+        Returns: undefined
+      }
+      wa_enfileirar: {
+        Args: { p_referencia: string; p_tipo: string }
+        Returns: string
+      }
+      wa_exige_gestor: { Args: never; Returns: string }
+      wa_mensagem_cancelar: { Args: { p_id: string }; Returns: undefined }
+      wa_mensagem_reenviar: { Args: { p_id: string }; Returns: undefined }
+      wa_nome_instancia: { Args: { p_tenant: string }; Returns: string }
+      wa_reservar: {
+        Args: {
+          p_dentro_horario: boolean
+          p_por_empresa: number
+          p_total: number
+        }
+        Returns: Json
+      }
+      wa_resultado: {
+        Args: {
+          p_erro: string
+          p_id: string
+          p_id_externo: string
+          p_jid: string
+          p_ok: boolean
+          p_proxima: string
+        }
+        Returns: undefined
+      }
+      wa_saida_registrar: {
+        Args: { p_instancia: string; p_jid: string; p_numero: string }
+        Returns: number
+      }
+      wa_status: {
+        Args: { p_id_externo: string; p_instancia: string; p_status: string }
         Returns: undefined
       }
       webhook_concluir: {
