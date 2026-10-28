@@ -9,8 +9,8 @@ test("o ramo restaurante existe e tem rótulo próprio", () => {
 });
 
 test("ramo desconhecido ou vazio cai em materiais de construção", () => {
-  assert.equal(labelRamo("xyz"), "Materiais de construção");
-  assert.equal(labelRamo(null), "Materiais de construção");
+  assert.equal(labelRamo("xyz"), "Material de Construção");
+  assert.equal(labelRamo(null), "Material de Construção");
 });
 
 test("grade de tamanhos só vale para roupas e calçados", () => {

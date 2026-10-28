@@ -116,5 +116,6 @@ export function moduloLiberadoEmpresa(
   if (modulo === "restaurante" && empresa?.ramo_atividade === "restaurante") return true;
   if (modulo === "clinica" && empresa?.ramo_atividade === "clinica") return true;
   if (modulo === "petshop" && empresa?.ramo_atividade === "petshop") return true;
+  if (modulo === "lavarapido" && empresa?.ramo_atividade === "lavarapido") return true;
   return moduloLiberadoPorCnae(cnaesDaEmpresa(empresa), modulo);
 }

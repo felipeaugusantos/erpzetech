@@ -30,11 +30,13 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ramos } from "@/lib/ramo";
+import { ramosModulo, ramosOutros } from "@/lib/ramo";
 import { contaParaExibir } from "@/lib/usuario-login";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -209,24 +211,36 @@ function Configuracoes() {
                 />
               </div>
               <div>
-                <Label htmlFor="e-ramo">Ramo de atividade</Label>
+                <Label htmlFor="e-ramo">Módulo do sistema</Label>
                 <Select
                   value={empresa.ramo_atividade}
                   onValueChange={(v) => setEmpresa({ ...empresa, ramo_atividade: v })}
                 >
-                  <SelectTrigger id="e-ramo" aria-label="Ramo de atividade">
+                  <SelectTrigger id="e-ramo" aria-label="Módulo do sistema">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ramos.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
-                        {r.label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectLabel>Módulos</SelectLabel>
+                      {ramosModulo.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Outros ramos</SelectLabel>
+                      {ramosOutros.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  No ramo de roupas e calçados o cadastro de produto libera a grade de tamanhos.
+                  O módulo define os campos do cadastro de produto. No ramo de roupas e calçados o
+                  cadastro libera a grade de tamanhos.
                 </p>
               </div>
               <div>

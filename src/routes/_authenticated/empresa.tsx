@@ -18,11 +18,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ramos } from "@/lib/ramo";
+import { ramosModulo, ramosOutros } from "@/lib/ramo";
 import {
   ROTULO_MODULO,
   exemplosCnae,
@@ -360,23 +362,37 @@ function Empresa() {
             </div>
 
             <div>
-              <Label htmlFor="emp-ramo">Ramo de atividade</Label>
+              <Label htmlFor="emp-ramo">Módulo do sistema</Label>
               <Select
                 value={form.ramo_atividade}
                 disabled={!isAdmin}
                 onValueChange={(v) => setForm({ ...form, ramo_atividade: v })}
               >
-                <SelectTrigger id="emp-ramo" aria-label="Ramo de atividade">
+                <SelectTrigger id="emp-ramo" aria-label="Módulo do sistema">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ramos.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Módulos</SelectLabel>
+                    {ramosModulo.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Outros ramos</SelectLabel>
+                    {ramosOutros.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                O módulo define os campos do cadastro de produto da empresa.
+              </p>
             </div>
 
             <div className="flex items-start gap-3 rounded-md border p-3 sm:col-span-2 lg:col-span-3">
