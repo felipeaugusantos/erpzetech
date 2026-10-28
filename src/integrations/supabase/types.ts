@@ -14,1046 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      lr_avarias: {
-        Row: {
-          created_at: string
-          descricao: string | null
-          id: string
-          lugar: string
-          ordem_id: string
-          registrada_por: string | null
-          tenant_id: string
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          lugar: string
-          ordem_id: string
-          registrada_por?: string | null
-          tenant_id?: string
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          lugar?: string
-          ordem_id?: string
-          registrada_por?: string | null
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_avarias_ordem_id_fkey"
-            columns: ["ordem_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordens"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_config: {
-        Row: {
-          checklist_obrigatorio: boolean
-          created_at: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          checklist_obrigatorio?: boolean
-          created_at?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          checklist_obrigatorio?: boolean
-          created_at?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      lr_insumo_baixas: {
-        Row: {
-          baixado_em: string | null
-          created_at: string
-          deposito_id: string
-          erro: string | null
-          id: string
-          item_id: string
-          ordem_id: string
-          produto_id: string
-          quantidade: number
-          situacao: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          baixado_em?: string | null
-          created_at?: string
-          deposito_id: string
-          erro?: string | null
-          id?: string
-          item_id: string
-          ordem_id: string
-          produto_id: string
-          quantidade: number
-          situacao: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          baixado_em?: string | null
-          created_at?: string
-          deposito_id?: string
-          erro?: string | null
-          id?: string
-          item_id?: string
-          ordem_id?: string
-          produto_id?: string
-          quantidade?: number
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_insumo_baixas_deposito_id_fkey"
-            columns: ["deposito_id"]
-            isOneToOne: false
-            referencedRelation: "depositos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_insumo_baixas_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordem_itens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_insumo_baixas_ordem_id_fkey"
-            columns: ["ordem_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_insumo_baixas_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_insumo_config: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          deposito_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          deposito_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          deposito_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_insumo_config_deposito_id_fkey"
-            columns: ["deposito_id"]
-            isOneToOne: false
-            referencedRelation: "depositos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_servico_insumos: {
-        Row: {
-          created_at: string
-          id: string
-          produto_id: string
-          quantidade: number
-          servico_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          produto_id: string
-          quantidade: number
-          servico_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          produto_id?: string
-          quantidade?: number
-          servico_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_servico_insumos_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_servico_insumos_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wa_config: {
-        Row: {
-          atualizado_em: string
-          auto_desde: string | null
-          auto_plano: boolean
-          auto_pronto: boolean
-          conectada_em: string | null
-          estado: string
-          instancia: string
-          numero: string | null
-          tenant_id: string
-        }
-        Insert: {
-          atualizado_em?: string
-          auto_desde?: string | null
-          auto_plano?: boolean
-          auto_pronto?: boolean
-          conectada_em?: string | null
-          estado?: string
-          instancia: string
-          numero?: string | null
-          tenant_id?: string
-        }
-        Update: {
-          atualizado_em?: string
-          auto_desde?: string | null
-          auto_plano?: boolean
-          auto_pronto?: boolean
-          conectada_em?: string | null
-          estado?: string
-          instancia?: string
-          numero?: string | null
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      wa_mensagens: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          criado_por: string | null
-          enviada_em: string | null
-          erro: string | null
-          id: string
-          id_externo: string | null
-          jid: string | null
-          numero: string
-          origem: string
-          proxima_tentativa: string
-          referencia: string
-          situacao: string
-          tenant_id: string
-          tentativas: number
-          tipo: string
-          updated_at: string
-          variaveis: Json
-          veiculo_id: string
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          criado_por?: string | null
-          enviada_em?: string | null
-          erro?: string | null
-          id?: string
-          id_externo?: string | null
-          jid?: string | null
-          numero: string
-          origem?: string
-          proxima_tentativa?: string
-          referencia: string
-          situacao?: string
-          tenant_id?: string
-          tentativas?: number
-          tipo: string
-          updated_at?: string
-          variaveis?: Json
-          veiculo_id: string
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          criado_por?: string | null
-          enviada_em?: string | null
-          erro?: string | null
-          id?: string
-          id_externo?: string | null
-          jid?: string | null
-          numero?: string
-          origem?: string
-          proxima_tentativa?: string
-          referencia?: string
-          situacao?: string
-          tenant_id?: string
-          tentativas?: number
-          tipo?: string
-          updated_at?: string
-          variaveis?: Json
-          veiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wa_mensagens_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wa_mensagens_veiculo_id_fkey"
-            columns: ["veiculo_id"]
-            isOneToOne: false
-            referencedRelation: "lr_veiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wa_saidas: {
-        Row: { chave: string; created_at: string; tenant_id: string }
-        Insert: { chave: string; created_at?: string; tenant_id: string }
-        Update: { chave?: string; created_at?: string; tenant_id?: string }
-        Relationships: []
-      }
-      lr_contatos: {
-        Row: {
-          canal: string
-          cliente_id: string
-          created_at: string
-          feito_por: string | null
-          id: string
-          referencia: string
-          tenant_id: string
-          tipo: string
-          updated_at: string
-          veiculo_id: string
-        }
-        Insert: {
-          canal?: string
-          cliente_id: string
-          created_at?: string
-          feito_por?: string | null
-          id?: string
-          referencia: string
-          tenant_id?: string
-          tipo: string
-          updated_at?: string
-          veiculo_id: string
-        }
-        Update: {
-          canal?: string
-          cliente_id?: string
-          created_at?: string
-          feito_por?: string | null
-          id?: string
-          referencia?: string
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-          veiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_contatos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_contatos_veiculo_id_fkey"
-            columns: ["veiculo_id"]
-            isOneToOne: false
-            referencedRelation: "lr_veiculos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_mensagem_modelos: {
-        Row: {
-          atualizado_em: string
-          atualizado_por: string | null
-          tenant_id: string
-          texto: string
-          tipo: string
-        }
-        Insert: {
-          atualizado_em?: string
-          atualizado_por?: string | null
-          tenant_id?: string
-          texto: string
-          tipo: string
-        }
-        Update: {
-          atualizado_em?: string
-          atualizado_por?: string | null
-          tenant_id?: string
-          texto?: string
-          tipo?: string
-        }
-        Relationships: []
-      }
-      lr_assinatura_usos: {
-        Row: {
-          assinatura_id: string
-          created_at: string
-          desfeito: boolean
-          id: string
-          item_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          assinatura_id: string
-          created_at?: string
-          desfeito?: boolean
-          id?: string
-          item_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          assinatura_id?: string
-          created_at?: string
-          desfeito?: boolean
-          id?: string
-          item_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_assinatura_usos_assinatura_id_fkey"
-            columns: ["assinatura_id"]
-            isOneToOne: false
-            referencedRelation: "lr_assinaturas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_assinatura_usos_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordem_itens"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_assinaturas: {
-        Row: {
-          cliente_id: string
-          comprado_em: string
-          created_at: string
-          id: string
-          lavagens: number
-          motivo: string | null
-          plano_id: string
-          servico_id: string
-          situacao: string
-          tenant_id: string
-          updated_at: string
-          valor: number
-          vence_em: string
-          venda_id: string | null
-          veiculo_id: string
-        }
-        Insert: {
-          cliente_id: string
-          comprado_em: string
-          created_at?: string
-          id?: string
-          lavagens: number
-          motivo?: string | null
-          plano_id: string
-          servico_id: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor: number
-          vence_em: string
-          venda_id?: string | null
-          veiculo_id: string
-        }
-        Update: {
-          cliente_id?: string
-          comprado_em?: string
-          created_at?: string
-          id?: string
-          lavagens?: number
-          motivo?: string | null
-          plano_id?: string
-          servico_id?: string
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor?: number
-          vence_em?: string
-          venda_id?: string | null
-          veiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_assinaturas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_assinaturas_plano_id_fkey"
-            columns: ["plano_id"]
-            isOneToOne: false
-            referencedRelation: "lr_planos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_assinaturas_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_assinaturas_veiculo_id_fkey"
-            columns: ["veiculo_id"]
-            isOneToOne: false
-            referencedRelation: "lr_veiculos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_assinaturas_venda_id_fkey"
-            columns: ["venda_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_fidelidade_config: {
-        Row: {
-          ativo: boolean
-          ativo_desde: string
-          created_at: string
-          lavagens_para_brinde: number
-          servico_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          ativo_desde?: string
-          created_at?: string
-          lavagens_para_brinde?: number
-          servico_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          ativo_desde?: string
-          created_at?: string
-          lavagens_para_brinde?: number
-          servico_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_fidelidade_config_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_planos: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          id: string
-          lavagens: number
-          nome: string
-          preco: number
-          produto_id: string
-          servico_id: string
-          tenant_id: string
-          tipo: string | null
-          updated_at: string
-          validade_dias: number
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          lavagens: number
-          nome: string
-          preco: number
-          produto_id: string
-          servico_id: string
-          tenant_id?: string
-          tipo?: string | null
-          updated_at?: string
-          validade_dias?: number
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          lavagens?: number
-          nome?: string
-          preco?: number
-          produto_id?: string
-          servico_id?: string
-          tenant_id?: string
-          tipo?: string | null
-          updated_at?: string
-          validade_dias?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_planos_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_planos_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_comissoes: {
-        Row: {
-          aprovada_em: string | null
-          aprovada_por: string | null
-          base: number
-          created_at: string
-          forma_pagamento: string | null
-          id: string
-          lavador_id: string
-          ordem_id: string
-          pago_em: string | null
-          pago_por: string | null
-          pedido_id: string
-          percentual: number
-          situacao: string
-          tenant_id: string
-          updated_at: string
-          valor: number
-        }
-        Insert: {
-          aprovada_em?: string | null
-          aprovada_por?: string | null
-          base: number
-          created_at?: string
-          forma_pagamento?: string | null
-          id?: string
-          lavador_id: string
-          ordem_id: string
-          pago_em?: string | null
-          pago_por?: string | null
-          pedido_id: string
-          percentual: number
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor: number
-        }
-        Update: {
-          aprovada_em?: string | null
-          aprovada_por?: string | null
-          base?: number
-          created_at?: string
-          forma_pagamento?: string | null
-          id?: string
-          lavador_id?: string
-          ordem_id?: string
-          pago_em?: string | null
-          pago_por?: string | null
-          pedido_id?: string
-          percentual?: number
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_comissoes_lavador_id_fkey"
-            columns: ["lavador_id"]
-            isOneToOne: false
-            referencedRelation: "lr_lavadores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_comissoes_ordem_id_fkey"
-            columns: ["ordem_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_comissoes_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_lavadores: {
-        Row: {
-          ativo: boolean
-          comissao_percentual: number
-          created_at: string
-          id: string
-          nome: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          comissao_percentual?: number
-          created_at?: string
-          id?: string
-          nome: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          comissao_percentual?: number
-          created_at?: string
-          id?: string
-          nome?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      lr_ordem_itens: {
-        Row: {
-          assinatura_id: string | null
-          cobertura: string | null
-          created_at: string
-          id: string
-          ordem_id: string
-          preco_aplicado: number
-          servico_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          assinatura_id?: string | null
-          cobertura?: string | null
-          created_at?: string
-          id?: string
-          ordem_id: string
-          preco_aplicado: number
-          servico_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          assinatura_id?: string | null
-          cobertura?: string | null
-          created_at?: string
-          id?: string
-          ordem_id?: string
-          preco_aplicado?: number
-          servico_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_ordem_itens_ordem_id_fkey"
-            columns: ["ordem_id"]
-            isOneToOne: false
-            referencedRelation: "lr_ordens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_ordem_itens_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_ordens: {
-        Row: {
-          box: string | null
-          checklist_em: string | null
-          checklist_por: string | null
-          checklist_sem_avarias: boolean | null
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          entrada_em: string
-          entregue_em: string | null
-          id: string
-          lavador_id: string | null
-          motivo_cancelamento: string | null
-          observacoes: string | null
-          pronto_em: string | null
-          situacao: string
-          tenant_id: string
-          updated_at: string
-          venda_id: string | null
-          veiculo_id: string
-        }
-        Insert: {
-          box?: string | null
-          cliente_id: string
-          checklist_em?: string | null
-          checklist_por?: string | null
-          checklist_sem_avarias?: boolean | null
-          created_at?: string
-          created_by?: string | null
-          entrada_em?: string
-          entregue_em?: string | null
-          id?: string
-          lavador_id?: string | null
-          motivo_cancelamento?: string | null
-          observacoes?: string | null
-          pronto_em?: string | null
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          venda_id?: string | null
-          veiculo_id: string
-        }
-        Update: {
-          box?: string | null
-          cliente_id?: string
-          checklist_em?: string | null
-          checklist_por?: string | null
-          checklist_sem_avarias?: boolean | null
-          created_at?: string
-          created_by?: string | null
-          entrada_em?: string
-          entregue_em?: string | null
-          id?: string
-          lavador_id?: string | null
-          motivo_cancelamento?: string | null
-          observacoes?: string | null
-          pronto_em?: string | null
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-          venda_id?: string | null
-          veiculo_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_ordens_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_ordens_lavador_id_fkey"
-            columns: ["lavador_id"]
-            isOneToOne: false
-            referencedRelation: "lr_lavadores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_ordens_veiculo_id_fkey"
-            columns: ["veiculo_id"]
-            isOneToOne: false
-            referencedRelation: "lr_veiculos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lr_ordens_venda_id_fkey"
-            columns: ["venda_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_servico_precos: {
-        Row: {
-          created_at: string
-          id: string
-          preco: number
-          servico_id: string
-          tenant_id: string
-          tipo: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          preco: number
-          servico_id: string
-          tenant_id?: string
-          tipo?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          preco?: number
-          servico_id?: string
-          tenant_id?: string
-          tipo?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_servico_precos_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "lr_servicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_servicos: {
-        Row: {
-          ativo: boolean
-          categoria: string
-          created_at: string
-          duracao_min: number
-          id: string
-          nome: string
-          produto_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          duracao_min?: number
-          id?: string
-          nome: string
-          produto_id: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          duracao_min?: number
-          id?: string
-          nome?: string
-          produto_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_servicos_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lr_veiculos: {
-        Row: {
-          ativo: boolean
-          cliente_id: string
-          cor: string | null
-          created_at: string
-          fabricante: string
-          id: string
-          identificacao: string
-          modelo: string
-          observacoes: string | null
-          tenant_id: string
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          cliente_id: string
-          cor?: string | null
-          created_at?: string
-          fabricante: string
-          id?: string
-          identificacao: string
-          modelo: string
-          observacoes?: string | null
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          cliente_id?: string
-          cor?: string | null
-          created_at?: string
-          fabricante?: string
-          id?: string
-          identificacao?: string
-          modelo?: string
-          observacoes?: string | null
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lr_veiculos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       assinatura_faturas: {
         Row: {
           assinatura_id: string
@@ -1836,6 +796,7 @@ export type Database = {
           prazo_padrao_dias: number
           profissional_id: string | null
           saldo_utilizado: number
+          tabela_preco_id: string | null
           telefone: string | null
           tenant_id: string
           tipo: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1870,6 +831,7 @@ export type Database = {
           prazo_padrao_dias?: number
           profissional_id?: string | null
           saldo_utilizado?: number
+          tabela_preco_id?: string | null
           telefone?: string | null
           tenant_id: string
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1904,6 +866,7 @@ export type Database = {
           prazo_padrao_dias?: number
           profissional_id?: string | null
           saldo_utilizado?: number
+          tabela_preco_id?: string | null
           telefone?: string | null
           tenant_id?: string
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1930,6 +893,13 @@ export type Database = {
             columns: ["profissional_id"]
             isOneToOne: false
             referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_tabela_preco_id_fkey"
+            columns: ["tabela_preco_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco"
             referencedColumns: ["id"]
           },
           {
@@ -2090,6 +1060,138 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clinica_operacoes_offline_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobranca_config: {
+        Row: {
+          ambiente: string
+          api_key: string | null
+          ativo: boolean
+          created_at: string
+          provedor: string
+          tenant_id: string
+          updated_at: string
+          webhook_token_hash: string | null
+        }
+        Insert: {
+          ambiente?: string
+          api_key?: string | null
+          ativo?: boolean
+          created_at?: string
+          provedor?: string
+          tenant_id: string
+          updated_at?: string
+          webhook_token_hash?: string | null
+        }
+        Update: {
+          ambiente?: string
+          api_key?: string | null
+          ativo?: boolean
+          created_at?: string
+          provedor?: string
+          tenant_id?: string
+          updated_at?: string
+          webhook_token_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobrancas: {
+        Row: {
+          alerta: string | null
+          baixa_id: string | null
+          codigo_barras: string | null
+          conta_receber_id: string
+          created_at: string
+          criada_por: string | null
+          id: string
+          linha_digitavel: string | null
+          pago_em: string | null
+          pix_copia_cola: string | null
+          provedor: string
+          provedor_id: string
+          situacao: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          url_boleto: string | null
+          valor: number
+          valor_pago: number | null
+          vencimento: string
+        }
+        Insert: {
+          alerta?: string | null
+          baixa_id?: string | null
+          codigo_barras?: string | null
+          conta_receber_id: string
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          linha_digitavel?: string | null
+          pago_em?: string | null
+          pix_copia_cola?: string | null
+          provedor: string
+          provedor_id: string
+          situacao?: string
+          tenant_id: string
+          tipo: string
+          updated_at?: string
+          url_boleto?: string | null
+          valor: number
+          valor_pago?: number | null
+          vencimento: string
+        }
+        Update: {
+          alerta?: string | null
+          baixa_id?: string | null
+          codigo_barras?: string | null
+          conta_receber_id?: string
+          created_at?: string
+          criada_por?: string | null
+          id?: string
+          linha_digitavel?: string | null
+          pago_em?: string | null
+          pix_copia_cola?: string | null
+          provedor?: string
+          provedor_id?: string
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          url_boleto?: string | null
+          valor?: number
+          valor_pago?: number | null
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_baixa_id_fkey"
+            columns: ["baixa_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_baixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4409,6 +3511,57 @@ export type Database = {
           },
         ]
       }
+      faixas_desconto: {
+        Row: {
+          ativa: boolean
+          categoria_id: string | null
+          created_at: string
+          id: string
+          marca: string | null
+          percentual: number
+          perfil: Database["public"]["Enums"]["app_role"] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          percentual: number
+          perfil?: Database["public"]["Enums"]["app_role"] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          percentual?: number
+          perfil?: Database["public"]["Enums"]["app_role"] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faixas_desconto_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faixas_desconto_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       filiais: {
         Row: {
           ativo: boolean
@@ -5550,6 +4703,924 @@ export type Database = {
           },
         ]
       }
+      lr_avarias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lugar: string
+          ordem_id: string
+          registrada_por: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lugar: string
+          ordem_id: string
+          registrada_por?: string | null
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lugar?: string
+          ordem_id?: string
+          registrada_por?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_avarias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_avarias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_comissoes: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          base: number
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          lavador_id: string
+          ordem_id: string
+          pago_em: string | null
+          pago_por: string | null
+          pedido_id: string
+          percentual: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          lavador_id: string
+          ordem_id: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id: string
+          percentual: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base?: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          lavador_id?: string
+          ordem_id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id?: string
+          percentual?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_comissoes_lavador_id_fkey"
+            columns: ["lavador_id"]
+            isOneToOne: false
+            referencedRelation: "lr_lavadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_comissoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: true
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_comissoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_config: {
+        Row: {
+          checklist_obrigatorio: boolean
+          created_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          checklist_obrigatorio?: boolean
+          created_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist_obrigatorio?: boolean
+          created_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_contatos: {
+        Row: {
+          canal: string
+          cliente_id: string
+          created_at: string
+          feito_por: string | null
+          id: string
+          referencia: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          canal?: string
+          cliente_id: string
+          created_at?: string
+          feito_por?: string | null
+          id?: string
+          referencia: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          canal?: string
+          cliente_id?: string
+          created_at?: string
+          feito_por?: string | null
+          id?: string
+          referencia?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_contatos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_contatos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_fotos: {
+        Row: {
+          caminho: string
+          cancelada_em: string | null
+          cancelada_motivo: string | null
+          cancelada_por: string | null
+          confirmada_em: string | null
+          created_at: string
+          enviada_por: string
+          id: string
+          mime: string
+          momento: string
+          nome_arquivo: string
+          ordem_id: string
+          situacao: string
+          tamanho: number
+          tenant_id: string
+        }
+        Insert: {
+          caminho: string
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          confirmada_em?: string | null
+          created_at?: string
+          enviada_por?: string
+          id?: string
+          mime: string
+          momento: string
+          nome_arquivo: string
+          ordem_id: string
+          situacao?: string
+          tamanho: number
+          tenant_id?: string
+        }
+        Update: {
+          caminho?: string
+          cancelada_em?: string | null
+          cancelada_motivo?: string | null
+          cancelada_por?: string | null
+          confirmada_em?: string | null
+          created_at?: string
+          enviada_por?: string
+          id?: string
+          mime?: string
+          momento?: string
+          nome_arquivo?: string
+          ordem_id?: string
+          situacao?: string
+          tamanho?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_fotos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_fotos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_insumo_baixas: {
+        Row: {
+          baixado_em: string | null
+          created_at: string
+          deposito_id: string
+          erro: string | null
+          id: string
+          item_id: string
+          ordem_id: string
+          produto_id: string
+          quantidade: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baixado_em?: string | null
+          created_at?: string
+          deposito_id: string
+          erro?: string | null
+          id?: string
+          item_id: string
+          ordem_id: string
+          produto_id: string
+          quantidade: number
+          situacao: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          baixado_em?: string | null
+          created_at?: string
+          deposito_id?: string
+          erro?: string | null
+          id?: string
+          item_id?: string
+          ordem_id?: string
+          produto_id?: string
+          quantidade?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_insumo_baixas_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_insumo_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          deposito_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          deposito_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          deposito_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_insumo_config_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_lavadores: {
+        Row: {
+          ativo: boolean
+          comissao_percentual: number
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_lavadores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_mensagem_modelos: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          tenant_id: string
+          texto: string
+          tipo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto: string
+          tipo: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_mensagem_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_ordem_itens: {
+        Row: {
+          assinatura_id: string | null
+          cobertura: string | null
+          created_at: string
+          id: string
+          ordem_id: string
+          preco_aplicado: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura_id?: string | null
+          cobertura?: string | null
+          created_at?: string
+          id?: string
+          ordem_id: string
+          preco_aplicado: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura_id?: string | null
+          cobertura?: string | null
+          created_at?: string
+          id?: string
+          ordem_id?: string
+          preco_aplicado?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_ordem_itens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordem_itens_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordem_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_ordens: {
+        Row: {
+          box: string | null
+          checklist_em: string | null
+          checklist_por: string | null
+          checklist_sem_avarias: boolean | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          entrada_em: string
+          entregue_em: string | null
+          id: string
+          lavador_id: string | null
+          motivo_cancelamento: string | null
+          observacoes: string | null
+          pronto_em: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          veiculo_id: string
+          venda_id: string | null
+        }
+        Insert: {
+          box?: string | null
+          checklist_em?: string | null
+          checklist_por?: string | null
+          checklist_sem_avarias?: boolean | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          entrada_em?: string
+          entregue_em?: string | null
+          id?: string
+          lavador_id?: string | null
+          motivo_cancelamento?: string | null
+          observacoes?: string | null
+          pronto_em?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          veiculo_id: string
+          venda_id?: string | null
+        }
+        Update: {
+          box?: string | null
+          checklist_em?: string | null
+          checklist_por?: string | null
+          checklist_sem_avarias?: boolean | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          entrada_em?: string
+          entregue_em?: string | null
+          id?: string
+          lavador_id?: string | null
+          motivo_cancelamento?: string | null
+          observacoes?: string | null
+          pronto_em?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          veiculo_id?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_ordens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_lavador_id_fkey"
+            columns: ["lavador_id"]
+            isOneToOne: false
+            referencedRelation: "lr_lavadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          lavagens: number
+          nome: string
+          preco: number
+          produto_id: string
+          servico_id: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string
+          validade_dias: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lavagens: number
+          nome: string
+          preco: number
+          produto_id: string
+          servico_id: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+          validade_dias?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lavagens?: number
+          nome?: string
+          preco?: number
+          produto_id?: string
+          servico_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+          validade_dias?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_planos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_planos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_planos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servico_insumos: {
+        Row: {
+          created_at: string
+          id: string
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servico_insumos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_servico_insumos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_servico_insumos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servico_precos: {
+        Row: {
+          created_at: string
+          id: string
+          preco: number
+          servico_id: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco: number
+          servico_id: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco?: number
+          servico_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servico_precos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_servico_precos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servicos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          duracao_min: number
+          id: string
+          nome: string
+          produto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome: string
+          produto_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome?: string
+          produto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servicos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_veiculos: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          identificacao: string
+          observacoes: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          identificacao: string
+          observacoes?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          identificacao?: string
+          observacoes?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_veiculos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_veiculos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mesas: {
         Row: {
           ativa: boolean
@@ -5786,6 +5857,7 @@ export type Database = {
           chave: string | null
           cliente_id: string | null
           codigo_servico: string | null
+          comanda_id: string | null
           contingencia: boolean
           created_at: string
           deposito_id: string | null
@@ -5825,6 +5897,7 @@ export type Database = {
           valor_icms: number
           valor_icms_st: number
           valor_iss: number
+          valor_outras_despesas: number
           valor_pis: number
           valor_produtos: number
           valor_total: number
@@ -5840,6 +5913,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          comanda_id?: string | null
           contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
@@ -5879,6 +5953,7 @@ export type Database = {
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number
+          valor_outras_despesas?: number
           valor_pis?: number
           valor_produtos?: number
           valor_total?: number
@@ -5894,6 +5969,7 @@ export type Database = {
           chave?: string | null
           cliente_id?: string | null
           codigo_servico?: string | null
+          comanda_id?: string | null
           contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
@@ -5933,6 +6009,7 @@ export type Database = {
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number
+          valor_outras_despesas?: number
           valor_pis?: number
           valor_produtos?: number
           valor_total?: number
@@ -5944,6 +6021,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_comanda_id_fkey"
+            columns: ["comanda_id"]
+            isOneToOne: false
+            referencedRelation: "comandas"
             referencedColumns: ["id"]
           },
           {
@@ -10137,6 +10221,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tabela_preco_itens: {
+        Row: {
+          created_at: string
+          id: string
+          preco: number
+          produto_id: string
+          tabela_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco: number
+          produto_id: string
+          tabela_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco?: number
+          produto_id?: string
+          tabela_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabela_preco_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tabela_preco_itens_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tabela_preco_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tabelas_preco: {
+        Row: {
+          ajuste_percentual: number
+          ativa: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ajuste_percentual?: number
+          ativa?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ajuste_percentual?: number
+          ativa?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_preco_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tecnicos: {
         Row: {
           admissao: string | null
@@ -10737,112 +10911,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      saas_lava_rapido_por_cliente: { Args: { p_ate: string; p_de: string }; Returns: Json }
-      lr_foto_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
-      lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
-      lr_foto_preparar: {
-        Args: {
-          p_mime: string
-          p_momento: string
-          p_nome_arquivo: string
-          p_ordem_id: string
-          p_tamanho: number
-        }
-        Returns: Json
-      }
-      lr_fotos_contagem: { Args: { p_ordens: string[] }; Returns: Json }
-      lr_fotos_da_ordem: { Args: { p_ordem_id: string }; Returns: Json }
-      lr_avaria_registrar: {
-        Args: { p_descricao?: string; p_local: string; p_ordem_id: string; p_tipo: string }
-        Returns: string
-      }
-      lr_avaria_remover: { Args: { p_id: string }; Returns: undefined }
-      lr_checklist_concluir: {
-        Args: { p_ordem_id: string; p_sem_avarias: boolean }
-        Returns: undefined
-      }
-      lr_config_salvar: { Args: { p_checklist_obrigatorio: boolean }; Returns: undefined }
-      lr_insumo_baixa_refazer: { Args: { p_id: string }; Returns: undefined }
-      lr_insumo_config_salvar: {
-        Args: { p_ativo?: boolean; p_deposito_id: string }
-        Returns: undefined
-      }
-      lr_servico_insumo_remover: { Args: { p_id: string }; Returns: undefined }
-      lr_servico_insumo_salvar: {
-        Args: { p_produto_id: string; p_quantidade: number; p_servico_id: string }
-        Returns: string
-      }
-      lr_contato_registrar: {
-        Args: { p_canal?: string; p_referencia: string; p_tipo: string }
-        Returns: undefined
-      }
-      lr_mensagem_modelo_salvar: { Args: { p_texto: string; p_tipo: string }; Returns: undefined }
-      wa_auto_varrer: { Args: never; Returns: number }
-      wa_automatico_salvar: { Args: { p_plano: boolean; p_pronto: boolean }; Returns: undefined }
-      wa_enfileirar: { Args: { p_referencia: string; p_tipo: string }; Returns: string }
-      wa_exige_gestor: { Args: never; Returns: string }
-      wa_mensagem_cancelar: { Args: { p_id: string }; Returns: undefined }
-      wa_mensagem_reenviar: { Args: { p_id: string }; Returns: undefined }
-      wa_reservar: {
-        Args: { p_dentro_horario: boolean; p_por_empresa: number; p_total: number }
-        Returns: Json
-      }
-      wa_resultado: {
-        Args: {
-          p_erro: string | null
-          p_id: string
-          p_id_externo: string | null
-          p_jid: string | null
-          p_ok: boolean
-          p_proxima: string | null
-        }
-        Returns: undefined
-      }
-      wa_saida_registrar: {
-        Args: { p_instancia: string; p_jid: string | null; p_numero: string | null }
-        Returns: number
-      }
-      wa_status: {
-        Args: { p_id_externo: string; p_instancia: string; p_status: string }
-        Returns: undefined
-      }
-      lr_mensagens_pendentes: { Args: { p_janela?: number; p_tipo: string }; Returns: Json }
-      lr_assinatura_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
-      lr_cobertura_previa: { Args: { p_servicos: Json; p_veiculo_id: string }; Returns: Json }
-      lr_fidelidade_cliente: { Args: { p_cliente_id: string }; Returns: Json }
-      lr_fidelidade_salvar: {
-        Args: { p_ativo: boolean; p_lavagens: number; p_servico_id: string }
-        Returns: undefined
-      }
-      lr_plano_salvar: { Args: { p_dados: Json }; Returns: string }
-      lr_plano_vender: {
-        Args: { p_chave?: string; p_pedido_id?: string; p_plano_id: string; p_veiculo_id: string }
-        Returns: Json
-      }
-      lava_rapido_liberado: { Args: never; Returns: boolean }
-      lr_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
-      lr_comissao_pagar: { Args: { p_forma?: string; p_id: string }; Returns: undefined }
-      lr_lavador_salvar: { Args: { p_dados: Json }; Returns: string }
-      lr_ordem_atribuir: {
-        Args: { p_box?: string; p_id: string; p_lavador_id: string }
-        Returns: undefined
-      }
-      lr_ordem_criar: { Args: { p_dados: Json }; Returns: string }
-      lr_ordem_retirar: {
-        Args: { p_chave?: string; p_ordem_id: string; p_pedido_id?: string }
-        Returns: Json
-      }
-      lr_ordem_situacao: {
-        Args: { p_id: string; p_motivo?: string; p_para: string }
-        Returns: undefined
-      }
-      lr_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
-      lr_preco_salvar: {
-        Args: { p_preco: number; p_servico_id: string; p_tipo: string }
-        Returns: string
-      }
-      lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
-      lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string
@@ -10938,6 +11006,19 @@ export type Database = {
       }
       _imp_num: { Args: { p_campo: string; p_item: Json }; Returns: number }
       _locacao_plano_dias: { Args: { p_plano_id: string }; Returns: number }
+      _lr_baixar_insumos: { Args: { p_ordem_id: string }; Returns: undefined }
+      _lr_exige_liberado: { Args: never; Returns: undefined }
+      _lr_foto_perfil_ok: { Args: never; Returns: boolean }
+      _lr_foto_pode_enviar: { Args: { p_caminho: string }; Returns: boolean }
+      _lr_foto_pode_ler: { Args: { p_caminho: string }; Returns: boolean }
+      _lr_nfse_rascunho: {
+        Args: { p_liquido: number; p_ordem_id: string; p_pedido_id: string }
+        Returns: string
+      }
+      _lr_preco: {
+        Args: { p_servico_id: string; p_tipo: string }
+        Returns: number
+      }
       _pet_cobertura: {
         Args: { p_agendamento_id: string }
         Returns: {
@@ -10971,6 +11052,10 @@ export type Database = {
         Returns: string
       }
       _pet_pacote_restam: { Args: { p_pacote_id: string }; Returns: number }
+      _produto_dados_modulo_erro: {
+        Args: { p_dados: Json; p_ramo: string }
+        Returns: string
+      }
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -11254,6 +11339,48 @@ export type Database = {
         Args: { p_chave: string; p_dados: Json }
         Returns: Json
       }
+      cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }
+      cobranca_config_gerar_token: { Args: never; Returns: string }
+      cobranca_config_obter: {
+        Args: never
+        Returns: {
+          ambiente: string
+          api_key_configurada: boolean
+          ativo: boolean
+          provedor: string
+          webhook_configurado: boolean
+        }[]
+      }
+      cobranca_config_salvar: {
+        Args: { p_ambiente: string; p_api_key?: string; p_ativo?: boolean }
+        Returns: undefined
+      }
+      cobranca_evento: {
+        Args: {
+          p_data?: string
+          p_evento: string
+          p_provedor: string
+          p_provedor_id: string
+          p_tenant: string
+          p_valor?: number
+        }
+        Returns: string
+      }
+      cobranca_registrar: {
+        Args: {
+          p_codigo_barras?: string
+          p_conta_id: string
+          p_linha_digitavel?: string
+          p_pix_copia_cola?: string
+          p_provedor: string
+          p_provedor_id: string
+          p_tipo: string
+          p_url_boleto?: string
+          p_vencimento: string
+        }
+        Returns: string
+      }
+      cobranca_tenant_do_token: { Args: { p_token: string }; Returns: string }
       comissionar_pedido_id: { Args: { p_pedido_id: string }; Returns: boolean }
       compra_aplicar_cotacao: {
         Args: { p_cotacao_id: string }
@@ -11321,6 +11448,7 @@ export type Database = {
       }
       criar_pedido_direto: {
         Args: {
+          p_autorizacao?: string
           p_cliente_id: string
           p_condicao_pagamento?: string
           p_deposito_id: string
@@ -11342,6 +11470,7 @@ export type Database = {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
       }
+      desconto_limite_itens: { Args: { p_itens: Json }; Returns: number }
       devolucao_registrar: {
         Args: {
           p_abater_receber?: boolean
@@ -11436,6 +11565,10 @@ export type Database = {
           status: string
           tentativas: number
         }[]
+      }
+      exige_desconto_autorizado: {
+        Args: { p_autorizacao: string; p_desconto_total: number; p_itens: Json }
+        Returns: string
       }
       exige_entrega_propria: {
         Args: { p_entrega_id: string }
@@ -11605,6 +11738,7 @@ export type Database = {
         Args: { p_contada: number; p_item_id: string; p_observacao?: string }
         Returns: undefined
       }
+      lava_rapido_liberado: { Args: never; Returns: boolean }
       locacao_aprovar: { Args: { p_locacao_id: string }; Returns: undefined }
       locacao_balcao_registrar: {
         Args: {
@@ -11668,6 +11802,102 @@ export type Database = {
         Returns: Json
       }
       locacao_plano_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_avaria_registrar: {
+        Args: {
+          p_descricao?: string
+          p_local: string
+          p_ordem_id: string
+          p_tipo: string
+        }
+        Returns: string
+      }
+      lr_avaria_remover: { Args: { p_id: string }; Returns: undefined }
+      lr_checklist_concluir: {
+        Args: { p_ordem_id: string; p_sem_avarias: boolean }
+        Returns: undefined
+      }
+      lr_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
+      lr_comissao_pagar: {
+        Args: { p_forma?: string; p_id: string }
+        Returns: undefined
+      }
+      lr_config_salvar: {
+        Args: { p_checklist_obrigatorio: boolean }
+        Returns: undefined
+      }
+      lr_contato_registrar: {
+        Args: { p_canal?: string; p_referencia: string; p_tipo: string }
+        Returns: undefined
+      }
+      lr_foto_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
+      lr_foto_preparar: {
+        Args: {
+          p_mime: string
+          p_momento: string
+          p_nome_arquivo: string
+          p_ordem_id: string
+          p_tamanho: number
+        }
+        Returns: Json
+      }
+      lr_fotos_contagem: { Args: { p_ordens: string[] }; Returns: Json }
+      lr_fotos_da_ordem: { Args: { p_ordem_id: string }; Returns: Json }
+      lr_insumo_baixa_refazer: { Args: { p_id: string }; Returns: undefined }
+      lr_insumo_config_salvar: {
+        Args: { p_ativo?: boolean; p_deposito_id: string }
+        Returns: undefined
+      }
+      lr_lavador_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_mensagem_modelo_salvar: {
+        Args: { p_texto: string; p_tipo: string }
+        Returns: undefined
+      }
+      lr_mensagens_pendentes: {
+        Args: { p_janela?: number; p_tipo: string }
+        Returns: Json
+      }
+      lr_ordem_atribuir: {
+        Args: { p_box?: string; p_id: string; p_lavador_id: string }
+        Returns: undefined
+      }
+      lr_ordem_criar: { Args: { p_dados: Json }; Returns: string }
+      lr_ordem_retirar: {
+        Args: { p_chave?: string; p_ordem_id: string; p_pedido_id?: string }
+        Returns: Json
+      }
+      lr_ordem_situacao: {
+        Args: { p_id: string; p_motivo?: string; p_para: string }
+        Returns: undefined
+      }
+      lr_plano_vender: {
+        Args: {
+          p_chave?: string
+          p_pedido_id?: string
+          p_plano_id: string
+          p_veiculo_id: string
+        }
+        Returns: Json
+      }
+      lr_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
+      lr_preco_salvar: {
+        Args: { p_preco: number; p_servico_id: string; p_tipo: string }
+        Returns: string
+      }
+      lr_servico_insumo_remover: { Args: { p_id: string }; Returns: undefined }
+      lr_servico_insumo_salvar: {
+        Args: {
+          p_produto_id: string
+          p_quantidade: number
+          p_servico_id: string
+        }
+        Returns: string
+      }
+      lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       motorista_enviar_posicao: {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
@@ -11700,6 +11930,10 @@ export type Database = {
       }
       nfce_criar: {
         Args: { p_cpf?: string; p_pedido_id: string }
+        Returns: string
+      }
+      nfce_criar_comanda: {
+        Args: { p_comanda_id: string; p_cpf?: string }
         Returns: string
       }
       nfe_calcular_impostos: {
@@ -11751,6 +11985,7 @@ export type Database = {
       }
       orcamento_salvar: {
         Args: {
+          p_autorizacao?: string
           p_cliente_id: string
           p_condicao?: string
           p_desconto?: number
@@ -11786,6 +12021,20 @@ export type Database = {
       }
       pdv_venda: {
         Args: {
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma?: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_observacao?: string
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
+      pdv_venda_com_faixas: {
+        Args: {
+          p_autorizacao?: string
           p_cliente_id?: string
           p_deposito_id: string
           p_desconto?: number
@@ -12262,6 +12511,10 @@ export type Database = {
         }[]
       }
       saas_gerar_faturas: { Args: never; Returns: number }
+      saas_lava_rapido_por_cliente: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
       saas_marcar_enviada: {
         Args: { p_canal?: string; p_fatura_id: string }
         Returns: undefined

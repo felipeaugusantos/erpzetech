@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as FuncionalidadesRouteImport } from './routes/funcionalidades'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
@@ -186,6 +187,11 @@ const BoasVindasRoute = BoasVindasRouteImport.update({
 const ContatoRoute = ContatoRouteImport.update({
   id: '/contato',
   path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FuncionalidadesRoute = FuncionalidadesRouteImport.update({
+  id: '/funcionalidades',
+  path: '/funcionalidades',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
@@ -996,6 +1002,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1146,6 +1153,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1298,6 +1306,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
+  '/funcionalidades': typeof FuncionalidadesRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1450,6 +1459,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/boas-vindas'
     | '/contato'
+    | '/funcionalidades'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -1600,6 +1610,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/boas-vindas'
     | '/contato'
+    | '/funcionalidades'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -1751,6 +1762,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/boas-vindas'
     | '/contato'
+    | '/funcionalidades'
     | '/ze-tech-login'
     | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
@@ -1903,6 +1915,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
+  FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
@@ -1951,6 +1964,13 @@ declare module '@tanstack/react-router' {
       path: '/contato'
       fullPath: '/contato'
       preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funcionalidades': {
+      id: '/funcionalidades'
+      path: '/funcionalidades'
+      fullPath: '/funcionalidades'
+      preLoaderRoute: typeof FuncionalidadesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ze-tech-login': {
@@ -3255,6 +3275,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
+  FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
