@@ -9,6 +9,11 @@ import {
 import {
   TIPOS_VEICULO,
   comissaoDoLavador,
+  diasParaVencer,
+  lavagensRestantes,
+  situacaoDaAssinatura,
+  textoFidelidade,
+  totalCobrado,
   formatarIdentificacao,
   identificacaoValida,
   liquidoDoServico,
@@ -136,4 +141,43 @@ test("sem CNPJ escolhe o lava rápido na mão; com CNPJ vale o CNAE ou a libera�
     true,
   );
   assert.equal(moduloLiberadoEmpresa({ ...comCnpj, cnae: "4520-0/06" }, "lavarapido"), true);
+});
+
+test("itens cobertos por plano ou brinde não entram no total cobrado", () => {
+  const itens = [
+    { preco_aplicado: 40, cobertura: "assinatura" },
+    { preco_aplicado: 30, cobertura: null },
+    { preco_aplicado: 25, cobertura: "fidelidade" },
+  ];
+  assert.equal(totalCobrado(itens), 30);
+  assert.equal(totalCobrado([]), 0);
+});
+
+test("plano: saldo, vencimento e situação", () => {
+  assert.equal(lavagensRestantes(4, 1), 3);
+  assert.equal(lavagensRestantes(4, 9), 0);
+  assert.equal(diasParaVencer("2026-11-10", "2026-11-03"), 7);
+  assert.equal(diasParaVencer("2026-11-03", "2026-11-03"), 0);
+  assert.equal(diasParaVencer("2026-11-02", "2026-11-03"), -1);
+  const base = {
+    situacao: "ativa",
+    vence_em: "2026-11-10",
+    lavagens: 4,
+    usadas: 1,
+    hoje: "2026-11-03",
+  };
+  assert.equal(situacaoDaAssinatura(base), "ativa");
+  assert.equal(situacaoDaAssinatura({ ...base, usadas: 4 }), "esgotada");
+  assert.equal(situacaoDaAssinatura({ ...base, vence_em: "2026-11-02" }), "vencida");
+  assert.equal(situacaoDaAssinatura({ ...base, vence_em: "2026-11-03" }), "ativa");
+  assert.equal(situacaoDaAssinatura({ ...base, situacao: "cancelada", usadas: 4 }), "cancelada");
+});
+
+test("texto do programa de fidelidade", () => {
+  const f = { ativo: true, selos: 7, necessarias: 10, disponiveis: 0, faltam: 3 };
+  assert.equal(textoFidelidade(f), "Faltam 3 lavagens para o próximo brinde.");
+  assert.equal(textoFidelidade({ ...f, faltam: 1 }), "Falta 1 lavagem para o próximo brinde.");
+  assert.equal(textoFidelidade({ ...f, disponiveis: 1 }), "Tem 1 brinde disponível.");
+  assert.equal(textoFidelidade({ ...f, disponiveis: 2 }), "Tem 2 brindes disponíveis.");
+  assert.equal(textoFidelidade({ ...f, ativo: false }), "Programa de fidelidade desligado.");
 });

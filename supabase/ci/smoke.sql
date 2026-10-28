@@ -6268,3 +6268,193 @@ BEGIN
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o2), 'mexer no pátio com o módulo desligado');
 END $$;
+
+-- 68. Lava rápido (planos e fidelidade): venda do plano, lavagem coberta, saldo, validade, ordem só coberta, brinde e venda cancelada
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; cli2 uuid; dep uuid; v1 uuid; v2 uuid; moto uuid; serv uuid; serv2 uuid; serv_prod uuid; plano uuid; plano_moto uuid; plano_prod uuid;
+  f jsonb; lav uuid; ped uuid; ped_errado uuid; ped_ord uuid; ass uuid; r jsonb; o uuid; o2 uuid; o3 uuid; o4 uuid; i1 uuid; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Planos CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel CI', '11144477735') RETURNING id INTO cli2;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PLA1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  moto := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'PLA2B22', 'fabricante', 'Honda', 'modelo', 'CG'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli2, 'tipo', 'carro', 'identificacao', 'FID1C33', 'fabricante', 'VW', 'modelo', 'Gol'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem do plano","duracao_min":30,"preco_base":40}'::jsonb);
+  serv2 := lr_servico_salvar('{"nome":"Cera do plano","duracao_min":30,"preco_base":30}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Plano CI","comissao_percentual":10}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- cadastro do plano: só administrador e gestor
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','Mensal','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'vendedor cria plano');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','Mensal','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'garçom cria plano');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'plano sem nome');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',1,'preco',120))$c$, serv), 'plano de uma lavagem só');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',4,'preco',0))$c$, serv), 'plano sem preço');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',4,'preco',50,'validade_dias',3))$c$, serv), 'validade curta demais');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',gen_random_uuid(),'lavagens',4,'preco',50))$c$, 'serviço que não existe');
+  PERFORM ci.entrar(gest);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Mensal 2 lavagens','servico_id',serv,'lavagens',2,'preco',60,'validade_dias',30,'tipo','carro'));
+  plano_moto := lr_plano_salvar(jsonb_build_object('nome','Mensal moto','servico_id',serv,'lavagens',3,'preco',45,'tipo','moto'));
+  PERFORM ci.sair();
+  SELECT produto_id INTO plano_prod FROM lr_planos WHERE id = plano;
+  PERFORM ci.exige((SELECT NOT controla_estoque AND preco_venda = 60 FROM produtos WHERE id = plano_prod), 'o plano vira um produto sem estoque, com o preço do plano');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome',' mensal 2 LAVAGENS ','servico_id',%L,'lavagens',2,'preco',60))$c$, serv), 'nome de plano repetido');
+
+  -- venda do plano: a venda do caixa precisa trazer o plano uma vez, pelo preço
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 60)), 'crediario', cli, 0, 1, current_date + 30);
+  ped_errado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 50)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped_errado), 'plano vendido por outro valor');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L)$c$, plano, v1), 'plano sem informar a venda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, moto, ped), 'plano de carro para uma moto');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'garçom vende plano');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'estoquista vende plano');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'anon vende plano');
+  PERFORM ci.entrar(vend);
+  r := lr_plano_vender(plano, v1, ped);
+  ass := (r ->> 'assinatura_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lavagens = 2 AND valor = 60 AND situacao = 'ativa' AND vence_em = current_date + 30 AND veiculo_id = v1 FROM lr_assinaturas WHERE id = ass), 'a assinatura nasce ativa, com validade e valor da venda');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'a venda do plano deixa a NFS-e em rascunho');
+  PERFORM ci.entrar(vend);
+  r := lr_plano_vender(plano, v1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM lr_assinaturas WHERE venda_id = ped), 'repetir a venda do plano não duplica a assinatura');
+
+  -- lavagem coberta: não entra na cobrança, na NFS-e nem na comissão
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv, serv2)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND assinatura_id = ass FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv), 'o serviço do plano sai da assinatura');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv2), 'outro serviço segue cobrado');
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 1, 'sobra uma lavagem no plano');
+
+  -- cancelar a ordem devolve a lavagem
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 2, 'cancelar a ordem devolve a lavagem ao plano');
+
+  -- ordem só de itens cobertos é entregue sem caixa, sem comissão e sem nota
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  r := lr_ordem_retirar(o2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id IS NULL FROM lr_ordens WHERE id = o2), 'ordem só coberta é entregue sem venda');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o2) AND r ->> 'pedido_id' IS NULL, 'ordem só coberta não gera comissão nem pede venda');
+  PERFORM ci.entrar(vend);
+  r := lr_ordem_retirar(o2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean, 'repetir a entrega da ordem coberta devolve o mesmo resultado');
+
+  -- esgota o saldo: a lavagem seguinte é cobrada
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'passo');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 1, 'cancelar de novo mantém o saldo (uma já foi entregue)');
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto'); PERFORM lr_ordem_retirar(o3);
+  o4 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 0, 'o plano de 2 lavagens termina na segunda');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o4), 'sem saldo, a lavagem é cobrada');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o4, 'cancelada', 'teste');
+  PERFORM ci.sair();
+
+  -- plano vencido não cobre
+  UPDATE lr_assinaturas SET vence_em = current_date - 1 WHERE id = ass;
+  UPDATE lr_assinatura_usos SET desfeito = true WHERE assinatura_id = ass;
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o), 'plano vencido não cobre a lavagem');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'teste');
+  PERFORM ci.sair();
+
+  -- venda do plano cancelada: a assinatura é cancelada e a nota em rascunho sai
+  UPDATE lr_assinaturas SET vence_em = current_date + 10 WHERE id = ass;
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped;
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM lr_assinaturas WHERE id = ass), 'venda cancelada cancela a assinatura');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'venda cancelada tira a NFS-e do plano');
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o), 'assinatura cancelada não cobre');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_assinatura_cancelar(%L, 'x')$c$, ass), 'vendedor cancela assinatura');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_assinatura_cancelar(%L, '')$c$, ass), 'cancelar assinatura sem motivo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_assinatura_cancelar(%L, 'já cancelada')$c$, ass), 'cancelar assinatura já cancelada');
+
+  -- fidelidade: a cada 2 lavagens entregues, a próxima do serviço-brinde é grátis
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_fidelidade_salvar(true, 2, %L)$c$, serv), 'vendedor liga a fidelidade');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_fidelidade_salvar(true, 1, %L)$c$, serv), 'brinde na 1ª lavagem');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_fidelidade_salvar(true, 5, NULL)$c$, 'fidelidade sem serviço-brinde');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(true, 2, serv);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'selos')::int = 0, 'recomeça sem selos');
+  FOR n IN 1..2 LOOP
+    PERFORM ci.entrar(vend);
+    o := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv2)));
+    PERFORM lr_ordem_situacao(o, 'lavando'); PERFORM lr_ordem_situacao(o, 'pronto');
+    ped_ord := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = serv2), 'quantidade', 1, 'preco_unitario', 30)), 'crediario', cli2, 0, 1, current_date + 30);
+    PERFORM lr_ordem_retirar(o, ped_ord);
+    PERFORM ci.sair();
+  END LOOP;
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 1, 'duas lavagens entregues dão um brinde');
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'servicos', jsonb_build_array(serv, serv2)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'fidelidade' FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv), 'o serviço-brinde sai de graça');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv2), 'os outros serviços seguem cobrados');
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 0, 'o brinde usado não fica disponível de novo');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 1, 'cancelar a ordem devolve o brinde');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fidelidade_cliente(%L)$c$, cli2), 'garçom consulta fidelidade');
+
+  -- prévia da cobertura
+  PERFORM ci.entrar(vend);
+  r := lr_cobertura_previa(v2, jsonb_build_array(serv, serv2));
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cobertura' = 'fidelidade'), 'a prévia mostra o brinde');
+
+  -- fidelidade desligada: nada de brinde
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(false, 2, serv);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'ativo')::boolean = false, 'fidelidade desligada não tem brinde');
+
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_assinaturas') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_assinaturas') >= 1, 'o garçom não lê assinaturas');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_assinaturas SET lavagens = 999 WHERE id = %L$c$, ass), 'alterar assinatura direto');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

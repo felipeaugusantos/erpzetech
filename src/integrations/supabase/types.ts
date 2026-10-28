@@ -14,6 +14,239 @@ export type Database = {
   }
   public: {
     Tables: {
+      lr_assinatura_usos: {
+        Row: {
+          assinatura_id: string
+          created_at: string
+          desfeito: boolean
+          id: string
+          item_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura_id: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          item_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura_id?: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          item_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_assinatura_usos_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "lr_assinaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinatura_usos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordem_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_assinaturas: {
+        Row: {
+          cliente_id: string
+          comprado_em: string
+          created_at: string
+          id: string
+          lavagens: number
+          motivo: string | null
+          plano_id: string
+          servico_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+          vence_em: string
+          venda_id: string | null
+          veiculo_id: string
+        }
+        Insert: {
+          cliente_id: string
+          comprado_em: string
+          created_at?: string
+          id?: string
+          lavagens: number
+          motivo?: string | null
+          plano_id: string
+          servico_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+          vence_em: string
+          venda_id?: string | null
+          veiculo_id: string
+        }
+        Update: {
+          cliente_id?: string
+          comprado_em?: string
+          created_at?: string
+          id?: string
+          lavagens?: number
+          motivo?: string | null
+          plano_id?: string
+          servico_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          vence_em?: string
+          venda_id?: string | null
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_assinaturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "lr_planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_fidelidade_config: {
+        Row: {
+          ativo: boolean
+          ativo_desde: string
+          created_at: string
+          lavagens_para_brinde: number
+          servico_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          ativo_desde?: string
+          created_at?: string
+          lavagens_para_brinde?: number
+          servico_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          ativo_desde?: string
+          created_at?: string
+          lavagens_para_brinde?: number
+          servico_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_fidelidade_config_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          lavagens: number
+          nome: string
+          preco: number
+          produto_id: string
+          servico_id: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string
+          validade_dias: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lavagens: number
+          nome: string
+          preco: number
+          produto_id: string
+          servico_id: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+          validade_dias?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lavagens?: number
+          nome?: string
+          preco?: number
+          produto_id?: string
+          servico_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+          validade_dias?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_planos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_planos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_comissoes: {
         Row: {
           aprovada_em: string | null
@@ -125,6 +358,8 @@ export type Database = {
       }
       lr_ordem_itens: {
         Row: {
+          assinatura_id: string | null
+          cobertura: string | null
           created_at: string
           id: string
           ordem_id: string
@@ -134,6 +369,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_id?: string | null
+          cobertura?: string | null
           created_at?: string
           id?: string
           ordem_id: string
@@ -143,6 +380,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_id?: string | null
+          cobertura?: string | null
           created_at?: string
           id?: string
           ordem_id?: string
@@ -10069,6 +10308,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lr_assinatura_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      lr_cobertura_previa: { Args: { p_servicos: Json; p_veiculo_id: string }; Returns: Json }
+      lr_fidelidade_cliente: { Args: { p_cliente_id: string }; Returns: Json }
+      lr_fidelidade_salvar: {
+        Args: { p_ativo: boolean; p_lavagens: number; p_servico_id: string }
+        Returns: undefined
+      }
+      lr_plano_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_plano_vender: {
+        Args: { p_chave?: string; p_pedido_id?: string; p_plano_id: string; p_veiculo_id: string }
+        Returns: Json
+      }
       lava_rapido_liberado: { Args: never; Returns: boolean }
       lr_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
       lr_comissao_pagar: { Args: { p_forma?: string; p_id: string }; Returns: undefined }

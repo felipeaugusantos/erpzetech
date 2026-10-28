@@ -55,11 +55,29 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
   // ?pet=<atendimento>: "Retirar e cobrar" da agenda do pet shop abre o caixa com os serviços já na venda.
   // ?pacote=<modelo>&para=<pet>&validade=30|60|90: venda de pacote de banhos para um pet.
   // ?lava=<ordem>: "Entregar e cobrar" do pátio do lava rápido abre o caixa com os serviços da ordem.
+  // ?plano=<plano>&veiculo=<veículo>: venda de plano de lavagens para um veículo.
   validateSearch: (
     s: Record<string, unknown>,
-  ): { pet?: string; pacote?: string; para?: string; validade?: number; lava?: string } => {
-    const out: { pet?: string; pacote?: string; para?: string; validade?: number; lava?: string } =
-      {};
+  ): {
+    pet?: string;
+    pacote?: string;
+    para?: string;
+    validade?: number;
+    lava?: string;
+    plano?: string;
+    veiculo?: string;
+  } => {
+    const out: {
+      pet?: string;
+      pacote?: string;
+      para?: string;
+      validade?: number;
+      lava?: string;
+      plano?: string;
+      veiculo?: string;
+    } = {};
+    if (typeof s["plano"] === "string" && s["plano"]) out.plano = s["plano"];
+    if (typeof s["veiculo"] === "string" && s["veiculo"]) out.veiculo = s["veiculo"];
     if (typeof s["pet"] === "string" && s["pet"]) out.pet = s["pet"];
     if (typeof s["lava"] === "string" && s["lava"]) out.lava = s["lava"];
     if (typeof s["pacote"] === "string" && s["pacote"]) out.pacote = s["pacote"];
@@ -99,11 +117,22 @@ type LavaCobranca = {
   cliente: string;
   servicos: { produto_id: string; descricao: string; preco: number }[];
 };
+/** Venda de um plano de lavagens para um veículo. */
+type PlanoVenda = {
+  planoId: string;
+  veiculoId: string;
+  veiculo: string;
+  cliente: string;
+  produto_id: string;
+  descricao: string;
+  preco: number;
+};
 /** O que a venda do caixa precisa registrar no pet shop e no lava rápido depois de concluída. */
 type VinculoPet =
   | { tipo: "atendimento"; agendamentoId: string; usarPacote: boolean }
   | { tipo: "pacote"; modeloId: string; petId: string; validade: number }
-  | { tipo: "lava"; ordemId: string };
+  | { tipo: "lava"; ordemId: string }
+  | { tipo: "plano"; planoId: string; veiculoId: string };
 /** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
 const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
@@ -204,8 +233,11 @@ function FrenteCaixa() {
   const [petCobranca, setPetCobranca] = useState<PetCobranca | null>(null);
   const [pacoteVenda, setPacoteVenda] = useState<PacoteVenda | null>(null);
   const [lavaCobranca, setLavaCobranca] = useState<LavaCobranca | null>(null);
+  const [planoVenda, setPlanoVenda] = useState<PlanoVenda | null>(null);
   const {
     lava: lavaParam,
+    plano: planoParam,
+    veiculo: veiculoParam,
     pet: petParam,
     pacote: pacoteParam,
     para: paraParam,
@@ -332,7 +364,9 @@ function FrenteCaixa() {
         supabase
           .from("lr_ordem_itens")
           .select("servico_id, preco_aplicado")
-          .eq("ordem_id", ordem.id),
+          .eq("ordem_id", ordem.id)
+          // o que o plano ou o brinde cobre não passa pelo caixa
+          .is("cobertura", null),
         supabase
           .from("lr_veiculos")
           .select("identificacao")
@@ -377,6 +411,60 @@ function FrenteCaixa() {
       if (cli.data) setCliente(cli.data);
     })();
   }, [lavaParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const planoCarregado = useRef<string | null>(null);
+  useEffect(() => {
+    if (!planoParam || !veiculoParam) return;
+    const chave = `${planoParam}:${veiculoParam}`;
+    if (planoCarregado.current === chave) return;
+    planoCarregado.current = chave;
+    void (async () => {
+      const [plano, veic] = await Promise.all([
+        supabase
+          .from("lr_planos")
+          .select("id, nome, preco, produto_id, ativo, tipo")
+          .eq("id", planoParam)
+          .maybeSingle(),
+        supabase
+          .from("lr_veiculos")
+          .select("id, identificacao, tipo, cliente_id")
+          .eq("id", veiculoParam)
+          .maybeSingle(),
+      ]);
+      if (!plano.data || !veic.data || !plano.data.ativo) {
+        toast.error("Plano ou veículo não encontrado");
+        return;
+      }
+      if (plano.data.tipo && plano.data.tipo !== veic.data.tipo) {
+        toast.error("Este plano não vale para o tipo do veículo");
+        return;
+      }
+      const cli = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, cnpj, telefone")
+        .eq("id", veic.data.cliente_id)
+        .maybeSingle();
+      setPlanoVenda({
+        planoId: plano.data.id,
+        veiculoId: veic.data.id,
+        veiculo: veic.data.identificacao,
+        cliente: cli.data?.nome ?? "",
+        produto_id: plano.data.produto_id,
+        descricao: plano.data.nome,
+        preco: Number(plano.data.preco),
+      });
+      setLinhas([
+        {
+          produto_id: plano.data.produto_id,
+          descricao: `${plano.data.nome} — ${veic.data.identificacao}`,
+          unidade: "UN",
+          preco: Number(plano.data.preco),
+          quantidade: 1,
+        },
+      ]);
+      if (cli.data) setCliente(cli.data);
+    })();
+  }, [planoParam, veiculoParam]);
 
   const pacoteCarregado = useRef<string | null>(null);
   useEffect(() => {
@@ -429,6 +517,8 @@ function FrenteCaixa() {
     setPetCobranca(null);
     setPacoteVenda(null);
     setLavaCobranca(null);
+    setPlanoVenda(null);
+    planoCarregado.current = null;
     setLinhas([]);
     setCliente(null);
     petCarregado.current = null;
@@ -459,15 +549,27 @@ function FrenteCaixa() {
           })
         : v.tipo === "lava"
           ? await supabase.rpc("lr_ordem_retirar", { p_ordem_id: v.ordemId, ...ref })
-          : await supabase.rpc("pet_pacote_vender", {
-              p_modelo_id: v.modeloId,
-              p_pet_id: v.petId,
-              p_validade_dias: v.validade,
-              ...ref,
-            });
+          : v.tipo === "plano"
+            ? await supabase.rpc("lr_plano_vender", {
+                p_plano_id: v.planoId,
+                p_veiculo_id: v.veiculoId,
+                ...ref,
+              })
+            : await supabase.rpc("pet_pacote_vender", {
+                p_modelo_id: v.modeloId,
+                p_pet_id: v.petId,
+                p_validade_dias: v.validade,
+                ...ref,
+              });
     if (error) {
       const o =
-        v.tipo === "atendimento" ? "o atendimento" : v.tipo === "lava" ? "a ordem" : "o pacote";
+        v.tipo === "atendimento"
+          ? "o atendimento"
+          : v.tipo === "lava"
+            ? "a ordem"
+            : v.tipo === "plano"
+              ? "o plano"
+              : "o pacote";
       const rede = /fetch|network|failed/i.test(error.message);
       atualizarPendencias((l) => [
         ...l.filter((x) => x.chave !== chave),
@@ -500,6 +602,7 @@ function FrenteCaixa() {
     void qc.invalidateQueries({ queryKey: ["pet-agenda"] });
     void qc.invalidateQueries({ queryKey: ["pet-pacotes"] });
     void qc.invalidateQueries({ queryKey: ["lava-patio"] });
+    void qc.invalidateQueries({ queryKey: ["lava-planos"] });
     return true;
   }
 
@@ -874,7 +977,7 @@ function FrenteCaixa() {
         ]);
         return "offline";
       };
-      if ((petCobranca || pacoteVenda || lavaCobranca) && !navigator.onLine)
+      if ((petCobranca || pacoteVenda || lavaCobranca || planoVenda) && !navigator.onLine)
         throw new Error("A cobrança do pet shop e do lava rápido precisa de internet");
       if (!navigator.onLine) return guardar();
       const { data, error } = await supabase.rpc("frente_venda", params);
@@ -912,7 +1015,9 @@ function FrenteCaixa() {
               }
             : lavaCobranca
               ? { tipo: "lava", ordemId: lavaCobranca.id }
-              : null;
+              : planoVenda
+                ? { tipo: "plano", planoId: planoVenda.planoId, veiculoId: planoVenda.veiculoId }
+                : null;
         if (vinculo) await vincularPet(vinculo, params.p_chave, data as string);
       }
       return data as string;
@@ -932,6 +1037,13 @@ function FrenteCaixa() {
           if (!l || l.quantidade !== 1 || Math.abs(l.preco - sv.preco) > 0.001)
             throw new Error(`Mantenha "${sv.descricao}" na venda, uma vez, por ${brl(sv.preco)}`);
         }
+      }
+      if (planoVenda) {
+        const l = linhas.find((x) => x.produto_id === planoVenda.produto_id);
+        if (!l || l.quantidade !== 1 || Math.abs(l.preco - planoVenda.preco) > 0.001)
+          throw new Error(
+            `Mantenha "${planoVenda.descricao}" na venda, uma vez, por ${brl(planoVenda.preco)}`,
+          );
       }
       if (lavaCobranca) {
         // a venda precisa trazer cada serviço da ordem, uma vez e pelo valor combinado
@@ -997,10 +1109,12 @@ function FrenteCaixa() {
           : {}),
       });
       setTef({ nsu: "", aut: "", bandeira: "" });
-      if (petCobranca || pacoteVenda || lavaCobranca) {
+      if (petCobranca || pacoteVenda || lavaCobranca || planoVenda) {
         setPetCobranca(null);
         setPacoteVenda(null);
         setLavaCobranca(null);
+        setPlanoVenda(null);
+        planoCarregado.current = null;
         petCarregado.current = null;
         pacoteCarregado.current = null;
         lavaCarregada.current = null;
@@ -1325,14 +1439,17 @@ function FrenteCaixa() {
                 >
                   <span>
                     <strong>
-                      Venda do {p.v.tipo === "lava" ? "lava rápido" : "pet shop"} recebida, mas não
-                      ligada:
+                      Venda do{" "}
+                      {p.v.tipo === "lava" || p.v.tipo === "plano" ? "lava rápido" : "pet shop"}{" "}
+                      recebida, mas não ligada:
                     </strong>{" "}
                     {p.v.tipo === "atendimento"
                       ? "atendimento"
                       : p.v.tipo === "lava"
                         ? "ordem"
-                        : "pacote"}{" "}
+                        : p.v.tipo === "plano"
+                          ? "plano"
+                          : "pacote"}{" "}
                     — {p.erro}. O dinheiro já entrou: resolva antes de cobrar de novo.
                   </span>
                   <span className="space-x-2">
@@ -1376,6 +1493,20 @@ function FrenteCaixa() {
                 </span>
                 <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
                   Desistir da cobrança
+                </Button>
+              </div>
+            )}
+
+            {planoVenda && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+                <span>
+                  <strong>Vendendo plano de lavagens:</strong> {planoVenda.descricao} para{" "}
+                  {planoVenda.veiculo}
+                  {planoVenda.cliente ? ` (${planoVenda.cliente})` : ""}. Mantenha o plano na venda
+                  e escolha a forma de pagamento.
+                </span>
+                <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
+                  Desistir da venda
                 </Button>
               </div>
             )}

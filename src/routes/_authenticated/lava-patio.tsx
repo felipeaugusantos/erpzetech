@@ -38,8 +38,10 @@ import {
   precoDoServico,
   proximaSituacao,
   rotuloSituacao,
+  rotuloCobertura,
   rotuloTipo,
   textoTempo,
+  totalCobrado,
   type SituacaoOrdem,
 } from "@/lib/lava-rapido";
 
@@ -136,6 +138,19 @@ function Patio() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  /** Ordem só de itens cobertos por plano ou brinde: entrega direto, sem passar pelo caixa. */
+  const entregar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("lr_ordem_retirar", { p_ordem_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Veículo entregue.");
+      atualizar();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const atribuir = useMutation({
     mutationFn: async (p: { id: string; lavadorId: string | null; box: string | null }) => {
       const { error } = await supabase.rpc("lr_ordem_atribuir", {
@@ -207,7 +222,13 @@ function Patio() {
                 {col.ordens.map((o) => {
                   const v = veiculo(o.veiculo_id);
                   const itens = (data?.itens ?? []).filter((i) => i.ordem_id === o.id);
-                  const total = itens.reduce((s, i) => s + Number(i.preco_aplicado), 0);
+                  const total = totalCobrado(
+                    itens.map((i) => ({
+                      preco_aplicado: Number(i.preco_aplicado),
+                      cobertura: i.cobertura,
+                    })),
+                  );
+                  const tudoCoberto = itens.length > 0 && itens.every((i) => i.cobertura);
                   const situacao = o.situacao as SituacaoOrdem;
                   const prox = proximaSituacao(situacao);
                   const tempo = minutosNoPatio(o.entrada_em);
@@ -232,7 +253,12 @@ function Patio() {
                       <ul className="text-xs text-muted-foreground">
                         {itens.map((i) => (
                           <li key={i.id}>
-                            {nomeServico(i.servico_id)} · {brl(Number(i.preco_aplicado))}
+                            {nomeServico(i.servico_id)} ·{" "}
+                            {i.cobertura ? (
+                              <Badge variant="secondary">{rotuloCobertura(i.cobertura)}</Badge>
+                            ) : (
+                              brl(Number(i.preco_aplicado))
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -269,11 +295,15 @@ function Patio() {
                         {situacao === "pronto" ? (
                           <Button
                             size="sm"
+                            disabled={entregar.isPending}
                             onClick={() =>
-                              void navegar({ to: "/frente-caixa", search: { lava: o.id } })
+                              tudoCoberto
+                                ? entregar.mutate(o.id)
+                                : void navegar({ to: "/frente-caixa", search: { lava: o.id } })
                             }
                           >
-                            <Banknote className="size-4" /> Entregar e cobrar
+                            <Banknote className="size-4" />{" "}
+                            {tudoCoberto ? "Entregar (sem cobrança)" : "Entregar e cobrar"}
                           </Button>
                         ) : (
                           prox && (
@@ -429,7 +459,24 @@ function NovaOrdem({
       balcao,
     );
   };
-  const total = escolhidos.reduce((s, id) => s + precoDe(id), 0);
+  // plano do veículo e brinde de fidelidade: o banco diz o que fica coberto (mesma regra de quando a ordem é aberta)
+  const { data: previa = [] } = useQuery({
+    queryKey: ["lava-cobertura-previa", veiculoId, [...escolhidos].sort().join(",")],
+    enabled: !!veiculoId && escolhidos.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("lr_cobertura_previa", {
+        p_veiculo_id: veiculoId,
+        p_servicos: escolhidos,
+      });
+      if (error) throw error;
+      return (data ?? []) as unknown as { servico_id: string; cobertura: string | null }[];
+    },
+  });
+  const coberturaDe = (servicoId: string) =>
+    escolhidos.includes(servicoId)
+      ? (previa.find((p) => p.servico_id === servicoId)?.cobertura ?? null)
+      : null;
+  const total = escolhidos.reduce((s, id) => (coberturaDe(id) ? s : s + precoDe(id)), 0);
 
   const criar = useMutation({
     mutationFn: async () => {
@@ -498,7 +545,15 @@ function NovaOrdem({
                     }
                   />
                   <span className="flex-1">{s.nome}</span>
-                  <span className="text-muted-foreground">{v ? brl(precoDe(s.id)) : "—"}</span>
+                  <span className="text-muted-foreground">
+                    {!v ? (
+                      "—"
+                    ) : coberturaDe(s.id) ? (
+                      <Badge variant="secondary">{rotuloCobertura(coberturaDe(s.id))}</Badge>
+                    ) : (
+                      brl(precoDe(s.id))
+                    )}
+                  </span>
                 </label>
               ))}
               {dados.servicos.length === 0 && (
@@ -551,7 +606,7 @@ function NovaOrdem({
               onChange={(e) => setObs(e.target.value)}
             />
           </div>
-          <p className="text-right text-sm font-semibold">Total: {brl(total)}</p>
+          <p className="text-right text-sm font-semibold">Total a cobrar: {brl(total)}</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onFechar}>

@@ -75,6 +75,7 @@ import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authent
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLavaLavadoresRouteImport } from './routes/_authenticated/lava-lavadores'
 import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authenticated/lava-patio'
+import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
 import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
 import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
 import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
@@ -515,6 +516,11 @@ const AuthenticatedLavaLavadoresRoute =
 const AuthenticatedLavaPatioRoute = AuthenticatedLavaPatioRouteImport.update({
   id: '/lava-patio',
   path: '/lava-patio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLavaPlanosRoute = AuthenticatedLavaPlanosRouteImport.update({
+  id: '/lava-planos',
+  path: '/lava-planos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLavaServicosRoute =
@@ -1009,6 +1015,7 @@ export interface FileRoutesByFullPath {
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
@@ -1152,6 +1159,7 @@ export interface FileRoutesByTo {
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
@@ -1297,6 +1305,7 @@ export interface FileRoutesById {
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/_authenticated/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
@@ -1442,6 +1451,7 @@ export interface FileRouteTypes {
     | '/inventarios'
     | '/lava-lavadores'
     | '/lava-patio'
+    | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
     | '/locacao-balcao'
@@ -1585,6 +1595,7 @@ export interface FileRouteTypes {
     | '/inventarios'
     | '/lava-lavadores'
     | '/lava-patio'
+    | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
     | '/locacao-balcao'
@@ -1729,6 +1740,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inventarios'
     | '/_authenticated/lava-lavadores'
     | '/_authenticated/lava-patio'
+    | '/_authenticated/lava-planos'
     | '/_authenticated/lava-servicos'
     | '/_authenticated/lava-veiculos'
     | '/_authenticated/locacao-balcao'
@@ -2280,6 +2292,13 @@ declare module '@tanstack/react-router' {
       path: '/lava-patio'
       fullPath: '/lava-patio'
       preLoaderRoute: typeof AuthenticatedLavaPatioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-planos': {
+      id: '/_authenticated/lava-planos'
+      path: '/lava-planos'
+      fullPath: '/lava-planos'
+      preLoaderRoute: typeof AuthenticatedLavaPlanosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lava-servicos': {
@@ -2877,6 +2896,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLavaLavadoresRoute: typeof AuthenticatedLavaLavadoresRoute
   AuthenticatedLavaPatioRoute: typeof AuthenticatedLavaPatioRoute
+  AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
   AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
   AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
   AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
@@ -3015,6 +3035,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLavaLavadoresRoute: AuthenticatedLavaLavadoresRoute,
   AuthenticatedLavaPatioRoute: AuthenticatedLavaPatioRoute,
+  AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,
   AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
   AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
   AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,

@@ -134,3 +134,62 @@ export function textoTempo(minutos: number) {
   const m = minutos % 60;
   return m ? `${h} h ${m} min` : `${h} h`;
 }
+
+export type Cobertura = "assinatura" | "fidelidade";
+
+export const rotuloCobertura = (c: string | null | undefined) =>
+  c === "assinatura" ? "Plano" : c === "fidelidade" ? "Brinde" : "";
+
+/** Só o que não é coberto por plano ou brinde passa pelo caixa. */
+export function totalCobrado(itens: { preco_aplicado: number; cobertura: string | null }[]) {
+  return itens.reduce((s, i) => (i.cobertura ? s : s + Number(i.preco_aplicado)), 0);
+}
+
+export const lavagensRestantes = (lavagens: number, usadas: number) =>
+  Math.max(lavagens - usadas, 0);
+
+/** Dias inteiros até o vencimento (negativo se já venceu). Datas no formato AAAA-MM-DD. */
+export function diasParaVencer(venceEm: string, hoje: string) {
+  const dia = 86400000;
+  return Math.round((Date.parse(`${venceEm}T00:00:00Z`) - Date.parse(`${hoje}T00:00:00Z`)) / dia);
+}
+
+export type SituacaoAssinatura = "ativa" | "esgotada" | "vencida" | "cancelada";
+
+export function situacaoDaAssinatura(a: {
+  situacao: string;
+  vence_em: string;
+  lavagens: number;
+  usadas: number;
+  hoje: string;
+}): SituacaoAssinatura {
+  if (a.situacao === "cancelada") return "cancelada";
+  if (diasParaVencer(a.vence_em, a.hoje) < 0) return "vencida";
+  if (lavagensRestantes(a.lavagens, a.usadas) === 0) return "esgotada";
+  return "ativa";
+}
+
+export const rotuloAssinatura: Record<SituacaoAssinatura, string> = {
+  ativa: "Ativo",
+  esgotada: "Esgotado",
+  vencida: "Vencido",
+  cancelada: "Cancelado",
+};
+
+/** Texto de progresso do programa de fidelidade (mesma conta de _lr_fidelidade no banco). */
+export function textoFidelidade(f: {
+  ativo: boolean;
+  selos: number;
+  necessarias: number;
+  disponiveis: number;
+  faltam: number;
+}) {
+  if (!f.ativo) return "Programa de fidelidade desligado.";
+  if (f.disponiveis > 0)
+    return f.disponiveis === 1
+      ? "Tem 1 brinde disponível."
+      : `Tem ${f.disponiveis} brindes disponíveis.`;
+  return f.faltam === 1
+    ? "Falta 1 lavagem para o próximo brinde."
+    : `Faltam ${f.faltam} lavagens para o próximo brinde.`;
+}
