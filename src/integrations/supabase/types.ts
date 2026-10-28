@@ -10611,6 +10611,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      saas_lava_rapido_por_cliente: { Args: { p_ate: string; p_de: string }; Returns: Json }
       lr_foto_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
       lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
       lr_foto_preparar: {

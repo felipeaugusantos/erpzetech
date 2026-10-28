@@ -535,6 +535,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
+      { label: "Lava rápido", to: "/ze-tech-lava-rapido", icon: Droplets },
       { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],

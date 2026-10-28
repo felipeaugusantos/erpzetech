@@ -6969,3 +6969,70 @@ BEGIN
   PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'x.jpg', 'image/jpeg', 1000)$c$, o1), 'foto em ordem cancelada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 73. Lava rápido (painel Ze Tech): só a equipe Ze Tech, só lojas com o módulo liberado, números do período
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000000000c7';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cs uuid; cli uuid; dep uuid; v1 uuid; serv uuid; serv_prod uuid; lav uuid; o1 uuid; ped uuid; r jsonb; l jsonb; t_sem uuid; c_sem uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (op, 'operador-lava@ci');
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Lava Painel CI', demo) RETURNING id INTO cs;
+  INSERT INTO tenants (nome) VALUES ('Loja sem lava CI') RETURNING id INTO t_sem;
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Sem Lava Painel CI', t_sem) RETURNING id INTO c_sem;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Painel CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Painel CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PNL1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem painel","preco_base":50}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Painel CI","comissao_percentual":10}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 50)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+
+  -- acesso
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'administrador da loja lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(vend, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'vendedor lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(gar, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'garçom lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'anon lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_lava_rapido_por_cliente(current_date, current_date - 1)$c$, 'período invertido');
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_lava_rapido_por_cliente(NULL, current_date)$c$, 'período sem início');
+
+  -- números
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date - 30, current_date);
+  PERFORM ci.sair();
+  SELECT e INTO l FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text;
+  PERFORM ci.exige(l IS NOT NULL, 'a loja com o módulo liberado aparece');
+  PERFORM ci.exige((l ->> 'entregues')::int >= 1 AND (l ->> 'faturamento')::numeric >= 50 AND (l ->> 'veiculos')::int >= 1, 'entregues, faturamento e veículos');
+  PERFORM ci.exige((l ->> 'comissoes_a_pagar')::numeric >= 5, 'comissão a pagar da loja');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = c_sem::text), 'loja sem o módulo não aparece');
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date + 5, current_date + 10);
+  PERFORM ci.sair();
+  SELECT e INTO l FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text;
+  PERFORM ci.exige((l ->> 'entregues')::int = 0 AND (l ->> 'faturamento')::numeric = 0 AND (l ->> 'ticket_medio')::numeric = 0, 'período sem movimento zera entregues e faturamento');
+
+  -- módulo desligado: a loja sai do painel
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date - 30, current_date);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text), 'sem o módulo a loja sai do painel');
+END $$;
