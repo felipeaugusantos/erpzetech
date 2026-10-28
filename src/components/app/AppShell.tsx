@@ -218,6 +218,7 @@ const groups: Group[] = [
       { label: "Insumos", to: "/lava-insumos", icon: PackageOpen },
       { label: "Lavadores e comissões", to: "/lava-lavadores", icon: Users },
       { label: "Avisos ao cliente", to: "/lava-avisos", icon: MessageCircle },
+      { label: "WhatsApp automático", to: "/lava-whatsapp", icon: MessageCircle },
     ],
   },
   {

@@ -80,6 +80,7 @@ import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authentica
 import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
 import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
 import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
+import { Route as AuthenticatedLavaWhatsappRouteImport } from './routes/_authenticated/lava-whatsapp'
 import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
@@ -154,7 +155,9 @@ import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
+import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -547,6 +550,12 @@ const AuthenticatedLavaVeiculosRoute =
   AuthenticatedLavaVeiculosRouteImport.update({
     id: '/lava-veiculos',
     path: '/lava-veiculos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaWhatsappRoute =
+  AuthenticatedLavaWhatsappRouteImport.update({
+    id: '/lava-whatsapp',
+    path: '/lava-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLocacaoBalcaoRoute =
@@ -962,10 +971,22 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksWhatsappDespacharRoute =
+  ApiPublicHooksWhatsappDespacharRouteImport.update({
+    id: '/api/public/hooks/whatsapp-despachar',
+    path: '/api/public/hooks/whatsapp-despachar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksProvedorRoute =
   ApiPublicWebhooksProvedorRouteImport.update({
     id: '/api/public/webhooks/$provedor',
     path: '/api/public/webhooks/$provedor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappEventosRoute =
+  ApiPublicWhatsappEventosRouteImport.update({
+    id: '/api/public/whatsapp/eventos',
+    path: '/api/public/whatsapp/eventos',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -1040,6 +1061,7 @@ export interface FileRoutesByFullPath {
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1114,7 +1136,9 @@ export interface FileRoutesByFullPath {
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1187,6 +1211,7 @@ export interface FileRoutesByTo {
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1261,7 +1286,9 @@ export interface FileRoutesByTo {
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1336,6 +1363,7 @@ export interface FileRoutesById {
   '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/_authenticated/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1410,7 +1438,9 @@ export interface FileRoutesById {
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1485,6 +1515,7 @@ export interface FileRouteTypes {
     | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
+    | '/lava-whatsapp'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1559,7 +1590,9 @@ export interface FileRouteTypes {
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1632,6 +1665,7 @@ export interface FileRouteTypes {
     | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
+    | '/lava-whatsapp'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1706,7 +1740,9 @@ export interface FileRouteTypes {
     | '/compras'
     | '/depositos'
     | '/pedidos'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   id:
     | '__root__'
     | '/'
@@ -1780,6 +1816,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lava-planos'
     | '/_authenticated/lava-servicos'
     | '/_authenticated/lava-veiculos'
+    | '/_authenticated/lava-whatsapp'
     | '/_authenticated/locacao-balcao'
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
@@ -1854,7 +1891,9 @@ export interface FileRouteTypes {
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1865,7 +1904,9 @@ export interface RootRouteChildren {
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
+  ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2365,6 +2406,13 @@ declare module '@tanstack/react-router' {
       path: '/lava-veiculos'
       fullPath: '/lava-veiculos'
       preLoaderRoute: typeof AuthenticatedLavaVeiculosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-whatsapp': {
+      id: '/_authenticated/lava-whatsapp'
+      path: '/lava-whatsapp'
+      fullPath: '/lava-whatsapp'
+      preLoaderRoute: typeof AuthenticatedLavaWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/locacao-balcao': {
@@ -2885,11 +2933,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/whatsapp-despachar': {
+      id: '/api/public/hooks/whatsapp-despachar'
+      path: '/api/public/hooks/whatsapp-despachar'
+      fullPath: '/api/public/hooks/whatsapp-despachar'
+      preLoaderRoute: typeof ApiPublicHooksWhatsappDespacharRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/$provedor': {
       id: '/api/public/webhooks/$provedor'
       path: '/api/public/webhooks/$provedor'
       fullPath: '/api/public/webhooks/$provedor'
       preLoaderRoute: typeof ApiPublicWebhooksProvedorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/eventos': {
+      id: '/api/public/whatsapp/eventos'
+      path: '/api/public/whatsapp/eventos'
+      fullPath: '/api/public/whatsapp/eventos'
+      preLoaderRoute: typeof ApiPublicWhatsappEventosRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -2960,6 +3022,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
   AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
   AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
+  AuthenticatedLavaWhatsappRoute: typeof AuthenticatedLavaWhatsappRoute
   AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
@@ -3102,6 +3165,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,
   AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
   AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
+  AuthenticatedLavaWhatsappRoute: AuthenticatedLavaWhatsappRoute,
   AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,
@@ -3192,7 +3256,9 @@ const rootRouteChildren: RootRouteChildren = {
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
+  ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

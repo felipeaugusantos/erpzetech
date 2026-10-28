@@ -1,0 +1,384 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  ErroEvolution,
+  configurarWebhook,
+  criarInstancia,
+  ehPedidoDeSaida,
+  enviarTexto,
+  estadoConexao,
+  interpretarEvento,
+  nomeDaInstancia,
+  numeroDoJid,
+} from "../src/lib/whatsapp-evolution.ts";
+import { tokenConfere, tokenDoWebhook } from "../src/lib/whatsapp-token.ts";
+import {
+  RODAPE_SAIR,
+  despachar,
+  textoDoItem,
+  type DepsDespacho,
+  type ItemReservado,
+  atrasoDeEnvio,
+  dentroDoHorario,
+  proximaTentativaEm,
+  textoDoAviso,
+} from "../src/lib/whatsapp-despacho.ts";
+
+function contem(real: unknown, esperado: Record<string, unknown>) {
+  const r = real as Record<string, unknown>;
+  for (const [k, v] of Object.entries(esperado)) {
+    if (v && typeof v === "object") contem(r[k], v as Record<string, unknown>);
+    else assert.equal(r[k], v);
+  }
+}
+
+const cfg = { url: "https://evo.exemplo.com/", apikey: "segredo" };
+
+function falso(respostas: { status?: number; corpo?: unknown }[]) {
+  const chamadas: { url: string; metodo: string; corpo: unknown; apikey: string | null }[] = [];
+  const f = (async (url: string, init: RequestInit) => {
+    chamadas.push({
+      url,
+      metodo: String(init.method),
+      corpo: init.body ? JSON.parse(String(init.body)) : null,
+      apikey: new Headers(init.headers).get("apikey"),
+    });
+    const r = respostas.shift() ?? { status: 200, corpo: {} };
+    return new Response(JSON.stringify(r.corpo ?? {}), { status: r.status ?? 200 });
+  }) as unknown as typeof fetch;
+  return { f, chamadas };
+}
+
+describe("adaptador Evolution", () => {
+  it("nome da instância é estável e curto", () => {
+    assert.equal(nomeDaInstancia("123e4567-e89b-12d3-a456-426614174000"), "zt-123e4567e89b12d3");
+  });
+
+  it("envia texto com a chave e devolve o id da mensagem", async () => {
+    const { f, chamadas } = falso([
+      { corpo: { key: { id: "ABC", remoteJid: "5511999990000@s.whatsapp.net" } } },
+    ]);
+    const r = await enviarTexto(cfg, "zt-1", "5511999990000", "oi", 2000, f);
+    assert.deepEqual(r, { idMensagem: "ABC", jid: "5511999990000@s.whatsapp.net" });
+    contem(chamadas[0], {
+      url: "https://evo.exemplo.com/message/sendText/zt-1",
+      metodo: "POST",
+      apikey: "segredo",
+      corpo: { number: "5511999990000", text: "oi", delay: 2000 },
+    });
+  });
+
+  it("resposta sem id de mensagem é erro", async () => {
+    const { f } = falso([{ corpo: {} }]);
+    await assert.rejects(enviarTexto(cfg, "zt-1", "55", "oi", 0, f), ErroEvolution);
+  });
+
+  it("falha de rede marca o erro como repetível", async () => {
+    const f = (async () => {
+      throw new TypeError("fetch failed");
+    }) as unknown as typeof fetch;
+    const erro = await enviarTexto(cfg, "zt-1", "55", "oi", 0, f).catch((e) => e as ErroEvolution);
+    assert.ok(erro instanceof ErroEvolution);
+    assert.equal(erro.rede, true);
+  });
+
+  it("webhook: tenta o formato aninhado e cai no plano quando recusado", async () => {
+    const { f, chamadas } = falso([{ status: 400, corpo: { message: "x" } }, { status: 200 }]);
+    await configurarWebhook(
+      cfg,
+      "zt-1",
+      { url: "https://app/api/x?t=tok", eventos: ["CONNECTION_UPDATE"] },
+      f,
+    );
+    assert.equal(chamadas.length, 2);
+    assert.ok((chamadas[0]!.corpo as Record<string, unknown>)["webhook"]);
+    assert.equal((chamadas[1]!.corpo as Record<string, unknown>)["webhook"], undefined);
+  });
+
+  it("criar instância que já existe não é erro", async () => {
+    const { f } = falso([
+      { status: 403, corpo: { response: { message: ["This name is already in use"] } } },
+    ]);
+    await criarInstancia(cfg, "zt-1", f);
+  });
+
+  it("estado da conexão", async () => {
+    for (const [estado, esperado] of [
+      ["open", "conectada"],
+      ["connecting", "conectando"],
+      ["close", "desconectada"],
+    ] as const) {
+      const { f } = falso([{ corpo: { instance: { state: estado } } }]);
+      assert.equal(await estadoConexao(cfg, "zt-1", f), esperado);
+    }
+  });
+});
+
+describe("avisos do servidor", () => {
+  it("jid de telefone e jid oculto", () => {
+    assert.equal(numeroDoJid("5511999990000@s.whatsapp.net"), "5511999990000");
+    assert.equal(numeroDoJid("5511999990000:12@s.whatsapp.net"), "5511999990000");
+    assert.equal(numeroDoJid("123456@lid"), null);
+    assert.equal(numeroDoJid(null), null);
+  });
+
+  it("conexão", () => {
+    contem(
+      interpretarEvento({
+        event: "connection.update",
+        instance: "zt-1",
+        data: { state: "open", wuid: "5511999990000@s.whatsapp.net" },
+      }),
+      { tipo: "conexao", estado: "conectada", numero: "5511999990000" },
+    );
+  });
+
+  it("status por nome e por número, em vários formatos de evento", () => {
+    assert.deepEqual(
+      interpretarEvento({
+        event: "MESSAGES_UPDATE",
+        instance: "zt-1",
+        data: { keyId: "A1", status: "DELIVERY_ACK" },
+      }),
+      { tipo: "status", instancia: "zt-1", idMensagem: "A1", status: "entregue" },
+    );
+    contem(
+      interpretarEvento({
+        event: "messages.update",
+        instance: "zt-1",
+        data: [{ key: { id: "A2" }, update: { status: 4 } }],
+      }),
+      { idMensagem: "A2", status: "lida" },
+    );
+  });
+
+  it("mensagem recebida; ignora as próprias, grupos e sem texto", () => {
+    const base = { event: "messages.upsert", instance: "zt-1" };
+    contem(
+      interpretarEvento({
+        ...base,
+        data: {
+          key: { remoteJid: "5511999990000@s.whatsapp.net", fromMe: false },
+          message: { conversation: "SAIR" },
+        },
+      }),
+      { tipo: "entrada", numero: "5511999990000", texto: "SAIR" },
+    );
+    assert.deepEqual(
+      interpretarEvento({
+        ...base,
+        data: {
+          key: { remoteJid: "1@s.whatsapp.net", fromMe: true },
+          message: { conversation: "x" },
+        },
+      }),
+      { tipo: "ignorar" },
+    );
+    assert.deepEqual(
+      interpretarEvento({
+        ...base,
+        data: { key: { remoteJid: "1@g.us" }, message: { conversation: "x" } },
+      }),
+      { tipo: "ignorar" },
+    );
+    assert.deepEqual(
+      interpretarEvento({ ...base, data: { key: { remoteJid: "1@s.whatsapp.net" }, message: {} } }),
+      {
+        tipo: "ignorar",
+      },
+    );
+  });
+
+  it("lid sem número real fica sem número, mas guarda o jid", () => {
+    const e = interpretarEvento({
+      event: "messages.upsert",
+      instance: "zt-1",
+      data: { key: { remoteJid: "999@lid" }, message: { conversation: "parar" } },
+    });
+    contem(e, { tipo: "entrada", jid: "999@lid", numero: null });
+  });
+
+  it("lixo vira ignorar", () => {
+    assert.deepEqual(interpretarEvento(null), { tipo: "ignorar" });
+    assert.deepEqual(interpretarEvento("x"), { tipo: "ignorar" });
+    assert.deepEqual(interpretarEvento({ event: "x" }), { tipo: "ignorar" });
+  });
+
+  it("pedido de saída só em mensagem curta e clara", () => {
+    for (const t of ["SAIR", "Sair!", "parar", "Não quero mais receber", "STOP"])
+      assert.equal(ehPedidoDeSaida(t), true);
+    for (const t of ["", "quero sair às 18h para buscar o carro", "obrigado", "ok"])
+      assert.equal(ehPedidoDeSaida(t), false);
+  });
+});
+
+describe("regras de envio", () => {
+  it("texto traz o modelo e o rodapé de saída", () => {
+    const t = textoDoAviso("pronto", { cliente: "Ana", veiculo: "Gol", loja: "Lava Top" });
+    assert.ok(t.includes("Ana"));
+    assert.equal(t.endsWith(RODAPE_SAIR), true);
+    assert.equal(
+      textoDoAviso("pronto", { cliente: "Ana" }, "Olá {cliente}!"),
+      `Olá Ana!${RODAPE_SAIR}`,
+    );
+  });
+
+  it("espera entre tentativas e esgotamento", () => {
+    const agora = new Date("2026-01-01T12:00:00Z");
+    assert.equal(proximaTentativaEm(1, agora)?.toISOString(), "2026-01-01T12:02:00.000Z");
+    assert.equal(proximaTentativaEm(2, agora)?.toISOString(), "2026-01-01T12:10:00.000Z");
+    assert.equal(proximaTentativaEm(3, agora)?.toISOString(), "2026-01-01T12:30:00.000Z");
+    assert.equal(proximaTentativaEm(4, agora), null);
+  });
+
+  it("atraso e horário", () => {
+    assert.equal(
+      atrasoDeEnvio(() => 0),
+      1500,
+    );
+    assert.equal(
+      atrasoDeEnvio(() => 1),
+      4000,
+    );
+    assert.equal(dentroDoHorario(new Date("2026-01-01T11:00:00Z")), true); // 8h em Brasília
+    assert.equal(dentroDoHorario(new Date("2026-01-01T10:59:00Z")), false);
+    assert.equal(dentroDoHorario(new Date("2026-01-01T23:00:00Z")), false); // 20h
+  });
+});
+
+describe("rodada de envio", () => {
+  const item = (o: Partial<ItemReservado> = {}): ItemReservado => ({
+    id: "m1",
+    tenant_id: "t1",
+    instancia: "zt-1",
+    numero: "5511988887777",
+    tipo: "pronto",
+    tentativas: 1,
+    modelo: null,
+    loja: "Lava Top",
+    variaveis: { cliente: "Ana Souza", veiculo: "ABC1D23", tipo_veiculo: "carro" },
+    ...o,
+  });
+
+  function deps(itens: ItemReservado[], enviar: DepsDespacho["enviar"]) {
+    const resultados: Parameters<DepsDespacho["resultado"]>[0][] = [];
+    const pausas: number[] = [];
+    const reservas: boolean[] = [];
+    const d: DepsDespacho = {
+      varrer: async () => 3,
+      reservar: async (_t, _p, dentro) => {
+        reservas.push(dentro);
+        return itens;
+      },
+      enviar,
+      resultado: async (r) => {
+        resultados.push(r);
+      },
+      agora: () => new Date("2026-01-01T15:00:00Z"),
+      aleatorio: () => 0,
+      pausa: async (ms) => {
+        pausas.push(ms);
+      },
+    };
+    return { d, resultados, pausas, reservas };
+  }
+
+  it("monta o texto com os dados da fila e envia com o aviso de saída", async () => {
+    const textos: string[] = [];
+    const { d, resultados } = deps([item()], async (_i, texto) => {
+      textos.push(texto);
+      return { idMensagem: "EVO-1", jid: "5511988887777@s.whatsapp.net" };
+    });
+    const rel = await despachar(d);
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0, semRegistro: 0 });
+    assert.ok(textos[0]!.includes("Ana"));
+    assert.ok(textos[0]!.includes("ABC-1D23") || textos[0]!.includes("ABC1D23"));
+    assert.ok(textos[0]!.includes("Lava Top"));
+    assert.ok(textos[0]!.endsWith(RODAPE_SAIR));
+    contem(resultados[0], { id: "m1", ok: true, idExterno: "EVO-1" });
+  });
+
+  it("falha de rede agenda nova tentativa e erro do número é definitivo", async () => {
+    const { d, resultados } = deps(
+      [
+        item({ id: "a", tentativas: 1 }),
+        item({ id: "b", tentativas: 1 }),
+        item({ id: "c", tentativas: 4 }),
+      ],
+      async (i) => {
+        if (i.id === "a") throw new ErroEvolution("sem conexão", 0, true);
+        if (i.id === "b") throw new ErroEvolution("número inexistente", 400);
+        throw new ErroEvolution("servidor caiu", 503);
+      },
+    );
+    const rel = await despachar(d);
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 0, repetir: 1, falhas: 2, semRegistro: 0 });
+    assert.equal(resultados[0]!.proxima?.toISOString(), "2026-01-01T15:02:00.000Z");
+    assert.equal(resultados[1]!.proxima, null);
+    assert.equal(resultados[2]!.proxima, null); // quarta tentativa: esgotou
+  });
+
+  it("pausa entre mensagens e horário comercial repassado ao banco", async () => {
+    const { d, pausas, reservas } = deps([item({ id: "a" }), item({ id: "b" })], async () => ({
+      idMensagem: "x",
+      jid: null,
+    }));
+    await despachar(d);
+    assert.deepEqual(pausas, [1000]);
+    assert.deepEqual(reservas, [true]); // 12h em Brasília
+  });
+
+  it("envio feito mas resultado não gravado nunca volta para a fila", async () => {
+    const chamadas: boolean[] = [];
+    const { d } = deps([item()], async () => ({ idMensagem: "EVO-9", jid: null }));
+    d.resultado = async (r) => {
+      chamadas.push(r.ok);
+      throw new Error("banco fora do ar");
+    };
+    const rel = await despachar(d);
+    assert.deepEqual(chamadas, [true, true, true]); // tenta gravar o sucesso 3 vezes, nunca grava falha
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0, semRegistro: 1 });
+  });
+
+  it("grava o sucesso na segunda tentativa quando o banco falha uma vez", async () => {
+    let n = 0;
+    const gravados: boolean[] = [];
+    const { d } = deps([item()], async () => ({ idMensagem: "EVO-9", jid: null }));
+    d.resultado = async (r) => {
+      if (n++ === 0) throw new Error("falha passageira");
+      gravados.push(r.ok);
+    };
+    const rel = await despachar(d);
+    assert.deepEqual(gravados, [true]);
+    assert.equal(rel.semRegistro, 0);
+  });
+
+  it("texto do plano e do retorno usa os campos próprios", () => {
+    const t = textoDoItem(
+      item({
+        tipo: "plano_vencendo",
+        variaveis: {
+          cliente: "Bia",
+          veiculo: "ABC1D23",
+          tipo_veiculo: "carro",
+          plano: "Mensal",
+          data: "2026-02-10",
+          restam: 2,
+        },
+      }),
+    );
+    assert.ok(t.includes("Mensal") && t.includes("10/02/2026") && t.includes("2"));
+  });
+});
+
+describe("senha dos avisos", () => {
+  it("vale só para a instância e o segredo certos", () => {
+    const t = tokenDoWebhook("segredo-com-mais-de-16", "zt-1");
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", t), true);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-2", t), false);
+    assert.equal(tokenConfere("outro-segredo-16-chars", "zt-1", t), false);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", null), false);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", t.slice(1)), false);
+  });
+});
