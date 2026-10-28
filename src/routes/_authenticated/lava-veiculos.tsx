@@ -64,8 +64,8 @@ type Form = {
   cliente_id: string;
   tipo: string;
   identificacao: string;
-  descricao: string;
-  cor: string;
+  fabricante: string;
+  modelo: string;
   observacoes: string;
   ativo: boolean;
 };
@@ -74,8 +74,8 @@ const vazio: Form = {
   cliente_id: "",
   tipo: "carro",
   identificacao: "",
-  descricao: "",
-  cor: "",
+  fabricante: "",
+  modelo: "",
   observacoes: "",
   ativo: true,
 };
@@ -115,7 +115,8 @@ function Veiculos() {
       (v) =>
         !texto ||
         (t && v.identificacao.includes(t)) ||
-        (v.descricao ?? "").toLowerCase().includes(texto) ||
+        v.fabricante.toLowerCase().includes(texto) ||
+        v.modelo.toLowerCase().includes(texto) ||
         nomeCliente(v.cliente_id).toLowerCase().includes(texto),
     );
   }, [data, busca]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,14 +126,16 @@ function Veiculos() {
       if (!form.cliente_id) throw new Error("Escolha o cliente dono do veículo.");
       if (!identificacaoValida(form.tipo, form.identificacao))
         throw new Error(mensagemIdentificacao(form.tipo));
+      if (!form.fabricante.trim()) throw new Error("Informe o fabricante do veículo.");
+      if (!form.modelo.trim()) throw new Error("Informe o modelo do veículo.");
       const { error } = await supabase.rpc("lr_veiculo_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           cliente_id: form.cliente_id,
           tipo: form.tipo,
           identificacao: normalizarIdentificacao(form.identificacao),
-          descricao: form.descricao,
-          cor: form.cor,
+          fabricante: form.fabricante.trim(),
+          modelo: form.modelo.trim(),
           observacoes: form.observacoes,
           ativo: form.ativo,
         },
@@ -169,7 +172,7 @@ function Veiculos() {
       <div className="mb-4 max-w-sm">
         <Input
           aria-label="Buscar veículo"
-          placeholder="Buscar por placa, prefixo, modelo ou cliente"
+          placeholder="Buscar por placa, prefixo, fabricante, modelo ou cliente"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -189,6 +192,7 @@ function Veiculos() {
               <TableRow>
                 <TableHead>Placa / prefixo</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Fabricante</TableHead>
                 <TableHead>Modelo</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
@@ -206,7 +210,8 @@ function Veiculos() {
                     )}
                   </TableCell>
                   <TableCell>{rotuloTipo(v.tipo)}</TableCell>
-                  <TableCell>{[v.descricao, v.cor].filter(Boolean).join(" · ") || "—"}</TableCell>
+                  <TableCell>{v.fabricante}</TableCell>
+                  <TableCell>{v.modelo}</TableCell>
                   <TableCell>{nomeCliente(v.cliente_id)}</TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -219,8 +224,8 @@ function Veiculos() {
                           cliente_id: v.cliente_id,
                           tipo: v.tipo,
                           identificacao: formatarIdentificacao(v.tipo, v.identificacao),
-                          descricao: v.descricao ?? "",
-                          cor: v.cor ?? "",
+                          fabricante: v.fabricante,
+                          modelo: v.modelo,
                           observacoes: v.observacoes ?? "",
                           ativo: v.ativo,
                         });
@@ -291,19 +296,21 @@ function Veiculos() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="vc-desc">Marca / modelo</Label>
+                <Label htmlFor="vc-fab">Fabricante</Label>
                 <Input
-                  id="vc-desc"
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                  id="vc-fab"
+                  value={form.fabricante}
+                  placeholder={ehAeronave(form.tipo) ? "Ex.: Cessna, Robinson" : "Ex.: Honda, Fiat"}
+                  onChange={(e) => setForm({ ...form, fabricante: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="vc-cor">Cor</Label>
+                <Label htmlFor="vc-mod">Modelo</Label>
                 <Input
-                  id="vc-cor"
-                  value={form.cor}
-                  onChange={(e) => setForm({ ...form, cor: e.target.value })}
+                  id="vc-mod"
+                  value={form.modelo}
+                  placeholder={ehAeronave(form.tipo) ? "Ex.: 172, R44" : "Ex.: Civic, Uno"}
+                  onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                 />
               </div>
             </div>

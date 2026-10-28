@@ -6132,26 +6132,28 @@ BEGIN
   -- sem a atividade de lavagem, nada funciona
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4789-0/99', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(adm, $c$SELECT lr_servico_salvar('{"nome":"Lavagem"}'::jsonb)$c$, 'cadastrar serviço sem o módulo liberado');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234'))$c$, cli), 'cadastrar veículo sem o módulo liberado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'cadastrar veículo sem o módulo liberado');
   UPDATE empresas SET cnae = '4520-0/06' WHERE tenant_id = demo;
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM (SELECT lava_rapido_liberado() AS l) x WHERE l') = 1, 'o CNAE 45.20-0/06 libera o lava rápido');
 
   -- veículos: placa nos três tipos terrestres, prefixo nas aeronaves
-  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234'))$c$, cli), 'garçom cadastra veículo');
-  PERFORM ci.deve_falhar(est, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234'))$c$, cli), 'estoquista cadastra veículo');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', '1234ABC'))$c$, cli), 'placa fora do padrão');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'barco', 'identificacao', 'ABC1234'))$c$, cli), 'tipo inválido');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'aviao', 'identificacao', 'PT'))$c$, cli), 'prefixo curto demais');
-  PERFORM ci.deve_falhar(vend, $c$SELECT lr_veiculo_salvar(jsonb_build_object('identificacao', 'ABC1234'))$c$, 'veículo sem cliente');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'garçom cadastra veículo');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'estoquista cadastra veículo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', '1234ABC', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'placa fora do padrão');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'barco', 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'tipo inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'aviao', 'identificacao', 'PT', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'prefixo curto demais');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_veiculo_salvar(jsonb_build_object('identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, 'veículo sem cliente');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'modelo', 'Civic'))$c$, cli), 'veículo sem fabricante');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', '  '))$c$, cli), 'veículo sem modelo');
   PERFORM ci.entrar(vend);
-  carro := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'abc-1d23', 'descricao', 'Civic'));
-  moto := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'XYZ 9876'));
-  aviao := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'pt-abc'));
-  heli := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRXYZ'));
+  carro := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'abc-1d23', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  moto := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'XYZ 9876', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  aviao := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'pt-abc', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  heli := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRXYZ', 'fabricante', 'Honda', 'modelo', 'Civic'));
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT identificacao = 'ABC1D23' FROM lr_veiculos WHERE id = carro), 'a placa é guardada em maiúsculas e sem separador');
   PERFORM ci.exige((SELECT identificacao = 'PTABC' AND tipo = 'aviao' FROM lr_veiculos WHERE id = aviao), 'o prefixo da aeronave é guardado em maiúsculas');
-  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1D23'))$c$, cli), 'identificação repetida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1D23', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'identificação repetida');
 
   -- serviços e preço por tipo
   PERFORM ci.deve_falhar(vend, $c$SELECT lr_servico_salvar('{"nome":"Lavagem completa"}'::jsonb)$c$, 'vendedor cria serviço');

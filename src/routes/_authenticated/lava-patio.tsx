@@ -219,7 +219,7 @@ function Patio() {
                             {v ? formatarIdentificacao(v.tipo, v.identificacao) : "—"}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {[v ? rotuloTipo(v.tipo) : "", v?.descricao, v?.cor]
+                            {[v ? rotuloTipo(v.tipo) : "", v?.fabricante, v?.modelo]
                               .filter(Boolean)
                               .join(" · ")}
                           </p>
@@ -387,7 +387,8 @@ type Dados = {
     cliente_id: string;
     tipo: string;
     identificacao: string;
-    descricao: string | null;
+    fabricante: string;
+    modelo: string;
     ativo: boolean;
   }[];
   clientes: { id: string; nome: string }[];
@@ -469,7 +470,7 @@ function NovaOrdem({
                 {disponiveis.map((x) => (
                   <SelectItem key={x.id} value={x.id}>
                     {formatarIdentificacao(x.tipo, x.identificacao)} · {rotuloTipo(x.tipo)}
-                    {x.descricao ? ` · ${x.descricao}` : ""} ·{" "}
+                    {` · ${x.fabricante} ${x.modelo}`} ·{" "}
                     {dados.clientes.find((c) => c.id === x.cliente_id)?.nome ?? ""}
                   </SelectItem>
                 ))}
