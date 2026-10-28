@@ -56,10 +56,10 @@ export async function rodadaDeEnvio() {
       const { error } = await supabaseAdmin.rpc("wa_resultado", {
         p_id: r.id,
         p_ok: r.ok,
-        p_id_externo: r.idExterno ?? null,
-        p_jid: r.jid ?? null,
-        p_erro: r.erro ?? null,
-        p_proxima: r.proxima ? r.proxima.toISOString() : null,
+        p_id_externo: r.idExterno ?? (null as unknown as string),
+        p_jid: r.jid ?? (null as unknown as string),
+        p_erro: r.erro ?? (null as unknown as string),
+        p_proxima: r.proxima ? r.proxima.toISOString() : (null as unknown as string),
       });
       if (error) throw new Error(error.message);
     },

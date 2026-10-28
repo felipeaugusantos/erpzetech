@@ -4703,6 +4703,155 @@ export type Database = {
           },
         ]
       }
+      lr_assinatura_usos: {
+        Row: {
+          assinatura_id: string
+          created_at: string
+          desfeito: boolean
+          id: string
+          item_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura_id: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          item_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura_id?: string
+          created_at?: string
+          desfeito?: boolean
+          id?: string
+          item_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_assinatura_usos_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "lr_assinaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinatura_usos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "lr_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinatura_usos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_assinaturas: {
+        Row: {
+          cliente_id: string
+          comprado_em: string
+          created_at: string
+          id: string
+          lavagens: number
+          motivo: string | null
+          plano_id: string
+          servico_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+          veiculo_id: string
+          vence_em: string
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          comprado_em: string
+          created_at?: string
+          id?: string
+          lavagens: number
+          motivo?: string | null
+          plano_id: string
+          servico_id: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+          veiculo_id: string
+          vence_em: string
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          comprado_em?: string
+          created_at?: string
+          id?: string
+          lavagens?: number
+          motivo?: string | null
+          plano_id?: string
+          servico_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string
+          vence_em?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_assinaturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "lr_planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_assinaturas_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_avarias: {
         Row: {
           created_at: string
@@ -4926,6 +5075,51 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_fidelidade_config: {
+        Row: {
+          ativo: boolean
+          ativo_desde: string
+          created_at: string
+          lavagens_para_brinde: number
+          servico_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          ativo_desde?: string
+          created_at?: string
+          lavagens_para_brinde?: number
+          servico_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          ativo_desde?: string
+          created_at?: string
+          lavagens_para_brinde?: number
+          servico_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_fidelidade_config_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_fidelidade_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5570,9 +5764,10 @@ export type Database = {
           cliente_id: string
           cor: string | null
           created_at: string
-          descricao: string | null
+          fabricante: string
           id: string
           identificacao: string
+          modelo: string
           observacoes: string | null
           tenant_id: string
           tipo: string
@@ -5583,9 +5778,10 @@ export type Database = {
           cliente_id: string
           cor?: string | null
           created_at?: string
-          descricao?: string | null
+          fabricante: string
           id?: string
           identificacao: string
+          modelo: string
           observacoes?: string | null
           tenant_id?: string
           tipo?: string
@@ -5596,9 +5792,10 @@ export type Database = {
           cliente_id?: string
           cor?: string | null
           created_at?: string
-          descricao?: string | null
+          fabricante?: string
           id?: string
           identificacao?: string
+          modelo?: string
           observacoes?: string | null
           tenant_id?: string
           tipo?: string
@@ -10859,6 +11056,164 @@ export type Database = {
           },
         ]
       }
+      wa_config: {
+        Row: {
+          atualizado_em: string
+          auto_desde: string | null
+          auto_plano: boolean
+          auto_pronto: boolean
+          conectada_em: string | null
+          estado: string
+          instancia: string
+          numero: string | null
+          tenant_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          auto_desde?: string | null
+          auto_plano?: boolean
+          auto_pronto?: boolean
+          conectada_em?: string | null
+          estado?: string
+          instancia: string
+          numero?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          atualizado_em?: string
+          auto_desde?: string | null
+          auto_plano?: boolean
+          auto_pronto?: boolean
+          conectada_em?: string | null
+          estado?: string
+          instancia?: string
+          numero?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_mensagens: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          enviada_em: string | null
+          erro: string | null
+          id: string
+          id_externo: string | null
+          jid: string | null
+          numero: string
+          origem: string
+          proxima_tentativa: string
+          referencia: string
+          situacao: string
+          tenant_id: string
+          tentativas: number
+          tipo: string
+          updated_at: string
+          variaveis: Json
+          veiculo_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          jid?: string | null
+          numero: string
+          origem?: string
+          proxima_tentativa?: string
+          referencia: string
+          situacao?: string
+          tenant_id?: string
+          tentativas?: number
+          tipo: string
+          updated_at?: string
+          variaveis?: Json
+          veiculo_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          jid?: string | null
+          numero?: string
+          origem?: string
+          proxima_tentativa?: string
+          referencia?: string
+          situacao?: string
+          tenant_id?: string
+          tentativas?: number
+          tipo?: string
+          updated_at?: string
+          variaveis?: Json
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_mensagens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_saidas: {
+        Row: {
+          chave: string
+          created_at: string
+          tenant_id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          tenant_id: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_saidas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_eventos: {
         Row: {
           erro: string | null
@@ -11006,8 +11361,18 @@ export type Database = {
       }
       _imp_num: { Args: { p_campo: string; p_item: Json }; Returns: number }
       _locacao_plano_dias: { Args: { p_plano_id: string }; Returns: number }
+      _lr_assinatura_restam: { Args: { p_id: string }; Returns: number }
       _lr_baixar_insumos: { Args: { p_ordem_id: string }; Returns: undefined }
+      _lr_cobertura: {
+        Args: { p_servicos: string[]; p_veiculo_id: string }
+        Returns: {
+          assinatura_id: string
+          cobertura: string
+          servico_id: string
+        }[]
+      }
       _lr_exige_liberado: { Args: never; Returns: undefined }
+      _lr_fidelidade: { Args: { p_cliente_id: string }; Returns: Json }
       _lr_foto_perfil_ok: { Args: never; Returns: boolean }
       _lr_foto_pode_enviar: { Args: { p_caminho: string }; Returns: boolean }
       _lr_foto_pode_ler: { Args: { p_caminho: string }; Returns: boolean }
@@ -11055,6 +11420,22 @@ export type Database = {
       _produto_dados_modulo_erro: {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
+      }
+      _wa_enfileirar: {
+        Args: {
+          p_origem: string
+          p_reabrir: boolean
+          p_ref: string
+          p_tenant: string
+          p_tipo: string
+          p_usuario: string
+        }
+        Returns: string
+      }
+      _wa_numero: { Args: { p_texto: string }; Returns: string }
+      _wa_variaveis: {
+        Args: { p_ref: string; p_tenant: string; p_tipo: string }
+        Returns: Json
       }
       abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
@@ -11802,6 +12183,10 @@ export type Database = {
         Returns: Json
       }
       locacao_plano_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_assinatura_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
       lr_avaria_registrar: {
         Args: {
           p_descricao?: string
@@ -11816,6 +12201,10 @@ export type Database = {
         Args: { p_ordem_id: string; p_sem_avarias: boolean }
         Returns: undefined
       }
+      lr_cobertura_previa: {
+        Args: { p_servicos: Json; p_veiculo_id: string }
+        Returns: Json
+      }
       lr_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
       lr_comissao_pagar: {
         Args: { p_forma?: string; p_id: string }
@@ -11827,6 +12216,11 @@ export type Database = {
       }
       lr_contato_registrar: {
         Args: { p_canal?: string; p_referencia: string; p_tipo: string }
+        Returns: undefined
+      }
+      lr_fidelidade_cliente: { Args: { p_cliente_id: string }; Returns: Json }
+      lr_fidelidade_salvar: {
+        Args: { p_ativo: boolean; p_lavagens: number; p_servico_id: string }
         Returns: undefined
       }
       lr_foto_cancelar: {
@@ -11873,6 +12267,7 @@ export type Database = {
         Args: { p_id: string; p_motivo?: string; p_para: string }
         Returns: undefined
       }
+      lr_plano_salvar: { Args: { p_dados: Json }; Returns: string }
       lr_plano_vender: {
         Args: {
           p_chave?: string
@@ -12632,6 +13027,46 @@ export type Database = {
           p_papeis: Database["public"]["Enums"]["app_role"][]
           p_user_id: string
         }
+        Returns: undefined
+      }
+      wa_auto_varrer: { Args: never; Returns: number }
+      wa_automatico_salvar: {
+        Args: { p_plano: boolean; p_pronto: boolean }
+        Returns: undefined
+      }
+      wa_enfileirar: {
+        Args: { p_referencia: string; p_tipo: string }
+        Returns: string
+      }
+      wa_exige_gestor: { Args: never; Returns: string }
+      wa_mensagem_cancelar: { Args: { p_id: string }; Returns: undefined }
+      wa_mensagem_reenviar: { Args: { p_id: string }; Returns: undefined }
+      wa_nome_instancia: { Args: { p_tenant: string }; Returns: string }
+      wa_reservar: {
+        Args: {
+          p_dentro_horario: boolean
+          p_por_empresa: number
+          p_total: number
+        }
+        Returns: Json
+      }
+      wa_resultado: {
+        Args: {
+          p_erro: string
+          p_id: string
+          p_id_externo: string
+          p_jid: string
+          p_ok: boolean
+          p_proxima: string
+        }
+        Returns: undefined
+      }
+      wa_saida_registrar: {
+        Args: { p_instancia: string; p_jid: string; p_numero: string }
+        Returns: number
+      }
+      wa_status: {
+        Args: { p_id_externo: string; p_instancia: string; p_status: string }
         Returns: undefined
       }
       webhook_concluir: {
