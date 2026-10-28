@@ -141,3 +141,15 @@ export function dentroDoHorario(agora: Date = new Date()) {
   const h = (agora.getUTCHours() + 24 - 3) % 24;
   return h >= 8 && h < 20;
 }
+
+const ROTULOS_SITUACAO: Record<string, string> = {
+  na_fila: "Na fila",
+  enviando: "Enviando…",
+  enviada: "Enviada",
+  entregue: "Entregue",
+  lida: "Lida",
+  falhou: "Falhou",
+  cancelada: "Cancelada",
+};
+
+export const rotuloSituacao = (situacao: string) => ROTULOS_SITUACAO[situacao] ?? situacao;

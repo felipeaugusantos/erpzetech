@@ -80,6 +80,7 @@ import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authentica
 import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
 import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
 import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
+import { Route as AuthenticatedLavaWhatsappRouteImport } from './routes/_authenticated/lava-whatsapp'
 import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
@@ -549,6 +550,12 @@ const AuthenticatedLavaVeiculosRoute =
   AuthenticatedLavaVeiculosRouteImport.update({
     id: '/lava-veiculos',
     path: '/lava-veiculos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaWhatsappRoute =
+  AuthenticatedLavaWhatsappRouteImport.update({
+    id: '/lava-whatsapp',
+    path: '/lava-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLocacaoBalcaoRoute =
@@ -1054,6 +1061,7 @@ export interface FileRoutesByFullPath {
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1203,6 +1211,7 @@ export interface FileRoutesByTo {
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1354,6 +1363,7 @@ export interface FileRoutesById {
   '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
   '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
+  '/_authenticated/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
   '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1505,6 +1515,7 @@ export interface FileRouteTypes {
     | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
+    | '/lava-whatsapp'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1654,6 +1665,7 @@ export interface FileRouteTypes {
     | '/lava-planos'
     | '/lava-servicos'
     | '/lava-veiculos'
+    | '/lava-whatsapp'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1804,6 +1816,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lava-planos'
     | '/_authenticated/lava-servicos'
     | '/_authenticated/lava-veiculos'
+    | '/_authenticated/lava-whatsapp'
     | '/_authenticated/locacao-balcao'
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
@@ -2393,6 +2406,13 @@ declare module '@tanstack/react-router' {
       path: '/lava-veiculos'
       fullPath: '/lava-veiculos'
       preLoaderRoute: typeof AuthenticatedLavaVeiculosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-whatsapp': {
+      id: '/_authenticated/lava-whatsapp'
+      path: '/lava-whatsapp'
+      fullPath: '/lava-whatsapp'
+      preLoaderRoute: typeof AuthenticatedLavaWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/locacao-balcao': {
@@ -3002,6 +3022,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
   AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
   AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
+  AuthenticatedLavaWhatsappRoute: typeof AuthenticatedLavaWhatsappRoute
   AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
@@ -3144,6 +3165,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,
   AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
   AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
+  AuthenticatedLavaWhatsappRoute: AuthenticatedLavaWhatsappRoute,
   AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,

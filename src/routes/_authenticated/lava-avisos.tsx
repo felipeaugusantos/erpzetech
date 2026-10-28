@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Phone } from "lucide-react";
+import { MessageCircle, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -122,6 +122,47 @@ function Avisos() {
     },
   });
 
+  // WhatsApp conectado pelo sistema: aparece o envio direto, e quem já está na fila não é enviado de novo
+  const { data: wa } = useQuery({
+    queryKey: ["wa-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("wa_config").select("estado").maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const sistemaConectado = wa?.estado === "conectada";
+  const { data: naFila } = useQuery({
+    queryKey: ["wa-fila", tipo],
+    enabled: sistemaConectado,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wa_mensagens")
+        .select("referencia")
+        .eq("tipo", tipo)
+        .in("situacao", ["na_fila", "enviando"]);
+      if (error) throw error;
+      return new Set((data ?? []).map((m) => m.referencia));
+    },
+  });
+
+  const enviarPeloSistema = useMutation({
+    mutationFn: async (l: Pendente) => {
+      const { error } = await supabase.rpc("wa_enfileirar", {
+        p_tipo: tipo,
+        p_referencia: l.referencia,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Na fila: o sistema envia em até 1 minuto.");
+      void qc.invalidateQueries({ queryKey: ["wa-fila"] });
+      void qc.invalidateQueries({ queryKey: ["wa-mensagens"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const registrar = useMutation({
     mutationFn: async (p: { l: Pendente; canal: "whatsapp" | "telefone" | "outro" }) => {
       const { error } = await supabase.rpc("lr_contato_registrar", {
@@ -220,6 +261,12 @@ function Avisos() {
           value={modelo}
           onChange={(e) => setModelo(e.target.value)}
         />
+        {sistemaConectado && (
+          <p className="text-xs text-muted-foreground">
+            O envio pelo sistema usa a mensagem salva da loja (ou o texto padrão), com o aviso para
+            responder SAIR.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Campos:{" "}
           {["cliente", "veiculo", "loja", ...CAMPOS_AVISO[tipo]].map((c) => `{${c}}`).join(" ")}
@@ -288,8 +335,21 @@ function Avisos() {
                   </TableCell>
                   <TableCell>{l.telefone ?? "—"}</TableCell>
                   <TableCell className="space-x-2 text-right">
+                    {sistemaConectado &&
+                      (naFila?.has(l.referencia) ? (
+                        <span className="text-xs text-muted-foreground">Na fila de envio</span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          disabled={!telefoneWhatsApp(l.telefone) || enviarPeloSistema.isPending}
+                          onClick={() => enviarPeloSistema.mutate(l)}
+                        >
+                          <Send className="size-4" /> Enviar pelo sistema
+                        </Button>
+                      ))}
                     <Button
                       size="sm"
+                      variant={sistemaConectado ? "outline" : "default"}
                       disabled={!telefoneWhatsApp(l.telefone) || registrar.isPending}
                       onClick={() => chamar(l)}
                     >
