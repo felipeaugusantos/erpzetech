@@ -61,6 +61,10 @@ const MENU: Record<ModuloCnae, { grupo: string; itens: string[]; relatorios?: st
     relatorios: ["Serviços por profissional"],
   },
   clinica: { grupo: "Clínica", itens: [] },
+  lavarapido: {
+    grupo: "Lava rápido",
+    itens: ["Pátio", "Veículos", "Serviços e preços", "Lavadores e comissões"],
+  },
 };
 const MODULOS = Object.keys(ROTULO_MODULO) as ModuloCnae[];
 

@@ -14,6 +14,378 @@ export type Database = {
   }
   public: {
     Tables: {
+      lr_comissoes: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          base: number
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          lavador_id: string
+          ordem_id: string
+          pago_em: string | null
+          pago_por: string | null
+          pedido_id: string
+          percentual: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          lavador_id: string
+          ordem_id: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id: string
+          percentual: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          base?: number
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          lavador_id?: string
+          ordem_id?: string
+          pago_em?: string | null
+          pago_por?: string | null
+          pedido_id?: string
+          percentual?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_comissoes_lavador_id_fkey"
+            columns: ["lavador_id"]
+            isOneToOne: false
+            referencedRelation: "lr_lavadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_comissoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_lavadores: {
+        Row: {
+          ativo: boolean
+          comissao_percentual: number
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          comissao_percentual?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lr_ordem_itens: {
+        Row: {
+          created_at: string
+          id: string
+          ordem_id: string
+          preco_aplicado: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem_id: string
+          preco_aplicado: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem_id?: string
+          preco_aplicado?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_ordem_itens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordem_itens_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_ordens: {
+        Row: {
+          box: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          entrada_em: string
+          entregue_em: string | null
+          id: string
+          lavador_id: string | null
+          motivo_cancelamento: string | null
+          observacoes: string | null
+          pronto_em: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          venda_id: string | null
+          veiculo_id: string
+        }
+        Insert: {
+          box?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          entrada_em?: string
+          entregue_em?: string | null
+          id?: string
+          lavador_id?: string | null
+          motivo_cancelamento?: string | null
+          observacoes?: string | null
+          pronto_em?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+          veiculo_id: string
+        }
+        Update: {
+          box?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          entrada_em?: string
+          entregue_em?: string | null
+          id?: string
+          lavador_id?: string | null
+          motivo_cancelamento?: string | null
+          observacoes?: string | null
+          pronto_em?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string | null
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_ordens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_lavador_id_fkey"
+            columns: ["lavador_id"]
+            isOneToOne: false
+            referencedRelation: "lr_lavadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_ordens_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servico_precos: {
+        Row: {
+          created_at: string
+          id: string
+          preco: number
+          servico_id: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preco: number
+          servico_id: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preco?: number
+          servico_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servico_precos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servicos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          duracao_min: number
+          id: string
+          nome: string
+          produto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome: string
+          produto_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          nome?: string
+          produto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servicos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_veiculos: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          identificacao: string
+          observacoes: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          identificacao: string
+          observacoes?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          identificacao?: string
+          observacoes?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_veiculos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinatura_faturas: {
         Row: {
           assinatura_id: string
@@ -9694,6 +10066,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lava_rapido_liberado: { Args: never; Returns: boolean }
+      lr_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
+      lr_comissao_pagar: { Args: { p_forma?: string; p_id: string }; Returns: undefined }
+      lr_lavador_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_ordem_atribuir: {
+        Args: { p_box?: string; p_id: string; p_lavador_id: string }
+        Returns: undefined
+      }
+      lr_ordem_criar: { Args: { p_dados: Json }; Returns: string }
+      lr_ordem_retirar: {
+        Args: { p_chave?: string; p_ordem_id: string; p_pedido_id?: string }
+        Returns: Json
+      }
+      lr_ordem_situacao: {
+        Args: { p_id: string; p_motivo?: string; p_para: string }
+        Returns: undefined
+      }
+      lr_preco_remover: { Args: { p_preco_id: string }; Returns: undefined }
+      lr_preco_salvar: {
+        Args: { p_preco: number; p_servico_id: string; p_tipo: string }
+        Returns: string
+      }
+      lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
+      lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string

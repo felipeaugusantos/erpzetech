@@ -73,6 +73,10 @@ import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
+import { Route as AuthenticatedLavaLavadoresRouteImport } from './routes/_authenticated/lava-lavadores'
+import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authenticated/lava-patio'
+import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
+import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
 import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
@@ -500,6 +504,29 @@ const AuthenticatedInventariosRoute =
   AuthenticatedInventariosRouteImport.update({
     id: '/inventarios',
     path: '/inventarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaLavadoresRoute =
+  AuthenticatedLavaLavadoresRouteImport.update({
+    id: '/lava-lavadores',
+    path: '/lava-lavadores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaPatioRoute = AuthenticatedLavaPatioRouteImport.update({
+  id: '/lava-patio',
+  path: '/lava-patio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLavaServicosRoute =
+  AuthenticatedLavaServicosRouteImport.update({
+    id: '/lava-servicos',
+    path: '/lava-servicos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaVeiculosRoute =
+  AuthenticatedLavaVeiculosRouteImport.update({
+    id: '/lava-veiculos',
+    path: '/lava-veiculos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedLocacaoBalcaoRoute =
@@ -980,6 +1007,10 @@ export interface FileRoutesByFullPath {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1119,6 +1150,10 @@ export interface FileRoutesByTo {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1260,6 +1295,10 @@ export interface FileRoutesById {
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
+  '/_authenticated/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/_authenticated/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1401,6 +1440,10 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-lavadores'
+    | '/lava-patio'
+    | '/lava-servicos'
+    | '/lava-veiculos'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1540,6 +1583,10 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-lavadores'
+    | '/lava-patio'
+    | '/lava-servicos'
+    | '/lava-veiculos'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1680,6 +1727,10 @@ export interface FileRouteTypes {
     | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
+    | '/_authenticated/lava-lavadores'
+    | '/_authenticated/lava-patio'
+    | '/_authenticated/lava-servicos'
+    | '/_authenticated/lava-veiculos'
     | '/_authenticated/locacao-balcao'
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
@@ -2215,6 +2266,34 @@ declare module '@tanstack/react-router' {
       path: '/inventarios'
       fullPath: '/inventarios'
       preLoaderRoute: typeof AuthenticatedInventariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-lavadores': {
+      id: '/_authenticated/lava-lavadores'
+      path: '/lava-lavadores'
+      fullPath: '/lava-lavadores'
+      preLoaderRoute: typeof AuthenticatedLavaLavadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-patio': {
+      id: '/_authenticated/lava-patio'
+      path: '/lava-patio'
+      fullPath: '/lava-patio'
+      preLoaderRoute: typeof AuthenticatedLavaPatioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-servicos': {
+      id: '/_authenticated/lava-servicos'
+      path: '/lava-servicos'
+      fullPath: '/lava-servicos'
+      preLoaderRoute: typeof AuthenticatedLavaServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-veiculos': {
+      id: '/_authenticated/lava-veiculos'
+      path: '/lava-veiculos'
+      fullPath: '/lava-veiculos'
+      preLoaderRoute: typeof AuthenticatedLavaVeiculosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/locacao-balcao': {
@@ -2796,6 +2875,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
+  AuthenticatedLavaLavadoresRoute: typeof AuthenticatedLavaLavadoresRoute
+  AuthenticatedLavaPatioRoute: typeof AuthenticatedLavaPatioRoute
+  AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
+  AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
   AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
@@ -2930,6 +3013,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
+  AuthenticatedLavaLavadoresRoute: AuthenticatedLavaLavadoresRoute,
+  AuthenticatedLavaPatioRoute: AuthenticatedLavaPatioRoute,
+  AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
+  AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
   AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,

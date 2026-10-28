@@ -54,11 +54,14 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
   }),
   // ?pet=<atendimento>: "Retirar e cobrar" da agenda do pet shop abre o caixa com os serviços já na venda.
   // ?pacote=<modelo>&para=<pet>&validade=30|60|90: venda de pacote de banhos para um pet.
+  // ?lava=<ordem>: "Entregar e cobrar" do pátio do lava rápido abre o caixa com os serviços da ordem.
   validateSearch: (
     s: Record<string, unknown>,
-  ): { pet?: string; pacote?: string; para?: string; validade?: number } => {
-    const out: { pet?: string; pacote?: string; para?: string; validade?: number } = {};
+  ): { pet?: string; pacote?: string; para?: string; validade?: number; lava?: string } => {
+    const out: { pet?: string; pacote?: string; para?: string; validade?: number; lava?: string } =
+      {};
     if (typeof s["pet"] === "string" && s["pet"]) out.pet = s["pet"];
+    if (typeof s["lava"] === "string" && s["lava"]) out.lava = s["lava"];
     if (typeof s["pacote"] === "string" && s["pacote"]) out.pacote = s["pacote"];
     if (typeof s["para"] === "string" && s["para"]) out.para = s["para"];
     const v = Number(s["validade"]);
@@ -89,10 +92,18 @@ type PacoteVenda = {
   descricao: string;
   preco: number;
 };
-/** O que a venda do caixa precisa registrar no pet shop depois de concluída. */
+/** Ordem do lava rápido que esta venda vai cobrar (já pronta no pátio). */
+type LavaCobranca = {
+  id: string;
+  veiculo: string;
+  cliente: string;
+  servicos: { produto_id: string; descricao: string; preco: number }[];
+};
+/** O que a venda do caixa precisa registrar no pet shop e no lava rápido depois de concluída. */
 type VinculoPet =
   | { tipo: "atendimento"; agendamentoId: string; usarPacote: boolean }
-  | { tipo: "pacote"; modeloId: string; petId: string; validade: number };
+  | { tipo: "pacote"; modeloId: string; petId: string; validade: number }
+  | { tipo: "lava"; ordemId: string };
 /** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
 const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
@@ -192,7 +203,9 @@ function FrenteCaixa() {
   const [cliente, setCliente] = useState<ClienteFrente | null>(null);
   const [petCobranca, setPetCobranca] = useState<PetCobranca | null>(null);
   const [pacoteVenda, setPacoteVenda] = useState<PacoteVenda | null>(null);
+  const [lavaCobranca, setLavaCobranca] = useState<LavaCobranca | null>(null);
   const {
+    lava: lavaParam,
     pet: petParam,
     pacote: pacoteParam,
     para: paraParam,
@@ -296,6 +309,75 @@ function FrenteCaixa() {
     })();
   }, [petParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const lavaCarregada = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lavaParam || lavaCarregada.current === lavaParam) return;
+    lavaCarregada.current = lavaParam;
+    void (async () => {
+      const { data: ordem, error } = await supabase
+        .from("lr_ordens")
+        .select("id, situacao, veiculo_id, cliente_id")
+        .eq("id", lavaParam)
+        .maybeSingle();
+      if (error || !ordem) {
+        toast.error("Ordem do lava rápido não encontrada");
+        return;
+      }
+      if (ordem.situacao !== "pronto") {
+        toast.error("Só dá para cobrar ordem pronta no pátio");
+        void navegar({ to: "/frente-caixa", search: {} });
+        return;
+      }
+      const [itens, veic, cli] = await Promise.all([
+        supabase
+          .from("lr_ordem_itens")
+          .select("servico_id, preco_aplicado")
+          .eq("ordem_id", ordem.id),
+        supabase
+          .from("lr_veiculos")
+          .select("identificacao")
+          .eq("id", ordem.veiculo_id)
+          .maybeSingle(),
+        supabase
+          .from("clientes")
+          .select("id, nome, cpf, cnpj, telefone")
+          .eq("id", ordem.cliente_id)
+          .maybeSingle(),
+      ]);
+      const ids = (itens.data ?? []).map((i) => i.servico_id);
+      const servs = ids.length
+        ? await supabase.from("lr_servicos").select("id, nome, produto_id").in("id", ids)
+        : { data: [] };
+      const servicos = (itens.data ?? []).flatMap((i) => {
+        const sv = (servs.data ?? []).find((x) => x.id === i.servico_id);
+        return sv
+          ? [{ produto_id: sv.produto_id, descricao: sv.nome, preco: Number(i.preco_aplicado) }]
+          : [];
+      });
+      if (!servicos.length) {
+        toast.error("A ordem não tem serviços para cobrar");
+        return;
+      }
+      const placa = veic.data?.identificacao ?? "veículo";
+      setLavaCobranca({
+        id: ordem.id,
+        veiculo: placa,
+        cliente: cli.data?.nome ?? "",
+        servicos,
+      });
+      setLinhas(
+        servicos.map((x) => ({
+          produto_id: x.produto_id,
+          descricao: `${x.descricao} — ${placa}`,
+          unidade: "UN",
+          preco: x.preco,
+          quantidade: 1,
+        })),
+      );
+      if (cli.data) setCliente(cli.data);
+    })();
+  }, [lavaParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const pacoteCarregado = useRef<string | null>(null);
   useEffect(() => {
     if (!pacoteParam || !paraParam || !validadeParam) return;
@@ -346,10 +428,12 @@ function FrenteCaixa() {
   function desistirDaCobrancaPet() {
     setPetCobranca(null);
     setPacoteVenda(null);
+    setLavaCobranca(null);
     setLinhas([]);
     setCliente(null);
     petCarregado.current = null;
     pacoteCarregado.current = null;
+    lavaCarregada.current = null;
     void navegar({ to: "/frente-caixa", search: {} });
   }
 
@@ -373,14 +457,17 @@ function FrenteCaixa() {
             p_usar_pacote: v.usarPacote,
             ...ref,
           })
-        : await supabase.rpc("pet_pacote_vender", {
-            p_modelo_id: v.modeloId,
-            p_pet_id: v.petId,
-            p_validade_dias: v.validade,
-            ...ref,
-          });
+        : v.tipo === "lava"
+          ? await supabase.rpc("lr_ordem_retirar", { p_ordem_id: v.ordemId, ...ref })
+          : await supabase.rpc("pet_pacote_vender", {
+              p_modelo_id: v.modeloId,
+              p_pet_id: v.petId,
+              p_validade_dias: v.validade,
+              ...ref,
+            });
     if (error) {
-      const o = v.tipo === "atendimento" ? "o atendimento" : "o pacote";
+      const o =
+        v.tipo === "atendimento" ? "o atendimento" : v.tipo === "lava" ? "a ordem" : "o pacote";
       const rede = /fetch|network|failed/i.test(error.message);
       atualizarPendencias((l) => [
         ...l.filter((x) => x.chave !== chave),
@@ -412,6 +499,7 @@ function FrenteCaixa() {
     for (const texto of avisos) toast.warning(texto as string, { duration: 15000 });
     void qc.invalidateQueries({ queryKey: ["pet-agenda"] });
     void qc.invalidateQueries({ queryKey: ["pet-pacotes"] });
+    void qc.invalidateQueries({ queryKey: ["lava-patio"] });
     return true;
   }
 
@@ -786,8 +874,8 @@ function FrenteCaixa() {
         ]);
         return "offline";
       };
-      if ((petCobranca || pacoteVenda) && !navigator.onLine)
-        throw new Error("A cobrança do pet shop precisa de internet");
+      if ((petCobranca || pacoteVenda || lavaCobranca) && !navigator.onLine)
+        throw new Error("A cobrança do pet shop e do lava rápido precisa de internet");
       if (!navigator.onLine) return guardar();
       const { data, error } = await supabase.rpc("frente_venda", params);
       if (error) {
@@ -822,7 +910,9 @@ function FrenteCaixa() {
                 petId: pacoteVenda.petId,
                 validade: pacoteVenda.validade,
               }
-            : null;
+            : lavaCobranca
+              ? { tipo: "lava", ordemId: lavaCobranca.id }
+              : null;
         if (vinculo) await vincularPet(vinculo, params.p_chave, data as string);
       }
       return data as string;
@@ -838,6 +928,14 @@ function FrenteCaixa() {
       if (petCobranca) {
         // a venda precisa trazer cada serviço cobrado do atendimento, uma vez e pelo valor combinado
         for (const sv of petCobranca.servicos) {
+          const l = linhas.find((x) => x.produto_id === sv.produto_id);
+          if (!l || l.quantidade !== 1 || Math.abs(l.preco - sv.preco) > 0.001)
+            throw new Error(`Mantenha "${sv.descricao}" na venda, uma vez, por ${brl(sv.preco)}`);
+        }
+      }
+      if (lavaCobranca) {
+        // a venda precisa trazer cada serviço da ordem, uma vez e pelo valor combinado
+        for (const sv of lavaCobranca.servicos) {
           const l = linhas.find((x) => x.produto_id === sv.produto_id);
           if (!l || l.quantidade !== 1 || Math.abs(l.preco - sv.preco) > 0.001)
             throw new Error(`Mantenha "${sv.descricao}" na venda, uma vez, por ${brl(sv.preco)}`);
@@ -899,11 +997,13 @@ function FrenteCaixa() {
           : {}),
       });
       setTef({ nsu: "", aut: "", bandeira: "" });
-      if (petCobranca || pacoteVenda) {
+      if (petCobranca || pacoteVenda || lavaCobranca) {
         setPetCobranca(null);
         setPacoteVenda(null);
+        setLavaCobranca(null);
         petCarregado.current = null;
         pacoteCarregado.current = null;
+        lavaCarregada.current = null;
         void navegar({ to: "/frente-caixa", search: {} });
       }
       setLinhas([]);
@@ -1224,9 +1324,16 @@ function FrenteCaixa() {
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2 text-sm"
                 >
                   <span>
-                    <strong>Venda do pet shop recebida, mas não ligada:</strong>{" "}
-                    {p.v.tipo === "atendimento" ? "atendimento" : "pacote"} — {p.erro}. O dinheiro
-                    já entrou: resolva antes de cobrar de novo.
+                    <strong>
+                      Venda do {p.v.tipo === "lava" ? "lava rápido" : "pet shop"} recebida, mas não
+                      ligada:
+                    </strong>{" "}
+                    {p.v.tipo === "atendimento"
+                      ? "atendimento"
+                      : p.v.tipo === "lava"
+                        ? "ordem"
+                        : "pacote"}{" "}
+                    — {p.erro}. O dinheiro já entrou: resolva antes de cobrar de novo.
                   </span>
                   <span className="space-x-2">
                     <Button size="sm" onClick={() => void vincularPet(p.v, p.chave, null)}>
@@ -1266,6 +1373,19 @@ function FrenteCaixa() {
                     : ""}
                   Mantenha os serviços na venda; pode somar produtos e escolher a forma de
                   pagamento.
+                </span>
+                <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
+                  Desistir da cobrança
+                </Button>
+              </div>
+            )}
+
+            {lavaCobranca && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+                <span>
+                  <strong>Cobrando ordem do lava rápido:</strong> {lavaCobranca.veiculo}
+                  {lavaCobranca.cliente ? ` (${lavaCobranca.cliente})` : ""}. Mantenha os serviços
+                  na venda; pode somar produtos e escolher a forma de pagamento.
                 </span>
                 <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
                   Desistir da cobrança

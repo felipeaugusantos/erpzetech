@@ -479,24 +479,26 @@ function Empresa() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {(["assistencia", "locacao", "petshop", "clinica"] as const).map((m) => {
-                const liberado = moduloLiberadoEmpresa({ ...form, modulos_sem_cnpj: modulos }, m);
-                return (
-                  <div key={m} className="rounded-md border border-border p-3">
-                    <p className="text-sm font-semibold">
-                      {ROTULO_MODULO[m]}{" "}
-                      <span className={liberado ? "text-primary" : "text-muted-foreground"}>
-                        · {liberado ? "liberado" : "bloqueado"}
-                      </span>
-                    </p>
-                    <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-                      {exemplosCnae(m).map((ex) => (
-                        <li key={ex}>• {ex}</li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+              {(["assistencia", "locacao", "petshop", "clinica", "lavarapido"] as const).map(
+                (m) => {
+                  const liberado = moduloLiberadoEmpresa({ ...form, modulos_sem_cnpj: modulos }, m);
+                  return (
+                    <div key={m} className="rounded-md border border-border p-3">
+                      <p className="text-sm font-semibold">
+                        {ROTULO_MODULO[m]}{" "}
+                        <span className={liberado ? "text-primary" : "text-muted-foreground"}>
+                          · {liberado ? "liberado" : "bloqueado"}
+                        </span>
+                      </p>
+                      <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                        {exemplosCnae(m).map((ex) => (
+                          <li key={ex}>• {ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                },
+              )}
             </div>
           </div>
 
