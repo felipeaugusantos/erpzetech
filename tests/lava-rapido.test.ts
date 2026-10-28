@@ -7,6 +7,13 @@ import {
   moduloLiberadoPorCnae,
 } from "../src/lib/cnae-regras.ts";
 import {
+  dimensoesReduzidas,
+  erroDaFoto,
+  mimeDaFoto,
+  nomeDaFotoReduzida,
+  textoFotos,
+} from "../src/lib/lava-fotos.ts";
+import {
   TIPOS_VEICULO,
   comissaoDoLavador,
   diasParaVencer,
@@ -243,4 +250,30 @@ test("checklist de avarias: estado, texto e locais por tipo de veículo", () => 
   assert.ok(!locaisDeAvaria("carro").includes("Rotor de cauda"));
   assert.equal(rotuloAvaria("falta_peca"), "Peça faltando");
   assert.equal(rotuloAvaria("desconhecido"), "Outro");
+});
+
+test("fotos: formato, tamanho reduzido e nome", () => {
+  assert.equal(mimeDaFoto({ name: "a.JPG", type: "" }), "image/jpeg");
+  assert.equal(mimeDaFoto({ name: "a.webp", type: "image/webp" }), "image/webp");
+  assert.equal(mimeDaFoto({ name: "a.pdf", type: "application/pdf" }), null);
+  assert.equal(mimeDaFoto({ name: "a.heic", type: "image/heic" }), null);
+  assert.equal(erroDaFoto({ name: "a.jpg", size: 0, type: "image/jpeg" }), "O arquivo está vazio");
+  assert.match(
+    erroDaFoto({ name: "a.pdf", size: 10, type: "application/pdf" }) ?? "",
+    /Formato não aceito/,
+  );
+  assert.equal(erroDaFoto({ name: "a.jpg", size: 10, type: "image/jpeg" }), null);
+  assert.deepEqual(dimensoesReduzidas(4000, 3000), { largura: 1600, altura: 1200 });
+  assert.deepEqual(dimensoesReduzidas(3000, 4000), { largura: 1200, altura: 1600 });
+  assert.deepEqual(dimensoesReduzidas(800, 600), { largura: 800, altura: 600 });
+  assert.equal(nomeDaFotoReduzida("IMG_0001.HEIC"), "IMG_0001.jpg");
+  assert.equal(nomeDaFotoReduzida(".jpg"), "foto.jpg");
+  assert.ok(nomeDaFotoReduzida("x".repeat(300) + ".png").length <= 120);
+});
+
+test("texto das fotos no cartão do pátio", () => {
+  assert.equal(textoFotos(0, 0), "Sem fotos");
+  assert.equal(textoFotos(2, 0), "2 antes");
+  assert.equal(textoFotos(0, 1), "1 depois");
+  assert.equal(textoFotos(3, 2), "3 antes · 2 depois");
 });

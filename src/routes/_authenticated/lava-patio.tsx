@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Banknote,
+  Camera,
   ClipboardCheck,
   Clock,
   Plus,
@@ -13,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { ChecklistAvarias } from "@/components/app/ChecklistAvarias";
+import { FotosOrdem } from "@/components/app/FotosOrdem";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +42,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
+import { textoFotos } from "@/lib/lava-fotos";
 import {
   SITUACOES,
   estadoDoChecklist,
@@ -86,6 +89,7 @@ function Patio() {
   const [nova, setNova] = useState(false);
   const [cancelando, setCancelando] = useState<string | null>(null);
   const [checklistDe, setChecklistDe] = useState<string | null>(null);
+  const [fotosDe, setFotosDe] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -125,6 +129,10 @@ function Patio() {
       if (avarias.error) throw avarias.error;
       const cfg = await supabase.from("lr_config").select("checklist_obrigatorio").maybeSingle();
       if (cfg.error) throw cfg.error;
+      const fotos = ids.length
+        ? await supabase.rpc("lr_fotos_contagem", { p_ordens: ids })
+        : { data: {}, error: null };
+      if (fotos.error) throw fotos.error;
       return {
         ordens: ordens.data ?? [],
         veiculos: veiculos.data ?? [],
@@ -136,6 +144,7 @@ function Patio() {
         itens: itens.data ?? [],
         avarias: avarias.data ?? [],
         checklistObrigatorio: cfg.data?.checklist_obrigatorio ?? false,
+        fotos: (fotos.data ?? {}) as unknown as Record<string, { antes: number; depois: number }>,
       };
     },
   });
@@ -335,6 +344,14 @@ function Patio() {
                           (data?.avarias ?? []).filter((a) => a.ordem_id === o.id).length,
                         )}
                       </button>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs underline-offset-2 hover:underline"
+                        onClick={() => setFotosDe(o.id)}
+                      >
+                        <Camera className="size-3" />
+                        {textoFotos(data?.fotos[o.id]?.antes ?? 0, data?.fotos[o.id]?.depois ?? 0)}
+                      </button>
 
                       <Select
                         value={o.lavador_id ?? SEM_LAVADOR}
@@ -446,6 +463,16 @@ function Patio() {
               avarias={data.avarias.filter((a) => a.ordem_id === ordem.id)}
               onFechar={() => setChecklistDe(null)}
             />
+          ) : null;
+        })()}
+
+      {fotosDe &&
+        data &&
+        (() => {
+          const ordem = data.ordens.find((x) => x.id === fotosDe);
+          const veic = ordem && data.veiculos.find((x) => x.id === ordem.veiculo_id);
+          return ordem && veic ? (
+            <FotosOrdem ordemId={ordem.id} veiculo={veic} onFechar={() => setFotosDe(null)} />
           ) : null;
         })()}
 

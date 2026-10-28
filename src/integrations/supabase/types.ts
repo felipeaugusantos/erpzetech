@@ -10611,6 +10611,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lr_foto_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
+      lr_foto_preparar: {
+        Args: {
+          p_mime: string
+          p_momento: string
+          p_nome_arquivo: string
+          p_ordem_id: string
+          p_tamanho: number
+        }
+        Returns: Json
+      }
+      lr_fotos_contagem: { Args: { p_ordens: string[] }; Returns: Json }
+      lr_fotos_da_ordem: { Args: { p_ordem_id: string }; Returns: Json }
       lr_avaria_registrar: {
         Args: { p_descricao?: string; p_local: string; p_ordem_id: string; p_tipo: string }
         Returns: string

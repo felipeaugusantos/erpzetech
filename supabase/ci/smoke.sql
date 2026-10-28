@@ -529,6 +529,8 @@ DECLARE
     'clinica_liberada',
     -- só responde se a empresa tem o lava rápido liberado
     'lava_rapido_liberado',
+    -- fotos do lava rápido: respondem só verdadeiro com perfil do pátio, módulo liberado e foto reservada ou ativa
+    '_lr_foto_perfil_ok', '_lr_foto_pode_enviar', '_lr_foto_pode_ler',
     -- prontuário: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_pacientes', 'clinica_atendimento_abrir', 'clinica_atendimento_salvar', 'clinica_atendimento_fechar',
     'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias',
@@ -6837,5 +6839,133 @@ BEGIN
   PERFORM lr_config_salvar(false);
   PERFORM ci.sair();
 
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 72. Lava rápido (fotos): caminho reservado, envio só no caminho e por quem reservou, confirmação confere o arquivo, leitura só da empresa, cancelar sem apagar
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; v1 uuid; serv uuid; lav uuid; o1 uuid; o2 uuid; r jsonb; f1 uuid; f2 uuid; f3 uuid; c1 text; c2 text; c3 text; n int; tb uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Foto CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'PTFOT', 'fabricante', 'Cessna', 'modelo', '172'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem fotos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Fotos CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+
+  -- reservar o caminho
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'garçom reserva foto');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'estoquista reserva foto');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'anon reserva foto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'durante', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'momento inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'doc.pdf', 'application/pdf', 2048)$c$, o1), 'formato que não é imagem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'grande.jpg', 'image/jpeg', 9000000)$c$, o1), 'foto de mais de 8 MB');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'vazia.jpg', 'image/jpeg', 0)$c$, o1), 'foto vazia');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', '', 'image/jpeg', 2048)$c$, o1), 'foto sem nome');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, gen_random_uuid()), 'ordem que não existe');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'antes', 'frente.jpg', 'image/jpeg', 2048);
+  PERFORM ci.sair();
+  f1 := (r ->> 'id')::uuid; c1 := r ->> 'caminho';
+  PERFORM ci.exige(c1 = demo::text || '/' || o1::text || '/' || f1::text || '.jpg', 'o caminho é empresa/ordem/id.extensão');
+  PERFORM ci.exige((SELECT situacao = 'pendente' FROM lr_fotos WHERE id = f1), 'a foto nasce pendente');
+  PERFORM ci.entrar(vend);
+  PERFORM ci.exige(jsonb_array_length(lr_fotos_da_ordem(o1)) = 0, 'foto pendente não aparece na lista');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'confirmar sem o arquivo enviado');
+
+  -- envio: só no caminho reservado, só por quem reservou, só neste bucket
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, demo::text || '/' || o1::text || '/outra.jpg', vend), 'upload em caminho que não foi reservado');
+  PERFORM ci.deve_falhar(gest, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, gest), 'upload de outra pessoa no caminho reservado');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, gar), 'upload do garçom no caminho reservado');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('outro-bucket', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, vend), 'o caminho reservado não vale em outro bucket');
+  PERFORM ci.entrar(vend);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, vend);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = c1), 'quem reservou envia o arquivo no caminho reservado');
+
+  -- confirmar: só quem reservou, e só se o arquivo confere
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'outra pessoa confirma a foto');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'depois', 'traseira.jpg', 'image/jpeg', 5000);
+  PERFORM ci.sair();
+  f2 := (r ->> 'id')::uuid; c2 := r ->> 'caminho';
+  PERFORM ci.entrar(vend);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":9999,"mimetype":"image/jpeg"}')$c$, c2, vend);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f2), 'confirmar arquivo com tamanho diferente do informado');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_foto_confirmar(f1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'ativa' AND confirmada_em IS NOT NULL FROM lr_fotos WHERE id = f1), 'foto confirmada fica ativa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'confirmar duas vezes');
+
+  -- leitura: foto ativa da própria empresa e só para o pátio
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 1, 'o pátio lê a foto ativa');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c2)) = 0, 'foto ainda não confirmada não abre');
+  PERFORM ci.exige(ci.contar(gar, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'o garçom não lê foto');
+  PERFORM ci.exige(ci.contar(est, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'o estoquista não lê foto');
+  INSERT INTO tenants (nome) VALUES ('Lava Fotos B') RETURNING id INTO tb;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_fotos WHERE tenant_id = tb), 'nenhuma foto de outra empresa');
+  PERFORM ci.entrar(vend);
+  r := lr_fotos_da_ordem(o1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'momento' = 'antes' AND (r -> 0 ->> 'pode_cancelar')::boolean, 'a lista traz só a foto ativa, com o caminho para o link temporário');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fotos_da_ordem(%L)$c$, o1), 'garçom lista fotos');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'depois', 'lateral.jpg', 'image/jpeg', 3000);
+  f3 := (r ->> 'id')::uuid; c3 := r ->> 'caminho';
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":3000,"mimetype":"image/jpeg"}')$c$, c3, vend);
+  PERFORM lr_foto_confirmar(f3);
+  r := lr_fotos_contagem(ARRAY[o1]);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r -> o1::text ->> 'antes')::int = 1 AND (r -> o1::text ->> 'depois')::int = 1, 'a contagem por ordem separa antes e depois');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fotos_contagem(ARRAY[%L]::uuid[])$c$, o1), 'garçom conta fotos');
+
+  -- nada de alterar nem apagar
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM lr_fotos WHERE id = %L$c$, f1), 'apagar foto direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_fotos SET momento = 'depois' WHERE id = %L$c$, f1), 'trocar dados da foto direto');
+  PERFORM ci.exige(ci.contar(vend, format($c$WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L RETURNING 1) SELECT count(*) FROM d$c$, c1)) = 0, 'apagar o arquivo não afeta nenhuma linha');
+  PERFORM ci.exige(ci.contar(adm, format($c$WITH u AS (UPDATE storage.objects SET name = 'x' WHERE bucket_id = 'lava-fotos' AND name = %L RETURNING 1) SELECT count(*) FROM u$c$, c1)) = 0, 'trocar o arquivo não afeta nenhuma linha');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = c1), 'o arquivo continua no armazenamento');
+
+  -- cancelar com motivo: quem enviou ou gestão
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_cancelar(%L, '')$c$, f1), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_foto_cancelar(%L, 'engano')$c$, f1), 'garçom cancela foto');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_foto_cancelar(f1, 'foto de outro veículo');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND cancelada_motivo = 'foto de outro veículo' AND cancelada_por = gest FROM lr_fotos WHERE id = f1), 'foto cancelada guarda motivo e quem cancelou');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'foto cancelada deixa de abrir');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_foto_cancelar(%L, 'de novo')$c$, f1), 'cancelar foto já cancelada');
+
+  -- limite de 12 por ordem e momento
+  PERFORM ci.entrar(vend);
+  FOR n IN 1..10 LOOP
+    PERFORM lr_foto_preparar(o1, 'depois', 'f' || n || '.jpg', 'image/jpeg', 1000 + n);
+  END LOOP;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'depois', 'excesso.jpg', 'image/jpeg', 1000)$c$, o1), 'passar de 12 fotos por ordem e momento');
+
+  -- ordem cancelada e módulo desligado
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'x.jpg', 'image/jpeg', 1000)$c$, o1), 'foto em ordem cancelada');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
