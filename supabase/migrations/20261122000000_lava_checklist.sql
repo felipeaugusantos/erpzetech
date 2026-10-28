@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.lr_avarias (
 );
 CREATE INDEX IF NOT EXISTS lr_avarias_ordem_idx ON public.lr_avarias (ordem_id);
 
-DO $$
+DO $fn$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['lr_config', 'lr_avarias'] LOOP
@@ -39,21 +39,21 @@ BEGIN
     EXECUTE format('CREATE POLICY salao_restrito ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()))', t);
     EXECUTE format('CREATE TRIGGER %I BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at()', 'trg_' || t || '_updated', t);
   END LOOP;
-END $$;
+END $fn$;
 
 CREATE OR REPLACE FUNCTION public.lr_config_salvar(p_checklist_obrigatorio boolean)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $$
+AS $fn$
 BEGIN
   PERFORM public.exige_nao_salao();
   PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
   PERFORM public._lr_exige_liberado();
   INSERT INTO public.lr_config (tenant_id, checklist_obrigatorio) VALUES (public.current_tenant_id(), coalesce(p_checklist_obrigatorio, false))
   ON CONFLICT (tenant_id) DO UPDATE SET checklist_obrigatorio = EXCLUDED.checklist_obrigatorio;
-END $$;
+END $fn$;
 REVOKE ALL ON FUNCTION public.lr_config_salvar(boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_config_salvar(boolean) TO authenticated;
 
@@ -63,7 +63,7 @@ RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $$
+AS $fn$
 DECLARE
   v_tenant uuid := public.current_tenant_id();
   o public.lr_ordens%ROWTYPE;
@@ -85,7 +85,7 @@ BEGIN
     UPDATE public.lr_ordens SET checklist_sem_avarias = false WHERE id = o.id;
   END IF;
   RETURN v_id;
-END $$;
+END $fn$;
 REVOKE ALL ON FUNCTION public.lr_avaria_registrar(uuid, text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_avaria_registrar(uuid, text, text, text) TO authenticated;
 
@@ -95,7 +95,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $$
+AS $fn$
 DECLARE
   v_tenant uuid := public.current_tenant_id();
   o public.lr_ordens%ROWTYPE;
@@ -108,7 +108,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Avaria não encontrada'; END IF;
   IF o.checklist_em IS NOT NULL THEN RAISE EXCEPTION 'O checklist já foi concluído: a avaria registrada não se apaga'; END IF;
   DELETE FROM public.lr_avarias WHERE id = p_id;
-END $$;
+END $fn$;
 REVOKE ALL ON FUNCTION public.lr_avaria_remover(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_avaria_remover(uuid) TO authenticated;
 
@@ -118,7 +118,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $$
+AS $fn$
 DECLARE
   v_tenant uuid := public.current_tenant_id();
   o public.lr_ordens%ROWTYPE;
@@ -135,7 +135,7 @@ BEGIN
   IF p_sem_avarias AND v_n > 0 THEN RAISE EXCEPTION 'Há avarias registradas: conclua o checklist com elas'; END IF;
   IF NOT p_sem_avarias AND v_n = 0 THEN RAISE EXCEPTION 'Registre ao menos uma avaria ou conclua como sem avarias'; END IF;
   UPDATE public.lr_ordens SET checklist_em = now(), checklist_por = auth.uid(), checklist_sem_avarias = p_sem_avarias WHERE id = o.id;
-END $$;
+END $fn$;
 REVOKE ALL ON FUNCTION public.lr_checklist_concluir(uuid, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_checklist_concluir(uuid, boolean) TO authenticated;
 
@@ -145,7 +145,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
-AS $$
+AS $fn$
 DECLARE
   o public.lr_ordens%ROWTYPE;
   v_ok boolean;
@@ -177,6 +177,6 @@ BEGIN
   IF p_para = 'cancelada' THEN
     UPDATE public.lr_assinatura_usos SET desfeito = true WHERE item_id IN (SELECT id FROM public.lr_ordem_itens WHERE ordem_id = o.id);
   END IF;
-END $$;
+END $fn$;
 REVOKE ALL ON FUNCTION public.lr_ordem_situacao(uuid, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_ordem_situacao(uuid, text, text) TO authenticated;
