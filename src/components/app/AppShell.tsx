@@ -52,6 +52,7 @@ import {
   Car,
   Droplets,
   Link2,
+  Gift,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -216,6 +217,7 @@ const groups: Group[] = [
       { label: "Veículos", to: "/lava-veiculos", icon: Car },
       { label: "Serviços e preços", to: "/lava-servicos", icon: Tag },
       { label: "Planos e fidelidade", to: "/lava-planos", icon: Package },
+      { label: "Administrar planos e brindes", to: "/lava-planos-admin", icon: Gift },
       { label: "Clientes e fidelidade", to: "/lava-clientes", icon: Users },
       { label: "Insumos", to: "/lava-insumos", icon: PackageOpen },
       { label: "Lavadores e comissões", to: "/lava-lavadores", icon: Users },

@@ -80,6 +80,7 @@ import { Route as AuthenticatedLavaInsumosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedLavaLavadoresRouteImport } from './routes/_authenticated/lava-lavadores'
 import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authenticated/lava-patio'
 import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
+import { Route as AuthenticatedLavaPlanosAdminRouteImport } from './routes/_authenticated/lava-planos-admin'
 import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
 import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
 import { Route as AuthenticatedLavaWhatsappRouteImport } from './routes/_authenticated/lava-whatsapp'
@@ -554,6 +555,12 @@ const AuthenticatedLavaPlanosRoute = AuthenticatedLavaPlanosRouteImport.update({
   path: '/lava-planos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLavaPlanosAdminRoute =
+  AuthenticatedLavaPlanosAdminRouteImport.update({
+    id: '/lava-planos-admin',
+    path: '/lava-planos-admin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLavaServicosRoute =
   AuthenticatedLavaServicosRouteImport.update({
     id: '/lava-servicos',
@@ -1081,6 +1088,7 @@ export interface FileRoutesByFullPath {
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/lava-planos-admin': typeof AuthenticatedLavaPlanosAdminRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
@@ -1234,6 +1242,7 @@ export interface FileRoutesByTo {
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/lava-planos-admin': typeof AuthenticatedLavaPlanosAdminRoute
   '/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
@@ -1389,6 +1398,7 @@ export interface FileRoutesById {
   '/_authenticated/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/_authenticated/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/_authenticated/lava-planos-admin': typeof AuthenticatedLavaPlanosAdminRoute
   '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
   '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/_authenticated/lava-whatsapp': typeof AuthenticatedLavaWhatsappRoute
@@ -1544,6 +1554,7 @@ export interface FileRouteTypes {
     | '/lava-lavadores'
     | '/lava-patio'
     | '/lava-planos'
+    | '/lava-planos-admin'
     | '/lava-servicos'
     | '/lava-veiculos'
     | '/lava-whatsapp'
@@ -1697,6 +1708,7 @@ export interface FileRouteTypes {
     | '/lava-lavadores'
     | '/lava-patio'
     | '/lava-planos'
+    | '/lava-planos-admin'
     | '/lava-servicos'
     | '/lava-veiculos'
     | '/lava-whatsapp'
@@ -1851,6 +1863,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lava-lavadores'
     | '/_authenticated/lava-patio'
     | '/_authenticated/lava-planos'
+    | '/_authenticated/lava-planos-admin'
     | '/_authenticated/lava-servicos'
     | '/_authenticated/lava-veiculos'
     | '/_authenticated/lava-whatsapp'
@@ -2445,6 +2458,13 @@ declare module '@tanstack/react-router' {
       path: '/lava-planos'
       fullPath: '/lava-planos'
       preLoaderRoute: typeof AuthenticatedLavaPlanosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-planos-admin': {
+      id: '/_authenticated/lava-planos-admin'
+      path: '/lava-planos-admin'
+      fullPath: '/lava-planos-admin'
+      preLoaderRoute: typeof AuthenticatedLavaPlanosAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lava-servicos': {
@@ -3081,6 +3101,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLavaLavadoresRoute: typeof AuthenticatedLavaLavadoresRoute
   AuthenticatedLavaPatioRoute: typeof AuthenticatedLavaPatioRoute
   AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
+  AuthenticatedLavaPlanosAdminRoute: typeof AuthenticatedLavaPlanosAdminRoute
   AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
   AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
   AuthenticatedLavaWhatsappRoute: typeof AuthenticatedLavaWhatsappRoute
@@ -3226,6 +3247,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLavaLavadoresRoute: AuthenticatedLavaLavadoresRoute,
   AuthenticatedLavaPatioRoute: AuthenticatedLavaPatioRoute,
   AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,
+  AuthenticatedLavaPlanosAdminRoute: AuthenticatedLavaPlanosAdminRoute,
   AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
   AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
   AuthenticatedLavaWhatsappRoute: AuthenticatedLavaWhatsappRoute,
