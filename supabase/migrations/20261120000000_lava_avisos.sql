@@ -1,7 +1,7 @@
 -- Lava rápido (Fase 2, etapa 2): avisos ao cliente para a recepção chamar no WhatsApp.
 -- Três avisos: "pronto" (veículo pronto para retirar), "plano_vencendo" (assinatura perto de vencer) e "retorno" (cliente que não volta há dias).
 -- Sem envio automático: o clique continua sendo da recepção (envio direto exige a API oficial do WhatsApp contratada pela empresa).
--- Quem já foi chamado para aquela ocasião sai da lista; cliente que não quer mensagens (clientes.aceita_mensagens) não entra.
+-- Quem já foi chamado para aquela ocasião sai da lista. Cliente que não quer mensagens (clientes.aceita_mensagens) não entra.
 
 CREATE TABLE IF NOT EXISTS public.lr_contatos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -68,8 +68,8 @@ REVOKE ALL ON FUNCTION public.lr_mensagem_modelo_salvar(text, text) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.lr_mensagem_modelo_salvar(text, text) TO authenticated;
 
 -- Quem vale chamar. p_tipo / p_janela:
---   'pronto': veículos prontos para retirar, dos últimos 2 dias (a janela não conta);
---   'plano_vencendo': assinaturas ativas que vencem de hoje até p_janela dias à frente (0 a 60), sem renovação já vendida;
+--   'pronto': veículos prontos para retirar, dos últimos 2 dias (a janela não conta).
+--   'plano_vencendo': assinaturas ativas que vencem de hoje até p_janela dias à frente (0 a 60), sem renovação já vendida.
 --   'retorno': clientes cuja última entrega do veículo foi há p_janela dias ou mais (7 a 365), até 1 ano atrás, sem ordem aberta nem plano valendo.
 -- Cada linha traz "referencia", que a recepção devolve em lr_contato_registrar. Teto de 300 linhas, o mais antigo primeiro.
 CREATE OR REPLACE FUNCTION public.lr_mensagens_pendentes(p_tipo text, p_janela integer DEFAULT 7)
@@ -168,11 +168,10 @@ BEGIN
   PERFORM public._lr_exige_liberado();
   IF p_tipo NOT IN ('pronto', 'plano_vencendo', 'retorno') THEN RAISE EXCEPTION 'Tipo de contato inválido'; END IF;
   IF p_canal NOT IN ('whatsapp', 'telefone', 'outro') THEN RAISE EXCEPTION 'Canal inválido'; END IF;
-  BEGIN
-    v_ref := p_referencia::uuid;
-  EXCEPTION WHEN invalid_text_representation THEN
+  IF p_referencia IS NULL OR p_referencia !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
     RAISE EXCEPTION 'Referência inválida';
-  END;
+  END IF;
+  v_ref := p_referencia::uuid;
   IF p_tipo = 'plano_vencendo' THEN
     SELECT cliente_id, veiculo_id INTO v_cliente, v_veiculo FROM public.lr_assinaturas WHERE id = v_ref AND tenant_id = v_tenant;
   ELSE
