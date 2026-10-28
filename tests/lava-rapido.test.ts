@@ -277,3 +277,42 @@ test("texto das fotos no cartão do pátio", () => {
   assert.equal(textoFotos(0, 1), "1 depois");
   assert.equal(textoFotos(3, 2), "3 antes · 2 depois");
 });
+
+import { dadosDoPlano, formDoPlano, planoVazio } from "../src/lib/lava-planos-form.ts";
+
+test("formulário do plano: confere os limites e devolve os dados para o banco", () => {
+  const ok = { ...planoVazio, nome: "  Mensal  ", servico_id: "s1", preco: "120,50" };
+  assert.deepEqual(dadosDoPlano(ok), {
+    nome: "Mensal",
+    servico_id: "s1",
+    lavagens: 4,
+    validade_dias: 30,
+    tipo: "",
+    preco: 120.5,
+    ativo: true,
+  });
+  assert.throws(() => dadosDoPlano({ ...ok, nome: " " }), /nome/);
+  assert.throws(() => dadosDoPlano({ ...ok, servico_id: "" }), /serviço/);
+  assert.throws(() => dadosDoPlano({ ...ok, lavagens: "1" }), /2 a 60/);
+  assert.throws(() => dadosDoPlano({ ...ok, lavagens: "61" }), /2 a 60/);
+  assert.throws(() => dadosDoPlano({ ...ok, validade_dias: "6" }), /7 e 366/);
+  assert.throws(() => dadosDoPlano({ ...ok, preco: "0" }), /preço/);
+  assert.throws(() => dadosDoPlano({ ...ok, preco: "abc" }), /preço/);
+});
+
+test("formulário do plano: editar carrega o plano e mantém o id", () => {
+  const f = formDoPlano({
+    id: "p1",
+    nome: "Quinzenal",
+    servico_id: "s1",
+    lavagens: 2,
+    validade_dias: 15,
+    tipo: "moto",
+    preco: 60,
+    ativo: false,
+  });
+  assert.equal(f.id, "p1");
+  assert.equal(f.tipo, "moto");
+  assert.equal(dadosDoPlano(f).id, "p1");
+  assert.equal(dadosDoPlano(f).ativo, false);
+});

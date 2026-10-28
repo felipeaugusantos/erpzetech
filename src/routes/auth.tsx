@@ -25,7 +25,8 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Entrar no ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Vendas, estoque, compras, financeiro e notas fiscais da sua empresa em um só lugar.",
+        content:
+          "Vendas, estoque, compras, financeiro e notas fiscais da sua empresa em um só lugar.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

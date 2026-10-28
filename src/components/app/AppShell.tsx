@@ -51,6 +51,8 @@ import {
   Receipt,
   Car,
   Droplets,
+  Link2,
+  Gift,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -215,6 +217,7 @@ const groups: Group[] = [
       { label: "Veículos", to: "/lava-veiculos", icon: Car },
       { label: "Serviços e preços", to: "/lava-servicos", icon: Tag },
       { label: "Planos e fidelidade", to: "/lava-planos", icon: Package },
+      { label: "Administrar planos e brindes", to: "/lava-planos-admin", icon: Gift },
       { label: "Clientes e fidelidade", to: "/lava-clientes", icon: Users },
       { label: "Insumos", to: "/lava-insumos", icon: PackageOpen },
       { label: "Lavadores e comissões", to: "/lava-lavadores", icon: Users },
@@ -531,6 +534,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Tempo real das lojas", to: "/ze-tech-tempo-real", icon: Gauge },
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
+      { label: "Links de acesso", to: "/ze-tech-links", icon: Link2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },

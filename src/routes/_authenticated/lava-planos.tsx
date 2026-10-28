@@ -47,6 +47,8 @@ import {
   rotuloTipo,
   situacaoDaAssinatura,
 } from "@/lib/lava-rapido";
+import { Fidelidade, PlanoDialog } from "@/components/app/PlanosLava";
+import { formDoPlano, planoVazio, type FormPlano } from "@/lib/lava-planos-form";
 
 export const Route = createFileRoute("/_authenticated/lava-planos")({
   head: () => ({
@@ -67,27 +69,6 @@ function hojeISO() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
 
-type FormPlano = {
-  id?: string;
-  nome: string;
-  servico_id: string;
-  lavagens: string;
-  validade_dias: string;
-  tipo: string;
-  preco: string;
-  ativo: boolean;
-};
-
-const vazio: FormPlano = {
-  nome: "",
-  servico_id: "",
-  lavagens: "4",
-  validade_dias: "30",
-  tipo: "",
-  preco: "",
-  ativo: true,
-};
-
 function PlanosModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
@@ -101,7 +82,7 @@ function Planos() {
   const { data: session } = useSessionData();
   const podeEditar = (session?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
   const [aberto, setAberto] = useState(false);
-  const [form, setForm] = useState<FormPlano>(vazio);
+  const [form, setForm] = useState<FormPlano>(planoVazio);
   const [vendendo, setVendendo] = useState(false);
   const [cancelando, setCancelando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -148,41 +129,6 @@ function Planos() {
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: ["lava-planos"] });
 
-  const salvar = useMutation({
-    mutationFn: async () => {
-      if (!form.nome.trim()) throw new Error("Informe o nome do plano.");
-      if (!form.servico_id) throw new Error("Escolha o serviço do plano.");
-      const lav = Number(form.lavagens);
-      if (!Number.isInteger(lav) || lav < 2 || lav > 60)
-        throw new Error("O plano precisa ter de 2 a 60 lavagens.");
-      const val = Number(form.validade_dias);
-      if (!Number.isInteger(val) || val < 7 || val > 366)
-        throw new Error("A validade precisa ficar entre 7 e 366 dias.");
-      const preco = Number(form.preco.replace(",", "."));
-      if (!Number.isFinite(preco) || preco <= 0) throw new Error("Informe o preço do plano.");
-      const { error } = await supabase.rpc("lr_plano_salvar", {
-        p_dados: {
-          ...(form.id ? { id: form.id } : {}),
-          nome: form.nome.trim(),
-          servico_id: form.servico_id,
-          lavagens: lav,
-          validade_dias: val,
-          tipo: form.tipo,
-          preco,
-          ativo: form.ativo,
-        },
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(form.id ? "Plano atualizado." : "Plano cadastrado.");
-      setAberto(false);
-      setForm(vazio);
-      atualizar();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const cancelar = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("lr_assinatura_cancelar", {
@@ -214,7 +160,7 @@ function Planos() {
               {podeEditar && (
                 <Button
                   onClick={() => {
-                    setForm(vazio);
+                    setForm(planoVazio);
                     setAberto(true);
                   }}
                 >
@@ -269,16 +215,7 @@ function Planos() {
                           size="icon"
                           aria-label={`Editar ${p.nome}`}
                           onClick={() => {
-                            setForm({
-                              id: p.id,
-                              nome: p.nome,
-                              servico_id: p.servico_id,
-                              lavagens: String(p.lavagens),
-                              validade_dias: String(p.validade_dias),
-                              tipo: p.tipo ?? "",
-                              preco: String(p.preco),
-                              ativo: p.ativo,
-                            });
+                            setForm(formDoPlano(p));
                             setAberto(true);
                           }}
                         >
@@ -374,110 +311,18 @@ function Planos() {
         />
       )}
 
-      <Dialog open={aberto} onOpenChange={(o) => !o && setAberto(false)}>
-        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{form.id ? "Editar plano" : "Novo plano"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div>
-              <Label htmlFor="pl-nome">Nome</Label>
-              <Input
-                id="pl-nome"
-                value={form.nome}
-                placeholder="Ex.: Mensal 4 lavagens"
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pl-serv">Serviço incluído</Label>
-              <Select
-                value={form.servico_id}
-                onValueChange={(v) => setForm({ ...form, servico_id: v })}
-              >
-                <SelectTrigger id="pl-serv">
-                  <SelectValue placeholder="Escolha o serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {servicos
-                    .filter((s) => s.ativo || s.id === form.servico_id)
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nome}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="pl-lav">Lavagens</Label>
-                <Input
-                  id="pl-lav"
-                  inputMode="numeric"
-                  value={form.lavagens}
-                  onChange={(e) => setForm({ ...form, lavagens: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="pl-val">Validade (dias)</Label>
-                <Input
-                  id="pl-val"
-                  inputMode="numeric"
-                  value={form.validade_dias}
-                  onChange={(e) => setForm({ ...form, validade_dias: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="pl-tipo">Vale para</Label>
-                <Select
-                  value={form.tipo || QUALQUER}
-                  onValueChange={(v) => setForm({ ...form, tipo: v === QUALQUER ? "" : v })}
-                >
-                  <SelectTrigger id="pl-tipo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={QUALQUER}>Qualquer veículo</SelectItem>
-                    {TIPOS_VEICULO.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="pl-preco">Preço (R$)</Label>
-                <Input
-                  id="pl-preco"
-                  inputMode="decimal"
-                  value={form.preco}
-                  onChange={(e) => setForm({ ...form, preco: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="pl-ativo"
-                checked={form.ativo}
-                onCheckedChange={(v) => setForm({ ...form, ativo: v })}
-              />
-              <Label htmlFor="pl-ativo">À venda</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAberto(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PlanoDialog
+        aberto={aberto}
+        form={form}
+        setForm={setForm}
+        servicos={servicos}
+        onFechar={() => setAberto(false)}
+        onSalvo={() => {
+          setAberto(false);
+          setForm(planoVazio);
+          atualizar();
+        }}
+      />
 
       {vendendo && (
         <VenderPlano
@@ -595,92 +440,5 @@ function VenderPlano({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Fidelidade({
-  podeEditar,
-  config,
-  servicos,
-  onSalvo,
-}: {
-  podeEditar: boolean;
-  config: { ativo: boolean; lavagens_para_brinde: number; servico_id: string | null } | null;
-  servicos: { id: string; nome: string }[];
-  onSalvo: () => void;
-}) {
-  const [ativo, setAtivo] = useState(config?.ativo ?? false);
-  const [lavagens, setLavagens] = useState(String(config?.lavagens_para_brinde ?? 10));
-  const [servicoId, setServicoId] = useState(config?.servico_id ?? "");
-
-  const salvar = useMutation({
-    mutationFn: async () => {
-      const n = Number(lavagens);
-      if (!Number.isInteger(n) || n < 2 || n > 50)
-        throw new Error("O brinde sai entre a 2ª e a 50ª lavagem.");
-      if (ativo && !servicoId) throw new Error("Escolha o serviço que será o brinde.");
-      const { error } = await supabase.rpc("lr_fidelidade_salvar", {
-        p_ativo: ativo,
-        p_lavagens: n,
-        p_servico_id: servicoId || (null as unknown as string),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Fidelidade salva.");
-      onSalvo();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <section>
-      <h2 className="mb-1 font-display text-lg font-semibold">Fidelidade</h2>
-      <p className="mb-3 text-sm text-muted-foreground">
-        Cada lavagem entregue vale um selo. Ao juntar o número escolhido, a próxima lavagem do
-        serviço-brinde sai sem cobrança. Os selos contam a partir do momento em que o programa é
-        ligado.
-      </p>
-      <div className="panel grid max-w-xl gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <Switch id="fd-ativo" checked={ativo} disabled={!podeEditar} onCheckedChange={setAtivo} />
-          <Label htmlFor="fd-ativo">Programa ligado</Label>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="fd-lav">Lavagens para ganhar o brinde</Label>
-            <Input
-              id="fd-lav"
-              inputMode="numeric"
-              value={lavagens}
-              disabled={!podeEditar}
-              onChange={(e) => setLavagens(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="fd-serv">Serviço-brinde</Label>
-            <Select value={servicoId} disabled={!podeEditar} onValueChange={setServicoId}>
-              <SelectTrigger id="fd-serv">
-                <SelectValue placeholder="Escolha o serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                {servicos.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        {podeEditar && (
-          <div>
-            <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
-              Salvar fidelidade
-            </Button>
-          </div>
-        )}
-      </div>
-    </section>
   );
 }

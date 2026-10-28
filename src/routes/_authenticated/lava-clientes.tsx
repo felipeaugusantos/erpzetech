@@ -64,14 +64,17 @@ function ClientesLava() {
       ]);
       if (cl.error) throw cl.error;
       const usam = new Set<string>();
-      for (const r of [...(ve.data ?? []), ...(os.data ?? []), ...(as.data ?? [])]) usam.add(r.cliente_id);
+      for (const r of [...(ve.data ?? []), ...(os.data ?? []), ...(as.data ?? [])])
+        usam.add(r.cliente_id);
       return (cl.data ?? []).filter((c) => usam.has(c.id));
     },
   });
 
   const filtrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return t ? clientes.filter((c) => `${c.nome} ${c.telefone ?? ""}`.toLowerCase().includes(t)) : clientes;
+    return t
+      ? clientes.filter((c) => `${c.nome} ${c.telefone ?? ""}`.toLowerCase().includes(t))
+      : clientes;
   }, [clientes, busca]);
 
   return (
@@ -94,7 +97,9 @@ function ClientesLava() {
           {isLoading ? (
             <div className="h-32 animate-pulse rounded bg-muted" />
           ) : filtrados.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum cliente do lava rápido encontrado.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhum cliente do lava rápido encontrado.
+            </p>
           ) : (
             <ul className="max-h-[60vh] space-y-1 overflow-auto">
               {filtrados.map((c) => (
@@ -107,7 +112,9 @@ function ClientesLava() {
                     }`}
                   >
                     {c.nome}
-                    {c.telefone && <span className="block text-xs text-muted-foreground">{c.telefone}</span>}
+                    {c.telefone && (
+                      <span className="block text-xs text-muted-foreground">{c.telefone}</span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -117,7 +124,10 @@ function ClientesLava() {
         {clienteId ? (
           <Detalhe clienteId={clienteId} />
         ) : (
-          <EmptyState title="Escolha um cliente" description="Veja o saldo de pontos, as lavagens e os planos." />
+          <EmptyState
+            title="Escolha um cliente"
+            description="Veja o saldo de pontos, as lavagens e os planos."
+          />
         )}
       </div>
     </div>
@@ -132,27 +142,44 @@ function Detalhe({ clienteId }: { clienteId: string }) {
         supabase.rpc("lr_fidelidade_cliente", { p_cliente_id: clienteId }),
         supabase
           .from("lr_ordens")
-          .select("id, situacao, entrada_em, entregue_em, veiculo_id, lr_ordem_itens(preco_aplicado, cobertura, lr_servicos(nome))")
+          .select(
+            "id, situacao, entrada_em, entregue_em, veiculo_id, lr_ordem_itens(preco_aplicado, cobertura, lr_servicos(nome))",
+          )
           .eq("cliente_id", clienteId)
           .order("entrada_em", { ascending: false })
           .limit(200),
         supabase
           .from("lr_assinaturas")
-          .select("id, comprado_em, vence_em, lavagens, valor, situacao, veiculo_id, lr_planos(nome), lr_assinatura_usos(desfeito)")
+          .select(
+            "id, comprado_em, vence_em, lavagens, valor, situacao, veiculo_id, lr_planos(nome), lr_assinatura_usos(desfeito)",
+          )
           .eq("cliente_id", clienteId)
           .order("comprado_em", { ascending: false }),
-        supabase.from("lr_veiculos").select("id, tipo, identificacao, modelo").eq("cliente_id", clienteId),
+        supabase
+          .from("lr_veiculos")
+          .select("id, tipo, identificacao, modelo")
+          .eq("cliente_id", clienteId),
       ]);
       if (fid.error) throw fid.error;
       if (ordens.error) throw ordens.error;
       if (assin.error) throw assin.error;
       const veiculos = new Map((veic.data ?? []).map((v) => [v.id, v]));
-      return { fid: fid.data as unknown as Fidelidade, ordens: ordens.data ?? [], assin: assin.data ?? [], veiculos };
+      return {
+        fid: fid.data as unknown as Fidelidade,
+        ordens: ordens.data ?? [],
+        assin: assin.data ?? [],
+        veiculos,
+      };
     },
   });
 
   if (isLoading) return <div className="panel h-60 animate-pulse" />;
-  if (error || !data) return <div className="panel p-4 text-sm text-destructive">{(error as Error)?.message ?? "Erro"}</div>;
+  if (error || !data)
+    return (
+      <div className="panel p-4 text-sm text-destructive">
+        {(error as Error)?.message ?? "Erro"}
+      </div>
+    );
 
   const { fid, ordens, assin, veiculos } = data;
   const nomeVeic = (id: string) => {
@@ -174,7 +201,10 @@ function Detalhe({ clienteId }: { clienteId: string }) {
         ) : (
           <div className="grid gap-3 sm:grid-cols-4">
             <Indicador rotulo="Pontos (lavagens)" valor={fid.selos} />
-            <Indicador rotulo="Saldo atual" valor={`${fid.selos % fid.necessarias} / ${fid.necessarias}`} />
+            <Indicador
+              rotulo="Saldo atual"
+              valor={`${fid.selos % fid.necessarias} / ${fid.necessarias}`}
+            />
             <Indicador rotulo="Faltam p/ brinde" valor={fid.faltam} />
             <Indicador rotulo="Brindes disponíveis" valor={fid.disponiveis} destaque />
           </div>
@@ -202,14 +232,22 @@ function Detalhe({ clienteId }: { clienteId: string }) {
               {assin.map((a) => {
                 const usadas = (a.lr_assinatura_usos ?? []).filter((u) => !u.desfeito).length;
                 const sit =
-                  a.situacao !== "ativa" ? a.situacao : a.vence_em < hoje ? "vencida" : usadas >= a.lavagens ? "esgotada" : "ativa";
+                  a.situacao !== "ativa"
+                    ? a.situacao
+                    : a.vence_em < hoje
+                      ? "vencida"
+                      : usadas >= a.lavagens
+                        ? "esgotada"
+                        : "ativa";
                 return (
                   <TableRow key={a.id}>
                     <TableCell>{a.lr_planos?.nome ?? "—"}</TableCell>
                     <TableCell>{nomeVeic(a.veiculo_id)}</TableCell>
                     <TableCell>{dateBR(a.comprado_em)}</TableCell>
                     <TableCell>{dateBR(a.vence_em)}</TableCell>
-                    <TableCell>{usadas} de {a.lavagens}</TableCell>
+                    <TableCell>
+                      {usadas} de {a.lavagens}
+                    </TableCell>
                     <TableCell>{brl(a.valor)}</TableCell>
                     <TableCell>
                       <Badge variant={sit === "ativa" ? "default" : "secondary"}>{sit}</Badge>
@@ -249,8 +287,16 @@ function Detalhe({ clienteId }: { clienteId: string }) {
                       {itens.map((i, k) => (
                         <span key={k} className="mr-2">
                           {i.lr_servicos?.nome}
-                          {i.cobertura === "fidelidade" && <Badge variant="outline" className="ml-1">brinde</Badge>}
-                          {i.cobertura === "plano" && <Badge variant="outline" className="ml-1">plano</Badge>}
+                          {i.cobertura === "fidelidade" && (
+                            <Badge variant="outline" className="ml-1">
+                              brinde
+                            </Badge>
+                          )}
+                          {i.cobertura === "plano" && (
+                            <Badge variant="outline" className="ml-1">
+                              plano
+                            </Badge>
+                          )}
                         </span>
                       ))}
                     </TableCell>
@@ -267,7 +313,15 @@ function Detalhe({ clienteId }: { clienteId: string }) {
   );
 }
 
-function Indicador({ rotulo, valor, destaque }: { rotulo: string; valor: string | number; destaque?: boolean }) {
+function Indicador({
+  rotulo,
+  valor,
+  destaque,
+}: {
+  rotulo: string;
+  valor: string | number;
+  destaque?: boolean;
+}) {
   return (
     <div className={`rounded border p-3 ${destaque ? "border-primary bg-primary/5" : ""}`}>
       <div className="text-xs text-muted-foreground">{rotulo}</div>

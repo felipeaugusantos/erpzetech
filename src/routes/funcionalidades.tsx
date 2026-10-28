@@ -40,7 +40,8 @@ export const Route = createFileRoute("/funcionalidades")({
       { property: "og:title", content: "Todas as funções do ERP Ze Tech" },
       {
         property: "og:description",
-        content: "Vendas, estoque, compras, financeiro, fiscal e módulos por ramo em um só sistema.",
+        content:
+          "Vendas, estoque, compras, financeiro, fiscal e módulos por ramo em um só sistema.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -264,7 +265,10 @@ function Funcionalidades() {
             { icon: Bike, t: "Delivery e iFood" },
             { icon: Receipt, t: "Notas fiscais integradas" },
           ].map((d) => (
-            <div key={d.t} className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4">
+            <div
+              key={d.t}
+              className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4"
+            >
               <d.icon className="size-5 text-accent" />
               <span className="font-display text-sm font-semibold">{d.t}</span>
             </div>
@@ -300,7 +304,9 @@ function Funcionalidades() {
 
       <section className="border-t border-border bg-primary text-primary-foreground">
         <div className="mx-auto max-w-4xl px-5 py-14 text-center sm:px-8">
-          <h2 className="font-display text-3xl font-extrabold">Pronto para organizar sua empresa?</h2>
+          <h2 className="font-display text-3xl font-extrabold">
+            Pronto para organizar sua empresa?
+          </h2>
           <p className="mt-3 opacity-90">Fale com a gente no WhatsApp (16) 98854-7561.</p>
           <Button asChild size="lg" variant="secondary" className="mt-6">
             <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">
