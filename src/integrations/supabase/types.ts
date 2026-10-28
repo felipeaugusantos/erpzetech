@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      lr_contatos: {
+        Row: {
+          canal: string
+          cliente_id: string
+          created_at: string
+          feito_por: string | null
+          id: string
+          referencia: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          canal?: string
+          cliente_id: string
+          created_at?: string
+          feito_por?: string | null
+          id?: string
+          referencia: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          canal?: string
+          cliente_id?: string
+          created_at?: string
+          feito_por?: string | null
+          id?: string
+          referencia?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_contatos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_mensagem_modelos: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          tenant_id: string
+          texto: string
+          tipo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto: string
+          tipo: string
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          tenant_id?: string
+          texto?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       lr_assinatura_usos: {
         Row: {
           assinatura_id: string
@@ -10308,6 +10386,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lr_contato_registrar: {
+        Args: { p_canal?: string; p_referencia: string; p_tipo: string }
+        Returns: undefined
+      }
+      lr_mensagem_modelo_salvar: { Args: { p_texto: string; p_tipo: string }; Returns: undefined }
+      lr_mensagens_pendentes: { Args: { p_janela?: number; p_tipo: string }; Returns: Json }
       lr_assinatura_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
       lr_cobertura_previa: { Args: { p_servicos: Json; p_veiculo_id: string }; Returns: Json }
       lr_fidelidade_cliente: { Args: { p_cliente_id: string }; Returns: Json }

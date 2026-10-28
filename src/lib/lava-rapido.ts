@@ -1,3 +1,5 @@
+import { primeiroNome } from "./contato-pet.ts";
+
 // Regras do Lava rápido sem dependência de tela: ficam à parte para os testes rodarem no Node.
 // As mesmas regras estão no banco (lr_* em supabase/migrations/20261117000000_lava_rapido.sql); o banco é quem decide.
 
@@ -192,4 +194,56 @@ export function textoFidelidade(f: {
   return f.faltam === 1
     ? "Falta 1 lavagem para o próximo brinde."
     : `Faltam ${f.faltam} lavagens para o próximo brinde.`;
+}
+
+export type TipoAviso = "pronto" | "plano_vencendo" | "retorno";
+
+export const AVISOS: { value: TipoAviso; label: string; coluna: string }[] = [
+  { value: "pronto", label: "Veículo pronto", coluna: "Pronto em" },
+  { value: "plano_vencendo", label: "Plano vencendo", coluna: "Vence em" },
+  { value: "retorno", label: "Retorno do cliente", coluna: "Última lavagem" },
+];
+
+export const MENSAGEM_LAVA_PADRAO: Record<TipoAviso, string> = {
+  pronto:
+    "Oi, {cliente}! Aqui é da {loja}. O seu {veiculo} já está pronto e te esperando para a retirada! 🚗",
+  plano_vencendo:
+    "Oi, {cliente}! Aqui é da {loja}. O plano {plano} do {veiculo} vence em {data} e ainda restam {restam} lavagens. Quer renovar?",
+  retorno:
+    "Oi, {cliente}! Aqui é da {loja}. Faz {dias} dias da última lavagem do {veiculo}. Quer agendar uma nova?",
+};
+
+/** O que cada modelo aceita além de {cliente}, {veiculo} e {loja}. */
+export const CAMPOS_AVISO: Record<TipoAviso, string[]> = {
+  pronto: [],
+  plano_vencendo: ["plano", "data", "restam"],
+  retorno: ["dias"],
+};
+
+/** Troca {cliente}, {veiculo}, {loja}, {plano}, {data}, {restam} e {dias} pelos valores; o que não tiver valor fica como está. */
+export function montarMensagemLava(
+  modelo: string,
+  v: {
+    cliente?: string;
+    veiculo?: string;
+    loja?: string;
+    plano?: string;
+    data?: string;
+    restam?: number | string;
+    dias?: number | string;
+  },
+) {
+  const mapa: Record<string, string | undefined> = {
+    cliente: v.cliente ? primeiroNome(v.cliente) : undefined,
+    veiculo: v.veiculo,
+    loja: v.loja,
+    plano: v.plano,
+    data: v.data,
+    restam: v.restam !== undefined ? String(v.restam) : undefined,
+    dias: v.dias !== undefined ? String(v.dias) : undefined,
+  };
+  return modelo.replace(
+    /\{(cliente|veiculo|loja|plano|data|restam|dias)\}/g,
+    (m, k: string) => mapa[k] ?? m,
+  );
 }

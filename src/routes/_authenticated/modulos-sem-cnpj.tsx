@@ -69,6 +69,7 @@ const MENU: Record<ModuloCnae, { grupo: string; itens: string[]; relatorios?: st
       "Serviços e preços",
       "Planos e fidelidade",
       "Lavadores e comissões",
+      "Avisos ao cliente",
     ],
   },
 };

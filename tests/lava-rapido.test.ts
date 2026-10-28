@@ -10,7 +10,9 @@ import {
   TIPOS_VEICULO,
   comissaoDoLavador,
   diasParaVencer,
+  MENSAGEM_LAVA_PADRAO,
   lavagensRestantes,
+  montarMensagemLava,
   situacaoDaAssinatura,
   textoFidelidade,
   totalCobrado,
@@ -180,4 +182,27 @@ test("texto do programa de fidelidade", () => {
   assert.equal(textoFidelidade({ ...f, disponiveis: 1 }), "Tem 1 brinde disponível.");
   assert.equal(textoFidelidade({ ...f, disponiveis: 2 }), "Tem 2 brindes disponíveis.");
   assert.equal(textoFidelidade({ ...f, ativo: false }), "Programa de fidelidade desligado.");
+});
+
+test("mensagens do lava rápido trocam os campos e deixam intacto o que não tem valor", () => {
+  const texto = montarMensagemLava(MENSAGEM_LAVA_PADRAO.pronto, {
+    cliente: "Maria da Silva",
+    veiculo: "ABC-1234",
+    loja: "Lava Bem",
+  });
+  assert.match(texto, /^Oi, Maria! Aqui é da Lava Bem\. O seu ABC-1234 já está pronto/);
+  const plano = montarMensagemLava(MENSAGEM_LAVA_PADRAO.plano_vencendo, {
+    cliente: "João",
+    veiculo: "PT-ABC",
+    loja: "Hangar Wash",
+    plano: "Mensal 4",
+    data: "10/11/2026",
+    restam: 2,
+  });
+  assert.match(plano, /plano Mensal 4 do PT-ABC vence em 10\/11\/2026 e ainda restam 2 lavagens/);
+  assert.equal(
+    montarMensagemLava("Faz {dias} dias, {cliente}", { cliente: "Ana" }),
+    "Faz {dias} dias, Ana",
+  );
+  assert.equal(montarMensagemLava("Faz {dias} dias", { dias: 40 }), "Faz 40 dias");
 });

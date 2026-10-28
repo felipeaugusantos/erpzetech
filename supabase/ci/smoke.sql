@@ -6458,3 +6458,155 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_assinaturas SET lavagens = 999 WHERE id = %L$c$, ass), 'alterar assinatura direto');
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 69. Lava rápido (avisos): pronto, plano vencendo e retorno; quem já foi chamado sai da lista; cliente que não quer mensagens não entra; modelos
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; cli_no uuid; dep uuid; v1 uuid; v2 uuid; v3 uuid; serv uuid; serv_prod uuid; lav uuid; plano uuid; ass uuid; ass2 uuid;
+  o1 uuid; o2 uuid; o3 uuid; ped uuid; r jsonb; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Avisos CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente Aviso CI', '52998224725', '11999990000', '11988887777') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg CI', '11144477735', '11977776666', false) RETURNING id INTO cli_no;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AVI1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'AVI2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  v3 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_no, 'tipo', 'carro', 'identificacao', 'AVI3C33', 'fabricante', 'VW', 'modelo', 'Polo'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem avisos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Avisos CI","comissao_percentual":0}'::jsonb);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Plano avisos','servico_id',serv,'lavagens',4,'preco',100));
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- permissões e validações
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'garçom lê avisos');
+  PERFORM ci.deve_falhar(est, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'estoquista lê avisos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'anon lê avisos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('aniversario')$c$, 'tipo de aviso inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('retorno', 3)$c$, 'retorno com menos de 7 dias');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('plano_vencendo', 90)$c$, 'janela de plano acima de 60');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_contato_registrar('pronto', %L)$c$, gen_random_uuid()::text), 'garçom registra contato');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_contato_registrar('pronto', 'não-é-uuid')$c$, 'referência inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_contato_registrar('pronto', %L)$c$, gen_random_uuid()::text), 'referência que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_contato_registrar('pronto', %L, 'pombo')$c$, gen_random_uuid()::text), 'canal inválido');
+
+  -- pronto: entra quando fica pronto, usa o WhatsApp do cliente, sai depois de chamado; quem não quer mensagens não entra
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v3, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' IN (o1::text, o3::text)), 'ordem ainda não pronta não gera aviso');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o1::text AND e ->> 'telefone' = '11988887777' AND e ->> 'veiculo' = 'AVI1A11'),
+                   'veículo pronto entra no aviso, com o WhatsApp do cliente');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o3::text), 'cliente que não quer mensagens não entra');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_contato_registrar('pronto', o1::text);
+  PERFORM lr_contato_registrar('pronto', o1::text);
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o1::text), 'quem já foi chamado sai da lista');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_contatos WHERE tipo = 'pronto' AND referencia = o1::text AND canal = 'whatsapp'), 'registrar duas vezes grava um contato só');
+
+  -- plano vencendo
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, plano, v2, cli, serv, 4, 100, current_date - 27, current_date + 3) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text AND e ->> 'plano' = 'Plano avisos' AND (e ->> 'restam')::int = 4),
+                   'plano que vence em 3 dias entra, com o saldo');
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'janela menor que o vencimento deixa o plano de fora');
+  -- renovado: outra assinatura ativa do mesmo veículo vence depois
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, plano, v2, cli, serv, 4, 100, current_date, current_date + 30) RETURNING id INTO ass2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'plano já renovado não é cobrado');
+  UPDATE lr_assinaturas SET situacao = 'cancelada', motivo = 'teste' WHERE id = ass2;
+  PERFORM ci.entrar(vend);
+  PERFORM lr_contato_registrar('plano_vencendo', ass::text, 'telefone');
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'plano chamado sai da lista');
+
+  -- retorno: última entrega antiga, sem ordem aberta nem plano valendo
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'libera o veículo');
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o2, ped);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'entrega de hoje ainda não pede retorno');
+  UPDATE lr_ordens SET entregue_em = now() - interval '40 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text AND (e ->> 'dias')::int = 40 AND e ->> 'veiculo' = 'AVI1A11'),
+                   'veículo sem voltar há 40 dias entra no retorno de 30');
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 60);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'retorno de 60 dias deixa de fora quem veio há 40');
+  UPDATE lr_ordens SET entregue_em = now() - interval '400 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'mais de um ano sem voltar já não é chamado');
+  UPDATE lr_ordens SET entregue_em = now() - interval '40 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'veículo com ordem aberta não é chamado');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM lr_contato_registrar('retorno', o2::text);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'retorno chamado sai da lista');
+  PERFORM ci.exige((SELECT count(*) = 3 FROM lr_contatos WHERE cliente_id = cli), 'um contato por ocasião (pronto, plano e retorno)');
+
+  -- modelos por empresa
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagem_modelo_salvar('pronto', 'Seu veículo está pronto!')$c$, 'vendedor altera modelo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_mensagem_modelo_salvar('aniversario', 'Oi, tudo bem?')$c$, 'modelo de tipo inválido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_mensagem_modelo_salvar('pronto', 'Oi')$c$, 'modelo curto demais');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_mensagem_modelo_salvar('pronto', 'Oi, {cliente}! O {veiculo} já está pronto.');
+  PERFORM lr_mensagem_modelo_salvar('pronto', 'Oi, {cliente}! O {veiculo} está pronto na {loja}.');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(texto LIKE '%na {loja}%') FROM lr_mensagem_modelos WHERE tipo = 'pronto'), 'o modelo guardado é um por tipo e empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM lr_mensagem_modelos') = 1 AND ci.contar(gar, 'SELECT count(*) FROM lr_mensagem_modelos') = 0, 'o garçom não lê modelos');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_mensagem_modelo_salvar('pronto', '   ');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_mensagem_modelos WHERE tipo = 'pronto'), 'texto em branco volta ao padrão');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_contatos') = 0, 'o garçom não lê contatos');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_contatos SET canal = 'outro' WHERE cliente_id = %L$c$, cli), 'alterar contato direto');
+
+  -- módulo desligado: nada funciona
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'avisos com o módulo desligado');
+END $$;
