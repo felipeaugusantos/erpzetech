@@ -39,10 +39,13 @@ BEGIN
     EXECUTE format('GRANT SELECT ON public.%I TO authenticated', t);
     EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
     -- só a equipe Ze Tech lê
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_ler', t);
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING ((SELECT public.eh_saas_operador()))', t || '_ler', t);
+    EXECUTE format('DROP POLICY IF EXISTS salao_restrito ON public.%I', t);
     EXECUTE format('CREATE POLICY salao_restrito ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()))', t);
   END LOOP;
 END $$;
+DROP TRIGGER IF EXISTS trg_empresa_links_updated ON public.empresa_links;
 CREATE TRIGGER trg_empresa_links_updated BEFORE UPDATE ON public.empresa_links
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 

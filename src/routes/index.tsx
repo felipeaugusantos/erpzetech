@@ -22,6 +22,7 @@ import {
 
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
+import { NOME_DO_PLANO } from "@/lib/planos-nomes";
 
 const WHATSAPP =
   "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20ERP%20Ze%20Tech";
@@ -68,7 +69,8 @@ const segmentos = [
     id: "servicos",
     icon: Wrench,
     nome: "Serviços e MEI",
-    publico: "Eletricistas, ar-condicionado, câmeras de segurança, assistência técnica",
+    publico:
+      "Eletricistas, ar-condicionado, câmeras de segurança, assistência técnica, clínica veterinária, pet shop, lava-rápido",
     titulo: "Ordem de serviço do chamado ao laudo, direto do celular",
     itens: [
       "Abertura no balcão separada do atendimento técnico",
@@ -153,7 +155,7 @@ const destaques = [
 
 const planos = [
   {
-    nome: "Balcão",
+    nome: NOME_DO_PLANO.balcao,
     preco: "R$ 149",
     resumo: "1 loja, 1 depósito, 5 usuários",
     destaque: false,
@@ -167,13 +169,13 @@ const planos = [
     ],
   },
   {
-    nome: "Loja",
+    nome: NOME_DO_PLANO.loja,
     preco: "R$ 299",
     resumo: "1 loja, depósitos ilimitados, 15 usuários",
     destaque: true,
     teste: true,
     itens: [
-      "Tudo do Balcão",
+      `Tudo do ${NOME_DO_PLANO.balcao}`,
       "Compras com cotação",
       "Separação e conferência",
       "Entregas",
@@ -182,13 +184,13 @@ const planos = [
     ],
   },
   {
-    nome: "Rede",
+    nome: NOME_DO_PLANO.rede,
     preco: "R$ 599",
     resumo: "Multiempresa e filiais, usuários ilimitados",
     destaque: false,
     teste: true,
     itens: [
-      "Tudo do Loja",
+      `Tudo do ${NOME_DO_PLANO.loja}`,
       "Roteirização automática",
       "Tela do motorista",
       "Custo por depósito",
@@ -281,6 +283,16 @@ function Landing() {
             <a href="#planos">Planos</a>
           </Button>
           <WhatsButton size="sm" className="hidden sm:inline-flex" />
+          <Button asChild size="icon" variant="outline" className="sm:hidden">
+            <a
+              href={WHATSAPP}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Falar no WhatsApp"
+            >
+              <MessageCircle className="size-4" />
+            </a>
+          </Button>
           <Button asChild size="sm">
             <Link to="/auth">Entrar</Link>
           </Button>
@@ -293,8 +305,9 @@ function Landing() {
             <Sparkles className="size-3.5 text-accent" /> Agora com IA no caixa e integração com
             iFood
           </span>
-          <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-            Um sistema que <span className="text-accent">acompanha o seu ramo</span>
+          <h1 className="mt-5 text-balance font-display text-3xl font-extrabold leading-tight min-[400px]:text-4xl sm:text-5xl">
+            Vendas, estoque e financeiro{" "}
+            <span className="text-accent">em&nbsp;um&nbsp;só&nbsp;sistema para o seu negócio</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
             Loja, prestador de serviço, locadora ou restaurante: o ERP Ze Tech reúne caixa, estoque,
@@ -303,7 +316,7 @@ function Landing() {
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link to="/auth">
+              <Link to="/auth" search={{ aba: "criar" }}>
                 Testar 15 dias grátis <ArrowRight className="ml-2 size-4" />
               </Link>
             </Button>
@@ -406,7 +419,8 @@ function Landing() {
           <div className="text-center">
             <h2 className="font-display text-3xl font-extrabold">Planos</h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-              Escolha pelo tamanho da operação. Teste grátis de 15 dias nos planos Loja e Rede.
+              Escolha pelo tamanho da operação. Teste grátis de 15 dias nos planos{" "}
+              {NOME_DO_PLANO.loja} e {NOME_DO_PLANO.rede}.
             </p>
           </div>
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -421,7 +435,7 @@ function Landing() {
               >
                 {p.destaque && (
                   <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-foreground">
-                    Mais escolhido
+                    Recomendado
                   </span>
                 )}
                 <h3 className="font-display text-xl font-bold">{p.nome}</h3>
@@ -447,7 +461,13 @@ function Landing() {
                   className="mt-6 w-full"
                   variant={p.destaque ? "default" : "outline"}
                 >
-                  <Link to="/auth">{p.teste ? "Testar 15 dias" : "Começar agora"}</Link>
+                  {p.teste ? (
+                    <Link to="/auth" search={{ aba: "criar" }}>
+                      Testar 15 dias
+                    </Link>
+                  ) : (
+                    <Link to="/auth">Começar agora</Link>
+                  )}
                 </Button>
               </div>
             ))}
@@ -456,7 +476,7 @@ function Landing() {
             <div>
               <p className="font-display text-sm font-semibold">Filial extra</p>
               <p className="text-xs text-muted-foreground">
-                Para cada loja adicional no plano Rede
+                Para cada loja adicional no plano {NOME_DO_PLANO.rede}
               </p>
             </div>
             <p className="font-display text-lg font-bold">
@@ -483,9 +503,15 @@ function Landing() {
             Mostramos o sistema funcionando no seu ramo e ajudamos a escolher o plano certo.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" variant="secondary">
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="h-auto max-w-full whitespace-normal py-2.5 text-center"
+            >
               <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="mr-2 size-4" /> Chamar no WhatsApp {WHATSAPP_LABEL}
+                <MessageCircle className="mr-2 size-4 shrink-0" /> Chamar no WhatsApp{" "}
+                {WHATSAPP_LABEL}
               </a>
             </Button>
             <Button asChild size="lg" variant="secondary">
@@ -502,12 +528,13 @@ function Landing() {
         </Button>
       </footer>
 
+      {/* No celular o atalho do WhatsApp fica no cabeçalho, para não cobrir texto, preços nem a demonstração do caixa */}
       <a
         href={WHATSAPP}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Falar no WhatsApp"
-        className="fixed bottom-5 right-5 z-30 grid size-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-xl transition-transform hover:scale-105"
+        className="fixed bottom-5 right-5 z-30 hidden size-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-xl transition-transform hover:scale-105 sm:grid"
       >
         <MessageCircle className="size-6" />
       </a>

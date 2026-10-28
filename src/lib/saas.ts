@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
+import { comNomeDeExibicao } from "@/lib/planos-nomes";
 
 /** Catálogo de planos da Ze Tech. */
 export type PlanoSaas = {
@@ -200,7 +201,7 @@ export function useSaasDados(habilitado = true) {
       if (clientesRes.error) throw clientesRes.error;
       if (faturasRes.error) throw faturasRes.error;
 
-      const planos = (planosRes.data ?? []) as PlanoSaas[];
+      const planos = ((planosRes.data ?? []) as PlanoSaas[]).map(comNomeDeExibicao);
       const faturas = (faturasRes.data ?? []) as FaturaSaas[];
       const clientes = (clientesRes.data ?? []) as ClienteSaas[];
       const resumos = clientes.map((c) => resumirCliente(c, planos, faturas));

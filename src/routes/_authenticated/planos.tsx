@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { NOME_DO_PLANO, nomeDoPlano } from "@/lib/planos-nomes";
 
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
@@ -67,7 +68,7 @@ type Plano = {
 const PLANOS: Plano[] = [
   {
     id: "balcao",
-    nome: "Balcão",
+    nome: NOME_DO_PLANO.balcao,
     valor: 149,
     resumo: "1 loja, 1 depósito, 5 usuários",
     teste: false,
@@ -75,12 +76,12 @@ const PLANOS: Plano[] = [
   },
   {
     id: "loja",
-    nome: "Loja",
+    nome: NOME_DO_PLANO.loja,
     valor: 299,
     resumo: "1 loja, depósitos ilimitados, 15 usuários",
     teste: true,
     itens: [
-      "Tudo do Balcão",
+      `Tudo do ${NOME_DO_PLANO.balcao}`,
       "Compras com cotação",
       "Separação e conferência",
       "Entregas",
@@ -90,12 +91,12 @@ const PLANOS: Plano[] = [
   },
   {
     id: "rede",
-    nome: "Rede",
+    nome: NOME_DO_PLANO.rede,
     valor: 599,
     resumo: "Multiempresa e filiais, usuários ilimitados",
     teste: true,
     itens: [
-      "Tudo do Loja",
+      `Tudo do ${NOME_DO_PLANO.loja}`,
       "Roteirização automática",
       "Tela do motorista",
       "Custo por depósito",
@@ -495,7 +496,7 @@ function Planos() {
                   <p className="truncate text-sm font-semibold">{c.nome}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {[c.email, c.whatsapp].filter(Boolean).join(" · ") || "—"}
-                    {c.plano_interesse ? ` · plano ${c.plano_interesse}` : ""} ·{" "}
+                    {c.plano_interesse ? ` · plano ${nomeDoPlano(c.plano_interesse)}` : ""} ·{" "}
                     {dateBR(c.created_at)}
                   </p>
                   {c.mensagem && <p className="mt-1 text-xs">{c.mensagem}</p>}

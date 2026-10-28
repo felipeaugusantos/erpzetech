@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NOME_DO_PLANO, nomeDoPlano } from "@/lib/planos-nomes";
 
 /** Contatos da loja — troque pelos seus dados reais. */
 export const CONTATO = {
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/contato")({
       { property: "og:title", content: "Falar com o ERP Ze Tech — planos e demonstração" },
       {
         property: "og:description",
-        content: "E-mail, WhatsApp e formulário para conhecer os planos Balcão, Loja e Rede.",
+        content: `E-mail, WhatsApp e formulário para conhecer os planos ${NOME_DO_PLANO.balcao}, ${NOME_DO_PLANO.loja} e ${NOME_DO_PLANO.rede}.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -95,7 +96,7 @@ function Contato() {
   });
 
   const textoWhats = encodeURIComponent(
-    `Olá! Quero conhecer o ERP Ze Tech (plano ${form.plano_interesse}).`,
+    `Olá! Quero conhecer o ERP Ze Tech (plano ${nomeDoPlano(form.plano_interesse)}).`,
   );
 
   return (
@@ -116,7 +117,7 @@ function Contato() {
         <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Fale com a gente</h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           Conte o tamanho da sua loja e respondemos com o plano ideal, o prazo de implantação e o
-          teste de 15 dias nos planos Loja e Rede.
+          teste de 15 dias nos planos {NOME_DO_PLANO.loja} e {NOME_DO_PLANO.rede}.
         </p>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
@@ -244,9 +245,9 @@ function Contato() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="balcao">Balcão — R$ 149/mês</SelectItem>
-                      <SelectItem value="loja">Loja — R$ 299/mês</SelectItem>
-                      <SelectItem value="rede">Rede — R$ 599/mês</SelectItem>
+                      <SelectItem value="balcao">{NOME_DO_PLANO.balcao} — R$ 149/mês</SelectItem>
+                      <SelectItem value="loja">{NOME_DO_PLANO.loja} — R$ 299/mês</SelectItem>
+                      <SelectItem value="rede">{NOME_DO_PLANO.rede} — R$ 599/mês</SelectItem>
                       <SelectItem value="nao_sei">Ainda não sei</SelectItem>
                     </SelectContent>
                   </Select>
