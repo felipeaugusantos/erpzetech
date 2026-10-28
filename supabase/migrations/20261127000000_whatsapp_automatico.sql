@@ -117,8 +117,9 @@ BEGIN
      WHERE a.id = p_ref AND a.tenant_id = p_tenant AND a.situacao = 'ativa';
   ELSIF p_tipo IN ('pronto', 'retorno') THEN
     SELECT c.id, v.id, c.nome, coalesce(nullif(btrim(c.whatsapp), ''), c.telefone), v.identificacao, v.tipo, c.aceita_mensagens,
-           CASE WHEN p_tipo = 'pronto' THEN '{}'::jsonb
-                ELSE jsonb_build_object('dias', v_hoje - (o.entregue_em AT TIME ZONE 'America/Sao_Paulo')::date) END
+           CASE WHEN p_tipo = 'pronto' THEN jsonb_build_object('data', (o.pronto_em AT TIME ZONE 'America/Sao_Paulo')::date)
+                ELSE jsonb_build_object('data', (o.entregue_em AT TIME ZONE 'America/Sao_Paulo')::date,
+                                        'dias', v_hoje - (o.entregue_em AT TIME ZONE 'America/Sao_Paulo')::date) END
       INTO v_cliente, v_veiculo, v_nome, v_tel, v_ident, v_tipo_v, v_aceita, v_extra
       FROM public.lr_ordens o
       JOIN public.lr_veiculos v ON v.id = o.veiculo_id
@@ -423,3 +424,21 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.wa_saida_registrar(text, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.wa_saida_registrar(text, text, text) TO service_role;
+
+-- Conferência para as funções de servidor que mexem na conexão: só administrador ou gestor, com o lava rápido liberado.
+-- Devolve a empresa, que o servidor usa para achar a instância.
+CREATE OR REPLACE FUNCTION public.wa_exige_gestor()
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+BEGIN
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
+  PERFORM public._lr_exige_liberado();
+  RETURN public.current_tenant_id();
+END $fn$;
+REVOKE ALL ON FUNCTION public.wa_exige_gestor() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.wa_exige_gestor() TO authenticated;

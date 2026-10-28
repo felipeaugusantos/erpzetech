@@ -12,8 +12,13 @@ import {
   nomeDaInstancia,
   numeroDoJid,
 } from "../src/lib/whatsapp-evolution.ts";
+import { tokenConfere, tokenDoWebhook } from "../src/lib/whatsapp-token.ts";
 import {
   RODAPE_SAIR,
+  despachar,
+  textoDoItem,
+  type DepsDespacho,
+  type ItemReservado,
   atrasoDeEnvio,
   dentroDoHorario,
   proximaTentativaEm,
@@ -239,5 +244,116 @@ describe("regras de envio", () => {
     assert.equal(dentroDoHorario(new Date("2026-01-01T11:00:00Z")), true); // 8h em Brasília
     assert.equal(dentroDoHorario(new Date("2026-01-01T10:59:00Z")), false);
     assert.equal(dentroDoHorario(new Date("2026-01-01T23:00:00Z")), false); // 20h
+  });
+});
+
+describe("rodada de envio", () => {
+  const item = (o: Partial<ItemReservado> = {}): ItemReservado => ({
+    id: "m1",
+    tenant_id: "t1",
+    instancia: "zt-1",
+    numero: "5511988887777",
+    tipo: "pronto",
+    tentativas: 1,
+    modelo: null,
+    loja: "Lava Top",
+    variaveis: { cliente: "Ana Souza", veiculo: "ABC1D23", tipo_veiculo: "carro" },
+    ...o,
+  });
+
+  function deps(itens: ItemReservado[], enviar: DepsDespacho["enviar"]) {
+    const resultados: Parameters<DepsDespacho["resultado"]>[0][] = [];
+    const pausas: number[] = [];
+    const reservas: boolean[] = [];
+    const d: DepsDespacho = {
+      varrer: async () => 3,
+      reservar: async (_t, _p, dentro) => {
+        reservas.push(dentro);
+        return itens;
+      },
+      enviar,
+      resultado: async (r) => {
+        resultados.push(r);
+      },
+      agora: () => new Date("2026-01-01T15:00:00Z"),
+      aleatorio: () => 0,
+      pausa: async (ms) => {
+        pausas.push(ms);
+      },
+    };
+    return { d, resultados, pausas, reservas };
+  }
+
+  it("monta o texto com os dados da fila e envia com o aviso de saída", async () => {
+    const textos: string[] = [];
+    const { d, resultados } = deps([item()], async (_i, texto) => {
+      textos.push(texto);
+      return { idMensagem: "EVO-1", jid: "5511988887777@s.whatsapp.net" };
+    });
+    const rel = await despachar(d);
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0 });
+    assert.ok(textos[0]!.includes("Ana"));
+    assert.ok(textos[0]!.includes("ABC-1D23") || textos[0]!.includes("ABC1D23"));
+    assert.ok(textos[0]!.includes("Lava Top"));
+    assert.ok(textos[0]!.endsWith(RODAPE_SAIR));
+    contem(resultados[0], { id: "m1", ok: true, idExterno: "EVO-1" });
+  });
+
+  it("falha de rede agenda nova tentativa e erro do número é definitivo", async () => {
+    const { d, resultados } = deps(
+      [
+        item({ id: "a", tentativas: 1 }),
+        item({ id: "b", tentativas: 1 }),
+        item({ id: "c", tentativas: 4 }),
+      ],
+      async (i) => {
+        if (i.id === "a") throw new ErroEvolution("sem conexão", 0, true);
+        if (i.id === "b") throw new ErroEvolution("número inexistente", 400);
+        throw new ErroEvolution("servidor caiu", 503);
+      },
+    );
+    const rel = await despachar(d);
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 0, repetir: 1, falhas: 2 });
+    assert.equal(resultados[0]!.proxima?.toISOString(), "2026-01-01T15:02:00.000Z");
+    assert.equal(resultados[1]!.proxima, null);
+    assert.equal(resultados[2]!.proxima, null); // quarta tentativa: esgotou
+  });
+
+  it("pausa entre mensagens e horário comercial repassado ao banco", async () => {
+    const { d, pausas, reservas } = deps([item({ id: "a" }), item({ id: "b" })], async () => ({
+      idMensagem: "x",
+      jid: null,
+    }));
+    await despachar(d);
+    assert.deepEqual(pausas, [1000]);
+    assert.deepEqual(reservas, [true]); // 12h em Brasília
+  });
+
+  it("texto do plano e do retorno usa os campos próprios", () => {
+    const t = textoDoItem(
+      item({
+        tipo: "plano_vencendo",
+        variaveis: {
+          cliente: "Bia",
+          veiculo: "ABC1D23",
+          tipo_veiculo: "carro",
+          plano: "Mensal",
+          data: "2026-02-10",
+          restam: 2,
+        },
+      }),
+    );
+    assert.ok(t.includes("Mensal") && t.includes("10/02/2026") && t.includes("2"));
+  });
+});
+
+describe("senha dos avisos", () => {
+  it("vale só para a instância e o segredo certos", () => {
+    const t = tokenDoWebhook("segredo-com-mais-de-16", "zt-1");
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", t), true);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-2", t), false);
+    assert.equal(tokenConfere("outro-segredo-16-chars", "zt-1", t), false);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", null), false);
+    assert.equal(tokenConfere("segredo-com-mais-de-16", "zt-1", t.slice(1)), false);
   });
 });

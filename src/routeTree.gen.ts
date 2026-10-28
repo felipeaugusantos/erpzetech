@@ -154,7 +154,9 @@ import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
+import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -962,10 +964,22 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksWhatsappDespacharRoute =
+  ApiPublicHooksWhatsappDespacharRouteImport.update({
+    id: '/api/public/hooks/whatsapp-despachar',
+    path: '/api/public/hooks/whatsapp-despachar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksProvedorRoute =
   ApiPublicWebhooksProvedorRouteImport.update({
     id: '/api/public/webhooks/$provedor',
     path: '/api/public/webhooks/$provedor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappEventosRoute =
+  ApiPublicWhatsappEventosRouteImport.update({
+    id: '/api/public/whatsapp/eventos',
+    path: '/api/public/whatsapp/eventos',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -1114,7 +1128,9 @@ export interface FileRoutesByFullPath {
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1261,7 +1277,9 @@ export interface FileRoutesByTo {
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1410,7 +1428,9 @@ export interface FileRoutesById {
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
+  '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1559,7 +1579,9 @@ export interface FileRouteTypes {
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1706,7 +1728,9 @@ export interface FileRouteTypes {
     | '/compras'
     | '/depositos'
     | '/pedidos'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   id:
     | '__root__'
     | '/'
@@ -1854,7 +1878,9 @@ export interface FileRouteTypes {
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
+    | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
+    | '/api/public/whatsapp/eventos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1865,7 +1891,9 @@ export interface RootRouteChildren {
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
+  ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2885,11 +2913,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/whatsapp-despachar': {
+      id: '/api/public/hooks/whatsapp-despachar'
+      path: '/api/public/hooks/whatsapp-despachar'
+      fullPath: '/api/public/hooks/whatsapp-despachar'
+      preLoaderRoute: typeof ApiPublicHooksWhatsappDespacharRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/$provedor': {
       id: '/api/public/webhooks/$provedor'
       path: '/api/public/webhooks/$provedor'
       fullPath: '/api/public/webhooks/$provedor'
       preLoaderRoute: typeof ApiPublicWebhooksProvedorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp/eventos': {
+      id: '/api/public/whatsapp/eventos'
+      path: '/api/public/whatsapp/eventos'
+      fullPath: '/api/public/whatsapp/eventos'
+      preLoaderRoute: typeof ApiPublicWhatsappEventosRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -3192,7 +3234,9 @@ const rootRouteChildren: RootRouteChildren = {
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
+  ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

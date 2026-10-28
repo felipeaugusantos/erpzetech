@@ -7242,6 +7242,11 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$SELECT wa_resultado(%L, true, 'x', NULL, NULL, NULL)$c$, gen_random_uuid()), 'registrar resultado como usuário');
   PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM wa_mensagens') = 0, 'garçom não lê a fila');
 
+  PERFORM ci.deve_falhar(vend, $c$SELECT wa_exige_gestor()$c$, 'vendedor passa pela conferência de gestor');
+  PERFORM ci.deve_falhar(gar, $c$SELECT wa_exige_gestor()$c$, 'garçom passa pela conferência de gestor');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT wa_exige_gestor()$c$, 'anon passa pela conferência de gestor');
+  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM (SELECT wa_exige_gestor() AS t) x WHERE t = ''11111111-1111-1111-1111-111111111111''') = 1, 'gestor passa pela conferência e recebe a empresa');
+
   -- enfileirar: número vem do cadastro do cliente (só dígitos, com DDI), uma mensagem por ocasião
   PERFORM ci.entrar(vend);
   m1 := wa_enfileirar('pronto', o1::text);
