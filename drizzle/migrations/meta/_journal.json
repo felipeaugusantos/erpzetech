@@ -477,6 +477,13 @@
       "when": 1792867223367,
       "tag": "0067_fix_saas_tempo_real_total",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793214270321,
+      "tag": "0068_lava_veiculo_fabricante_modelo",
+      "breakpoints": true
     }
   ]
 }

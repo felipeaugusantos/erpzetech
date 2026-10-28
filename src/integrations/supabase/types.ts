@@ -5570,9 +5570,10 @@ export type Database = {
           cliente_id: string
           cor: string | null
           created_at: string
-          descricao: string | null
+          fabricante: string
           id: string
           identificacao: string
+          modelo: string
           observacoes: string | null
           tenant_id: string
           tipo: string
@@ -5583,9 +5584,10 @@ export type Database = {
           cliente_id: string
           cor?: string | null
           created_at?: string
-          descricao?: string | null
+          fabricante: string
           id?: string
           identificacao: string
+          modelo: string
           observacoes?: string | null
           tenant_id?: string
           tipo?: string
@@ -5596,9 +5598,10 @@ export type Database = {
           cliente_id?: string
           cor?: string | null
           created_at?: string
-          descricao?: string | null
+          fabricante?: string
           id?: string
           identificacao?: string
+          modelo?: string
           observacoes?: string | null
           tenant_id?: string
           tipo?: string
