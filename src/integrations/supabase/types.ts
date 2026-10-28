@@ -9145,6 +9145,7 @@ export type Database = {
           cst_csosn: string | null
           cst_ibs_cbs: string | null
           custo: number
+          dados_modulo: Json
           deleted_at: string | null
           descricao: string
           descricao_resumida: string | null
@@ -9187,6 +9188,7 @@ export type Database = {
           cst_csosn?: string | null
           cst_ibs_cbs?: string | null
           custo?: number
+          dados_modulo?: Json
           deleted_at?: string | null
           descricao: string
           descricao_resumida?: string | null
@@ -9229,6 +9231,7 @@ export type Database = {
           cst_csosn?: string | null
           cst_ibs_cbs?: string | null
           custo?: number
+          dados_modulo?: Json
           deleted_at?: string | null
           descricao?: string
           descricao_resumida?: string | null

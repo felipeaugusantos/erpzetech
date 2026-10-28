@@ -7114,3 +7114,62 @@ BEGIN
   UPDATE fiscal_config SET aliquota_iss = coalesce(iss_ant, 0) WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 75. Módulos (cadastro de produto): campos próprios em dados_modulo conferidos pelo módulo da empresa, Lava-Rápido liberado pelo módulo principal
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  p uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+
+  -- Pet Shop
+  UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/99', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, dados_modulo)
+  VALUES (demo, 'MOD-PET-CI', 'Ração CI', 'UN', 10, '{"especie":"cao","porte":"medio","fase_vida":"adulto","sabor_linha":"frango","peso_embalagem_kg":15,"registro_mapa":"123"}')
+  RETURNING id INTO p;
+  PERFORM ci.exige((SELECT dados_modulo ->> 'especie' = 'cao' AND (dados_modulo ->> 'peso_embalagem_kg')::numeric = 15 FROM produtos WHERE id = p), 'pet shop guarda os campos do módulo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"especie":"dragao"}' WHERE id = %L$c$, p), 'espécie fora da lista');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"principio_ativo":"x"}' WHERE id = %L$c$, p), 'campo de outro módulo no pet shop');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"peso_embalagem_kg":-1}' WHERE id = %L$c$, p), 'peso negativo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"peso_embalagem_kg":"quinze"}' WHERE id = %L$c$, p), 'peso em texto');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = jsonb_build_object('sabor_linha', repeat('x', 121)) WHERE id = %L$c$, p), 'texto com mais de 120 caracteres');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '["cao"]' WHERE id = %L$c$, p), 'dados do módulo que não são um objeto');
+  -- atualizar o produto sem mexer nos dados do módulo nunca é barrado
+  UPDATE produtos SET custo = 5 WHERE id = p;
+  PERFORM ci.exige((SELECT custo = 5 FROM produtos WHERE id = p), 'atualizar outro campo do produto continua valendo');
+
+  -- Clínica Veterinária
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  UPDATE produtos SET dados_modulo = '{"tipo":"vacina","conservacao":"refrigerado","controlado":false,"via_administracao":"injetavel"}' WHERE id = p;
+  PERFORM ci.exige((SELECT dados_modulo ->> 'tipo' = 'vacina' FROM produtos WHERE id = p), 'clínica guarda tipo, conservação e via');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"tipo":"brinquedo"}' WHERE id = %L$c$, p), 'tipo de produto da clínica fora da lista');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"controlado":"sim"}' WHERE id = %L$c$, p), 'controlado que não é sim ou não');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"especie":"cao"}' WHERE id = %L$c$, p), 'campo do pet shop na clínica');
+
+  -- Material de Construção
+  UPDATE empresas SET ramo_atividade = 'construcao' WHERE tenant_id = demo;
+  UPDATE produtos SET dados_modulo = '{"linha_aplicacao":"hidráulica","bitola_medida":"3/4\"","venda_fracionada":"m"}' WHERE id = p;
+  PERFORM ci.exige((SELECT dados_modulo ->> 'venda_fracionada' = 'm' FROM produtos WHERE id = p), 'construção guarda os campos do módulo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"venda_fracionada":"litro"}' WHERE id = %L$c$, p), 'venda fracionada fora da lista');
+  -- o padrão da empresa sem ramo definido é construção
+  PERFORM ci.exige(public._produto_dados_modulo_erro(NULL, '{"cor_acabamento":"branco"}') IS NULL, 'sem ramo vale o cadastro de construção');
+
+  -- Lava-Rápido
+  UPDATE empresas SET ramo_atividade = 'lavarapido' WHERE tenant_id = demo;
+  UPDATE produtos SET dados_modulo = '{"tipo":"insumo","rendimento_lavagens":40,"perigoso":true}' WHERE id = p;
+  PERFORM ci.exige((SELECT dados_modulo ->> 'tipo' = 'insumo' AND (dados_modulo ->> 'perigoso')::boolean FROM produtos WHERE id = p), 'lava-rápido guarda os campos do módulo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"tipo":"servico"}' WHERE id = %L$c$, p), 'tipo do lava-rápido fora da lista');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM (SELECT lava_rapido_liberado() AS l) x WHERE l') = 1, 'o módulo principal Lava-Rápido libera o módulo sem CNAE');
+
+  -- ramo sem cadastro próprio (restaurante, roupas…): nada de dados de módulo
+  UPDATE empresas SET ramo_atividade = 'roupas' WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE produtos SET dados_modulo = '{"tipo":"insumo"}' WHERE id = %L$c$, p), 'dados de módulo em empresa de outro ramo');
+  UPDATE produtos SET dados_modulo = '{}' WHERE id = p;
+  PERFORM ci.exige((SELECT dados_modulo = '{}'::jsonb FROM produtos WHERE id = p), 'limpar os dados do módulo é sempre possível');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM (SELECT lava_rapido_liberado() AS l) x WHERE l') = 0, 'sem o módulo Lava-Rápido, ramo de roupas não libera');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

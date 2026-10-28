@@ -15,6 +15,16 @@ import { gtinValido } from "@/lib/gtin";
 import { lerFatorGranel } from "@/lib/granel";
 import { eanInterno } from "@/lib/ean";
 import { usaGradeTamanho } from "@/lib/ramo";
+import { CamposDoModulo } from "@/components/app/CamposDoModulo";
+import {
+  dadosParaFormulario,
+  dadosParaSalvar,
+  dadosVazios,
+  errosDoModulo,
+  exigeLote,
+  moduloDoRamo,
+  resumoDoModulo,
+} from "@/lib/modulos-produto";
 import { brl, formatConverted, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -95,6 +105,11 @@ type Form = {
   granel_produto_id: string;
   granel_fator: string;
   granel_original: string;
+  /** campos do cadastro próprios do módulo da empresa (Pet Shop, Clínica…) e o que veio do banco, para só enviar quando mudar */
+  dados_modulo: Record<string, string | boolean>;
+  dados_modulo_original: string;
+  controla_lote: boolean;
+  controla_lote_original: boolean;
 };
 
 const vazio: Form = {
@@ -129,6 +144,10 @@ const vazio: Form = {
   granel_produto_id: "",
   granel_fator: "",
   granel_original: "|",
+  dados_modulo: {},
+  dados_modulo_original: "{}",
+  controla_lote: false,
+  controla_lote_original: false,
 };
 
 function Produtos() {
@@ -138,6 +157,9 @@ function Produtos() {
   const [cat, setCat] = useState("todas");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  // o módulo da empresa define os campos próprios do cadastro (sem ramo definido vale construção, como no resto do sistema)
+  const ramo = session?.empresa?.ramo_atividade ?? "construcao";
+  const novoForm = (): Form => ({ ...vazio, dados_modulo: dadosVazios(ramo) });
   // Texto da margem enquanto o usuário digita; null = mostrar a margem calculada.
   const [margemTxt, setMargemTxt] = useState<string | null>(null);
 
@@ -280,6 +302,10 @@ function Produtos() {
 
   const salvar = useMutation({
     mutationFn: async () => {
+      const errosModulo = errosDoModulo(ramo, form.dados_modulo);
+      if (errosModulo.length) throw new Error(errosModulo[0]);
+      const dadosModulo = dadosParaSalvar(ramo, form.dados_modulo);
+      const lote = exigeLote(ramo, form.dados_modulo) || form.controla_lote;
       const payload = {
         tenant_id: session?.profile?.tenant_id as string,
         codigo_interno: form.codigo_interno,
@@ -311,6 +337,13 @@ function Produtos() {
         // só vai quando mudou: o cadastro de produto não depende da coluna nova
         ...(form.controla_estoque !== form.controla_estoque_original
           ? { controla_estoque: form.controla_estoque }
+          : {}),
+        // só vão quando mudaram: o cadastro de produto não depende das colunas novas
+        ...(JSON.stringify(dadosModulo) !== form.dados_modulo_original
+          ? { dados_modulo: dadosModulo }
+          : {}),
+        ...(moduloDoRamo(ramo) && lote !== form.controla_lote_original
+          ? { controla_lote: lote }
           : {}),
         ...(`${form.granel_produto_id}|${form.granel_fator}` !== form.granel_original
           ? {
@@ -353,7 +386,7 @@ function Produtos() {
         actions={
           <Button
             onClick={() => {
-              setForm(vazio);
+              setForm(novoForm());
               setOpen(true);
             }}
           >
@@ -409,7 +442,7 @@ function Produtos() {
             action={
               <Button
                 onClick={() => {
-                  setForm(vazio);
+                  setForm(novoForm());
                   setOpen(true);
                 }}
               >
@@ -448,6 +481,11 @@ function Produtos() {
                             <p className="text-numeric text-xs text-muted-foreground">
                               {p.codigo_interno} • {p.marca ?? "sem marca"}
                             </p>
+                            {resumoDoModulo(ramo, p.dados_modulo) && (
+                              <p className="text-xs text-muted-foreground">
+                                {resumoDoModulo(ramo, p.dados_modulo)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -533,6 +571,12 @@ function Produtos() {
                               granel_original: `${p.granel_produto_id ?? ""}|${
                                 p.granel_fator ? String(Number(p.granel_fator)) : ""
                               }`,
+                              dados_modulo: dadosParaFormulario(ramo, p.dados_modulo),
+                              dados_modulo_original: JSON.stringify(
+                                dadosParaSalvar(ramo, dadosParaFormulario(ramo, p.dados_modulo)),
+                              ),
+                              controla_lote: p.controla_lote ?? false,
+                              controla_lote_original: p.controla_lote ?? false,
                             });
                             setOpen(true);
                           }}
@@ -722,6 +766,17 @@ function Produtos() {
                 />
               </div>
             </div>
+
+            <CamposDoModulo
+              ramo={ramo}
+              valores={form.dados_modulo}
+              onChange={(chave, valor) =>
+                setForm({ ...form, dados_modulo: { ...form.dados_modulo, [chave]: valor } })
+              }
+              controlaLote={form.controla_lote}
+              onControlaLote={(v) => setForm({ ...form, controla_lote: v })}
+              loteObrigatorio={exigeLote(ramo, form.dados_modulo)}
+            />
 
             <div className="rounded-md border border-border p-3">
               <p className="mb-1 text-sm font-semibold">Unidades e conversão</p>
