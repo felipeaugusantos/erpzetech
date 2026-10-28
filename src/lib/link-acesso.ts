@@ -21,6 +21,7 @@ export const LINKS_RESERVADOS = [
   "auth",
   "api",
   "contato",
+  "funcionalidades",
   "boas-vindas",
   "ze-tech",
   "ze-tech-login",

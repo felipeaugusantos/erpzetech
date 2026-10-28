@@ -269,6 +269,9 @@ function Landing() {
         </div>
         <nav className="flex items-center gap-1.5 sm:gap-2">
           <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
+            <Link to="/funcionalidades">Funcionalidades</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
             <a href="#segmentos">Segmentos</a>
           </Button>
           <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
