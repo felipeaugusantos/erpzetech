@@ -1,8 +1,16 @@
 -- Lava rápido (Fase 2, etapa 3): insumos no estoque por serviço (shampoo, cera, pano...).
--- Cada serviço pode ter uma "receita" de insumos; ao entregar a ordem, o sistema dá baixa no estoque do depósito escolhido.
+-- Cada serviço pode ter uma "receita" de insumos. Ao entregar a ordem o sistema dá baixa no estoque do depósito escolhido.
 -- A baixa NUNCA trava a entrega nem a cobrança (o cliente já pagou no balcão): se faltar saldo ou der erro, a ordem é entregue,
 -- a falha fica registrada com o motivo e dá para tentar de novo depois de repor o estoque. Cada insumo baixa uma vez por item.
 -- Venda cancelada não estorna: a lavagem foi feita, o insumo foi gasto.
+
+-- Esta migration usa a cobertura de planos e fidelidade: rode antes a 20261119000000_lava_planos_fidelidade.sql.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'lr_ordem_itens' AND column_name = 'cobertura') THEN
+    RAISE EXCEPTION 'Rode antes a migration 20261119000000_lava_planos_fidelidade.sql (falta a coluna lr_ordem_itens.cobertura)';
+  END IF;
+END $$;
 
 -- Uma linha por empresa. Sem linha ou desligado: nada é baixado.
 CREATE TABLE IF NOT EXISTS public.lr_insumo_config (
@@ -191,20 +199,93 @@ REVOKE ALL ON FUNCTION public.lr_insumo_baixa_refazer(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_insumo_baixa_refazer(uuid) TO authenticated;
 
 -- Entregar: depois de marcar a ordem como entregue (com ou sem venda), baixa os insumos.
-DO $$
+-- A função inteira é recriada aqui (igual à de 20261119, mais a baixa), sem depender do texto da versão que está no banco.
+CREATE OR REPLACE FUNCTION public.lr_ordem_retirar(p_ordem_id uuid, p_pedido_id uuid DEFAULT NULL, p_chave uuid DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
 DECLARE
-  def text;
-  nova text;
+  v_tenant uuid := public.current_tenant_id();
+  o public.lr_ordens%ROWTYPE;
+  lv public.lr_lavadores%ROWTYPE;
+  v_ped public.pedidos%ROWTYPE;
+  v_pedido uuid := p_pedido_id;
+  r record;
+  v_cobrados integer;
+  v_bruto numeric; v_liquido numeric; v_valor numeric; v_nfe uuid;
 BEGIN
-  SELECT pg_get_functiondef(p.oid) INTO def FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-   WHERE n.nspname = 'public' AND p.proname = 'lr_ordem_retirar';
-  IF def IS NULL THEN RAISE EXCEPTION 'lr_ordem_retirar não encontrada'; END IF;
-  nova := replace(def, E'    UPDATE public.lr_ordens SET situacao = ''entregue'', entregue_em = now() WHERE id = o.id;\n',
-                       E'    UPDATE public.lr_ordens SET situacao = ''entregue'', entregue_em = now() WHERE id = o.id;\n    PERFORM public._lr_baixar_insumos(o.id);\n');
-  nova := replace(nova, E'  UPDATE public.lr_ordens SET situacao = ''entregue'', venda_id = v_pedido, entregue_em = now() WHERE id = o.id;\n',
-                        E'  UPDATE public.lr_ordens SET situacao = ''entregue'', venda_id = v_pedido, entregue_em = now() WHERE id = o.id;\n  PERFORM public._lr_baixar_insumos(o.id);\n');
-  IF (length(nova) - length(replace(nova, '_lr_baixar_insumos', ''))) / length('_lr_baixar_insumos') <> 2 THEN
-    RAISE EXCEPTION 'lr_ordem_retirar: trechos esperados não encontrados';
+  PERFORM public.exige_nao_salao();
+  PERFORM public.exige_papel(ARRAY['administrador', 'gestor', 'vendedor', 'caixa']);
+  PERFORM public._lr_exige_liberado();
+  SELECT * INTO o FROM public.lr_ordens WHERE id = p_ordem_id AND tenant_id = v_tenant FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Ordem não encontrada'; END IF;
+  SELECT count(*)::int INTO v_cobrados FROM public.lr_ordem_itens WHERE ordem_id = o.id AND cobertura IS NULL;
+
+  IF o.situacao = 'entregue' THEN
+    -- repetir a chamada (resposta perdida) devolve o mesmo resultado
+    IF v_cobrados = 0 THEN
+      RETURN jsonb_build_object('pedido_id', NULL, 'nfe_id', NULL, 'comissao', 0, 'repetido', true);
+    END IF;
+    IF o.venda_id IS NOT NULL AND (o.venda_id = p_pedido_id OR p_pedido_id IS NULL) THEN
+      RETURN jsonb_build_object('pedido_id', o.venda_id,
+        'nfe_id', (SELECT id FROM public.nfe WHERE pedido_id = o.venda_id AND modelo = 'nfse' AND situacao <> 'cancelada' LIMIT 1), 'repetido', true);
+    END IF;
   END IF;
-  EXECUTE nova;
+  IF o.situacao <> 'pronto' THEN RAISE EXCEPTION 'Só dá para entregar e cobrar ordem pronta (situação atual: %)', o.situacao; END IF;
+
+  IF v_cobrados = 0 THEN
+    UPDATE public.lr_ordens SET situacao = 'entregue', entregue_em = now() WHERE id = o.id;
+    PERFORM public._lr_baixar_insumos(o.id);
+    RETURN jsonb_build_object('pedido_id', NULL, 'nfe_id', NULL, 'comissao', 0, 'repetido', false);
+  END IF;
+
+  IF v_pedido IS NULL AND p_chave IS NOT NULL THEN
+    SELECT id INTO v_pedido FROM public.pedidos WHERE tenant_id = v_tenant AND chave_idempotencia = p_chave;
+  END IF;
+  IF v_pedido IS NULL THEN RAISE EXCEPTION 'Informe a venda do caixa'; END IF;
+  SELECT * INTO v_ped FROM public.pedidos WHERE id = v_pedido AND tenant_id = v_tenant;
+  IF NOT FOUND OR NOT public.pode_filial(v_ped.filial_id) THEN RAISE EXCEPTION 'Venda não encontrada'; END IF;
+  IF v_ped.situacao = 'cancelado' THEN RAISE EXCEPTION 'Esta venda está cancelada'; END IF;
+  IF coalesce(v_ped.origem, '') <> 'pdv' THEN RAISE EXCEPTION 'A cobrança do lava rápido é feita na frente de caixa'; END IF;
+  IF EXISTS (SELECT 1 FROM public.lr_ordens x WHERE x.venda_id = v_pedido AND x.id <> o.id) THEN
+    RAISE EXCEPTION 'Esta venda já cobrou outra ordem';
+  END IF;
+
+  -- a venda precisa ter cada serviço cobrado da ordem, pelo valor combinado
+  FOR r IN SELECT i.servico_id, i.preco_aplicado, s.produto_id, s.nome
+             FROM public.lr_ordem_itens i JOIN public.lr_servicos s ON s.id = i.servico_id
+            WHERE i.ordem_id = o.id AND i.cobertura IS NULL LOOP
+    IF NOT EXISTS (SELECT 1 FROM public.pedido_itens pi WHERE pi.pedido_id = v_pedido AND pi.produto_id = r.produto_id
+                    AND pi.preco_unitario = r.preco_aplicado AND pi.quantidade >= 1) THEN
+      RAISE EXCEPTION 'A venda não traz o serviço "%" pelo valor combinado (%)', r.nome, r.preco_aplicado;
+    END IF;
+  END LOOP;
+
+  SELECT coalesce(sum(preco_aplicado), 0) INTO v_bruto FROM public.lr_ordem_itens WHERE ordem_id = o.id AND cobertura IS NULL;
+  -- o desconto da venda reparte-se por igual entre todos os itens: o serviço fica com a parte proporcional
+  v_liquido := CASE WHEN coalesce(v_ped.subtotal, 0) > 0 THEN round(v_bruto * v_ped.total / v_ped.subtotal, 2) ELSE v_bruto END;
+
+  UPDATE public.lr_ordens SET situacao = 'entregue', venda_id = v_pedido, entregue_em = now() WHERE id = o.id;
+  PERFORM public._lr_baixar_insumos(o.id);
+
+  IF o.lavador_id IS NOT NULL THEN
+    SELECT * INTO lv FROM public.lr_lavadores WHERE id = o.lavador_id;
+    v_valor := round(v_liquido * lv.comissao_percentual / 100, 2);
+    IF v_valor > 0 THEN
+      INSERT INTO public.lr_comissoes (tenant_id, lavador_id, ordem_id, pedido_id, base, percentual, valor)
+      VALUES (v_tenant, o.lavador_id, o.id, v_pedido, v_liquido, lv.comissao_percentual, v_valor)
+      -- cobrar de novo depois de uma venda cancelada reativa a comissão cancelada (uma por ordem)
+      ON CONFLICT (ordem_id) DO UPDATE
+         SET pedido_id = EXCLUDED.pedido_id, base = EXCLUDED.base, percentual = EXCLUDED.percentual, valor = EXCLUDED.valor,
+             situacao = 'a_aprovar', aprovada_em = NULL, aprovada_por = NULL
+       WHERE public.lr_comissoes.situacao = 'cancelada';
+    END IF;
+  END IF;
+
+  v_nfe := public._lr_nfse_rascunho(o.id, v_pedido, v_liquido);
+  RETURN jsonb_build_object('pedido_id', v_pedido, 'nfe_id', v_nfe, 'comissao', coalesce(v_valor, 0), 'repetido', false);
 END $$;
+REVOKE ALL ON FUNCTION public.lr_ordem_retirar(uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.lr_ordem_retirar(uuid, uuid, uuid) TO authenticated;
