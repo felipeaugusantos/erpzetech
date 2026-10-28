@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buscarMarcaLogin } from "@/lib/marca-login.functions";
+import { guardarLinkDeEntrada } from "@/lib/link-uso";
 
 export const Route = createFileRoute("/$empresa")({
   loader: async ({ params }) => {
@@ -81,11 +82,13 @@ function LoginEmpresa() {
       return;
     }
     setLoading(null);
+    guardarLinkDeEntrada(params.empresa);
     navigate({ to: "/dashboard" });
   }
 
   async function google() {
     setLoading("google");
+    guardarLinkDeEntrada(params.empresa);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });

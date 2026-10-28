@@ -85,6 +85,17 @@ export const entrarPorUsuario = createServerFn({ method: "POST" })
     if (empresa.error) throw new Error(GENERICO);
     let tenantId = empresa.data?.tenant_id ?? null;
     if (!tenantId) {
+      // link personalizado criado pela equipe Ze Tech (a empresa pode ter vários)
+      const personalizado = await supabaseAdmin
+        .from("empresa_links")
+        .select("tenant_id")
+        .eq("slug", data.slug)
+        .eq("ativo", true)
+        .maybeSingle();
+      if (personalizado.error) throw new Error(GENERICO);
+      tenantId = personalizado.data?.tenant_id ?? null;
+    }
+    if (!tenantId) {
       // link combinado no cadastro do assinante, antes de a empresa ser cadastrada
       const assinante = await supabaseAdmin
         .from("saas_clientes")

@@ -144,6 +144,7 @@ import { Route as AuthenticatedZeTechClientesRouteImport } from './routes/_authe
 import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
 import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
+import { Route as AuthenticatedZeTechLinksRouteImport } from './routes/_authenticated/ze-tech-links'
 import { Route as AuthenticatedZeTechLojasRouteImport } from './routes/_authenticated/ze-tech-lojas'
 import { Route as AuthenticatedZeTechNotasRouteImport } from './routes/_authenticated/ze-tech-notas'
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
@@ -908,6 +909,12 @@ const AuthenticatedZeTechLavaRapidoRoute =
     path: '/ze-tech-lava-rapido',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechLinksRoute =
+  AuthenticatedZeTechLinksRouteImport.update({
+    id: '/ze-tech-links',
+    path: '/ze-tech-links',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechLojasRoute =
   AuthenticatedZeTechLojasRouteImport.update({
     id: '/ze-tech-lojas',
@@ -1138,6 +1145,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
+  '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1290,6 +1298,7 @@ export interface FileRoutesByTo {
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
+  '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1444,6 +1453,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
+  '/_authenticated/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/_authenticated/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/_authenticated/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1598,6 +1608,7 @@ export interface FileRouteTypes {
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
     | '/ze-tech-lava-rapido'
+    | '/ze-tech-links'
     | '/ze-tech-lojas'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
@@ -1750,6 +1761,7 @@ export interface FileRouteTypes {
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
     | '/ze-tech-lava-rapido'
+    | '/ze-tech-links'
     | '/ze-tech-lojas'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
@@ -1903,6 +1915,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-cobranca'
     | '/_authenticated/ze-tech-contas-pagar'
     | '/_authenticated/ze-tech-lava-rapido'
+    | '/_authenticated/ze-tech-links'
     | '/_authenticated/ze-tech-lojas'
     | '/_authenticated/ze-tech-notas'
     | '/_authenticated/ze-tech-planos'
@@ -2882,6 +2895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechLavaRapidoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-links': {
+      id: '/_authenticated/ze-tech-links'
+      path: '/ze-tech-links'
+      fullPath: '/ze-tech-links'
+      preLoaderRoute: typeof AuthenticatedZeTechLinksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-lojas': {
       id: '/_authenticated/ze-tech-lojas'
       path: '/ze-tech-lojas'
@@ -3125,6 +3145,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
   AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
+  AuthenticatedZeTechLinksRoute: typeof AuthenticatedZeTechLinksRoute
   AuthenticatedZeTechLojasRoute: typeof AuthenticatedZeTechLojasRoute
   AuthenticatedZeTechNotasRoute: typeof AuthenticatedZeTechNotasRoute
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
@@ -3271,6 +3292,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,
   AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
+  AuthenticatedZeTechLinksRoute: AuthenticatedZeTechLinksRoute,
   AuthenticatedZeTechLojasRoute: AuthenticatedZeTechLojasRoute,
   AuthenticatedZeTechNotasRoute: AuthenticatedZeTechNotasRoute,
   AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,

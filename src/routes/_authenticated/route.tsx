@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
+import { registrarLinkDeEntrada } from "@/lib/link-uso";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -27,9 +29,17 @@ export const Route = createFileRoute("/_authenticated")({
     }
     return { user: data.user };
   },
-  component: () => (
+  component: Layout,
+});
+
+function Layout() {
+  // quem entrou pelo link da empresa tem o uso registrado (o link fica guardado até o login terminar)
+  useEffect(() => {
+    void registrarLinkDeEntrada();
+  }, []);
+  return (
     <AppShell>
       <Outlet />
     </AppShell>
-  ),
-});
+  );
+}

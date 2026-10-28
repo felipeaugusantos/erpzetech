@@ -7390,3 +7390,114 @@ BEGIN
   DELETE FROM wa_config WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
+
+-- 77. Links de acesso personalizados: só a equipe Ze Tech cria e lê, conflito com os outros links, link desativado, uso por usuário
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  op2  constant uuid := 'a0000000-0000-0000-0000-000000007701';
+  t1 uuid; t2 uuid; u1 uuid := 'a0000000-0000-0000-0000-000000007702'; u2 uuid := 'a0000000-0000-0000-0000-000000007703';
+  c1 uuid; c2 uuid; l1 uuid; l2 uuid; r jsonb; x jsonb;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (op2, 'operador-links@ci'), (u1, 'usuario-link-1@ci'), (u2, 'usuario-link-2@ci');
+  INSERT INTO saas_operadores (user_id) VALUES (op2);
+  INSERT INTO tenants (nome) VALUES ('Loja Links 1 CI') RETURNING id INTO t1;
+  INSERT INTO tenants (nome) VALUES ('Loja Links 2 CI') RETURNING id INTO t2;
+  INSERT INTO saas_clientes (nome, tenant_id, link_acesso) VALUES ('Cliente Links 1', t1, 'combinado-links-ci') RETURNING id INTO c1;
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Cliente Links 2', t2) RETURNING id INTO c2;
+  UPDATE profiles SET nome = 'Ana Links', tenant_id = t1, usuario = 'ana.links', ativo = true WHERE id = u1;
+  UPDATE profiles SET nome = 'Beto Links', tenant_id = t2, usuario = 'beto.links', ativo = true WHERE id = u2;
+
+  -- acesso: só a equipe Ze Tech
+  PERFORM ci.deve_falhar(adm, format($c$SELECT saas_link_criar(%L, 'meu-link-ci', 'x')$c$, t1), 'administrador da loja cria link');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT saas_link_criar(%L, 'meu-link-ci', 'x')$c$, t1), 'vendedor cria link');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT saas_link_criar(%L, 'meu-link-ci', 'x')$c$, t1), 'anon cria link');
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_links_listar()$c$, 'administrador da loja lista links');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT saas_link_usuarios(%L)$c$, t1), 'vendedor lê o uso dos links');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM empresa_links') = 0, 'administrador da loja não lê a tabela de links');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM link_acesso_usuarios') = 0, 'administrador da loja não lê o uso dos links');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO empresa_links (tenant_id, slug) VALUES (%L, 'direto-ci')$c$, t1), 'inserir link direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT link_acesso_registrar(%L, 'combinado-links-ci')$c$, u1), 'registrar uso como usuário');
+
+  -- criar: formato, reservado, empresa fora da rede
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'ab', 'x')$c$, t1), 'link curto demais');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'Com Espaço', 'x')$c$, t1), 'link com espaço');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, '-começa-com-hifen', 'x')$c$, t1), 'link com hífen na ponta');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'admin', 'x')$c$, t1), 'link reservado');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'meu-link-ci', 'x')$c$, gen_random_uuid()), 'empresa que não é cliente da rede');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'combinado-links-ci', 'x')$c$, t2), 'link igual ao combinado no cadastro de outro assinante');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'combinado-links-ci', 'x')$c$, t1), 'link igual ao combinado no cadastro da própria empresa');
+
+  -- criar de verdade: texto livre, sem relação com o nome da empresa
+  PERFORM ci.entrar(op2);
+  l1 := saas_link_criar(t1, ' Caixa-Rapido-77 ', 'Equipe do caixa');
+  l2 := saas_link_criar(t1, 'filial-centro-77', NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT slug = 'caixa-rapido-77' AND rotulo = 'Equipe do caixa' AND ativo FROM empresa_links WHERE id = l1), 'link gravado em minúsculas, sem espaços, com o nome dado');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM empresa_links WHERE tenant_id = t1), 'uma empresa pode ter vários links');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'CAIXA-rapido-77', 'repetido')$c$, t2), 'link repetido (outra empresa)');
+  PERFORM ci.deve_falhar(op2, format($c$SELECT saas_link_criar(%L, 'caixa-rapido-77', 'repetido')$c$, t1), 'link repetido (mesma empresa)');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE empresa_links SET slug = 'outro-link-77' WHERE id = %L$c$, l1), 'trocar o texto do link');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE empresa_links SET tenant_id = %L WHERE id = %L$c$, t2, l1), 'mudar o link de empresa');
+
+  -- os outros tipos de link não tomam um link personalizado
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO empresas (tenant_id, razao_social, slug) VALUES (%L, 'Empresa Tomando Link', 'caixa-rapido-77')$c$, t2), 'empresa toma link personalizado');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'filial-centro-77' WHERE id = %L$c$, c2), 'cadastro de assinante toma link personalizado');
+
+  -- tela de login: o link abre a marca da empresa, desativado deixa de abrir
+  INSERT INTO empresas (tenant_id, razao_social, nome_fantasia) VALUES (t1, 'Razao Links 1 Ltda', 'Marca Links 1');
+  PERFORM ci.exige((SELECT nome FROM empresa_por_slug('caixa-rapido-77')) = 'Marca Links 1', 'o link personalizado abre a tela da empresa');
+  PERFORM ci.exige((SELECT nome FROM empresa_por_slug('CAIXA-RAPIDO-77')) = 'Marca Links 1', 'o link não diferencia maiúsculas');
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_link_atualizar(gen_random_uuid(), 'x', false)$c$, 'administrador da loja desativa link');
+  PERFORM ci.deve_falhar(op2, $c$SELECT saas_link_atualizar(gen_random_uuid(), 'x', false)$c$, 'atualizar link que não existe');
+  PERFORM ci.entrar(op2);
+  PERFORM saas_link_atualizar(l2, 'Filial Centro', false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM empresa_por_slug('filial-centro-77')), 'link desativado não abre a tela de login');
+  PERFORM ci.exige((SELECT rotulo = 'Filial Centro' AND NOT ativo FROM empresa_links WHERE id = l2), 'nome e situação do link atualizados');
+
+  -- uso: só conta se o link é da empresa do usuário
+  PERFORM link_acesso_registrar(u1, 'caixa-rapido-77');
+  PERFORM link_acesso_registrar(u1, 'Caixa-Rapido-77');
+  PERFORM link_acesso_registrar(u1, 'combinado-links-ci');
+  PERFORM link_acesso_registrar(u1, t1::text);
+  PERFORM link_acesso_registrar(u1, 'filial-centro-77');
+  PERFORM link_acesso_registrar(u2, 'caixa-rapido-77');
+  PERFORM link_acesso_registrar(u1, 'nao-existe-77');
+  PERFORM link_acesso_registrar(gen_random_uuid(), 'caixa-rapido-77');
+  PERFORM ci.exige((SELECT acessos = 2 AND link_id = l1 AND origem = 'personalizado' FROM link_acesso_usuarios WHERE user_id = u1 AND link_slug = 'caixa-rapido-77'), 'duas entradas pelo link personalizado contam 2');
+  PERFORM ci.exige((SELECT origem = 'principal' FROM link_acesso_usuarios WHERE user_id = u1 AND link_slug = 'combinado-links-ci'), 'uso do link principal da empresa (herdado do cadastro do assinante)');
+  PERFORM ci.exige((SELECT origem = 'codigo' AND link_id IS NULL FROM link_acesso_usuarios WHERE user_id = u1 AND link_slug = t1::text), 'uso do código da empresa');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM link_acesso_usuarios WHERE user_id = u1 AND link_slug IN ('filial-centro-77', 'nao-existe-77')), 'link desativado ou inexistente não conta');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM link_acesso_usuarios WHERE user_id = u2), 'link de outra empresa não conta para o usuário');
+
+  -- telas da equipe
+  PERFORM ci.entrar(op2);
+  r := saas_links_listar();
+  PERFORM ci.sair();
+  SELECT e INTO x FROM jsonb_array_elements(r) e WHERE e ->> 'link_id' = l1::text;
+  PERFORM ci.exige(x IS NOT NULL AND x ->> 'cliente' = 'Cliente Links 1' AND (x ->> 'usuarios')::int = 1 AND (x ->> 'acessos')::int = 2 AND x ->> 'origem' = 'personalizado', 'lista traz o link, a empresa e o uso');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'slug' = 'combinado-links-ci' AND e ->> 'origem' = 'principal'), 'lista traz o link principal da empresa');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'link_id' = l2::text AND (e ->> 'ativo')::boolean = false), 'lista traz o link desativado');
+  PERFORM ci.entrar(op2);
+  r := saas_link_usuarios(t1);
+  PERFORM ci.sair();
+  SELECT e INTO x FROM jsonb_array_elements(r) e WHERE e ->> 'user_id' = u1::text;
+  PERFORM ci.exige(x ->> 'nome' = 'Ana Links' AND jsonb_array_length(x -> 'links') = 3 AND x -> 'links' -> 0 ->> 'slug' IS NOT NULL, 'usuários da empresa com os links que usaram');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'user_id' = u2::text), 'usuário de outra empresa não aparece');
+
+  -- link desativado e depois reativado volta a valer; remover a empresa leva os links junto
+  PERFORM ci.entrar(op2);
+  PERFORM saas_link_atualizar(l2, 'Filial Centro', true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM empresa_por_slug('filial-centro-77')), 'link reativado volta a abrir a tela');
+
+  DELETE FROM link_acesso_usuarios WHERE tenant_id = t1;
+  DELETE FROM empresa_links WHERE tenant_id = t1;
+  DELETE FROM empresas WHERE tenant_id = t1;
+  DELETE FROM profiles WHERE id IN (u1, u2);
+  DELETE FROM saas_clientes WHERE id IN (c1, c2);
+  DELETE FROM saas_operadores WHERE user_id = op2;
+END $$;

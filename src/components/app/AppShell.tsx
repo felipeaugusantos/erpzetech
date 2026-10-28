@@ -51,6 +51,7 @@ import {
   Receipt,
   Car,
   Droplets,
+  Link2,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -531,6 +532,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Tempo real das lojas", to: "/ze-tech-tempo-real", icon: Gauge },
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
+      { label: "Links de acesso", to: "/ze-tech-links", icon: Link2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
       { label: "Cobrança das lojas", to: "/ze-tech-cobranca", icon: CircleDollarSign },
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
