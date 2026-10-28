@@ -30,6 +30,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
+import { isoBrasilia } from "@/lib/fuso";
 import {
   dadosDoPlano,
   formDoPlano,
@@ -37,7 +38,7 @@ import {
   type FormPlano,
   type PlanoLava,
 } from "@/lib/lava-planos-form";
-import { rotuloTipo } from "@/lib/lava-rapido";
+import { rotuloTipo, situacaoDaAssinatura } from "@/lib/lava-rapido";
 
 export const Route = createFileRoute("/_authenticated/lava-planos-admin")({
   head: () => ({
@@ -74,16 +75,34 @@ function Admin() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["lava-planos-admin"],
     queryFn: async () => {
-      const [planos, servicos, ativas, fid] = await Promise.all([
+      const [planos, servicos, ativas, usos, fid] = await Promise.all([
         supabase.from("lr_planos").select("*").order("nome"),
         supabase.from("lr_servicos").select("id, nome, ativo").order("nome"),
-        supabase.from("lr_assinaturas").select("plano_id").eq("situacao", "ativa"),
+        supabase
+          .from("lr_assinaturas")
+          .select("id, plano_id, situacao, vence_em, lavagens")
+          .eq("situacao", "ativa"),
+        supabase.from("lr_assinatura_usos").select("assinatura_id").eq("desfeito", false),
         supabase.from("lr_fidelidade_config").select("*").maybeSingle(),
       ]);
-      for (const r of [planos, servicos, ativas, fid]) if (r.error) throw r.error;
+      for (const r of [planos, servicos, ativas, usos, fid]) if (r.error) throw r.error;
+      // vale só a assinatura que ainda está dentro da validade e com lavagens (a situação gravada só muda no cancelamento)
+      const usadas = new Map<string, number>();
+      for (const u of usos.data ?? [])
+        usadas.set(u.assinatura_id, (usadas.get(u.assinatura_id) ?? 0) + 1);
+      const hoje = isoBrasilia();
       const contagem = new Map<string, number>();
       for (const a of ativas.data ?? []) {
-        contagem.set(a.plano_id, (contagem.get(a.plano_id) ?? 0) + 1);
+        if (
+          situacaoDaAssinatura({
+            situacao: a.situacao,
+            vence_em: a.vence_em,
+            lavagens: a.lavagens,
+            usadas: usadas.get(a.id) ?? 0,
+            hoje,
+          }) === "ativa"
+        )
+          contagem.set(a.plano_id, (contagem.get(a.plano_id) ?? 0) + 1);
       }
       return {
         planos: (planos.data ?? []) as unknown as PlanoLava[],

@@ -7399,7 +7399,7 @@ DECLARE
   vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
   op2  constant uuid := 'a0000000-0000-0000-0000-000000007701';
   t1 uuid; t2 uuid; u1 uuid := 'a0000000-0000-0000-0000-000000007702'; u2 uuid := 'a0000000-0000-0000-0000-000000007703';
-  c1 uuid; c2 uuid; l1 uuid; l2 uuid; r jsonb; x jsonb;
+  c1 uuid; c2 uuid; l1 uuid; l2 uuid; l3 uuid; r jsonb; x jsonb;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES (op2, 'operador-links@ci'), (u1, 'usuario-link-1@ci'), (u2, 'usuario-link-2@ci');
   INSERT INTO saas_operadores (user_id) VALUES (op2);
@@ -7445,6 +7445,13 @@ BEGIN
   -- os outros tipos de link não tomam um link personalizado
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO empresas (tenant_id, razao_social, slug) VALUES (%L, 'Empresa Tomando Link', 'caixa-rapido-77')$c$, t2), 'empresa toma link personalizado');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE saas_clientes SET link_acesso = 'filial-centro-77' WHERE id = %L$c$, c2), 'cadastro de assinante toma link personalizado');
+
+  -- loja sem empresa cadastrada ainda: o link abre com o nome do cadastro do assinante
+  PERFORM ci.entrar(op2);
+  l3 := saas_link_criar(t1, 'primeiro-acesso-77', NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT nome FROM empresa_por_slug('primeiro-acesso-77')) = 'Cliente Links 1', 'link personalizado abre antes de a empresa ser cadastrada');
+  UPDATE empresa_links SET ativo = false WHERE id = l3;
 
   -- tela de login: o link abre a marca da empresa, desativado deixa de abrir
   INSERT INTO empresas (tenant_id, razao_social, nome_fantasia) VALUES (t1, 'Razao Links 1 Ltda', 'Marca Links 1');

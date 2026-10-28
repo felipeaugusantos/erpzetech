@@ -123,10 +123,12 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $fn$
       FROM public.empresas e
      WHERE e.slug IS NOT NULL AND lower(e.slug) = lower(trim(p_slug)) AND e.ativo
     UNION ALL
-    SELECT 2, coalesce(nullif(e2.nome_fantasia, ''), e2.razao_social), e2.cor_primaria, e2.logo_path
+    -- loja ainda sem empresa cadastrada: o link abre com o nome do cadastro do assinante (como o link do próprio cadastro)
+    SELECT 2, coalesce(nullif(e2.nome_fantasia, ''), e2.razao_social, sc.nome), e2.cor_primaria, e2.logo_path
       FROM public.empresa_links l
-      JOIN LATERAL (SELECT * FROM public.empresas x WHERE x.tenant_id = l.tenant_id AND x.ativo ORDER BY x.created_at, x.id LIMIT 1) e2 ON true
-     WHERE l.ativo AND lower(l.slug) = lower(trim(p_slug))
+      LEFT JOIN LATERAL (SELECT * FROM public.empresas x WHERE x.tenant_id = l.tenant_id ORDER BY x.created_at, x.id LIMIT 1) e2 ON true
+      LEFT JOIN LATERAL (SELECT c.nome FROM public.saas_clientes c WHERE c.tenant_id = l.tenant_id AND c.situacao <> 'cancelado' ORDER BY c.created_at LIMIT 1) sc ON true
+     WHERE l.ativo AND lower(l.slug) = lower(trim(p_slug)) AND (e2.id IS NULL OR e2.ativo) AND coalesce(nullif(e2.nome_fantasia, ''), e2.razao_social, sc.nome) IS NOT NULL
     UNION ALL
     SELECT 3, s.nome, NULL::text, NULL::text
       FROM public.saas_clientes s
