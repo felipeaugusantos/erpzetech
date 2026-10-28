@@ -7036,3 +7036,81 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text), 'sem o módulo a loja sai do painel');
 END $$;
+
+-- 74. Lava rápido (NFS-e com desconto): o ISS é calculado sobre o valor líquido, com o desconto rateado entre os itens da nota
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  ramo_ant text; cnae_ant text; cnae2_ant text; iss_ant numeric; criou_cfg boolean := false;
+  cli uuid; dep uuid; v1 uuid; v2 uuid; s1 uuid; s2 uuid; s3 uuid; p1 uuid; p2 uuid; p3 uuid; plano uuid; plano_prod uuid; lav uuid;
+  o1 uuid; ped uuid; r jsonb; nf uuid; ass uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  IF NOT EXISTS (SELECT 1 FROM fiscal_config WHERE tenant_id = demo AND filial_id IS NULL) THEN
+    INSERT INTO fiscal_config (tenant_id, empresa_id) SELECT demo, id FROM empresas WHERE tenant_id = demo ORDER BY created_at, id LIMIT 1;
+    criou_cfg := true;
+  END IF;
+  SELECT aliquota_iss INTO iss_ant FROM fiscal_config WHERE tenant_id = demo AND filial_id IS NULL ORDER BY (empresa_id IS NULL), created_at LIMIT 1;
+  UPDATE fiscal_config SET aliquota_iss = 5 WHERE tenant_id = demo;
+
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava NFSe CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente NFSe CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'NFS1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'NFS2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  s1 := lr_servico_salvar('{"nome":"NFSe serviço A","preco_base":30}'::jsonb);
+  s2 := lr_servico_salvar('{"nome":"NFSe serviço B","preco_base":30}'::jsonb);
+  s3 := lr_servico_salvar('{"nome":"NFSe serviço C","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador NFSe CI","comissao_percentual":0}'::jsonb);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Plano NFSe CI','servico_id',s1,'lavagens',4,'preco',100));
+  PERFORM ci.sair();
+  SELECT produto_id INTO p1 FROM lr_servicos WHERE id = s1;
+  SELECT produto_id INTO p2 FROM lr_servicos WHERE id = s2;
+  SELECT produto_id INTO p3 FROM lr_servicos WHERE id = s3;
+  SELECT produto_id INTO plano_prod FROM lr_planos WHERE id = plano;
+
+  -- três serviços (30 + 30 + 40 = 100) com desconto de 10: líquido 90, ISS de 5% = 4,50
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(s1, s2, s3)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', p1, 'quantidade', 1, 'preco_unitario', 30),
+                                          jsonb_build_object('produto_id', p2, 'quantidade', 1, 'preco_unitario', 30),
+                                          jsonb_build_object('produto_id', p3, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 10, 1, current_date + 30);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  PERFORM ci.exige((SELECT valor_total = 90 AND valor_produtos = 100 AND valor_desconto = 10 FROM nfe WHERE id = nf), 'a NFS-e mostra bruto, desconto e líquido');
+  PERFORM ci.exige((SELECT sum(total) = 90 AND sum(desconto) = 10 FROM nfe_itens WHERE nfe_id = nf), 'o desconto é rateado entre os itens e os totais somam o líquido');
+  PERFORM ci.exige((SELECT sum(valor_iss) = 4.50 FROM nfe_itens WHERE nfe_id = nf), 'o ISS dos itens é sobre o valor líquido');
+  PERFORM ci.exige((SELECT valor_iss = 4.50 FROM nfe WHERE id = nf), 'o ISS do cabeçalho é sobre o valor líquido');
+
+  -- plano de 100 vendido com desconto de 10: a nota do plano também fica com 90 e ISS de 4,50
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 100)), 'crediario', cli, 10, 1, current_date + 30);
+  r := lr_plano_vender(plano, v2, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  ass := (r ->> 'assinatura_id')::uuid;
+  PERFORM ci.exige((SELECT valor = 90 FROM lr_assinaturas WHERE id = ass), 'a assinatura guarda o valor líquido');
+  PERFORM ci.exige((SELECT valor_total = 90 AND valor_iss = 4.50 FROM nfe WHERE id = nf), 'a NFS-e do plano tem total e ISS sobre o valor líquido');
+  PERFORM ci.exige((SELECT total = 90 AND desconto = 10 AND valor_iss = 4.50 FROM nfe_itens WHERE nfe_id = nf), 'o item da NFS-e do plano guarda o desconto e o total líquido');
+
+  -- sem desconto: o item fica com o preço cheio e sem desconto
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(s3)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', p3, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  PERFORM ci.exige((SELECT total = 40 AND desconto = 0 AND valor_iss = 2.00 FROM nfe_itens WHERE nfe_id = nf), 'sem desconto o item fica com o preço cheio e ISS de 5%');
+
+  UPDATE fiscal_config SET aliquota_iss = coalesce(iss_ant, 0) WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

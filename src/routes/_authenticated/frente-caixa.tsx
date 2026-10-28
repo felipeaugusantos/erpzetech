@@ -621,6 +621,8 @@ function FrenteCaixa() {
     em: string;
     total: number;
     params: Record<string, unknown>;
+    /** pet shop ou lava rápido ligado a esta venda: se ela cair na fila, o vínculo é feito quando a venda for enviada */
+    vinculo?: VinculoPet | undefined;
     erro?: string | undefined;
   };
   const [esperas, setEsperas] = useState<Espera[]>([]);
@@ -711,10 +713,12 @@ function FrenteCaixa() {
               closeButton: true,
             },
           );
+          // a resposta perdida pode ter deixado a venda sem o vínculo: refaz (o banco repete sem duplicar)
+          if (p.vinculo) await vincularPet(p.vinculo, chave, existente.pedido_id);
           continue;
         }
       }
-      const { error } = await supabase.rpc("frente_venda", p.params as never);
+      const { data: pedidoEnviado, error } = await supabase.rpc("frente_venda", p.params as never);
       if (error) {
         if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
         else {
@@ -723,7 +727,12 @@ function FrenteCaixa() {
             description: `${brl(p.total)} — ${error.message}`,
           });
         }
-      } else ok++;
+      } else {
+        ok++;
+        // venda de ordem do lava rápido, plano ou pet shop: liga ao pedido que acabou de nascer
+        if (p.vinculo && chave)
+          await vincularPet(p.vinculo, chave, (pedidoEnviado as string) ?? null);
+      }
     }
     salvarFila(restantes);
     enviando.current = false;
@@ -969,11 +978,32 @@ function FrenteCaixa() {
         // identifica esta venda: se ela for reenviada (resposta perdida, outra aba), o banco não vende de novo
         p_chave: crypto.randomUUID(),
       };
+      const vinculo: VinculoPet | null = petCobranca
+        ? { tipo: "atendimento", agendamentoId: petCobranca.id, usarPacote: petCobranca.usarPacote }
+        : pacoteVenda
+          ? {
+              tipo: "pacote",
+              modeloId: pacoteVenda.modeloId,
+              petId: pacoteVenda.petId,
+              validade: pacoteVenda.validade,
+            }
+          : lavaCobranca
+            ? { tipo: "lava", ordemId: lavaCobranca.id }
+            : planoVenda
+              ? { tipo: "plano", planoId: planoVenda.planoId, veiculoId: planoVenda.veiculoId }
+              : null;
       const guardar = () => {
         const atual: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
         salvarFila([
           ...atual,
-          { id: crypto.randomUUID(), em: new Date().toISOString(), total, params },
+          {
+            id: crypto.randomUUID(),
+            em: new Date().toISOString(),
+            total,
+            params,
+            // a conexão caiu no meio da venda: o vínculo vai junto, para ser feito quando a venda for enviada
+            ...(vinculo ? { vinculo } : {}),
+          },
         ]);
         return "offline";
       };
@@ -1000,24 +1030,6 @@ function FrenteCaixa() {
         );
       }
       if (data) {
-        const vinculo: VinculoPet | null = petCobranca
-          ? {
-              tipo: "atendimento",
-              agendamentoId: petCobranca.id,
-              usarPacote: petCobranca.usarPacote,
-            }
-          : pacoteVenda
-            ? {
-                tipo: "pacote",
-                modeloId: pacoteVenda.modeloId,
-                petId: pacoteVenda.petId,
-                validade: pacoteVenda.validade,
-              }
-            : lavaCobranca
-              ? { tipo: "lava", ordemId: lavaCobranca.id }
-              : planoVenda
-                ? { tipo: "plano", planoId: planoVenda.planoId, veiculoId: planoVenda.veiculoId }
-                : null;
         if (vinculo) await vincularPet(vinculo, params.p_chave, data as string);
       }
       return data as string;
