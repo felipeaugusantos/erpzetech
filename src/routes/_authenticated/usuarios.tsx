@@ -238,7 +238,8 @@ function Usuarios() {
       />
       {isAdmin && session?.profile?.tenant_id && (
         <p className="mb-4 break-words text-sm text-muted-foreground">
-          Código da empresa para acesso em /auth: <strong className="select-all font-mono">{session.profile.tenant_id}</strong>
+          Código da empresa para acesso em /auth:{" "}
+          <strong className="select-all font-mono">{session.profile.tenant_id}</strong>
         </p>
       )}
 
