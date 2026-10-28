@@ -17,7 +17,7 @@ export function ehEmpresaSoClinica(empresa?: EmpresaModulos | null): boolean {
   return (
     semCnpj(empresa) &&
     escolhidos.includes("clinica") &&
-    !["assistencia", "locacao", "restaurante"].some((m) => escolhidos.includes(m))
+    !["assistencia", "locacao", "restaurante", "lavarapido"].some((m) => escolhidos.includes(m))
   );
 }
 
@@ -72,7 +72,7 @@ export function ehEmpresaPet(empresa?: EmpresaModulos | null): boolean {
   const escolhidos = semCnpj(empresa) ? (empresa.modulos_sem_cnpj ?? []) : [];
   if (
     escolhidos.includes("petshop") &&
-    !["assistencia", "locacao", "restaurante"].some((m) => escolhidos.includes(m))
+    !["assistencia", "locacao", "restaurante", "lavarapido"].some((m) => escolhidos.includes(m))
   )
     return true;
   if (empresa.ramo_atividade === "petshop") return true;

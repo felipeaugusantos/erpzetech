@@ -527,6 +527,10 @@ DECLARE
     'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao',
     -- só responde se a empresa tem a clínica liberada
     'clinica_liberada',
+    -- só responde se a empresa tem o lava rápido liberado
+    'lava_rapido_liberado',
+    -- fotos do lava rápido: respondem só verdadeiro com perfil do pátio, módulo liberado e foto reservada ou ativa
+    '_lr_foto_perfil_ok', '_lr_foto_pode_enviar', '_lr_foto_pode_ler',
     -- prontuário: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_pacientes', 'clinica_atendimento_abrir', 'clinica_atendimento_salvar', 'clinica_atendimento_fechar',
     'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias',
@@ -6106,4 +6110,1007 @@ BEGIN
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X1', 'x', 'UN', 0, '000', '200003')$c$, demo), 'cClassTrib de outro CST');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs) VALUES (%L, 'IBS-X2', 'x', 'UN', 0, '000')$c$, demo), 'CST sem cClassTrib');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, cst_ibs_cbs, cclasstrib) VALUES (%L, 'IBS-X3', 'x', 'UN', 0, 'AB1', '000001')$c$, demo), 'CST fora do formato');
+END $$;
+
+-- 67. Lava rápido: módulo liberado por CNAE, veículos (placa e prefixo de aeronave), preço por tipo, quadro do pátio,
+--     entregar e cobrar com comissão e NFS-e em rascunho, venda cancelada e permissões
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  fin  constant uuid := 'a0000000-0000-0000-0000-0000000000b2';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; dep uuid; carro uuid; moto uuid; aviao uuid; heli uuid; serv uuid; serv_prod uuid; lav uuid;
+  o1 uuid; o2 uuid; o3 uuid; ped uuid; ped2 uuid; ped_errado uuid; r jsonb; com uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Lava CI', '52998224725') RETURNING id INTO cli;
+
+  -- sem a atividade de lavagem, nada funciona
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4789-0/99', cnae_secundarios = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_servico_salvar('{"nome":"Lavagem"}'::jsonb)$c$, 'cadastrar serviço sem o módulo liberado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'cadastrar veículo sem o módulo liberado');
+  UPDATE empresas SET cnae = '4520-0/06' WHERE tenant_id = demo;
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM (SELECT lava_rapido_liberado() AS l) x WHERE l') = 1, 'o CNAE 45.20-0/06 libera o lava rápido');
+
+  -- veículos: placa nos três tipos terrestres, prefixo nas aeronaves
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'garçom cadastra veículo');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'estoquista cadastra veículo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', '1234ABC', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'placa fora do padrão');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'barco', 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'tipo inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'tipo', 'aviao', 'identificacao', 'PT', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'prefixo curto demais');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_veiculo_salvar(jsonb_build_object('identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, 'veículo sem cliente');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'modelo', 'Civic'))$c$, cli), 'veículo sem fabricante');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1234', 'fabricante', 'Honda', 'modelo', '  '))$c$, cli), 'veículo sem modelo');
+  PERFORM ci.entrar(vend);
+  carro := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'abc-1d23', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  moto := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'XYZ 9876', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  aviao := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'pt-abc', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  heli := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRXYZ', 'fabricante', 'Honda', 'modelo', 'Civic'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT identificacao = 'ABC1D23' FROM lr_veiculos WHERE id = carro), 'a placa é guardada em maiúsculas e sem separador');
+  PERFORM ci.exige((SELECT identificacao = 'PTABC' AND tipo = 'aviao' FROM lr_veiculos WHERE id = aviao), 'o prefixo da aeronave é guardado em maiúsculas');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_veiculo_salvar(jsonb_build_object('cliente_id', %L, 'identificacao', 'ABC1D23', 'fabricante', 'Honda', 'modelo', 'Civic'))$c$, cli), 'identificação repetida');
+
+  -- serviços e preço por tipo
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_servico_salvar('{"nome":"Lavagem completa"}'::jsonb)$c$, 'vendedor cria serviço');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_servico_salvar('{"nome":""}'::jsonb)$c$, 'serviço sem nome');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_servico_salvar('{"nome":"X","categoria":"voo"}'::jsonb)$c$, 'categoria inválida');
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem completa","categoria":"lavagem","duracao_min":45,"preco_base":25}'::jsonb);
+  PERFORM lr_preco_salvar(serv, NULL, 30);
+  PERFORM lr_preco_salvar(serv, 'carro', 40);
+  PERFORM lr_preco_salvar(serv, 'aviao', 900);
+  lav := lr_lavador_salvar('{"nome":"Beto Lavador","comissao_percentual":20}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+  PERFORM ci.exige((SELECT NOT controla_estoque AND preco_venda = 25 FROM produtos WHERE id = serv_prod), 'o serviço vira produto sem controle de estoque');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_servico_salvar('{"nome":" LAVAGEM completa "}'::jsonb)$c$, 'nome de serviço repetido');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_preco_salvar(%L, 'barco', 10)$c$, serv), 'preço com tipo inválido');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_preco_salvar(%L, 'carro', -1)$c$, serv), 'preço negativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_preco_salvar(%L, 'carro', 10)$c$, serv), 'vendedor grava preço');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_lavador_salvar('{"nome":"Fulano"}'::jsonb)$c$, 'vendedor cria lavador');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_lavador_salvar('{"nome":"Fulano","comissao_percentual":101}'::jsonb)$c$, 'comissão acima de 100');
+
+  -- ordens: o preço congela pelo tipo do veículo (carro 40, moto cai no geral 30, avião 900)
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_criar(jsonb_build_object('veiculo_id', %L, 'servicos', '[]'::jsonb))$c$, carro), 'ordem sem serviço');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_ordem_criar(jsonb_build_object('veiculo_id', %L, 'servicos', jsonb_build_array(%L)))$c$, carro, serv), 'garçom abre ordem');
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', carro, 'lavador_id', lav, 'box', 'Box 1', 'servicos', jsonb_build_array(serv)));
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', moto, 'servicos', jsonb_build_array(serv)));
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', aviao, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_aplicado = 40 FROM lr_ordem_itens WHERE ordem_id = o1), 'carro usa o preço do tipo');
+  PERFORM ci.exige((SELECT preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o2), 'moto sem preço próprio usa o preço geral');
+  PERFORM ci.exige((SELECT preco_aplicado = 900 FROM lr_ordem_itens WHERE ordem_id = o3), 'avião usa o preço do tipo');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_preco_salvar(serv, 'carro', 55);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_aplicado = 40 FROM lr_ordem_itens WHERE ordem_id = o1), 'mudar o preço depois não altera a ordem aberta');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_criar(jsonb_build_object('veiculo_id', %L, 'servicos', jsonb_build_array(%L)))$c$, carro, serv), 'segunda ordem aberta do mesmo veículo');
+
+  -- quadro do pátio
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o2), 'começar a lavar sem lavador');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'pronto')$c$, o1), 'pular de aguardando para pronto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'entregue')$c$, o1), 'entregar sem cobrar');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o1), 'garçom mexe no pátio');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'secando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  PERFORM lr_ordem_atribuir(o2, lav, 'Box 2');
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronto' AND pronto_em IS NOT NULL FROM lr_ordens WHERE id = o1), 'a ordem pronta guarda a hora');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND motivo_cancelamento = 'cliente desistiu' FROM lr_ordens WHERE id = o3), 'cancelar guarda o motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o3), 'reabrir ordem cancelada');
+  -- o veículo da ordem cancelada pode ter nova ordem
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_criar(jsonb_build_object('veiculo_id', aviao, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+
+  -- entregar e cobrar: venda do caixa com o serviço pelo valor combinado e uma mercadoria, desconto de 10
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)),
+                   'crediario', cli, 4, 1, current_date + 30);
+  ped_errado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 55)),
+                          'crediario', cli, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_retirar(%L)$c$, o1), 'sem informar a venda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_retirar(%L, %L)$c$, o1, ped_errado), 'venda com o serviço por outro valor');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_ordem_retirar(%L, %L)$c$, o1, ped), 'garçom cobra');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_ordem_retirar(%L, %L)$c$, o1, ped), 'anon cobra');
+  PERFORM ci.entrar(vend);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id = ped AND entregue_em IS NOT NULL FROM lr_ordens WHERE id = o1), 'a ordem fica entregue e ligada à venda');
+  -- 40 com desconto proporcional (36) → comissão de 20% = 7,20
+  PERFORM ci.exige((SELECT base = 36 AND percentual = 20 AND valor = 7.20 AND situacao = 'a_aprovar' FROM lr_comissoes WHERE ordem_id = o1), 'comissão do lavador sobre o serviço líquido do desconto');
+  PERFORM ci.exige((SELECT situacao = 'rascunho' AND valor_total = 36 AND valor_produtos = 40 AND valor_desconto = 4 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'NFS-e do serviço em rascunho');
+  PERFORM ci.entrar(vend);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM lr_comissoes WHERE ordem_id = o1)
+                   AND (SELECT count(*) = 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'repetir a cobrança não duplica comissão nem nota');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_retirar(%L, %L)$c$, o2, ped), 'a mesma venda cobrando duas ordens');
+
+  -- venda cancelada: ordem volta a pronta, comissão cancelada, rascunho sai; cobrar de novo reativa a comissão
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped;
+  PERFORM ci.exige((SELECT situacao = 'pronto' AND venda_id IS NULL FROM lr_ordens WHERE id = o1), 'venda cancelada devolve a ordem a pronta');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM lr_comissoes WHERE ordem_id = o1), 'venda cancelada cancela a comissão');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'venda cancelada tira o rascunho da NFS-e');
+  PERFORM ci.entrar(vend);
+  ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o1, ped2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'a_aprovar' AND pedido_id = ped2 AND base = 40 AND valor = 8 FROM lr_comissoes WHERE ordem_id = o1), 'cobrar de novo reativa a comissão, com a nova venda');
+
+  -- comissões: aprovar e pagar; leitura só da gestão e do financeiro
+  SELECT id INTO com FROM lr_comissoes WHERE ordem_id = o1;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_comissao_aprovar(%L)$c$, com), 'vendedor aprova comissão');
+  PERFORM ci.deve_falhar(fin, format($c$SELECT lr_comissao_pagar(%L)$c$, com), 'pagar comissão não aprovada');
+  PERFORM ci.entrar(fin);
+  PERFORM lr_comissao_aprovar(com);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  PERFORM lr_comissao_pagar(com, 'pix');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'paga' AND pago_em IS NOT NULL AND pago_por IS NOT NULL FROM lr_comissoes WHERE id = com), 'comissão paga com registro de quem e quando');
+  PERFORM ci.exige(ci.contar(fin, 'SELECT count(*) FROM lr_comissoes') >= 1 AND ci.contar(vend, 'SELECT count(*) FROM lr_comissoes') = 0
+                   AND ci.contar(gar, 'SELECT count(*) FROM lr_comissoes') = 0, 'só administrador, gestor e financeiro leem comissões');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM lr_ordens') >= 3 AND ci.contar(gar, 'SELECT count(*) FROM lr_ordens') = 0, 'o garçom não lê ordens');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_comissoes SET valor = 999 WHERE id = %L$c$, com), 'alterar comissão direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_ordens SET situacao = 'pronto' WHERE id = %L$c$, o2), 'alterar ordem direto');
+
+  -- módulo desligado de novo: nada funciona
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o2), 'mexer no pátio com o módulo desligado');
+END $$;
+
+-- 68. Lava rápido (planos e fidelidade): venda do plano, lavagem coberta, saldo, validade, ordem só coberta, brinde e venda cancelada
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; cli2 uuid; dep uuid; v1 uuid; v2 uuid; moto uuid; serv uuid; serv2 uuid; serv_prod uuid; plano uuid; plano_moto uuid; plano_prod uuid;
+  f jsonb; lav uuid; ped uuid; ped_errado uuid; ped_ord uuid; ass uuid; r jsonb; o uuid; o2 uuid; o3 uuid; o4 uuid; i1 uuid; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Planos CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel CI', '11144477735') RETURNING id INTO cli2;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PLA1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  moto := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'PLA2B22', 'fabricante', 'Honda', 'modelo', 'CG'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli2, 'tipo', 'carro', 'identificacao', 'FID1C33', 'fabricante', 'VW', 'modelo', 'Gol'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem do plano","duracao_min":30,"preco_base":40}'::jsonb);
+  serv2 := lr_servico_salvar('{"nome":"Cera do plano","duracao_min":30,"preco_base":30}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Plano CI","comissao_percentual":10}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- cadastro do plano: só administrador e gestor
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','Mensal','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'vendedor cria plano');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','Mensal','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'garçom cria plano');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','','servico_id',%L,'lavagens',4,'preco',120))$c$, serv), 'plano sem nome');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',1,'preco',120))$c$, serv), 'plano de uma lavagem só');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',4,'preco',0))$c$, serv), 'plano sem preço');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',%L,'lavagens',4,'preco',50,'validade_dias',3))$c$, serv), 'validade curta demais');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_plano_salvar(jsonb_build_object('nome','X','servico_id',gen_random_uuid(),'lavagens',4,'preco',50))$c$, 'serviço que não existe');
+  PERFORM ci.entrar(gest);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Mensal 2 lavagens','servico_id',serv,'lavagens',2,'preco',60,'validade_dias',30,'tipo','carro'));
+  plano_moto := lr_plano_salvar(jsonb_build_object('nome','Mensal moto','servico_id',serv,'lavagens',3,'preco',45,'tipo','moto'));
+  PERFORM ci.sair();
+  SELECT produto_id INTO plano_prod FROM lr_planos WHERE id = plano;
+  PERFORM ci.exige((SELECT NOT controla_estoque AND preco_venda = 60 FROM produtos WHERE id = plano_prod), 'o plano vira um produto sem estoque, com o preço do plano');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_plano_salvar(jsonb_build_object('nome',' mensal 2 LAVAGENS ','servico_id',%L,'lavagens',2,'preco',60))$c$, serv), 'nome de plano repetido');
+
+  -- venda do plano: a venda do caixa precisa trazer o plano uma vez, pelo preço
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 60)), 'crediario', cli, 0, 1, current_date + 30);
+  ped_errado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 50)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped_errado), 'plano vendido por outro valor');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L)$c$, plano, v1), 'plano sem informar a venda');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, moto, ped), 'plano de carro para uma moto');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'garçom vende plano');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'estoquista vende plano');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_plano_vender(%L, %L, %L)$c$, plano, v1, ped), 'anon vende plano');
+  PERFORM ci.entrar(vend);
+  r := lr_plano_vender(plano, v1, ped);
+  ass := (r ->> 'assinatura_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lavagens = 2 AND valor = 60 AND situacao = 'ativa' AND vence_em = current_date + 30 AND veiculo_id = v1 FROM lr_assinaturas WHERE id = ass), 'a assinatura nasce ativa, com validade e valor da venda');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'a venda do plano deixa a NFS-e em rascunho');
+  PERFORM ci.entrar(vend);
+  r := lr_plano_vender(plano, v1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM lr_assinaturas WHERE venda_id = ped), 'repetir a venda do plano não duplica a assinatura');
+
+  -- lavagem coberta: não entra na cobrança, na NFS-e nem na comissão
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv, serv2)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND assinatura_id = ass FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv), 'o serviço do plano sai da assinatura');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv2), 'outro serviço segue cobrado');
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 1, 'sobra uma lavagem no plano');
+
+  -- cancelar a ordem devolve a lavagem
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 2, 'cancelar a ordem devolve a lavagem ao plano');
+
+  -- ordem só de itens cobertos é entregue sem caixa, sem comissão e sem nota
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  r := lr_ordem_retirar(o2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id IS NULL FROM lr_ordens WHERE id = o2), 'ordem só coberta é entregue sem venda');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o2) AND r ->> 'pedido_id' IS NULL, 'ordem só coberta não gera comissão nem pede venda');
+  PERFORM ci.entrar(vend);
+  r := lr_ordem_retirar(o2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean, 'repetir a entrega da ordem coberta devolve o mesmo resultado');
+
+  -- esgota o saldo: a lavagem seguinte é cobrada
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'passo');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 1, 'cancelar de novo mantém o saldo (uma já foi entregue)');
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto'); PERFORM lr_ordem_retirar(o3);
+  o4 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 0, 'o plano de 2 lavagens termina na segunda');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o4), 'sem saldo, a lavagem é cobrada');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o4, 'cancelada', 'teste');
+  PERFORM ci.sair();
+
+  -- plano vencido não cobre
+  UPDATE lr_assinaturas SET vence_em = current_date - 1 WHERE id = ass;
+  UPDATE lr_assinatura_usos SET desfeito = true WHERE assinatura_id = ass;
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o), 'plano vencido não cobre a lavagem');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'teste');
+  PERFORM ci.sair();
+
+  -- venda do plano cancelada: a assinatura é cancelada e a nota em rascunho sai
+  UPDATE lr_assinaturas SET vence_em = current_date + 10 WHERE id = ass;
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped;
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM lr_assinaturas WHERE id = ass), 'venda cancelada cancela a assinatura');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM nfe WHERE pedido_id = ped AND modelo = 'nfse'), 'venda cancelada tira a NFS-e do plano');
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o), 'assinatura cancelada não cobre');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_assinatura_cancelar(%L, 'x')$c$, ass), 'vendedor cancela assinatura');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_assinatura_cancelar(%L, '')$c$, ass), 'cancelar assinatura sem motivo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_assinatura_cancelar(%L, 'já cancelada')$c$, ass), 'cancelar assinatura já cancelada');
+
+  -- fidelidade: a cada 2 lavagens entregues, a próxima do serviço-brinde é grátis
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_fidelidade_salvar(true, 2, %L)$c$, serv), 'vendedor liga a fidelidade');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_fidelidade_salvar(true, 1, %L)$c$, serv), 'brinde na 1ª lavagem');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_fidelidade_salvar(true, 5, NULL)$c$, 'fidelidade sem serviço-brinde');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(true, 2, serv);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'selos')::int = 0, 'recomeça sem selos');
+  FOR n IN 1..2 LOOP
+    PERFORM ci.entrar(vend);
+    o := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv2)));
+    PERFORM lr_ordem_situacao(o, 'lavando'); PERFORM lr_ordem_situacao(o, 'pronto');
+    ped_ord := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = serv2), 'quantidade', 1, 'preco_unitario', 30)), 'crediario', cli2, 0, 1, current_date + 30);
+    PERFORM lr_ordem_retirar(o, ped_ord);
+    PERFORM ci.sair();
+  END LOOP;
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 1, 'duas lavagens entregues dão um brinde');
+  PERFORM ci.entrar(vend);
+  o := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'servicos', jsonb_build_array(serv, serv2)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'fidelidade' FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv), 'o serviço-brinde sai de graça');
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = serv2), 'os outros serviços seguem cobrados');
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 0, 'o brinde usado não fica disponível de novo');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o, 'cancelada', 'desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'disponiveis')::int = 1, 'cancelar a ordem devolve o brinde');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fidelidade_cliente(%L)$c$, cli2), 'garçom consulta fidelidade');
+
+  -- prévia da cobertura
+  PERFORM ci.entrar(vend);
+  r := lr_cobertura_previa(v2, jsonb_build_array(serv, serv2));
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cobertura' = 'fidelidade'), 'a prévia mostra o brinde');
+
+  -- fidelidade desligada: nada de brinde
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(false, 2, serv);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); f := lr_fidelidade_cliente(cli2); PERFORM ci.sair();
+  PERFORM ci.exige((f ->> 'ativo')::boolean = false, 'fidelidade desligada não tem brinde');
+
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_assinaturas') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_assinaturas') >= 1, 'o garçom não lê assinaturas');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_assinaturas SET lavagens = 999 WHERE id = %L$c$, ass), 'alterar assinatura direto');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 69. Lava rápido (avisos): pronto, plano vencendo e retorno; quem já foi chamado sai da lista; cliente que não quer mensagens não entra; modelos
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; cli_no uuid; dep uuid; v1 uuid; v2 uuid; v3 uuid; serv uuid; serv_prod uuid; lav uuid; plano uuid; ass uuid; ass2 uuid;
+  o1 uuid; o2 uuid; o3 uuid; ped uuid; r jsonb; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Avisos CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente Aviso CI', '52998224725', '11999990000', '11988887777') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg CI', '11144477735', '11977776666', false) RETURNING id INTO cli_no;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AVI1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'AVI2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  v3 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_no, 'tipo', 'carro', 'identificacao', 'AVI3C33', 'fabricante', 'VW', 'modelo', 'Polo'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem avisos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Avisos CI","comissao_percentual":0}'::jsonb);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Plano avisos','servico_id',serv,'lavagens',4,'preco',100));
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- permissões e validações
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'garçom lê avisos');
+  PERFORM ci.deve_falhar(est, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'estoquista lê avisos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'anon lê avisos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('aniversario')$c$, 'tipo de aviso inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('retorno', 3)$c$, 'retorno com menos de 7 dias');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('plano_vencendo', 90)$c$, 'janela de plano acima de 60');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_contato_registrar('pronto', %L)$c$, gen_random_uuid()::text), 'garçom registra contato');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_contato_registrar('pronto', 'não-é-uuid')$c$, 'referência inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_contato_registrar('pronto', %L)$c$, gen_random_uuid()::text), 'referência que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_contato_registrar('pronto', %L, 'pombo')$c$, gen_random_uuid()::text), 'canal inválido');
+
+  -- pronto: entra quando fica pronto, usa o WhatsApp do cliente, sai depois de chamado; quem não quer mensagens não entra
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v3, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' IN (o1::text, o3::text)), 'ordem ainda não pronta não gera aviso');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o1::text AND e ->> 'telefone' = '11988887777' AND e ->> 'veiculo' = 'AVI1A11'),
+                   'veículo pronto entra no aviso, com o WhatsApp do cliente');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o3::text), 'cliente que não quer mensagens não entra');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_contato_registrar('pronto', o1::text);
+  PERFORM lr_contato_registrar('pronto', o1::text);
+  r := lr_mensagens_pendentes('pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o1::text), 'quem já foi chamado sai da lista');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_contatos WHERE tipo = 'pronto' AND referencia = o1::text AND canal = 'whatsapp'), 'registrar duas vezes grava um contato só');
+
+  -- plano vencendo
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, plano, v2, cli, serv, 4, 100, current_date - 27, current_date + 3) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text AND e ->> 'plano' = 'Plano avisos' AND (e ->> 'restam')::int = 4),
+                   'plano que vence em 3 dias entra, com o saldo');
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'janela menor que o vencimento deixa o plano de fora');
+  -- renovado: outra assinatura ativa do mesmo veículo vence depois
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, plano, v2, cli, serv, 4, 100, current_date, current_date + 30) RETURNING id INTO ass2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'plano já renovado não é cobrado');
+  UPDATE lr_assinaturas SET situacao = 'cancelada', motivo = 'teste' WHERE id = ass2;
+  PERFORM ci.entrar(vend);
+  PERFORM lr_contato_registrar('plano_vencendo', ass::text, 'telefone');
+  r := lr_mensagens_pendentes('plano_vencendo', 7);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = ass::text), 'plano chamado sai da lista');
+
+  -- retorno: última entrega antiga, sem ordem aberta nem plano valendo
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'libera o veículo');
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o2, ped);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'entrega de hoje ainda não pede retorno');
+  UPDATE lr_ordens SET entregue_em = now() - interval '40 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text AND (e ->> 'dias')::int = 40 AND e ->> 'veiculo' = 'AVI1A11'),
+                   'veículo sem voltar há 40 dias entra no retorno de 30');
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 60);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'retorno de 60 dias deixa de fora quem veio há 40');
+  UPDATE lr_ordens SET entregue_em = now() - interval '400 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'mais de um ano sem voltar já não é chamado');
+  UPDATE lr_ordens SET entregue_em = now() - interval '40 days' WHERE id = o2;
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'servicos', jsonb_build_array(serv)));
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'veículo com ordem aberta não é chamado');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM lr_contato_registrar('retorno', o2::text);
+  r := lr_mensagens_pendentes('retorno', 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'referencia' = o2::text), 'retorno chamado sai da lista');
+  PERFORM ci.exige((SELECT count(*) = 3 FROM lr_contatos WHERE cliente_id = cli), 'um contato por ocasião (pronto, plano e retorno)');
+
+  -- modelos por empresa
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagem_modelo_salvar('pronto', 'Seu veículo está pronto!')$c$, 'vendedor altera modelo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_mensagem_modelo_salvar('aniversario', 'Oi, tudo bem?')$c$, 'modelo de tipo inválido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT lr_mensagem_modelo_salvar('pronto', 'Oi')$c$, 'modelo curto demais');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_mensagem_modelo_salvar('pronto', 'Oi, {cliente}! O {veiculo} já está pronto.');
+  PERFORM lr_mensagem_modelo_salvar('pronto', 'Oi, {cliente}! O {veiculo} está pronto na {loja}.');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(texto LIKE '%na {loja}%') FROM lr_mensagem_modelos WHERE tipo = 'pronto'), 'o modelo guardado é um por tipo e empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM lr_mensagem_modelos') = 1 AND ci.contar(gar, 'SELECT count(*) FROM lr_mensagem_modelos') = 0, 'o garçom não lê modelos');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_mensagem_modelo_salvar('pronto', '   ');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_mensagem_modelos WHERE tipo = 'pronto'), 'texto em branco volta ao padrão');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_contatos') = 0, 'o garçom não lê contatos');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_contatos SET canal = 'outro' WHERE cliente_id = %L$c$, cli), 'alterar contato direto');
+
+  -- módulo desligado: nada funciona
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'avisos com o módulo desligado');
+END $$;
+
+-- 70. Lava rápido (insumos): receita por serviço, baixa na entrega, falta de saldo não trava a entrega, refazer, sem baixa em dobro
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; dep uuid; dep_b uuid; v1 uuid; serv uuid; serv_prod uuid; lav uuid; shampoo uuid; cera uuid; sv_prod uuid; ins uuid;
+  o1 uuid; o2 uuid; o3 uuid; ped uuid; ped2 uuid; baixa uuid; r jsonb;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'Lava Insumos CI', false) RETURNING id INTO dep;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Outro depósito CI') RETURNING id INTO dep_b;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-SHAMPOO-CI', 'Shampoo automotivo CI', 'L', 0, true) RETURNING id INTO shampoo;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-CERA-CI', 'Cera CI', 'UN', 0, true) RETURNING id INTO cera;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Insumo CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(shampoo, dep, 'entrada'::mov_tipo, 1, 'ci', 'ci');
+  PERFORM registrar_movimentacao(cera, dep, 'entrada'::mov_tipo, 5, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'INS1A11', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem insumos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Insumos CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- cadastro: só administrador e gestor; o insumo é produto com estoque
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_insumo_config_salvar(%L)$c$, dep), 'vendedor escolhe o depósito');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, shampoo), 'estoquista cadastra receita');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, shampoo), 'garçom cadastra receita');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 0)$c$, serv, shampoo), 'quantidade zero');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, serv_prod), 'serviço como insumo (sem controle de estoque)');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, gen_random_uuid(), shampoo), 'serviço que não existe');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_insumo_config_salvar(%L)$c$, gen_random_uuid()), 'depósito que não existe');
+  PERFORM ci.entrar(gest);
+  ins := lr_servico_insumo_salvar(serv, shampoo, 0.5);
+  PERFORM lr_servico_insumo_salvar(serv, shampoo, 0.4);
+  PERFORM lr_servico_insumo_salvar(serv, cera, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 AND bool_or(quantidade = 0.4) FROM lr_servico_insumos WHERE servico_id = serv), 'a receita guarda uma linha por insumo, com a última quantidade');
+
+  -- sem configuração do depósito: entrega sem baixar nada
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_insumo_baixas WHERE ordem_id = o1), 'sem depósito configurado nada é baixado');
+
+  -- configurado: baixa na entrega. Shampoo 0,4 (saldo 1) e cera 1 (saldo 5)
+  PERFORM ci.entrar(gest);
+  PERFORM lr_insumo_config_salvar(dep);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o2, ped2);
+  PERFORM lr_ordem_retirar(o2, ped2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 AND bool_and(situacao = 'baixado') FROM lr_insumo_baixas WHERE ordem_id = o2), 'a entrega baixa os dois insumos, uma vez');
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep) AND (SELECT quantidade = 4 FROM estoques WHERE produto_id = cera AND deposito_id = dep), 'o estoque do depósito baixou');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM estoque_movimentacoes WHERE produto_id = shampoo AND documento = 'LR-' || upper(left(o2::text, 8))), 'o movimento fica ligado à ordem pelo documento');
+
+  -- venda cancelada e nova cobrança: a lavagem já foi feita, não baixa de novo
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped2;
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_retirar(o2, pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'cobrar de novo depois de venda cancelada não baixa em dobro');
+
+  -- falta de saldo: a entrega acontece, a falha fica registrada e dá para refazer
+  PERFORM ci.entrar(gest);
+  PERFORM lr_servico_insumo_salvar(serv, shampoo, 5);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+  r := lr_ordem_retirar(o3, pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM lr_ordens WHERE id = o3), 'saldo insuficiente não trava a entrega');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o3) OR EXISTS (SELECT 1 FROM nfe WHERE pedido_id = (r ->> 'pedido_id')::uuid AND modelo = 'nfse'), 'a cobrança e a NFS-e seguem normais');
+  PERFORM ci.exige((SELECT situacao = 'falhou' AND erro IS NOT NULL FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = shampoo), 'a baixa que faltou saldo fica como falhou, com o motivo');
+  PERFORM ci.exige((SELECT situacao = 'baixado' FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = cera), 'o outro insumo da mesma ordem baixa normalmente');
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'a baixa que falhou não mexe no estoque');
+  SELECT id INTO baixa FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = shampoo;
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer sem repor o estoque');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'vendedor refaz baixa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'garçom refaz baixa');
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(shampoo, dep, 'entrada'::mov_tipo, 10, 'reposição', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(est);
+  PERFORM lr_insumo_baixa_refazer(baixa);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'baixado' AND erro IS NULL FROM lr_insumo_baixas WHERE id = baixa), 'depois de repor, a baixa refeita fica baixada');
+  PERFORM ci.exige((SELECT quantidade = 5.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'o estoque baixou na baixa refeita (0,6 + 10 − 5)');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer baixa que já foi feita');
+
+  -- desligar: nada baixa
+  PERFORM ci.entrar(gest);
+  PERFORM lr_insumo_config_salvar(dep, false);
+  PERFORM lr_servico_insumo_remover(ins);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_servico_insumos WHERE id = ins), 'insumo removido da receita');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_servico_insumo_remover(%L)$c$, ins), 'vendedor remove insumo');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_insumo_baixas') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_insumo_baixas') >= 3, 'o garçom não lê baixas');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_insumo_baixas SET situacao = 'baixado' WHERE id = %L$c$, baixa), 'alterar baixa direto');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer baixa com o módulo desligado');
+END $$;
+
+-- 71. Lava rápido (checklist de avarias): registrar, conferir "sem avarias", imutável depois de concluído, obrigatoriedade por empresa
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; v1 uuid; v2 uuid; serv uuid; lav uuid; o1 uuid; o2 uuid; av uuid; av2 uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Checklist CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'CHK1A11', 'fabricante', 'Fiat', 'modelo', 'Palio'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRCHK', 'fabricante', 'Robinson', 'modelo', 'R44'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem checklist","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Checklist CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+
+  -- sem exigência: lavar sem checklist continua valendo
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando');
+  PERFORM lr_ordem_situacao(o1, 'aguardando');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND checklist_em IS NULL FROM lr_ordens WHERE id = o1), 'por padrão o checklist não é exigido');
+
+  -- registrar avarias
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'garçom registra avaria');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'estoquista registra avaria');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'anon registra avaria');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'C', 'risco')$c$, o1), 'local curto demais');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'quebrado')$c$, o1), 'tipo de avaria inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco', repeat('x', 301))$c$, o1), 'descrição longa demais');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, gen_random_uuid()), 'ordem que não existe');
+  PERFORM ci.entrar(vend);
+  av := lr_avaria_registrar(o1, ' Capô ', 'risco', 'Risco de 10 cm');
+  av2 := lr_avaria_registrar(o1, 'Porta direita', 'amassado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lugar = 'Capô' AND tipo = 'risco' AND descricao = 'Risco de 10 cm' AND registrada_por = vend FROM lr_avarias WHERE id = av), 'a avaria guarda local, tipo, descrição e quem registrou');
+
+  -- conferir: com avarias não dá para dizer que não há, e vice-versa
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, true)$c$, o1), 'concluir sem avarias havendo avarias');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_avaria_remover(av2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_avarias WHERE ordem_id = o1), 'enquanto o checklist está aberto dá para remover um engano');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o1, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT checklist_em IS NOT NULL AND checklist_por = vend AND NOT checklist_sem_avarias FROM lr_ordens WHERE id = o1), 'checklist concluído com avarias, com quem e quando');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_remover(%L)$c$, av), 'apagar avaria depois de concluído');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, o1), 'concluir o checklist duas vezes');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM lr_avarias WHERE id = %L$c$, av), 'apagar avaria direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_ordens SET checklist_em = NULL WHERE id = %L$c$, o1), 'desfazer o checklist direto');
+
+  -- sem avarias
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, (SELECT 'x')), 'ordem inválida no checklist');
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_checklist_concluir(%L, false)$c$, o2), 'concluir com avarias sem registrar nenhuma');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o2, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT checklist_sem_avarias FROM lr_ordens WHERE id = o2), 'checklist concluído sem avarias');
+  -- uma avaria achada depois: entra e o checklist deixa de dizer "sem avarias"
+  PERFORM ci.entrar(vend);
+  PERFORM lr_avaria_registrar(o2, 'Rotor de cauda', 'trinca', 'Achada na lavagem');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT NOT checklist_sem_avarias FROM lr_ordens WHERE id = o2), 'avaria achada depois tira o "sem avarias"');
+
+  -- exigência por empresa
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_config_salvar(true)$c$, 'vendedor liga a exigência');
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_config_salvar(true)$c$, 'garçom liga a exigência');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'libera');
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o1), 'lavar sem checklist quando a empresa exige');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o1, true);
+  PERFORM lr_ordem_situacao(o1, 'lavando');
+  PERFORM lr_ordem_situacao(o2, 'lavando');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'lavando' FROM lr_ordens WHERE id = o1) AND (SELECT situacao = 'lavando' FROM lr_ordens WHERE id = o2), 'com o checklist concluído a lavagem começa');
+
+  -- encerrada: não registra mais
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_registrar(%L, 'Capô', 'risco')$c$, o1), 'avaria em ordem cancelada');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_avarias') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_avarias') >= 2, 'o garçom não lê avarias');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(false);
+  PERFORM ci.sair();
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 72. Lava rápido (fotos): caminho reservado, envio só no caminho e por quem reservou, confirmação confere o arquivo, leitura só da empresa, cancelar sem apagar
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; v1 uuid; serv uuid; lav uuid; o1 uuid; o2 uuid; r jsonb; f1 uuid; f2 uuid; f3 uuid; c1 text; c2 text; c3 text; n int; tb uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Foto CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'PTFOT', 'fabricante', 'Cessna', 'modelo', '172'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem fotos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Fotos CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM ci.sair();
+
+  -- reservar o caminho
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'garçom reserva foto');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'estoquista reserva foto');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'anon reserva foto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'durante', 'frente.jpg', 'image/jpeg', 2048)$c$, o1), 'momento inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'doc.pdf', 'application/pdf', 2048)$c$, o1), 'formato que não é imagem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'grande.jpg', 'image/jpeg', 9000000)$c$, o1), 'foto de mais de 8 MB');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'vazia.jpg', 'image/jpeg', 0)$c$, o1), 'foto vazia');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', '', 'image/jpeg', 2048)$c$, o1), 'foto sem nome');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'frente.jpg', 'image/jpeg', 2048)$c$, gen_random_uuid()), 'ordem que não existe');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'antes', 'frente.jpg', 'image/jpeg', 2048);
+  PERFORM ci.sair();
+  f1 := (r ->> 'id')::uuid; c1 := r ->> 'caminho';
+  PERFORM ci.exige(c1 = demo::text || '/' || o1::text || '/' || f1::text || '.jpg', 'o caminho é empresa/ordem/id.extensão');
+  PERFORM ci.exige((SELECT situacao = 'pendente' FROM lr_fotos WHERE id = f1), 'a foto nasce pendente');
+  PERFORM ci.entrar(vend);
+  PERFORM ci.exige(jsonb_array_length(lr_fotos_da_ordem(o1)) = 0, 'foto pendente não aparece na lista');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'confirmar sem o arquivo enviado');
+
+  -- envio: só no caminho reservado, só por quem reservou, só neste bucket
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, demo::text || '/' || o1::text || '/outra.jpg', vend), 'upload em caminho que não foi reservado');
+  PERFORM ci.deve_falhar(gest, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, gest), 'upload de outra pessoa no caminho reservado');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, gar), 'upload do garçom no caminho reservado');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('outro-bucket', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, vend), 'o caminho reservado não vale em outro bucket');
+  PERFORM ci.entrar(vend);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, vend);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = c1), 'quem reservou envia o arquivo no caminho reservado');
+
+  -- confirmar: só quem reservou, e só se o arquivo confere
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'outra pessoa confirma a foto');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'depois', 'traseira.jpg', 'image/jpeg', 5000);
+  PERFORM ci.sair();
+  f2 := (r ->> 'id')::uuid; c2 := r ->> 'caminho';
+  PERFORM ci.entrar(vend);
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":9999,"mimetype":"image/jpeg"}')$c$, c2, vend);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f2), 'confirmar arquivo com tamanho diferente do informado');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_foto_confirmar(f1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'ativa' AND confirmada_em IS NOT NULL FROM lr_fotos WHERE id = f1), 'foto confirmada fica ativa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_confirmar(%L)$c$, f1), 'confirmar duas vezes');
+
+  -- leitura: foto ativa da própria empresa e só para o pátio
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 1, 'o pátio lê a foto ativa');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c2)) = 0, 'foto ainda não confirmada não abre');
+  PERFORM ci.exige(ci.contar(gar, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'o garçom não lê foto');
+  PERFORM ci.exige(ci.contar(est, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'o estoquista não lê foto');
+  INSERT INTO tenants (nome) VALUES ('Lava Fotos B') RETURNING id INTO tb;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_fotos WHERE tenant_id = tb), 'nenhuma foto de outra empresa');
+  PERFORM ci.entrar(vend);
+  r := lr_fotos_da_ordem(o1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'momento' = 'antes' AND (r -> 0 ->> 'pode_cancelar')::boolean, 'a lista traz só a foto ativa, com o caminho para o link temporário');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fotos_da_ordem(%L)$c$, o1), 'garçom lista fotos');
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'depois', 'lateral.jpg', 'image/jpeg', 3000);
+  f3 := (r ->> 'id')::uuid; c3 := r ->> 'caminho';
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":3000,"mimetype":"image/jpeg"}')$c$, c3, vend);
+  PERFORM lr_foto_confirmar(f3);
+  r := lr_fotos_contagem(ARRAY[o1]);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r -> o1::text ->> 'antes')::int = 1 AND (r -> o1::text ->> 'depois')::int = 1, 'a contagem por ordem separa antes e depois');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_fotos_contagem(ARRAY[%L]::uuid[])$c$, o1), 'garçom conta fotos');
+
+  -- nada de alterar nem apagar
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM lr_fotos WHERE id = %L$c$, f1), 'apagar foto direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_fotos SET momento = 'depois' WHERE id = %L$c$, f1), 'trocar dados da foto direto');
+  PERFORM ci.exige(ci.contar(vend, format($c$WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L RETURNING 1) SELECT count(*) FROM d$c$, c1)) = 0, 'apagar o arquivo não afeta nenhuma linha');
+  PERFORM ci.exige(ci.contar(adm, format($c$WITH u AS (UPDATE storage.objects SET name = 'x' WHERE bucket_id = 'lava-fotos' AND name = %L RETURNING 1) SELECT count(*) FROM u$c$, c1)) = 0, 'trocar o arquivo não afeta nenhuma linha');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = c1), 'o arquivo continua no armazenamento');
+
+  -- cancelar com motivo: quem enviou ou gestão
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_cancelar(%L, '')$c$, f1), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_foto_cancelar(%L, 'engano')$c$, f1), 'garçom cancela foto');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_foto_cancelar(f1, 'foto de outro veículo');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND cancelada_motivo = 'foto de outro veículo' AND cancelada_por = gest FROM lr_fotos WHERE id = f1), 'foto cancelada guarda motivo e quem cancelou');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM storage.objects WHERE bucket_id = 'lava-fotos' AND name = %L$c$, c1)) = 0, 'foto cancelada deixa de abrir');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_foto_cancelar(%L, 'de novo')$c$, f1), 'cancelar foto já cancelada');
+
+  -- limite de 12 por ordem e momento
+  PERFORM ci.entrar(vend);
+  FOR n IN 1..10 LOOP
+    PERFORM lr_foto_preparar(o1, 'depois', 'f' || n || '.jpg', 'image/jpeg', 1000 + n);
+  END LOOP;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'depois', 'excesso.jpg', 'image/jpeg', 1000)$c$, o1), 'passar de 12 fotos por ordem e momento');
+
+  -- ordem cancelada e módulo desligado
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o1, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'x.jpg', 'image/jpeg', 1000)$c$, o1), 'foto em ordem cancelada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 73. Lava rápido (painel Ze Tech): só a equipe Ze Tech, só lojas com o módulo liberado, números do período
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000000000c7';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cs uuid; cli uuid; dep uuid; v1 uuid; serv uuid; serv_prod uuid; lav uuid; o1 uuid; ped uuid; r jsonb; l jsonb; t_sem uuid; c_sem uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (op, 'operador-lava@ci');
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Lava Painel CI', demo) RETURNING id INTO cs;
+  INSERT INTO tenants (nome) VALUES ('Loja sem lava CI') RETURNING id INTO t_sem;
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Sem Lava Painel CI', t_sem) RETURNING id INTO c_sem;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Painel CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Painel CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PNL1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem painel","preco_base":50}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Painel CI","comissao_percentual":10}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 50)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+
+  -- acesso
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'administrador da loja lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(vend, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'vendedor lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(gar, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'garçom lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT saas_lava_rapido_por_cliente(current_date - 30, current_date)$c$, 'anon lê o painel Ze Tech');
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_lava_rapido_por_cliente(current_date, current_date - 1)$c$, 'período invertido');
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_lava_rapido_por_cliente(NULL, current_date)$c$, 'período sem início');
+
+  -- números
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date - 30, current_date);
+  PERFORM ci.sair();
+  SELECT e INTO l FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text;
+  PERFORM ci.exige(l IS NOT NULL, 'a loja com o módulo liberado aparece');
+  PERFORM ci.exige((l ->> 'entregues')::int >= 1 AND (l ->> 'faturamento')::numeric >= 50 AND (l ->> 'veiculos')::int >= 1, 'entregues, faturamento e veículos');
+  PERFORM ci.exige((l ->> 'comissoes_a_pagar')::numeric >= 5, 'comissão a pagar da loja');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = c_sem::text), 'loja sem o módulo não aparece');
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date + 5, current_date + 10);
+  PERFORM ci.sair();
+  SELECT e INTO l FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text;
+  PERFORM ci.exige((l ->> 'entregues')::int = 0 AND (l ->> 'faturamento')::numeric = 0 AND (l ->> 'ticket_medio')::numeric = 0, 'período sem movimento zera entregues e faturamento');
+
+  -- módulo desligado: a loja sai do painel
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.entrar(op);
+  r := saas_lava_rapido_por_cliente(current_date - 30, current_date);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'cliente_id' = cs::text), 'sem o módulo a loja sai do painel');
+END $$;
+
+-- 74. Lava rápido (NFS-e com desconto): o ISS é calculado sobre o valor líquido, com o desconto rateado entre os itens da nota
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  ramo_ant text; cnae_ant text; cnae2_ant text; iss_ant numeric; criou_cfg boolean := false;
+  cli uuid; dep uuid; v1 uuid; v2 uuid; s1 uuid; s2 uuid; s3 uuid; p1 uuid; p2 uuid; p3 uuid; plano uuid; plano_prod uuid; lav uuid;
+  o1 uuid; ped uuid; r jsonb; nf uuid; ass uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  IF NOT EXISTS (SELECT 1 FROM fiscal_config WHERE tenant_id = demo AND filial_id IS NULL) THEN
+    INSERT INTO fiscal_config (tenant_id, empresa_id) SELECT demo, id FROM empresas WHERE tenant_id = demo ORDER BY created_at, id LIMIT 1;
+    criou_cfg := true;
+  END IF;
+  SELECT aliquota_iss INTO iss_ant FROM fiscal_config WHERE tenant_id = demo AND filial_id IS NULL ORDER BY (empresa_id IS NULL), created_at LIMIT 1;
+  UPDATE fiscal_config SET aliquota_iss = 5 WHERE tenant_id = demo;
+
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava NFSe CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente NFSe CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'NFS1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'NFS2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  s1 := lr_servico_salvar('{"nome":"NFSe serviço A","preco_base":30}'::jsonb);
+  s2 := lr_servico_salvar('{"nome":"NFSe serviço B","preco_base":30}'::jsonb);
+  s3 := lr_servico_salvar('{"nome":"NFSe serviço C","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador NFSe CI","comissao_percentual":0}'::jsonb);
+  plano := lr_plano_salvar(jsonb_build_object('nome','Plano NFSe CI','servico_id',s1,'lavagens',4,'preco',100));
+  PERFORM ci.sair();
+  SELECT produto_id INTO p1 FROM lr_servicos WHERE id = s1;
+  SELECT produto_id INTO p2 FROM lr_servicos WHERE id = s2;
+  SELECT produto_id INTO p3 FROM lr_servicos WHERE id = s3;
+  SELECT produto_id INTO plano_prod FROM lr_planos WHERE id = plano;
+
+  -- três serviços (30 + 30 + 40 = 100) com desconto de 10: líquido 90, ISS de 5% = 4,50
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(s1, s2, s3)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', p1, 'quantidade', 1, 'preco_unitario', 30),
+                                          jsonb_build_object('produto_id', p2, 'quantidade', 1, 'preco_unitario', 30),
+                                          jsonb_build_object('produto_id', p3, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 10, 1, current_date + 30);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  PERFORM ci.exige((SELECT valor_total = 90 AND valor_produtos = 100 AND valor_desconto = 10 FROM nfe WHERE id = nf), 'a NFS-e mostra bruto, desconto e líquido');
+  PERFORM ci.exige((SELECT sum(total) = 90 AND sum(desconto) = 10 FROM nfe_itens WHERE nfe_id = nf), 'o desconto é rateado entre os itens e os totais somam o líquido');
+  PERFORM ci.exige((SELECT sum(valor_iss) = 4.50 FROM nfe_itens WHERE nfe_id = nf), 'o ISS dos itens é sobre o valor líquido');
+  PERFORM ci.exige((SELECT valor_iss = 4.50 FROM nfe WHERE id = nf), 'o ISS do cabeçalho é sobre o valor líquido');
+
+  -- plano de 100 vendido com desconto de 10: a nota do plano também fica com 90 e ISS de 4,50
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', plano_prod, 'quantidade', 1, 'preco_unitario', 100)), 'crediario', cli, 10, 1, current_date + 30);
+  r := lr_plano_vender(plano, v2, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  ass := (r ->> 'assinatura_id')::uuid;
+  PERFORM ci.exige((SELECT valor = 90 FROM lr_assinaturas WHERE id = ass), 'a assinatura guarda o valor líquido');
+  PERFORM ci.exige((SELECT valor_total = 90 AND valor_iss = 4.50 FROM nfe WHERE id = nf), 'a NFS-e do plano tem total e ISS sobre o valor líquido');
+  PERFORM ci.exige((SELECT total = 90 AND desconto = 10 AND valor_iss = 4.50 FROM nfe_itens WHERE nfe_id = nf), 'o item da NFS-e do plano guarda o desconto e o total líquido');
+
+  -- sem desconto: o item fica com o preço cheio e sem desconto
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(s3)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', p3, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  r := lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  nf := (r ->> 'nfe_id')::uuid;
+  PERFORM ci.exige((SELECT total = 40 AND desconto = 0 AND valor_iss = 2.00 FROM nfe_itens WHERE nfe_id = nf), 'sem desconto o item fica com o preço cheio e ISS de 5%');
+
+  UPDATE fiscal_config SET aliquota_iss = coalesce(iss_ant, 0) WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

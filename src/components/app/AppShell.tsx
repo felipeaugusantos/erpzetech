@@ -49,6 +49,8 @@ import {
   X,
   CircleDollarSign,
   Receipt,
+  Car,
+  Droplets,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -203,6 +205,19 @@ const groups: Group[] = [
       { label: "Contatos", to: "/pet-contatos", icon: MessageCircle },
       { label: "Pacotes", to: "/pet-pacotes", icon: Package },
       { label: "Comissões", to: "/pet-comissoes", icon: Tag },
+    ],
+  },
+  {
+    label: "Lava rápido",
+    icon: Droplets,
+    items: [
+      { label: "Pátio", to: "/lava-patio", icon: Droplets },
+      { label: "Veículos", to: "/lava-veiculos", icon: Car },
+      { label: "Serviços e preços", to: "/lava-servicos", icon: Tag },
+      { label: "Planos e fidelidade", to: "/lava-planos", icon: Package },
+      { label: "Insumos", to: "/lava-insumos", icon: PackageOpen },
+      { label: "Lavadores e comissões", to: "/lava-lavadores", icon: Users },
+      { label: "Avisos ao cliente", to: "/lava-avisos", icon: MessageCircle },
     ],
   },
   {
@@ -414,6 +429,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
           if (g.label === "Pet shop") return modulos.petshop;
+          if (g.label === "Lava rápido") return modulos.lavarapido;
           // o texto clínico é só do perfil Veterinário (o banco confere de novo)
           if (g.label === "Clínica")
             return modulos.clinica && (souVeterinario || souGestao || souRecepcao);
@@ -474,6 +490,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.locacao,
       modulos.restaurante,
       modulos.petshop,
+      modulos.lavarapido,
       modulos.clinica,
       souVeterinario,
       souGestao,
@@ -518,6 +535,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
+      { label: "Lava rápido", to: "/ze-tech-lava-rapido", icon: Droplets },
       { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],

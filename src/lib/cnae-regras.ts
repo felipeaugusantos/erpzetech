@@ -1,7 +1,8 @@
 // Regras de CNAE sem dependência de tela: ficam à parte para os testes rodarem no Node.
 import { temCnpj } from "./cnpj-alfa.ts";
 /** Módulos que só ficam disponíveis quando a atividade da empresa permite. */
-export type ModuloCnae = "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica";
+export type ModuloCnae =
+  "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica" | "lavarapido";
 
 /** Grupos de CNAE que liberam cada módulo (comparação pelo início do código). */
 const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
@@ -27,6 +28,13 @@ const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
     // só atividades veterinárias: o pet shop sozinho não libera prontuário nem vacina
     prefixos: ["7500"],
     exemplos: ["75.00-1 — Atividades veterinárias"],
+  },
+  lavarapido: {
+    // só a lavagem, lubrificação e polimento: 4520 sozinho também é oficina (assistência técnica)
+    prefixos: ["4520006"],
+    exemplos: [
+      "45.20-0/06 — Serviços de lavagem, lubrificação e polimento de veículos automotores",
+    ],
   },
   assistencia: {
     prefixos: ["95", "3314", "3319", "4321", "4322", "4520", "4543"],
@@ -57,6 +65,7 @@ export const ROTULO_MODULO: Record<ModuloCnae, string> = {
   restaurante: "Restaurante e lanchonete",
   petshop: "Pet shop e veterinária",
   clinica: "Clínica veterinária",
+  lavarapido: "Lava rápido",
 };
 
 export function exemplosCnae(modulo: ModuloCnae) {

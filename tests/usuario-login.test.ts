@@ -31,7 +31,10 @@ describe("usuário", () => {
 
 describe("campo de login", () => {
   it("aceita código da empresa mesmo sem link personalizado", () => {
-    assert.equal(tenantDoCodigoDeAcesso(" 11111111-2222-3333-4444-555555555555 "), "11111111-2222-3333-4444-555555555555");
+    assert.equal(
+      tenantDoCodigoDeAcesso(" 11111111-2222-3333-4444-555555555555 "),
+      "11111111-2222-3333-4444-555555555555",
+    );
   });
   it("não confunde link, nome de usuário ou código inválido com empresa", () => {
     for (const codigo of ["minha-loja", "bruna", "", "11111111-2222-3333-4444-55555555555Z"])

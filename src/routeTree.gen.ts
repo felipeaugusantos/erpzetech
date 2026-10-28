@@ -73,6 +73,13 @@ import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
+import { Route as AuthenticatedLavaAvisosRouteImport } from './routes/_authenticated/lava-avisos'
+import { Route as AuthenticatedLavaInsumosRouteImport } from './routes/_authenticated/lava-insumos'
+import { Route as AuthenticatedLavaLavadoresRouteImport } from './routes/_authenticated/lava-lavadores'
+import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authenticated/lava-patio'
+import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
+import { Route as AuthenticatedLavaServicosRouteImport } from './routes/_authenticated/lava-servicos'
+import { Route as AuthenticatedLavaVeiculosRouteImport } from './routes/_authenticated/lava-veiculos'
 import { Route as AuthenticatedLocacaoBalcaoRouteImport } from './routes/_authenticated/locacao-balcao'
 import { Route as AuthenticatedLocacaoEquipamentosRouteImport } from './routes/_authenticated/locacao-equipamentos'
 import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authenticated/locacao-estoque'
@@ -133,6 +140,7 @@ import { Route as AuthenticatedZeTechAssistenciaRouteImport } from './routes/_au
 import { Route as AuthenticatedZeTechClientesRouteImport } from './routes/_authenticated/ze-tech-clientes'
 import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
+import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
 import { Route as AuthenticatedZeTechLojasRouteImport } from './routes/_authenticated/ze-tech-lojas'
 import { Route as AuthenticatedZeTechNotasRouteImport } from './routes/_authenticated/ze-tech-notas'
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
@@ -502,6 +510,45 @@ const AuthenticatedInventariosRoute =
     path: '/inventarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLavaAvisosRoute = AuthenticatedLavaAvisosRouteImport.update({
+  id: '/lava-avisos',
+  path: '/lava-avisos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLavaInsumosRoute =
+  AuthenticatedLavaInsumosRouteImport.update({
+    id: '/lava-insumos',
+    path: '/lava-insumos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaLavadoresRoute =
+  AuthenticatedLavaLavadoresRouteImport.update({
+    id: '/lava-lavadores',
+    path: '/lava-lavadores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaPatioRoute = AuthenticatedLavaPatioRouteImport.update({
+  id: '/lava-patio',
+  path: '/lava-patio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLavaPlanosRoute = AuthenticatedLavaPlanosRouteImport.update({
+  id: '/lava-planos',
+  path: '/lava-planos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLavaServicosRoute =
+  AuthenticatedLavaServicosRouteImport.update({
+    id: '/lava-servicos',
+    path: '/lava-servicos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLavaVeiculosRoute =
+  AuthenticatedLavaVeiculosRouteImport.update({
+    id: '/lava-veiculos',
+    path: '/lava-veiculos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLocacaoBalcaoRoute =
   AuthenticatedLocacaoBalcaoRouteImport.update({
     id: '/locacao-balcao',
@@ -833,6 +880,12 @@ const AuthenticatedZeTechContasPagarRoute =
     path: '/ze-tech-contas-pagar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechLavaRapidoRoute =
+  AuthenticatedZeTechLavaRapidoRouteImport.update({
+    id: '/ze-tech-lava-rapido',
+    path: '/ze-tech-lava-rapido',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechLojasRoute =
   AuthenticatedZeTechLojasRouteImport.update({
     id: '/ze-tech-lojas',
@@ -980,6 +1033,13 @@ export interface FileRoutesByFullPath {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
+  '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1040,6 +1100,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1119,6 +1180,13 @@ export interface FileRoutesByTo {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
+  '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1179,6 +1247,7 @@ export interface FileRoutesByTo {
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1260,6 +1329,13 @@ export interface FileRoutesById {
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
+  '/_authenticated/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/_authenticated/lava-insumos': typeof AuthenticatedLavaInsumosRoute
+  '/_authenticated/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
+  '/_authenticated/lava-patio': typeof AuthenticatedLavaPatioRoute
+  '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
+  '/_authenticated/lava-servicos': typeof AuthenticatedLavaServicosRoute
+  '/_authenticated/lava-veiculos': typeof AuthenticatedLavaVeiculosRoute
   '/_authenticated/locacao-balcao': typeof AuthenticatedLocacaoBalcaoRoute
   '/_authenticated/locacao-equipamentos': typeof AuthenticatedLocacaoEquipamentosRoute
   '/_authenticated/locacao-estoque': typeof AuthenticatedLocacaoEstoqueRoute
@@ -1320,6 +1396,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/_authenticated/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
   '/_authenticated/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
@@ -1401,6 +1478,13 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-avisos'
+    | '/lava-insumos'
+    | '/lava-lavadores'
+    | '/lava-patio'
+    | '/lava-planos'
+    | '/lava-servicos'
+    | '/lava-veiculos'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1461,6 +1545,7 @@ export interface FileRouteTypes {
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
+    | '/ze-tech-lava-rapido'
     | '/ze-tech-lojas'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
@@ -1540,6 +1625,13 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-avisos'
+    | '/lava-insumos'
+    | '/lava-lavadores'
+    | '/lava-patio'
+    | '/lava-planos'
+    | '/lava-servicos'
+    | '/lava-veiculos'
     | '/locacao-balcao'
     | '/locacao-equipamentos'
     | '/locacao-estoque'
@@ -1600,6 +1692,7 @@ export interface FileRouteTypes {
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
+    | '/ze-tech-lava-rapido'
     | '/ze-tech-lojas'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
@@ -1680,6 +1773,13 @@ export interface FileRouteTypes {
     | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
+    | '/_authenticated/lava-avisos'
+    | '/_authenticated/lava-insumos'
+    | '/_authenticated/lava-lavadores'
+    | '/_authenticated/lava-patio'
+    | '/_authenticated/lava-planos'
+    | '/_authenticated/lava-servicos'
+    | '/_authenticated/lava-veiculos'
     | '/_authenticated/locacao-balcao'
     | '/_authenticated/locacao-equipamentos'
     | '/_authenticated/locacao-estoque'
@@ -1740,6 +1840,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-clientes'
     | '/_authenticated/ze-tech-cobranca'
     | '/_authenticated/ze-tech-contas-pagar'
+    | '/_authenticated/ze-tech-lava-rapido'
     | '/_authenticated/ze-tech-lojas'
     | '/_authenticated/ze-tech-notas'
     | '/_authenticated/ze-tech-planos'
@@ -2217,6 +2318,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInventariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lava-avisos': {
+      id: '/_authenticated/lava-avisos'
+      path: '/lava-avisos'
+      fullPath: '/lava-avisos'
+      preLoaderRoute: typeof AuthenticatedLavaAvisosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-insumos': {
+      id: '/_authenticated/lava-insumos'
+      path: '/lava-insumos'
+      fullPath: '/lava-insumos'
+      preLoaderRoute: typeof AuthenticatedLavaInsumosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-lavadores': {
+      id: '/_authenticated/lava-lavadores'
+      path: '/lava-lavadores'
+      fullPath: '/lava-lavadores'
+      preLoaderRoute: typeof AuthenticatedLavaLavadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-patio': {
+      id: '/_authenticated/lava-patio'
+      path: '/lava-patio'
+      fullPath: '/lava-patio'
+      preLoaderRoute: typeof AuthenticatedLavaPatioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-planos': {
+      id: '/_authenticated/lava-planos'
+      path: '/lava-planos'
+      fullPath: '/lava-planos'
+      preLoaderRoute: typeof AuthenticatedLavaPlanosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-servicos': {
+      id: '/_authenticated/lava-servicos'
+      path: '/lava-servicos'
+      fullPath: '/lava-servicos'
+      preLoaderRoute: typeof AuthenticatedLavaServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-veiculos': {
+      id: '/_authenticated/lava-veiculos'
+      path: '/lava-veiculos'
+      fullPath: '/lava-veiculos'
+      preLoaderRoute: typeof AuthenticatedLavaVeiculosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/locacao-balcao': {
       id: '/_authenticated/locacao-balcao'
       path: '/locacao-balcao'
@@ -2637,6 +2787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechContasPagarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-lava-rapido': {
+      id: '/_authenticated/ze-tech-lava-rapido'
+      path: '/ze-tech-lava-rapido'
+      fullPath: '/ze-tech-lava-rapido'
+      preLoaderRoute: typeof AuthenticatedZeTechLavaRapidoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-lojas': {
       id: '/_authenticated/ze-tech-lojas'
       path: '/ze-tech-lojas'
@@ -2796,6 +2953,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
+  AuthenticatedLavaAvisosRoute: typeof AuthenticatedLavaAvisosRoute
+  AuthenticatedLavaInsumosRoute: typeof AuthenticatedLavaInsumosRoute
+  AuthenticatedLavaLavadoresRoute: typeof AuthenticatedLavaLavadoresRoute
+  AuthenticatedLavaPatioRoute: typeof AuthenticatedLavaPatioRoute
+  AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
+  AuthenticatedLavaServicosRoute: typeof AuthenticatedLavaServicosRoute
+  AuthenticatedLavaVeiculosRoute: typeof AuthenticatedLavaVeiculosRoute
   AuthenticatedLocacaoBalcaoRoute: typeof AuthenticatedLocacaoBalcaoRoute
   AuthenticatedLocacaoEquipamentosRoute: typeof AuthenticatedLocacaoEquipamentosRoute
   AuthenticatedLocacaoEstoqueRoute: typeof AuthenticatedLocacaoEstoqueRoute
@@ -2856,6 +3020,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechClientesRoute: typeof AuthenticatedZeTechClientesRoute
   AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
+  AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
   AuthenticatedZeTechLojasRoute: typeof AuthenticatedZeTechLojasRoute
   AuthenticatedZeTechNotasRoute: typeof AuthenticatedZeTechNotasRoute
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
@@ -2930,6 +3095,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
+  AuthenticatedLavaAvisosRoute: AuthenticatedLavaAvisosRoute,
+  AuthenticatedLavaInsumosRoute: AuthenticatedLavaInsumosRoute,
+  AuthenticatedLavaLavadoresRoute: AuthenticatedLavaLavadoresRoute,
+  AuthenticatedLavaPatioRoute: AuthenticatedLavaPatioRoute,
+  AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,
+  AuthenticatedLavaServicosRoute: AuthenticatedLavaServicosRoute,
+  AuthenticatedLavaVeiculosRoute: AuthenticatedLavaVeiculosRoute,
   AuthenticatedLocacaoBalcaoRoute: AuthenticatedLocacaoBalcaoRoute,
   AuthenticatedLocacaoEquipamentosRoute: AuthenticatedLocacaoEquipamentosRoute,
   AuthenticatedLocacaoEstoqueRoute: AuthenticatedLocacaoEstoqueRoute,
@@ -2992,6 +3164,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechClientesRoute: AuthenticatedZeTechClientesRoute,
   AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,
+  AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
   AuthenticatedZeTechLojasRoute: AuthenticatedZeTechLojasRoute,
   AuthenticatedZeTechNotasRoute: AuthenticatedZeTechNotasRoute,
   AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,
