@@ -291,7 +291,7 @@ describe("rodada de envio", () => {
       return { idMensagem: "EVO-1", jid: "5511988887777@s.whatsapp.net" };
     });
     const rel = await despachar(d);
-    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0 });
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0, semRegistro: 0 });
     assert.ok(textos[0]!.includes("Ana"));
     assert.ok(textos[0]!.includes("ABC-1D23") || textos[0]!.includes("ABC1D23"));
     assert.ok(textos[0]!.includes("Lava Top"));
@@ -313,7 +313,7 @@ describe("rodada de envio", () => {
       },
     );
     const rel = await despachar(d);
-    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 0, repetir: 1, falhas: 2 });
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 0, repetir: 1, falhas: 2, semRegistro: 0 });
     assert.equal(resultados[0]!.proxima?.toISOString(), "2026-01-01T15:02:00.000Z");
     assert.equal(resultados[1]!.proxima, null);
     assert.equal(resultados[2]!.proxima, null); // quarta tentativa: esgotou
@@ -327,6 +327,31 @@ describe("rodada de envio", () => {
     await despachar(d);
     assert.deepEqual(pausas, [1000]);
     assert.deepEqual(reservas, [true]); // 12h em Brasília
+  });
+
+  it("envio feito mas resultado não gravado nunca volta para a fila", async () => {
+    const chamadas: boolean[] = [];
+    const { d } = deps([item()], async () => ({ idMensagem: "EVO-9", jid: null }));
+    d.resultado = async (r) => {
+      chamadas.push(r.ok);
+      throw new Error("banco fora do ar");
+    };
+    const rel = await despachar(d);
+    assert.deepEqual(chamadas, [true, true, true]); // tenta gravar o sucesso 3 vezes, nunca grava falha
+    assert.deepEqual(rel, { enfileiradas: 3, enviadas: 1, repetir: 0, falhas: 0, semRegistro: 1 });
+  });
+
+  it("grava o sucesso na segunda tentativa quando o banco falha uma vez", async () => {
+    let n = 0;
+    const gravados: boolean[] = [];
+    const { d } = deps([item()], async () => ({ idMensagem: "EVO-9", jid: null }));
+    d.resultado = async (r) => {
+      if (n++ === 0) throw new Error("falha passageira");
+      gravados.push(r.ok);
+    };
+    const rel = await despachar(d);
+    assert.deepEqual(gravados, [true]);
+    assert.equal(rel.semRegistro, 0);
   });
 
   it("texto do plano e do retorno usa os campos próprios", () => {

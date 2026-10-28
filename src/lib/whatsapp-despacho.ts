@@ -106,6 +106,8 @@ export type RelatorioDespacho = {
   enviadas: number;
   repetir: number;
   falhas: number;
+  /** enviadas pelo WhatsApp, mas sem o resultado gravado: o banco as marca para conferência */
+  semRegistro: number;
 };
 
 /** Uma rodada do envio: enfileira o automático, reserva o que é da hora e envia um a um, com pausa entre mensagens. */
@@ -113,7 +115,13 @@ export async function despachar(deps: DepsDespacho): Promise<RelatorioDespacho> 
   const agora = deps.agora ?? (() => new Date());
   const aleatorio = deps.aleatorio ?? Math.random;
   const pausa = deps.pausa ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  const rel: RelatorioDespacho = { enfileiradas: 0, enviadas: 0, repetir: 0, falhas: 0 };
+  const rel: RelatorioDespacho = {
+    enfileiradas: 0,
+    enviadas: 0,
+    repetir: 0,
+    falhas: 0,
+    semRegistro: 0,
+  };
   rel.enfileiradas = await deps.varrer();
   const itens = await deps.reservar(20, 2, dentroDoHorario(agora()));
   let primeiro = true;
@@ -121,17 +129,35 @@ export async function despachar(deps: DepsDespacho): Promise<RelatorioDespacho> 
     // pausa entre uma mensagem e outra, para não sair em rajada
     if (!primeiro) await pausa(1000 + Math.round(aleatorio() * 2000));
     primeiro = false;
+    let enviado: { idMensagem: string; jid: string | null };
     try {
-      const r = await deps.enviar(item, textoDoItem(item), atrasoDeEnvio(aleatorio));
-      await deps.resultado({ id: item.id, ok: true, idExterno: r.idMensagem, jid: r.jid });
-      rel.enviadas++;
+      enviado = await deps.enviar(item, textoDoItem(item), atrasoDeEnvio(aleatorio));
     } catch (e) {
       const erro = e instanceof Error ? e.message : "Falha no envio";
       const proxima = falhaRepetivel(e) ? proximaTentativaEm(item.tentativas, agora()) : null;
       await deps.resultado({ id: item.id, ok: false, erro, proxima });
       if (proxima) rel.repetir++;
       else rel.falhas++;
+      continue;
     }
+    // já saiu pelo WhatsApp: se não der para gravar, nunca volta para a fila (duplicaria a mensagem).
+    // Fica "enviando" e o banco a marca para conferência depois de 5 minutos.
+    rel.enviadas++;
+    let gravado = false;
+    for (let i = 0; i < 3 && !gravado; i++) {
+      try {
+        await deps.resultado({
+          id: item.id,
+          ok: true,
+          idExterno: enviado.idMensagem,
+          jid: enviado.jid,
+        });
+        gravado = true;
+      } catch {
+        if (i < 2) await pausa(500);
+      }
+    }
+    if (!gravado) rel.semRegistro++;
   }
   return rel;
 }

@@ -324,6 +324,18 @@ BEGIN
    WHERE m.situacao = 'na_fila' AND m.origem = 'automatico'
      AND NOT EXISTS (SELECT 1 FROM public.wa_config c WHERE c.tenant_id = m.tenant_id AND c.estado = 'conectada'
                        AND ((m.tipo = 'pronto' AND c.auto_pronto) OR (m.tipo = 'plano_vencendo' AND c.auto_plano)));
+  -- reconfere cada mensagem na hora de enviar: cliente que deixou de aceitar mensagens, pediu SAIR, ficou sem telefone válido
+  -- ou ordem/assinatura que já não vale são cancelados. Quem segue valendo é enviado ao telefone e com os dados de agora.
+  UPDATE public.wa_mensagens m
+     SET situacao = CASE WHEN x.v IS NULL THEN 'cancelada' ELSE m.situacao END,
+         erro = CASE WHEN x.v IS NULL THEN 'O cliente não pode mais receber esta mensagem' ELSE m.erro END,
+         numero = coalesce(x.v ->> 'numero', m.numero),
+         variaveis = coalesce(x.v, m.variaveis)
+    FROM (SELECT d.id, CASE WHEN d.referencia ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                            THEN public._wa_variaveis(d.tenant_id, d.tipo, d.referencia::uuid) END AS v
+            FROM public.wa_mensagens d
+           WHERE d.situacao = 'na_fila' AND d.proxima_tentativa <= now()) x
+   WHERE m.id = x.id AND m.situacao = 'na_fila';
   WITH cand AS (
     SELECT m.id, row_number() OVER (PARTITION BY m.tenant_id ORDER BY m.proxima_tentativa, m.created_at) AS pos, m.proxima_tentativa
       FROM public.wa_mensagens m

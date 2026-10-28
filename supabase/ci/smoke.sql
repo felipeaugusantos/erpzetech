@@ -7339,6 +7339,18 @@ BEGIN
   PERFORM ci.exige((SELECT origem = 'automatico' AND situacao = 'na_fila' FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), 'mensagem automática na fila');
   PERFORM ci.exige(wa_auto_varrer() = 0, 'varrer de novo não duplica');
   PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, false)) = 0, 'automático fora do horário espera');
+  -- consentimento reconferido na hora de enviar: quem deixou de aceitar mensagens depois de entrar na fila não recebe
+  UPDATE wa_mensagens SET situacao = 'na_fila', erro = NULL, tentativas = 0, proxima_tentativa = now() - interval '1 minute' WHERE tipo = 'pronto' AND referencia = o4::text;
+  UPDATE clientes SET aceita_mensagens = false WHERE id = cli;
+  PERFORM ci.exige(jsonb_array_length(wa_reservar(10, 2, true)) = 0, 'cliente que deixou de aceitar mensagens não recebe o que estava na fila');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND erro LIKE 'O cliente não pode mais receber%' FROM wa_mensagens WHERE tipo = 'pronto' AND referencia = o4::text), 'mensagem da fila é cancelada quando o cliente deixa de aceitar');
+  UPDATE clientes SET aceita_mensagens = true, whatsapp = '(11) 97777-1234' WHERE id = cli;
+  UPDATE wa_mensagens SET situacao = 'na_fila', erro = NULL, tentativas = 0, proxima_tentativa = now() - interval '1 minute' WHERE tipo = 'pronto' AND referencia = o4::text;
+  r := wa_reservar(10, 2, true);
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 ->> 'numero' = '5511977771234', 'telefone trocado depois de entrar na fila: envia para o número de agora');
+  UPDATE wa_mensagens SET situacao = 'na_fila', tentativas = 0 WHERE id = (r -> 0 ->> 'id')::uuid;
+  UPDATE clientes SET whatsapp = '(11) 98888-7777' WHERE id = cli;
+
   -- desligar o automático cancela o que ficou na fila, sem mexer no manual
   PERFORM ci.entrar(gest);
   PERFORM wa_automatico_salvar(false, false);
