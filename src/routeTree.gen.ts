@@ -74,6 +74,7 @@ import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authe
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
 import { Route as AuthenticatedLavaAvisosRouteImport } from './routes/_authenticated/lava-avisos'
+import { Route as AuthenticatedLavaInsumosRouteImport } from './routes/_authenticated/lava-insumos'
 import { Route as AuthenticatedLavaLavadoresRouteImport } from './routes/_authenticated/lava-lavadores'
 import { Route as AuthenticatedLavaPatioRouteImport } from './routes/_authenticated/lava-patio'
 import { Route as AuthenticatedLavaPlanosRouteImport } from './routes/_authenticated/lava-planos'
@@ -513,6 +514,12 @@ const AuthenticatedLavaAvisosRoute = AuthenticatedLavaAvisosRouteImport.update({
   path: '/lava-avisos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLavaInsumosRoute =
+  AuthenticatedLavaInsumosRouteImport.update({
+    id: '/lava-insumos',
+    path: '/lava-insumos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLavaLavadoresRoute =
   AuthenticatedLavaLavadoresRouteImport.update({
     id: '/lava-lavadores',
@@ -1020,6 +1027,7 @@ export interface FileRoutesByFullPath {
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
@@ -1165,6 +1173,7 @@ export interface FileRoutesByTo {
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
   '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
   '/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/lava-planos': typeof AuthenticatedLavaPlanosRoute
@@ -1312,6 +1321,7 @@ export interface FileRoutesById {
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
   '/_authenticated/lava-avisos': typeof AuthenticatedLavaAvisosRoute
+  '/_authenticated/lava-insumos': typeof AuthenticatedLavaInsumosRoute
   '/_authenticated/lava-lavadores': typeof AuthenticatedLavaLavadoresRoute
   '/_authenticated/lava-patio': typeof AuthenticatedLavaPatioRoute
   '/_authenticated/lava-planos': typeof AuthenticatedLavaPlanosRoute
@@ -1459,6 +1469,7 @@ export interface FileRouteTypes {
     | '/impostos-nota'
     | '/inventarios'
     | '/lava-avisos'
+    | '/lava-insumos'
     | '/lava-lavadores'
     | '/lava-patio'
     | '/lava-planos'
@@ -1604,6 +1615,7 @@ export interface FileRouteTypes {
     | '/impostos-nota'
     | '/inventarios'
     | '/lava-avisos'
+    | '/lava-insumos'
     | '/lava-lavadores'
     | '/lava-patio'
     | '/lava-planos'
@@ -1750,6 +1762,7 @@ export interface FileRouteTypes {
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
     | '/_authenticated/lava-avisos'
+    | '/_authenticated/lava-insumos'
     | '/_authenticated/lava-lavadores'
     | '/_authenticated/lava-patio'
     | '/_authenticated/lava-planos'
@@ -2297,6 +2310,13 @@ declare module '@tanstack/react-router' {
       path: '/lava-avisos'
       fullPath: '/lava-avisos'
       preLoaderRoute: typeof AuthenticatedLavaAvisosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lava-insumos': {
+      id: '/_authenticated/lava-insumos'
+      path: '/lava-insumos'
+      fullPath: '/lava-insumos'
+      preLoaderRoute: typeof AuthenticatedLavaInsumosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/lava-lavadores': {
@@ -2914,6 +2934,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
   AuthenticatedLavaAvisosRoute: typeof AuthenticatedLavaAvisosRoute
+  AuthenticatedLavaInsumosRoute: typeof AuthenticatedLavaInsumosRoute
   AuthenticatedLavaLavadoresRoute: typeof AuthenticatedLavaLavadoresRoute
   AuthenticatedLavaPatioRoute: typeof AuthenticatedLavaPatioRoute
   AuthenticatedLavaPlanosRoute: typeof AuthenticatedLavaPlanosRoute
@@ -3054,6 +3075,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
   AuthenticatedLavaAvisosRoute: AuthenticatedLavaAvisosRoute,
+  AuthenticatedLavaInsumosRoute: AuthenticatedLavaInsumosRoute,
   AuthenticatedLavaLavadoresRoute: AuthenticatedLavaLavadoresRoute,
   AuthenticatedLavaPatioRoute: AuthenticatedLavaPatioRoute,
   AuthenticatedLavaPlanosRoute: AuthenticatedLavaPlanosRoute,

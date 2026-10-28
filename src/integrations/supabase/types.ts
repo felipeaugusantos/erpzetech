@@ -14,6 +14,157 @@ export type Database = {
   }
   public: {
     Tables: {
+      lr_insumo_baixas: {
+        Row: {
+          baixado_em: string | null
+          created_at: string
+          deposito_id: string
+          erro: string | null
+          id: string
+          item_id: string
+          ordem_id: string
+          produto_id: string
+          quantidade: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baixado_em?: string | null
+          created_at?: string
+          deposito_id: string
+          erro?: string | null
+          id?: string
+          item_id: string
+          ordem_id: string
+          produto_id: string
+          quantidade: number
+          situacao: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          baixado_em?: string | null
+          created_at?: string
+          deposito_id?: string
+          erro?: string | null
+          id?: string
+          item_id?: string
+          ordem_id?: string
+          produto_id?: string
+          quantidade?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_insumo_baixas_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordem_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_insumo_baixas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_insumo_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          deposito_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          deposito_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          deposito_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_insumo_config_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_servico_insumos: {
+        Row: {
+          created_at: string
+          id: string
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          produto_id: string
+          quantidade: number
+          servico_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          servico_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_servico_insumos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_servico_insumos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_contatos: {
         Row: {
           canal: string
@@ -10386,6 +10537,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lr_insumo_baixa_refazer: { Args: { p_id: string }; Returns: undefined }
+      lr_insumo_config_salvar: {
+        Args: { p_ativo?: boolean; p_deposito_id: string }
+        Returns: undefined
+      }
+      lr_servico_insumo_remover: { Args: { p_id: string }; Returns: undefined }
+      lr_servico_insumo_salvar: {
+        Args: { p_produto_id: string; p_quantidade: number; p_servico_id: string }
+        Returns: string
+      }
       lr_contato_registrar: {
         Args: { p_canal?: string; p_referencia: string; p_tipo: string }
         Returns: undefined

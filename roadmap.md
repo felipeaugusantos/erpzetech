@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Lava rápido, Fase 2: planos mensais por veículo (vendidos no caixa, com saldo e validade), fidelidade (a N-ésima lavagem é brinde), avisos ao cliente pelo WhatsApp (veículo pronto, plano vencendo, retorno; envio assistido pela recepção) e insumos no estoque por serviço (baixa na entrega que nunca trava a cobrança). CI do banco com migrations 20261119 a 20261121 e seções 68 a 70 do smoke, 559 testes, typecheck e build passaram. Telas não exercitadas no navegador com sessão real. Pendente: envio automático do WhatsApp (exige a API oficial contratada), cobrança recorrente no cartão e fila offline para o lava rápido.
+
 - [x] Lava rápido, Fase 1 (carro, moto, caminhonete, avião e helicóptero): módulo liberado pelo CNAE 45.20-0/06, por liberação explícita ou por escolha sem CNPJ; veículos (placa ou prefixo da aeronave), serviços com preço por tipo de veículo, lavadores com comissão, pátio com aguardando/lavando/secando/pronto e "Entregar e cobrar" pela frente de caixa com NFS-e em rascunho. CI do banco (migrations + 57 conferências novas de permissão, preço, cobrança e venda cancelada), 11 testes novos, typecheck e build passaram. Telas não exercitadas no navegador com sessão real. Fica para a Fase 2: planos mensais, WhatsApp automático, fidelidade e insumos no estoque.
 
 - [x] Acesso por usuário sem link: /auth aceita código estável da empresa, exibido ao administrador e ao criar acessos; 21 testes passaram e senha incorreta recusada no servidor. Entrada com senha real de operador sem link não exercitada.

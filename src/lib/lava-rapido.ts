@@ -247,3 +247,7 @@ export function montarMensagemLava(
     (m, k: string) => mapa[k] ?? m,
   );
 }
+
+/** Quantidade de insumo em português, até 3 casas e sem zeros sobrando (0,05 · 1 · 2,5). */
+export const formatarQuantidade = (q: number) =>
+  q.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 });

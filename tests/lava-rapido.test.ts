@@ -17,6 +17,7 @@ import {
   textoFidelidade,
   totalCobrado,
   formatarIdentificacao,
+  formatarQuantidade,
   identificacaoValida,
   liquidoDoServico,
   minutosNoPatio,
@@ -205,4 +206,12 @@ test("mensagens do lava rápido trocam os campos e deixam intacto o que não tem
     "Faz {dias} dias, Ana",
   );
   assert.equal(montarMensagemLava("Faz {dias} dias", { dias: 40 }), "Faz 40 dias");
+});
+
+test("quantidade de insumo sem zeros sobrando", () => {
+  assert.equal(formatarQuantidade(0.05), "0,05");
+  assert.equal(formatarQuantidade(1), "1");
+  assert.equal(formatarQuantidade(2.5), "2,5");
+  assert.equal(formatarQuantidade(0.1234), "0,123");
+  assert.equal(formatarQuantidade(1000), "1.000");
 });

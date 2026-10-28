@@ -6610,3 +6610,124 @@ BEGIN
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(vend, $c$SELECT lr_mensagens_pendentes('pronto')$c$, 'avisos com o módulo desligado');
 END $$;
+
+-- 70. Lava rápido (insumos): receita por serviço, baixa na entrega, falta de saldo não trava a entrega, refazer, sem baixa em dobro
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; dep uuid; dep_b uuid; v1 uuid; serv uuid; serv_prod uuid; lav uuid; shampoo uuid; cera uuid; sv_prod uuid; ins uuid;
+  o1 uuid; o2 uuid; o3 uuid; ped uuid; ped2 uuid; baixa uuid; r jsonb;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'Lava Insumos CI', false) RETURNING id INTO dep;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Outro depósito CI') RETURNING id INTO dep_b;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-SHAMPOO-CI', 'Shampoo automotivo CI', 'L', 0, true) RETURNING id INTO shampoo;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-CERA-CI', 'Cera CI', 'UN', 0, true) RETURNING id INTO cera;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Insumo CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(shampoo, dep, 'entrada'::mov_tipo, 1, 'ci', 'ci');
+  PERFORM registrar_movimentacao(cera, dep, 'entrada'::mov_tipo, 5, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'INS1A11', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem insumos","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Insumos CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM lr_servicos WHERE id = serv;
+
+  -- cadastro: só administrador e gestor; o insumo é produto com estoque
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_insumo_config_salvar(%L)$c$, dep), 'vendedor escolhe o depósito');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, shampoo), 'estoquista cadastra receita');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, shampoo), 'garçom cadastra receita');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 0)$c$, serv, shampoo), 'quantidade zero');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, serv, serv_prod), 'serviço como insumo (sem controle de estoque)');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_servico_insumo_salvar(%L, %L, 1)$c$, gen_random_uuid(), shampoo), 'serviço que não existe');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT lr_insumo_config_salvar(%L)$c$, gen_random_uuid()), 'depósito que não existe');
+  PERFORM ci.entrar(gest);
+  ins := lr_servico_insumo_salvar(serv, shampoo, 0.5);
+  PERFORM lr_servico_insumo_salvar(serv, shampoo, 0.4);
+  PERFORM lr_servico_insumo_salvar(serv, cera, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 AND bool_or(quantidade = 0.4) FROM lr_servico_insumos WHERE servico_id = serv), 'a receita guarda uma linha por insumo, com a última quantidade');
+
+  -- sem configuração do depósito: entrega sem baixar nada
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o1, 'lavando'); PERFORM lr_ordem_situacao(o1, 'pronto');
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o1, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_insumo_baixas WHERE ordem_id = o1), 'sem depósito configurado nada é baixado');
+
+  -- configurado: baixa na entrega. Shampoo 0,4 (saldo 1) e cera 1 (saldo 5)
+  PERFORM ci.entrar(gest);
+  PERFORM lr_insumo_config_salvar(dep);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o2, 'lavando'); PERFORM lr_ordem_situacao(o2, 'pronto');
+  ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30);
+  PERFORM lr_ordem_retirar(o2, ped2);
+  PERFORM lr_ordem_retirar(o2, ped2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 AND bool_and(situacao = 'baixado') FROM lr_insumo_baixas WHERE ordem_id = o2), 'a entrega baixa os dois insumos, uma vez');
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep) AND (SELECT quantidade = 4 FROM estoques WHERE produto_id = cera AND deposito_id = dep), 'o estoque do depósito baixou');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM estoque_movimentacoes WHERE produto_id = shampoo AND documento = 'LR-' || upper(left(o2::text, 8))), 'o movimento fica ligado à ordem pelo documento');
+
+  -- venda cancelada e nova cobrança: a lavagem já foi feita, não baixa de novo
+  UPDATE pedidos SET situacao = 'cancelado' WHERE id = ped2;
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_retirar(o2, pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'cobrar de novo depois de venda cancelada não baixa em dobro');
+
+  -- falta de saldo: a entrega acontece, a falha fica registrada e dá para refazer
+  PERFORM ci.entrar(gest);
+  PERFORM lr_servico_insumo_salvar(serv, shampoo, 5);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+  r := lr_ordem_retirar(o3, pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 40)), 'crediario', cli, 0, 1, current_date + 30));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM lr_ordens WHERE id = o3), 'saldo insuficiente não trava a entrega');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o3) OR EXISTS (SELECT 1 FROM nfe WHERE pedido_id = (r ->> 'pedido_id')::uuid AND modelo = 'nfse'), 'a cobrança e a NFS-e seguem normais');
+  PERFORM ci.exige((SELECT situacao = 'falhou' AND erro IS NOT NULL FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = shampoo), 'a baixa que faltou saldo fica como falhou, com o motivo');
+  PERFORM ci.exige((SELECT situacao = 'baixado' FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = cera), 'o outro insumo da mesma ordem baixa normalmente');
+  PERFORM ci.exige((SELECT quantidade = 0.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'a baixa que falhou não mexe no estoque');
+  SELECT id INTO baixa FROM lr_insumo_baixas WHERE ordem_id = o3 AND produto_id = shampoo;
+  PERFORM ci.deve_falhar(gest, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer sem repor o estoque');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'vendedor refaz baixa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'garçom refaz baixa');
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(shampoo, dep, 'entrada'::mov_tipo, 10, 'reposição', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(est);
+  PERFORM lr_insumo_baixa_refazer(baixa);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'baixado' AND erro IS NULL FROM lr_insumo_baixas WHERE id = baixa), 'depois de repor, a baixa refeita fica baixada');
+  PERFORM ci.exige((SELECT quantidade = 5.6 FROM estoques WHERE produto_id = shampoo AND deposito_id = dep), 'o estoque baixou na baixa refeita (0,6 + 10 − 5)');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer baixa que já foi feita');
+
+  -- desligar: nada baixa
+  PERFORM ci.entrar(gest);
+  PERFORM lr_insumo_config_salvar(dep, false);
+  PERFORM lr_servico_insumo_remover(ins);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_servico_insumos WHERE id = ins), 'insumo removido da receita');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_servico_insumo_remover(%L)$c$, ins), 'vendedor remove insumo');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_insumo_baixas') = 0 AND ci.contar(vend, 'SELECT count(*) FROM lr_insumo_baixas') >= 3, 'o garçom não lê baixas');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE lr_insumo_baixas SET situacao = 'baixado' WHERE id = %L$c$, baixa), 'alterar baixa direto');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_insumo_baixa_refazer(%L)$c$, baixa), 'refazer baixa com o módulo desligado');
+END $$;
