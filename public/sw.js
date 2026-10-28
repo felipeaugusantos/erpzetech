@@ -2,7 +2,7 @@
    Guarda as páginas e os arquivos do sistema já abertos, para a frente de caixa, o salão,
    o delivery e a conferência abrirem mesmo sem internet. Os dados da loja não passam por aqui
    (ficam no próprio navegador e são enviados ao banco quando a conexão volta). */
-const VERSAO = "zt-offline-v2";
+const VERSAO = "zt-offline-v3";
 const TELAS = ["/frente-caixa", "/salao", "/delivery", "/conferencia-offline"];
 
 const paginaSemConexao = () =>
