@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { HardHat, Loader2 } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { entrarComUsuarioOuEmail } from "@/lib/login-cliente";
@@ -19,10 +19,14 @@ export const Route = createFileRoute("/auth")({
       { title: "Entrar — ERP Ze Tech" },
       {
         name: "description",
-        content: "Acesse o ERP Ze Tech para gerenciar clientes, produtos e estoque da sua loja.",
+        content:
+          "Acesse o ERP Ze Tech para gerenciar vendas, estoque, compras, financeiro e notas fiscais da sua empresa.",
       },
       { property: "og:title", content: "Entrar no ERP Ze Tech" },
-      { property: "og:description", content: "Acesso ao ERP da sua loja de materiais." },
+      {
+        property: "og:description",
+        content: "Vendas, estoque, compras, financeiro e notas fiscais da sua empresa em um só lugar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -98,17 +102,17 @@ function AuthPage() {
           <span className="font-display text-lg font-bold tracking-wide">ERP ZE TECH</span>
         </Link>
         <div className="max-w-md">
-          <HardHat className="mb-4 size-9 text-sidebar-primary" />
+          <TrendingUp className="mb-4 size-9 text-sidebar-primary" />
           <h2 className="font-display text-3xl font-bold leading-tight">
-            A operação da sua loja de materiais, do balcão ao depósito.
+            Toda a gestão da sua empresa em um só lugar.
           </h2>
           <p className="mt-4 text-sm text-sidebar-foreground/70">
-            Clientes e obras, produtos com conversão de unidades, estoque físico, reservado e
-            disponível em múltiplos depósitos — em um único sistema.
+            Vendas no balcão e PDV, controle de estoque em tempo real, compras com importação de
+            notas fiscais, financeiro integrado e emissão fiscal completa.
           </p>
         </div>
         <p className="text-xs text-sidebar-foreground/50">
-          Multiempresa • Multifilial • Multidepósito
+          Multiempresa • Controle por filial • Operação segura
         </p>
       </div>
 
@@ -117,9 +121,9 @@ function AuthPage() {
           <div className="mb-6 lg:hidden">
             <ZeLogo className="size-10" />
           </div>
-          <h1 className="font-display text-2xl font-bold">Acessar o sistema</h1>
+          <h1 className="font-display text-2xl font-bold">Bem-vindo de volta</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Entre com seu usuário (ou e-mail) e senha, ou com sua conta Google.
+            Entre com seu usuário e código da empresa, ou use seu e-mail cadastrado.
           </p>
 
           <Tabs defaultValue="login" className="mt-6">
@@ -138,21 +142,21 @@ function AuthPage() {
                     autoComplete="username"
                     value={usuarioOuEmail}
                     onChange={(e) => setUsuarioOuEmail(e.target.value)}
-                    placeholder="seu usuário ou voce@empresa.com.br"
+                    placeholder="seu.usuario ou voce@empresa.com.br"
                   />
                 </div>
                 {usuarioOuEmail.trim() !== "" && !pareceEmail(usuarioOuEmail) && (
                   <div>
-                    <Label htmlFor="empresa">Empresa (link ou código)</Label>
+                    <Label htmlFor="empresa">Código ou link da sua empresa</Label>
                     <Input
                       id="empresa"
                       required
                       value={empresa}
                       onChange={(e) => setEmpresa(e.target.value)}
-                      placeholder="Link ou código da empresa"
+                      placeholder="Ex: sua-empresa ou código de acesso"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Use o link personalizado ou o código informado pelo administrador.
+                      Peça o link personalizado ou o código de acesso ao administrador da sua loja.
                     </p>
                   </div>
                 )}
@@ -236,7 +240,18 @@ function AuthPage() {
           </Link>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Ao entrar você acessa o ambiente de demonstração Constrular Materiais.
+            Acesso protegido e criptografado • <strong>ERP Ze Tech</strong>
+            <br />
+            Dúvidas ou problemas de acesso? Fale com o suporte Ze Tech no WhatsApp:{" "}
+            <a
+              href="https://wa.me/5516988547561"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              (16) 98854-7561
+            </a>
+            .
           </p>
         </div>
       </div>
