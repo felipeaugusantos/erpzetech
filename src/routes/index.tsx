@@ -636,6 +636,9 @@ function Landing() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Pet shop, clínica veterinária e lava-rápido, no lugar da implantação inicial
                     </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Inclui cadastro inicial, importação de produtos e treinamento remoto.
+                    </p>
                     <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-display text-2xl font-extrabold">R$ 299</span>
                       <span className="text-xs text-muted-foreground">taxa única</span>
