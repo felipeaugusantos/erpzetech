@@ -5018,72 +5018,6 @@ export type Database = {
           },
         ]
       }
-      empresa_links: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          criado_por: string | null
-          id: string
-          rotulo: string | null
-          slug: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          criado_por?: string | null
-          id?: string
-          rotulo?: string | null
-          slug: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          criado_por?: string | null
-          id?: string
-          rotulo?: string | null
-          slug?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      link_acesso_usuarios: {
-        Row: {
-          acessos: number
-          link_id: string | null
-          link_slug: string
-          origem: string
-          primeiro_em: string
-          tenant_id: string
-          ultimo_em: string
-          user_id: string
-        }
-        Insert: {
-          acessos?: number
-          link_id?: string | null
-          link_slug: string
-          origem: string
-          primeiro_em?: string
-          tenant_id: string
-          ultimo_em?: string
-          user_id: string
-        }
-        Update: {
-          acessos?: number
-          link_id?: string | null
-          link_slug?: string
-          origem?: string
-          primeiro_em?: string
-          tenant_id?: string
-          ultimo_em?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       lr_contatos: {
         Row: {
           canal: string
@@ -12316,17 +12250,6 @@ export type Database = {
         Args: { p_texto: string; p_tipo: string }
         Returns: undefined
       }
-      link_acesso_registrar: { Args: { p_slug: string; p_user: string }; Returns: undefined }
-      saas_link_atualizar: {
-        Args: { p_ativo: boolean; p_id: string; p_rotulo: string }
-        Returns: undefined
-      }
-      saas_link_criar: {
-        Args: { p_rotulo?: string; p_slug: string; p_tenant: string }
-        Returns: string
-      }
-      saas_link_usuarios: { Args: { p_tenant: string }; Returns: Json }
-      saas_links_listar: { Args: never; Returns: Json }
       lr_mensagens_pendentes: {
         Args: { p_janela?: number; p_tipo: string }
         Returns: Json
