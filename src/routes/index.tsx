@@ -226,7 +226,7 @@ const planos = [
   {
     nome: NOME_DO_PLANO.rede,
     preco: "R$ 599",
-    resumo: "Multiempresa e filiais, usuários ilimitados",
+    resumo: "Inclui 2 empresas, cada uma com 1 filial. Usuários ilimitados.",
     destaque: false,
     teste: true,
     itens: [
@@ -237,6 +237,22 @@ const planos = [
       "Balanço fiscal",
       "Relatórios gerenciais",
     ],
+  },
+];
+
+/** Expansão do plano Empresarial. A primeira filial de uma empresa adicional já está na mensalidade da empresa. */
+const expansao = [
+  {
+    titulo: "Empresa adicional, incluindo a primeira filial",
+    implantacao: "R$ 599",
+    mensalidade: "R$ 149",
+    unidade: "/mês",
+  },
+  {
+    titulo: "Demais filiais",
+    implantacao: "R$ 390",
+    mensalidade: "R$ 99",
+    unidade: "/mês por filial",
   },
 ];
 
@@ -531,24 +547,60 @@ function Landing() {
               </div>
             ))}
           </div>
-          <div className="panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">
-            <div>
-              <p className="font-display text-sm font-semibold">Filial extra</p>
-              <p className="text-xs text-muted-foreground">
-                Para cada loja adicional no plano {NOME_DO_PLANO.rede}
-              </p>
-            </div>
-            <p className="font-display text-lg font-bold">
-              R$ 390<span className="text-xs font-medium text-muted-foreground">/mês</span>
+          <div className="panel mt-6 p-5 sm:p-6">
+            <h3 className="font-display text-lg font-bold">Implantação e expansão</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Implantação é paga uma única vez. Mensalidade é cobrada todo mês.
             </p>
-            <div className="hidden h-8 w-px bg-border sm:block" />
-            <div>
-              <p className="font-display text-sm font-semibold">Implantação</p>
-              <p className="text-xs text-muted-foreground">
-                Cadastro inicial, importação de produtos e treinamento
-              </p>
+            <div className="mt-5 grid gap-6 md:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                  Contratação inicial
+                </p>
+                <div className="mt-3 rounded-lg border border-border bg-secondary p-4">
+                  <p className="text-sm font-semibold">Implantação inicial</p>
+                  <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="font-display text-2xl font-extrabold">R$ 1.500</span>
+                    <span className="text-xs text-muted-foreground">pagamento único</span>
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                  Expansão do plano {NOME_DO_PLANO.rede}
+                </p>
+                <div className="mt-3 space-y-3">
+                  {expansao.map((e) => (
+                    <div
+                      key={e.titulo}
+                      className="rounded-lg border border-border bg-secondary p-4"
+                    >
+                      <p className="text-sm font-semibold">{e.titulo}</p>
+                      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Implantação</dt>
+                          <dd className="font-display text-lg font-bold">
+                            {e.implantacao}{" "}
+                            <span className="text-xs font-medium text-muted-foreground">
+                              pagamento único
+                            </span>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted-foreground">Mensalidade</dt>
+                          <dd className="font-display text-lg font-bold">
+                            {e.mensalidade}
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {e.unidade}
+                            </span>
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="font-display text-lg font-bold">R$ 1.500</p>
           </div>
         </div>
       </section>
