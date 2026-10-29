@@ -16,7 +16,7 @@ Permitir que uma indústria pequena de **móveis e marcenaria** (segmento inicia
 1. **Segmento inicial: móveis e marcenaria** (confirmado). Núcleo simples, sem campos de outros segmentos.
 2. Predomina a **produção sob medida, por encomenda**: a OP nasce de um pedido ou orçamento aprovado e o móvel pronto **não** entra no estoque, vai para o cliente. Produção para estoque (linha padrão) usa a mesma OP, com entrada no estoque.
 3. A fábrica sob medida atual (`/personalizacao`, `/producao`, `/custo-par`, `/movimento-grade`) é de **grade de tamanhos** (roupas e calçados) e não serve a móveis; fica como está e não é migrada (a decisão 3 anterior fica resolvida assim).
-4. Ainda a confirmar: perfil de apontamento, CNAE exato e custo de mão de obra (seção 9).
+4. Decisões de perfil, CNAE, custo, produto, movimentação de estoque, sobras e comercial: seção 9. Só a validação do CNAE pelo contador e o preço e a taxa inicial do módulo seguem em aberto.
 
 ### Fluxo típico de marcenaria que o módulo precisa cobrir
 
@@ -65,7 +65,7 @@ Cada uma confere `manufatura_liberada()` e o perfil, e usa só o tenant da sess�
 
 Regras de consumo (quantidades com 4 casas, como na ficha técnica): respeita `depositos.permite_negativo`; insumo sem saldo recusa com mensagem clara (como `restaurante_movimentar_insumos`); refugo consome insumo e não entra no estoque do acabado; sobras de chapa (retalhos) não são tratadas na fase 1; custo real da OP = insumos consumidos pelo custo médio do momento + mão de obra manual.
 
-Decisão técnica: reaproveitar `mov_tipo` (`saida` e `entrada`) com `documento = 'OP-n'`, sem criar valor novo no enum na fase 1.
+Decisão técnica (resolvida): manter `mov_tipo` em `saida` e `entrada`, com `documento = 'OP-n'`; valor novo no enum é difícil de desfazer e muda relatórios de estoque. O prefixo do documento permite filtrar o que veio da produção. Reavaliar na fase 2, se algum relatório precisar distinguir.
 
 ## 5. Telas e menu
 
@@ -82,9 +82,9 @@ Mesmos componentes e padrões das demais telas (`PageHeader`, `ModuloBloqueado`,
 ## 6. Liberação e perfis
 
 - **Liberação:** nova entrada `manufatura` em `empresa_modulos_liberados` (ajustar o `CHECK`, como em `20261117000000_lava_rapido.sql`), em `ModuloCnae`, `ROTULO_MODULO`, `moduloLiberadoEmpresa` e `useModulosCnae`. Sem novo ramo de atividade na fase 1, para não mexer no cadastro de produto por módulo.
-- **CNAE:** candidatos para móveis e marcenaria: `3101`, `3102`, `3103` (fabricação de móveis) e os de artefatos de madeira, como `1622`, `1623` e `1629`. **Lista a validar com o contador ou a tabela oficial antes de entrar no código**, com prefixos longos para não pegar outras atividades (mesmo cuidado de `cnae-regras.ts`) e sem sobrepor os de reparo que já liberam assistência (`3314`, `3319`). A liberação explícita pela equipe cobre quem tem outro CNAE.
-- **Perfis:** `administrador` e `gestor` mantêm BOM e OP; `estoquista` aponta produção (em marcenaria, quem aponta costuma ser o encarregado da oficina; confirmar). Perfil novo de produção só se necessário (padrão `ALTER TYPE app_role ADD VALUE`, como `profissional` e `veterinario`).
-- **Sem trava por plano**, como hoje. Preço, plano e taxa inicial do módulo não estão definidos e não entram aqui.
+- **CNAE (decidido):** liberação explícita pela equipe mais os CNAE `3101`, `3102` e `3103` (fabricação de móveis), com prefixos longos para não pegar outras atividades (mesmo cuidado de `cnae-regras.ts`) e sem sobrepor os de reparo que já liberam assistência (`3314`, `3319`). Os de artefatos de madeira (`16xx`) e de instalação de armários embutidos só entram depois da **validação do contador ou da tabela oficial** (pendente, não verificada). Errar a lista só muda quem vê o menu, e a liberação explícita cobre o resto.
+- **Perfis (decidido):** `administrador` e `gestor` mantêm lista de materiais e OP. **Perfil novo `producao`** para o encarregado da oficina: aponta produção e vê as OPs, sem ver custo e sem mexer em saldo de estoque. Não usar o `estoquista`, que pode ajustar estoque e fazer inventário. As funções do banco gravam o estoque por conta própria, então o perfil não precisa de permissão direta nas tabelas. Migration pequena com `ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'producao'` (padrão de `profissional` e `veterinario`), mais o gate de menu e os testes.
+- **Sem trava por plano**, como hoje. Preço, plano e taxa inicial do módulo não estão definidos e não entram aqui (ver o piloto fechado na seção 9).
 
 ## 7. Segurança e CI (regras que o `supabase/ci/smoke.sql` já impõe)
 
@@ -95,23 +95,27 @@ Mesmos componentes e padrões das demais telas (`PageHeader`, `ModuloBloqueado`,
 
 ## 8. Fases
 
-1. **Fase 1, núcleo:** lista de materiais (modelo), OP sob medida ou de linha padrão ligada a pedido, itens editáveis até a liberação, reserva de chapas e ferragens, apontamento simples, baixa de insumos, custo da OP, menu e liberação do módulo.
-2. **Fase 2:** etapas de marcenaria (corte, furação e usinagem, montagem, pintura ou acabamento, embalagem) como roteiro-padrão editável, apontamento por etapa com minutos, custo de mão de obra por hora, necessidade de materiais ligada a compras, BOM com semiacabado (detecção de ciclo).
+1. **Fase 1, núcleo:** perfil `producao`, lista de materiais (modelo), OP sob medida ou de linha padrão ligada a pedido, itens editáveis até a liberação, reserva de chapas e ferragens, apontamento simples, baixa de insumos, custo da OP, menu e liberação do módulo.
+2. **Fase 2:** etapas de marcenaria (corte, furação e usinagem, montagem, pintura ou acabamento, embalagem) como roteiro-padrão editável, apontamento por etapa com minutos, custo de mão de obra por hora (cadastro de custo por funcionário ou etapa), custo da OP no relatório "Lucro e margem" pelo `pedido_id`, necessidade de materiais ligada a compras, BOM com semiacabado (detecção de ciclo).
 3. **Fase 3:** retalhos e sobras de chapa, plano de corte e aproveitamento, relatórios de rendimento, perda e custo real contra padrão.
 
 ## 9. Decisões
 
-**Resolvidas:** segmento inicial = móveis e marcenaria; produção predominante sob encomenda (e também linha padrão); personalização de grade fica à parte.
+**Resolvidas pelo responsável:**
 
-**Em aberto (suas):**
+1. **Segmento inicial:** móveis e marcenaria; produção predominante sob encomenda (e também linha padrão); personalização de grade fica à parte.
+2. **Perfil de apontamento:** perfil novo `producao` (seção 6).
+3. **CNAE:** liberação explícita mais `3101`, `3102` e `3103`; os demais só depois da validação do contador (seção 6).
+4. **Custo da OP na fase 1:** insumos mais mão de obra em valor manual. Custo por hora na fase 2, com o apontamento de minutos.
+5. **Produto cadastrado para móvel sob medida:** não. A OP tem descrição própria e o custo vai para a OP e o pedido (`pedido_id`, `custo_real`); a integração com "Lucro e margem" entra na fase 2.
+6. **Tipo de movimentação de estoque:** manter `saida` e `entrada` com `documento = 'OP-n'` (seção 4).
+7. **Sobras de chapa:** fase 3. Na fase 1 a perda de corte cabe no percentual de perda por material.
+8. **Comercial:** **piloto fechado com 1 ou 2 marcenarias, sem preço público.** O módulo é liberado só pela equipe (liberação explícita) e a cobrança é combinada em contrato. Depois do piloto, o responsável decide preço, plano e taxa inicial com dados reais de uso. A página pública só passa a falar do módulo depois dessa decisão.
 
-1. **Perfil de apontamento:** `estoquista` ou perfil novo de produção.
-2. **CNAE:** validar a lista candidata (seção 6).
-3. **Custo da OP na fase 1:** só insumos mais mão de obra manual (proposto), ou já custo por hora e custos indiretos.
-4. **O móvel sob medida precisa de produto cadastrado?** Proposto: não, a OP tem descrição própria e o custo vai ao pedido.
-5. **Mudar o `mov_tipo`** para ter um tipo "produção" (afeta relatórios de estoque) ou manter `saida`/`entrada`.
-6. **Tratamento de sobras de chapa:** só na fase 3 (proposto) ou antes, se for essencial ao custo.
-7. **Comercial:** preço, plano, taxa inicial e o que a página pública pode dizer. Antes disso, nada é anunciado.
+**Ainda em aberto:**
+
+- Validação do CNAE pelo contador ou pela tabela oficial.
+- Preço, plano e taxa inicial do módulo (nenhum valor é assumido).
 
 ## 10. Riscos
 
