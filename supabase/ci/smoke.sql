@@ -560,6 +560,8 @@ DECLARE
     'assinante_link_sugerido',
     -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
     'saas_taxa_inicial_cliente',
+    -- manufatura: só responde se a empresa tem o módulo liberado pela equipe
+    'manufatura_liberada',
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
     'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
@@ -7584,4 +7586,219 @@ BEGIN
   UPDATE empresas SET ramo_atividade = ramo_ant WHERE tenant_id = demo;
   DELETE FROM saas_clientes WHERE id = cs;
   DELETE FROM saas_operadores WHERE user_id = op;
+END $$;
+
+-- 80. Manufatura (fase 1): só abre por liberação explícita; lista de materiais, ordem, reserva, consumo, entrada do acabado, custo, idempotência e perfis
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001a1';
+  u2   constant uuid := 'a0000000-0000-0000-0000-0000000001a2';
+  t2 uuid; emp uuid; emp2 uuid; cnae_ant text; ramo_ant text; sem_ant text[];
+  dep_i uuid; dep_d uuid; arm uuid; chapa uuid; ferr uuid;
+  b1 uuid; b2 uuid; op uuid; op_med uuid; op_grande uuid; ap uuid; ap2 uuid; ordem_prod mf_ordens; r record; n bigint;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao@ci'), (u2, 'manuf2@ci');
+  INSERT INTO tenants (nome) VALUES ('Manufatura CI 2') RETURNING id INTO t2;
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (t2, 'Marcenaria CI 2') RETURNING id INTO emp2;
+  UPDATE profiles SET tenant_id = demo WHERE id = prod;
+  UPDATE profiles SET tenant_id = t2 WHERE id = u2;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao'), (u2, t2, 'administrador');
+  SELECT id, cnae, ramo_atividade, modulos_sem_cnpj INTO emp, cnae_ant, ramo_ant, sem_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'MF Insumos CI', false) RETURNING id INTO dep_i;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Acabados CI') RETURNING id INTO dep_d;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM', 'Armário padrão CI', 'un', 0) RETURNING id INTO arm;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-MDF', 'Chapa MDF CI', 'chapa', 100) RETURNING id INTO chapa;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-FER', 'Ferragem CI', 'un', 5) RETURNING id INTO ferr;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, chapa, dep_i, 10, 0, 100), (demo, ferr, dep_i, 50, 0, 5);
+
+  -- sem liberação explícita nada abre, nem com CNAE de móveis, ramo ou escolha sem CNPJ
+  UPDATE empresas SET cnae = '3101-2/00', modulos_sem_cnpj = ARRAY[]::text[] WHERE id = emp;
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige(NOT manufatura_liberada(), 'CNAE de móveis não libera a manufatura no piloto');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L))$c$, arm), 'lista de materiais sem o módulo liberado');
+  PERFORM ci.deve_falhar_dono($c$UPDATE empresas SET modulos_sem_cnpj = ARRAY['manufatura'] WHERE cnpj IS NULL$c$, 'escolha sem CNPJ não aceita manufatura');
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige(manufatura_liberada(), 'a liberação explícita abre a manufatura');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(u2);
+  PERFORM ci.exige(NOT manufatura_liberada(), 'a liberação de uma empresa não vale para outra');
+  PERFORM ci.sair();
+
+  -- perfis: só administrador e gestor mantêm lista e ordem; produção e vendedor não
+  PERFORM ci.deve_falhar(vend, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L))$c$, arm), 'vendedor cria lista de materiais');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L))$c$, arm), 'produção cria lista de materiais');
+
+  -- lista de materiais: versão, rascunho editável, ativa congelada, nova versão deixa a anterior obsoleta
+  PERFORM ci.entrar(gest);
+  b1 := mf_bom_salvar(jsonb_build_object('produto_id', arm, 'rotulo', 'Armário v1', 'rendimento', 1,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', chapa, 'quantidade', 2, 'perda_percentual', 10),
+                                     jsonb_build_object('insumo_id', ferr, 'quantidade', 8, 'perda_percentual', 0))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT versao = 1 AND situacao = 'rascunho' FROM mf_boms WHERE id = b1), 'primeira versão nasce em rascunho');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', %L, 'quantidade', 1), jsonb_build_object('insumo_id', %L, 'quantidade', 1))))$c$, arm, chapa, chapa), 'insumo repetido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', %L, 'quantidade', 1))))$c$, arm, arm), 'produto como insumo dele mesmo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', %L, 'quantidade', 1, 'perda_percentual', 95))))$c$, arm, chapa), 'perda de 95%');
+  PERFORM ci.entrar(gest); PERFORM mf_bom_ativar(b1); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'ativa' FROM mf_boms WHERE id = b1), 'lista ativada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_salvar(jsonb_build_object('id', %L, 'produto_id', %L))$c$, b1, arm), 'editar lista ativa');
+  PERFORM ci.entrar(gest);
+  b2 := mf_bom_salvar(jsonb_build_object('produto_id', arm, 'rotulo', 'Armário v2', 'itens', jsonb_build_array(jsonb_build_object('insumo_id', chapa, 'quantidade', 3))));
+  PERFORM mf_bom_ativar(b2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'obsoleta' FROM mf_boms WHERE id = b1) AND (SELECT versao = 2 AND situacao = 'ativa' FROM mf_boms WHERE id = b2), 'nova versão ativa deixa a anterior obsoleta');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO mf_boms (tenant_id, produto_id, versao, situacao) VALUES (%L, %L, 9, 'ativa')$c$, demo, arm), 'duas listas ativas do mesmo produto');
+
+  -- escrita direta é negada: só pelas funções
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO mf_ordens (numero, descricao, quantidade_planejada, deposito_insumos_id) VALUES (999, 'direto', 1, %L)$c$, dep_i), 'inserir ordem direto na tabela');
+
+  -- ordem de linha padrão a partir da lista v1 (obsoleta, ainda usável): itens por unidade = item ÷ rendimento
+  PERFORM ci.entrar(gest);
+  op := mf_ordem_criar(jsonb_build_object('descricao', 'Armários de linha', 'produto_id', arm, 'bom_id', b1, 'quantidade_planejada', 2,
+          'entrada_estoque', true, 'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'planejada' AND numero >= 1 AND custo_padrao = 524.40 FROM mf_ordens WHERE id = op), 'ordem planejada com custo padrão dos itens (4,444 chapas x 100 + 16 ferragens x 5)');
+  PERFORM ci.exige((SELECT quantidade_planejada = 4.444 FROM mf_ordem_insumos WHERE ordem_id = op AND insumo_id = chapa), 'necessidade da chapa com perda de 10%');
+
+  -- produção não vê custo nem as tabelas da ordem; vê só pela função
+  PERFORM ci.exige(ci.contar(prod, 'SELECT count(*) FROM mf_ordens') = 0, 'produção não lê custo das ordens');
+  PERFORM ci.exige(ci.contar(prod, 'SELECT count(*) FROM mf_ordem_insumos') = 0, 'produção não lê custo dos insumos da ordem');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM mf_ordens') >= 1, 'administrador lê as ordens');
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM mf_ordens') = 0, 'outra empresa não lê as ordens');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_liberar(%L)$c$, op), 'produção libera ordem');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT mf_ordem_liberar(%L)$c$, op), 'outra empresa libera a ordem');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_ordem_apontar(%L, 1, 0, NULL, 'antes-da-liberacao')$c$, op), 'apontar ordem ainda planejada');
+
+  -- liberação: reserva os insumos; ordem grande demais não libera
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_liberar(op); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reservado = 4.444 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i), 'liberar reserva a chapa');
+  PERFORM ci.exige((SELECT reservado = 16 FROM estoques WHERE produto_id = ferr AND deposito_id = dep_i), 'liberar reserva a ferragem');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_ordem_itens_salvar(%L, '[]'::jsonb)$c$, op), 'alterar itens depois da liberação');
+  PERFORM ci.entrar(gest);
+  op_grande := mf_ordem_criar(jsonb_build_object('descricao', 'Pedido enorme', 'quantidade_planejada', 100, 'deposito_insumos_id', dep_i,
+                 'itens', jsonb_build_array(jsonb_build_object('insumo_id', chapa, 'quantidade', 1, 'perda_percentual', 0))));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_ordem_liberar(%L)$c$, op_grande), 'liberar sem estoque para a reserva');
+  PERFORM ci.exige((SELECT reservado = 4.444 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i), 'ordem recusada não reserva nada');
+
+  -- apontamento da produção: consome proporcional, usa a reserva, dá entrada do acabado com o custo dos insumos
+  PERFORM ci.entrar(prod); ap := mf_ordem_apontar(op, 1, 0, 30, 'ap-1'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 7.778 AND reservado = 2.222 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i), 'consumo da chapa e reserva que sobra');
+  PERFORM ci.exige((SELECT quantidade = 42 AND reservado = 8 FROM estoques WHERE produto_id = ferr AND deposito_id = dep_i), 'consumo da ferragem e reserva que sobra');
+  PERFORM ci.exige((SELECT quantidade = 1 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'entrada do produto acabado');
+  PERFORM ci.exige((SELECT custo_medio = 262.2 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'custo do acabado vem dos insumos consumidos');
+  PERFORM ci.exige((SELECT situacao = 'em_producao' AND quantidade_produzida = 1 AND custo_real = 262.20 FROM mf_ordens WHERE id = op), 'ordem em produção com custo real');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM estoque_movimentacoes WHERE documento = ('OP-' || (SELECT numero FROM mf_ordens WHERE id = op)) AND tipo = 'saida'), 'movimentações de saída com o documento da ordem');
+
+  -- idempotência: a mesma chave não consome de novo; outra ordem não reaproveita a chave
+  PERFORM ci.entrar(prod); ap2 := mf_ordem_apontar(op, 1, 0, 30, 'ap-1'); PERFORM ci.sair();
+  PERFORM ci.exige(ap2 = ap, 'a mesma chave devolve o mesmo apontamento');
+  PERFORM ci.exige((SELECT quantidade = 7.778 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i)
+                   AND (SELECT quantidade = 1 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d)
+                   AND (SELECT count(*) = 1 FROM mf_apontamentos WHERE ordem_id = op), 'repetir a chave não consome nem dá entrada de novo');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 1, 0, NULL, 'ap-1')$c$, op_grande), 'chave de outra ordem');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 0, 0, NULL, 'ap-zero')$c$, op), 'apontamento sem quantidade');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT mf_ordem_apontar(%L, 1, 0, NULL, 'ap-u2')$c$, op), 'outra empresa aponta a ordem');
+
+  -- refugo consome insumo e não entra no estoque do acabado; o arredondamento não acumula erro
+  PERFORM ci.entrar(prod); PERFORM mf_ordem_apontar(op, 1, 1, NULL, 'ap-2'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 3.333 AND reservado = 0 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i), 'consumo acumulado bate com 3 peças (2 boas e 1 refugo)');
+  PERFORM ci.exige((SELECT quantidade = 2 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'refugo não entra no estoque do acabado');
+  PERFORM ci.exige((SELECT quantidade_produzida = 2 AND quantidade_refugo = 1 FROM mf_ordens WHERE id = op), 'totais da ordem');
+
+  -- produção lê pela função, sem custo
+  PERFORM ci.entrar(prod);
+  SELECT count(*) INTO n FROM mf_ordens_producao();
+  PERFORM ci.exige(n = 1, 'produção enxerga a ordem em produção pela função');
+  SELECT count(*) INTO n FROM mf_ordem_insumos_producao(op);
+  PERFORM ci.exige(n = 2, 'produção enxerga os insumos da ordem pela função');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_ordem_cancelar(%L)$c$, op), 'cancelar ordem em produção');
+
+  -- concluir: solta a reserva e fecha o custo real (insumos + mão de obra)
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_concluir(op); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'concluida' FROM mf_ordens WHERE id = op), 'ordem concluída');
+  PERFORM ci.exige((SELECT reservado = 0 FROM estoques WHERE produto_id = ferr AND deposito_id = dep_i), 'concluir solta a reserva que sobrou');
+  PERFORM ci.exige((SELECT custo_real = (SELECT sum(custo_consumido) FROM mf_ordem_insumos WHERE ordem_id = op) + mao_de_obra FROM mf_ordens WHERE id = op), 'custo real = insumos consumidos + mão de obra');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 1, 0, NULL, 'ap-depois')$c$, op), 'apontar ordem concluída');
+
+  -- encomenda sob medida: sem produto cadastrado, sem entrada no estoque, itens editáveis até liberar, cancelar solta a reserva
+  PERFORM ci.entrar(gest);
+  op_med := mf_ordem_criar(jsonb_build_object('descricao', 'Armário de cozinha, Sra. Ana', 'quantidade_planejada', 1, 'deposito_insumos_id', dep_i,
+              'medidas', '2,40 x 0,60 x 2,10 m', 'acabamento', 'MDF branco', 'mao_de_obra', 300,
+              'itens', jsonb_build_array(jsonb_build_object('insumo_id', ferr, 'quantidade', 4, 'perda_percentual', 0))));
+  PERFORM mf_ordem_itens_salvar(op_med, jsonb_build_array(jsonb_build_object('insumo_id', ferr, 'quantidade', 6, 'perda_percentual', 0)), 350);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT NOT entrada_estoque AND produto_id IS NULL AND mao_de_obra = 350 AND custo_padrao = 380 FROM mf_ordens WHERE id = op_med), 'encomenda sem produto e custo padrão com a mão de obra');
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_liberar(op_med); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reservado = 6 FROM estoques WHERE produto_id = ferr AND deposito_id = dep_i), 'encomenda reserva a ferragem');
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_cancelar(op_med); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reservado = 0 FROM estoques WHERE produto_id = ferr AND deposito_id = dep_i), 'cancelar solta a reserva');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE deposito_id = dep_d AND produto_id <> arm), 'a encomenda não entra no estoque');
+
+  -- estoque insuficiente no consumo desfaz o apontamento inteiro
+  PERFORM ci.entrar(gest);
+  op_grande := mf_ordem_criar(jsonb_build_object('descricao', 'Ordem que passa do estoque', 'quantidade_planejada', 1, 'deposito_insumos_id', dep_i,
+                 'itens', jsonb_build_array(jsonb_build_object('insumo_id', chapa, 'quantidade', 3, 'perda_percentual', 0))));
+  PERFORM mf_ordem_liberar(op_grande);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 5, 0, NULL, 'ap-excesso')$c$, op_grande), 'consumir além do estoque disponível');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM mf_apontamentos WHERE chave_idempotente = 'ap-excesso')
+                   AND (SELECT quantidade_produzida = 0 FROM mf_ordens WHERE id = op_grande)
+                   AND (SELECT quantidade = 3.333 FROM estoques WHERE produto_id = chapa AND deposito_id = dep_i), 'apontamento recusado não grava nada');
+
+  -- limpeza do que o teste criou (movimentações de estoque são imutáveis: produtos, depósitos e saldos ficam)
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM mf_bom_itens WHERE tenant_id = demo;
+  DELETE FROM mf_boms WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  UPDATE empresas SET cnae = cnae_ant, ramo_atividade = ramo_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+  DELETE FROM user_roles WHERE user_id IN (prod, u2);
+  DELETE FROM empresas WHERE id = emp2;
+END $$;
+
+-- 81. Manufatura: o custo do acabado não depende de como a produção agrupa os apontamentos (refugo antes, sozinho ou junto da peça boa)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  emp uuid; dep_i uuid; dep_d uuid; a1 uuid; a2 uuid; ins uuid; op1 uuid; op2 uuid;
+BEGIN
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Insumos CI 2') RETURNING id INTO dep_i;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Acabados CI 2') RETURNING id INTO dep_d;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-A', 'Armário A CI', 'un', 0) RETURNING id INTO a1;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-B', 'Armário B CI', 'un', 0) RETURNING id INTO a2;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-INS-2', 'Chapa 2 CI', 'chapa', 100) RETURNING id INTO ins;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep_i, 20, 0, 100);
+
+  PERFORM ci.entrar(gest);
+  op1 := mf_ordem_criar(jsonb_build_object('descricao', 'Refugo junto', 'produto_id', a1, 'quantidade_planejada', 2, 'entrada_estoque', true,
+           'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  op2 := mf_ordem_criar(jsonb_build_object('descricao', 'Refugo antes', 'produto_id', a2, 'quantidade_planejada', 2, 'entrada_estoque', true,
+           'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  PERFORM mf_ordem_liberar(op1); PERFORM mf_ordem_liberar(op2);
+  -- mesma produção (1 peça boa e 1 de refugo), apontada de duas formas
+  PERFORM mf_ordem_apontar(op1, 1, 1, NULL, 'agrup-junto');
+  PERFORM mf_ordem_apontar(op2, 0, 1, NULL, 'agrup-refugo');
+  PERFORM ci.exige((SELECT custo_a_alocar = 100 FROM mf_ordens WHERE id = op2), 'o custo do refugo sozinho fica para alocar');
+  PERFORM mf_ordem_apontar(op2, 1, 0, NULL, 'agrup-boa');
+  PERFORM ci.sair();
+
+  PERFORM ci.exige((SELECT custo_medio = 200 FROM estoques WHERE produto_id = a1 AND deposito_id = dep_d), 'refugo junto da peça boa: acabado custa 200');
+  PERFORM ci.exige((SELECT custo_medio = 200 FROM estoques WHERE produto_id = a2 AND deposito_id = dep_d), 'refugo antes da peça boa: acabado também custa 200');
+  PERFORM ci.exige((SELECT custo_a_alocar = 0 FROM mf_ordens WHERE id = op2), 'nada sobra para alocar depois da peça boa');
+  PERFORM ci.exige((SELECT custo_real FROM mf_ordens WHERE id = op1) = (SELECT custo_real FROM mf_ordens WHERE id = op2), 'o custo real da ordem é o mesmo nas duas formas');
+
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
 END $$;
