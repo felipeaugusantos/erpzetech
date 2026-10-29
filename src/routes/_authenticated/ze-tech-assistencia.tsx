@@ -24,13 +24,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-assistencia")({
   head: () => ({
     meta: [
-      { title: "Assistência técnica dos clientes — Ze Tech" },
+      { title: "Assistência técnica dos clientes — EZRA" },
       {
         name: "description",
         content:
-          "Painel da equipe Ze Tech com ordens de assistência técnica abertas, encerradas, em reparo e os custos de peças e mão de obra por loja cliente.",
+          "Painel da equipe EZRA com ordens de assistência técnica abertas, encerradas, em reparo e os custos de peças e mão de obra por loja cliente.",
       },
-      { property: "og:title", content: "Assistência técnica dos clientes — Ze Tech" },
+      { property: "og:title", content: "Assistência técnica dos clientes — EZRA" },
       {
         property: "og:description",
         content: "Aberturas, encerramentos, reparos e custos de assistência técnica por cliente.",
@@ -96,7 +96,7 @@ function AssistenciaZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para ver a assistência técnica dos clientes."
       />
     );
@@ -177,7 +177,7 @@ function AssistenciaZeTech() {
       ) : linhas.length === 0 ? (
         <EmptyState
           title="Nenhum cliente cadastrado."
-          description="Cadastre os clientes no painel da Ze Tech para acompanhar a assistência técnica."
+          description="Cadastre os clientes no painel da EZRA para acompanhar a assistência técnica."
         />
       ) : (
         <div className="panel overflow-x-auto">

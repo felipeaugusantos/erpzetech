@@ -636,7 +636,7 @@ function Landing() {
         <p>EZRA ERP • WhatsApp {WHATSAPP_LABEL} • contato@zeregistra.com.br</p>
         <p className="mt-1">Desenvolvido por EZRA</p>
         <Button asChild variant="ghost" size="sm" className="mt-2 text-xs">
-          <Link to="/ze-tech-login">Painel Ze Tech (equipe)</Link>
+          <Link to="/ze-tech-login">Painel EZRA (equipe)</Link>
         </Button>
       </footer>
 

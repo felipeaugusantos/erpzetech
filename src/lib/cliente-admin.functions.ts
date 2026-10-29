@@ -32,7 +32,7 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
 
     const { data: operador, error: erroOperador } = await supabase.rpc("eh_saas_operador");
     if (erroOperador) throw erroOperador;
-    if (!operador) throw new Error("Somente a equipe Ze Tech pode criar o acesso do administrador");
+    if (!operador) throw new Error("Somente a equipe EZRA pode criar o acesso do administrador");
 
     const { data: cliente, error: erroCliente } = await supabase
       .from("saas_clientes")
@@ -77,7 +77,7 @@ export const criarAdminCliente = createServerFn({ method: "POST" })
           /already been registered/i.test(criado.error?.message ?? "");
         throw new Error(
           ja
-            ? `O e-mail ${data.email} já tem login no sistema (pode ser de outra loja ou da equipe Ze Tech). Use um e-mail diferente para o administrador deste cliente.`
+            ? `O e-mail ${data.email} já tem login no sistema (pode ser de outra loja ou da equipe EZRA). Use um e-mail diferente para o administrador deste cliente.`
             : (criado.error?.message ?? "Não foi possível criar o acesso"),
         );
       }

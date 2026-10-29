@@ -2,7 +2,7 @@ type VinculoCliente = { admin_user_id: string | null; tenant_id: string | null }
 type PerfilAdmin = { id: string; tenant_id: string | null };
 
 export function exigirOperadorZeTech(operador: unknown) {
-  if (operador !== true) throw new Error("Somente a equipe Ze Tech pode redefinir esta senha");
+  if (operador !== true) throw new Error("Somente a equipe EZRA pode redefinir esta senha");
 }
 
 export function validarSenhaAdminCliente(senha: string) {

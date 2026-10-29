@@ -15,16 +15,16 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/ze-tech-login")({
   head: () => ({
     meta: [
-      { title: "Acesso Ze Tech — área do fabricante" },
+      { title: "Acesso EZRA — área do fabricante" },
       {
         name: "description",
         content:
-          "Entrada exclusiva da equipe Ze Tech para gerenciar clientes, planos, cobranças e relatórios de assinatura.",
+          "Entrada exclusiva da equipe EZRA para gerenciar clientes, planos, cobranças e relatórios de assinatura.",
       },
-      { property: "og:title", content: "Acesso Ze Tech — área do fabricante" },
+      { property: "og:title", content: "Acesso EZRA — área do fabricante" },
       {
         property: "og:description",
-        content: "Área restrita da Ze Tech: clientes assinantes, planos e cobranças.",
+        content: "Área restrita da EZRA: clientes assinantes, planos e cobranças.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -54,12 +54,12 @@ function LoginZeTech() {
       if (erroOperador) throw erroOperador;
       if (!operador) {
         await supabase.auth.signOut();
-        throw new Error("Esta conta não tem acesso à área da Ze Tech.");
+        throw new Error("Esta conta não tem acesso à área da EZRA.");
       }
     },
     onSuccess: async () => {
       await qc.invalidateQueries();
-      toast.success("Bem-vindo à área da Ze Tech.");
+      toast.success("Bem-vindo à área da EZRA.");
       void navigate({ to: "/ze-tech" });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -71,7 +71,7 @@ function LoginZeTech() {
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <ZeLogo className="size-14" />
           <div>
-            <h1 className="text-xl font-semibold">Área da Ze Tech</h1>
+            <h1 className="text-xl font-semibold">Área da EZRA</h1>
             <p className="text-sm text-muted-foreground">
               Acesso exclusivo do fabricante para clientes, planos e cobranças.
             </p>
@@ -84,7 +84,7 @@ function LoginZeTech() {
               <ShieldCheck className="size-4 text-primary" /> Entrar na área restrita
             </CardTitle>
             <CardDescription>
-              Use a conta da equipe Ze Tech, separada da conta da loja.
+              Use a conta da equipe EZRA, separada da conta da loja.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -116,7 +116,7 @@ function LoginZeTech() {
                 />
               </div>
               <Button type="submit" disabled={entrar.isPending}>
-                {entrar.isPending ? "Entrando…" : "Entrar na área Ze Tech"}
+                {entrar.isPending ? "Entrando…" : "Entrar na área EZRA"}
               </Button>
             </form>
           </CardContent>

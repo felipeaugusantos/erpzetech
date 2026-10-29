@@ -43,13 +43,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da Ze Tech — histórico e filiais" },
+      { title: "Clientes da EZRA — histórico e filiais" },
       {
         name: "description",
         content:
           "Acompanhe cada loja da rede: plano, situação do contrato, filiais cadastradas e histórico completo de cobranças.",
       },
-      { property: "og:title", content: "Clientes da Ze Tech — histórico e filiais" },
+      { property: "og:title", content: "Clientes da EZRA — histórico e filiais" },
       {
         property: "og:description",
         content: "Situação de cada cliente assinante, filiais e todas as cobranças emitidas.",
@@ -118,7 +118,7 @@ function ClientesZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para acompanhar os clientes da rede."
       />
     );
@@ -127,7 +127,7 @@ function ClientesZeTech() {
   return (
     <div>
       <PageHeader
-        title="Clientes da Ze Tech"
+        title="Clientes da EZRA"
         description="Cada loja da rede com plano, situação do contrato, filiais cadastradas e histórico de cobranças."
       />
 
@@ -168,7 +168,7 @@ function ClientesZeTech() {
       ) : lista.length === 0 ? (
         <EmptyState
           title="Nenhum cliente encontrado."
-          description="Cadastre os clientes no painel da Ze Tech para acompanhá-los aqui."
+          description="Cadastre os clientes no painel da EZRA para acompanhá-los aqui."
         />
       ) : (
         <div className="panel overflow-x-auto">

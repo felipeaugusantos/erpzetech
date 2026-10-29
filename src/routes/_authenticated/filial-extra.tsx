@@ -331,7 +331,7 @@ function FilialExtra() {
       ) : !filial ? (
         <EmptyState
           title="Nenhuma filial cadastrada."
-          description="A abertura de uma nova filial é feita pela equipe Ze Tech. Fale com a Ze Tech para liberar a filial extra."
+          description="A abertura de uma nova filial é feita pela equipe EZRA. Fale com a EZRA para liberar a filial extra."
           action={
             operadorSaas ? (
               <Button onClick={() => setNovaAberta(true)}>Nova filial</Button>

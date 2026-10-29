@@ -136,7 +136,7 @@ const essenciais: Grupo[] = [
       "Lucro e margem por produto, depósito e mês",
       "Margem editável com preço de venda automático",
       "Painel do dia com vendas e recebimentos",
-      "Tempo real por cliente para a equipe Ze Tech",
+      "Tempo real por cliente para a equipe EZRA",
     ],
   },
   {

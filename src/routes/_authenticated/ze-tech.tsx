@@ -59,13 +59,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/ze-tech")({
   head: () => ({
     meta: [
-      { title: "Painel Ze Tech — clientes e planos" },
+      { title: "Painel EZRA — clientes e planos" },
       {
         name: "description",
         content:
           "Clientes assinantes do EZRA ERP: plano contratado, prazo restante, próximo vencimento e status de pagamento.",
       },
-      { property: "og:title", content: "Painel Ze Tech — clientes e planos" },
+      { property: "og:title", content: "Painel EZRA — clientes e planos" },
       {
         property: "og:description",
         content: "Acompanhe quem assinou, qual plano, quanto paga e quem está em atraso.",
@@ -214,15 +214,15 @@ function PainelZeTech() {
   if (!operador)
     return (
       <EmptyState
-        title="Área exclusiva da Ze Tech"
-        description="Este painel mostra os clientes que assinam o sistema e só está disponível para a equipe Ze Tech."
+        title="Área exclusiva da EZRA"
+        description="Este painel mostra os clientes que assinam o sistema e só está disponível para a equipe EZRA."
       />
     );
 
   return (
     <>
       <PageHeader
-        title="Painel Ze Tech"
+        title="Painel EZRA"
         description="Clientes que assinam o EZRA ERP: plano, prazo, próximo vencimento e pagamento."
         actions={
           <>

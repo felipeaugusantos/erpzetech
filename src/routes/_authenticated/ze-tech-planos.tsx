@@ -33,13 +33,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-planos")({
   head: () => ({
     meta: [
-      { title: "Planos da Ze Tech — custo e prazo" },
+      { title: "Planos da EZRA — custo e prazo" },
       {
         name: "description",
         content:
           "Defina cada plano do EZRA ERP: valor mensal, prazo, teste grátis, filial extra e implantação, e veja quem assina cada um.",
       },
-      { property: "og:title", content: "Planos da Ze Tech — custo e prazo" },
+      { property: "og:title", content: "Planos da EZRA — custo e prazo" },
       {
         property: "og:description",
         content: "Catálogo de planos, valores e clientes ativos em cada plano.",
@@ -159,15 +159,15 @@ function PlanosZeTech() {
   if (!operador)
     return (
       <EmptyState
-        title="Área exclusiva da Ze Tech"
-        description="Só a equipe Ze Tech define os planos comercializados."
+        title="Área exclusiva da EZRA"
+        description="Só a equipe EZRA define os planos comercializados."
       />
     );
 
   return (
     <>
       <PageHeader
-        title="Planos da Ze Tech"
+        title="Planos da EZRA"
         description="Defina valor, prazo, teste grátis, filial extra e implantação de cada plano."
         actions={
           <>

@@ -39,16 +39,16 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-contas-pagar")({
   head: () => ({
     meta: [
-      { title: "Contas a pagar — Painel Ze Tech" },
+      { title: "Contas a pagar — Painel EZRA" },
       {
         name: "description",
         content:
-          "Contas a pagar da Ze Tech por loja do cliente, com vencimento, valor, situação e pagamentos.",
+          "Contas a pagar da EZRA por loja do cliente, com vencimento, valor, situação e pagamentos.",
       },
-      { property: "og:title", content: "Contas a pagar — Painel Ze Tech" },
+      { property: "og:title", content: "Contas a pagar — Painel EZRA" },
       {
         property: "og:description",
-        content: "Acompanhe o que a Ze Tech tem a pagar por loja, com vencimento, valor e status.",
+        content: "Acompanhe o que a EZRA tem a pagar por loja, com vencimento, valor e status.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -253,7 +253,7 @@ function ContasPagarZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para ver as contas a pagar."
       />
     );
@@ -264,8 +264,8 @@ function ContasPagarZeTech() {
   return (
     <div>
       <PageHeader
-        title="Contas a pagar da Ze Tech"
-        description="O que a Ze Tech tem a pagar, com vencimento, valor, situação e a loja do cliente."
+        title="Contas a pagar da EZRA"
+        description="O que a EZRA tem a pagar, com vencimento, valor, situação e a loja do cliente."
         actions={
           <Button
             onClick={() => {
@@ -313,7 +313,7 @@ function ContasPagarZeTech() {
       ) : lista.length === 0 ? (
         <EmptyState
           title="Nenhuma conta a pagar."
-          description="Lance as despesas da Ze Tech e ligue cada uma à loja do cliente quando fizer sentido."
+          description="Lance as despesas da EZRA e ligue cada uma à loja do cliente quando fizer sentido."
           action={
             <Button
               onClick={() => {

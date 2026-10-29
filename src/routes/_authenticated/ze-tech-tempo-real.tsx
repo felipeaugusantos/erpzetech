@@ -23,13 +23,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-tempo-real")({
   head: () => ({
     meta: [
-      { title: "Tempo real dos clientes — Ze Tech" },
+      { title: "Tempo real dos clientes — EZRA" },
       {
         name: "description",
         content:
           "Vendas, notas fiscais, impostos e assistência técnica de cada loja cliente lidos direto do banco, atualizados automaticamente.",
       },
-      { property: "og:title", content: "Tempo real dos clientes — Ze Tech" },
+      { property: "og:title", content: "Tempo real dos clientes — EZRA" },
       {
         property: "og:description",
         content: "Vendas, notas, impostos e assistência técnica de cada cliente em tempo real.",
@@ -106,7 +106,7 @@ function TempoReal() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para acompanhar os clientes em tempo real."
       />
     );
@@ -169,7 +169,7 @@ function TempoReal() {
       ) : linhas.length === 0 ? (
         <EmptyState
           title="Nenhum cliente cadastrado."
-          description="Cadastre os clientes no painel da Ze Tech para acompanhar a operação de cada loja."
+          description="Cadastre os clientes no painel da EZRA para acompanhar a operação de cada loja."
         />
       ) : (
         <div className="panel overflow-x-auto">
