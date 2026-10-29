@@ -498,6 +498,13 @@
       "when": 1793214571357,
       "tag": "0070_whatsapp_automatico",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793277800296,
+      "tag": "0071_links_acesso_e_nomes_planos",
+      "breakpoints": true
     }
   ]
 }
