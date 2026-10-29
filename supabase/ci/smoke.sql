@@ -558,6 +558,8 @@ DECLARE
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
     'assinante_link_sugerido',
+    -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
+    'saas_taxa_inicial_cliente',
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
     'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
@@ -7526,4 +7528,60 @@ BEGIN
                    AND (SELECT valor_mensal FROM saas_planos WHERE codigo = 'rede') = 599, 'preços iguais');
   PERFORM ci.exige((SELECT resumo FROM saas_planos WHERE codigo = 'loja') = '1 loja, depósitos ilimitados, 15 usuários', 'a legenda de limites segue com "1 loja"');
   PERFORM ci.exige((SELECT plano FROM assinaturas LIMIT 1) IN ('balcao', 'loja', 'rede'), 'assinaturas seguem apontando para o código interno');
+END $$;
+
+-- 79. Taxa inicial por segmento: R$ 299 de treinamento e configuração só para clínica e lava-rápido; o resto segue igual
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000000000d9';
+  ramo_ant text; cs uuid; impl_assin numeric; impl_plano numeric; r record;
+BEGIN
+  SELECT ramo_atividade INTO ramo_ant FROM empresas WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (op, 'operador-taxa@ci');
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+  INSERT INTO saas_clientes (nome, tenant_id, plano_id) VALUES ('Taxa Inicial CI', demo, (SELECT id FROM saas_planos WHERE codigo = 'loja')) RETURNING id INTO cs;
+  SELECT valor_implantacao INTO impl_plano FROM saas_planos WHERE codigo = 'loja';
+
+  -- regra: só clínica e lava-rápido têm taxa própria
+  PERFORM ci.exige((SELECT count(*) = 1 AND min(valor) = 299 FROM taxa_inicial_segmento('clinica')), 'clínica: R$ 299');
+  PERFORM ci.exige((SELECT count(*) = 1 AND min(valor) = 299 FROM taxa_inicial_segmento('lavarapido')), 'lava-rápido: R$ 299');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM taxa_inicial_segmento('petshop')), 'pet shop não ganha R$ 299 por inferência');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM taxa_inicial_segmento('construcao')), 'demais segmentos sem taxa própria');
+
+  -- empresa de segmento comum: mantém a implantação do plano
+  UPDATE empresas SET ramo_atividade = 'construcao' WHERE tenant_id = demo;
+  PERFORM ci.entrar(adm);
+  SELECT * INTO r FROM assinatura_taxa_inicial();
+  PERFORM ci.exige(r.rotulo = 'Implantação' AND NOT r.excecao, 'segmento comum mostra Implantação');
+  PERFORM ci.exige(r.valor = (SELECT valor_implantacao FROM assinaturas LIMIT 1), 'segmento comum mantém o valor da assinatura');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(op);
+  SELECT * INTO r FROM saas_taxa_inicial_cliente(cs);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.valor = impl_plano AND NOT r.excecao AND r.rotulo = 'Implantação', 'operador: segmento comum mantém a implantação do plano');
+
+  -- clínica e lava-rápido: R$ 299, sem mexer no valor de expansão guardado na assinatura
+  SELECT valor_implantacao INTO impl_assin FROM assinaturas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  PERFORM ci.entrar(adm);
+  SELECT * INTO r FROM assinatura_taxa_inicial();
+  PERFORM ci.exige(r.valor = 299 AND r.excecao AND r.rotulo = 'Treinamento e configuração inicial', 'clínica: assinatura mostra R$ 299');
+  PERFORM ci.sair();
+  UPDATE empresas SET ramo_atividade = 'lavarapido' WHERE tenant_id = demo;
+  PERFORM ci.entrar(op);
+  SELECT * INTO r FROM saas_taxa_inicial_cliente(cs);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.valor = 299 AND r.excecao, 'lava-rápido: operador sugere R$ 299');
+  PERFORM ci.exige((SELECT valor_implantacao FROM assinaturas WHERE tenant_id = demo) = impl_assin, 'a implantação guardada na assinatura (expansão) não muda');
+  PERFORM ci.exige((SELECT valor_implantacao FROM saas_planos WHERE codigo = 'loja') = impl_plano, 'a implantação do plano não muda');
+  PERFORM ci.exige((SELECT valor_filial_extra FROM saas_planos WHERE codigo = 'loja') = 390, 'a filial extra segue em R$ 390');
+
+  -- quem não é da equipe não consulta a taxa de um assinante
+  PERFORM ci.deve_falhar(adm, format($c$SELECT * FROM saas_taxa_inicial_cliente(%L)$c$, cs), 'não operador consultando a taxa de assinante');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant WHERE tenant_id = demo;
+  DELETE FROM saas_clientes WHERE id = cs;
+  DELETE FROM saas_operadores WHERE user_id = op;
 END $$;

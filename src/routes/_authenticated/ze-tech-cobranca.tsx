@@ -160,7 +160,43 @@ function CobrancaZeTech() {
     observacao: "",
   });
 
+  /** Sugestão da taxa inicial do segmento (clínica e lava-rápido: R$ 299). O valor segue editável: a equipe confere antes de cadastrar. */
+  const [sugestaoTaxa, setSugestaoTaxa] = useState("");
+  async function sugerirTaxaInicial(clienteId: string) {
+    setSugestaoTaxa("");
+    const { data, error } = await supabase.rpc("saas_taxa_inicial_cliente", {
+      p_cliente_id: clienteId,
+    });
+    const taxa = data?.[0];
+    if (error || !taxa) return;
+    setForm((f) =>
+      f.cliente_id === clienteId && f.tipo === "implantacao"
+        ? {
+            ...f,
+            valor: String(taxa.valor),
+            descricao: `${taxa.rotulo}: ${nomeCliente(clienteId)}`,
+          }
+        : f,
+    );
+    setSugestaoTaxa(
+      taxa.excecao
+        ? `Taxa inicial do segmento: ${brl(Number(taxa.valor))} (${taxa.rotulo}), no lugar da implantação do plano.`
+        : `Implantação inicial do plano: ${brl(Number(taxa.valor))}.`,
+    );
+  }
+
+  function escolherTipo(tipo: string) {
+    setForm({ ...form, tipo });
+    setSugestaoTaxa("");
+    if (tipo === "implantacao" && form.cliente_id) void sugerirTaxaInicial(form.cliente_id);
+  }
+
   function escolherCliente(id: string) {
+    if (form.tipo === "implantacao") {
+      setForm({ ...form, cliente_id: id });
+      void sugerirTaxaInicial(id);
+      return;
+    }
     const plano = planoDoCliente(id);
     const cliente = clientes.find((c) => c.id === id);
     const venc = new Date();
@@ -578,7 +614,7 @@ function CobrancaZeTech() {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="c-tipo">Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                <Select value={form.tipo} onValueChange={escolherTipo}>
                   <SelectTrigger id="c-tipo">
                     <SelectValue />
                   </SelectTrigger>
@@ -612,6 +648,7 @@ function CobrancaZeTech() {
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
               />
             </div>
+            {sugestaoTaxa && <p className="text-xs text-muted-foreground">{sugestaoTaxa}</p>}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="c-valor">Valor (R$)</Label>

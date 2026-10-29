@@ -12143,6 +12143,14 @@ export type Database = {
         }
         Returns: number
       }
+      assinatura_taxa_inicial: {
+        Args: never
+        Returns: {
+          excecao: boolean
+          rotulo: string
+          valor: number
+        }[]
+      }
       gerar_faturas_assinatura: { Args: never; Returns: number }
       gerar_nfe: {
         Args: { p_natureza?: string; p_pedido_id: string }
@@ -13060,6 +13068,14 @@ export type Database = {
         Args: { p_cliente_id: string }
         Returns: number
       }
+      saas_taxa_inicial_cliente: {
+        Args: { p_cliente_id: string }
+        Returns: {
+          excecao: boolean
+          rotulo: string
+          valor: number
+        }[]
+      }
       saas_tempo_real_por_cliente: {
         Args: { p_ate: string; p_de: string }
         Returns: {
@@ -13101,6 +13117,13 @@ export type Database = {
           p_valor: number
         }
         Returns: string
+      }
+      taxa_inicial_segmento: {
+        Args: { p_ramo: string }
+        Returns: {
+          rotulo: string
+          valor: number
+        }[]
       }
       tef_registrar_negada: {
         Args: {
