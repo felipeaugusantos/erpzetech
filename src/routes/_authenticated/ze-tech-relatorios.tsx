@@ -28,13 +28,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/ze-tech-relatorios")({
   head: () => ({
     meta: [
-      { title: "Relatórios da Ze Tech — assinaturas" },
+      { title: "Relatórios da EZRA — assinaturas" },
       {
         name: "description",
         content:
           "Consolidado das assinaturas do EZRA ERP: clientes por plano, planos ativos, vencimentos e pagamentos recebidos.",
       },
-      { property: "og:title", content: "Relatórios da Ze Tech — assinaturas" },
+      { property: "og:title", content: "Relatórios da EZRA — assinaturas" },
       {
         property: "og:description",
         content: "Receita recorrente, clientes por plano, vencimentos e pagamentos no período.",
@@ -105,15 +105,15 @@ function RelatoriosZeTech() {
   if (!operador)
     return (
       <EmptyState
-        title="Área exclusiva da Ze Tech"
-        description="Os relatórios de assinatura só estão disponíveis para a equipe Ze Tech."
+        title="Área exclusiva da EZRA"
+        description="Os relatórios de assinatura só estão disponíveis para a equipe EZRA."
       />
     );
 
   return (
     <>
       <PageHeader
-        title="Relatórios da Ze Tech"
+        title="Relatórios da EZRA"
         description={`Assinaturas consolidadas · período ${dateBR(periodo.de)} a ${dateBR(periodo.ate)} (o mesmo do painel).`}
         actions={
           <>

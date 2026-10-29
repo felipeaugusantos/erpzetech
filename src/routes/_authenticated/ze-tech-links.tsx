@@ -40,7 +40,7 @@ import { useSaasOperador } from "@/lib/saas";
 export const Route = createFileRoute("/_authenticated/ze-tech-links")({
   head: () => ({
     meta: [
-      { title: "Links de acesso — Ze Tech" },
+      { title: "Links de acesso — EZRA" },
       {
         name: "description",
         content:
@@ -142,7 +142,7 @@ function LinksZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para administrar os links de acesso."
       />
     );

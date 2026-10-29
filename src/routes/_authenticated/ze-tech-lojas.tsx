@@ -40,13 +40,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-lojas")({
   head: () => ({
     meta: [
-      { title: "Lojas da rede — Painel Ze Tech" },
+      { title: "Lojas da rede — Painel EZRA" },
       {
         name: "description",
         content:
           "Cadastre cada loja da rede do cliente com endereço, contato e plano, e controle a implantação das filiais extras.",
       },
-      { property: "og:title", content: "Lojas da rede — Painel Ze Tech" },
+      { property: "og:title", content: "Lojas da rede — Painel EZRA" },
       {
         property: "og:description",
         content:
@@ -289,8 +289,8 @@ function LojasZeTech() {
   if (!operador)
     return (
       <EmptyState
-        title="Área exclusiva da Ze Tech"
-        description="Só a equipe Ze Tech cadastra as lojas da rede dos clientes."
+        title="Área exclusiva da EZRA"
+        description="Só a equipe EZRA cadastra as lojas da rede dos clientes."
       />
     );
 

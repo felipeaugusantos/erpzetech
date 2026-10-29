@@ -242,13 +242,13 @@ function AuthPage() {
             to="/ze-tech-login"
             className="mt-3 flex w-full items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            Entrar no Painel Ze Tech (equipe)
+            Entrar no Painel EZRA (equipe)
           </Link>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Acesso protegido e criptografado • <strong>EZRA ERP</strong>
             <br />
-            Dúvidas ou problemas de acesso? Fale com o suporte Ze Tech no WhatsApp:{" "}
+            Dúvidas ou problemas de acesso? Fale com o suporte EZRA no WhatsApp:{" "}
             <a
               href="https://wa.me/5516988547561"
               target="_blank"

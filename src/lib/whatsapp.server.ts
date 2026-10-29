@@ -9,8 +9,7 @@ import { enviarTexto, type ConfigEvolution } from "./whatsapp-evolution.ts";
 export function configEvolution(): ConfigEvolution {
   const url = process.env["EVOLUTION_API_URL"];
   const apikey = process.env["EVOLUTION_API_KEY"];
-  if (!url || !apikey)
-    throw new Error("O servidor de WhatsApp da Ze Tech ainda não está configurado");
+  if (!url || !apikey) throw new Error("O servidor de WhatsApp da EZRA ainda não está configurado");
   return { url, apikey };
 }
 

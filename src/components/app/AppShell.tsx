@@ -527,7 +527,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   /** Grupo exclusivo da equipe Ze Tech. */
   const grupoZeTech: Group = {
-    label: "Ze Tech",
+    label: "EZRA",
     icon: LayoutGrid,
     items: [
       { label: "Painel de clientes", to: "/ze-tech", icon: Users },

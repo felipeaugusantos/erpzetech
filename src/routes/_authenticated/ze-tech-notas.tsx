@@ -24,13 +24,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-notas")({
   head: () => ({
     meta: [
-      { title: "Notas emitidas pelos clientes — Ze Tech" },
+      { title: "Notas emitidas pelos clientes — EZRA" },
       {
         name: "description",
         content:
-          "Painel da equipe Ze Tech com a quantidade de notas fiscais emitidas por cada loja cliente no período.",
+          "Painel da equipe EZRA com a quantidade de notas fiscais emitidas por cada loja cliente no período.",
       },
-      { property: "og:title", content: "Notas emitidas pelos clientes — Ze Tech" },
+      { property: "og:title", content: "Notas emitidas pelos clientes — EZRA" },
       {
         property: "og:description",
         content: "Quantidade de notas, valor faturado e impostos por cliente assinante.",
@@ -89,7 +89,7 @@ function NotasZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para ver as notas emitidas pelos clientes."
       />
     );
@@ -145,7 +145,7 @@ function NotasZeTech() {
       ) : linhas.length === 0 ? (
         <EmptyState
           title="Nenhum cliente cadastrado."
-          description="Cadastre os clientes no painel da Ze Tech para acompanhar as notas emitidas."
+          description="Cadastre os clientes no painel da EZRA para acompanhar as notas emitidas."
         />
       ) : (
         <div className="panel overflow-x-auto">

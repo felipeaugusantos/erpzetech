@@ -24,13 +24,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-lava-rapido")({
   head: () => ({
     meta: [
-      { title: "Lava rápido dos clientes — Ze Tech" },
+      { title: "Lava rápido dos clientes — EZRA" },
       {
         name: "description",
         content:
-          "Painel da equipe Ze Tech com o uso do lava rápido por loja cliente: ordens, faturamento, planos mensais, fotos e comissões.",
+          "Painel da equipe EZRA com o uso do lava rápido por loja cliente: ordens, faturamento, planos mensais, fotos e comissões.",
       },
-      { property: "og:title", content: "Lava rápido dos clientes — Ze Tech" },
+      { property: "og:title", content: "Lava rápido dos clientes — EZRA" },
       {
         property: "og:description",
         content: "Ordens entregues, faturamento e planos mensais do lava rápido por cliente.",
@@ -124,7 +124,7 @@ function LavaRapidoZeTech() {
   if (operador !== true) {
     return (
       <EmptyState
-        title="Área exclusiva da equipe Ze Tech."
+        title="Área exclusiva da equipe EZRA."
         description="Entre com um acesso da equipe para ver o lava rápido dos clientes."
       />
     );

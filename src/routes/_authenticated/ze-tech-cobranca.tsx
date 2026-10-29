@@ -47,13 +47,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/ze-tech-cobranca")({
   head: () => ({
     meta: [
-      { title: "Cobrança das lojas — Ze Tech" },
+      { title: "Cobrança das lojas — EZRA" },
       {
         name: "description",
         content:
-          "Cadastro e envio das mensalidades das lojas assinantes com PIX copia e cola e boleto, ligado ao painel Ze Tech.",
+          "Cadastro e envio das mensalidades das lojas assinantes com PIX copia e cola e boleto, ligado ao painel EZRA.",
       },
-      { property: "og:title", content: "Cobrança das lojas — Ze Tech" },
+      { property: "og:title", content: "Cobrança das lojas — EZRA" },
       {
         property: "og:description",
         content: "Gere a cobrança de cada loja em PIX ou boleto e acompanhe o envio e o pagamento.",
@@ -308,7 +308,7 @@ function CobrancaZeTech() {
   if (!operador) {
     return (
       <EmptyState
-        title="Área exclusiva da Ze Tech."
+        title="Área exclusiva da EZRA."
         description="Esta tela é do fabricante do sistema e não fica disponível para as lojas."
       />
     );
@@ -676,7 +676,7 @@ function CobrancaZeTech() {
       <Dialog open={cfgAberto} onOpenChange={setCfgAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Dados de cobrança da Ze Tech</DialogTitle>
+            <DialogTitle>Dados de cobrança da EZRA</DialogTitle>
           </DialogHeader>
           {cfg && (
             <div className="grid gap-3">

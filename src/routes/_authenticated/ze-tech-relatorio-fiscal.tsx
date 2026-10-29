@@ -35,13 +35,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-relatorio-fiscal")({
   head: () => ({
     meta: [
-      { title: "Relatório fiscal por período — Ze Tech" },
+      { title: "Relatório fiscal por período — EZRA" },
       {
         name: "description",
         content:
           "Entradas, saídas, saldo de estoque e impostos de cada loja assinante no período, com exportação em PDF.",
       },
-      { property: "og:title", content: "Relatório fiscal por período — Ze Tech" },
+      { property: "og:title", content: "Relatório fiscal por período — EZRA" },
       {
         property: "og:description",
         content: "Exporte em PDF o consolidado fiscal das lojas assinantes.",
@@ -139,7 +139,7 @@ function ZeTechRelatorioFiscal() {
     }
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     doc.setFontSize(14);
-    doc.text("Ze Tech — Relatório fiscal por período", 14, 14);
+    doc.text("EZRA — Relatório fiscal por período", 14, 14);
     doc.setFontSize(10);
     doc.text(`Período: ${dateBR(periodo.de)} a ${dateBR(periodo.ate)}`, 14, 21);
 
@@ -259,7 +259,7 @@ function ZeTechRelatorioFiscal() {
   if (!operador) {
     return (
       <EmptyState
-        title="Área restrita à equipe Ze Tech."
+        title="Área restrita à equipe EZRA."
         description="Entre com a conta da equipe para ver o relatório fiscal das lojas."
       />
     );
