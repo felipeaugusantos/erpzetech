@@ -14,6 +14,7 @@ import {
   ScanBarcode,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   Store,
   Truck,
   UtensilsCrossed,
@@ -26,8 +27,7 @@ import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 import { NOME_DO_PLANO } from "@/lib/planos-nomes";
 
-const WHATSAPP =
-  "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20ERP%20Ze%20Tech";
+const WHATSAPP = "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20o%20EZRA%20ERP";
 const WHATSAPP_LABEL = "(16) 98854-7561";
 
 export const Route = createFileRoute("/")({
@@ -236,6 +236,47 @@ const planos = [
       "Custo por depósito",
       "Balanço fiscal",
       "Relatórios gerenciais",
+    ],
+  },
+];
+
+/**
+ * Módulos setoriais incluídos na mensalidade do plano escolhido. Só recursos que existem hoje; a distribuição por plano ainda não
+ * é aplicada pelo sistema, então ela não aparece aqui. A taxa inicial de cada módulo fica em `taxasIniciais`.
+ */
+const solucoesSetoriais = [
+  {
+    icon: PawPrint,
+    nome: "Pet shop",
+    itens: [
+      "Agenda por profissional",
+      "Cadastro de pets e tutores",
+      "Serviços e preços",
+      "Profissionais e contatos",
+      "Pacotes de serviços",
+      "Comissões do profissional",
+    ],
+  },
+  {
+    icon: Stethoscope,
+    nome: "Clínica veterinária",
+    itens: [
+      "Prontuário do paciente",
+      "Exames e modelos de exame",
+      "Catálogo de vacinas e reforços",
+      "Consulta aberta a partir da agenda, com pet e tutor cadastrados",
+    ],
+  },
+  {
+    icon: Droplets,
+    nome: "Lava-rápido",
+    itens: [
+      "Pátio com a situação de cada veículo",
+      "Veículos e clientes",
+      "Serviços e preços",
+      "Lavadores e comissões",
+      "Insumos",
+      "Planos de serviços, fidelidade e brindes",
     ],
   },
 ];
@@ -548,6 +589,30 @@ function Landing() {
             ))}
           </div>
           <div className="panel mt-6 p-5 sm:p-6">
+            <h3 className="font-display text-lg font-bold">Módulos setoriais</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pet shop, clínica veterinária e lava-rápido vêm incluídos na mensalidade do plano
+              escolhido, sem adicional pelo módulo. Para usar mais de um módulo na mesma empresa,
+              fale com a equipe.
+            </p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              {solucoesSetoriais.map((s) => (
+                <div key={s.nome} className="rounded-lg border border-border bg-secondary p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <s.icon className="size-4 text-brand" /> {s.nome}
+                  </p>
+                  <ul className="mt-3 space-y-1.5">
+                    {s.itens.map((i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <Check className="mt-0.5 size-4 shrink-0 text-brand" /> {i}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="panel mt-6 p-5 sm:p-6">
             <h3 className="font-display text-lg font-bold">Implantação e expansão</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               Implantação é paga uma única vez. Mensalidade é cobrada todo mês.
@@ -557,11 +622,29 @@ function Landing() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-brand-strong">
                   Contratação inicial
                 </p>
-                <div className="mt-3 rounded-lg border border-border bg-secondary p-4">
-                  <p className="text-sm font-semibold">Implantação inicial</p>
-                  <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="font-display text-2xl font-extrabold">R$ 1.500</span>
-                    <span className="text-xs text-muted-foreground">pagamento único</span>
+                <div className="mt-3 space-y-3">
+                  <div className="rounded-lg border border-border bg-secondary p-4">
+                    <p className="text-sm font-semibold">Implantação inicial</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Demais segmentos, exceto o pet shop
+                    </p>
+                    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span className="font-display text-2xl font-extrabold">R$ 1.500</span>
+                      <span className="text-xs text-muted-foreground">pagamento único</span>
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-secondary p-4">
+                    <p className="text-sm font-semibold">Treinamento e configuração inicial</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Clínica veterinária e lava-rápido, no lugar da implantação inicial
+                    </p>
+                    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span className="font-display text-2xl font-extrabold">R$ 299</span>
+                      <span className="text-xs text-muted-foreground">taxa única</span>
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pet shop: fale com a equipe para saber a taxa inicial.
                   </p>
                 </div>
               </div>

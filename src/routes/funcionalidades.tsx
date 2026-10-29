@@ -26,7 +26,7 @@ import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 
 const WHATSAPP =
-  "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20as%20fun%C3%A7%C3%B5es%20do%20ERP%20Ze%20Tech";
+  "https://wa.me/5516988547561?text=Ol%C3%A1!%20Quero%20conhecer%20as%20fun%C3%A7%C3%B5es%20do%20EZRA%20ERP";
 
 export const Route = createFileRoute("/funcionalidades")({
   head: () => ({
@@ -261,7 +261,7 @@ function Funcionalidades() {
         </div>
         <div className="mt-10 grid gap-3 text-left sm:grid-cols-3">
           {[
-            { icon: WifiOff, t: "Funciona sem internet" },
+            { icon: WifiOff, t: "Vende sem internet" },
             { icon: Bike, t: "Delivery e iFood" },
             { icon: Receipt, t: "Notas fiscais integradas" },
           ].map((d) => (
