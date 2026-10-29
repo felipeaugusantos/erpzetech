@@ -128,7 +128,8 @@ function AuthPage() {
           </div>
           <h1 className="font-display text-2xl font-bold">Bem-vindo de volta</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Entre com seu usuário e código da empresa, ou use seu e-mail cadastrado.
+            Informe seu usuário ou e-mail e a senha. Se entrar com usuário, informe também o código
+            ou link da sua empresa.
           </p>
 
           <Tabs defaultValue={aba === "criar" ? "signup" : "login"} className="mt-6">

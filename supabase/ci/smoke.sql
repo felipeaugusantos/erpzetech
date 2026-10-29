@@ -1,6 +1,8 @@
 -- Testes de segurança (RLS e funções SECURITY DEFINER) sobre o banco com todas as migrations.
 -- Cada verificação lança exceção se o comportamento esperado não ocorrer.
 \set ON_ERROR_STOP on
+-- O sistema conta "hoje" no fuso de Brasília (America/Sao_Paulo). Sem isto, entre 21h e 24h de Brasília o CI (em UTC) já está no dia seguinte e as datas dos testes não batem.
+SET timezone TO 'America/Sao_Paulo';
 
 CREATE SCHEMA ci;
 GRANT USAGE ON SCHEMA ci TO PUBLIC;
