@@ -6,8 +6,10 @@ import {
   Bike,
   Boxes,
   Check,
+  Droplets,
   Hammer,
   MessageCircle,
+  PawPrint,
   Receipt,
   ScanBarcode,
   ShieldCheck,
@@ -55,7 +57,14 @@ const segmentos = [
     id: "varejo",
     icon: Store,
     nome: "Comércio e varejo",
-    publico: "Materiais de construção, autopeças, agro, elétrica, hidráulica, distribuidoras",
+    publicos: [
+      "Materiais de construção",
+      "Autopeças",
+      "Agro",
+      "Elétrica",
+      "Hidráulica",
+      "Distribuidoras",
+    ],
     titulo: "Do balcão à entrega, com estoque certo em cada depósito",
     itens: [
       "Orçamento que vira pedido com reserva de estoque",
@@ -69,8 +78,7 @@ const segmentos = [
     id: "servicos",
     icon: Wrench,
     nome: "Serviços e MEI",
-    publico:
-      "Eletricistas, ar-condicionado, câmeras de segurança, assistência técnica, clínica veterinária, pet shop, lava-rápido",
+    publicos: ["Eletricistas", "Ar-condicionado", "Câmeras de segurança", "Assistência técnica"],
     titulo: "Ordem de serviço do chamado ao laudo, direto do celular",
     itens: [
       "Abertura no balcão separada do atendimento técnico",
@@ -81,10 +89,38 @@ const segmentos = [
     ],
   },
   {
+    id: "pet",
+    icon: PawPrint,
+    nome: "Pet shop e veterinária",
+    publicos: ["Pet shop", "Clínica veterinária"],
+    titulo: "Pets, tutores, agenda e cobrança no mesmo sistema",
+    itens: [
+      "Banho e tosa com agenda por profissional",
+      "Cadastro de pets e tutores",
+      "Serviços cobrados junto com os produtos no caixa",
+      "Comissão do profissional",
+      "Prontuário e documentos da clínica",
+    ],
+  },
+  {
+    id: "lava",
+    icon: Droplets,
+    nome: "Lava-rápido",
+    publicos: ["Lava-rápido"],
+    titulo: "Pátio, veículos e planos mensais no mesmo sistema",
+    itens: [
+      "Pátio com a situação de cada veículo",
+      "Veículos cadastrados por placa ou prefixo",
+      "Serviços e preços por tipo de veículo",
+      "Planos mensais e programa de fidelidade",
+      "Lavadores e comissões",
+    ],
+  },
+  {
     id: "locacao",
     icon: Hammer,
     nome: "Locação",
-    publico: "Ferramentas, andaimes, máquinas e equipamentos",
+    publicos: ["Ferramentas", "Andaimes", "Máquinas e equipamentos"],
     titulo: "Controle o que está alugado, o que voltou e o que falta receber",
     itens: [
       "Balcão de locação com vários equipamentos",
@@ -98,7 +134,7 @@ const segmentos = [
     id: "gastronomia",
     icon: UtensilsCrossed,
     nome: "Gastronomia",
-    publico: "Restaurantes, lanchonetes, pizzarias e delivery",
+    publicos: ["Restaurantes", "Lanchonetes", "Pizzarias", "Delivery"],
     titulo: "Salão, cozinha e delivery conversando em tempo real",
     itens: [
       "Mesas e comandas com divisão de conta",
@@ -109,6 +145,10 @@ const segmentos = [
     ],
   },
 ];
+
+/** "Materiais de construção, autopeças, agro…": a lista dos públicos em uma frase. */
+const paraTexto = (publicos: string[]) =>
+  publicos.map((p, i) => (i === 0 ? p : p.charAt(0).toLowerCase() + p.slice(1))).join(", ");
 
 const destaques = [
   {
@@ -337,19 +377,38 @@ function Landing() {
               Escolha o seu ramo e veja o que o sistema faz por você.
             </p>
           </div>
-          <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
             {segmentos.map((s) => (
               <button
                 key={s.id}
                 type="button"
+                aria-pressed={ativo === s.id}
                 onClick={() => setAtivo(s.id)}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition-colors ${
+                className={`flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors ${
                   ativo === s.id
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:bg-secondary"
                 }`}
               >
-                <s.icon className="size-4" /> {s.nome}
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <s.icon className="size-4 shrink-0" /> {s.nome}
+                </span>
+                {!(s.publicos.length === 1 && s.publicos[0] === s.nome) && (
+                  <span className="flex flex-wrap gap-1.5">
+                    {s.publicos.map((p) => (
+                      <span
+                        key={p}
+                        className={`rounded-full border px-2 py-0.5 text-xs ${
+                          ativo === s.id
+                            ? "border-primary-foreground/40"
+                            : "border-border bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -359,7 +418,7 @@ function Landing() {
                 {seg.nome}
               </p>
               <h3 className="mt-2 font-display text-2xl font-bold">{seg.titulo}</h3>
-              <p className="mt-3 text-sm text-muted-foreground">Para: {seg.publico}.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Para: {paraTexto(seg.publicos)}.</p>
               <Button asChild className="mt-5">
                 <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">
                   Quero para o meu negócio <ArrowRight className="ml-2 size-4" />
