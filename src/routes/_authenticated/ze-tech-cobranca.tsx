@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, FileText, Plus, QrCode, Send, Wallet } from "lucide-react";
@@ -160,24 +160,91 @@ function CobrancaZeTech() {
     observacao: "",
   });
 
-  function escolherCliente(id: string) {
+  /** Sugestão da taxa inicial do segmento (clínica e lava-rápido: R$ 299). O valor segue editável: a equipe confere antes de cadastrar. */
+  const [sugestaoTaxa, setSugestaoTaxa] = useState("");
+  const [buscandoTaxa, setBuscandoTaxa] = useState(false);
+  /** Só vale a resposta do último pedido: trocar de loja ou de tipo no meio da consulta descarta a anterior. */
+  const pedidoTaxa = useRef(0);
+
+  function cancelarSugestaoTaxa() {
+    pedidoTaxa.current += 1;
+    setBuscandoTaxa(false);
+    setSugestaoTaxa("");
+  }
+
+  async function sugerirTaxaInicial(clienteId: string) {
+    cancelarSugestaoTaxa();
+    const pedido = pedidoTaxa.current;
+    setBuscandoTaxa(true);
+    const { data, error } = await supabase.rpc("saas_taxa_inicial_cliente", {
+      p_cliente_id: clienteId,
+    });
+    if (pedido !== pedidoTaxa.current) return;
+    setBuscandoTaxa(false);
+    const taxa = data?.[0];
+    if (error || !taxa) {
+      toast.error("Não foi possível calcular a taxa inicial. Informe a descrição e o valor.");
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      valor: String(taxa.valor),
+      descricao: `${taxa.rotulo}: ${nomeCliente(clienteId)}`,
+    }));
+    setSugestaoTaxa(
+      taxa.excecao
+        ? `Taxa inicial do segmento: ${brl(Number(taxa.valor))} (${taxa.rotulo}), no lugar da implantação do plano.`
+        : `Implantação inicial do plano: ${brl(Number(taxa.valor))}.`,
+    );
+  }
+
+  /** Descrição, valor e vencimento sugeridos para a mensalidade da loja. */
+  function padraoMensalidade(id: string) {
     const plano = planoDoCliente(id);
     const cliente = clientes.find((c) => c.id === id);
     const venc = new Date();
     venc.setMonth(venc.getMonth() + 1);
     venc.setDate(Math.min(cliente?.dia_vencimento ?? 10, 28));
-    setForm({
-      ...form,
-      cliente_id: id,
+    return {
       descricao: plano ? `Mensalidade do plano ${plano.nome}` : "Mensalidade do EZRA ERP",
       valor: plano
         ? String(
             Number(plano.valor_mensal) +
               Number(cliente?.filiais_extras ?? 0) * Number(plano.valor_filial_extra),
           )
-        : form.valor,
+        : "",
       vencimento: venc.toISOString().slice(0, 10),
+    };
+  }
+
+  function escolherTipo(tipo: string) {
+    cancelarSugestaoTaxa();
+    if (tipo === "implantacao") {
+      // valor e descrição da loja anterior não ficam: só entram os da consulta ou os digitados
+      setForm({ ...form, tipo, valor: "", descricao: "" });
+      if (form.cliente_id) void sugerirTaxaInicial(form.cliente_id);
+      return;
+    }
+    // saindo da implantação, a taxa inicial não pode virar valor de outra cobrança
+    const volta = form.tipo === "implantacao";
+    setForm({
+      ...form,
+      tipo,
+      ...(volta
+        ? form.cliente_id
+          ? padraoMensalidade(form.cliente_id)
+          : { valor: "", descricao: "" }
+        : {}),
     });
+  }
+
+  function escolherCliente(id: string) {
+    if (form.tipo === "implantacao") {
+      setForm({ ...form, cliente_id: id, valor: "", descricao: "" });
+      void sugerirTaxaInicial(id);
+      return;
+    }
+    setForm({ ...form, cliente_id: id, ...padraoMensalidade(id) });
   }
 
   const criar = useMutation({
@@ -578,7 +645,7 @@ function CobrancaZeTech() {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="c-tipo">Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                <Select value={form.tipo} onValueChange={escolherTipo}>
                   <SelectTrigger id="c-tipo">
                     <SelectValue />
                   </SelectTrigger>
@@ -612,6 +679,7 @@ function CobrancaZeTech() {
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
               />
             </div>
+            {sugestaoTaxa && <p className="text-xs text-muted-foreground">{sugestaoTaxa}</p>}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="c-valor">Valor (R$)</Label>
@@ -666,7 +734,7 @@ function CobrancaZeTech() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => criar.mutate()} disabled={criar.isPending}>
+            <Button onClick={() => criar.mutate()} disabled={criar.isPending || buscandoTaxa}>
               Cadastrar cobrança
             </Button>
           </DialogFooter>

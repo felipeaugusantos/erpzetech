@@ -135,7 +135,13 @@ function Planos() {
         supabase.from("assinaturas").select("*").maybeSingle(),
         supabase.from("assinatura_faturas").select("*").order("vencimento", { ascending: false }),
       ]);
-      return { assinatura: assinaturaRes.data ?? null, faturas: faturasRes.data ?? [] };
+      // taxa inicial da empresa: clínica e lava-rápido pagam o treinamento e configuração inicial no lugar da implantação
+      const taxaRes = await supabase.rpc("assinatura_taxa_inicial");
+      return {
+        assinatura: assinaturaRes.data ?? null,
+        faturas: faturasRes.data ?? [],
+        taxaInicial: taxaRes.data?.[0] ?? null,
+      };
     },
   });
 
@@ -153,6 +159,7 @@ function Planos() {
 
   const assinatura = data?.assinatura ?? null;
   const faturas = data?.faturas ?? [];
+  const taxaInicial = data?.taxaInicial ?? null;
 
   const resumo = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
@@ -353,7 +360,8 @@ function Planos() {
                 Vencimento todo dia {assinatura.dia_vencimento}
               </span>
               <span className="text-sm text-muted-foreground">
-                Implantação {brl(Number(assinatura.valor_implantacao))} —{" "}
+                {taxaInicial?.rotulo ?? "Implantação"}{" "}
+                {brl(Number(taxaInicial?.valor ?? assinatura.valor_implantacao))} —{" "}
                 {assinatura.implantacao_paga ? "paga" : "em aberto"}
               </span>
             </div>
