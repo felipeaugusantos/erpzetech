@@ -2746,6 +2746,47 @@ export type Database = {
           },
         ]
       }
+      empresa_links: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          criado_por: string | null
+          id: string
+          rotulo: string | null
+          slug: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          rotulo?: string | null
+          slug: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          rotulo?: string | null
+          slug?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_modulos_liberados: {
         Row: {
           empresa_id: string
@@ -4201,6 +4242,61 @@ export type Database = {
             columns: ["deposito_id"]
             isOneToOne: false
             referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      link_acesso_usuarios: {
+        Row: {
+          acessos: number
+          link_id: string | null
+          link_slug: string
+          origem: string
+          primeiro_em: string
+          tenant_id: string
+          ultimo_em: string
+          user_id: string
+        }
+        Insert: {
+          acessos?: number
+          link_id?: string | null
+          link_slug: string
+          origem: string
+          primeiro_em?: string
+          tenant_id: string
+          ultimo_em?: string
+          user_id: string
+        }
+        Update: {
+          acessos?: number
+          link_id?: string | null
+          link_slug?: string
+          origem?: string
+          primeiro_em?: string
+          tenant_id?: string
+          ultimo_em?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_acesso_usuarios_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_acesso_usuarios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "link_acesso_usuarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -12120,6 +12216,10 @@ export type Database = {
         Returns: undefined
       }
       lava_rapido_liberado: { Args: never; Returns: boolean }
+      link_acesso_registrar: {
+        Args: { p_slug: string; p_user: string }
+        Returns: undefined
+      }
       locacao_aprovar: { Args: { p_locacao_id: string }; Returns: undefined }
       locacao_balcao_registrar: {
         Args: {
@@ -12910,6 +13010,16 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: Json
       }
+      saas_link_atualizar: {
+        Args: { p_ativo: boolean; p_id: string; p_rotulo: string }
+        Returns: undefined
+      }
+      saas_link_criar: {
+        Args: { p_rotulo?: string; p_slug: string; p_tenant: string }
+        Returns: string
+      }
+      saas_link_usuarios: { Args: { p_tenant: string }; Returns: Json }
+      saas_links_listar: { Args: never; Returns: Json }
       saas_marcar_enviada: {
         Args: { p_canal?: string; p_fatura_id: string }
         Returns: undefined

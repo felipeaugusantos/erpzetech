@@ -1,8 +1,3 @@
--- Links de acesso personalizados por empresa, criados pela equipe Ze Tech, e registro de qual link cada usuário usou para entrar.
--- O link é qualquer texto livre (3 a 50 letras minúsculas, números e hífen) e não depende do nome da empresa. Uma empresa pode ter vários.
--- Além deles continuam valendo o link principal da empresa (empresas.slug), o combinado no cadastro do assinante e o código da empresa.
--- Link desativado deixa de abrir a tela de login e de aceitar entrada. O link não pode ser trocado depois de criado (o histórico de uso aponta para ele).
-
 CREATE TABLE IF NOT EXISTS public.empresa_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -16,7 +11,6 @@ CREATE TABLE IF NOT EXISTS public.empresa_links (
 CREATE UNIQUE INDEX IF NOT EXISTS empresa_links_slug_uq ON public.empresa_links (lower(slug));
 CREATE INDEX IF NOT EXISTS empresa_links_tenant_idx ON public.empresa_links (tenant_id);
 
--- Uso: um registro por usuário e link, com a contagem de entradas.
 CREATE TABLE IF NOT EXISTS public.link_acesso_usuarios (
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   link_slug text NOT NULL,
@@ -30,6 +24,11 @@ CREATE TABLE IF NOT EXISTS public.link_acesso_usuarios (
 );
 CREATE INDEX IF NOT EXISTS link_acesso_usuarios_tenant_idx ON public.link_acesso_usuarios (tenant_id, link_slug);
 
+GRANT SELECT ON public.empresa_links TO authenticated;
+GRANT ALL ON public.empresa_links TO service_role;
+GRANT SELECT ON public.link_acesso_usuarios TO authenticated;
+GRANT ALL ON public.link_acesso_usuarios TO service_role;
+
 DO $$
 DECLARE t text;
 BEGIN
@@ -38,7 +37,6 @@ BEGIN
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);
     EXECUTE format('GRANT SELECT ON public.%I TO authenticated', t);
     EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
-    -- só a equipe Ze Tech lê
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_ler', t);
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING ((SELECT public.eh_saas_operador()))', t || '_ler', t);
     EXECUTE format('DROP POLICY IF EXISTS salao_restrito ON public.%I', t);
@@ -49,7 +47,6 @@ DROP TRIGGER IF EXISTS trg_empresa_links_updated ON public.empresa_links;
 CREATE TRIGGER trg_empresa_links_updated BEFORE UPDATE ON public.empresa_links
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
--- Formato, nomes reservados e conflito com os outros tipos de link. O texto do link não muda depois de criado.
 CREATE OR REPLACE FUNCTION public.empresa_links_valida() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $fn$
 BEGIN
@@ -79,7 +76,6 @@ DROP TRIGGER IF EXISTS trg_empresa_links_valida ON public.empresa_links;
 CREATE TRIGGER trg_empresa_links_valida BEFORE INSERT OR UPDATE ON public.empresa_links
   FOR EACH ROW EXECUTE FUNCTION public.empresa_links_valida();
 
--- Os outros tipos de link também não podem tomar um link personalizado.
 CREATE OR REPLACE FUNCTION public.empresas_link_livre() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $fn$
 BEGIN
@@ -117,7 +113,6 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.saas_clientes_link_valida() FROM PUBLIC, anon, authenticated;
 
--- Tela de login pelo link: a empresa do link personalizado aparece com a marca dela.
 CREATE OR REPLACE FUNCTION public.empresa_por_slug(p_slug text)
 RETURNS TABLE(nome text, cor_primaria text, logo_path text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $fn$
@@ -126,7 +121,6 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $fn$
       FROM public.empresas e
      WHERE e.slug IS NOT NULL AND lower(e.slug) = lower(trim(p_slug)) AND e.ativo
     UNION ALL
-    -- loja ainda sem empresa cadastrada: o link abre com o nome do cadastro do assinante (como o link do próprio cadastro)
     SELECT 2, coalesce(nullif(e2.nome_fantasia, ''), e2.razao_social, sc.nome), e2.cor_primaria, e2.logo_path
       FROM public.empresa_links l
       LEFT JOIN LATERAL (SELECT * FROM public.empresas x WHERE x.tenant_id = l.tenant_id ORDER BY x.created_at, x.id LIMIT 1) e2 ON true
@@ -143,13 +137,9 @@ $fn$;
 REVOKE ALL ON FUNCTION public.empresa_por_slug(text) FROM public;
 GRANT EXECUTE ON FUNCTION public.empresa_por_slug(text) TO anon, authenticated, service_role;
 
--- ===== Equipe Ze Tech =====
-
 CREATE OR REPLACE FUNCTION public.saas_link_criar(p_tenant uuid, p_slug text, p_rotulo text DEFAULT NULL)
 RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
 DECLARE v_id uuid;
 BEGIN
@@ -166,9 +156,7 @@ GRANT EXECUTE ON FUNCTION public.saas_link_criar(uuid, text, text) TO authentica
 
 CREATE OR REPLACE FUNCTION public.saas_link_atualizar(p_id uuid, p_rotulo text, p_ativo boolean)
 RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
 BEGIN
   PERFORM public.exige_nao_salao();
@@ -180,13 +168,9 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.saas_link_atualizar(uuid, text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.saas_link_atualizar(uuid, text, boolean) TO authenticated;
 
--- Todos os links das empresas da rede (personalizados, o principal da empresa e o combinado no cadastro), com o uso de cada um.
 CREATE OR REPLACE FUNCTION public.saas_links_listar()
 RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
 BEGIN
   PERFORM public.exige_nao_salao();
@@ -219,13 +203,9 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.saas_links_listar() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.saas_links_listar() TO authenticated;
 
--- Usuários da empresa e os links que cada um usou para entrar (o mais recente primeiro).
 CREATE OR REPLACE FUNCTION public.saas_link_usuarios(p_tenant uuid)
 RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
 BEGIN
   PERFORM public.exige_nao_salao();
@@ -245,15 +225,9 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.saas_link_usuarios(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.saas_link_usuarios(uuid) TO authenticated;
 
--- ===== Só o serviço =====
-
--- Registra que o usuário entrou por este link. Só vale se o link é da empresa do próprio usuário (senão não grava nada).
--- Aceita o link personalizado, o principal da empresa, o do cadastro do assinante e o código (UUID) da empresa.
 CREATE OR REPLACE FUNCTION public.link_acesso_registrar(p_user uuid, p_slug text)
 RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $fn$
 DECLARE
   v_slug text := lower(btrim(coalesce(p_slug, '')));
@@ -284,3 +258,9 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.link_acesso_registrar(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.link_acesso_registrar(uuid, text) TO service_role;
+
+UPDATE public.saas_planos SET nome = 'Essencial' WHERE codigo = 'balcao' AND nome = 'Balcão';
+UPDATE public.saas_planos SET nome = 'Profissional' WHERE codigo = 'loja' AND nome = 'Loja';
+UPDATE public.saas_planos SET nome = 'Empresarial' WHERE codigo = 'rede' AND nome = 'Rede';
+UPDATE public.saas_planos SET recursos = array_replace(recursos, 'Tudo do Balcão', 'Tudo do Essencial') WHERE codigo = 'loja';
+UPDATE public.saas_planos SET recursos = array_replace(recursos, 'Tudo do Loja', 'Tudo do Profissional') WHERE codigo = 'rede';
