@@ -19,13 +19,13 @@ export const Route = createFileRoute("/auth")({
     busca["aba"] === "criar" ? { aba: "criar" } : {},
   head: () => ({
     meta: [
-      { title: "Entrar — ERP Ze Tech" },
+      { title: "Entrar — EZRA ERP" },
       {
         name: "description",
         content:
-          "Acesse o ERP Ze Tech para gerenciar vendas, estoque, compras, financeiro e notas fiscais da sua empresa.",
+          "Acesse o EZRA ERP para gerenciar vendas, estoque, compras, financeiro e notas fiscais da sua empresa.",
       },
-      { property: "og:title", content: "Entrar no ERP Ze Tech" },
+      { property: "og:title", content: "Entrar no EZRA ERP" },
       {
         property: "og:description",
         content:
@@ -104,7 +104,7 @@ function AuthPage() {
       <div className="hidden flex-col justify-between bg-sidebar p-10 text-sidebar-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-lg font-bold tracking-wide">ERP ZE TECH</span>
+          <span className="font-display text-lg font-bold tracking-wide">EZRA ERP</span>
         </Link>
         <div className="max-w-md">
           <TrendingUp className="mb-4 size-9 text-sidebar-primary" />
@@ -246,7 +246,7 @@ function AuthPage() {
           </Link>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Acesso protegido e criptografado • <strong>ERP Ze Tech</strong>
+            Acesso protegido e criptografado • <strong>EZRA ERP</strong>
             <br />
             Dúvidas ou problemas de acesso? Fale com o suporte Ze Tech no WhatsApp:{" "}
             <a
@@ -259,6 +259,7 @@ function AuthPage() {
             </a>
             .
           </p>
+          <p className="mt-2 text-center text-xs text-muted-foreground">Desenvolvido por EZRA</p>
         </div>
       </div>
     </div>

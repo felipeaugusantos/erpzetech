@@ -42,9 +42,9 @@ import { contaParaExibir } from "@/lib/usuario-login";
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações — ERP Ze Tech" },
+      { title: "Configurações — EZRA ERP" },
       { name: "description", content: "Dados da empresa, filiais e preferências do usuário." },
-      { property: "og:title", content: "Configurações — ERP Ze Tech" },
+      { property: "og:title", content: "Configurações — EZRA ERP" },
       { property: "og:description", content: "Configure empresa e filiais do sistema." },
     ],
   }),

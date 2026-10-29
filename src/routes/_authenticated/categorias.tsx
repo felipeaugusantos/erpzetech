@@ -37,9 +37,9 @@ import {
 export const Route = createFileRoute("/_authenticated/categorias")({
   head: () => ({
     meta: [
-      { title: "Categorias — ERP Ze Tech" },
+      { title: "Categorias — EZRA ERP" },
       { name: "description", content: "Categorias e subcategorias de produtos da loja." },
-      { property: "og:title", content: "Categorias — ERP Ze Tech" },
+      { property: "og:title", content: "Categorias — EZRA ERP" },
       { property: "og:description", content: "Organize os produtos por categoria." },
     ],
   }),

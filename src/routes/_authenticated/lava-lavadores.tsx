@@ -34,7 +34,7 @@ import { brl, dateTimeBR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/lava-lavadores")({
   head: () => ({
     meta: [
-      { title: "Lavadores e comissões — ERP Ze Tech" },
+      { title: "Lavadores e comissões — EZRA ERP" },
       {
         name: "description",
         content: "Lavadores do lava rápido, percentual de comissão e aprovação do pagamento.",

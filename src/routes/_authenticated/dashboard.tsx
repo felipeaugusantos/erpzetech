@@ -43,13 +43,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — ERP Ze Tech" },
+      { title: "Dashboard — EZRA ERP" },
       {
         name: "description",
         content:
           "Pedidos em andamento, orçamentos expirados, contas a receber e a pagar, alertas de vencimento e estoque.",
       },
-      { property: "og:title", content: "Dashboard — ERP Ze Tech" },
+      { property: "og:title", content: "Dashboard — EZRA ERP" },
       {
         property: "og:description",
         content: "Visão geral comercial, financeira e de estoque da loja.",

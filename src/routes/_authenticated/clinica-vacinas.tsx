@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/clinica-vacinas")({
   }),
   head: () => ({
     meta: [
-      { title: "Vacinas e vermífugos — ERP Ze Tech" },
+      { title: "Vacinas e vermífugos — EZRA ERP" },
       {
         name: "description",
         content: "Registro de vacina e vermífugo aplicados, com lote e próxima dose.",

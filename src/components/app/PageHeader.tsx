@@ -65,7 +65,7 @@ export function StatCard({
     success: "bg-success/12 text-success",
     warning: "bg-warning/15 text-warning-foreground",
     danger: "bg-destructive/12 text-destructive",
-    accent: "bg-accent/15 text-accent-foreground",
+    accent: "bg-mint/15 text-accent-foreground",
   };
   return (
     <div className="panel p-4">

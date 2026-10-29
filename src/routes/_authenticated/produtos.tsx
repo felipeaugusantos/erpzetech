@@ -58,12 +58,12 @@ import {
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({
     meta: [
-      { title: "Produtos — ERP Ze Tech" },
+      { title: "Produtos — EZRA ERP" },
       {
         name: "description",
         content: "Cadastro de produtos com unidades de compra e venda, custo, preço e margem.",
       },
-      { property: "og:title", content: "Produtos — ERP Ze Tech" },
+      { property: "og:title", content: "Produtos — EZRA ERP" },
       { property: "og:description", content: "Catálogo de materiais de construção da loja." },
     ],
   }),

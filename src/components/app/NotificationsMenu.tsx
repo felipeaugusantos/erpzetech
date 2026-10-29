@@ -76,7 +76,7 @@ export function NotificationsMenu() {
         <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
           <Bell className="size-5" />
           {count > 0 && (
-            <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-accent text-[9px] font-bold text-accent-foreground">
+            <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-mint text-[9px] font-bold text-mint-foreground">
               {count > 9 ? "9+" : count}
             </span>
           )}

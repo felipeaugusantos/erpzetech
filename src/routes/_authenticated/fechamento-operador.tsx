@@ -20,13 +20,13 @@ import {
 export const Route = createFileRoute("/_authenticated/fechamento-operador")({
   head: () => ({
     meta: [
-      { title: "Fechamento por operador — ERP Ze Tech" },
+      { title: "Fechamento por operador — EZRA ERP" },
       {
         name: "description",
         content:
           "Vendas, formas de pagamento, cancelamentos, sangrias, suprimentos e diferenças de caixa por operador.",
       },
-      { property: "og:title", content: "Fechamento por operador — ERP Ze Tech" },
+      { property: "og:title", content: "Fechamento por operador — EZRA ERP" },
       { property: "og:description", content: "Relatório de fechamento de caixa por operador." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

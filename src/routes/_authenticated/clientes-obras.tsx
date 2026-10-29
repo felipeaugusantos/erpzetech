@@ -31,13 +31,13 @@ import {
 export const Route = createFileRoute("/_authenticated/clientes-obras")({
   head: () => ({
     meta: [
-      { title: "Clientes e obras — ERP Ze Tech" },
+      { title: "Clientes e obras — EZRA ERP" },
       {
         name: "description",
         content:
           "Cadastro completo de clientes PF e PJ com endereço, crédito, profissional que indicou e as obras de cada cliente.",
       },
-      { property: "og:title", content: "Clientes e obras — ERP Ze Tech" },
+      { property: "og:title", content: "Clientes e obras — EZRA ERP" },
       {
         property: "og:description",
         content: "Cadastre clientes e obras completos antes de gerar pedidos e notas.",

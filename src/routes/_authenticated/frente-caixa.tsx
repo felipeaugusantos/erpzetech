@@ -37,13 +37,13 @@ import { avisoDepoisDoUso } from "@/lib/pet";
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
     meta: [
-      { title: "Frente de caixa — ERP Ze Tech" },
+      { title: "Frente de caixa — EZRA ERP" },
       {
         name: "description",
         content:
           "Frente de caixa em tela cheia, operada pelo teclado, com caixa por operador e senha do gestor.",
       },
-      { property: "og:title", content: "Frente de caixa — ERP Ze Tech" },
+      { property: "og:title", content: "Frente de caixa — EZRA ERP" },
       {
         property: "og:description",
         content: "Venda rápida pelo teclado com sugestão de produtos por IA.",
@@ -1421,7 +1421,7 @@ function FrenteCaixa() {
                         onClick={() =>
                           adicionar(p, interpretarBusca(busca).quantidade ?? parseNum(qtd))
                         }
-                        className={`flex w-full justify-between px-3 py-2 text-left text-sm ${i === sel ? "bg-accent/30" : ""}`}
+                        className={`flex w-full justify-between px-3 py-2 text-left text-sm ${i === sel ? "bg-mint/30" : ""}`}
                       >
                         <span>{p.descricao}</span>
                         <span className="text-numeric">{brl(p.preco_venda)}</span>

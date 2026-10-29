@@ -22,12 +22,12 @@ export const Route = createFileRoute("/_authenticated/clinica-documento")({
   }),
   head: () => ({
     meta: [
-      { title: "Documento da clínica — ERP Ze Tech" },
+      { title: "Documento da clínica — EZRA ERP" },
       {
         name: "description",
         content: "Receita, atestado, termo ou solicitação de exames para imprimir.",
       },
-      { property: "og:title", content: "Documento da clínica — ERP Ze Tech" },
+      { property: "og:title", content: "Documento da clínica — EZRA ERP" },
       { property: "og:description", content: "Documentos clínicos do paciente para impressão." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -232,7 +232,7 @@ function Documento() {
         </div>
 
         <p className="mt-8 text-[11px] text-muted-foreground">
-          Emitido em {dateBR(d.emitido_em)} pelo ERP Ze Tech, sem assinatura digital: vale com a
+          Emitido em {dateBR(d.emitido_em)} pelo EZRA ERP, sem assinatura digital: vale com a
           assinatura do veterinário.
           {cancelado ? ` CANCELADO em ${dateBR(d.cancelado_em)}: ${d.cancelado_motivo ?? ""}.` : ""}
         </p>

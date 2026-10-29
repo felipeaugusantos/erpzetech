@@ -1,4 +1,4 @@
-// Nomes de exibição dos três planos do ERP Ze Tech. Só o texto mostrado muda: o código interno (balcao, loja, rede) continua sendo
+// Nomes de exibição dos três planos do EZRA ERP. Só o texto mostrado muda: o código interno (balcao, loja, rede) continua sendo
 // o identificador no banco, nas assinaturas e nas chamadas de API. Para trocar um nome de novo, é aqui (e na migration de nomes).
 
 export type CodigoPlano = "balcao" | "loja" | "rede";

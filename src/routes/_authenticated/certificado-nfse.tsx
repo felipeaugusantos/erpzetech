@@ -25,13 +25,13 @@ import {
 export const Route = createFileRoute("/_authenticated/certificado-nfse")({
   head: () => ({
     meta: [
-      { title: "Certificado digital e NFS-e — ERP Ze Tech" },
+      { title: "Certificado digital e NFS-e — EZRA ERP" },
       {
         name: "description",
         content:
           "Informe o certificado digital A1 ou A3 e os dados da prefeitura para emitir nota fiscal de serviço.",
       },
-      { property: "og:title", content: "Certificado digital e NFS-e — ERP Ze Tech" },
+      { property: "og:title", content: "Certificado digital e NFS-e — EZRA ERP" },
       {
         property: "og:description",
         content: "Certificado A1 ou A3 e configuração da nota de serviço por prefeitura.",

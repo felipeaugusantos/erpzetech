@@ -53,7 +53,7 @@ import { formDoPlano, planoVazio, type FormPlano } from "@/lib/lava-planos-form"
 export const Route = createFileRoute("/_authenticated/lava-planos")({
   head: () => ({
     meta: [
-      { title: "Planos e fidelidade do lava rápido — ERP Ze Tech" },
+      { title: "Planos e fidelidade do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Planos mensais de lavagem por veículo e programa de fidelidade com brinde.",

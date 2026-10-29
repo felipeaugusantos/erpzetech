@@ -1,4 +1,4 @@
-# ERP Ze Tech
+# EZRA ERP
 
 Crie um sistema SaaS completo para gestão de lojas de materiais de construção.
 

@@ -40,12 +40,12 @@ import {
 export const Route = createFileRoute("/_authenticated/motoristas")({
   head: () => ({
     meta: [
-      { title: "Motoristas — ERP Ze Tech" },
+      { title: "Motoristas — EZRA ERP" },
       {
         name: "description",
         content: "Motoristas da loja com CNH, validade, telefone e veículo habitual.",
       },
-      { property: "og:title", content: "Motoristas — ERP Ze Tech" },
+      { property: "og:title", content: "Motoristas — EZRA ERP" },
       { property: "og:description", content: "Equipe responsável pelas entregas de material." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

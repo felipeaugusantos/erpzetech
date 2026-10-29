@@ -29,13 +29,13 @@ import {
 export const Route = createFileRoute("/_authenticated/locacao-balcao")({
   head: () => ({
     meta: [
-      { title: "Balcão de locação — ERP Ze Tech" },
+      { title: "Balcão de locação — EZRA ERP" },
       {
         name: "description",
         content:
           "O cliente escolhe os equipamentos, o período e paga na hora, com nota fiscal de serviço.",
       },
-      { property: "og:title", content: "Balcão de locação — ERP Ze Tech" },
+      { property: "og:title", content: "Balcão de locação — EZRA ERP" },
       {
         property: "og:description",
         content: "Locação rápida no balcão: equipamentos, período, pagamento e NFS-e.",

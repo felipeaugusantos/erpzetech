@@ -40,7 +40,7 @@ import { dateTimeBR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/auditoria")({
   head: () => ({
     meta: [
-      { title: "Auditoria — ERP Ze Tech" },
+      { title: "Auditoria — EZRA ERP" },
       {
         name: "description",
         content:

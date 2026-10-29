@@ -21,16 +21,16 @@ import {
 export const Route = createFileRoute("/_authenticated/impostos")({
   head: () => ({
     meta: [
-      { title: "Impostos da empresa — ERP Ze Tech" },
+      { title: "Impostos da empresa — EZRA ERP" },
       {
         name: "description",
         content:
           "Defina as alíquotas de ICMS dentro e fora do estado, substituição tributária, PIS, COFINS e ISS usadas no cálculo das notas fiscais.",
       },
-      { property: "og:title", content: "Impostos da empresa — ERP Ze Tech" },
+      { property: "og:title", content: "Impostos da empresa — EZRA ERP" },
       {
         property: "og:description",
-        content: "Alíquotas de ICMS, PIS, COFINS e ISS da empresa no ERP Ze Tech.",
+        content: "Alíquotas de ICMS, PIS, COFINS e ISS da empresa no EZRA ERP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

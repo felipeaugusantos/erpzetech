@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_authenticated/banco-movimentos")({
   head: () => ({
     meta: [
-      { title: "Movimentação bancária — ERP Ze Tech" },
+      { title: "Movimentação bancária — EZRA ERP" },
       {
         name: "description",
         content:
           "Extrato de cada conta: entradas, saídas, transferências, tarifas, saldo corrido e conciliação com o banco.",
       },
-      { property: "og:title", content: "Movimentação bancária — ERP Ze Tech" },
+      { property: "og:title", content: "Movimentação bancária — EZRA ERP" },
       {
         property: "og:description",
         content: "Acompanhe o dinheiro em banco, confira o extrato e concilie cada lançamento.",

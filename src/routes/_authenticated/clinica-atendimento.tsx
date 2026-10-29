@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_authenticated/clinica-atendimento")({
   }),
   head: () => ({
     meta: [
-      { title: "Atendimento clínico — ERP Ze Tech" },
+      { title: "Atendimento clínico — EZRA ERP" },
       {
         name: "description",
         content: "Prontuário da consulta: queixa, exame, diagnóstico e conduta.",

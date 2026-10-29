@@ -24,13 +24,13 @@ import { Badge } from "@/components/ui/badge";
 export const Route = createFileRoute("/_authenticated/personalizacao")({
   head: () => ({
     meta: [
-      { title: "Personalização — ERP Ze Tech" },
+      { title: "Personalização — EZRA ERP" },
       {
         name: "description",
         content:
           "Aprovação da arte, etapas de produção e grade por tamanho dos pedidos personalizados.",
       },
-      { property: "og:title", content: "Personalização — ERP Ze Tech" },
+      { property: "og:title", content: "Personalização — EZRA ERP" },
       {
         property: "og:description",
         content: "Acompanhe arte, impressão, prensa e entrega de cada encomenda.",

@@ -12,7 +12,7 @@ import { num } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/ajuste-lotes")({
   head: () => ({
     meta: [
-      { title: "Ajuste de lotes — ERP Ze Tech" },
+      { title: "Ajuste de lotes — EZRA ERP" },
       { name: "description", content: "Correção do saldo de um lote com motivo obrigatório." },
     ],
   }),

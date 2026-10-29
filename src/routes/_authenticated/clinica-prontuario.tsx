@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/clinica-prontuario")({
   }),
   head: () => ({
     meta: [
-      { title: "Prontuário — ERP Ze Tech" },
+      { title: "Prontuário — EZRA ERP" },
       {
         name: "description",
         content: "Ficha do paciente e histórico de atendimentos da clínica.",

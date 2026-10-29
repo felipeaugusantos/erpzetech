@@ -47,13 +47,13 @@ import {
 export const Route = createFileRoute("/_authenticated/depositos/$id")({
   head: () => ({
     meta: [
-      { title: "Depósito — ERP Ze Tech" },
+      { title: "Depósito — EZRA ERP" },
       {
         name: "description",
         content:
           "Estoque físico, reservado e disponível por produto no depósito, com transferência e ajuste.",
       },
-      { property: "og:title", content: "Depósito — ERP Ze Tech" },
+      { property: "og:title", content: "Depósito — EZRA ERP" },
       {
         property: "og:description",
         content: "Saldo por produto, transferência entre depósitos e ajuste de inventário.",

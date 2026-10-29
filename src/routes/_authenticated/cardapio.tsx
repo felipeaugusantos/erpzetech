@@ -50,7 +50,7 @@ import { useQuery } from "@tanstack/react-query";
 export const Route = createFileRoute("/_authenticated/cardapio")({
   head: () => ({
     meta: [
-      { title: "Cardápio e mesas — ERP Ze Tech" },
+      { title: "Cardápio e mesas — EZRA ERP" },
       { name: "description", content: "Cadastro do cardápio, das opções dos pratos e das mesas." },
     ],
   }),

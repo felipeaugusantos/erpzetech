@@ -56,7 +56,7 @@ import { rotulo } from "@/lib/pet";
 export const Route = createFileRoute("/_authenticated/clinica-exames-modelos")({
   head: () => ({
     meta: [
-      { title: "Modelos de exame — ERP Ze Tech" },
+      { title: "Modelos de exame — EZRA ERP" },
       {
         name: "description",
         content:

@@ -39,13 +39,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/relatorio-estoque")({
   head: () => ({
     meta: [
-      { title: "Relatório de estoque por depósito — ERP Ze Tech" },
+      { title: "Relatório de estoque por depósito — EZRA ERP" },
       {
         name: "description",
         content:
           "Entradas, saídas, transferências e saldo valorizado de cada depósito no período, ligado ao giro de compra.",
       },
-      { property: "og:title", content: "Relatório de estoque por depósito — ERP Ze Tech" },
+      { property: "og:title", content: "Relatório de estoque por depósito — EZRA ERP" },
       {
         property: "og:description",
         content:

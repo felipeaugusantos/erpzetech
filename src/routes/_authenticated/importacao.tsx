@@ -46,7 +46,7 @@ import {
 export const Route = createFileRoute("/_authenticated/importacao")({
   head: () => ({
     meta: [
-      { title: "Importação por planilha — ERP Ze Tech" },
+      { title: "Importação por planilha — EZRA ERP" },
       {
         name: "description",
         content:

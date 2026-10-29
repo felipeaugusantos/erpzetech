@@ -15,7 +15,7 @@ import { enderecoPedido, labelEntrega } from "@/lib/entrega";
 export const Route = createFileRoute("/_authenticated/entregas-motorista")({
   head: () => ({
     meta: [
-      { title: "Entregas do motorista — ERP Ze Tech" },
+      { title: "Entregas do motorista — EZRA ERP" },
       {
         name: "description",
         content:

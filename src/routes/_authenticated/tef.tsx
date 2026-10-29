@@ -13,13 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/_authenticated/tef")({
   head: () => ({
     meta: [
-      { title: "Maquininha (TEF) — ERP Ze Tech" },
+      { title: "Maquininha (TEF) — EZRA ERP" },
       {
         name: "description",
         content:
           "Configuração da maquininha de cartão: credenciadora, contrato, terminal e parâmetros.",
       },
-      { property: "og:title", content: "Maquininha (TEF) — ERP Ze Tech" },
+      { property: "og:title", content: "Maquininha (TEF) — EZRA ERP" },
       {
         property: "og:description",
         content: "Ligue a venda de cartão da frente de caixa à maquininha da loja.",

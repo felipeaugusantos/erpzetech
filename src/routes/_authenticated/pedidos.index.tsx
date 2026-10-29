@@ -45,12 +45,12 @@ import { TAMANHOS_CHINELO, montarGrade, totalGrade, type LinhaGrade } from "@/li
 export const Route = createFileRoute("/_authenticated/pedidos/")({
   head: () => ({
     meta: [
-      { title: "Pedidos — ERP Ze Tech" },
+      { title: "Pedidos — EZRA ERP" },
       {
         name: "description",
         content: "Pedidos com separação, conferência e entrega acompanhados por timeline.",
       },
-      { property: "og:title", content: "Pedidos — ERP Ze Tech" },
+      { property: "og:title", content: "Pedidos — EZRA ERP" },
       {
         property: "og:description",
         content: "Do pagamento à entrega: acompanhe cada etapa do pedido da loja.",

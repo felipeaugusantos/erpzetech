@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/clinica-cartao")({
   }),
   head: () => ({
     meta: [
-      { title: "Cartão de vacinação — ERP Ze Tech" },
+      { title: "Cartão de vacinação — EZRA ERP" },
       {
         name: "description",
         content: "Cartão de vacinação do pet para imprimir: aplicações, lotes e próximas doses.",

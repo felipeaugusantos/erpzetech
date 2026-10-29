@@ -40,16 +40,16 @@ import { NOME_DO_PLANO, nomeDoPlano } from "@/lib/planos-nomes";
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
     meta: [
-      { title: "Plano e assinatura — ERP Ze Tech" },
+      { title: "Plano e assinatura — EZRA ERP" },
       {
         name: "description",
         content:
           "Plano contratado, mensalidade, filiais extras, implantação, o que já foi pago e o que falta.",
       },
-      { property: "og:title", content: "Plano e assinatura — ERP Ze Tech" },
+      { property: "og:title", content: "Plano e assinatura — EZRA ERP" },
       {
         property: "og:description",
-        content: "Acompanhe a assinatura do ERP Ze Tech, pagamentos e valores em aberto.",
+        content: "Acompanhe a assinatura do EZRA ERP, pagamentos e valores em aberto.",
       },
     ],
   }),
@@ -361,7 +361,7 @@ function Planos() {
               <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {planoAtual.itens.map((i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check className="mt-0.5 size-4 shrink-0 text-accent" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-brand" />
                     {i}
                   </li>
                 ))}
@@ -373,10 +373,7 @@ function Planos() {
             {PLANOS.map((p) => {
               const atual = p.id === assinatura.plano;
               return (
-                <div
-                  key={p.id}
-                  className={atual ? "panel border-2 border-accent p-5" : "panel p-5"}
-                >
+                <div key={p.id} className={atual ? "panel border-2 border-brand p-5" : "panel p-5"}>
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-display text-lg font-bold">{p.nome}</h3>
                     {atual && <Badge>Seu plano</Badge>}
@@ -515,7 +512,7 @@ function Planos() {
                   )}
                   {c.email && (
                     <Button asChild size="sm" variant="outline">
-                      <a href={`mailto:${c.email}?subject=Planos ERP Ze Tech`}>E-mail</a>
+                      <a href={`mailto:${c.email}?subject=Planos EZRA ERP`}>E-mail</a>
                     </Button>
                   )}
                 </div>

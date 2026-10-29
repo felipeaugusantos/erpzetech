@@ -33,7 +33,7 @@ import { rotuloSituacao } from "@/lib/whatsapp-despacho";
 export const Route = createFileRoute("/_authenticated/lava-whatsapp")({
   head: () => ({
     meta: [
-      { title: "WhatsApp automático — ERP Ze Tech" },
+      { title: "WhatsApp automático — EZRA ERP" },
       {
         name: "description",
         content:

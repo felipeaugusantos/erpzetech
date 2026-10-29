@@ -28,13 +28,13 @@ import {
 export const Route = createFileRoute("/_authenticated/ze-tech-tecnicos")({
   head: () => ({
     meta: [
-      { title: "Custo por técnico — ERP Ze Tech" },
+      { title: "Custo por técnico — EZRA ERP" },
       {
         name: "description",
         content:
           "Horas trabalhadas, custo de peças, mão de obra e comissão de cada técnico das lojas clientes.",
       },
-      { property: "og:title", content: "Custo por técnico — ERP Ze Tech" },
+      { property: "og:title", content: "Custo por técnico — EZRA ERP" },
       {
         property: "og:description",
         content: "Custo total por técnico das lojas clientes no período escolhido.",

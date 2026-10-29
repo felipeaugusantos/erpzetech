@@ -15,7 +15,7 @@ desafio para o visitante (confere em segundo plano) e sem puzzle de imagens.
 ## Ligar (uma vez, ~10 minutos)
 
 1. Entre em <https://dash.cloudflare.com> › **Turnstile** › **Add widget** (conta gratuita).
-2. Nome: "ERP Ze Tech — contato". Domínios: o endereço do sistema (e o de teste do Lovable, se quiser testar nele).
+2. Nome: "EZRA ERP — contato". Domínios: o endereço do sistema (e o de teste do Lovable, se quiser testar nele).
    Modo: **Managed**.
 3. A Cloudflare mostra duas chaves:
    - **Site Key** (pública)

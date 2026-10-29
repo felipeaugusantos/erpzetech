@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/ze-tech-planos")({
       {
         name: "description",
         content:
-          "Defina cada plano do ERP Ze Tech: valor mensal, prazo, teste grátis, filial extra e implantação, e veja quem assina cada um.",
+          "Defina cada plano do EZRA ERP: valor mensal, prazo, teste grátis, filial extra e implantação, e veja quem assina cada um.",
       },
       { property: "og:title", content: "Planos da Ze Tech — custo e prazo" },
       {

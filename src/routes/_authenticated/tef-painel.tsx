@@ -14,13 +14,13 @@ import { CREDENCIADORAS } from "./tef";
 export const Route = createFileRoute("/_authenticated/tef-painel")({
   head: () => ({
     meta: [
-      { title: "Painel da maquininha (TEF) — ERP Ze Tech" },
+      { title: "Painel da maquininha (TEF) — EZRA ERP" },
       {
         name: "description",
         content:
           "Transações de cartão aprovadas, negadas e canceladas, ligadas ao caixa e à nota fiscal.",
       },
-      { property: "og:title", content: "Painel da maquininha (TEF) — ERP Ze Tech" },
+      { property: "og:title", content: "Painel da maquininha (TEF) — EZRA ERP" },
       { property: "og:description", content: "Acompanhe as transações de cartão da loja." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

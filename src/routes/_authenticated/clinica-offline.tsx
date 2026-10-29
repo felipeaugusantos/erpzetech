@@ -77,7 +77,7 @@ import {
 export const Route = createFileRoute("/_authenticated/clinica-offline")({
   head: () => ({
     meta: [
-      { title: "Trabalho sem internet — ERP Ze Tech" },
+      { title: "Trabalho sem internet — EZRA ERP" },
       {
         name: "description",
         content:

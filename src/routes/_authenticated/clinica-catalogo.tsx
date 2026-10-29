@@ -48,7 +48,7 @@ import { rotulo } from "@/lib/pet";
 export const Route = createFileRoute("/_authenticated/clinica-catalogo")({
   head: () => ({
     meta: [
-      { title: "Catálogo de vacinas — ERP Ze Tech" },
+      { title: "Catálogo de vacinas — EZRA ERP" },
       {
         name: "description",
         content: "Vacinas e vermífugos da clínica, com série de doses e intervalo de reforço.",

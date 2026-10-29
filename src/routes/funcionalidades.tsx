@@ -31,13 +31,13 @@ const WHATSAPP =
 export const Route = createFileRoute("/funcionalidades")({
   head: () => ({
     meta: [
-      { title: "Funcionalidades do ERP Ze Tech — tudo o que o sistema faz" },
+      { title: "Funcionalidades do EZRA ERP — tudo o que o sistema faz" },
       {
         name: "description",
         content:
-          "Conheça todas as funções do ERP Ze Tech: PDV, estoque por grade, compras com XML e CT-e, financeiro, NF-e, OS, locação, delivery, personalização e mais.",
+          "Conheça todas as funções do EZRA ERP: PDV, estoque por grade, compras com XML e CT-e, financeiro, NF-e, OS, locação, delivery, personalização e mais.",
       },
-      { property: "og:title", content: "Todas as funções do ERP Ze Tech" },
+      { property: "og:title", content: "Todas as funções do EZRA ERP" },
       {
         property: "og:description",
         content:
@@ -199,7 +199,7 @@ const modulos: Grupo[] = [
 function Cartao({ g }: { g: Grupo }) {
   return (
     <div className="panel flex flex-col p-6">
-      <span className="grid size-10 place-items-center rounded-md bg-accent/15 text-accent-foreground">
+      <span className="grid size-10 place-items-center rounded-md bg-mint/15 text-accent-foreground">
         <g.icon className="size-5" />
       </span>
       <h3 className="mt-4 font-display text-lg font-bold">{g.titulo}</h3>
@@ -207,7 +207,7 @@ function Cartao({ g }: { g: Grupo }) {
       <ul className="mt-4 space-y-2 text-sm">
         {g.itens.map((i) => (
           <li key={i} className="flex gap-2">
-            <Check className="mt-0.5 size-4 shrink-0 text-accent" />
+            <Check className="mt-0.5 size-4 shrink-0 text-brand" />
             <span>{i}</span>
           </li>
         ))}
@@ -223,7 +223,7 @@ function Funcionalidades() {
         <Link to="/" className="flex min-w-0 items-center gap-2">
           <ZeLogo />
           <span className="whitespace-nowrap font-display text-sm font-bold tracking-wide sm:text-base">
-            ERP ZE TECH
+            EZRA ERP
           </span>
         </Link>
         <nav className="flex items-center gap-2">
@@ -238,10 +238,10 @@ function Funcionalidades() {
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center sm:px-8 sm:py-20">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-          <Building2 className="size-3.5 text-accent" /> Um sistema, todos os setores da empresa
+          <Building2 className="size-3.5 text-brand" /> Um sistema, todos os setores da empresa
         </span>
         <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-          Tudo o que o <span className="text-accent">ERP Ze Tech</span> faz por você
+          Tudo o que o <span className="text-brand">EZRA ERP</span> faz por você
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-muted-foreground">
           Vendas, estoque, compras, financeiro e fiscal para qualquer empresa — mais módulos
@@ -269,7 +269,7 @@ function Funcionalidades() {
               key={d.t}
               className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4"
             >
-              <d.icon className="size-5 text-accent" />
+              <d.icon className="size-5 text-brand" />
               <span className="font-display text-sm font-semibold">{d.t}</span>
             </div>
           ))}
@@ -315,6 +315,10 @@ function Funcionalidades() {
           </Button>
         </div>
       </section>
+
+      <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
+        Desenvolvido por EZRA
+      </footer>
     </div>
   );
 }

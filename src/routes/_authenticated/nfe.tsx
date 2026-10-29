@@ -63,16 +63,16 @@ import {
 export const Route = createFileRoute("/_authenticated/nfe")({
   head: () => ({
     meta: [
-      { title: "Notas fiscais — ERP Ze Tech" },
+      { title: "Notas fiscais — EZRA ERP" },
       {
         name: "description",
         content:
           "Gere a nota fiscal do pedido com cliente, produtos, depósito e valores, e acompanhe as pendências fiscais.",
       },
-      { property: "og:title", content: "Notas fiscais — ERP Ze Tech" },
+      { property: "og:title", content: "Notas fiscais — EZRA ERP" },
       {
         property: "og:description",
-        content: "Emissão de nota fiscal a partir do pedido no ERP Ze Tech.",
+        content: "Emissão de nota fiscal a partir do pedido no EZRA ERP.",
       },
     ],
   }),
@@ -81,7 +81,7 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 
 const situacaoLabel: Record<string, { label: string; tone: string }> = {
   rascunho: { label: "Rascunho", tone: "bg-muted text-muted-foreground" },
-  pronta: { label: "Pronta para transmitir", tone: "bg-accent/15 text-accent-foreground" },
+  pronta: { label: "Pronta para transmitir", tone: "bg-mint/15 text-accent-foreground" },
   transmitida: { label: "Enviada — aguardando Receita", tone: "bg-primary/15 text-primary" },
   autorizada: { label: "Autorizada", tone: "bg-success/15 text-success" },
   rejeitada: { label: "Rejeitada", tone: "bg-destructive/15 text-destructive" },

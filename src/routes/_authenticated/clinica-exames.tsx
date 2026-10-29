@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_authenticated/clinica-exames")({
   }),
   head: () => ({
     meta: [
-      { title: "Exames — ERP Ze Tech" },
+      { title: "Exames — EZRA ERP" },
       {
         name: "description",
         content: "Resultados de exames do paciente: hemograma, bioquímica, urina e outros.",

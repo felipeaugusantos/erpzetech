@@ -25,7 +25,7 @@ import {
 export const Route = createFileRoute("/_authenticated/cozinha")({
   head: () => ({
     meta: [
-      { title: "Cozinha — ERP Ze Tech" },
+      { title: "Cozinha — EZRA ERP" },
       { name: "description", content: "Fila de preparo da cozinha e do bar em tempo real." },
     ],
   }),

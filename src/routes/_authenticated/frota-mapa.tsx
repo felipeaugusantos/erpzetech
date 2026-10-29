@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/frota-mapa")({
   head: () => ({
     meta: [
-      { title: "Onde estão os caminhões — ERP Ze Tech" },
+      { title: "Onde estão os caminhões — EZRA ERP" },
       { name: "description", content: "Última posição enviada pelo celular de cada motorista." },
     ],
   }),

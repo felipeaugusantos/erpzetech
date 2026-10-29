@@ -645,13 +645,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <LogoEmpresa />
           <div className="min-w-0">
             <p className="truncate font-display text-sm font-bold tracking-wide">
-              {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "ERP ZE TECH")
+              {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "EZRA ERP")
                 .toUpperCase()
                 .slice(0, 22)}
             </p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">
-              ERP Ze Tech · por Ze Tech
-            </p>
+            <p className="truncate text-[11px] text-sidebar-foreground/60">Desenvolvido por EZRA</p>
           </div>
           <button
             className="ml-auto lg:hidden"

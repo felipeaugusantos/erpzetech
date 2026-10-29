@@ -41,12 +41,12 @@ import {
 export const Route = createFileRoute("/_authenticated/compras/")({
   head: () => ({
     meta: [
-      { title: "Compras — ERP Ze Tech" },
+      { title: "Compras — EZRA ERP" },
       {
         name: "description",
         content: "Solicitações, cotações, pedidos de compra e recebimento de mercadorias.",
       },
-      { property: "og:title", content: "Compras — ERP Ze Tech" },
+      { property: "og:title", content: "Compras — EZRA ERP" },
       { property: "og:description", content: "Fluxo de compras da loja de materiais." },
     ],
   }),

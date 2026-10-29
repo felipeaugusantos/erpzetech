@@ -30,13 +30,13 @@ import {
 export const Route = createFileRoute("/_authenticated/locacao-estoque")({
   head: () => ({
     meta: [
-      { title: "Estoque de equipamentos — ERP Ze Tech" },
+      { title: "Estoque de equipamentos — EZRA ERP" },
       {
         name: "description",
         content:
           "Quantidade em estoque, custo, valor de aluguel e o que está em locação agora, equipamento por equipamento.",
       },
-      { property: "og:title", content: "Estoque de equipamentos — ERP Ze Tech" },
+      { property: "og:title", content: "Estoque de equipamentos — EZRA ERP" },
       {
         property: "og:description",
         content: "Acompanhe disponível, locado, custo e receita de aluguel de cada equipamento.",

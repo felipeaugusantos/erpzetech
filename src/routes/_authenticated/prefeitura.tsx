@@ -25,13 +25,13 @@ import {
 export const Route = createFileRoute("/_authenticated/prefeitura")({
   head: () => ({
     meta: [
-      { title: "Configuração de prefeitura — ERP Ze Tech" },
+      { title: "Configuração de prefeitura — EZRA ERP" },
       {
         name: "description",
         content:
           "Defina prefeitura, regime e alíquotas de ICMS, PIS, COFINS e ISS de cada loja para a emissão da nota de serviço.",
       },
-      { property: "og:title", content: "Configuração de prefeitura — ERP Ze Tech" },
+      { property: "og:title", content: "Configuração de prefeitura — EZRA ERP" },
       {
         property: "og:description",
         content: "Prefeitura, regime tributário e alíquotas de serviço de cada loja da rede.",

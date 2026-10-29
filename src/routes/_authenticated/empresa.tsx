@@ -39,12 +39,12 @@ import { ZerarDadosEmpresa } from "@/components/app/ZerarDadosEmpresa";
 export const Route = createFileRoute("/_authenticated/empresa")({
   head: () => ({
     meta: [
-      { title: "Cadastro da empresa — ERP Ze Tech" },
+      { title: "Cadastro da empresa — EZRA ERP" },
       {
         name: "description",
-        content: "Dados cadastrais, endereço e regime tributário da empresa no ERP Ze Tech.",
+        content: "Dados cadastrais, endereço e regime tributário da empresa no EZRA ERP.",
       },
-      { property: "og:title", content: "Cadastro da empresa — ERP Ze Tech" },
+      { property: "og:title", content: "Cadastro da empresa — EZRA ERP" },
       { property: "og:description", content: "Informe CNPJ, inscrições e regime tributário." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

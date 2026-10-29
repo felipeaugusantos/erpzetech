@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_authenticated/transferencias")({
   head: () => ({
     meta: [
-      { title: "Transferência entre lojas — ERP Ze Tech" },
+      { title: "Transferência entre lojas — EZRA ERP" },
       {
         name: "description",
         content:
           "Transferência de mercadoria entre lojas e depósitos: envio com baixa no estoque de origem, carga em trânsito, conferência no recebimento e devolução em caso de divergência.",
       },
-      { property: "og:title", content: "Transferência entre lojas — ERP Ze Tech" },
+      { property: "og:title", content: "Transferência entre lojas — EZRA ERP" },
       {
         property: "og:description",
         content: "Envio, trânsito e conferência de mercadoria entre lojas e depósitos.",

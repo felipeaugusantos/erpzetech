@@ -63,7 +63,7 @@ export const Route = createFileRoute("/_authenticated/ze-tech")({
       {
         name: "description",
         content:
-          "Clientes assinantes do ERP Ze Tech: plano contratado, prazo restante, próximo vencimento e status de pagamento.",
+          "Clientes assinantes do EZRA ERP: plano contratado, prazo restante, próximo vencimento e status de pagamento.",
       },
       { property: "og:title", content: "Painel Ze Tech — clientes e planos" },
       {
@@ -223,7 +223,7 @@ function PainelZeTech() {
     <>
       <PageHeader
         title="Painel Ze Tech"
-        description="Clientes que assinam o ERP Ze Tech: plano, prazo, próximo vencimento e pagamento."
+        description="Clientes que assinam o EZRA ERP: plano, prazo, próximo vencimento e pagamento."
         actions={
           <>
             <Button variant="outline" asChild>

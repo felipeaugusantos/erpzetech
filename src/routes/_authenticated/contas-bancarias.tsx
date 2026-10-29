@@ -40,13 +40,13 @@ import {
 export const Route = createFileRoute("/_authenticated/contas-bancarias")({
   head: () => ({
     meta: [
-      { title: "Contas bancárias — ERP Ze Tech" },
+      { title: "Contas bancárias — EZRA ERP" },
       {
         name: "description",
         content:
           "Cadastro das contas bancárias da loja: banco, agência, conta, tipo, filial dona e saldo inicial.",
       },
-      { property: "og:title", content: "Contas bancárias — ERP Ze Tech" },
+      { property: "og:title", content: "Contas bancárias — EZRA ERP" },
       {
         property: "og:description",
         content: "Separe o caixa da loja do dinheiro em banco e veja o saldo de cada conta.",

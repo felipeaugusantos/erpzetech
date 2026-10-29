@@ -45,7 +45,7 @@ import { ESPECIES, PELAGENS, PORTES, SEXOS, idadeDoPet, rotulo } from "@/lib/pet
 export const Route = createFileRoute("/_authenticated/pets")({
   head: () => ({
     meta: [
-      { title: "Pets e tutores — ERP Ze Tech" },
+      { title: "Pets e tutores — EZRA ERP" },
       {
         name: "description",
         content: "Cadastro dos pets e de seus tutores: espécie, raça, porte, pelagem e alergias.",

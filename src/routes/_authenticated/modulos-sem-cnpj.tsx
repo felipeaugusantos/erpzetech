@@ -15,12 +15,12 @@ import { Badge } from "@/components/ui/badge";
 export const Route = createFileRoute("/_authenticated/modulos-sem-cnpj")({
   head: () => ({
     meta: [
-      { title: "Módulos sem CNPJ — ERP Ze Tech" },
+      { title: "Módulos sem CNPJ — EZRA ERP" },
       {
         name: "description",
-        content: "Atividades e opções de menu liberadas para negócios sem CNPJ no ERP Ze Tech.",
+        content: "Atividades e opções de menu liberadas para negócios sem CNPJ no EZRA ERP.",
       },
-      { property: "og:title", content: "Módulos sem CNPJ — ERP Ze Tech" },
+      { property: "og:title", content: "Módulos sem CNPJ — EZRA ERP" },
       {
         property: "og:description",
         content: "Seleção de módulos e consulta das opções de menu do negócio.",

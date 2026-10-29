@@ -39,13 +39,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/profissionais")({
   head: () => ({
     meta: [
-      { title: "Profissionais e premiações — ERP Ze Tech" },
+      { title: "Profissionais e premiações — EZRA ERP" },
       {
         name: "description",
         content:
           "Cadastre pedreiros, engenheiros e arquitetos que indicam a loja e pague a premiação por porcentagem das vendas indicadas.",
       },
-      { property: "og:title", content: "Profissionais e premiações — ERP Ze Tech" },
+      { property: "og:title", content: "Profissionais e premiações — EZRA ERP" },
       {
         property: "og:description",
         content: "Programa de indicação com percentual de premiação por venda.",

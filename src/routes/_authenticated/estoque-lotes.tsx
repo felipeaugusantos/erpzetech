@@ -14,7 +14,7 @@ import { ROTULO_LOTES_CLINICA, ehEmpresaSoClinica } from "@/lib/ramo-clinica";
 export const Route = createFileRoute("/_authenticated/estoque-lotes")({
   head: () => ({
     meta: [
-      { title: "Lotes e tonalidades — ERP Ze Tech" },
+      { title: "Lotes e tonalidades — EZRA ERP" },
       {
         name: "description",
         content: "Saldo por lote, tonalidade e calibre para pisos, revestimentos e tintas.",

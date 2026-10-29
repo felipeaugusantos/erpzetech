@@ -23,7 +23,7 @@ import { formatarIdentificacao } from "@/lib/lava-rapido";
 export const Route = createFileRoute("/_authenticated/lava-clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes e fidelidade do lava rápido — ERP Ze Tech" },
+      { title: "Clientes e fidelidade do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Saldo de pontos, histórico de lavagens e planos de cada cliente do lava rápido.",

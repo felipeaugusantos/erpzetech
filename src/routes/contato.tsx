@@ -30,13 +30,13 @@ export const CONTATO = {
 export const Route = createFileRoute("/contato")({
   head: () => ({
     meta: [
-      { title: "Falar com o ERP Ze Tech — planos e demonstração" },
+      { title: "Falar com o EZRA ERP — planos e demonstração" },
       {
         name: "description",
         content:
-          "Fale com a equipe do ERP Ze Tech por e-mail ou WhatsApp e escolha o plano ideal para a sua loja de material de construção.",
+          "Fale com a equipe do EZRA ERP por e-mail ou WhatsApp e escolha o plano ideal para a sua loja de material de construção.",
       },
-      { property: "og:title", content: "Falar com o ERP Ze Tech — planos e demonstração" },
+      { property: "og:title", content: "Falar com o EZRA ERP — planos e demonstração" },
       {
         property: "og:description",
         content: `E-mail, WhatsApp e formulário para conhecer os planos ${NOME_DO_PLANO.balcao}, ${NOME_DO_PLANO.loja} e ${NOME_DO_PLANO.rede}.`,
@@ -96,7 +96,7 @@ function Contato() {
   });
 
   const textoWhats = encodeURIComponent(
-    `Olá! Quero conhecer o ERP Ze Tech (plano ${nomeDoPlano(form.plano_interesse)}).`,
+    `Olá! Quero conhecer o EZRA ERP (plano ${nomeDoPlano(form.plano_interesse)}).`,
   );
 
   return (
@@ -104,7 +104,7 @@ function Contato() {
       <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8">
         <Link to="/" className="flex items-center gap-2">
           <ZeLogo />
-          <span className="font-display text-base font-bold tracking-wide">ERP ZE TECH</span>
+          <span className="font-display text-base font-bold tracking-wide">EZRA ERP</span>
         </Link>
         <Button asChild variant="ghost" size="sm">
           <Link to="/">
@@ -128,7 +128,7 @@ function Contato() {
               rel="noreferrer"
               className="panel flex items-center gap-3 p-5 transition-colors hover:border-accent"
             >
-              <span className="grid size-10 place-items-center rounded-md bg-accent/15 text-accent-foreground">
+              <span className="grid size-10 place-items-center rounded-md bg-mint/15 text-accent-foreground">
                 <MessageCircle className="size-5" />
               </span>
               <div>
@@ -138,7 +138,7 @@ function Contato() {
             </a>
 
             <a
-              href={`mailto:${CONTATO.email}?subject=Planos ERP Ze Tech`}
+              href={`mailto:${CONTATO.email}?subject=Planos EZRA ERP`}
               className="panel flex items-center gap-3 p-5 transition-colors hover:border-accent"
             >
               <span className="grid size-10 place-items-center rounded-md bg-secondary">
@@ -279,7 +279,7 @@ function Contato() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        ERP Ze Tech — um produto Ze Tech
+        Desenvolvido por EZRA
       </footer>
     </div>
   );

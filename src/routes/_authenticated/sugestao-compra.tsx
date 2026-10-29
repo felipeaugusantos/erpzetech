@@ -31,13 +31,13 @@ import {
 export const Route = createFileRoute("/_authenticated/sugestao-compra")({
   head: () => ({
     meta: [
-      { title: "Sugestão de reposição — ERP Ze Tech" },
+      { title: "Sugestão de reposição — EZRA ERP" },
       {
         name: "description",
         content:
           "Quanto comprar de cada produto pelas vendas, reservas, estoque mínimo/máximo e prazo do fornecedor, com revisão antes do pedido.",
       },
-      { property: "og:title", content: "Sugestão de reposição — ERP Ze Tech" },
+      { property: "og:title", content: "Sugestão de reposição — EZRA ERP" },
       {
         property: "og:description",
         content: "Revise a sugestão de compra por fornecedor e aprove antes de criar o pedido.",

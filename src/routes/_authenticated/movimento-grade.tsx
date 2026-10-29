@@ -29,12 +29,12 @@ import {
 export const Route = createFileRoute("/_authenticated/movimento-grade")({
   head: () => ({
     meta: [
-      { title: "Movimento por tamanho — ERP Ze Tech" },
+      { title: "Movimento por tamanho — EZRA ERP" },
       {
         name: "description",
         content: "Entradas, baixas da produção, devoluções e ajustes de estoque por numeração.",
       },
-      { property: "og:title", content: "Movimento por tamanho — ERP Ze Tech" },
+      { property: "og:title", content: "Movimento por tamanho — EZRA ERP" },
       { property: "og:description", content: "Histórico de estoque por grade de tamanhos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

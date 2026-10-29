@@ -42,7 +42,7 @@ import { CATEGORIAS_SERVICO, TIPOS_VEICULO, rotuloCategoria, rotuloTipo } from "
 export const Route = createFileRoute("/_authenticated/lava-servicos")({
   head: () => ({
     meta: [
-      { title: "Serviços e preços do lava rápido — ERP Ze Tech" },
+      { title: "Serviços e preços do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Serviços de lavagem, polimento e higienização, com preço por tipo de veículo.",

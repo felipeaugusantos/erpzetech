@@ -129,6 +129,7 @@ function LoginZeTech() {
           </Link>
           .
         </p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">Desenvolvido por EZRA</p>
       </div>
     </main>
   );

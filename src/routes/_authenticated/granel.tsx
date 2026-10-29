@@ -39,7 +39,7 @@ import { custoDoKg, kgDosSacos, margemDoKg } from "@/lib/granel";
 export const Route = createFileRoute("/_authenticated/granel")({
   head: () => ({
     meta: [
-      { title: "Venda a granel — ERP Ze Tech" },
+      { title: "Venda a granel — EZRA ERP" },
       {
         name: "description",
         content:
