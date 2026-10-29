@@ -7530,7 +7530,7 @@ BEGIN
   PERFORM ci.exige((SELECT plano FROM assinaturas LIMIT 1) IN ('balcao', 'loja', 'rede'), 'assinaturas seguem apontando para o código interno');
 END $$;
 
--- 79. Taxa inicial por segmento: R$ 299 de treinamento e configuração só para clínica e lava-rápido; o resto segue igual
+-- 79. Taxa inicial por segmento: R$ 299 de treinamento e configuração para pet shop, clínica e lava-rápido; o resto segue igual
 DO $$
 DECLARE
   demo constant uuid := '11111111-1111-1111-1111-111111111111';
@@ -7547,7 +7547,7 @@ BEGIN
   -- regra: só clínica e lava-rápido têm taxa própria
   PERFORM ci.exige((SELECT count(*) = 1 AND min(valor) = 299 FROM taxa_inicial_segmento('clinica')), 'clínica: R$ 299');
   PERFORM ci.exige((SELECT count(*) = 1 AND min(valor) = 299 FROM taxa_inicial_segmento('lavarapido')), 'lava-rápido: R$ 299');
-  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM taxa_inicial_segmento('petshop')), 'pet shop não ganha R$ 299 por inferência');
+  PERFORM ci.exige((SELECT count(*) = 1 AND min(valor) = 299 FROM taxa_inicial_segmento('petshop')), 'pet shop: R$ 299');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM taxa_inicial_segmento('construcao')), 'demais segmentos sem taxa própria');
 
   -- empresa de segmento comum: mantém a implantação do plano

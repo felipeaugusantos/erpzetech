@@ -625,9 +625,7 @@ function Landing() {
                 <div className="mt-3 space-y-3">
                   <div className="rounded-lg border border-border bg-secondary p-4">
                     <p className="text-sm font-semibold">Implantação inicial</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Demais segmentos, exceto o pet shop
-                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">Demais segmentos</p>
                     <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-display text-2xl font-extrabold">R$ 1.500</span>
                       <span className="text-xs text-muted-foreground">pagamento único</span>
@@ -636,16 +634,13 @@ function Landing() {
                   <div className="rounded-lg border border-border bg-secondary p-4">
                     <p className="text-sm font-semibold">Treinamento e configuração inicial</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Clínica veterinária e lava-rápido, no lugar da implantação inicial
+                      Pet shop, clínica veterinária e lava-rápido, no lugar da implantação inicial
                     </p>
                     <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-display text-2xl font-extrabold">R$ 299</span>
                       <span className="text-xs text-muted-foreground">taxa única</span>
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Pet shop: fale com a equipe para saber a taxa inicial.
-                  </p>
                 </div>
               </div>
               <div>

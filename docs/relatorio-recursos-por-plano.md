@@ -42,7 +42,7 @@ Legenda: **Existe** = tela/recurso existe; **Sem trava** = hoje aparece em qualq
 ## 3. Divergências técnicas e comerciais
 
 1. **Distribuição por plano não é aplicada pelo sistema.** Por isso a copy não afirma "Pacotes só no Profissional" e similares. Aplicar exigiria feature flags/RLS/permissões, fora deste escopo.
-2. **Taxa de R$ 299 (resolvida na migration `20261201000000_taxa_inicial_segmento.sql`, ainda não aplicada):** `taxa_inicial_segmento(ramo)` devolve R$ 299 e o rótulo "Treinamento e configuração inicial" só para `clinica` e `lavarapido` (ramo de atividade da empresa). `assinatura_taxa_inicial()` alimenta a tela `/planos` e `saas_taxa_inicial_cliente(cliente)` (só operador) sugere o valor na nova cobrança do tipo Implantação. Nada é gravado: `assinaturas.valor_implantacao`, `saas_planos.valor_implantacao`, a implantação de filial/empresa adicional e as mensalidades não mudam. Pet shop não recebe R$ 299. A cobrança continua manual: a equipe confere e pode editar o valor sugerido. Limites: a regra usa só o ramo de atividade (CNAE ou liberação explícita sem o ramo não contam) e o valor fica no SQL (mudar exige nova migration).
+2. **Taxa de R$ 299 (resolvida na migration `20261201000000_taxa_inicial_segmento.sql`, ainda não aplicada):** `taxa_inicial_segmento(ramo)` devolve R$ 299 e o rótulo "Treinamento e configuração inicial" para `petshop`, `clinica` e `lavarapido` (ramo de atividade da empresa; o pet shop entrou na migration `20261202000000_taxa_inicial_petshop.sql`). `assinatura_taxa_inicial()` alimenta a tela `/planos` e `saas_taxa_inicial_cliente(cliente)` (só operador) sugere o valor na nova cobrança do tipo Implantação. Nada é gravado: `assinaturas.valor_implantacao`, `saas_planos.valor_implantacao`, a implantação de filial/empresa adicional e as mensalidades não mudam. A cobrança continua manual: a equipe confere e pode editar o valor sugerido. Limites: a regra usa só o ramo de atividade (CNAE ou liberação explícita sem o ramo não contam) e o valor fica no SQL (mudar exige nova migration).
 3. **"Sem adicional pelo módulo individual"** é coerente com o banco (não há preço por módulo, só plano, implantação e filial extra), mas é decisão comercial a confirmar.
 4. **Clínica: "gestão financeira" não existe como recurso clínico.** Não foi anunciada.
 5. **Lava-rápido: cadastro e comissões de lavadores na mesma tela**, então a separação Essencial/Profissional exigiria dividir a tela.
@@ -50,7 +50,7 @@ Legenda: **Existe** = tela/recurso existe; **Sem trava** = hoje aparece em qualq
 7. **Corrigido na marca (escape da troca anterior):** duas mensagens pré-preenchidas do WhatsApp, codificadas na URL, ainda diziam "ERP Ze Tech" (`index.tsx`, `funcionalidades.tsx`). Mudou só o texto; número e domínio preservados.
 
 ## 4. Decisões pendentes
-- Taxa inicial do Pet shop (a página mostra "fale com a equipe", sem valor).
+- Taxa inicial do Pet shop: decidida em R$ 299, como clínica e lava-rápido (migration `20261202000000_taxa_inicial_petshop.sql`).
 - Uso de Pet shop e Clínica na mesma empresa, e de mais de um módulo (sem pacote nem preço; a copy remete à equipe).
 - Confirmar o texto "incluídos na mensalidade, sem adicional pelo módulo".
 - Conteúdo, duração e formato do treinamento de R$ 299 (não descritos na página).
@@ -60,7 +60,7 @@ Legenda: **Existe** = tela/recurso existe; **Sem trava** = hoje aparece em qualq
 - Cobertura fiscal (NF-e/NFS-e) a descrever por plano.
 
 ## 5. Alterações (apresentação das páginas públicas)
-- `src/routes/index.tsx`: nova seção "Módulos setoriais" (Pet shop, Clínica, Lava-rápido) com recursos existentes e a frase de inclusão na mensalidade; bloco "Contratação inicial" separado em implantação R$ 1.500 (demais segmentos, exceto pet shop), treinamento e configuração inicial R$ 299 (taxa única, Clínica e Lava-rápido) e aviso do pet shop; texto do WhatsApp com a marca nova. Expansão (R$ 599/R$ 149, R$ 390/R$ 99), preços, limites, teste e contatos intactos.
+- `src/routes/index.tsx`: nova seção "Módulos setoriais" (Pet shop, Clínica, Lava-rápido) com recursos existentes e a frase de inclusão na mensalidade; bloco "Contratação inicial" separado em implantação R$ 1.500 (demais segmentos) e treinamento e configuração inicial R$ 299 (taxa única; pet shop, clínica e lava-rápido; o pet shop entrou depois); texto do WhatsApp com a marca nova. Expansão (R$ 599/R$ 149, R$ 390/R$ 99), preços, limites, teste e contatos intactos.
 - `src/routes/funcionalidades.tsx`: chip "Funciona sem internet" trocado por "Vende sem internet"; texto do WhatsApp com a marca nova.
 
 ## 6. Validação
