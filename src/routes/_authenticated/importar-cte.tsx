@@ -16,12 +16,12 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/_authenticated/importar-cte")({
   head: () => ({
     meta: [
-      { title: "Importar CT-e de frete — ERP Ze Tech" },
+      { title: "Importar CT-e de frete — EZRA ERP" },
       {
         name: "description",
         content: "Importe o CT-e da transportadora e ligue o frete à NF-e de compra certa.",
       },
-      { property: "og:title", content: "Importar CT-e de frete — ERP Ze Tech" },
+      { property: "og:title", content: "Importar CT-e de frete — EZRA ERP" },
       {
         property: "og:description",
         content: "Frete da transportadora no custo dos produtos e nas contas a pagar.",

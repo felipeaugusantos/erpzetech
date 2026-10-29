@@ -14,7 +14,7 @@ import { totalOffline } from "@/lib/offline-restaurante";
 export const Route = createFileRoute("/_authenticated/conferencia-offline")({
   head: () => ({
     meta: [
-      { title: "Conferência sem internet — ERP Ze Tech" },
+      { title: "Conferência sem internet — EZRA ERP" },
       {
         name: "description",
         content: "Saldo de estoque e de caixa para conferir mesmo sem internet.",

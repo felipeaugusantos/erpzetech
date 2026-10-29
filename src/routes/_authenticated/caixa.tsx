@@ -40,12 +40,12 @@ import {
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
     meta: [
-      { title: "Caixa — ERP Ze Tech" },
+      { title: "Caixa — EZRA ERP" },
       {
         name: "description",
         content: "Abertura, entradas, saídas, sangria, suprimento e fechamento do caixa.",
       },
-      { property: "og:title", content: "Caixa — ERP Ze Tech" },
+      { property: "og:title", content: "Caixa — EZRA ERP" },
       { property: "og:description", content: "Controle diário do caixa da loja." },
     ],
   }),

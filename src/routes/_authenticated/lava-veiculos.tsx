@@ -49,7 +49,7 @@ import {
 export const Route = createFileRoute("/_authenticated/lava-veiculos")({
   head: () => ({
     meta: [
-      { title: "Veículos do lava rápido — ERP Ze Tech" },
+      { title: "Veículos do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Carros, motos, caminhonetes, aviões e helicópteros atendidos no lava rápido.",

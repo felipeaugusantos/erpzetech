@@ -22,12 +22,12 @@ import {
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
-      { title: "Fluxo de caixa — ERP Ze Tech" },
+      { title: "Fluxo de caixa — EZRA ERP" },
       {
         name: "description",
         content: "Entradas e saídas realizadas e projeção pelas contas em aberto.",
       },
-      { property: "og:title", content: "Fluxo de caixa — ERP Ze Tech" },
+      { property: "og:title", content: "Fluxo de caixa — EZRA ERP" },
       { property: "og:description", content: "Visão de caixa realizada e projetada." },
     ],
   }),

@@ -46,13 +46,13 @@ import {
 export const Route = createFileRoute("/_authenticated/cotacoes")({
   head: () => ({
     meta: [
-      { title: "Cotações de compra — ERP Ze Tech" },
+      { title: "Cotações de compra — EZRA ERP" },
       {
         name: "description",
         content:
           "Envie a planilha de cotação ao fornecedor, importe a resposta e gere o pedido de compra com o melhor preço, prazo e condição de pagamento.",
       },
-      { property: "og:title", content: "Cotações de compra — ERP Ze Tech" },
+      { property: "og:title", content: "Cotações de compra — EZRA ERP" },
       {
         property: "og:description",
         content: "Comparativo de fornecedores, planilha de cotação e geração do pedido de compra.",
@@ -423,7 +423,7 @@ function Cotacoes() {
                                 </Badge>
                               )}
                               {q.melhorPreco && !q.recomendada && (
-                                <Badge className="bg-accent/15 text-accent-foreground">
+                                <Badge className="bg-mint/15 text-accent-foreground">
                                   Menor preço
                                 </Badge>
                               )}

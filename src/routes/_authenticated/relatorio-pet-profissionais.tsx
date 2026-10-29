@@ -23,7 +23,7 @@ import { brl } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/relatorio-pet-profissionais")({
   head: () => ({
     meta: [
-      { title: "Serviços por profissional — ERP Ze Tech" },
+      { title: "Serviços por profissional — EZRA ERP" },
       {
         name: "description",
         content:

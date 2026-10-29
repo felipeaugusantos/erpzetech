@@ -34,13 +34,13 @@ import {
 export const Route = createFileRoute("/_authenticated/relatorio-locacoes")({
   head: () => ({
     meta: [
-      { title: "Relatório de locação de equipamentos — ERP Ze Tech" },
+      { title: "Relatório de locação de equipamentos — EZRA ERP" },
       {
         name: "description",
         content:
           "Contratos de locação, devoluções e custos dos equipamentos por período, com exportação em PDF.",
       },
-      { property: "og:title", content: "Relatório de locação de equipamentos — ERP Ze Tech" },
+      { property: "og:title", content: "Relatório de locação de equipamentos — EZRA ERP" },
       {
         property: "og:description",
         content: "Exporte em PDF os aluguéis, devoluções e custos dos equipamentos da loja.",
@@ -128,11 +128,7 @@ function RelatorioLocacoes() {
     const loja = filialId === "todas" ? "Todas as lojas" : nomeFilial(filialId);
 
     doc.setFontSize(14);
-    doc.text(
-      (empresa?.nome_fantasia || empresa?.razao_social || "ERP Ze Tech").slice(0, 60),
-      14,
-      14,
-    );
+    doc.text((empresa?.nome_fantasia || empresa?.razao_social || "EZRA ERP").slice(0, 60), 14, 14);
     doc.setFontSize(10);
     doc.text(`Relatório de locação de equipamentos — ${loja}`, 14, 20);
     doc.text(`Período: ${dateBR(periodo.de)} a ${dateBR(periodo.ate)}`, 14, 25);

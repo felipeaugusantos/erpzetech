@@ -74,12 +74,12 @@ import { planejadoPorItem, saldoItem, validaSaida } from "@/lib/saldo-pedido";
 export const Route = createFileRoute("/_authenticated/pedidos/$id")({
   head: () => ({
     meta: [
-      { title: "Pedido — ERP Ze Tech" },
+      { title: "Pedido — EZRA ERP" },
       {
         name: "description",
         content: "Detalhe do pedido: itens, separação, conferência, entregas e histórico.",
       },
-      { property: "og:title", content: "Pedido — ERP Ze Tech" },
+      { property: "og:title", content: "Pedido — EZRA ERP" },
       {
         property: "og:description",
         content: "Acompanhe separação, conferência e entregas parciais do pedido.",
@@ -1447,8 +1447,7 @@ function PedidoDetalhe() {
               tipo: "Pedido",
               numero: String(pedido.numero).padStart(4, "0"),
               emitidoEm: dateTimeBR(pedido.created_at),
-              loja:
-                session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech",
+              loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "EZRA ERP",
               deposito: (pedido.depositos as unknown as { nome: string } | null)?.nome ?? null,
               cliente: cliente?.nome ?? "Consumidor final",
               obra: obra?.nome ?? null,

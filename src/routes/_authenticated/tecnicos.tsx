@@ -41,13 +41,13 @@ import {
 export const Route = createFileRoute("/_authenticated/tecnicos")({
   head: () => ({
     meta: [
-      { title: "Cadastro de técnicos — ERP Ze Tech" },
+      { title: "Cadastro de técnicos — EZRA ERP" },
       {
         name: "description",
         content:
           "Cadastro dos técnicos da assistência: nome, cargo, especialidade, contato, loja, valor da hora, comissão e situação.",
       },
-      { property: "og:title", content: "Cadastro de técnicos — ERP Ze Tech" },
+      { property: "og:title", content: "Cadastro de técnicos — EZRA ERP" },
       {
         property: "og:description",
         content: "Técnicos da assistência técnica com contato, valor da hora e comissão.",

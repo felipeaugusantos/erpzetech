@@ -17,7 +17,7 @@ import { faltaParaEmitir, validarConfigNfce } from "@/lib/nfce-config";
 export const Route = createFileRoute("/_authenticated/nfce-config")({
   head: () => ({
     meta: [
-      { title: "Configuração da NFC-e — ERP Ze Tech" },
+      { title: "Configuração da NFC-e — EZRA ERP" },
       {
         name: "description",
         content: "Código e token do CSC, série e contingência da nota fiscal do consumidor.",

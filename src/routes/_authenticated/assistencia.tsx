@@ -42,13 +42,13 @@ import {
 export const Route = createFileRoute("/_authenticated/assistencia")({
   head: () => ({
     meta: [
-      { title: "Assistência técnica — ERP Ze Tech" },
+      { title: "Assistência técnica — EZRA ERP" },
       {
         name: "description",
         content:
           "Ordens de serviço da assistência técnica: equipamento, defeito, diagnóstico, peças, mão de obra e entrega.",
       },
-      { property: "og:title", content: "Assistência técnica — ERP Ze Tech" },
+      { property: "og:title", content: "Assistência técnica — EZRA ERP" },
       {
         property: "og:description",
         content: "Abertura, reparo e entrega de ordens de serviço com peças e mão de obra.",

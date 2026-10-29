@@ -22,9 +22,9 @@ export const Route = createFileRoute("/$empresa")({
   },
   head: ({ loaderData }) => {
     const nome = loaderData?.nome;
-    const titulo = nome ? `Entrar — ${nome}` : "Empresa não encontrada — ERP Ze Tech";
+    const titulo = nome ? `Entrar — ${nome}` : "Empresa não encontrada — EZRA ERP";
     const desc = nome
-      ? `Acesso dos colaboradores de ${nome} ao ERP Ze Tech.`
+      ? `Acesso dos colaboradores de ${nome} ao EZRA ERP.`
       : "Link de acesso não encontrado.";
     return {
       meta: [
@@ -52,7 +52,7 @@ function NaoEncontrada() {
           Confira o endereço com o administrador da sua loja.
         </p>
         <Button asChild className="mt-6">
-          <Link to="/auth">Ir para o login do ERP Ze Tech</Link>
+          <Link to="/auth">Ir para o login do EZRA ERP</Link>
         </Button>
       </div>
     </div>
@@ -118,7 +118,7 @@ function LoginEmpresa() {
           <h2 className="mt-2 font-display text-4xl font-bold leading-tight">{marca.nome}</h2>
         </div>
         <p className="flex items-center gap-2 text-xs text-sidebar-foreground/60">
-          <ZeLogo className="size-5" /> Sistema ERP Ze Tech
+          <ZeLogo className="size-5" /> EZRA ERP · Desenvolvido por EZRA
         </p>
       </div>
 
@@ -169,6 +169,9 @@ function LoginEmpresa() {
             {loading === "google" && <Loader2 className="mr-2 size-4 animate-spin" />}
             Continuar com Google
           </Button>
+          <p className="mt-6 text-center text-xs text-muted-foreground lg:hidden">
+            Desenvolvido por EZRA
+          </p>
         </div>
       </div>
     </div>

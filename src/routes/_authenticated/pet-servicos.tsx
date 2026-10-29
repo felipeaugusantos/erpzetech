@@ -50,7 +50,7 @@ import {
 export const Route = createFileRoute("/_authenticated/pet-servicos")({
   head: () => ({
     meta: [
-      { title: "Serviços e preços do pet shop — ERP Ze Tech" },
+      { title: "Serviços e preços do pet shop — EZRA ERP" },
       {
         name: "description",
         content: "Serviços de banho, tosa e estética, com preço por porte, raça e pelagem.",

@@ -24,13 +24,13 @@ import {
 export const Route = createFileRoute("/_authenticated/assistencia-lojas")({
   head: () => ({
     meta: [
-      { title: "Assistência técnica por loja — ERP Ze Tech" },
+      { title: "Assistência técnica por loja — EZRA ERP" },
       {
         name: "description",
         content:
           "Ordens de serviço, reparos e custos de peças e mão de obra de cada loja no período escolhido.",
       },
-      { property: "og:title", content: "Assistência técnica por loja — ERP Ze Tech" },
+      { property: "og:title", content: "Assistência técnica por loja — EZRA ERP" },
       {
         property: "og:description",
         content: "Ordens abertas, encerradas, em reparo e custos por loja.",
@@ -148,7 +148,7 @@ function AssistenciaLojas() {
                 <Bar
                   dataKey="encerradas"
                   name="Encerradas"
-                  fill="var(--accent)"
+                  fill="var(--mint)"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

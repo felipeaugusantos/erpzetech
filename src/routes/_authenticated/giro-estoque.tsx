@@ -30,13 +30,13 @@ import {
 export const Route = createFileRoute("/_authenticated/giro-estoque")({
   head: () => ({
     meta: [
-      { title: "Giro de estoque e sugestão de compra — ERP Ze Tech" },
+      { title: "Giro de estoque e sugestão de compra — EZRA ERP" },
       {
         name: "description",
         content:
           "Curva ABC pelo giro de venda, cobertura em dias e quanto comprar de cada produto para 15, 30 ou 60 dias.",
       },
-      { property: "og:title", content: "Giro de estoque e sugestão de compra — ERP Ze Tech" },
+      { property: "og:title", content: "Giro de estoque e sugestão de compra — EZRA ERP" },
       {
         property: "og:description",
         content:

@@ -40,13 +40,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/comissoes")({
   head: () => ({
     meta: [
-      { title: "Comissão por vendedor — ERP Ze Tech" },
+      { title: "Comissão por vendedor — EZRA ERP" },
       {
         name: "description",
         content:
           "Defina o percentual de comissão de cada vendedor, sobre a venda ou sobre o lucro, e acompanhe o saldo a pagar por período.",
       },
-      { property: "og:title", content: "Comissão por vendedor — ERP Ze Tech" },
+      { property: "og:title", content: "Comissão por vendedor — EZRA ERP" },
       {
         property: "og:description",
         content: "Comissão lançada automaticamente quando o pedido do vendedor é entregue.",

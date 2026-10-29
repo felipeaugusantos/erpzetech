@@ -33,13 +33,13 @@ const WHATSAPP_LABEL = "(16) 98854-7561";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ERP Ze Tech — varejo, serviços, locação e restaurante em um só sistema" },
+      { title: "EZRA ERP — varejo, serviços, locação e restaurante em um só sistema" },
       {
         name: "description",
         content:
-          "ERP Ze Tech: PDV com IA, estoque por depósito, ordens de serviço, locação, restaurante com iFood, financeiro e NF-e para lojas, MEIs e redes.",
+          "EZRA ERP: PDV com IA, estoque por depósito, ordens de serviço, locação, restaurante com iFood, financeiro e NF-e para lojas, MEIs e redes.",
       },
-      { property: "og:title", content: "ERP Ze Tech — o sistema que acompanha o seu ramo" },
+      { property: "og:title", content: "EZRA ERP — o sistema que acompanha o seu ramo" },
       {
         property: "og:description",
         content:
@@ -281,7 +281,7 @@ function MockupPdv() {
       <div className="grid gap-0 sm:grid-cols-[1.6fr_1fr]">
         <div className="p-4">
           <div className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-xs text-muted-foreground">
-            <Sparkles className="size-3.5 text-accent" /> "material para assentar piso no banheiro"
+            <Sparkles className="size-3.5 text-brand" /> "material para assentar piso no banheiro"
           </div>
           <ul className="mt-3 divide-y divide-border text-sm">
             {itens.map((i) => (
@@ -322,7 +322,7 @@ function Landing() {
         <div className="flex min-w-0 items-center gap-2">
           <ZeLogo />
           <span className="whitespace-nowrap font-display text-sm font-bold tracking-wide sm:text-base">
-            ERP ZE TECH
+            EZRA ERP
           </span>
         </div>
         <nav className="flex items-center gap-1.5 sm:gap-2">
@@ -358,15 +358,15 @@ function Landing() {
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-2">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium">
-            <Sparkles className="size-3.5 text-accent" /> Agora com IA no caixa e integração com
+            <Sparkles className="size-3.5 text-brand" /> Agora com IA no caixa e integração com
             iFood
           </span>
           <h1 className="mt-5 text-balance font-display text-3xl font-extrabold leading-tight min-[400px]:text-4xl sm:text-5xl">
             Vendas, estoque e financeiro{" "}
-            <span className="text-accent">em&nbsp;um&nbsp;só&nbsp;sistema para o seu negócio</span>
+            <span className="text-brand">em&nbsp;um&nbsp;só&nbsp;sistema para o seu negócio</span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
-            Loja, prestador de serviço, locadora ou restaurante: o ERP Ze Tech reúne caixa, estoque,
+            Loja, prestador de serviço, locadora ou restaurante: o EZRA ERP reúne caixa, estoque,
             ordens de serviço, locação, delivery, financeiro e nota fiscal. Cada empresa usa só o
             que precisa.
           </p>
@@ -430,7 +430,7 @@ function Landing() {
           </div>
           <div className="panel mt-5 grid gap-6 p-6 md:grid-cols-2 md:p-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-strong">
                 {seg.nome}
               </p>
               <h3 className="mt-2 font-display text-2xl font-bold">{seg.titulo}</h3>
@@ -444,7 +444,7 @@ function Landing() {
             <ul className="space-y-2.5">
               {seg.itens.map((i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <Check className="mt-0.5 size-4 shrink-0 text-accent" /> {i}
+                  <Check className="mt-0.5 size-4 shrink-0 text-brand" /> {i}
                 </li>
               ))}
             </ul>
@@ -460,7 +460,7 @@ function Landing() {
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {destaques.map((f) => (
               <div key={f.title} className="panel p-5">
-                <span className="grid size-9 place-items-center rounded-md bg-accent/15 text-accent-foreground">
+                <span className="grid size-9 place-items-center rounded-md bg-mint/15 text-accent-foreground">
                   <f.icon className="size-4.5" />
                 </span>
                 <h3 className="mt-3 font-display text-base font-semibold">{f.title}</h3>
@@ -478,7 +478,7 @@ function Landing() {
                 key={i.k}
                 className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-4"
               >
-                <i.icon className="size-5 text-accent" />
+                <i.icon className="size-5 text-brand" />
                 <div>
                   <p className="font-display text-sm font-semibold">{i.k}</p>
                   <p className="text-xs text-muted-foreground">{i.v}</p>
@@ -504,12 +504,12 @@ function Landing() {
                 key={p.nome}
                 className={
                   p.destaque
-                    ? "panel relative flex flex-col border-2 border-accent p-6 shadow-lg"
+                    ? "panel relative flex flex-col border-2 border-brand p-6 shadow-lg"
                     : "panel flex flex-col p-6"
                 }
               >
                 {p.destaque && (
-                  <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent-foreground">
+                  <span className="absolute -top-3 left-6 rounded-full bg-mint px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-mint-foreground">
                     Recomendado
                   </span>
                 )}
@@ -527,7 +527,7 @@ function Landing() {
                 <ul className="mt-5 flex-1 space-y-2">
                   {p.itens.map((i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 size-4 shrink-0 text-accent" /> {i}
+                      <Check className="mt-0.5 size-4 shrink-0 text-brand" /> {i}
                     </li>
                   ))}
                 </ul>
@@ -554,7 +554,7 @@ function Landing() {
             </p>
             <div className="mt-5 grid gap-6 md:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-strong">
                   Contratação inicial
                 </p>
                 <div className="mt-3 rounded-lg border border-border bg-secondary p-4">
@@ -566,7 +566,7 @@ function Landing() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-strong">
                   Expansão do plano {NOME_DO_PLANO.rede}
                 </p>
                 <div className="mt-3 space-y-3">
@@ -633,7 +633,8 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border px-5 py-8 text-center text-xs text-muted-foreground sm:px-8">
-        <p>ERP Ze Tech • WhatsApp {WHATSAPP_LABEL} • contato@zeregistra.com.br</p>
+        <p>EZRA ERP • WhatsApp {WHATSAPP_LABEL} • contato@zeregistra.com.br</p>
+        <p className="mt-1">Desenvolvido por EZRA</p>
         <Button asChild variant="ghost" size="sm" className="mt-2 text-xs">
           <Link to="/ze-tech-login">Painel Ze Tech (equipe)</Link>
         </Button>
@@ -645,7 +646,7 @@ function Landing() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Falar no WhatsApp"
-        className="fixed bottom-5 right-5 z-30 hidden size-14 place-items-center rounded-full bg-accent text-accent-foreground shadow-xl transition-transform hover:scale-105 sm:grid"
+        className="fixed bottom-5 right-5 z-30 hidden size-14 place-items-center rounded-full bg-mint text-mint-foreground shadow-xl transition-transform hover:scale-105 sm:grid"
       >
         <MessageCircle className="size-6" />
       </a>

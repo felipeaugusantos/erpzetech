@@ -42,7 +42,7 @@ import { formatarQuantidade } from "@/lib/lava-rapido";
 export const Route = createFileRoute("/_authenticated/lava-insumos")({
   head: () => ({
     meta: [
-      { title: "Insumos do lava rápido — ERP Ze Tech" },
+      { title: "Insumos do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Insumos gastos em cada serviço, com baixa automática no estoque na entrega.",

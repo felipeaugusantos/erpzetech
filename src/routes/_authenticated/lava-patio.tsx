@@ -64,7 +64,7 @@ import {
 export const Route = createFileRoute("/_authenticated/lava-patio")({
   head: () => ({
     meta: [
-      { title: "Pátio do lava rápido — ERP Ze Tech" },
+      { title: "Pátio do lava rápido — EZRA ERP" },
       {
         name: "description",
         content: "Quadro do pátio: aguardando, lavando, secando e pronto para entregar.",

@@ -25,12 +25,12 @@ import {
 export const Route = createFileRoute("/_authenticated/extrato-receber")({
   head: () => ({
     meta: [
-      { title: "Extrato de contas a receber — ERP Ze Tech" },
+      { title: "Extrato de contas a receber — EZRA ERP" },
       {
         name: "description",
         content: "Saldo total, contas vencidas e valor a receber por cliente e por vencimento.",
       },
-      { property: "og:title", content: "Extrato de contas a receber — ERP Ze Tech" },
+      { property: "og:title", content: "Extrato de contas a receber — EZRA ERP" },
       { property: "og:description", content: "Extrato do que a loja tem para receber." },
     ],
   }),

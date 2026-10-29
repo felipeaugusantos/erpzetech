@@ -195,7 +195,7 @@ function LavaRapidoZeTech() {
                 <Bar
                   dataKey="canceladas"
                   name="Canceladas"
-                  fill="var(--accent)"
+                  fill="var(--mint)"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

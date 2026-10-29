@@ -44,7 +44,7 @@ import { VALIDADES_PACOTE, diasParaVencer } from "@/lib/pet";
 export const Route = createFileRoute("/_authenticated/pet-pacotes")({
   head: () => ({
     meta: [
-      { title: "Pacotes de banho — ERP Ze Tech" },
+      { title: "Pacotes de banho — EZRA ERP" },
       {
         name: "description",
         content: "Pacotes de banho vendidos adiantado, com saldo e validade de cada pet.",

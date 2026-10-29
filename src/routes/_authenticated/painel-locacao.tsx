@@ -32,13 +32,13 @@ import {
 export const Route = createFileRoute("/_authenticated/painel-locacao")({
   head: () => ({
     meta: [
-      { title: "Painel de locação — ERP Ze Tech" },
+      { title: "Painel de locação — EZRA ERP" },
       {
         name: "description",
         content:
           "Estoque de equipamentos, o que está locado agora e as pendências de aprovação, entrega, devolução, cobrança e nota de serviço.",
       },
-      { property: "og:title", content: "Painel de locação — ERP Ze Tech" },
+      { property: "og:title", content: "Painel de locação — EZRA ERP" },
       {
         property: "og:description",
         content: "Equipamentos locados, disponíveis e pendências da locação em uma só tela.",

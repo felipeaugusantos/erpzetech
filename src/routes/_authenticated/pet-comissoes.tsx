@@ -31,7 +31,7 @@ import { brl } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/pet-comissoes")({
   head: () => ({
     meta: [
-      { title: "Comissões do pet shop — ERP Ze Tech" },
+      { title: "Comissões do pet shop — EZRA ERP" },
       {
         name: "description",
         content: "Comissões dos profissionais do pet shop: aprovar e registrar o pagamento.",

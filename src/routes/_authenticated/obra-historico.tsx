@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/obra-historico")({
   }),
   head: () => ({
     meta: [
-      { title: "Histórico da obra — ERP Ze Tech" },
+      { title: "Histórico da obra — EZRA ERP" },
       {
         name: "description",
         content:

@@ -12,7 +12,7 @@ const BUCKET = "empresa";
 const MAX_BYTES = 3 * 1024 * 1024;
 const TIPOS = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
 
-/** Cor padrão da marca ERP Ze Tech, usada quando a loja não escolheu uma cor. */
+/** Cor padrão da marca EZRA ERP, usada quando a loja não escolheu uma cor. */
 export const COR_PADRAO = "#008037";
 
 /** Converte o caminho guardado na empresa em uma URL temporária de leitura. */
@@ -103,11 +103,11 @@ export function useEmpresaImpressa() {
   return { empresa, logoUrl };
 }
 
-/** Mostra a logo da loja quando cadastrada; senão usa o ícone do ERP Ze Tech. */
+/** Mostra a logo da loja quando cadastrada; senão usa o ícone do EZRA ERP. */
 export function LogoEmpresa({ className }: { className?: string }) {
   const { data: session } = useSessionData();
   const url = useLogoUrl(session?.empresa?.logo_path ?? null);
-  const nome = session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "ERP Ze Tech";
+  const nome = session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "EZRA ERP";
 
   if (!url) return <ZeLogo {...(className ? { className } : {})} />;
 

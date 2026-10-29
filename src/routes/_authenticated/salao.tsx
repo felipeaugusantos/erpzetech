@@ -30,9 +30,9 @@ import {
 export const Route = createFileRoute("/_authenticated/salao")({
   head: () => ({
     meta: [
-      { title: "PDV do restaurante — ERP Ze Tech" },
+      { title: "PDV do restaurante — EZRA ERP" },
       { name: "description", content: "Mesas, comandas e pedidos do restaurante." },
-      { property: "og:title", content: "PDV do restaurante — ERP Ze Tech" },
+      { property: "og:title", content: "PDV do restaurante — EZRA ERP" },
       { property: "og:description", content: "Mesas, comandas e pedidos do restaurante." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

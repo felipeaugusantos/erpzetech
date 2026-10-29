@@ -49,12 +49,12 @@ import {
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
     meta: [
-      { title: "Usuários e perfis — ERP Ze Tech" },
+      { title: "Usuários e perfis — EZRA ERP" },
       {
         name: "description",
         content: "Usuários da empresa, perfis de acesso e permissões por módulo.",
       },
-      { property: "og:title", content: "Usuários e perfis — ERP Ze Tech" },
+      { property: "og:title", content: "Usuários e perfis — EZRA ERP" },
       { property: "og:description", content: "Controle de acesso da equipe." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

@@ -22,16 +22,16 @@ import {
 export const Route = createFileRoute("/_authenticated/impostos-filial")({
   head: () => ({
     meta: [
-      { title: "Impostos por filial — ERP Ze Tech" },
+      { title: "Impostos por filial — EZRA ERP" },
       {
         name: "description",
         content:
           "Defina alíquotas de ICMS, substituição tributária, PIS, COFINS e ISS, série e numeração das notas de cada loja da rede.",
       },
-      { property: "og:title", content: "Impostos por filial — ERP Ze Tech" },
+      { property: "og:title", content: "Impostos por filial — EZRA ERP" },
       {
         property: "og:description",
-        content: "Configuração fiscal de cada loja no ERP Ze Tech.",
+        content: "Configuração fiscal de cada loja no EZRA ERP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

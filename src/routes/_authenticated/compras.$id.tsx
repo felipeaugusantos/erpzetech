@@ -49,9 +49,9 @@ import {
 export const Route = createFileRoute("/_authenticated/compras/$id")({
   head: () => ({
     meta: [
-      { title: "Pedido de compra — ERP Ze Tech" },
+      { title: "Pedido de compra — EZRA ERP" },
       { name: "description", content: "Itens, cotações e recebimento do pedido de compra." },
-      { property: "og:title", content: "Pedido de compra — ERP Ze Tech" },
+      { property: "og:title", content: "Pedido de compra — EZRA ERP" },
       { property: "og:description", content: "Acompanhe a compra do pedido ao recebimento." },
     ],
   }),
@@ -771,7 +771,7 @@ function CompraDetalhe() {
                           loja:
                             session?.empresa?.nome_fantasia ??
                             session?.empresa?.razao_social ??
-                            "ERP Ze Tech",
+                            "EZRA ERP",
                           fornecedor:
                             (compra?.fornecedores as { razao_social: string } | null)
                               ?.razao_social ?? "—",

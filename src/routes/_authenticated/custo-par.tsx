@@ -6,12 +6,12 @@ import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
 export const Route = createFileRoute("/_authenticated/custo-par")({
   head: () => ({
     meta: [
-      { title: "Custo por par — ERP Ze Tech" },
+      { title: "Custo por par — EZRA ERP" },
       {
         name: "description",
         content: "Calcule o custo real de cada par de chinelo: tira, solado e folha impressa.",
       },
-      { property: "og:title", content: "Custo por par — ERP Ze Tech" },
+      { property: "og:title", content: "Custo por par — EZRA ERP" },
       {
         property: "og:description",
         content:

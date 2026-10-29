@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/boas-vindas")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Boas-vindas — ERP Ze Tech" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Boas-vindas — EZRA ERP" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
@@ -65,7 +65,7 @@ function BoasVindas() {
       <Card className="w-full max-w-md">
         <CardHeader className="items-center text-center">
           <ZeLogo />
-          <CardTitle>Bem-vindo ao ERP Ze Tech</CardTitle>
+          <CardTitle>Bem-vindo ao EZRA ERP</CardTitle>
           <CardDescription>
             Sua conta ainda não está vinculada a uma empresa. Crie o seu espaço para começar. Se
             você foi convidado por uma empresa, peça ao administrador para vincular o seu acesso.
@@ -97,6 +97,7 @@ function BoasVindas() {
             <Button type="button" variant="ghost" className="w-full" onClick={sair}>
               Sair
             </Button>
+            <p className="text-center text-xs text-muted-foreground">Desenvolvido por EZRA</p>
           </form>
         </CardContent>
       </Card>

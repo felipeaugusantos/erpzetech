@@ -51,12 +51,12 @@ import {
 export const Route = createFileRoute("/_authenticated/contas-pagar")({
   head: () => ({
     meta: [
-      { title: "Contas a pagar — ERP Ze Tech" },
+      { title: "Contas a pagar — EZRA ERP" },
       {
         name: "description",
         content: "Pagamentos a fornecedores e despesas, com vencimentos e baixas.",
       },
-      { property: "og:title", content: "Contas a pagar — ERP Ze Tech" },
+      { property: "og:title", content: "Contas a pagar — EZRA ERP" },
       { property: "og:description", content: "Controle do que a loja tem para pagar." },
     ],
   }),

@@ -30,12 +30,12 @@ import {
 export const Route = createFileRoute("/_authenticated/credito")({
   head: () => ({
     meta: [
-      { title: "Crédito de clientes — ERP Ze Tech" },
+      { title: "Crédito de clientes — EZRA ERP" },
       {
         name: "description",
         content: "Limites de crédito, clientes acima do limite e autorizações do gestor.",
       },
-      { property: "og:title", content: "Crédito de clientes — ERP Ze Tech" },
+      { property: "og:title", content: "Crédito de clientes — EZRA ERP" },
       { property: "og:description", content: "Aprovação de vendas acima do limite de crédito." },
     ],
   }),

@@ -40,13 +40,13 @@ export const Route = createFileRoute("/_authenticated/devolucoes")({
   }),
   head: () => ({
     meta: [
-      { title: "Devoluções de venda — ERP Ze Tech" },
+      { title: "Devoluções de venda — EZRA ERP" },
       {
         name: "description",
         content:
           "Devolva itens do pedido com volta ao estoque, abatimento no financeiro e nota fiscal de entrada.",
       },
-      { property: "og:title", content: "Devoluções de venda — ERP Ze Tech" },
+      { property: "og:title", content: "Devoluções de venda — EZRA ERP" },
       {
         property: "og:description",
         content: "Registre a devolução pelo pedido ou com nota fiscal de entrada.",

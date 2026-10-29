@@ -35,13 +35,13 @@ import {
 export const Route = createFileRoute("/_authenticated/operadores")({
   head: () => ({
     meta: [
-      { title: "Operadores de caixa — ERP Ze Tech" },
+      { title: "Operadores de caixa — EZRA ERP" },
       {
         name: "description",
         content:
           "Cadastre operadores com login e senha e defina quem abre caixa e quem vê o fechamento.",
       },
-      { property: "og:title", content: "Operadores de caixa — ERP Ze Tech" },
+      { property: "og:title", content: "Operadores de caixa — EZRA ERP" },
       {
         property: "og:description",
         content: "Login, senha e permissões dos operadores da frente de caixa.",

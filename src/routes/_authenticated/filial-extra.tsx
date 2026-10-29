@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_authenticated/filial-extra")({
   head: () => ({
     meta: [
-      { title: "Filial extra — ERP Ze Tech" },
+      { title: "Filial extra — EZRA ERP" },
       {
         name: "description",
         content:
           "Monte a segunda loja antes de pagar a implantação: depósito próprio, produtos com custo e numeração de NF-e da filial.",
       },
-      { property: "og:title", content: "Filial extra — ERP Ze Tech" },
+      { property: "og:title", content: "Filial extra — EZRA ERP" },
       {
         property: "og:description",
         content: "Depósito, produtos, custos e NF-e própria da filial extra.",

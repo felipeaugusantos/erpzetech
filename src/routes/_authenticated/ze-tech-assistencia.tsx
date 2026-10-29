@@ -163,7 +163,7 @@ function AssistenciaZeTech() {
                 <Bar
                   dataKey="encerradas"
                   name="Encerradas"
-                  fill="var(--accent)"
+                  fill="var(--mint)"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

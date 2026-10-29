@@ -40,13 +40,13 @@ import {
 export const Route = createFileRoute("/_authenticated/estoque-movimentos")({
   head: () => ({
     meta: [
-      { title: "Entradas e saídas de estoque — ERP Ze Tech" },
+      { title: "Entradas e saídas de estoque — EZRA ERP" },
       {
         name: "description",
         content:
           "Registre entradas e saídas por depósito com custo real, acompanhe o saldo valorizado e leve os valores para o balanço fiscal.",
       },
-      { property: "og:title", content: "Entradas e saídas de estoque — ERP Ze Tech" },
+      { property: "og:title", content: "Entradas e saídas de estoque — EZRA ERP" },
       {
         property: "og:description",
         content: "Movimentação de estoque por depósito com custo real e saldo valorizado.",

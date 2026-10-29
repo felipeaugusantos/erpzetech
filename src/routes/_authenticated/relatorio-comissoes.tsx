@@ -29,13 +29,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/relatorio-comissoes")({
   head: () => ({
     meta: [
-      { title: "Relatório de comissões — ERP Ze Tech" },
+      { title: "Relatório de comissões — EZRA ERP" },
       {
         name: "description",
         content:
           "Total vendido, comissão apurada, valor já pago e saldo a receber de cada vendedor, com quebra por depósito e período.",
       },
-      { property: "og:title", content: "Relatório de comissões — ERP Ze Tech" },
+      { property: "og:title", content: "Relatório de comissões — EZRA ERP" },
       {
         property: "og:description",
         content: "Comissão por vendedor e por depósito, no período escolhido.",

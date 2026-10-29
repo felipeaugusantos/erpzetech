@@ -41,7 +41,7 @@ import { dateBR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/clinica-reforcos")({
   head: () => ({
     meta: [
-      { title: "Reforços de vacina — ERP Ze Tech" },
+      { title: "Reforços de vacina — EZRA ERP" },
       {
         name: "description",
         content:

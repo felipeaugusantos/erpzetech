@@ -341,7 +341,7 @@ function ZeTechRelatorioFiscal() {
                   fill="var(--primary)"
                   radius={[4, 4, 0, 0]}
                 />
-                <Bar dataKey="saidas" name="Saídas" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="saidas" name="Saídas" fill="var(--mint)" radius={[4, 4, 0, 0]} />
                 <Bar
                   dataKey="impostos"
                   name="Impostos"

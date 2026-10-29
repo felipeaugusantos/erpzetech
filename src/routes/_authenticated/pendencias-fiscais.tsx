@@ -31,7 +31,7 @@ import {
 export const Route = createFileRoute("/_authenticated/pendencias-fiscais")({
   head: () => ({
     meta: [
-      { title: "Pendências fiscais — ERP Ze Tech" },
+      { title: "Pendências fiscais — EZRA ERP" },
       {
         name: "description",
         content:

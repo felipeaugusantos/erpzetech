@@ -55,7 +55,7 @@ import {
 export const Route = createFileRoute("/_authenticated/pet-agenda")({
   head: () => ({
     meta: [
-      { title: "Agenda do pet shop — ERP Ze Tech" },
+      { title: "Agenda do pet shop — EZRA ERP" },
       {
         name: "description",
         content: "Agenda de banho e tosa por profissional, sem horários sobrepostos.",

@@ -43,7 +43,7 @@ import { rotuloTipo, situacaoDaAssinatura } from "@/lib/lava-rapido";
 export const Route = createFileRoute("/_authenticated/lava-planos-admin")({
   head: () => ({
     meta: [
-      { title: "Administração de planos e brindes do lava rápido — ERP Ze Tech" },
+      { title: "Administração de planos e brindes do lava rápido — EZRA ERP" },
       {
         name: "description",
         content:

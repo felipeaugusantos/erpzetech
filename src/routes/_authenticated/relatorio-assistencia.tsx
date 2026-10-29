@@ -34,13 +34,13 @@ import {
 export const Route = createFileRoute("/_authenticated/relatorio-assistencia")({
   head: () => ({
     meta: [
-      { title: "Relatório de assistência técnica — ERP Ze Tech" },
+      { title: "Relatório de assistência técnica — EZRA ERP" },
       {
         name: "description",
         content:
           "Ordens de serviço, reparos e custos por loja, com exportação do relatório em PDF.",
       },
-      { property: "og:title", content: "Relatório de assistência técnica — ERP Ze Tech" },
+      { property: "og:title", content: "Relatório de assistência técnica — EZRA ERP" },
       {
         property: "og:description",
         content: "Exporte em PDF as ordens, reparos e custos da assistência técnica da loja.",
@@ -120,11 +120,7 @@ function RelatorioAssistencia() {
         : (session?.filiais.find((f) => f.id === filialId)?.nome ?? "Loja");
 
     doc.setFontSize(14);
-    doc.text(
-      (empresa?.nome_fantasia || empresa?.razao_social || "ERP Ze Tech").slice(0, 60),
-      14,
-      14,
-    );
+    doc.text((empresa?.nome_fantasia || empresa?.razao_social || "EZRA ERP").slice(0, 60), 14, 14);
     doc.setFontSize(10);
     doc.text(`Relatório de assistência técnica — ${loja}`, 14, 20);
     doc.text(`Período: ${dateBR(periodo.de)} a ${dateBR(periodo.ate)}`, 14, 25);

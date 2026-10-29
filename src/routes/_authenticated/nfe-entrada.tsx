@@ -47,13 +47,13 @@ import {
 export const Route = createFileRoute("/_authenticated/nfe-entrada")({
   head: () => ({
     meta: [
-      { title: "Importar XML da nota de entrada — ERP Ze Tech" },
+      { title: "Importar XML da nota de entrada — EZRA ERP" },
       {
         name: "description",
         content:
           "Importe o XML da NF-e do fornecedor para dar entrada no estoque, atualizar o custo de aquisição e gerar as contas a pagar.",
       },
-      { property: "og:title", content: "Importar XML da nota de entrada — ERP Ze Tech" },
+      { property: "og:title", content: "Importar XML da nota de entrada — EZRA ERP" },
       {
         property: "og:description",
         content: "Entrada de mercadorias direto do XML da NF-e do fornecedor.",

@@ -40,13 +40,13 @@ import {
 export const Route = createFileRoute("/_authenticated/vendedores")({
   head: () => ({
     meta: [
-      { title: "Cadastro de vendedores — ERP Ze Tech" },
+      { title: "Cadastro de vendedores — EZRA ERP" },
       {
         name: "description",
         content:
           "Dados pessoais, cargo, admissão, demissão, percentual de comissão e permissão de venda entre lojas.",
       },
-      { property: "og:title", content: "Cadastro de vendedores — ERP Ze Tech" },
+      { property: "og:title", content: "Cadastro de vendedores — EZRA ERP" },
       {
         property: "og:description",
         content: "Equipe de vendas com comissão e permissões por loja.",

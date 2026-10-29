@@ -34,16 +34,16 @@ import {
 export const Route = createFileRoute("/_authenticated/impostos-nota")({
   head: () => ({
     meta: [
-      { title: "Impostos por nota fiscal — ERP Ze Tech" },
+      { title: "Impostos por nota fiscal — EZRA ERP" },
       {
         name: "description",
         content:
           "Confira e ajuste as alíquotas de ICMS, substituição tributária, PIS, COFINS e ISS de cada item antes de transmitir a nota fiscal.",
       },
-      { property: "og:title", content: "Impostos por nota fiscal — ERP Ze Tech" },
+      { property: "og:title", content: "Impostos por nota fiscal — EZRA ERP" },
       {
         property: "og:description",
-        content: "Cálculo de impostos item a item da nota fiscal no ERP Ze Tech.",
+        content: "Cálculo de impostos item a item da nota fiscal no EZRA ERP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

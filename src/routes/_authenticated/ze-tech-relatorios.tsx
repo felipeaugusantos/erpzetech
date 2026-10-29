@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/ze-tech-relatorios")({
       {
         name: "description",
         content:
-          "Consolidado das assinaturas do ERP Ze Tech: clientes por plano, planos ativos, vencimentos e pagamentos recebidos.",
+          "Consolidado das assinaturas do EZRA ERP: clientes por plano, planos ativos, vencimentos e pagamentos recebidos.",
       },
       { property: "og:title", content: "Relatórios da Ze Tech — assinaturas" },
       {

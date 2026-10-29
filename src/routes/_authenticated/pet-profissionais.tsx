@@ -48,12 +48,12 @@ import { FUNCOES_PROFISSIONAL, UFS_CRMV, crmvValido, normalizarCrmv, rotulo } fr
 export const Route = createFileRoute("/_authenticated/pet-profissionais")({
   head: () => ({
     meta: [
-      { title: "Profissionais do pet shop — ERP Ze Tech" },
+      { title: "Profissionais do pet shop — EZRA ERP" },
       {
         name: "description",
         content: "Banhistas, tosadores e demais profissionais, com a comissão de cada um.",
       },
-      { property: "og:title", content: "Profissionais do pet shop — ERP Ze Tech" },
+      { property: "og:title", content: "Profissionais do pet shop — EZRA ERP" },
       { property: "og:description", content: "Equipe de atendimento e acessos dos profissionais." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

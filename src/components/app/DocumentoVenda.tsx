@@ -197,7 +197,7 @@ export function DocumentoOuCupom({
 /** Cabeçalho com a logo e os dados da loja, para a nota fiscal impressa. */
 export function CabecalhoImpresso({ titulo }: { titulo: string }) {
   const { empresa, logoUrl } = useEmpresaImpressa();
-  const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "ERP Ze Tech";
+  const nome = empresa?.nome_fantasia ?? empresa?.razao_social ?? "EZRA ERP";
   const endereco = [
     [empresa?.endereco, empresa?.numero].filter(Boolean).join(", "),
     empresa?.bairro,

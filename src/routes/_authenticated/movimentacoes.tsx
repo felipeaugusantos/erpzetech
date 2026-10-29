@@ -27,12 +27,12 @@ import {
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({
     meta: [
-      { title: "Movimentações — ERP Ze Tech" },
+      { title: "Movimentações — EZRA ERP" },
       {
         name: "description",
         content: "Histórico permanente de entradas, saídas, ajustes, reservas e transferências.",
       },
-      { property: "og:title", content: "Movimentações — ERP Ze Tech" },
+      { property: "og:title", content: "Movimentações — EZRA ERP" },
       { property: "og:description", content: "Rastreabilidade completa do estoque." },
     ],
   }),

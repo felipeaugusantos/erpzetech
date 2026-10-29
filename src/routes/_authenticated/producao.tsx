@@ -28,12 +28,12 @@ import {
 export const Route = createFileRoute("/_authenticated/producao")({
   head: () => ({
     meta: [
-      { title: "Produção — ERP Ze Tech" },
+      { title: "Produção — EZRA ERP" },
       {
         name: "description",
         content: "Impressão, prensa e montagem de cada pedido personalizado, com status e data.",
       },
-      { property: "og:title", content: "Produção — ERP Ze Tech" },
+      { property: "og:title", content: "Produção — EZRA ERP" },
       { property: "og:description", content: "Acompanhe cada etapa da produção ligada ao pedido." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

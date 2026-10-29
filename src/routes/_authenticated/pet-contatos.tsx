@@ -40,7 +40,7 @@ import { dateBR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/pet-contatos")({
   head: () => ({
     meta: [
-      { title: "Contatos do pet shop — ERP Ze Tech" },
+      { title: "Contatos do pet shop — EZRA ERP" },
       {
         name: "description",
         content:

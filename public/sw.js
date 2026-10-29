@@ -1,4 +1,4 @@
-/* ERP Ze Tech — service worker.
+/* EZRA ERP — service worker.
    Guarda as páginas e os arquivos do sistema já abertos, para a frente de caixa, o salão,
    o delivery e a conferência abrirem mesmo sem internet. Os dados da loja não passam por aqui
    (ficam no próprio navegador e são enviados ao banco quando a conexão volta). */
@@ -9,7 +9,7 @@ const paginaSemConexao = () =>
   new Response(
     `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ERP Ze Tech — sem conexão</title>
+<title>EZRA ERP — sem conexão</title>
 <style>body{font-family:system-ui,sans-serif;background:#F0F4F2;color:#003D1A;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px;text-align:center}
 h1{font-size:20px;margin:0 0 8px}p{color:#3f5c4c;margin:0 0 16px}
 a{display:inline-block;margin:4px;background:#008037;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600}</style>

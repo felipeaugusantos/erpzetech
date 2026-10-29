@@ -21,13 +21,13 @@ import {
 export const Route = createFileRoute("/_authenticated/painel-fiscal")({
   head: () => ({
     meta: [
-      { title: "Painel fiscal por loja — ERP Ze Tech" },
+      { title: "Painel fiscal por loja — EZRA ERP" },
       {
         name: "description",
         content:
           "Entradas, saídas, saldo de estoque e total de impostos de cada loja no período escolhido.",
       },
-      { property: "og:title", content: "Painel fiscal por loja — ERP Ze Tech" },
+      { property: "og:title", content: "Painel fiscal por loja — EZRA ERP" },
       {
         property: "og:description",
         content: "Movimento de entradas e saídas, saldo em estoque e impostos por loja.",

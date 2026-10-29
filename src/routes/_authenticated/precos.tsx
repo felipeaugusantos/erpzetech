@@ -23,12 +23,12 @@ import {
 export const Route = createFileRoute("/_authenticated/precos")({
   head: () => ({
     meta: [
-      { title: "Preços e margens — ERP Ze Tech" },
+      { title: "Preços e margens — EZRA ERP" },
       {
         name: "description",
         content: "Atualize o custo de aquisição, o preço de venda e a margem de todos os produtos.",
       },
-      { property: "og:title", content: "Preços e margens — ERP Ze Tech" },
+      { property: "og:title", content: "Preços e margens — EZRA ERP" },
       { property: "og:description", content: "Edição em massa de custo, preço e margem." },
     ],
   }),
@@ -236,7 +236,7 @@ function Precos() {
                 const m = margemPct(custo, preco);
                 const mudou = custo !== custoOriginal || preco !== precoOriginal;
                 return (
-                  <TableRow key={p.id} className={mudou ? "bg-accent/10" : undefined}>
+                  <TableRow key={p.id} className={mudou ? "bg-mint/10" : undefined}>
                     <TableCell>
                       <p className="font-medium">{p.descricao}</p>
                       <p className="text-numeric text-xs text-muted-foreground">

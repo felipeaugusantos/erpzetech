@@ -28,9 +28,9 @@ import {
 export const Route = createFileRoute("/_authenticated/delivery")({
   head: () => ({
     meta: [
-      { title: "Delivery — ERP Ze Tech" },
+      { title: "Delivery — EZRA ERP" },
       { name: "description", content: "Pedidos de entrega do restaurante." },
-      { property: "og:title", content: "Delivery — ERP Ze Tech" },
+      { property: "og:title", content: "Delivery — EZRA ERP" },
       { property: "og:description", content: "Pedidos de entrega do restaurante." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

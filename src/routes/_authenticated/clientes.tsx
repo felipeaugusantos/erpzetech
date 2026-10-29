@@ -44,12 +44,12 @@ import {
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes — ERP Ze Tech" },
+      { title: "Clientes — EZRA ERP" },
       {
         name: "description",
         content: "Cadastro de clientes pessoa física e jurídica com limite de crédito e obras.",
       },
-      { property: "og:title", content: "Clientes — ERP Ze Tech" },
+      { property: "og:title", content: "Clientes — EZRA ERP" },
       { property: "og:description", content: "Gestão de clientes da loja de materiais." },
     ],
   }),

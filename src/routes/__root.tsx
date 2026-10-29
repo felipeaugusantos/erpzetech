@@ -107,13 +107,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ERP Ze Tech — ERP para lojas de material de construção" },
+      { title: "EZRA ERP — ERP para lojas de material de construção" },
       {
         name: "description",
         content:
           "Sistema de gestão para lojas de materiais de construção: clientes, obras, produtos, estoque em múltiplos depósitos e conversão de unidades.",
       },
-      { property: "og:title", content: "ERP Ze Tech" },
+      { property: "og:title", content: "EZRA ERP" },
       {
         property: "og:description",
         content: "ERP multiempresa para lojas de materiais de construção.",
@@ -124,7 +124,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "ERP Ze Tech" },
+      { name: "apple-mobile-web-app-title", content: "EZRA ERP" },
     ],
     links: [
       {

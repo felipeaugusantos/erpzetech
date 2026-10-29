@@ -12,7 +12,7 @@ import { lerRetrato, salvarRetrato, useOnline, type Retrato } from "@/lib/offlin
 export const Route = createFileRoute("/_authenticated/lotes-offline")({
   head: () => ({
     meta: [
-      { title: "Lotes sem internet — ERP Ze Tech" },
+      { title: "Lotes sem internet — EZRA ERP" },
       {
         name: "description",
         content: "Saldo e histórico de lotes e tonalidades para conferir mesmo sem conexão.",

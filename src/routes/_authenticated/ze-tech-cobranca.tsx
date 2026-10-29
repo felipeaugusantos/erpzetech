@@ -169,7 +169,7 @@ function CobrancaZeTech() {
     setForm({
       ...form,
       cliente_id: id,
-      descricao: plano ? `Mensalidade do plano ${plano.nome}` : "Mensalidade do ERP Ze Tech",
+      descricao: plano ? `Mensalidade do plano ${plano.nome}` : "Mensalidade do EZRA ERP",
       valor: plano
         ? String(
             Number(plano.valor_mensal) +
@@ -240,7 +240,7 @@ function CobrancaZeTech() {
   /** Mensagem pronta para WhatsApp / e-mail. */
   function mensagem(f: Fatura) {
     const linhas = [
-      `Olá! Segue a cobrança do ERP Ze Tech — ${nomeCliente(f.cliente_id)}.`,
+      `Olá! Segue a cobrança do EZRA ERP — ${nomeCliente(f.cliente_id)}.`,
       `${f.descricao}`,
       `Valor: ${brl(f.valor)} · Vencimento: ${dateBR(f.vencimento)}`,
     ];
@@ -270,7 +270,7 @@ function CobrancaZeTech() {
       return;
     }
     window.location.href = `mailto:${cliente.email}?subject=${encodeURIComponent(
-      `Cobrança ERP Ze Tech — ${f.descricao}`,
+      `Cobrança EZRA ERP — ${f.descricao}`,
     )}&body=${encodeURIComponent(mensagem(f))}`;
     marcarEnviada.mutate({ id: f.id, canal: "email" });
   }

@@ -30,13 +30,13 @@ import {
 export const Route = createFileRoute("/_authenticated/nfe-simulacao")({
   head: () => ({
     meta: [
-      { title: "Simulação de nota fiscal — ERP Ze Tech" },
+      { title: "Simulação de nota fiscal — EZRA ERP" },
       {
         name: "description",
         content:
           "Simule uma nota de venda ou de serviço sem valor fiscal e confira ICMS, substituição, PIS, COFINS e ISS conforme o regime da loja.",
       },
-      { property: "og:title", content: "Simulação de nota fiscal — ERP Ze Tech" },
+      { property: "og:title", content: "Simulação de nota fiscal — EZRA ERP" },
       {
         property: "og:description",
         content: "Confira o cálculo de impostos antes de emitir a nota, sem valor fiscal.",

@@ -5,8 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * ERP Ze Tech — design system (padrão visual Ze Tech / Ze Registra)
- * Verde Zé #008037, verde floresta #003D1A, verde neon de ação #00D15C.
+ * EZRA ERP — design system.
+ * Esmeralda #008037 (ação), esmeralda escuro #005927 (texto pequeno), floresta #003D1A (barra lateral),
+ * menta #00D15C (só preenchimento decorativo com texto escuro, ou texto no tema escuro) e menta claro #E6F5ED (superfícies de apoio).
+ * Cores de marca nunca substituem as de erro (destructive), aviso (warning) e sucesso/informação.
  */
 
 @theme inline {
@@ -35,6 +37,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-mint: var(--mint);
+  --color-mint-foreground: var(--mint-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -81,20 +87,26 @@
   --secondary-foreground: #005927;
   --muted: #e6f5ed;
   --muted-foreground: #2d4036;
-  --accent: #00d15c;
+  --accent: #e6f5ed;
   --accent-foreground: #003d1a;
+  /* texto de marca e destaques sobre fundo claro (5,07:1 no branco) e texto pequeno sobre superfícies de apoio (7,59:1) */
+  --brand: #008037;
+  --brand-strong: #005927;
+  /* menta: preenchimento decorativo, sempre com texto escuro; nunca como texto sobre fundo claro */
+  --mint: #00d15c;
+  --mint-foreground: #003d1a;
 
   --destructive: #b00020;
   --destructive-foreground: #ffffff;
   --success: #008037;
   --success-foreground: #ffffff;
   --warning: #b8860b;
-  --warning-foreground: #ffffff;
+  --warning-foreground: #26200a;
   --info: #005927;
   --info-foreground: #ffffff;
 
   --border: #d1ded8;
-  --input: #d1ded8;
+  --input: #7a8f84;
   --ring: #008037;
 
   --chart-1: #008037;
@@ -126,10 +138,14 @@
   --secondary-foreground: #e6f5ed;
   --muted: #1b3325;
   --muted-foreground: #a9c4b5;
-  --accent: #00d15c;
-  --accent-foreground: #003d1a;
-  --destructive: #e0364f;
-  --destructive-foreground: #ffffff;
+  --accent: #1f3b2b;
+  --accent-foreground: #e6f5ed;
+  --brand: #00d15c;
+  --brand-strong: #7cc7a1;
+  --mint: #00d15c;
+  --mint-foreground: #003d1a;
+  --destructive: #ec5a70;
+  --destructive-foreground: #1a0a0d;
   --success: #00d15c;
   --success-foreground: #003d1a;
   --warning: #e0a52a;
@@ -137,7 +153,7 @@
   --info: #7cc7a1;
   --info-foreground: #003d1a;
   --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 40%);
   --ring: #00d15c;
   --sidebar: #003d1a;
   --sidebar-foreground: #e6f5ed;
@@ -159,6 +175,12 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* foco de teclado: verde escuro no tema claro, menta no escuro; vale para qualquer elemento sem estilo próprio */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   h1,
