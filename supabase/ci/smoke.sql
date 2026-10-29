@@ -7763,3 +7763,42 @@ BEGIN
   DELETE FROM user_roles WHERE user_id IN (prod, u2);
   DELETE FROM empresas WHERE id = emp2;
 END $$;
+
+-- 81. Manufatura: o custo do acabado não depende de como a produção agrupa os apontamentos (refugo antes, sozinho ou junto da peça boa)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  emp uuid; dep_i uuid; dep_d uuid; a1 uuid; a2 uuid; ins uuid; op1 uuid; op2 uuid;
+BEGIN
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Insumos CI 2') RETURNING id INTO dep_i;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Acabados CI 2') RETURNING id INTO dep_d;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-A', 'Armário A CI', 'un', 0) RETURNING id INTO a1;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-B', 'Armário B CI', 'un', 0) RETURNING id INTO a2;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-INS-2', 'Chapa 2 CI', 'chapa', 100) RETURNING id INTO ins;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep_i, 20, 0, 100);
+
+  PERFORM ci.entrar(gest);
+  op1 := mf_ordem_criar(jsonb_build_object('descricao', 'Refugo junto', 'produto_id', a1, 'quantidade_planejada', 2, 'entrada_estoque', true,
+           'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  op2 := mf_ordem_criar(jsonb_build_object('descricao', 'Refugo antes', 'produto_id', a2, 'quantidade_planejada', 2, 'entrada_estoque', true,
+           'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  PERFORM mf_ordem_liberar(op1); PERFORM mf_ordem_liberar(op2);
+  -- mesma produção (1 peça boa e 1 de refugo), apontada de duas formas
+  PERFORM mf_ordem_apontar(op1, 1, 1, NULL, 'agrup-junto');
+  PERFORM mf_ordem_apontar(op2, 0, 1, NULL, 'agrup-refugo');
+  PERFORM ci.exige((SELECT custo_a_alocar = 100 FROM mf_ordens WHERE id = op2), 'o custo do refugo sozinho fica para alocar');
+  PERFORM mf_ordem_apontar(op2, 1, 0, NULL, 'agrup-boa');
+  PERFORM ci.sair();
+
+  PERFORM ci.exige((SELECT custo_medio = 200 FROM estoques WHERE produto_id = a1 AND deposito_id = dep_d), 'refugo junto da peça boa: acabado custa 200');
+  PERFORM ci.exige((SELECT custo_medio = 200 FROM estoques WHERE produto_id = a2 AND deposito_id = dep_d), 'refugo antes da peça boa: acabado também custa 200');
+  PERFORM ci.exige((SELECT custo_a_alocar = 0 FROM mf_ordens WHERE id = op2), 'nada sobra para alocar depois da peça boa');
+  PERFORM ci.exige((SELECT custo_real FROM mf_ordens WHERE id = op1) = (SELECT custo_real FROM mf_ordens WHERE id = op2), 'o custo real da ordem é o mesmo nas duas formas');
+
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+END $$;
