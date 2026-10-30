@@ -8145,3 +8145,36 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id = prod;
 END $$;
+
+-- 87. Manufatura: semiacabado em níveis demais é recusado em vez de devolver total incompleto
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  emp uuid; raw uuid; p uuid[] := ARRAY[]::uuid[]; b uuid[] := ARRAY[]::uuid[]; i integer; r record; n integer;
+BEGIN
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-RAW-N', 'Matéria-prima nível CI', 'un', 10) RETURNING id INTO raw;
+  FOR i IN 0..9 LOOP
+    INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-N' || i, 'Nível ' || i || ' CI', 'un', 0) RETURNING id INTO r;
+    p := p || r.id;
+  END LOOP;
+  PERFORM ci.entrar(gest);
+  -- cadeia p0 -> p1 -> ... -> p9 -> matéria-prima (10 níveis); cria de baixo para cima, ativando cada lista
+  b := b || mf_bom_salvar(jsonb_build_object('produto_id', p[10], 'itens', jsonb_build_array(jsonb_build_object('insumo_id', raw, 'quantidade', 1))));
+  PERFORM mf_bom_ativar(b[1]);
+  FOR i IN REVERSE 9..1 LOOP
+    b := b || mf_bom_salvar(jsonb_build_object('produto_id', p[i], 'itens', jsonb_build_array(jsonb_build_object('insumo_id', p[i + 1], 'quantidade', 1))));
+    PERFORM mf_bom_ativar(b[array_length(b, 1)]);
+  END LOOP;
+  -- a partir de p6 (4 níveis até a matéria-prima) calcula; p0 (10 níveis) é recusado
+  SELECT * INTO r FROM mf_bom_explodir(b[array_length(b, 1) - 3], 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.quantidade = 1 AND r.valor = 10, 'cadeia curta calcula a matéria-prima');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT * FROM mf_bom_explodir(%L::uuid, 1)$c$, b[array_length(b, 1)]), 'cadeia de 10 níveis é recusada em vez de dar total incompleto');
+
+  DELETE FROM mf_bom_itens WHERE tenant_id = demo;
+  DELETE FROM mf_boms WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+END $$;
