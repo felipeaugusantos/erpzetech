@@ -145,7 +145,7 @@ function Apontar() {
         p_ordem_id: alvo.id,
         p_boa: b,
         p_refugo: r,
-        p_minutos: min,
+        p_minutos: min ?? 0,
         p_chave: chave,
         ...(etapaId !== SEM_ETAPA ? { p_etapa_id: etapaId } : {}),
       });
