@@ -43,6 +43,7 @@ test("o menu da loja tem os grupos esperados, com Relatórios antes de Administr
     "Clínica",
     "Assistência técnica",
     "Locação de equipamentos",
+    "Manufatura",
     "Relatórios",
     "Administração",
   ]);

@@ -90,6 +90,9 @@ import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authe
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
 import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authenticated/lotes-offline'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
+import { Route as AuthenticatedManufaturaApontarRouteImport } from './routes/_authenticated/manufatura-apontar'
+import { Route as AuthenticatedManufaturaBomsRouteImport } from './routes/_authenticated/manufatura-boms'
+import { Route as AuthenticatedManufaturaOrdensRouteImport } from './routes/_authenticated/manufatura-ordens'
 import { Route as AuthenticatedModulosSemCnpjRouteImport } from './routes/_authenticated/modulos-sem-cnpj'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -613,6 +616,24 @@ const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
   path: '/lucro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedManufaturaApontarRoute =
+  AuthenticatedManufaturaApontarRouteImport.update({
+    id: '/manufatura-apontar',
+    path: '/manufatura-apontar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManufaturaBomsRoute =
+  AuthenticatedManufaturaBomsRouteImport.update({
+    id: '/manufatura-boms',
+    path: '/manufatura-boms',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedManufaturaOrdensRoute =
+  AuthenticatedManufaturaOrdensRouteImport.update({
+    id: '/manufatura-ordens',
+    path: '/manufatura-ordens',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModulosSemCnpjRoute =
   AuthenticatedModulosSemCnpjRouteImport.update({
     id: '/modulos-sem-cnpj',
@@ -1098,6 +1119,9 @@ export interface FileRoutesByFullPath {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
+  '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1252,6 +1276,9 @@ export interface FileRoutesByTo {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
+  '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1408,6 +1435,9 @@ export interface FileRoutesById {
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
   '/_authenticated/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
+  '/_authenticated/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
+  '/_authenticated/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/_authenticated/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/_authenticated/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1564,6 +1594,9 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/manufatura-apontar'
+    | '/manufatura-boms'
+    | '/manufatura-ordens'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -1718,6 +1751,9 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/manufatura-apontar'
+    | '/manufatura-boms'
+    | '/manufatura-ordens'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -1873,6 +1909,9 @@ export interface FileRouteTypes {
     | '/_authenticated/locacoes'
     | '/_authenticated/lotes-offline'
     | '/_authenticated/lucro'
+    | '/_authenticated/manufatura-apontar'
+    | '/_authenticated/manufatura-boms'
+    | '/_authenticated/manufatura-ordens'
     | '/_authenticated/modulos-sem-cnpj'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -2530,6 +2569,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLucroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manufatura-apontar': {
+      id: '/_authenticated/manufatura-apontar'
+      path: '/manufatura-apontar'
+      fullPath: '/manufatura-apontar'
+      preLoaderRoute: typeof AuthenticatedManufaturaApontarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manufatura-boms': {
+      id: '/_authenticated/manufatura-boms'
+      path: '/manufatura-boms'
+      fullPath: '/manufatura-boms'
+      preLoaderRoute: typeof AuthenticatedManufaturaBomsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manufatura-ordens': {
+      id: '/_authenticated/manufatura-ordens'
+      path: '/manufatura-ordens'
+      fullPath: '/manufatura-ordens'
+      preLoaderRoute: typeof AuthenticatedManufaturaOrdensRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/modulos-sem-cnpj': {
       id: '/_authenticated/modulos-sem-cnpj'
       path: '/modulos-sem-cnpj'
@@ -3111,6 +3171,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
   AuthenticatedLotesOfflineRoute: typeof AuthenticatedLotesOfflineRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
+  AuthenticatedManufaturaApontarRoute: typeof AuthenticatedManufaturaApontarRoute
+  AuthenticatedManufaturaBomsRoute: typeof AuthenticatedManufaturaBomsRoute
+  AuthenticatedManufaturaOrdensRoute: typeof AuthenticatedManufaturaOrdensRoute
   AuthenticatedModulosSemCnpjRoute: typeof AuthenticatedModulosSemCnpjRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -3257,6 +3320,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
   AuthenticatedLotesOfflineRoute: AuthenticatedLotesOfflineRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
+  AuthenticatedManufaturaApontarRoute: AuthenticatedManufaturaApontarRoute,
+  AuthenticatedManufaturaBomsRoute: AuthenticatedManufaturaBomsRoute,
+  AuthenticatedManufaturaOrdensRoute: AuthenticatedManufaturaOrdensRoute,
   AuthenticatedModulosSemCnpjRoute: AuthenticatedModulosSemCnpjRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,

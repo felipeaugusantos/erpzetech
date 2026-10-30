@@ -17,6 +17,7 @@ export const PERFIS = [
   "cozinha",
   "profissional",
   "veterinario",
+  "producao",
 ] as const;
 
 export type Perfil = (typeof PERFIS)[number];
