@@ -67,6 +67,7 @@ import { obrasLiberadasEmpresa } from "@/lib/modulos-empresa";
 import {
   PERFIS_APONTAMENTO,
   PERFIS_GESTAO_MANUFATURA,
+  PERFIS_NECESSIDADE,
   manufaturaLiberadaEmpresa,
   temPerfil,
 } from "@/lib/manufatura";
@@ -270,6 +271,7 @@ const groups: Group[] = [
       { label: "Ordens de produção", to: "/manufatura-ordens", icon: Factory },
       { label: "Apontamento", to: "/manufatura-apontar", icon: ClipboardList },
       { label: "Roteiro e custo por hora", to: "/manufatura-etapas", icon: Calculator },
+      { label: "Necessidade de materiais", to: "/manufatura-necessidade", icon: ShoppingCart },
     ],
   },
   {
@@ -459,7 +461,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Pet shop") return modulos.petshop;
           if (g.label === "Lava rápido") return modulos.lavarapido;
           if (g.label === "Manufatura")
-            return manufatura && temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO);
+            return (
+              manufatura &&
+              (temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO) ||
+                temPerfil(data?.roles ?? [], PERFIS_NECESSIDADE))
+            );
           // o texto clínico é só do perfil Veterinário (o banco confere de novo)
           if (g.label === "Clínica")
             return modulos.clinica && (souVeterinario || souGestao || souRecepcao);
@@ -493,6 +499,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
                 return modulos.locacao;
               if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
+              // necessidade de materiais: quem compra (as funções de compras já aceitam estes perfis)
+              if (i.to === "/manufatura-necessidade")
+                return temPerfil(data?.roles ?? [], PERFIS_NECESSIDADE);
+              if (i.to === "/manufatura-apontar")
+                return temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO);
               // listas de materiais e ordens são da gestão; o apontamento também é da produção
               if (
                 i.to === "/manufatura-boms" ||

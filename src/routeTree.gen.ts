@@ -93,6 +93,7 @@ import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedManufaturaApontarRouteImport } from './routes/_authenticated/manufatura-apontar'
 import { Route as AuthenticatedManufaturaBomsRouteImport } from './routes/_authenticated/manufatura-boms'
 import { Route as AuthenticatedManufaturaEtapasRouteImport } from './routes/_authenticated/manufatura-etapas'
+import { Route as AuthenticatedManufaturaNecessidadeRouteImport } from './routes/_authenticated/manufatura-necessidade'
 import { Route as AuthenticatedManufaturaOrdensRouteImport } from './routes/_authenticated/manufatura-ordens'
 import { Route as AuthenticatedModulosSemCnpjRouteImport } from './routes/_authenticated/modulos-sem-cnpj'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
@@ -635,6 +636,12 @@ const AuthenticatedManufaturaEtapasRoute =
     path: '/manufatura-etapas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedManufaturaNecessidadeRoute =
+  AuthenticatedManufaturaNecessidadeRouteImport.update({
+    id: '/manufatura-necessidade',
+    path: '/manufatura-necessidade',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedManufaturaOrdensRoute =
   AuthenticatedManufaturaOrdensRouteImport.update({
     id: '/manufatura-ordens',
@@ -1129,6 +1136,7 @@ export interface FileRoutesByFullPath {
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
+  '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
@@ -1287,6 +1295,7 @@ export interface FileRoutesByTo {
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
+  '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
@@ -1447,6 +1456,7 @@ export interface FileRoutesById {
   '/_authenticated/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/_authenticated/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/_authenticated/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
+  '/_authenticated/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/_authenticated/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
   '/_authenticated/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
@@ -1607,6 +1617,7 @@ export interface FileRouteTypes {
     | '/manufatura-apontar'
     | '/manufatura-boms'
     | '/manufatura-etapas'
+    | '/manufatura-necessidade'
     | '/manufatura-ordens'
     | '/modulos-sem-cnpj'
     | '/motorista'
@@ -1765,6 +1776,7 @@ export interface FileRouteTypes {
     | '/manufatura-apontar'
     | '/manufatura-boms'
     | '/manufatura-etapas'
+    | '/manufatura-necessidade'
     | '/manufatura-ordens'
     | '/modulos-sem-cnpj'
     | '/motorista'
@@ -1924,6 +1936,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manufatura-apontar'
     | '/_authenticated/manufatura-boms'
     | '/_authenticated/manufatura-etapas'
+    | '/_authenticated/manufatura-necessidade'
     | '/_authenticated/manufatura-ordens'
     | '/_authenticated/modulos-sem-cnpj'
     | '/_authenticated/motorista'
@@ -2603,6 +2616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManufaturaEtapasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manufatura-necessidade': {
+      id: '/_authenticated/manufatura-necessidade'
+      path: '/manufatura-necessidade'
+      fullPath: '/manufatura-necessidade'
+      preLoaderRoute: typeof AuthenticatedManufaturaNecessidadeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manufatura-ordens': {
       id: '/_authenticated/manufatura-ordens'
       path: '/manufatura-ordens'
@@ -3194,6 +3214,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedManufaturaApontarRoute: typeof AuthenticatedManufaturaApontarRoute
   AuthenticatedManufaturaBomsRoute: typeof AuthenticatedManufaturaBomsRoute
   AuthenticatedManufaturaEtapasRoute: typeof AuthenticatedManufaturaEtapasRoute
+  AuthenticatedManufaturaNecessidadeRoute: typeof AuthenticatedManufaturaNecessidadeRoute
   AuthenticatedManufaturaOrdensRoute: typeof AuthenticatedManufaturaOrdensRoute
   AuthenticatedModulosSemCnpjRoute: typeof AuthenticatedModulosSemCnpjRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
@@ -3344,6 +3365,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedManufaturaApontarRoute: AuthenticatedManufaturaApontarRoute,
   AuthenticatedManufaturaBomsRoute: AuthenticatedManufaturaBomsRoute,
   AuthenticatedManufaturaEtapasRoute: AuthenticatedManufaturaEtapasRoute,
+  AuthenticatedManufaturaNecessidadeRoute:
+    AuthenticatedManufaturaNecessidadeRoute,
   AuthenticatedManufaturaOrdensRoute: AuthenticatedManufaturaOrdensRoute,
   AuthenticatedModulosSemCnpjRoute: AuthenticatedModulosSemCnpjRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
