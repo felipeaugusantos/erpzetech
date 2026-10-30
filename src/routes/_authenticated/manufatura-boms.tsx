@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { brl } from "@/lib/format";
 import { useManufatura } from "@/hooks/useManufatura";
 import {
   PERFIS_GESTAO_MANUFATURA,
@@ -76,7 +77,17 @@ const formVazio = (): FormBom => ({
 type ProdutoRef = { id: string; descricao: string; unidade: string };
 
 /** Itens de uma lista, buscados por lista (nunca o conjunto inteiro da empresa). */
-function ItensDaBom({ bomId, produtos }: { bomId: string; produtos: ProdutoRef[] }) {
+function ItensDaBom({
+  bomId,
+  produtos,
+  semiacabados,
+}: {
+  bomId: string;
+  produtos: ProdutoRef[];
+  /** produtos que têm lista ativa própria: usados como insumo, são semiacabados */
+  semiacabados: Set<string>;
+}) {
+  const [total, setTotal] = useState(false);
   const { data: itens, isLoading } = useQuery({
     queryKey: ["mf-bom-itens", bomId],
     queryFn: async () => {
@@ -85,25 +96,86 @@ function ItensDaBom({ bomId, produtos }: { bomId: string; produtos: ProdutoRef[]
       return data ?? [];
     },
   });
+  const temSemi = (itens ?? []).some((i) => semiacabados.has(i.insumo_id));
+  const {
+    data: explodida,
+    isLoading: explodindo,
+    isError: erroExplodir,
+  } = useQuery({
+    queryKey: ["mf-bom-explodir", bomId],
+    enabled: total && temSemi,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("mf_bom_explodir", { p_bom_id: bomId, p_qtd: 1 });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const produto = (id: string) => produtos.find((p) => p.id === id);
   if (isLoading) return <p className="mt-3 text-sm text-muted-foreground">Carregando itens…</p>;
   return (
-    <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-      {(itens ?? []).map((i) => (
-        <li
-          key={i.id}
-          className="flex items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
-        >
-          <span className="min-w-0 truncate">{produto(i.insumo_id)?.descricao ?? "Insumo"}</span>
-          <span className="shrink-0 text-muted-foreground">
-            {formatarQuantidadeMf(Number(i.quantidade))} {produto(i.insumo_id)?.unidade ?? ""}
-            {Number(i.perda_percentual) > 0
-              ? ` · perda ${formatarQuantidadeMf(Number(i.perda_percentual))}%`
-              : ""}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+        {(itens ?? []).map((i) => (
+          <li
+            key={i.id}
+            className="flex items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
+          >
+            <span className="min-w-0 truncate">
+              {produto(i.insumo_id)?.descricao ?? "Insumo"}
+              {semiacabados.has(i.insumo_id) && (
+                <Badge variant="outline" className="ml-2">
+                  semiacabado
+                </Badge>
+              )}
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {formatarQuantidadeMf(Number(i.quantidade))} {produto(i.insumo_id)?.unidade ?? ""}
+              {Number(i.perda_percentual) > 0
+                ? ` · perda ${formatarQuantidadeMf(Number(i.perda_percentual))}%`
+                : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {temSemi && (
+        <div className="mt-3">
+          <Button size="sm" variant="outline" onClick={() => setTotal(!total)}>
+            {total ? "Ocultar matéria-prima total" : "Ver matéria-prima total"}
+          </Button>
+          {total && (
+            <div className="mt-2 rounded-md border p-3 text-sm">
+              {explodindo ? (
+                <p className="text-muted-foreground">Calculando…</p>
+              ) : erroExplodir ? (
+                <p className="text-destructive">Não foi possível calcular. Tente de novo.</p>
+              ) : (
+                <>
+                  <p className="mb-1.5 text-xs text-muted-foreground">
+                    Por unidade, abrindo os semiacabados (com perda e rendimento de cada lista), ao
+                    custo de referência.
+                  </p>
+                  <ul className="grid gap-1">
+                    {(explodida ?? []).map((m) => (
+                      <li key={m.insumo_id} className="flex justify-between gap-2">
+                        <span className="min-w-0 truncate">{m.descricao}</span>
+                        <span className="shrink-0 text-muted-foreground">
+                          {formatarQuantidadeMf(Number(m.quantidade))} {m.unidade} ·{" "}
+                          {brl(Number(m.valor))}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 flex justify-between font-medium">
+                    <span>Custo de materiais</span>
+                    <span>{brl((explodida ?? []).reduce((t, m) => t + Number(m.valor), 0))}</span>
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -128,9 +200,13 @@ function Boms() {
     },
   });
   const produto = (id: string) => data?.produtos.find((p) => p.id === id);
+  const semiacabados = new Set(
+    (data?.boms ?? []).filter((b) => b.situacao === "ativa").map((b) => b.produto_id),
+  );
   const atualizar = () => {
     void qc.invalidateQueries({ queryKey: ["mf-boms"] });
     void qc.invalidateQueries({ queryKey: ["mf-bom-itens"] });
+    void qc.invalidateQueries({ queryKey: ["mf-bom-explodir"] });
   };
 
   const salvar = useMutation({
@@ -276,7 +352,7 @@ function Boms() {
                     )}
                   </div>
                 </div>
-                <ItensDaBom bomId={b.id} produtos={data!.produtos} />
+                <ItensDaBom bomId={b.id} produtos={data!.produtos} semiacabados={semiacabados} />
               </div>
             );
           })}

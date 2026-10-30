@@ -12866,6 +12866,17 @@ export type Database = {
       lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       manufatura_liberada: { Args: never; Returns: boolean }
       mf_bom_ativar: { Args: { p_id: string }; Returns: undefined }
+      mf_bom_explodir: {
+        Args: { p_bom_id: string; p_qtd?: number }
+        Returns: {
+          custo_unitario: number
+          descricao: string
+          insumo_id: string
+          quantidade: number
+          unidade: string
+          valor: number
+        }[]
+      }
       mf_bom_salvar: { Args: { p_dados: Json }; Returns: string }
       mf_etapa_salvar: { Args: { p_dados: Json }; Returns: string }
       mf_etapas_iniciais: { Args: never; Returns: number }
