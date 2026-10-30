@@ -162,3 +162,12 @@ export function agruparParaCompra<T extends LinhaNecessidade>(linhas: T[]): Map<
 /** Valor estimado da compra de uma quantidade, pelo custo de referência do insumo. */
 export const valorEstimadoDaCompra = (quantidade: number, custoUnitario: number): number =>
   arredonda(Math.max(quantidade, 0) * Math.max(custoUnitario, 0), 2);
+
+/** Lucro e margem de um pedido sob medida: receita menos o custo real das ordens ligadas a ele. Sem receita não há margem. */
+export function margemDoPedido(
+  receita: number,
+  custoReal: number,
+): { lucro: number; margem: number | null } {
+  const lucro = arredonda(receita - custoReal, 2);
+  return { lucro, margem: receita > 0 ? arredonda((lucro / receita) * 100, 1) : null };
+}
