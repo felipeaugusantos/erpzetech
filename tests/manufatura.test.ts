@@ -15,6 +15,7 @@ import {
   manufaturaLiberadaEmpresa,
   margemDoPedido,
   necessidadeDoItem,
+  precoSugerido,
   temPerfil,
   valorEstimadoDaCompra,
 } from "../src/lib/manufatura.ts";
@@ -189,4 +190,18 @@ test("margem do pedido: receita menos custo real das ordens", () => {
   assert.deepEqual(margemDoPedido(1000, 1255), { lucro: -255, margem: -25.5 });
   // sem receita não existe margem percentual
   assert.deepEqual(margemDoPedido(0, 80), { lucro: -80, margem: null });
+});
+
+test("preço sugerido: margem sobre o preço, depois das despesas da venda", () => {
+  // custo 700 e margem de 30% sobre o preço: 700 / 0,7 = 1000
+  assert.equal(precoSugerido(700, 30), 1000);
+  // 20% de margem + 10% de impostos e comissão: 600 / 0,7
+  assert.equal(precoSugerido(600, 20, 10), 857.14);
+  // o lucro do preço sugerido é a margem pedida
+  const preco = precoSugerido(700, 30) ?? 0;
+  assert.equal(margemDoPedido(preco, 700).margem, 30);
+  // sem custo ou com margem + despesas >= 100% não há preço
+  assert.equal(precoSugerido(0, 30), null);
+  assert.equal(precoSugerido(100, 60, 40), null);
+  assert.equal(precoSugerido(100, 0), 100);
 });

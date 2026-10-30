@@ -171,3 +171,18 @@ export function margemDoPedido(
   const lucro = arredonda(receita - custoReal, 2);
   return { lucro, margem: receita > 0 ? arredonda((lucro / receita) * 100, 1) : null };
 }
+
+/**
+ * Preço de venda que deixa a margem desejada sobre o preço (a mesma margem do relatório), depois de descontar as despesas sobre a venda
+ * (impostos, comissão, taxa de cartão), também em % do preço. Sem custo, ou com margem + despesas de 100% ou mais, não há preço possível.
+ */
+export function precoSugerido(
+  custo: number,
+  margemPercentual: number,
+  despesasPercentual = 0,
+): number | null {
+  const margem = Math.max(margemPercentual, 0);
+  const despesas = Math.max(despesasPercentual, 0);
+  if (!(custo > 0) || margem + despesas >= 100) return null;
+  return arredonda(custo / (1 - (margem + despesas) / 100), 2);
+}
