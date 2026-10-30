@@ -23,8 +23,8 @@ import { NOME_DO_PLANO, nomeDoPlano } from "@/lib/planos-nomes";
 /** Contatos da loja — troque pelos seus dados reais. */
 export const CONTATO = {
   email: "contato@zeregistra.com.br",
-  whatsapp: "5516997994239",
-  whatsappVisivel: "(16) 99799-4239",
+  whatsapp: "5516988547561",
+  whatsappVisivel: "(16) 98854-7561",
 };
 
 export const Route = createFileRoute("/contato")({
