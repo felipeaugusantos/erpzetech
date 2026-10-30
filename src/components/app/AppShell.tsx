@@ -273,6 +273,7 @@ const groups: Group[] = [
       { label: "Roteiro e custo por hora", to: "/manufatura-etapas", icon: Calculator },
       { label: "Necessidade de materiais", to: "/manufatura-necessidade", icon: ShoppingCart },
       { label: "Margem por pedido", to: "/manufatura-margem", icon: Percent },
+      { label: "Plano de corte", to: "/manufatura-corte", icon: Scissors },
     ],
   },
   {
@@ -503,7 +504,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               // necessidade de materiais: quem compra (as funções de compras já aceitam estes perfis)
               if (i.to === "/manufatura-necessidade")
                 return temPerfil(data?.roles ?? [], PERFIS_NECESSIDADE);
-              if (i.to === "/manufatura-apontar")
+              if (i.to === "/manufatura-apontar" || i.to === "/manufatura-corte")
                 return temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO);
               // listas de materiais e ordens são da gestão; o apontamento também é da produção
               if (

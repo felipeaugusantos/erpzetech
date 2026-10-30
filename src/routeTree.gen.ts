@@ -92,6 +92,7 @@ import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authent
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
 import { Route as AuthenticatedManufaturaApontarRouteImport } from './routes/_authenticated/manufatura-apontar'
 import { Route as AuthenticatedManufaturaBomsRouteImport } from './routes/_authenticated/manufatura-boms'
+import { Route as AuthenticatedManufaturaCorteRouteImport } from './routes/_authenticated/manufatura-corte'
 import { Route as AuthenticatedManufaturaEtapasRouteImport } from './routes/_authenticated/manufatura-etapas'
 import { Route as AuthenticatedManufaturaMargemRouteImport } from './routes/_authenticated/manufatura-margem'
 import { Route as AuthenticatedManufaturaNecessidadeRouteImport } from './routes/_authenticated/manufatura-necessidade'
@@ -631,6 +632,12 @@ const AuthenticatedManufaturaBomsRoute =
     path: '/manufatura-boms',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedManufaturaCorteRoute =
+  AuthenticatedManufaturaCorteRouteImport.update({
+    id: '/manufatura-corte',
+    path: '/manufatura-corte',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedManufaturaEtapasRoute =
   AuthenticatedManufaturaEtapasRouteImport.update({
     id: '/manufatura-etapas',
@@ -1142,6 +1149,7 @@ export interface FileRoutesByFullPath {
   '/lucro': typeof AuthenticatedLucroRoute
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
   '/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
@@ -1302,6 +1310,7 @@ export interface FileRoutesByTo {
   '/lucro': typeof AuthenticatedLucroRoute
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
   '/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
@@ -1464,6 +1473,7 @@ export interface FileRoutesById {
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
   '/_authenticated/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/_authenticated/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
+  '/_authenticated/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
   '/_authenticated/manufatura-etapas': typeof AuthenticatedManufaturaEtapasRoute
   '/_authenticated/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/_authenticated/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
@@ -1626,6 +1636,7 @@ export interface FileRouteTypes {
     | '/lucro'
     | '/manufatura-apontar'
     | '/manufatura-boms'
+    | '/manufatura-corte'
     | '/manufatura-etapas'
     | '/manufatura-margem'
     | '/manufatura-necessidade'
@@ -1786,6 +1797,7 @@ export interface FileRouteTypes {
     | '/lucro'
     | '/manufatura-apontar'
     | '/manufatura-boms'
+    | '/manufatura-corte'
     | '/manufatura-etapas'
     | '/manufatura-margem'
     | '/manufatura-necessidade'
@@ -1947,6 +1959,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lucro'
     | '/_authenticated/manufatura-apontar'
     | '/_authenticated/manufatura-boms'
+    | '/_authenticated/manufatura-corte'
     | '/_authenticated/manufatura-etapas'
     | '/_authenticated/manufatura-margem'
     | '/_authenticated/manufatura-necessidade'
@@ -2622,6 +2635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManufaturaBomsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manufatura-corte': {
+      id: '/_authenticated/manufatura-corte'
+      path: '/manufatura-corte'
+      fullPath: '/manufatura-corte'
+      preLoaderRoute: typeof AuthenticatedManufaturaCorteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manufatura-etapas': {
       id: '/_authenticated/manufatura-etapas'
       path: '/manufatura-etapas'
@@ -3233,6 +3253,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
   AuthenticatedManufaturaApontarRoute: typeof AuthenticatedManufaturaApontarRoute
   AuthenticatedManufaturaBomsRoute: typeof AuthenticatedManufaturaBomsRoute
+  AuthenticatedManufaturaCorteRoute: typeof AuthenticatedManufaturaCorteRoute
   AuthenticatedManufaturaEtapasRoute: typeof AuthenticatedManufaturaEtapasRoute
   AuthenticatedManufaturaMargemRoute: typeof AuthenticatedManufaturaMargemRoute
   AuthenticatedManufaturaNecessidadeRoute: typeof AuthenticatedManufaturaNecessidadeRoute
@@ -3385,6 +3406,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
   AuthenticatedManufaturaApontarRoute: AuthenticatedManufaturaApontarRoute,
   AuthenticatedManufaturaBomsRoute: AuthenticatedManufaturaBomsRoute,
+  AuthenticatedManufaturaCorteRoute: AuthenticatedManufaturaCorteRoute,
   AuthenticatedManufaturaEtapasRoute: AuthenticatedManufaturaEtapasRoute,
   AuthenticatedManufaturaMargemRoute: AuthenticatedManufaturaMargemRoute,
   AuthenticatedManufaturaNecessidadeRoute:
