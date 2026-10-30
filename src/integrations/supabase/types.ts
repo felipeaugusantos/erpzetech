@@ -6123,6 +6123,72 @@ export type Database = {
           },
         ]
       }
+      mf_entregas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          criada_por: string | null
+          data: string
+          endereco: string
+          hora: string | null
+          id: string
+          observacoes: string | null
+          ordem_id: string
+          responsavel: string | null
+          situacao: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          criada_por?: string | null
+          data: string
+          endereco: string
+          hora?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem_id: string
+          responsavel?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          criada_por?: string | null
+          data?: string
+          endereco?: string
+          hora?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem_id?: string
+          responsavel?: string | null
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mf_entregas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "mf_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_entregas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mf_etapas: {
         Row: {
           ativo: boolean
@@ -12878,6 +12944,29 @@ export type Database = {
         }[]
       }
       mf_bom_salvar: { Args: { p_dados: Json }; Returns: string }
+      mf_entrega_salvar: { Args: { p_dados: Json }; Returns: string }
+      mf_entrega_situacao: {
+        Args: { p_id: string; p_situacao: string }
+        Returns: undefined
+      }
+      mf_entregas_agenda: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          concluida_em: string
+          cliente: string
+          data: string
+          descricao: string
+          endereco: string
+          hora: string
+          id: string
+          observacoes: string
+          ordem_id: string
+          ordem_numero: number
+          responsavel: string
+          situacao: string
+          tipo: string
+        }[]
+      }
       mf_etapa_salvar: { Args: { p_dados: Json }; Returns: string }
       mf_etapas_iniciais: { Args: never; Returns: number }
       mf_margem_pedidos: {

@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   Landmark,
   CalendarClock,
+  CalendarDays,
   Hammer,
   Factory,
   Wrench,
@@ -274,6 +275,7 @@ const groups: Group[] = [
       { label: "Necessidade de materiais", to: "/manufatura-necessidade", icon: ShoppingCart },
       { label: "Margem por pedido", to: "/manufatura-margem", icon: Percent },
       { label: "Plano de corte", to: "/manufatura-corte", icon: Scissors },
+      { label: "Agenda de entregas", to: "/manufatura-agenda", icon: CalendarDays },
     ],
   },
   {
@@ -504,7 +506,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               // necessidade de materiais: quem compra (as funções de compras já aceitam estes perfis)
               if (i.to === "/manufatura-necessidade")
                 return temPerfil(data?.roles ?? [], PERFIS_NECESSIDADE);
-              if (i.to === "/manufatura-apontar" || i.to === "/manufatura-corte")
+              if (
+                i.to === "/manufatura-apontar" ||
+                i.to === "/manufatura-corte" ||
+                i.to === "/manufatura-agenda"
+              )
                 return temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO);
               // listas de materiais e ordens são da gestão; o apontamento também é da produção
               if (

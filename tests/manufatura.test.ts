@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   agruparParaCompra,
+  agruparPorDia,
+  erroDoCompromisso,
+  proximoPassoEntrega,
   baseDoItem,
   chaveDeCompra,
   consumoAcumulado,
@@ -204,4 +207,41 @@ test("preço sugerido: margem sobre o preço, depois das despesas da venda", () 
   assert.equal(precoSugerido(0, 30), null);
   assert.equal(precoSugerido(100, 60, 40), null);
   assert.equal(precoSugerido(100, 0), 100);
+});
+
+test("agenda: próximo passo do compromisso e agrupamento por dia", () => {
+  assert.deepEqual(proximoPassoEntrega("agendada"), { para: "em_andamento", rotulo: "Iniciar" });
+  assert.deepEqual(proximoPassoEntrega("em_andamento"), { para: "concluida", rotulo: "Concluir" });
+  assert.equal(proximoPassoEntrega("concluida"), null);
+  assert.equal(proximoPassoEntrega("cancelada"), null);
+  const g = agruparPorDia([
+    { data: "2026-11-02", n: 1 },
+    { data: "2026-11-02", n: 2 },
+    { data: "2026-11-05", n: 3 },
+  ]);
+  assert.deepEqual(
+    g.map((x) => [x.data, x.itens.length]),
+    [
+      ["2026-11-02", 2],
+      ["2026-11-05", 1],
+    ],
+  );
+  assert.deepEqual(agruparPorDia([]), []);
+});
+
+test("agenda: erro do formulário de compromisso", () => {
+  const ok = {
+    ordemId: "o1",
+    tipo: "entrega",
+    data: "2026-11-02",
+    endereco: "Rua A, 10",
+    ordemTemPedido: false,
+  };
+  assert.equal(erroDoCompromisso(ok), "");
+  assert.notEqual(erroDoCompromisso({ ...ok, ordemId: "" }), "");
+  assert.notEqual(erroDoCompromisso({ ...ok, tipo: "voo" }), "");
+  assert.notEqual(erroDoCompromisso({ ...ok, data: "" }), "");
+  // sem endereço: só passa quando a ordem tem pedido (o banco usa o endereço do pedido)
+  assert.notEqual(erroDoCompromisso({ ...ok, endereco: " " }), "");
+  assert.equal(erroDoCompromisso({ ...ok, endereco: "", ordemTemPedido: true }), "");
 });
