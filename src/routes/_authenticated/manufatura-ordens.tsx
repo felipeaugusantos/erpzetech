@@ -41,6 +41,9 @@ import {
   SITUACAO_ORDEM,
   erroDoItem,
   custoMaoDeObra,
+  custoPadraoDaOrdem,
+  necessidadeDoItem,
+  precoSugerido,
   formatarMinutos,
   formatarQuantidadeMf,
   itensParaBanco,
@@ -104,6 +107,20 @@ const formVazio = (): FormOrdem => ({
   mao_de_obra: "0",
 });
 
+function lerPreferencia(chave: string, padrao: string): string {
+  try {
+    return window.localStorage.getItem(chave) ?? padrao;
+  } catch {
+    return padrao;
+  }
+}
+function guardarPreferencia(chave: string, valor: string) {
+  try {
+    window.localStorage.setItem(chave, valor);
+  } catch {
+    // sem armazenamento local: a conta continua valendo na tela
+  }
+}
 const numero = (t: string) => Number((t || "0").replace(",", "."));
 const vazioParaNulo = (v: string) => (v === NENHUM || v === "" ? undefined : v);
 
@@ -150,7 +167,7 @@ function EtapasDaOrdem({ ordemId }: { ordemId: string }) {
   );
 }
 
-type ProdutoRef = { id: string; descricao: string; unidade: string };
+type ProdutoRef = { id: string; descricao: string; unidade: string; custo?: number | null };
 
 /** Insumos de uma ordem, buscados só quando a linha é aberta (e só os dela). */
 function InsumosDaOrdem({ ordemId, produtos }: { ordemId: string; produtos: ProdutoRef[] }) {
@@ -198,6 +215,10 @@ function Ordens() {
   const [itensDe, setItensDe] = useState<string | null>(null);
   const [itensForm, setItensForm] = useState<LinhaItemForm[]>([]);
   const [maoDeObra, setMaoDeObra] = useState("0");
+  const [margemAlvo, setMargemAlvo] = useState(() => lerPreferencia("mf-margem-alvo", "30"));
+  const [despesasVenda, setDespesasVenda] = useState(() =>
+    lerPreferencia("mf-despesas-venda", "0"),
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["mf-ordens", filtro, limite],
@@ -216,7 +237,7 @@ function Ordens() {
         consulta,
         supabase
           .from("produtos")
-          .select("id, descricao, unidade")
+          .select("id, descricao, unidade, custo")
           .eq("ativo", true)
           .order("descricao")
           .limit(2000),
@@ -359,6 +380,21 @@ function Ordens() {
   }
 
   const lista = data?.ordens ?? [];
+  // preço sugerido da ordem em edição: insumos (com perda) pelo custo de referência, mais a mão de obra informada
+  const ordemDosItens = lista.find((o) => o.id === itensDe);
+  const qtdDaOrdem = Number(ordemDosItens?.quantidade_planejada ?? 0);
+  const custoDosItens = custoPadraoDaOrdem(
+    itensForm.map((l) => ({
+      quantidadePlanejada: necessidadeDoItem(
+        numero(l.quantidade),
+        qtdDaOrdem,
+        numero(l.perda_percentual),
+      ),
+      custoUnitario: Number(produto(l.insumo_id)?.custo ?? 0),
+    })),
+    numero(maoDeObra),
+  );
+  const preco = precoSugerido(custoDosItens, numero(margemAlvo), numero(despesasVenda));
   const temMais = lista.length >= limite;
   const bomsDoProduto = (data?.boms ?? []).filter((b) => b.produto_id === novo?.produto_id);
 
@@ -832,6 +868,57 @@ function Ordens() {
               value={maoDeObra}
               onChange={(e) => setMaoDeObra(e.target.value)}
             />
+          </div>
+          <div className="rounded-lg border bg-secondary/40 p-3">
+            <p className="text-sm font-medium">Preço sugerido</p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="op-margem">Margem desejada (%)</Label>
+                <Input
+                  id="op-margem"
+                  inputMode="decimal"
+                  value={margemAlvo}
+                  onChange={(e) => {
+                    setMargemAlvo(e.target.value);
+                    guardarPreferencia("mf-margem-alvo", e.target.value);
+                  }}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="op-despesas">Impostos e comissão (%)</Label>
+                <Input
+                  id="op-despesas"
+                  inputMode="decimal"
+                  value={despesasVenda}
+                  onChange={(e) => {
+                    setDespesasVenda(e.target.value);
+                    guardarPreferencia("mf-despesas-venda", e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+            <dl className="mt-3 grid gap-1 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Custo (insumos + mão de obra)</dt>
+                <dd className="text-numeric">{brl(custoDosItens)}</dd>
+              </div>
+              <div className="flex justify-between gap-2 font-medium">
+                <dt>Preço de venda sugerido</dt>
+                <dd className="text-numeric">{preco === null ? "—" : brl(preco)}</dd>
+              </div>
+              {preco !== null && qtdDaOrdem > 1 && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Por unidade ({qtdDaOrdem})</dt>
+                  <dd className="text-numeric">{brl(preco / qtdDaOrdem)}</dd>
+                </div>
+              )}
+            </dl>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Usa o custo de referência de cada insumo (o custo médio do estoque pode diferir um
+              pouco). A margem é sobre o preço, como no relatório de lucro.
+              {preco === null &&
+                " Informe os itens e uma margem menor que 100% somada às despesas."}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItensDe(null)}>
