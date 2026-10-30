@@ -7892,3 +7892,63 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id = prod;
 END $$;
+
+-- 83. Manufatura: tempo de uma etapa sem repetir a produção (a mesma peça passa por mais de uma etapa)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001b2';
+  emp uuid; dep_i uuid; dep_d uuid; arm uuid; ins uuid; op uuid; et1 uuid; et2 uuid; oe1 uuid; oe2 uuid; est_ins numeric; est_arm numeric;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao-tempo@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = prod;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao');
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Insumos CI 4') RETURNING id INTO dep_i;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Acabados CI 4') RETURNING id INTO dep_d;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-T', 'Armário tempo CI', 'un', 0) RETURNING id INTO arm;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-INS-T', 'Chapa tempo CI', 'chapa', 100) RETURNING id INTO ins;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep_i, 50, 0, 100);
+  INSERT INTO mf_etapas (tenant_id, nome, ordem, custo_hora) VALUES (demo, 'Corte T', 10, 60), (demo, 'Montagem T', 20, 120);
+  SELECT id INTO et1 FROM mf_etapas WHERE tenant_id = demo AND nome = 'Corte T';
+  SELECT id INTO et2 FROM mf_etapas WHERE tenant_id = demo AND nome = 'Montagem T';
+
+  PERFORM ci.entrar(gest);
+  op := mf_ordem_criar(jsonb_build_object('descricao', 'Armários com tempo por etapa', 'produto_id', arm, 'quantidade_planejada', 2, 'entrada_estoque', true,
+          'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  PERFORM mf_ordem_liberar(op);
+  PERFORM ci.sair();
+  SELECT id INTO oe1 FROM mf_ordem_etapas WHERE ordem_id = op AND nome = 'Corte T';
+  SELECT id INTO oe2 FROM mf_ordem_etapas WHERE ordem_id = op AND nome = 'Montagem T';
+
+  -- as 2 peças são produzidas uma vez (na última etapa); o tempo das duas etapas entra sem repetir a produção
+  PERFORM ci.entrar(prod);
+  PERFORM mf_ordem_apontar(op, 0, 0, 60, 'tempo-corte', oe1);
+  PERFORM mf_ordem_apontar(op, 2, 0, 90, 'tempo-montagem-e-producao', oe2);
+  PERFORM ci.sair();
+  SELECT quantidade INTO est_ins FROM estoques WHERE produto_id = ins AND deposito_id = dep_i;
+  SELECT quantidade INTO est_arm FROM estoques WHERE produto_id = arm AND deposito_id = dep_d;
+  PERFORM ci.exige(est_ins = 48, 'só a produção das 2 peças consome insumo (50 - 2), o tempo sozinho não consome');
+  PERFORM ci.exige(est_arm = 2, 'só a produção dá entrada no estoque do acabado');
+  PERFORM ci.exige((SELECT minutos_apontados = 60 FROM mf_ordem_etapas WHERE id = oe1) AND (SELECT minutos_apontados = 90 FROM mf_ordem_etapas WHERE id = oe2), 'minutos de cada etapa registrados');
+  -- 60 min a 60/h = 60; 90 min a 120/h = 180; insumos 2 x 100 = 200
+  PERFORM ci.exige((SELECT custo_mao_obra_apontada = 240 AND custo_real = 440 AND quantidade_produzida = 2 FROM mf_ordens WHERE id = op), 'custo real = insumos (200) + mão de obra das 2 etapas (60 + 180)');
+  PERFORM ci.exige((SELECT custo_medio = 220 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'o custo do acabado leva a mão de obra do tempo apontado antes: (200 + 240) / 2');
+
+  -- repetir a chave do tempo não soma de novo
+  PERFORM ci.entrar(prod); PERFORM mf_ordem_apontar(op, 0, 0, 60, 'tempo-corte', oe1); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT minutos_apontados = 60 FROM mf_ordem_etapas WHERE id = oe1), 'repetir a chave do tempo não soma minutos');
+
+  -- sem etapa ou sem minutos, ainda é preciso informar peça boa ou refugo
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 0, 0, 30, 'so-minutos-sem-etapa', NULL)$c$, op), 'só minutos sem etapa');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 0, 0, 0, 'etapa-sem-minutos', %L)$c$, op, oe1), 'etapa sem minutos nem produção');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO mf_apontamentos (tenant_id, ordem_id, chave_idempotente, minutos) VALUES (%L, %L, 'direto-sem-etapa', 30)$c$, demo, op), 'tabela aceita só minutos sem etapa');
+
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM mf_etapas WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  DELETE FROM user_roles WHERE user_id = prod;
+END $$;

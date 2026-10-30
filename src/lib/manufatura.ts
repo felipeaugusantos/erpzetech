@@ -77,6 +77,23 @@ export function custoMaoDeObra(minutos: number, custoHora: number): number {
   return arredonda((minutos * custoHora) / 60, 2);
 }
 
+/**
+ * Erro de um apontamento (ou texto vazio se estiver certo). Vale peça boa ou refugo; ou só o tempo de uma etapa (a mesma peça passa por
+ * mais de uma etapa, e o tempo de cada uma entra sem repetir a produção). Mesma regra do banco.
+ */
+export function erroDoApontamento(a: {
+  boa: number;
+  refugo: number;
+  minutos: number | null;
+  etapaId: string | null;
+}): string {
+  if (!(a.boa >= 0) || !(a.refugo >= 0)) return "As quantidades não podem ser negativas.";
+  if (a.minutos !== null && !(a.minutos >= 0)) return "Os minutos não podem ser negativos.";
+  if (a.boa + a.refugo > 0) return "";
+  if (a.etapaId && (a.minutos ?? 0) > 0) return "";
+  return "Informe a quantidade produzida, o refugo ou o tempo de uma etapa.";
+}
+
 /** Horas e minutos para as telas (ex.: 95 min vira "1h35"). */
 export function formatarMinutos(minutos: number): string {
   const m = Math.max(Math.round(minutos), 0);

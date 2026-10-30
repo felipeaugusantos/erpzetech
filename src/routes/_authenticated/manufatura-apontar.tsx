@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import {
   PERFIS_APONTAMENTO,
+  erroDoApontamento,
   SITUACAO_ORDEM,
   formatarMinutos,
   formatarQuantidadeMf,
@@ -132,10 +133,14 @@ function Apontar() {
       if (!alvo) return;
       const b = numero(boa);
       const r = numero(refugo);
-      if (!(b >= 0) || !(r >= 0) || b + r <= 0)
-        throw new Error("Informe a quantidade produzida ou o refugo.");
       const min = minutos.trim() === "" ? null : Math.round(numero(minutos));
-      if (min !== null && !(min >= 0)) throw new Error("Os minutos não podem ser negativos.");
+      const erro = erroDoApontamento({
+        boa: b,
+        refugo: r,
+        minutos: min,
+        etapaId: etapaId === SEM_ETAPA ? null : etapaId,
+      });
+      if (erro) throw new Error(erro);
       const { error } = await supabase.rpc("mf_ordem_apontar", {
         p_ordem_id: alvo.id,
         p_boa: b,
@@ -290,6 +295,12 @@ function Apontar() {
                 onChange={(e) => setMinutos(e.target.value)}
               />
             </div>
+            {(etapas?.length ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Para registrar só o tempo de uma etapa, deixe peças boas e refugo em branco, escolha
+                a etapa e informe os minutos.
+              </p>
+            )}
             {(insumos?.length ?? 0) > 0 && (
               <div>
                 <p className="mb-1.5 text-xs font-medium text-muted-foreground">Insumos da ordem</p>
