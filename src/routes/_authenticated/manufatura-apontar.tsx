@@ -17,12 +17,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useManufatura } from "@/hooks/useManufatura";
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import {
   PERFIS_APONTAMENTO,
   SITUACAO_ORDEM,
+  formatarMinutos,
   formatarQuantidadeMf,
   novaChaveApontamento,
   type SituacaoOrdem,
@@ -64,6 +72,7 @@ type Ordem = {
   acabamento: string | null;
 };
 
+const SEM_ETAPA = "sem-etapa";
 const numero = (t: string) => Number((t || "0").replace(",", "."));
 
 function Apontar() {
@@ -72,6 +81,7 @@ function Apontar() {
   const [boa, setBoa] = useState("");
   const [refugo, setRefugo] = useState("");
   const [minutos, setMinutos] = useState("");
+  const [etapaId, setEtapaId] = useState(SEM_ETAPA);
   // a mesma chave vale para repetir o envio (rede ruim, duplo clique): o banco não consome duas vezes
   const [chave, setChave] = useState("");
 
@@ -81,6 +91,18 @@ function Apontar() {
       const { data, error } = await supabase.rpc("mf_ordens_producao");
       if (error) throw error;
       return (data ?? []) as Ordem[];
+    },
+  });
+
+  const { data: etapas } = useQuery({
+    queryKey: ["mf-ordem-etapas-producao", alvo?.id],
+    enabled: alvo !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("mf_ordem_etapas_producao", {
+        p_ordem_id: alvo!.id,
+      });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -98,6 +120,7 @@ function Apontar() {
 
   function abrir(o: Ordem) {
     setAlvo(o);
+    setEtapaId(SEM_ETAPA);
     setBoa("");
     setRefugo("");
     setMinutos("");
@@ -119,6 +142,7 @@ function Apontar() {
         p_refugo: r,
         p_minutos: min,
         p_chave: chave,
+        ...(etapaId !== SEM_ETAPA ? { p_etapa_id: etapaId } : {}),
       });
       if (error) throw error;
     },
@@ -126,6 +150,7 @@ function Apontar() {
       toast.success("Apontamento registrado.");
       setAlvo(null);
       void qc.invalidateQueries({ queryKey: ["mf-ordens-producao"] });
+      void qc.invalidateQueries({ queryKey: ["mf-ordem-etapas-producao"] });
       void qc.invalidateQueries({ queryKey: ["mf-ordens"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -238,6 +263,24 @@ function Apontar() {
                 />
               </div>
             </div>
+            {(etapas?.length ?? 0) > 0 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="ap-etapa">Etapa (opcional)</Label>
+                <Select value={etapaId} onValueChange={setEtapaId}>
+                  <SelectTrigger id="ap-etapa">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_ETAPA}>Sem etapa</SelectItem>
+                    {etapas!.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.nome} · {formatarMinutos(e.minutos_apontados)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-1.5 sm:max-w-[10rem]">
               <Label htmlFor="ap-min">Minutos (opcional)</Label>
               <Input

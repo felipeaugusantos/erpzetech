@@ -40,6 +40,8 @@ import {
   PERFIS_GESTAO_MANUFATURA,
   SITUACAO_ORDEM,
   erroDoItem,
+  custoMaoDeObra,
+  formatarMinutos,
   formatarQuantidadeMf,
   itensParaBanco,
   type LinhaItemForm,
@@ -112,6 +114,41 @@ const COR_SITUACAO: Record<SituacaoOrdem, "default" | "secondary" | "outline" | 
   concluida: "default",
   cancelada: "destructive",
 };
+
+/** Etapas da ordem com os minutos apontados e o custo da mão de obra (tabela só da gestão, tem custo por hora). */
+function EtapasDaOrdem({ ordemId }: { ordemId: string }) {
+  const { data: etapas } = useQuery({
+    queryKey: ["mf-ordem-etapas", ordemId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mf_ordem_etapas")
+        .select("*")
+        .eq("ordem_id", ordemId)
+        .order("ordem")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  if ((etapas?.length ?? 0) === 0) return null;
+  return (
+    <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+      {etapas!.map((e) => (
+        <li
+          key={e.id}
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-sm"
+        >
+          <span>{e.nome}</span>
+          <span className="text-muted-foreground">
+            {formatarMinutos(e.minutos_apontados)} ·{" "}
+            {brl(custoMaoDeObra(e.minutos_apontados, Number(e.custo_hora)))} (
+            {brl(Number(e.custo_hora))}/h)
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 type ProdutoRef = { id: string; descricao: string; unidade: string };
 
@@ -208,6 +245,7 @@ function Ordens() {
   const atualizar = () => {
     void qc.invalidateQueries({ queryKey: ["mf-ordens"] });
     void qc.invalidateQueries({ queryKey: ["mf-ordem-insumos"] });
+    void qc.invalidateQueries({ queryKey: ["mf-ordem-etapas"] });
   };
 
   const criar = useMutation({
@@ -475,9 +513,11 @@ function Ordens() {
                         <TableCell />
                         <TableCell colSpan={6}>
                           <InsumosDaOrdem ordemId={o.id} produtos={data?.produtos ?? []} />
-                          {Number(o.mao_de_obra) > 0 && (
+                          <EtapasDaOrdem ordemId={o.id} />
+                          {(Number(o.mao_de_obra) > 0 || Number(o.custo_mao_obra_apontada) > 0) && (
                             <p className="mt-2 text-xs text-muted-foreground">
-                              Mão de obra informada: {brl(Number(o.mao_de_obra))}
+                              Mão de obra apontada: {brl(Number(o.custo_mao_obra_apontada))} ·
+                              informada: {brl(Number(o.mao_de_obra))}
                               {o.medidas ? ` · Medidas: ${o.medidas}` : ""}
                               {o.acabamento ? ` · Acabamento: ${o.acabamento}` : ""}
                             </p>

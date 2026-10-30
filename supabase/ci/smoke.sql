@@ -7802,3 +7802,93 @@ BEGIN
   DELETE FROM mf_ordens WHERE tenant_id = demo;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
 END $$;
+
+-- 82. Manufatura (fase 2): roteiro de etapas, apontamento por etapa e custo de mão de obra por hora
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001b1';
+  emp uuid; dep_i uuid; dep_d uuid; arm uuid; ins uuid; op uuid; op2 uuid; et_corte uuid; et_mont uuid; oe_corte uuid; oe_outro uuid; n integer;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao-etapas@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = prod;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao');
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Insumos CI 3') RETURNING id INTO dep_i;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Acabados CI 3') RETURNING id INTO dep_d;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-E', 'Armário etapas CI', 'un', 0) RETURNING id INTO arm;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-INS-E', 'Chapa etapas CI', 'chapa', 100) RETURNING id INTO ins;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep_i, 50, 0, 100);
+
+  -- roteiro-padrão: só a gestão cria; criar de novo não duplica
+  PERFORM ci.deve_falhar(prod, $c$SELECT mf_etapas_iniciais()$c$, 'produção cria o roteiro');
+  PERFORM ci.deve_falhar(prod, $c$SELECT mf_etapa_salvar('{"nome":"Lixamento"}'::jsonb)$c$, 'produção cria etapa');
+  PERFORM ci.entrar(gest); n := mf_etapas_iniciais(); PERFORM ci.sair();
+  PERFORM ci.exige(n = 5, 'o roteiro inicial de marcenaria tem 5 etapas');
+  PERFORM ci.entrar(gest); n := mf_etapas_iniciais(); PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'criar o roteiro de novo não duplica');
+  PERFORM ci.deve_falhar(gest, $c$SELECT mf_etapa_salvar('{"nome":"Corte"}'::jsonb)$c$, 'etapa com nome repetido');
+  PERFORM ci.deve_falhar(gest, $c$SELECT mf_etapa_salvar('{"nome":"Nova","custo_hora":-5}'::jsonb)$c$, 'custo por hora negativo');
+  SELECT id INTO et_corte FROM mf_etapas WHERE tenant_id = demo AND nome = 'Corte';
+  SELECT id INTO et_mont FROM mf_etapas WHERE tenant_id = demo AND nome = 'Montagem';
+  PERFORM ci.entrar(gest);
+  PERFORM mf_etapa_salvar(jsonb_build_object('id', et_corte, 'nome', 'Corte', 'ordem', 10, 'custo_hora', 60));
+  PERFORM mf_etapa_salvar(jsonb_build_object('id', et_mont, 'nome', 'Montagem', 'ordem', 30, 'custo_hora', 120));
+  PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(prod, 'SELECT count(*) FROM mf_etapas') = 0, 'produção não lê o custo por hora das etapas');
+
+  -- a ordem recebe uma cópia do roteiro ao liberar, com o custo por hora daquele momento
+  PERFORM ci.entrar(gest);
+  op := mf_ordem_criar(jsonb_build_object('descricao', 'Armários com etapas', 'produto_id', arm, 'quantidade_planejada', 2, 'entrada_estoque', true,
+          'deposito_insumos_id', dep_i, 'deposito_destino_id', dep_d, 'mao_de_obra', 50,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  op2 := mf_ordem_criar(jsonb_build_object('descricao', 'Outra ordem', 'quantidade_planejada', 1, 'deposito_insumos_id', dep_i,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM mf_ordem_etapas WHERE ordem_id = op), 'ordem planejada ainda sem roteiro');
+  PERFORM mf_ordem_liberar(op); PERFORM mf_ordem_liberar(op2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 5 FROM mf_ordem_etapas WHERE ordem_id = op), 'a ordem liberada recebe as 5 etapas');
+  PERFORM ci.exige((SELECT custo_hora = 60 FROM mf_ordem_etapas WHERE ordem_id = op AND nome = 'Corte'), 'cópia com o custo por hora da liberação');
+  PERFORM ci.entrar(gest); PERFORM mf_etapa_salvar(jsonb_build_object('id', et_corte, 'nome', 'Corte', 'ordem', 10, 'custo_hora', 999)); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT custo_hora = 60 FROM mf_ordem_etapas WHERE ordem_id = op AND nome = 'Corte'), 'mudar o custo por hora depois não altera ordem já liberada');
+  SELECT id INTO oe_corte FROM mf_ordem_etapas WHERE ordem_id = op AND nome = 'Corte';
+  SELECT id INTO oe_outro FROM mf_ordem_etapas WHERE ordem_id = op2 AND nome = 'Corte';
+
+  -- produção lê as etapas pela função, sem custo
+  PERFORM ci.exige(ci.contar(prod, 'SELECT count(*) FROM mf_ordem_etapas') = 0, 'produção não lê a tabela de etapas da ordem (tem custo por hora)');
+  PERFORM ci.entrar(prod); SELECT count(*) INTO n FROM mf_ordem_etapas_producao(op); PERFORM ci.sair();
+  PERFORM ci.exige(n = 5, 'produção vê as etapas da ordem pela função');
+
+  -- apontar com etapa: mão de obra = minutos x custo por hora; entra no custo real e no custo do acabado
+  PERFORM ci.entrar(prod); PERFORM mf_ordem_apontar(op, 1, 0, 30, 'et-1', oe_corte); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT custo_mao_obra_apontada = 30 AND custo_real = 130 FROM mf_ordens WHERE id = op), 'custo real = insumo (100) + mão de obra de 30 min a 60/h (30)');
+  PERFORM ci.exige((SELECT minutos_apontados = 30 FROM mf_ordem_etapas WHERE id = oe_corte), 'minutos da etapa somados');
+  PERFORM ci.exige((SELECT custo_medio = 130 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'o acabado leva a mão de obra no custo');
+  PERFORM ci.exige((SELECT ordem_etapa_id = oe_corte FROM mf_apontamentos WHERE chave_idempotente = 'et-1'), 'o apontamento guarda a etapa');
+
+  -- repetir a chave não soma minutos nem custo de novo; etapa de outra ordem é recusada
+  PERFORM ci.entrar(prod); PERFORM mf_ordem_apontar(op, 1, 0, 30, 'et-1', oe_corte); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT minutos_apontados = 30 FROM mf_ordem_etapas WHERE id = oe_corte) AND (SELECT custo_mao_obra_apontada = 30 FROM mf_ordens WHERE id = op), 'chave repetida não soma mão de obra');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_ordem_apontar(%L, 1, 0, 10, 'et-outra', %L)$c$, op, oe_outro), 'etapa de outra ordem');
+
+  -- sem etapa os minutos ficam só registrados, sem custo
+  PERFORM ci.entrar(prod); PERFORM mf_ordem_apontar(op, 1, 0, 10, 'et-2', NULL); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT custo_mao_obra_apontada = 30 AND custo_real = 230 FROM mf_ordens WHERE id = op), 'sem etapa não há custo de mão de obra');
+  PERFORM ci.exige((SELECT minutos = 10 AND ordem_etapa_id IS NULL FROM mf_apontamentos WHERE chave_idempotente = 'et-2'), 'minutos sem etapa ficam registrados');
+  PERFORM ci.exige((SELECT custo_medio = 115 FROM estoques WHERE produto_id = arm AND deposito_id = dep_d), 'custo médio do acabado: (130 + 100) / 2');
+
+  -- concluir soma a mão de obra apontada e a manual da ordem
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_concluir(op); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT custo_real = 280 FROM mf_ordens WHERE id = op), 'custo real final = insumos (200) + mão de obra apontada (30) + manual (50)');
+
+  -- só existe uma versão da função de apontar
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pg_proc WHERE proname = 'mf_ordem_apontar' AND pronamespace = 'public'::regnamespace), 'só uma versão de mf_ordem_apontar');
+
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM mf_etapas WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  DELETE FROM user_roles WHERE user_id = prod;
+END $$;

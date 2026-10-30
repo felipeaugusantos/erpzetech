@@ -269,6 +269,7 @@ const groups: Group[] = [
       { label: "Listas de materiais", to: "/manufatura-boms", icon: ClipboardList },
       { label: "Ordens de produção", to: "/manufatura-ordens", icon: Factory },
       { label: "Apontamento", to: "/manufatura-apontar", icon: ClipboardList },
+      { label: "Roteiro e custo por hora", to: "/manufatura-etapas", icon: Calculator },
     ],
   },
   {
@@ -493,7 +494,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return modulos.locacao;
               if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
               // listas de materiais e ordens são da gestão; o apontamento também é da produção
-              if (i.to === "/manufatura-boms" || i.to === "/manufatura-ordens")
+              if (
+                i.to === "/manufatura-boms" ||
+                i.to === "/manufatura-ordens" ||
+                i.to === "/manufatura-etapas"
+              )
                 return temPerfil(data?.roles ?? [], PERFIS_GESTAO_MANUFATURA);
               // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
               if (

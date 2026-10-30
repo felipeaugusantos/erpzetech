@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 import {
   baseDoItem,
   consumoAcumulado,
+  custoMaoDeObra,
   custoPadraoDaOrdem,
   erroDoItem,
+  formatarMinutos,
   itensParaBanco,
   manufaturaLiberadaEmpresa,
   necessidadeDoItem,
@@ -101,4 +103,21 @@ test("itens do formulário vão ao banco como número, aceitando vírgula", () =
       { insumo_id: "y", quantidade: 8, perda_percentual: 0 },
     ],
   );
+});
+
+test("mão de obra do apontamento: minutos pelo custo por hora da etapa", () => {
+  assert.equal(custoMaoDeObra(30, 60), 30);
+  assert.equal(custoMaoDeObra(90, 120), 180);
+  assert.equal(custoMaoDeObra(10, 100), 16.67);
+  // sem minutos ou sem custo por hora não há custo
+  assert.equal(custoMaoDeObra(0, 60), 0);
+  assert.equal(custoMaoDeObra(30, 0), 0);
+  assert.equal(custoMaoDeObra(-5, 60), 0);
+});
+
+test("minutos nas telas: horas e minutos", () => {
+  assert.equal(formatarMinutos(0), "0 min");
+  assert.equal(formatarMinutos(45), "45 min");
+  assert.equal(formatarMinutos(60), "1h00");
+  assert.equal(formatarMinutos(95), "1h35");
 });

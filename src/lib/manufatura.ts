@@ -71,6 +71,19 @@ export function custoPadraoDaOrdem(itens: ItemCusto[], maoDeObra = 0): number {
   return arredonda(insumos + Math.max(maoDeObra, 0), 2);
 }
 
+/** Mão de obra de um apontamento: minutos pelo custo por hora da etapa (mesma conta do banco, 2 casas). */
+export function custoMaoDeObra(minutos: number, custoHora: number): number {
+  if (!(minutos > 0) || !(custoHora > 0)) return 0;
+  return arredonda((minutos * custoHora) / 60, 2);
+}
+
+/** Horas e minutos para as telas (ex.: 95 min vira "1h35"). */
+export function formatarMinutos(minutos: number): string {
+  const m = Math.max(Math.round(minutos), 0);
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}h${String(m % 60).padStart(2, "0")}` : `${m} min`;
+}
+
 /** Texto curto de quantidade para as telas (até 3 casas, sem zeros sobrando). */
 export function formatarQuantidadeMf(n: number): string {
   return Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
