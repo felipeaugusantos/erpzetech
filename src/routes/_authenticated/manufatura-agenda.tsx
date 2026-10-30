@@ -69,6 +69,8 @@ const hojeLocal = (somarDias = 0) => {
 type Form = {
   id: string | null;
   ordem_id: string;
+  ordem_rotulo: string;
+  ordem_tem_pedido: boolean;
   tipo: string;
   data: string;
   hora: string;
@@ -79,6 +81,8 @@ type Form = {
 const formVazio = (): Form => ({
   id: null,
   ordem_id: "",
+  ordem_rotulo: "",
+  ordem_tem_pedido: false,
   tipo: "entrega_instalacao",
   data: hojeLocal(1),
   hora: "",
@@ -92,6 +96,7 @@ function Agenda({ gestao }: { gestao: boolean }) {
   const [de, setDe] = useState(() => hojeLocal());
   const [ate, setAte] = useState(() => hojeLocal(30));
   const [form, setForm] = useState<Form | null>(null);
+  const [busca, setBusca] = useState("");
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["mf-agenda", de, ate],
@@ -102,16 +107,23 @@ function Agenda({ gestao }: { gestao: boolean }) {
     },
   });
 
+  // a ordem é buscada no servidor por número ou descrição (as 50 mais recentes sem busca): nenhuma ordem fica fora do alcance
+  const termo = busca.replace(/[,()%*\\]/g, " ").trim();
   const { data: ordens } = useQuery({
-    queryKey: ["mf-agenda-ordens"],
-    enabled: gestao,
+    queryKey: ["mf-agenda-ordens", termo],
+    enabled: gestao && form !== null && form.id === null,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("mf_ordens")
         .select("id, numero, descricao, pedido_id")
         .neq("situacao", "cancelada")
         .order("numero", { ascending: false })
-        .limit(300);
+        .limit(50);
+      if (termo) {
+        const n = /^\d+$/.test(termo) ? `,numero.eq.${termo}` : "";
+        q = q.or(`descricao.ilike.%${termo}%${n}`);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -121,17 +133,25 @@ function Agenda({ gestao }: { gestao: boolean }) {
 
   const salvar = useMutation({
     mutationFn: async (f: Form) => {
-      const ordem = ordens?.find((o) => o.id === f.ordem_id);
       const erro = erroDoCompromisso({
         ordemId: f.ordem_id,
         tipo: f.tipo,
         data: f.data,
         endereco: f.endereco,
-        ordemTemPedido: Boolean(ordem?.pedido_id),
+        ordemTemPedido: f.ordem_tem_pedido,
       });
       if (erro) throw new Error(erro);
       const { error } = await supabase.rpc("mf_entrega_salvar", {
-        p_dados: { ...f, id: f.id ?? undefined },
+        p_dados: {
+          id: f.id ?? undefined,
+          ordem_id: f.ordem_id,
+          tipo: f.tipo,
+          data: f.data,
+          hora: f.hora,
+          endereco: f.endereco,
+          responsavel: f.responsavel,
+          observacoes: f.observacoes,
+        },
       });
       if (error) throw error;
     },
@@ -164,7 +184,12 @@ function Agenda({ gestao }: { gestao: boolean }) {
         description="Entregas e instalações dos móveis sob medida, por dia."
         actions={
           gestao ? (
-            <Button onClick={() => setForm(formVazio())}>
+            <Button
+              onClick={() => {
+                setBusca("");
+                setForm(formVazio());
+              }}
+            >
               <Plus className="mr-2 size-4" /> Novo compromisso
             </Button>
           ) : undefined
@@ -263,6 +288,8 @@ function Agenda({ gestao }: { gestao: boolean }) {
                                   setForm({
                                     id: c.id,
                                     ordem_id: c.ordem_id,
+                                    ordem_rotulo: `OP-${c.ordem_numero} · ${c.descricao}`,
+                                    ordem_tem_pedido: false,
                                     tipo: c.tipo,
                                     data: c.data,
                                     hora: c.hora ? c.hora.slice(0, 5) : "",
@@ -304,13 +331,31 @@ function Agenda({ gestao }: { gestao: boolean }) {
             <div className="grid gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="ag-ordem">Ordem de produção</Label>
+                {form.id === null && (
+                  <Input
+                    aria-label="Buscar ordem por número ou descrição"
+                    placeholder="Buscar por número ou descrição"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
+                )}
                 <Select
                   value={form.ordem_id}
-                  onValueChange={(v) => setForm({ ...form, ordem_id: v })}
+                  onValueChange={(v) => {
+                    const o = ordens?.find((x) => x.id === v);
+                    setForm({
+                      ...form,
+                      ordem_id: v,
+                      ordem_rotulo: o ? `OP-${o.numero} · ${o.descricao}` : form.ordem_rotulo,
+                      ordem_tem_pedido: Boolean(o?.pedido_id),
+                    });
+                  }}
                   disabled={form.id !== null}
                 >
                   <SelectTrigger id="ag-ordem">
-                    <SelectValue placeholder="Escolha a ordem" />
+                    <SelectValue placeholder="Escolha a ordem">
+                      {form.ordem_rotulo || undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {(ordens ?? []).map((o) => (
