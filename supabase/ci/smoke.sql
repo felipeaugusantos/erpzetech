@@ -8178,3 +8178,77 @@ BEGIN
   DELETE FROM mf_boms WHERE tenant_id = demo;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
 END $$;
+
+-- 88. Manufatura: agenda de entrega e instalação
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001b9';
+  vend constant uuid := 'a0000000-0000-0000-0000-0000000001ba';
+  u2 constant uuid := 'a0000000-0000-0000-0000-0000000001bb';
+  emp uuid; dep uuid; cli uuid; ped uuid; op uuid; op_can uuid; op_np uuid; ent uuid; ent2 uuid; r record; n integer;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao-agenda@ci'), (vend, 'vendedor-agenda@ci'), (u2, 'outra-agenda@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (prod, vend);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao'), (vend, demo, 'vendedor');
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Agenda CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente agenda CI') RETURNING id INTO cli;
+  INSERT INTO pedidos (tenant_id, cliente_id, deposito_id, situacao, subtotal, total, entrega_endereco, entrega_numero, entrega_bairro, entrega_cidade, entrega_estado)
+    VALUES (demo, cli, dep, 'aprovado', 100, 100, 'Rua das Flores', '120', 'Centro', 'Recife', 'PE') RETURNING id INTO ped;
+
+  PERFORM ci.entrar(gest);
+  op := mf_ordem_criar(jsonb_build_object('descricao', 'Armário agenda', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'pedido_id', ped,
+          'itens', '[]'::jsonb));
+  op_can := mf_ordem_criar(jsonb_build_object('descricao', 'Ordem cancelada agenda', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'itens', '[]'::jsonb));
+  PERFORM mf_ordem_cancelar(op_can);
+  op_np := mf_ordem_criar(jsonb_build_object('descricao', 'Ordem sem pedido agenda', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'itens', '[]'::jsonb));
+  -- endereço vazio usa o do pedido da ordem
+  ent := mf_entrega_salvar(jsonb_build_object('ordem_id', op, 'tipo', 'entrega_instalacao', 'data', current_date + 3, 'hora', '09:30', 'responsavel', 'Equipe 1'));
+  SELECT * INTO r FROM mf_entregas_agenda(current_date, current_date + 7) WHERE id = ent;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.endereco = 'Rua das Flores, 120, Centro, Recife, PE' AND r.cliente = 'Cliente agenda CI' AND r.ordem_numero IS NOT NULL, 'endereço e cliente vêm do pedido da ordem');
+  PERFORM ci.exige(r.situacao = 'agendada' AND r.hora = '09:30'::time AND r.responsavel = 'Equipe 1', 'compromisso nasce agendado com hora e responsável');
+
+  -- validações
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_entrega_salvar(jsonb_build_object('ordem_id', %L::uuid, 'tipo', 'entrega', 'data', current_date, 'endereco', 'Rua X'))$c$, op_can), 'agendar para ordem cancelada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_entrega_salvar(jsonb_build_object('ordem_id', %L::uuid, 'tipo', 'voo', 'data', current_date, 'endereco', 'Rua X'))$c$, op), 'tipo inválido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_entrega_salvar(jsonb_build_object('ordem_id', %L::uuid, 'tipo', 'entrega', 'data', current_date))$c$, op_np), 'ordem sem pedido e sem endereço informado');
+
+  -- ordem sem pedido e sem endereço informado: exige o endereço; informado, salva
+  PERFORM ci.entrar(gest);
+  ent2 := mf_entrega_salvar(jsonb_build_object('ordem_id', op, 'tipo', 'instalacao', 'data', current_date + 5, 'endereco', 'Av. Brasil, 10'));
+  PERFORM mf_entrega_salvar(jsonb_build_object('id', ent2, 'ordem_id', op, 'tipo', 'instalacao', 'data', current_date + 6, 'endereco', 'Av. Brasil, 10'));
+  SELECT data INTO r FROM mf_entregas WHERE id = ent2;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.data = current_date + 6, 'reagendar muda a data');
+
+  -- produção lê a agenda e avança, mas não cria nem cancela
+  PERFORM ci.entrar(prod); SELECT count(*) INTO n FROM mf_entregas_agenda(current_date, current_date + 10); PERFORM ci.sair();
+  PERFORM ci.exige(n = 2, 'produção lê a agenda');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_entrega_salvar(jsonb_build_object('ordem_id', %L::uuid, 'tipo', 'entrega', 'data', current_date, 'endereco', 'Rua X'))$c$, op), 'produção cria compromisso');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_entrega_situacao(%L::uuid, 'cancelada')$c$, ent), 'produção cancela');
+  PERFORM ci.entrar(prod); PERFORM mf_entrega_situacao(ent, 'em_andamento'); PERFORM mf_entrega_situacao(ent, 'concluida'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'concluida' AND concluida_em IS NOT NULL FROM mf_entregas WHERE id = ent), 'produção conclui e registra quando');
+  PERFORM ci.deve_falhar(prod, format($c$SELECT mf_entrega_situacao(%L::uuid, 'em_andamento')$c$, ent), 'compromisso concluído não volta');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_entrega_salvar(jsonb_build_object('id', %L::uuid, 'tipo', 'entrega', 'data', current_date, 'endereco', 'Rua X'))$c$, ent), 'reagendar compromisso concluído');
+  PERFORM ci.entrar(gest); PERFORM mf_entrega_situacao(ent2, 'cancelada'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM mf_entregas WHERE id = ent2), 'gestão cancela');
+
+  -- leitura direta da tabela só da gestão; vendedor e outra empresa não leem pela função
+  PERFORM ci.entrar(gest); SELECT count(*) INTO n FROM mf_entregas; PERFORM ci.sair();
+  PERFORM ci.exige(n = 2, 'gestão lê a tabela');
+  PERFORM ci.entrar(prod); SELECT count(*) INTO n FROM mf_entregas; PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'produção não lê a tabela direto');
+  PERFORM ci.deve_falhar(vend, $c$SELECT * FROM mf_entregas_agenda(current_date, current_date + 1)$c$, 'vendedor lê a agenda');
+  PERFORM ci.deve_falhar(u2, $c$SELECT * FROM mf_entregas_agenda(current_date, current_date + 1)$c$, 'empresa sem o módulo lê a agenda');
+  PERFORM ci.deve_falhar(gest, $c$SELECT * FROM mf_entregas_agenda(current_date, current_date + 400)$c$, 'período maior que um ano');
+
+  DELETE FROM mf_entregas WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM pedidos WHERE id = ped;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  DELETE FROM user_roles WHERE user_id IN (prod, vend);
+END $$;

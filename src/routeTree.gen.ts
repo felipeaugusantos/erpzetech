@@ -90,6 +90,7 @@ import { Route as AuthenticatedLocacaoEstoqueRouteImport } from './routes/_authe
 import { Route as AuthenticatedLocacoesRouteImport } from './routes/_authenticated/locacoes'
 import { Route as AuthenticatedLotesOfflineRouteImport } from './routes/_authenticated/lotes-offline'
 import { Route as AuthenticatedLucroRouteImport } from './routes/_authenticated/lucro'
+import { Route as AuthenticatedManufaturaAgendaRouteImport } from './routes/_authenticated/manufatura-agenda'
 import { Route as AuthenticatedManufaturaApontarRouteImport } from './routes/_authenticated/manufatura-apontar'
 import { Route as AuthenticatedManufaturaBomsRouteImport } from './routes/_authenticated/manufatura-boms'
 import { Route as AuthenticatedManufaturaCorteRouteImport } from './routes/_authenticated/manufatura-corte'
@@ -620,6 +621,12 @@ const AuthenticatedLucroRoute = AuthenticatedLucroRouteImport.update({
   path: '/lucro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedManufaturaAgendaRoute =
+  AuthenticatedManufaturaAgendaRouteImport.update({
+    id: '/manufatura-agenda',
+    path: '/manufatura-agenda',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedManufaturaApontarRoute =
   AuthenticatedManufaturaApontarRouteImport.update({
     id: '/manufatura-apontar',
@@ -1147,6 +1154,7 @@ export interface FileRoutesByFullPath {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/manufatura-agenda': typeof AuthenticatedManufaturaAgendaRoute
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
@@ -1308,6 +1316,7 @@ export interface FileRoutesByTo {
   '/locacoes': typeof AuthenticatedLocacoesRoute
   '/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/lucro': typeof AuthenticatedLucroRoute
+  '/manufatura-agenda': typeof AuthenticatedManufaturaAgendaRoute
   '/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
@@ -1471,6 +1480,7 @@ export interface FileRoutesById {
   '/_authenticated/locacoes': typeof AuthenticatedLocacoesRoute
   '/_authenticated/lotes-offline': typeof AuthenticatedLotesOfflineRoute
   '/_authenticated/lucro': typeof AuthenticatedLucroRoute
+  '/_authenticated/manufatura-agenda': typeof AuthenticatedManufaturaAgendaRoute
   '/_authenticated/manufatura-apontar': typeof AuthenticatedManufaturaApontarRoute
   '/_authenticated/manufatura-boms': typeof AuthenticatedManufaturaBomsRoute
   '/_authenticated/manufatura-corte': typeof AuthenticatedManufaturaCorteRoute
@@ -1634,6 +1644,7 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/manufatura-agenda'
     | '/manufatura-apontar'
     | '/manufatura-boms'
     | '/manufatura-corte'
@@ -1795,6 +1806,7 @@ export interface FileRouteTypes {
     | '/locacoes'
     | '/lotes-offline'
     | '/lucro'
+    | '/manufatura-agenda'
     | '/manufatura-apontar'
     | '/manufatura-boms'
     | '/manufatura-corte'
@@ -1957,6 +1969,7 @@ export interface FileRouteTypes {
     | '/_authenticated/locacoes'
     | '/_authenticated/lotes-offline'
     | '/_authenticated/lucro'
+    | '/_authenticated/manufatura-agenda'
     | '/_authenticated/manufatura-apontar'
     | '/_authenticated/manufatura-boms'
     | '/_authenticated/manufatura-corte'
@@ -2621,6 +2634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLucroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manufatura-agenda': {
+      id: '/_authenticated/manufatura-agenda'
+      path: '/manufatura-agenda'
+      fullPath: '/manufatura-agenda'
+      preLoaderRoute: typeof AuthenticatedManufaturaAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manufatura-apontar': {
       id: '/_authenticated/manufatura-apontar'
       path: '/manufatura-apontar'
@@ -3251,6 +3271,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocacoesRoute: typeof AuthenticatedLocacoesRoute
   AuthenticatedLotesOfflineRoute: typeof AuthenticatedLotesOfflineRoute
   AuthenticatedLucroRoute: typeof AuthenticatedLucroRoute
+  AuthenticatedManufaturaAgendaRoute: typeof AuthenticatedManufaturaAgendaRoute
   AuthenticatedManufaturaApontarRoute: typeof AuthenticatedManufaturaApontarRoute
   AuthenticatedManufaturaBomsRoute: typeof AuthenticatedManufaturaBomsRoute
   AuthenticatedManufaturaCorteRoute: typeof AuthenticatedManufaturaCorteRoute
@@ -3404,6 +3425,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocacoesRoute: AuthenticatedLocacoesRoute,
   AuthenticatedLotesOfflineRoute: AuthenticatedLotesOfflineRoute,
   AuthenticatedLucroRoute: AuthenticatedLucroRoute,
+  AuthenticatedManufaturaAgendaRoute: AuthenticatedManufaturaAgendaRoute,
   AuthenticatedManufaturaApontarRoute: AuthenticatedManufaturaApontarRoute,
   AuthenticatedManufaturaBomsRoute: AuthenticatedManufaturaBomsRoute,
   AuthenticatedManufaturaCorteRoute: AuthenticatedManufaturaCorteRoute,

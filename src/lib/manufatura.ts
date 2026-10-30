@@ -186,3 +186,53 @@ export function precoSugerido(
   if (!(custo > 0) || margem + despesas >= 100) return null;
   return arredonda(custo / (1 - (margem + despesas) / 100), 2);
 }
+
+export const TIPO_ENTREGA: Record<string, string> = {
+  entrega: "Entrega",
+  instalacao: "Instalação",
+  entrega_instalacao: "Entrega e instalação",
+};
+
+export const SITUACAO_ENTREGA: Record<string, string> = {
+  agendada: "Agendada",
+  em_andamento: "Em andamento",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+};
+
+/** Próximo passo de um compromisso da agenda (null quando já foi encerrado). */
+export function proximoPassoEntrega(
+  situacao: string,
+): { para: "em_andamento" | "concluida"; rotulo: string } | null {
+  if (situacao === "agendada") return { para: "em_andamento", rotulo: "Iniciar" };
+  if (situacao === "em_andamento") return { para: "concluida", rotulo: "Concluir" };
+  return null;
+}
+
+/** Agrupa a agenda por dia, mantendo a ordem recebida (o banco já ordena por data e hora). */
+export function agruparPorDia<T extends { data: string }>(
+  itens: T[],
+): Array<{ data: string; itens: T[] }> {
+  const grupos: Array<{ data: string; itens: T[] }> = [];
+  for (const i of itens) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.data === i.data) ultimo.itens.push(i);
+    else grupos.push({ data: i.data, itens: [i] });
+  }
+  return grupos;
+}
+
+/** Erro do formulário de compromisso (texto vazio se estiver certo). O endereço pode ficar vazio quando a ordem tem pedido com endereço. */
+export function erroDoCompromisso(c: {
+  ordemId: string;
+  tipo: string;
+  data: string;
+  endereco: string;
+  ordemTemPedido: boolean;
+}): string {
+  if (!c.ordemId) return "Escolha a ordem de produção.";
+  if (!(c.tipo in TIPO_ENTREGA)) return "Escolha entrega, instalação ou as duas.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.data)) return "Informe a data.";
+  if (!c.endereco.trim() && !c.ordemTemPedido) return "Informe o endereço.";
+  return "";
+}
