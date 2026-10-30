@@ -116,4 +116,8 @@ test("plano de corte: linhas vazias ou inválidas são ignoradas e a chapa é va
   assert.equal(erroDaChapa(chapa), "");
   assert.notEqual(erroDaChapa({ ...chapa, largura: 0 }), "");
   assert.notEqual(erroDaChapa({ ...chapa, refilo: 1000 }), "");
+  // texto no lugar do número (NaN) não pode gerar plano com resultado aparentemente válido
+  assert.notEqual(erroDaChapa({ ...chapa, serra: Number.NaN }), "");
+  assert.notEqual(erroDaChapa({ ...chapa, refilo: Number.NaN }), "");
+  assert.notEqual(erroDaChapa({ ...chapa, altura: Number.POSITIVE_INFINITY }), "");
 });

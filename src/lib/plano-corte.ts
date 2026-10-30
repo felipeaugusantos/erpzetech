@@ -46,6 +46,9 @@ const arredonda = (n: number, casas: number) => {
 
 /** Erro de uma peça ou chapa (texto vazio se estiver certa). */
 export function erroDaChapa(c: ChapaCorte): string {
+  // texto que não é número chega como NaN e passaria em todas as comparações abaixo
+  if (![c.largura, c.altura, c.refilo, c.serra].every(Number.isFinite))
+    return "Use só números nas medidas da chapa.";
   if (!(c.largura > 0) || !(c.altura > 0)) return "Informe a largura e a altura da chapa.";
   if (c.refilo < 0 || c.serra < 0) return "O refilo e a serra não podem ser negativos.";
   if (c.largura - 2 * c.refilo <= 0 || c.altura - 2 * c.refilo <= 0)
