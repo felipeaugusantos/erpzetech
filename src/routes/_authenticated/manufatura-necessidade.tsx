@@ -63,7 +63,7 @@ function Necessidade() {
   const [qtd, setQtd] = useState<Record<string, string>>({});
   const [marcado, setMarcado] = useState<Record<string, boolean>>({});
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["mf-necessidade"],
     queryFn: async () => {
       const [nec, forn] = await Promise.all([
@@ -164,6 +164,20 @@ function Necessidade() {
 
       {isLoading ? (
         <div className="panel h-40 animate-pulse" />
+      ) : isError ? (
+        // uma falha nunca vira "nada em falta": o comprador veria cobertura onde não há informação
+        <div className="panel mx-auto max-w-2xl p-6 text-center" role="alert">
+          <p className="font-display text-base font-semibold">
+            Não foi possível calcular a necessidade
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {(error as Error | null)?.message ?? "Erro ao consultar os dados."} Se o problema
+            continuar, confirme com a equipe que a atualização do banco da manufatura foi aplicada.
+          </p>
+          <Button className="mt-4" onClick={() => void refetch()} disabled={isFetching}>
+            Tentar de novo
+          </Button>
+        </div>
       ) : emFalta.length === 0 && (!mostrarCobertos || cobertos.length === 0) ? (
         <EmptyState
           title="Nenhum insumo em falta"

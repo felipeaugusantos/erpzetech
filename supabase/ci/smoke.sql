@@ -7962,7 +7962,7 @@ DECLARE
   prod constant uuid := 'a0000000-0000-0000-0000-0000000001b3';
   comp constant uuid := 'a0000000-0000-0000-0000-0000000001b4';
   u2   constant uuid := 'a0000000-0000-0000-0000-0000000001b5';
-  emp uuid; t2 uuid; emp2 uuid; dep uuid; ins uuid; ins2 uuid; opa uuid; opb uuid; compra uuid; r record; n integer; numa bigint;
+  emp uuid; t2 uuid; emp2 uuid; dep uuid; dep_n uuid; ins uuid; ins2 uuid; opa uuid; opb uuid; opc uuid; compra uuid; r record; n integer; numa bigint;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES (prod, 'prod-nec@ci'), (comp, 'comprador-nec@ci'), (u2, 'outra-nec@ci');
   INSERT INTO tenants (nome) VALUES ('Necessidade CI 2') RETURNING id INTO t2;
@@ -7990,8 +7990,8 @@ BEGIN
   PERFORM ci.entrar(gest);
   SELECT * INTO r FROM mf_necessidade() WHERE insumo_id = ins;
   PERFORM ci.sair();
-  PERFORM ci.exige(r.necessario = 15 AND r.disponivel = 4 AND r.em_compra = 0 AND r.falta = 11, 'chapa: precisa de 15, livre 4 (10 - 6 reservadas), falta 11');
-  PERFORM ci.exige(r.ordens = ARRAY['OP-' || numa], 'só a ordem planejada entra na necessidade (a liberada já está reservada)');
+  PERFORM ci.exige(r.necessario = 21 AND r.disponivel = 10 AND r.em_compra = 0 AND r.falta = 11, 'chapa: precisam 21 (15 da planejada + 6 da liberada), há 10 no físico, falta 11');
+  PERFORM ci.exige(r.ordens @> ARRAY['OP-' || numa] AND cardinality(r.ordens) = 2, 'as duas ordens abertas aparecem na necessidade');
   PERFORM ci.exige(r.custo_unitario = 100 AND r.deposito = 'MF Necessidade CI', 'custo de referência e depósito da necessidade');
   PERFORM ci.entrar(gest);
   SELECT * INTO r FROM mf_necessidade() WHERE insumo_id = ins2;
@@ -8003,19 +8003,31 @@ BEGIN
   compra := compra_criar_de_sugestao(dep, NULL, jsonb_build_array(jsonb_build_object('produto_id', ins, 'quantidade', 5)), 'Necessidade da manufatura CI');
   SELECT * INTO r FROM mf_necessidade() WHERE insumo_id = ins;
   PERFORM ci.sair();
-  PERFORM ci.exige(r.em_compra = 5 AND r.falta = 6, 'pedido de compra aberto de 5 abate a falta: 15 - 4 - 5 = 6');
+  PERFORM ci.exige(r.em_compra = 5 AND r.falta = 6, 'pedido de compra aberto de 5 abate a falta: 21 - 10 - 5 = 6');
   PERFORM ci.exige((SELECT origem = 'sugestao_reposicao' AND situacao NOT IN ('recebido', 'cancelado') FROM compras WHERE id = compra), 'o pedido de compra nasce em rascunho para conferência');
 
   -- cancelar a ordem planejada tira o insumo da necessidade
-  PERFORM ci.entrar(gest); PERFORM mf_ordem_cancelar(opa); SELECT count(*) INTO n FROM mf_necessidade(); PERFORM ci.sair();
-  PERFORM ci.exige(n = 0, 'sem ordem planejada não há necessidade (a liberada já está reservada)');
+  PERFORM ci.entrar(gest); PERFORM mf_ordem_cancelar(opa); SELECT count(*) INTO n FROM mf_necessidade() WHERE falta > 0; PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'sem a ordem planejada nada falta (a liberada está coberta pelo estoque)');
+
+  -- depósito que permite saldo negativo: ordem liberada sem estoque físico reserva além do saldo e a compra continua necessária
+  INSERT INTO depositos (tenant_id, nome, permite_negativo) VALUES (demo, 'MF Necessidade negativo CI', true) RETURNING id INTO dep_n;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep_n, 0, 0, 100);
+  PERFORM ci.entrar(gest);
+  opc := mf_ordem_criar(jsonb_build_object('descricao', 'Ordem C sem estoque físico', 'quantidade_planejada', 1, 'deposito_insumos_id', dep_n,
+           'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 6))));
+  PERFORM mf_ordem_liberar(opc);
+  SELECT * INTO r FROM mf_necessidade() WHERE insumo_id = ins AND deposito_id = dep_n;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT reservado = 6 FROM estoques WHERE produto_id = ins AND deposito_id = dep_n), 'a ordem reservou 6 sem saldo físico (depósito permite negativo)');
+  PERFORM ci.exige(r.necessario = 6 AND r.disponivel = 0 AND r.falta = 6, 'a reserva sem estoque físico continua aparecendo como falta de compra');
 
   -- perfis: produção e vendedor não consultam; comprador consulta; outra empresa não tem o módulo
   PERFORM ci.deve_falhar(prod, $c$SELECT * FROM mf_necessidade()$c$, 'produção consulta a necessidade');
   PERFORM ci.deve_falhar(vend, $c$SELECT * FROM mf_necessidade()$c$, 'vendedor consulta a necessidade');
   PERFORM ci.deve_falhar(u2, $c$SELECT * FROM mf_necessidade()$c$, 'empresa sem o módulo consulta a necessidade');
   PERFORM ci.entrar(comp); SELECT count(*) INTO n FROM mf_necessidade(); PERFORM ci.sair();
-  PERFORM ci.exige(n = 0, 'comprador consulta a necessidade');
+  PERFORM ci.exige(n >= 1, 'comprador consulta a necessidade');
 
   DELETE FROM mf_ordens WHERE tenant_id = demo;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
