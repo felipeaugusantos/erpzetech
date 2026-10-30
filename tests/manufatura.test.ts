@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  agruparParaCompra,
   baseDoItem,
+  chaveDeCompra,
   consumoAcumulado,
   custoMaoDeObra,
   custoPadraoDaOrdem,
@@ -13,6 +15,7 @@ import {
   manufaturaLiberadaEmpresa,
   necessidadeDoItem,
   temPerfil,
+  valorEstimadoDaCompra,
 } from "../src/lib/manufatura.ts";
 
 test("só a liberação explícita abre a manufatura no piloto", () => {
@@ -140,4 +143,42 @@ test("apontamento: peça boa, refugo ou só o tempo de uma etapa", () => {
   assert.match(erroDoApontamento(base), /Informe a quantidade/);
   assert.match(erroDoApontamento({ ...base, boa: -1 }), /negativas/);
   assert.match(erroDoApontamento({ ...base, boa: 1, minutos: -5 }), /minutos/);
+});
+
+test("necessidade: um pedido de compra por fornecedor e depósito, só com o que falta", () => {
+  const l = (
+    insumo_id: string,
+    deposito_id: string,
+    fornecedor_id: string | null,
+    falta: number,
+  ) => ({
+    insumo_id,
+    descricao: insumo_id,
+    deposito_id,
+    fornecedor_id,
+    falta,
+  });
+  const grupos = agruparParaCompra([
+    l("a", "d1", "f1", 5),
+    l("b", "d1", "f1", 2),
+    l("c", "d1", "f2", 1),
+    l("d", "d2", "f1", 3),
+    l("e", "d1", null, 4),
+    l("coberto", "d1", "f1", 0),
+  ]);
+  assert.equal(grupos.size, 4);
+  assert.deepEqual(
+    grupos.get(chaveDeCompra({ fornecedor_id: "f1", deposito_id: "d1" }))?.map((x) => x.insumo_id),
+    ["a", "b"],
+  );
+  assert.equal(grupos.get(chaveDeCompra({ fornecedor_id: null, deposito_id: "d1" }))?.length, 1);
+  // insumo coberto (falta 0) não entra em pedido nenhum
+  assert.ok([...grupos.values()].flat().every((x) => x.insumo_id !== "coberto"));
+});
+
+test("necessidade: valor estimado pelo custo de referência", () => {
+  assert.equal(valorEstimadoDaCompra(6, 100), 600);
+  assert.equal(valorEstimadoDaCompra(2.5, 3.3), 8.25);
+  assert.equal(valorEstimadoDaCompra(-1, 100), 0);
+  assert.equal(valorEstimadoDaCompra(5, -2), 0);
 });

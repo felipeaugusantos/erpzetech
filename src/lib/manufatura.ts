@@ -18,6 +18,8 @@ export function manufaturaLiberadaEmpresa(
 /** Perfis que mantêm lista de materiais e ordens, e perfis que apontam produção. */
 export const PERFIS_GESTAO_MANUFATURA = ["administrador", "gestor"] as const;
 export const PERFIS_APONTAMENTO = ["administrador", "gestor", "producao"] as const;
+/** Quem consulta a necessidade de materiais e monta o pedido de compra (as mesmas funções de compras já aceitam estes perfis). */
+export const PERFIS_NECESSIDADE = ["administrador", "gestor", "comprador", "estoquista"] as const;
 
 export const temPerfil = (roles: readonly string[], perfis: readonly string[]) =>
   roles.some((r) => perfis.includes(r));
@@ -133,3 +135,30 @@ export function itensParaBanco(linhas: LinhaItemForm[]) {
     perda_percentual: Number((l.perda_percentual || "0").replace(",", ".")),
   }));
 }
+
+export type LinhaNecessidade = {
+  insumo_id: string;
+  descricao: string;
+  deposito_id: string;
+  fornecedor_id: string | null;
+  falta: number;
+};
+
+/** Chave de um grupo de compra: o pedido é de um fornecedor para um depósito. */
+export const chaveDeCompra = (l: { fornecedor_id: string | null; deposito_id: string }) =>
+  `${l.fornecedor_id ?? "sem"}|${l.deposito_id}`;
+
+/** Separa as linhas com falta em pedidos de compra, um por fornecedor e depósito. Linhas sem falta ficam de fora. */
+export function agruparParaCompra<T extends LinhaNecessidade>(linhas: T[]): Map<string, T[]> {
+  const m = new Map<string, T[]>();
+  for (const l of linhas) {
+    if (!(l.falta > 0)) continue;
+    const k = chaveDeCompra(l);
+    m.set(k, [...(m.get(k) ?? []), l]);
+  }
+  return m;
+}
+
+/** Valor estimado da compra de uma quantidade, pelo custo de referência do insumo. */
+export const valorEstimadoDaCompra = (quantidade: number, custoUnitario: number): number =>
+  arredonda(Math.max(quantidade, 0) * Math.max(custoUnitario, 0), 2);

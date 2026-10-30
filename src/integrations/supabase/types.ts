@@ -12869,6 +12869,23 @@ export type Database = {
       mf_bom_salvar: { Args: { p_dados: Json }; Returns: string }
       mf_etapa_salvar: { Args: { p_dados: Json }; Returns: string }
       mf_etapas_iniciais: { Args: never; Returns: number }
+      mf_necessidade: {
+        Args: never
+        Returns: {
+          custo_unitario: number
+          deposito: string
+          deposito_id: string
+          descricao: string
+          disponivel: number
+          em_compra: number
+          falta: number
+          fornecedor_id: string
+          insumo_id: string
+          necessario: number
+          ordens: string[]
+          unidade: string
+        }[]
+      }
       mf_ordem_apontar: {
         Args: {
           p_boa: number
