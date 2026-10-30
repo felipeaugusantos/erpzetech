@@ -180,6 +180,7 @@ const PERFIS: Record<string, string> = {
   cozinha: "Cozinha",
   profissional: "Profissional (pet shop)",
   veterinario: "Veterinário",
+  producao: "Produção (manufatura)",
 };
 
 const ISO_DIA = /^\d{4}-\d{2}-\d{2}$/;

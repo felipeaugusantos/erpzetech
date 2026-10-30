@@ -6007,6 +6007,240 @@ export type Database = {
         }
         Relationships: []
       }
+      mf_apontamentos: {
+        Row: {
+          chave_idempotente: string
+          created_at: string
+          id: string
+          minutos: number | null
+          ordem_id: string
+          quantidade_boa: number
+          refugo: number
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          chave_idempotente: string
+          created_at?: string
+          id?: string
+          minutos?: number | null
+          ordem_id: string
+          quantidade_boa?: number
+          refugo?: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          chave_idempotente?: string
+          created_at?: string
+          id?: string
+          minutos?: number | null
+          ordem_id?: string
+          quantidade_boa?: number
+          refugo?: number
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      mf_bom_itens: {
+        Row: {
+          bom_id: string
+          created_at: string
+          id: string
+          insumo_id: string
+          perda_percentual: number
+          quantidade: number
+          tenant_id: string
+        }
+        Insert: {
+          bom_id: string
+          created_at?: string
+          id?: string
+          insumo_id: string
+          perda_percentual?: number
+          quantidade: number
+          tenant_id?: string
+        }
+        Update: {
+          bom_id?: string
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          perda_percentual?: number
+          quantidade?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      mf_boms: {
+        Row: {
+          created_at: string
+          id: string
+          produto_id: string
+          rendimento: number
+          rotulo: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          produto_id: string
+          rendimento?: number
+          rotulo?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          versao: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          produto_id?: string
+          rendimento?: number
+          rotulo?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: []
+      }
+      mf_ordem_insumos: {
+        Row: {
+          created_at: string
+          custo_consumido: number
+          custo_unitario_padrao: number
+          id: string
+          insumo_id: string
+          ordem_id: string
+          perda_percentual: number
+          quantidade_base: number
+          quantidade_consumida: number
+          quantidade_planejada: number
+          quantidade_reservada: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_consumido?: number
+          custo_unitario_padrao?: number
+          id?: string
+          insumo_id: string
+          ordem_id: string
+          perda_percentual?: number
+          quantidade_base: number
+          quantidade_consumida?: number
+          quantidade_planejada: number
+          quantidade_reservada?: number
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          custo_consumido?: number
+          custo_unitario_padrao?: number
+          id?: string
+          insumo_id?: string
+          ordem_id?: string
+          perda_percentual?: number
+          quantidade_base?: number
+          quantidade_consumida?: number
+          quantidade_planejada?: number
+          quantidade_reservada?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      mf_ordens: {
+        Row: {
+          acabamento: string | null
+          bom_id: string | null
+          concluida_em: string | null
+          created_at: string
+          criada_por: string | null
+          custo_a_alocar: number
+          custo_padrao: number
+          custo_real: number
+          deposito_destino_id: string | null
+          deposito_insumos_id: string
+          descricao: string
+          entrada_estoque: boolean
+          id: string
+          liberada_em: string | null
+          mao_de_obra: number
+          medidas: string | null
+          numero: number
+          pedido_id: string | null
+          prazo: string | null
+          produto_id: string | null
+          quantidade_planejada: number
+          quantidade_produzida: number
+          quantidade_refugo: number
+          situacao: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          acabamento?: string | null
+          bom_id?: string | null
+          concluida_em?: string | null
+          created_at?: string
+          criada_por?: string | null
+          custo_a_alocar?: number
+          custo_padrao?: number
+          custo_real?: number
+          deposito_destino_id?: string | null
+          deposito_insumos_id: string
+          descricao: string
+          entrada_estoque?: boolean
+          id?: string
+          liberada_em?: string | null
+          mao_de_obra?: number
+          medidas?: string | null
+          numero: number
+          pedido_id?: string | null
+          prazo?: string | null
+          produto_id?: string | null
+          quantidade_planejada: number
+          quantidade_produzida?: number
+          quantidade_refugo?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          acabamento?: string | null
+          bom_id?: string | null
+          concluida_em?: string | null
+          created_at?: string
+          criada_por?: string | null
+          custo_a_alocar?: number
+          custo_padrao?: number
+          custo_real?: number
+          deposito_destino_id?: string | null
+          deposito_insumos_id?: string
+          descricao?: string
+          entrada_estoque?: boolean
+          id?: string
+          liberada_em?: string | null
+          mao_de_obra?: number
+          medidas?: string | null
+          numero?: number
+          pedido_id?: string | null
+          prazo?: string | null
+          produto_id?: string | null
+          quantidade_planejada?: number
+          quantidade_produzida?: number
+          quantidade_refugo?: number
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       motoristas: {
         Row: {
           ativo: boolean
@@ -12401,6 +12635,52 @@ export type Database = {
       }
       lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
+      manufatura_liberada: { Args: never; Returns: boolean }
+      mf_bom_ativar: { Args: { p_id: string }; Returns: undefined }
+      mf_bom_salvar: { Args: { p_dados: Json }; Returns: string }
+      mf_ordem_apontar: {
+        Args: {
+          p_boa: number
+          p_chave: string
+          p_minutos: number | null
+          p_ordem_id: string
+          p_refugo: number
+        }
+        Returns: string
+      }
+      mf_ordem_cancelar: { Args: { p_id: string }; Returns: undefined }
+      mf_ordem_concluir: { Args: { p_id: string }; Returns: undefined }
+      mf_ordem_criar: { Args: { p_dados: Json }; Returns: string }
+      mf_ordem_insumos_producao: {
+        Args: { p_ordem_id: string }
+        Returns: {
+          insumo: string
+          quantidade_consumida: number
+          quantidade_planejada: number
+          unidade: string
+        }[]
+      }
+      mf_ordem_itens_salvar: {
+        Args: { p_itens: Json; p_mao_de_obra?: number; p_ordem_id: string }
+        Returns: undefined
+      }
+      mf_ordem_liberar: { Args: { p_id: string }; Returns: undefined }
+      mf_ordens_producao: {
+        Args: never
+        Returns: {
+          acabamento: string
+          descricao: string
+          id: string
+          medidas: string
+          numero: number
+          prazo: string
+          produto: string
+          quantidade_planejada: number
+          quantidade_produzida: number
+          quantidade_refugo: number
+          situacao: string
+        }[]
+      }
       motorista_enviar_posicao: {
         Args: { p_lat: number; p_lng: number }
         Returns: undefined
@@ -13238,6 +13518,7 @@ export type Database = {
         | "cozinha"
         | "profissional"
         | "veterinario"
+        | "producao"
       autorizacao_situacao: "pendente" | "aprovada" | "negada"
       caixa_mov_tipo:
         | "abertura"
@@ -13453,6 +13734,7 @@ export const Constants = {
         "cozinha",
         "profissional",
         "veterinario",
+        "producao",
       ],
       autorizacao_situacao: ["pendente", "aprovada", "negada"],
       caixa_mov_tipo: [

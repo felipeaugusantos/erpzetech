@@ -11,6 +11,7 @@ import {
   Landmark,
   CalendarClock,
   Hammer,
+  Factory,
   Wrench,
   Building2,
   Boxes,
@@ -63,6 +64,12 @@ import { contaParaExibir } from "@/lib/usuario-login";
 import { useSaasOperador } from "@/lib/saas";
 import { useModulosCnae } from "@/lib/cnae";
 import { obrasLiberadasEmpresa } from "@/lib/modulos-empresa";
+import {
+  PERFIS_APONTAMENTO,
+  PERFIS_GESTAO_MANUFATURA,
+  manufaturaLiberadaEmpresa,
+  temPerfil,
+} from "@/lib/manufatura";
 import { ehGestaoSalao, ehProfissionalRestrito, ehSalaoRestrito } from "@/lib/restaurante";
 import { LogoEmpresa, useTemaEmpresa } from "@/components/app/MarcaEmpresa";
 import { cn } from "@/lib/utils";
@@ -256,6 +263,15 @@ const groups: Group[] = [
     ],
   },
   {
+    label: "Manufatura",
+    icon: Factory,
+    items: [
+      { label: "Listas de materiais", to: "/manufatura-boms", icon: ClipboardList },
+      { label: "Ordens de produção", to: "/manufatura-ordens", icon: Factory },
+      { label: "Apontamento", to: "/manufatura-apontar", icon: ClipboardList },
+    ],
+  },
+  {
     label: "Relatórios",
     icon: FileText,
     items: [
@@ -398,6 +414,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const conta = contaParaExibir(data?.user.email, data?.profile);
   const souGestao = (data?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
   const souRecepcao = (data?.roles ?? []).some((r) => r === "vendedor" || r === "caixa");
+  /** Manufatura: piloto fechado, só abre por liberação explícita da equipe. */
+  const manufatura = manufaturaLiberadaEmpresa(data?.empresa);
+  /** Encarregado da oficina puro só enxerga a manufatura (apontamento e ordens liberadas). */
+  const somenteProducao =
+    (data?.roles ?? []).includes("producao") && (data?.roles ?? []).every((r) => r === "producao");
 
   /** Equipe Ze Tech: painel das assinaturas dos clientes. */
   const { data: operadorSaas } = useSaasOperador();
@@ -430,11 +451,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     () =>
       groups
         .filter((g) => {
+          if (somenteProducao) return g.label === "Manufatura" && manufatura;
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
           if (g.label === "Pet shop") return modulos.petshop;
           if (g.label === "Lava rápido") return modulos.lavarapido;
+          if (g.label === "Manufatura")
+            return manufatura && temPerfil(data?.roles ?? [], PERFIS_APONTAMENTO);
           // o texto clínico é só do perfil Veterinário (o banco confere de novo)
           if (g.label === "Clínica")
             return modulos.clinica && (souVeterinario || souGestao || souRecepcao);
@@ -468,6 +492,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/painel-locacao" || i.to === "/relatorio-locacoes")
                 return modulos.locacao;
               if (i.to === "/relatorio-pet-profissionais") return modulos.petshop;
+              // listas de materiais e ordens são da gestão; o apontamento também é da produção
+              if (i.to === "/manufatura-boms" || i.to === "/manufatura-ordens")
+                return temPerfil(data?.roles ?? [], PERFIS_GESTAO_MANUFATURA);
               // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
               if (
                 i.to === "/clinica-prontuario" ||
@@ -500,6 +527,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       souVeterinario,
       souGestao,
       souRecepcao,
+      manufatura,
+      somenteProducao,
+      data?.roles,
       ehConstrucao,
       fazPersonalizacao,
       soAlimentacao,
