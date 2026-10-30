@@ -5959,54 +5959,6 @@ export type Database = {
           },
         ]
       }
-      modelo_negocio: {
-        Row: {
-          custo_equipe_mensal: number
-          custo_infra_mensal: number
-          custo_marketing_mensal: number
-          id: string
-          investimento_realizado: number
-          meta_clientes_ano1: number
-          meta_clientes_ano2: number
-          observacoes: string | null
-          preco_filial_extra: number
-          preco_implantacao: number
-          preco_mensal_loja: number
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          custo_equipe_mensal?: number
-          custo_infra_mensal?: number
-          custo_marketing_mensal?: number
-          id?: string
-          investimento_realizado?: number
-          meta_clientes_ano1?: number
-          meta_clientes_ano2?: number
-          observacoes?: string | null
-          preco_filial_extra?: number
-          preco_implantacao?: number
-          preco_mensal_loja?: number
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          custo_equipe_mensal?: number
-          custo_infra_mensal?: number
-          custo_marketing_mensal?: number
-          id?: string
-          investimento_realizado?: number
-          meta_clientes_ano1?: number
-          meta_clientes_ano2?: number
-          observacoes?: string | null
-          preco_filial_extra?: number
-          preco_implantacao?: number
-          preco_mensal_loja?: number
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       mf_apontamentos: {
         Row: {
           chave_idempotente: string
@@ -6044,7 +5996,29 @@ export type Database = {
           tenant_id?: string
           usuario_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mf_apontamentos_ordem_etapa_id_fkey"
+            columns: ["ordem_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "mf_ordem_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_apontamentos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "mf_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_apontamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mf_bom_itens: {
         Row: {
@@ -6074,7 +6048,29 @@ export type Database = {
           quantidade?: number
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mf_bom_itens_bom_id_fkey"
+            columns: ["bom_id"]
+            isOneToOne: false
+            referencedRelation: "mf_boms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_bom_itens_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_bom_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mf_boms: {
         Row: {
@@ -6110,7 +6106,63 @@ export type Database = {
           updated_at?: string
           versao?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mf_boms_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_boms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mf_etapas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_hora: number
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mf_etapas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mf_ordem_etapas: {
         Row: {
@@ -6143,7 +6195,22 @@ export type Database = {
           ordem_id?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mf_ordem_etapas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "mf_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordem_etapas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mf_ordem_insumos: {
         Row: {
@@ -6188,40 +6255,29 @@ export type Database = {
           quantidade_reservada?: number
           tenant_id?: string
         }
-        Relationships: []
-      }
-      mf_etapas: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          custo_hora: number
-          id: string
-          nome: string
-          ordem: number
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          custo_hora?: number
-          id?: string
-          nome: string
-          ordem?: number
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          custo_hora?: number
-          id?: string
-          nome?: string
-          ordem?: number
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mf_ordem_insumos_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordem_insumos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "mf_ordens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordem_insumos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mf_ordens: {
         Row: {
@@ -6308,6 +6364,97 @@ export type Database = {
           quantidade_produzida?: number
           quantidade_refugo?: number
           situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mf_ordens_bom_id_fkey"
+            columns: ["bom_id"]
+            isOneToOne: false
+            referencedRelation: "mf_boms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordens_deposito_destino_id_fkey"
+            columns: ["deposito_destino_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordens_deposito_insumos_id_fkey"
+            columns: ["deposito_insumos_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mf_ordens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modelo_negocio: {
+        Row: {
+          custo_equipe_mensal: number
+          custo_infra_mensal: number
+          custo_marketing_mensal: number
+          id: string
+          investimento_realizado: number
+          meta_clientes_ano1: number
+          meta_clientes_ano2: number
+          observacoes: string | null
+          preco_filial_extra: number
+          preco_implantacao: number
+          preco_mensal_loja: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          custo_equipe_mensal?: number
+          custo_infra_mensal?: number
+          custo_marketing_mensal?: number
+          id?: string
+          investimento_realizado?: number
+          meta_clientes_ano1?: number
+          meta_clientes_ano2?: number
+          observacoes?: string | null
+          preco_filial_extra?: number
+          preco_implantacao?: number
+          preco_mensal_loja?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          custo_equipe_mensal?: number
+          custo_infra_mensal?: number
+          custo_marketing_mensal?: number
+          id?: string
+          investimento_realizado?: number
+          meta_clientes_ano1?: number
+          meta_clientes_ano2?: number
+          observacoes?: string | null
+          preco_filial_extra?: number
+          preco_implantacao?: number
+          preco_mensal_loja?: number
           tenant_id?: string
           updated_at?: string
         }
@@ -11786,6 +11933,16 @@ export type Database = {
         Args: { p_servico_id: string; p_tipo: string }
         Returns: number
       }
+      _mf_custo: {
+        Args: { p_deposito: string; p_produto: string }
+        Returns: number
+      }
+      _mf_exige_liberado: { Args: never; Returns: undefined }
+      _mf_gravar_itens: {
+        Args: { p_itens: Json; p_ordem: string }
+        Returns: undefined
+      }
+      _mf_soltar_reserva: { Args: { p_ordem: string }; Returns: undefined }
       _pet_cobertura: {
         Args: { p_agendamento_id: string }
         Returns: {
@@ -11844,6 +12001,14 @@ export type Database = {
         Returns: string
       }
       assinante_link_sugerido: { Args: never; Returns: string }
+      assinatura_taxa_inicial: {
+        Args: never
+        Returns: {
+          excecao: boolean
+          rotulo: string
+          valor: number
+        }[]
+      }
       assistencia_ordens_relatorio: {
         Args: { p_ate: string; p_de: string; p_filial_id?: string }
         Returns: {
@@ -12449,14 +12614,6 @@ export type Database = {
         }
         Returns: number
       }
-      assinatura_taxa_inicial: {
-        Args: never
-        Returns: {
-          excecao: boolean
-          rotulo: string
-          valor: number
-        }[]
-      }
       gerar_faturas_assinatura: { Args: never; Returns: number }
       gerar_nfe: {
         Args: { p_natureza?: string; p_pedido_id: string }
@@ -12717,7 +12874,7 @@ export type Database = {
           p_boa: number
           p_chave: string
           p_etapa_id?: string
-          p_minutos: number | null
+          p_minutos: number
           p_ordem_id: string
           p_refugo: number
         }
