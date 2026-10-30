@@ -8034,3 +8034,53 @@ BEGIN
   DELETE FROM user_roles WHERE user_id IN (prod, comp, u2);
   DELETE FROM empresas WHERE id = emp2;
 END $$;
+
+-- 85. Manufatura: margem do pedido sob medida (receita do pedido x custo real das ordens ligadas a ele)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001b6';
+  u2 constant uuid := 'a0000000-0000-0000-0000-0000000001b7';
+  emp uuid; emp2 uuid; dep uuid; ins uuid; cli uuid; ped uuid; ped2 uuid; op uuid; op2 uuid; op3 uuid; r record; n integer;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao-margem@ci'), (u2, 'outra-margem@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = prod;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao');
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'MF Margem CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-INS-M', 'Chapa margem CI', 'chapa', 100) RETURNING id INTO ins;
+  INSERT INTO estoques (tenant_id, produto_id, deposito_id, quantidade, reservado, custo_medio) VALUES (demo, ins, dep, 50, 0, 100);
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Cliente margem CI') RETURNING id INTO cli;
+  INSERT INTO pedidos (tenant_id, cliente_id, deposito_id, situacao, subtotal, total) VALUES (demo, cli, dep, 'aprovado', 1000, 1000) RETURNING id INTO ped;
+  INSERT INTO pedidos (tenant_id, cliente_id, deposito_id, situacao, subtotal, total) VALUES (demo, cli, dep, 'cancelado', 500, 500) RETURNING id INTO ped2;
+
+  PERFORM ci.entrar(gest);
+  op := mf_ordem_criar(jsonb_build_object('descricao', 'Armário do pedido', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'pedido_id', ped,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 3))));
+  op2 := mf_ordem_criar(jsonb_build_object('descricao', 'Painel do pedido', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'pedido_id', ped,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  op3 := mf_ordem_criar(jsonb_build_object('descricao', 'Ordem de pedido cancelado', 'quantidade_planejada', 1, 'deposito_insumos_id', dep, 'pedido_id', ped2,
+          'itens', jsonb_build_array(jsonb_build_object('insumo_id', ins, 'quantidade', 1))));
+  PERFORM mf_ordem_liberar(op);
+  PERFORM mf_ordem_apontar(op, 1, 0, NULL, 'mg-1', NULL);
+  PERFORM mf_ordem_concluir(op);
+  SELECT * INTO r FROM mf_margem_pedidos(current_date, current_date) WHERE pedido_id = ped;
+  SELECT count(*) INTO n FROM mf_margem_pedidos(current_date, current_date) WHERE pedido_id = ped2;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.receita = 1000 AND r.cliente = 'Cliente margem CI', 'a receita é o total do pedido');
+  PERFORM ci.exige(r.custo_real = 300 AND r.ordens = 2 AND r.ordens_abertas = 1, 'custo real só da ordem concluída (3 x 100) e a outra segue aberta');
+  PERFORM ci.exige(r.custo_estimado = 400, 'custo estimado soma as duas ordens (3 + 1 chapas)');
+  PERFORM ci.exige(n = 0, 'pedido cancelado não entra na margem');
+
+  PERFORM ci.deve_falhar(prod, $c$SELECT * FROM mf_margem_pedidos(current_date, current_date)$c$, 'produção consulta a margem');
+  PERFORM ci.deve_falhar(u2, $c$SELECT * FROM mf_margem_pedidos(current_date, current_date)$c$, 'empresa sem o módulo consulta a margem');
+  PERFORM ci.deve_falhar(gest, $c$SELECT * FROM mf_margem_pedidos(current_date, current_date - 1)$c$, 'período invertido');
+
+  DELETE FROM mf_apontamentos WHERE tenant_id = demo;
+  DELETE FROM mf_ordens WHERE tenant_id = demo;
+  DELETE FROM pedidos WHERE id IN (ped, ped2);
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  DELETE FROM user_roles WHERE user_id = prod;
+END $$;

@@ -13,6 +13,7 @@ import {
   formatarMinutos,
   itensParaBanco,
   manufaturaLiberadaEmpresa,
+  margemDoPedido,
   necessidadeDoItem,
   temPerfil,
   valorEstimadoDaCompra,
@@ -181,4 +182,11 @@ test("necessidade: valor estimado pelo custo de referência", () => {
   assert.equal(valorEstimadoDaCompra(2.5, 3.3), 8.25);
   assert.equal(valorEstimadoDaCompra(-1, 100), 0);
   assert.equal(valorEstimadoDaCompra(5, -2), 0);
+});
+
+test("margem do pedido: receita menos custo real das ordens", () => {
+  assert.deepEqual(margemDoPedido(1000, 700), { lucro: 300, margem: 30 });
+  assert.deepEqual(margemDoPedido(1000, 1255), { lucro: -255, margem: -25.5 });
+  // sem receita não existe margem percentual
+  assert.deepEqual(margemDoPedido(0, 80), { lucro: -80, margem: null });
 });

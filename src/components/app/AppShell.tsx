@@ -272,6 +272,7 @@ const groups: Group[] = [
       { label: "Apontamento", to: "/manufatura-apontar", icon: ClipboardList },
       { label: "Roteiro e custo por hora", to: "/manufatura-etapas", icon: Calculator },
       { label: "Necessidade de materiais", to: "/manufatura-necessidade", icon: ShoppingCart },
+      { label: "Margem por pedido", to: "/manufatura-margem", icon: Percent },
     ],
   },
   {
@@ -508,7 +509,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (
                 i.to === "/manufatura-boms" ||
                 i.to === "/manufatura-ordens" ||
-                i.to === "/manufatura-etapas"
+                i.to === "/manufatura-etapas" ||
+                i.to === "/manufatura-margem"
               )
                 return temPerfil(data?.roles ?? [], PERFIS_GESTAO_MANUFATURA);
               // administrador e gestor só mantêm o catálogo; o prontuário é do veterinário
