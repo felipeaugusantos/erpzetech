@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, ListChecks, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +69,8 @@ function OrdensModulo() {
 }
 
 const NENHUM = "nenhum";
+/** Ordens por página: o filtro de situação vai ao servidor e "Mostrar mais" amplia o limite. */
+const POR_PAGINA = 100;
 
 type FormOrdem = {
   descricao: string;
@@ -111,9 +113,49 @@ const COR_SITUACAO: Record<SituacaoOrdem, "default" | "secondary" | "outline" | 
   cancelada: "destructive",
 };
 
+type ProdutoRef = { id: string; descricao: string; unidade: string };
+
+/** Insumos de uma ordem, buscados só quando a linha é aberta (e só os dela). */
+function InsumosDaOrdem({ ordemId, produtos }: { ordemId: string; produtos: ProdutoRef[] }) {
+  const { data: itens, isLoading } = useQuery({
+    queryKey: ["mf-ordem-insumos", ordemId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mf_ordem_insumos")
+        .select("*")
+        .eq("ordem_id", ordemId);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const produto = (id: string) => produtos.find((p) => p.id === id);
+  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando insumos…</p>;
+  if ((itens?.length ?? 0) === 0)
+    return <p className="text-sm text-muted-foreground">Sem insumos ainda: use "Itens".</p>;
+  return (
+    <ul className="grid gap-1.5 sm:grid-cols-2">
+      {itens!.map((i) => (
+        <li
+          key={i.id}
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
+        >
+          <span>{produto(i.insumo_id)?.descricao ?? "Insumo"}</span>
+          <span className="text-muted-foreground">
+            plan. {formatarQuantidadeMf(Number(i.quantidade_planejada))} · cons.{" "}
+            {formatarQuantidadeMf(Number(i.quantidade_consumida))} · res.{" "}
+            {formatarQuantidadeMf(Number(i.quantidade_reservada))}{" "}
+            {produto(i.insumo_id)?.unidade ?? ""}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Ordens() {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState<string>("abertas");
+  const [limite, setLimite] = useState(POR_PAGINA);
   const [aberta, setAberta] = useState<string | null>(null);
   const [novo, setNovo] = useState<FormOrdem | null>(null);
   const [itensDe, setItensDe] = useState<string | null>(null);
@@ -121,11 +163,20 @@ function Ordens() {
   const [maoDeObra, setMaoDeObra] = useState("0");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["mf-ordens"],
+    queryKey: ["mf-ordens", filtro, limite],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
-      const [ordens, insumos, produtos, depositos, boms, pedidos] = await Promise.all([
-        supabase.from("mf_ordens").select("*").order("numero", { ascending: false }).limit(300),
-        supabase.from("mf_ordem_insumos").select("*"),
+      // o filtro de situação é aplicado antes do limite: ordem antiga ainda em aberto nunca some da tela
+      let consulta = supabase
+        .from("mf_ordens")
+        .select("*")
+        .order("numero", { ascending: false })
+        .limit(limite);
+      if (filtro === "abertas")
+        consulta = consulta.in("situacao", ["planejada", "liberada", "em_producao"]);
+      else if (filtro !== "todas") consulta = consulta.eq("situacao", filtro);
+      const [ordens, produtos, depositos, boms, pedidos] = await Promise.all([
+        consulta,
         supabase
           .from("produtos")
           .select("id, descricao, unidade")
@@ -143,11 +194,9 @@ function Ordens() {
           .order("numero", { ascending: false })
           .limit(300),
       ]);
-      for (const r of [ordens, insumos, produtos, depositos, boms, pedidos])
-        if (r.error) throw r.error;
+      for (const r of [ordens, produtos, depositos, boms, pedidos]) if (r.error) throw r.error;
       return {
         ordens: ordens.data ?? [],
-        insumos: insumos.data ?? [],
         produtos: produtos.data ?? [],
         depositos: depositos.data ?? [],
         boms: boms.data ?? [],
@@ -156,7 +205,10 @@ function Ordens() {
     },
   });
   const produto = (id: string | null) => (id ? data?.produtos.find((p) => p.id === id) : undefined);
-  const atualizar = () => void qc.invalidateQueries({ queryKey: ["mf-ordens"] });
+  const atualizar = () => {
+    void qc.invalidateQueries({ queryKey: ["mf-ordens"] });
+    void qc.invalidateQueries({ queryKey: ["mf-ordem-insumos"] });
+  };
 
   const criar = useMutation({
     mutationFn: async (f: FormOrdem) => {
@@ -242,28 +294,34 @@ function Ordens() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function abrirItens(id: string) {
+  /** Busca os itens desta ordem (e só dela) antes de abrir o editor: salvar troca todos os itens, então a lista precisa estar completa. */
+  async function abrirItens(id: string) {
     const o = data?.ordens.find((x) => x.id === id);
+    const { data: itens, error } = await supabase
+      .from("mf_ordem_insumos")
+      .select("*")
+      .eq("ordem_id", id);
+    if (error || !itens) {
+      toast.error("Não foi possível carregar os itens da ordem. Tente de novo.");
+      return;
+    }
+    if (itens.length >= 1000) {
+      toast.error("Esta ordem tem itens demais para editar aqui.");
+      return;
+    }
     setItensForm(
-      (data?.insumos ?? [])
-        .filter((i) => i.ordem_id === id)
-        .map((i) => ({
-          insumo_id: i.insumo_id,
-          quantidade: String(i.quantidade_base),
-          perda_percentual: String(i.perda_percentual),
-        })),
+      itens.map((i) => ({
+        insumo_id: i.insumo_id,
+        quantidade: String(i.quantidade_base),
+        perda_percentual: String(i.perda_percentual),
+      })),
     );
     setMaoDeObra(String(o?.mao_de_obra ?? 0));
     setItensDe(id);
   }
 
-  const lista = (data?.ordens ?? []).filter((o) =>
-    filtro === "todas"
-      ? true
-      : filtro === "abertas"
-        ? ["planejada", "liberada", "em_producao"].includes(o.situacao)
-        : o.situacao === filtro,
-  );
+  const lista = data?.ordens ?? [];
+  const temMais = lista.length >= limite;
   const bomsDoProduto = (data?.boms ?? []).filter((b) => b.produto_id === novo?.produto_id);
 
   return (
@@ -273,7 +331,13 @@ function Ordens() {
         description="Planeje, reserve os insumos, acompanhe o consumo e feche o custo real de cada ordem."
         actions={
           <>
-            <Select value={filtro} onValueChange={setFiltro}>
+            <Select
+              value={filtro}
+              onValueChange={(v) => {
+                setFiltro(v);
+                setLimite(POR_PAGINA);
+              }}
+            >
               <SelectTrigger className="w-44" aria-label="Filtrar ordens">
                 <SelectValue />
               </SelectTrigger>
@@ -318,7 +382,6 @@ function Ordens() {
             <TableBody>
               {lista.map((o) => {
                 const sit = o.situacao as SituacaoOrdem;
-                const itens = (data?.insumos ?? []).filter((i) => i.ordem_id === o.id);
                 const expandida = aberta === o.id;
                 return (
                   <Fragment key={o.id}>
@@ -411,28 +474,7 @@ function Ordens() {
                       <TableRow>
                         <TableCell />
                         <TableCell colSpan={6}>
-                          {itens.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                              Sem insumos ainda: use "Itens".
-                            </p>
-                          ) : (
-                            <ul className="grid gap-1.5 sm:grid-cols-2">
-                              {itens.map((i) => (
-                                <li
-                                  key={i.id}
-                                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
-                                >
-                                  <span>{produto(i.insumo_id)?.descricao ?? "Insumo"}</span>
-                                  <span className="text-muted-foreground">
-                                    plan. {formatarQuantidadeMf(Number(i.quantidade_planejada))} ·
-                                    cons. {formatarQuantidadeMf(Number(i.quantidade_consumida))} ·
-                                    res. {formatarQuantidadeMf(Number(i.quantidade_reservada))}{" "}
-                                    {produto(i.insumo_id)?.unidade ?? ""}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                          <InsumosDaOrdem ordemId={o.id} produtos={data?.produtos ?? []} />
                           {Number(o.mao_de_obra) > 0 && (
                             <p className="mt-2 text-xs text-muted-foreground">
                               Mão de obra informada: {brl(Number(o.mao_de_obra))}
@@ -448,6 +490,13 @@ function Ordens() {
               })}
             </TableBody>
           </Table>
+        </div>
+      )}
+      {temMais && !isLoading && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="outline" onClick={() => setLimite(limite + POR_PAGINA)}>
+            Mostrar mais ordens
+          </Button>
         </div>
       )}
 

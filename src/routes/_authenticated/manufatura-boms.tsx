@@ -73,6 +73,40 @@ const formVazio = (): FormBom => ({
   itens: [linhaVazia()],
 });
 
+type ProdutoRef = { id: string; descricao: string; unidade: string };
+
+/** Itens de uma lista, buscados por lista (nunca o conjunto inteiro da empresa). */
+function ItensDaBom({ bomId, produtos }: { bomId: string; produtos: ProdutoRef[] }) {
+  const { data: itens, isLoading } = useQuery({
+    queryKey: ["mf-bom-itens", bomId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mf_bom_itens").select("*").eq("bom_id", bomId);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const produto = (id: string) => produtos.find((p) => p.id === id);
+  if (isLoading) return <p className="mt-3 text-sm text-muted-foreground">Carregando itens…</p>;
+  return (
+    <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+      {(itens ?? []).map((i) => (
+        <li
+          key={i.id}
+          className="flex items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
+        >
+          <span className="min-w-0 truncate">{produto(i.insumo_id)?.descricao ?? "Insumo"}</span>
+          <span className="shrink-0 text-muted-foreground">
+            {formatarQuantidadeMf(Number(i.quantidade))} {produto(i.insumo_id)?.unidade ?? ""}
+            {Number(i.perda_percentual) > 0
+              ? ` · perda ${formatarQuantidadeMf(Number(i.perda_percentual))}%`
+              : ""}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Boms() {
   const qc = useQueryClient();
   const [form, setForm] = useState<FormBom | null>(null);
@@ -80,9 +114,8 @@ function Boms() {
   const { data, isLoading } = useQuery({
     queryKey: ["mf-boms"],
     queryFn: async () => {
-      const [boms, itens, produtos] = await Promise.all([
+      const [boms, produtos] = await Promise.all([
         supabase.from("mf_boms").select("*").order("created_at", { ascending: false }),
-        supabase.from("mf_bom_itens").select("*"),
         supabase
           .from("produtos")
           .select("id, descricao, unidade")
@@ -90,12 +123,15 @@ function Boms() {
           .order("descricao")
           .limit(2000),
       ]);
-      for (const r of [boms, itens, produtos]) if (r.error) throw r.error;
-      return { boms: boms.data ?? [], itens: itens.data ?? [], produtos: produtos.data ?? [] };
+      for (const r of [boms, produtos]) if (r.error) throw r.error;
+      return { boms: boms.data ?? [], produtos: produtos.data ?? [] };
     },
   });
   const produto = (id: string) => data?.produtos.find((p) => p.id === id);
-  const atualizar = () => void qc.invalidateQueries({ queryKey: ["mf-boms"] });
+  const atualizar = () => {
+    void qc.invalidateQueries({ queryKey: ["mf-boms"] });
+    void qc.invalidateQueries({ queryKey: ["mf-bom-itens"] });
+  };
 
   const salvar = useMutation({
     mutationFn: async (f: FormBom) => {
@@ -140,21 +176,32 @@ function Boms() {
   });
 
   /** Abre o formulário com os itens de uma lista: rascunho edita a mesma, as demais viram uma nova versão. */
-  function abrir(bomId: string, comoNova: boolean) {
+  /** Busca os itens desta lista (e só dela) antes de abrir o editor: salvar troca todos os itens, então a lista precisa estar completa. */
+  async function abrir(bomId: string, comoNova: boolean) {
     const b = data?.boms.find((x) => x.id === bomId);
     if (!b) return;
+    const { data: itens, error } = await supabase
+      .from("mf_bom_itens")
+      .select("*")
+      .eq("bom_id", b.id);
+    if (error || !itens) {
+      toast.error("Não foi possível carregar os itens da lista. Tente de novo.");
+      return;
+    }
+    if (itens.length >= 1000) {
+      toast.error("Esta lista tem itens demais para editar aqui.");
+      return;
+    }
     setForm({
       id: comoNova ? null : b.id,
       produto_id: b.produto_id,
       rotulo: b.rotulo ?? "",
       rendimento: String(b.rendimento),
-      itens: (data?.itens ?? [])
-        .filter((i) => i.bom_id === b.id)
-        .map((i) => ({
-          insumo_id: i.insumo_id,
-          quantidade: String(i.quantidade),
-          perda_percentual: String(i.perda_percentual),
-        })),
+      itens: itens.map((i) => ({
+        insumo_id: i.insumo_id,
+        quantidade: String(i.quantidade),
+        perda_percentual: String(i.perda_percentual),
+      })),
     });
   }
 
@@ -185,7 +232,6 @@ function Boms() {
       ) : (
         <div className="space-y-3">
           {data!.boms.map((b) => {
-            const itens = data!.itens.filter((i) => i.bom_id === b.id);
             return (
               <div key={b.id} className="panel p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -230,25 +276,7 @@ function Boms() {
                     )}
                   </div>
                 </div>
-                <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-                  {itens.map((i) => (
-                    <li
-                      key={i.id}
-                      className="flex items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
-                    >
-                      <span className="min-w-0 truncate">
-                        {produto(i.insumo_id)?.descricao ?? "Insumo"}
-                      </span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {formatarQuantidadeMf(Number(i.quantidade))}{" "}
-                        {produto(i.insumo_id)?.unidade ?? ""}
-                        {Number(i.perda_percentual) > 0
-                          ? ` · perda ${formatarQuantidadeMf(Number(i.perda_percentual))}%`
-                          : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <ItensDaBom bomId={b.id} produtos={data!.produtos} />
               </div>
             );
           })}
