@@ -8084,3 +8084,64 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id = prod;
 END $$;
+
+-- 86. Manufatura: semiacabado (matéria-prima total abrindo as listas ativas) e bloqueio de ciclo entre listas
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  prod constant uuid := 'a0000000-0000-0000-0000-0000000001b8';
+  emp uuid; arm uuid; porta uuid; gav uuid; chapa uuid; ferr uuid; b_porta uuid; b_arm uuid; b_gav uuid; b_porta2 uuid; r record; n integer;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (prod, 'producao-semi@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = prod;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (prod, demo, 'producao');
+  SELECT id INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'manufatura');
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-ARM-S', 'Armário semi CI', 'un', 0) RETURNING id INTO arm;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-POR-S', 'Porta semi CI', 'un', 0) RETURNING id INTO porta;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-GAV-S', 'Gaveta semi CI', 'un', 0) RETURNING id INTO gav;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-CHA-S', 'Chapa semi CI', 'chapa', 100) RETURNING id INTO chapa;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'MF-FER-S', 'Ferragem semi CI', 'un', 5) RETURNING id INTO ferr;
+
+  PERFORM ci.entrar(gest);
+  -- porta: 3 chapas rendem 2 portas; armário: 2 portas + 4 ferragens + 1 chapa com 20% de perda
+  b_porta := mf_bom_salvar(jsonb_build_object('produto_id', porta, 'rendimento', 2, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', chapa, 'quantidade', 3))));
+  PERFORM mf_bom_ativar(b_porta);
+  b_arm := mf_bom_salvar(jsonb_build_object('produto_id', arm, 'itens', jsonb_build_array(
+             jsonb_build_object('insumo_id', porta, 'quantidade', 2), jsonb_build_object('insumo_id', ferr, 'quantidade', 4),
+             jsonb_build_object('insumo_id', chapa, 'quantidade', 1, 'perda_percentual', 20))));
+  PERFORM mf_bom_ativar(b_arm);
+  SELECT * INTO r FROM mf_bom_explodir(b_arm, 1) WHERE insumo_id = chapa;
+  SELECT count(*) INTO n FROM mf_bom_explodir(b_arm, 1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.quantidade = 4.25, 'chapa total: 2 portas (3 chapas por 2 portas = 3) + 1 chapa com 20% de perda (1,25) = 4,25');
+  PERFORM ci.exige(r.valor = 425 AND r.custo_unitario = 100, 'valor da chapa pelo custo de referência');
+  PERFORM ci.exige(n = 2, 'só a matéria-prima volta (chapa e ferragem), a porta foi aberta');
+  PERFORM ci.entrar(gest);
+  SELECT * INTO r FROM mf_bom_explodir(b_arm, 2) WHERE insumo_id = ferr;
+  PERFORM ci.sair();
+  PERFORM ci.exige(r.quantidade = 8 AND r.valor = 40, 'a quantidade multiplica: 2 armários = 8 ferragens');
+
+  -- ciclo direto no salvar: a porta ativa não chega ao armário, mas o armário ativo chega à porta
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_salvar(jsonb_build_object('produto_id', %L::uuid, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', %L::uuid, 'quantidade', 1))))$c$, porta, arm), 'porta usando o armário que usa a porta');
+
+  -- ciclo só na ativação: rascunho da porta usa a gaveta (ainda sem lista); depois a gaveta passa a usar a porta; ativar a porta fecha o ciclo
+  PERFORM ci.entrar(gest);
+  b_porta2 := mf_bom_salvar(jsonb_build_object('produto_id', porta, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', gav, 'quantidade', 1))));
+  b_gav := mf_bom_salvar(jsonb_build_object('produto_id', gav, 'itens', jsonb_build_array(jsonb_build_object('insumo_id', porta, 'quantidade', 1))));
+  PERFORM mf_bom_ativar(b_gav);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT mf_bom_ativar(%L::uuid)$c$, b_porta2), 'ativar a porta quando a gaveta ativa já usa a porta');
+  PERFORM ci.exige((SELECT situacao = 'rascunho' FROM mf_boms WHERE id = b_porta2), 'a lista que fecharia o ciclo continua rascunho');
+  PERFORM ci.exige((SELECT situacao = 'ativa' FROM mf_boms WHERE id = b_porta), 'a versão ativa anterior da porta não foi trocada');
+
+  -- perfis: produção não abre a lista (tem custo)
+  PERFORM ci.deve_falhar(prod, format($c$SELECT * FROM mf_bom_explodir(%L::uuid, 1)$c$, b_arm), 'produção abre a matéria-prima total');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT * FROM mf_bom_explodir(%L::uuid, 0)$c$, b_arm), 'quantidade zero');
+
+  DELETE FROM mf_bom_itens WHERE tenant_id = demo;
+  DELETE FROM mf_boms WHERE tenant_id = demo;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
+  DELETE FROM user_roles WHERE user_id = prod;
+END $$;
