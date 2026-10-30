@@ -17,12 +17,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useManufatura } from "@/hooks/useManufatura";
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import {
   PERFIS_APONTAMENTO,
+  erroDoApontamento,
   SITUACAO_ORDEM,
+  formatarMinutos,
   formatarQuantidadeMf,
   novaChaveApontamento,
   type SituacaoOrdem,
@@ -64,6 +73,7 @@ type Ordem = {
   acabamento: string | null;
 };
 
+const SEM_ETAPA = "sem-etapa";
 const numero = (t: string) => Number((t || "0").replace(",", "."));
 
 function Apontar() {
@@ -72,6 +82,7 @@ function Apontar() {
   const [boa, setBoa] = useState("");
   const [refugo, setRefugo] = useState("");
   const [minutos, setMinutos] = useState("");
+  const [etapaId, setEtapaId] = useState(SEM_ETAPA);
   // a mesma chave vale para repetir o envio (rede ruim, duplo clique): o banco não consome duas vezes
   const [chave, setChave] = useState("");
 
@@ -81,6 +92,18 @@ function Apontar() {
       const { data, error } = await supabase.rpc("mf_ordens_producao");
       if (error) throw error;
       return (data ?? []) as Ordem[];
+    },
+  });
+
+  const { data: etapas } = useQuery({
+    queryKey: ["mf-ordem-etapas-producao", alvo?.id],
+    enabled: alvo !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("mf_ordem_etapas_producao", {
+        p_ordem_id: alvo!.id,
+      });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -98,6 +121,7 @@ function Apontar() {
 
   function abrir(o: Ordem) {
     setAlvo(o);
+    setEtapaId(SEM_ETAPA);
     setBoa("");
     setRefugo("");
     setMinutos("");
@@ -109,16 +133,21 @@ function Apontar() {
       if (!alvo) return;
       const b = numero(boa);
       const r = numero(refugo);
-      if (!(b >= 0) || !(r >= 0) || b + r <= 0)
-        throw new Error("Informe a quantidade produzida ou o refugo.");
       const min = minutos.trim() === "" ? null : Math.round(numero(minutos));
-      if (min !== null && !(min >= 0)) throw new Error("Os minutos não podem ser negativos.");
+      const erro = erroDoApontamento({
+        boa: b,
+        refugo: r,
+        minutos: min,
+        etapaId: etapaId === SEM_ETAPA ? null : etapaId,
+      });
+      if (erro) throw new Error(erro);
       const { error } = await supabase.rpc("mf_ordem_apontar", {
         p_ordem_id: alvo.id,
         p_boa: b,
         p_refugo: r,
         p_minutos: min,
         p_chave: chave,
+        ...(etapaId !== SEM_ETAPA ? { p_etapa_id: etapaId } : {}),
       });
       if (error) throw error;
     },
@@ -126,6 +155,7 @@ function Apontar() {
       toast.success("Apontamento registrado.");
       setAlvo(null);
       void qc.invalidateQueries({ queryKey: ["mf-ordens-producao"] });
+      void qc.invalidateQueries({ queryKey: ["mf-ordem-etapas-producao"] });
       void qc.invalidateQueries({ queryKey: ["mf-ordens"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -238,6 +268,24 @@ function Apontar() {
                 />
               </div>
             </div>
+            {(etapas?.length ?? 0) > 0 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="ap-etapa">Etapa (opcional)</Label>
+                <Select value={etapaId} onValueChange={setEtapaId}>
+                  <SelectTrigger id="ap-etapa">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SEM_ETAPA}>Sem etapa</SelectItem>
+                    {etapas!.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.nome} · {formatarMinutos(e.minutos_apontados)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-1.5 sm:max-w-[10rem]">
               <Label htmlFor="ap-min">Minutos (opcional)</Label>
               <Input
@@ -247,6 +295,12 @@ function Apontar() {
                 onChange={(e) => setMinutos(e.target.value)}
               />
             </div>
+            {(etapas?.length ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Para registrar só o tempo de uma etapa, deixe peças boas e refugo em branco, escolha
+                a etapa e informe os minutos.
+              </p>
+            )}
             {(insumos?.length ?? 0) > 0 && (
               <div>
                 <p className="mb-1.5 text-xs font-medium text-muted-foreground">Insumos da ordem</p>

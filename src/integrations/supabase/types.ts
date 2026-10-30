@@ -6013,6 +6013,7 @@ export type Database = {
           created_at: string
           id: string
           minutos: number | null
+          ordem_etapa_id: string | null
           ordem_id: string
           quantidade_boa: number
           refugo: number
@@ -6024,6 +6025,7 @@ export type Database = {
           created_at?: string
           id?: string
           minutos?: number | null
+          ordem_etapa_id?: string | null
           ordem_id: string
           quantidade_boa?: number
           refugo?: number
@@ -6035,6 +6037,7 @@ export type Database = {
           created_at?: string
           id?: string
           minutos?: number | null
+          ordem_etapa_id?: string | null
           ordem_id?: string
           quantidade_boa?: number
           refugo?: number
@@ -6109,6 +6112,39 @@ export type Database = {
         }
         Relationships: []
       }
+      mf_ordem_etapas: {
+        Row: {
+          created_at: string
+          custo_hora: number
+          id: string
+          minutos_apontados: number
+          nome: string
+          ordem: number
+          ordem_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          minutos_apontados?: number
+          nome: string
+          ordem?: number
+          ordem_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          minutos_apontados?: number
+          nome?: string
+          ordem?: number
+          ordem_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       mf_ordem_insumos: {
         Row: {
           created_at: string
@@ -6154,6 +6190,39 @@ export type Database = {
         }
         Relationships: []
       }
+      mf_etapas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_hora: number
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_hora?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mf_ordens: {
         Row: {
           acabamento: string | null
@@ -6162,6 +6231,7 @@ export type Database = {
           created_at: string
           criada_por: string | null
           custo_a_alocar: number
+          custo_mao_obra_apontada: number
           custo_padrao: number
           custo_real: number
           deposito_destino_id: string | null
@@ -6190,6 +6260,7 @@ export type Database = {
           created_at?: string
           criada_por?: string | null
           custo_a_alocar?: number
+          custo_mao_obra_apontada?: number
           custo_padrao?: number
           custo_real?: number
           deposito_destino_id?: string | null
@@ -6218,6 +6289,7 @@ export type Database = {
           created_at?: string
           criada_por?: string | null
           custo_a_alocar?: number
+          custo_mao_obra_apontada?: number
           custo_padrao?: number
           custo_real?: number
           deposito_destino_id?: string | null
@@ -12638,10 +12710,13 @@ export type Database = {
       manufatura_liberada: { Args: never; Returns: boolean }
       mf_bom_ativar: { Args: { p_id: string }; Returns: undefined }
       mf_bom_salvar: { Args: { p_dados: Json }; Returns: string }
+      mf_etapa_salvar: { Args: { p_dados: Json }; Returns: string }
+      mf_etapas_iniciais: { Args: never; Returns: number }
       mf_ordem_apontar: {
         Args: {
           p_boa: number
           p_chave: string
+          p_etapa_id?: string
           p_minutos: number | null
           p_ordem_id: string
           p_refugo: number
@@ -12651,6 +12726,15 @@ export type Database = {
       mf_ordem_cancelar: { Args: { p_id: string }; Returns: undefined }
       mf_ordem_concluir: { Args: { p_id: string }; Returns: undefined }
       mf_ordem_criar: { Args: { p_dados: Json }; Returns: string }
+      mf_ordem_etapas_producao: {
+        Args: { p_ordem_id: string }
+        Returns: {
+          id: string
+          minutos_apontados: number
+          nome: string
+          ordem: number
+        }[]
+      }
       mf_ordem_insumos_producao: {
         Args: { p_ordem_id: string }
         Returns: {

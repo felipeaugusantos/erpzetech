@@ -4,8 +4,11 @@ import assert from "node:assert/strict";
 import {
   baseDoItem,
   consumoAcumulado,
+  custoMaoDeObra,
   custoPadraoDaOrdem,
+  erroDoApontamento,
   erroDoItem,
+  formatarMinutos,
   itensParaBanco,
   manufaturaLiberadaEmpresa,
   necessidadeDoItem,
@@ -101,4 +104,40 @@ test("itens do formulário vão ao banco como número, aceitando vírgula", () =
       { insumo_id: "y", quantidade: 8, perda_percentual: 0 },
     ],
   );
+});
+
+test("mão de obra do apontamento: minutos pelo custo por hora da etapa", () => {
+  assert.equal(custoMaoDeObra(30, 60), 30);
+  assert.equal(custoMaoDeObra(90, 120), 180);
+  assert.equal(custoMaoDeObra(10, 100), 16.67);
+  // sem minutos ou sem custo por hora não há custo
+  assert.equal(custoMaoDeObra(0, 60), 0);
+  assert.equal(custoMaoDeObra(30, 0), 0);
+  assert.equal(custoMaoDeObra(-5, 60), 0);
+});
+
+test("minutos nas telas: horas e minutos", () => {
+  assert.equal(formatarMinutos(0), "0 min");
+  assert.equal(formatarMinutos(45), "45 min");
+  assert.equal(formatarMinutos(60), "1h00");
+  assert.equal(formatarMinutos(95), "1h35");
+});
+
+test("apontamento: peça boa, refugo ou só o tempo de uma etapa", () => {
+  const base = {
+    boa: 0,
+    refugo: 0,
+    minutos: null as number | null,
+    etapaId: null as string | null,
+  };
+  assert.equal(erroDoApontamento({ ...base, boa: 1 }), "");
+  assert.equal(erroDoApontamento({ ...base, refugo: 1 }), "");
+  // só o tempo de uma etapa vale (a mesma peça passa por mais de uma etapa)
+  assert.equal(erroDoApontamento({ ...base, minutos: 60, etapaId: "e1" }), "");
+  // sem etapa ou sem minutos, ainda é preciso informar produção
+  assert.match(erroDoApontamento({ ...base, minutos: 60 }), /Informe a quantidade/);
+  assert.match(erroDoApontamento({ ...base, minutos: 0, etapaId: "e1" }), /Informe a quantidade/);
+  assert.match(erroDoApontamento(base), /Informe a quantidade/);
+  assert.match(erroDoApontamento({ ...base, boa: -1 }), /negativas/);
+  assert.match(erroDoApontamento({ ...base, boa: 1, minutos: -5 }), /minutos/);
 });
