@@ -161,6 +161,7 @@ import { Route as AuthenticatedZeTechRelatorioFiscalRouteImport } from './routes
 import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
 import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
+import { Route as MenuEmpresaRouteImport } from './routes/menu.$empresa'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -1020,6 +1021,11 @@ const AuthenticatedZeTechTempoRealRoute =
     path: '/ze-tech-tempo-real',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const MenuEmpresaRoute = MenuEmpresaRouteImport.update({
+  id: '/menu/$empresa',
+  path: '/menu/$empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedComprasIndexRoute =
   AuthenticatedComprasIndexRouteImport.update({
     id: '/compras/',
@@ -1225,6 +1231,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -1387,6 +1394,7 @@ export interface FileRoutesByTo {
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -1551,6 +1559,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
@@ -1715,6 +1724,7 @@ export interface FileRouteTypes {
     | '/ze-tech-relatorios'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -1877,6 +1887,7 @@ export interface FileRouteTypes {
     | '/ze-tech-relatorios'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
@@ -2040,6 +2051,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-relatorios'
     | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/pedidos/$id'
@@ -2060,6 +2072,7 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  MenuEmpresaRoute: typeof MenuEmpresaRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -3131,6 +3144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechTempoRealRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/menu/$empresa': {
+      id: '/menu/$empresa'
+      path: '/menu/$empresa'
+      fullPath: '/menu/$empresa'
+      preLoaderRoute: typeof MenuEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/compras/': {
       id: '/_authenticated/compras/'
       path: '/compras'
@@ -3520,6 +3540,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  MenuEmpresaRoute: MenuEmpresaRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,

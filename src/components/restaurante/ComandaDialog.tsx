@@ -36,6 +36,7 @@ import { DeliveryPainel } from "@/components/restaurante/DeliveryPainel";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
+import { urlFotoCardapio } from "@/lib/cardapio-foto";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
@@ -347,6 +348,14 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                           disabled={lancar.isPending}
                           className="h-full w-full rounded-lg border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary disabled:opacity-60"
                         >
+                          {urlFotoCardapio(i.foto_path) && (
+                            <img
+                              src={urlFotoCardapio(i.foto_path)!}
+                              alt=""
+                              loading="lazy"
+                              className="mb-2 h-20 w-full rounded object-cover"
+                            />
+                          )}
                           <span className="block pr-6 font-medium leading-tight">{i.nome}</span>
                           <span className="mt-1 block text-sm text-muted-foreground">
                             {brl(i.preco)}

@@ -105,6 +105,7 @@ export type RestauranteConfig = {
   tenant_id: string;
   baixa_estoque: boolean;
   deposito_id: string | null;
+  cardapio_online: boolean;
 };
 
 export type CardapioCategoria = { id: string; nome: string; ordem: number; ativo: boolean };
@@ -120,6 +121,7 @@ export type CardapioItem = {
   estacao: string;
   tempo_preparo_min: number | null;
   ordem: number;
+  foto_path: string | null;
   ativo: boolean;
 };
 

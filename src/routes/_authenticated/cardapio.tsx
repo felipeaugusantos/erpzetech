@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCardapio } from "@/hooks/useCardapio";
 import { usePracas } from "@/hooks/usePracas";
 import { useZonasEntrega } from "@/hooks/useZonasEntrega";
+import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
@@ -47,6 +48,9 @@ import {
   type Mesa,
 } from "@/lib/restaurante-dados";
 import { useQuery } from "@tanstack/react-query";
+import QRCode from "qrcode";
+
+import { apagarFotoCardapio, enviarFotoCardapio, urlFotoCardapio } from "@/lib/cardapio-foto";
 
 export const Route = createFileRoute("/_authenticated/cardapio")({
   head: () => ({
@@ -91,6 +95,7 @@ function Cardapio() {
           <TabsTrigger value="pracas">Praças de produção</TabsTrigger>
           <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          <TabsTrigger value="online">Cardápio online</TabsTrigger>
         </TabsList>
         <TabsContent value="itens">
           <Itens tenantId={session?.profile?.tenant_id ?? ""} />
@@ -107,11 +112,123 @@ function Cardapio() {
         <TabsContent value="estoque">
           <EstoqueRestaurante tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
+        <TabsContent value="online">
+          <CardapioOnline tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
         <TabsContent value="delivery">
           <ZonasEntrega tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+/* ===== Cardápio online ===== */
+function CardapioOnline({ tenantId }: { tenantId: string }) {
+  const qc = useQueryClient();
+  const { data: config } = useQuery({
+    queryKey: [CHAVE_REST, "config-online"],
+    queryFn: async () => {
+      const r = await tabela("restaurante_config").select("cardapio_online").maybeSingle();
+      if (r.error) throw new Error(r.error.message);
+      return (r.data ?? null) as unknown as { cardapio_online: boolean } | null;
+    },
+  });
+  const { data: slug } = useQuery({
+    queryKey: [CHAVE_REST, "slug-empresa"],
+    queryFn: async () => {
+      const r = await supabase.from("empresas").select("slug").limit(1).maybeSingle();
+      if (r.error) throw new Error(r.error.message);
+      return ((r.data as { slug?: string | null } | null)?.slug ?? null) as string | null;
+    },
+  });
+  const ligado = config?.cardapio_online ?? false;
+  const link =
+    slug && typeof window !== "undefined" ? `${window.location.origin}/menu/${slug}` : null;
+  const [qr, setQr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!link || !ligado) {
+      setQr(null);
+      return;
+    }
+    let ativo = true;
+    QRCode.toDataURL(link, { margin: 1, width: 320 })
+      .then((u) => ativo && setQr(u))
+      .catch(() => ativo && setQr(null));
+    return () => {
+      ativo = false;
+    };
+  }, [link, ligado]);
+
+  const alternar = useMutation({
+    mutationFn: async (v: boolean) => {
+      const r = await tabela("restaurante_config").upsert(
+        { tenant_id: tenantId, cardapio_online: v, updated_at: new Date().toISOString() } as never,
+        { onConflict: "tenant_id" },
+      );
+      if (r.error) throw new Error(r.error.message);
+    },
+    onSuccess: () => {
+      toast.success("Cardápio online atualizado");
+      void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-4 max-w-2xl space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Página pública só para ver o cardápio (sem pedido): categorias, itens ativos, preço, foto,
+        descrição e adicionais. Custos, praças e dados de clientes nunca aparecem.
+      </p>
+      <label className="flex items-center gap-2 text-sm">
+        <Switch
+          checked={ligado}
+          disabled={alternar.isPending}
+          onCheckedChange={(v) => alternar.mutate(v)}
+          aria-label="Cardápio online ligado"
+        />
+        Cardápio online ligado
+      </label>
+      {!slug && (
+        <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
+          A empresa ainda não tem link de acesso. Defina o link em Empresa para publicar o cardápio.
+        </p>
+      )}
+      {link && ligado && (
+        <div className="space-y-3 rounded border p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="break-all rounded bg-secondary px-2 py-1 text-sm">{link}</code>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(link)
+                  .then(() => toast.success("Link copiado"))
+                  .catch(() => toast.error("Não foi possível copiar"))
+              }
+            >
+              <Copy className="mr-1 size-4" /> Copiar
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <a href={link} target="_blank" rel="noreferrer">
+                Abrir
+              </a>
+            </Button>
+          </div>
+          {qr && (
+            <div>
+              <img src={qr} alt="QR code do cardápio online" className="size-40" />
+              <a href={qr} download="qr-cardapio.png" className="text-sm underline">
+                Baixar QR code
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -533,6 +650,10 @@ type FormItem = {
   estacao: string;
   tempo: string;
   descricao: string;
+  ordem: string;
+  /** foto gravada no item e foto escolhida agora (só vale ao salvar) */
+  foto_path: string | null;
+  foto_original: string | null;
   ativo: boolean;
 };
 
@@ -543,6 +664,9 @@ const itemVazio: FormItem = {
   estacao: "cozinha",
   tempo: "",
   descricao: "",
+  ordem: "0",
+  foto_path: null,
+  foto_original: null,
   ativo: true,
 };
 
@@ -564,8 +688,38 @@ function Itens({ tenantId }: { tenantId: string }) {
       estacao: i.estacao,
       tempo: textoNumero(i.tempo_preparo_min),
       descricao: i.descricao ?? "",
+      ordem: String(i.ordem ?? 0),
+      foto_path: i.foto_path,
+      foto_original: i.foto_path,
       ativo: i.ativo,
     });
+  }
+
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const entradaFoto = useRef<HTMLInputElement>(null);
+
+  /** Fecha o formulário; a foto enviada e não salva é descartada. */
+  function fecharForm() {
+    if (form?.foto_path && form.foto_path !== form.foto_original)
+      void apagarFotoCardapio(form.foto_path);
+    setForm(null);
+  }
+
+  async function escolherFoto(arquivo: File | undefined) {
+    if (!arquivo || !form) return;
+    setEnviandoFoto(true);
+    try {
+      const caminho = await enviarFotoCardapio(tenantId, arquivo);
+      // troca de foto antes de salvar: a anterior (ainda não salva) é descartada
+      if (form.foto_path && form.foto_path !== form.foto_original)
+        void apagarFotoCardapio(form.foto_path);
+      setForm({ ...form, foto_path: caminho });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar a foto");
+    } finally {
+      setEnviandoFoto(false);
+      if (entradaFoto.current) entradaFoto.current.value = "";
+    }
   }
 
   const gravar = () => {
@@ -585,12 +739,18 @@ function Itens({ tenantId }: { tenantId: string }) {
           estacao: form.estacao,
           tempo_preparo_min: form.tempo.trim() ? Math.round(dinheiro(form.tempo)) : null,
           descricao: form.descricao.trim() || null,
+          ordem: Math.round(dinheiro(form.ordem)),
+          foto_path: form.foto_path,
           ativo: form.ativo,
         },
       },
       {
         onSuccess: () => {
+          // a foto que saiu do item deixa de ocupar espaço
+          if (form.foto_original && form.foto_original !== form.foto_path)
+            void apagarFotoCardapio(form.foto_original);
           if (!form.id) setForm(null);
+          else setForm({ ...form, foto_original: form.foto_path });
         },
       },
     );
@@ -626,7 +786,15 @@ function Itens({ tenantId }: { tenantId: string }) {
                   key={i.id}
                   className="flex items-start justify-between gap-2 rounded border p-3"
                 >
-                  <div>
+                  {urlFotoCardapio(i.foto_path) && (
+                    <img
+                      src={urlFotoCardapio(i.foto_path)!}
+                      alt=""
+                      loading="lazy"
+                      className="size-14 shrink-0 rounded object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
                     <p
                       className={`font-medium ${i.ativo ? "" : "text-muted-foreground line-through"}`}
                     >
@@ -653,7 +821,7 @@ function Itens({ tenantId }: { tenantId: string }) {
       })}
 
       {form && (
-        <Dialog open onOpenChange={(o) => !o && setForm(null)}>
+        <Dialog open onOpenChange={(o) => !o && fecharForm()}>
           <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{form.id ? "Editar item" : "Novo item"}</DialogTitle>
@@ -726,6 +894,71 @@ function Itens({ tenantId }: { tenantId: string }) {
                   value={form.tempo}
                   onChange={(e) => setForm({ ...form, tempo: e.target.value })}
                 />
+              </div>
+              <div>
+                <Label htmlFor="i-ordem">Ordem no cardápio</Label>
+                <Input
+                  id="i-ordem"
+                  inputMode="numeric"
+                  value={form.ordem}
+                  onChange={(e) => setForm({ ...form, ordem: e.target.value })}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Menor número aparece primeiro dentro da categoria.
+                </p>
+              </div>
+              <div>
+                <Label>Foto do item</Label>
+                <div className="flex items-center gap-2">
+                  {urlFotoCardapio(form.foto_path) ? (
+                    <img
+                      src={urlFotoCardapio(form.foto_path)!}
+                      alt={`Foto de ${form.nome || "item"}`}
+                      className="size-16 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-16 items-center justify-center rounded border border-dashed text-muted-foreground">
+                      <ImagePlus className="size-6" />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <input
+                      ref={entradaFoto}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      aria-label="Escolher foto do item"
+                      onChange={(e) => void escolherFoto(e.target.files?.[0])}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={enviandoFoto}
+                      onClick={() => entradaFoto.current?.click()}
+                    >
+                      {enviandoFoto
+                        ? "Enviando..."
+                        : form.foto_path
+                          ? "Trocar foto"
+                          : "Enviar foto"}
+                    </Button>
+                    {form.foto_path && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (form.foto_path !== form.foto_original)
+                            void apagarFotoCardapio(form.foto_path);
+                          setForm({ ...form, foto_path: null });
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="i-desc">Descrição</Label>
