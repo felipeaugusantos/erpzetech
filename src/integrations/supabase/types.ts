@@ -9466,11 +9466,54 @@ export type Database = {
           },
         ]
       }
+      pet_pesagens: {
+        Row: {
+          created_at: string
+          id: string
+          observacao: string | null
+          pesado_em: string
+          pet_id: string
+          peso_kg: number
+          registrado_por: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pesado_em?: string
+          pet_id: string
+          peso_kg: number
+          registrado_por?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pesado_em?: string
+          pet_id?: string
+          peso_kg?: number
+          registrado_por?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_pesagens_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_profissionais: {
         Row: {
           ativo: boolean
           comissao_percentual: number
           created_at: string
+          crf: string | null
+          crf_uf: string | null
           crmv: string | null
           crmv_uf: string | null
           filial_id: string | null
@@ -9485,6 +9528,8 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crf?: string | null
+          crf_uf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -9499,6 +9544,8 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crf?: string | null
+          crf_uf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -9853,7 +9900,9 @@ export type Database = {
           cliente_id: string
           created_at: string
           especie: string
+          foto: string | null
           id: string
+          microchip: string | null
           nascimento: string | null
           nome: string
           observacoes: string | null
@@ -9872,7 +9921,9 @@ export type Database = {
           cliente_id: string
           created_at?: string
           especie?: string
+          foto?: string | null
           id?: string
+          microchip?: string | null
           nascimento?: string | null
           nome: string
           observacoes?: string | null
@@ -9891,7 +9942,9 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           especie?: string
+          foto?: string | null
           id?: string
+          microchip?: string | null
           nascimento?: string | null
           nome?: string
           observacoes?: string | null
@@ -13366,6 +13419,11 @@ export type Database = {
           p_raca: string
           p_servico_id: string
         }
+        Returns: string
+      }
+      pet_pesagem_excluir: { Args: { p_id: string }; Returns: undefined }
+      pet_pesagem_registrar: {
+        Args: { p_data?: string; p_observacao?: string; p_pet_id: string; p_peso_kg: number }
         Returns: string
       }
       pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }

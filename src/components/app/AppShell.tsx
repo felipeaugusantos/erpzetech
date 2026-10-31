@@ -658,6 +658,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-vacinas",
       "/clinica-cartao",
       "/clinica-documento",
+      "/clinica-ficha",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
       navigate({ to: "/pet-minha-agenda", replace: true });

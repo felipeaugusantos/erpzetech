@@ -43,7 +43,14 @@ import {
   usuarioSugeridoDoNome,
 } from "@/lib/profissional-acesso";
 import { criarUsuario } from "@/lib/usuario-admin.functions";
-import { FUNCOES_PROFISSIONAL, UFS_CRMV, crmvValido, normalizarCrmv, rotulo } from "@/lib/pet";
+import {
+  FUNCOES_PROFISSIONAL,
+  UFS_CRMV,
+  crfValido,
+  crmvValido,
+  normalizarCrmv,
+  rotulo,
+} from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/pet-profissionais")({
   head: () => ({
@@ -74,6 +81,9 @@ type Form = {
   /** só para veterinário */
   crmv: string;
   crmv_uf: string;
+  /** só para farmacêutico (responsável pelo envio do SNGPC) */
+  crf: string;
+  crf_uf: string;
   /** conta de acesso (perfil Profissional) ligada ao cadastro; vazio = sem acesso próprio */
   profile_id: string;
   profile_original: string;
@@ -91,6 +101,8 @@ const vazio: Form = {
   ativo: true,
   crmv: "",
   crmv_uf: "",
+  crf: "",
+  crf_uf: "",
   profile_id: "",
   profile_original: "",
   criar_acesso: false,
@@ -156,6 +168,8 @@ function Profissionais() {
       if (!form.nome.trim()) throw new Error("Informe o nome do profissional.");
       if (form.funcao === "veterinario" && !crmvValido(form.crmv, form.crmv_uf))
         throw new Error("Informe o CRMV (de 3 a 12 letras ou números) e a UF do veterinário.");
+      if (form.funcao === "farmaceutico" && !crfValido(form.crf, form.crf_uf))
+        throw new Error("Informe o CRF (de 3 a 12 letras ou números) e a UF do farmacêutico.");
       const com = Number((form.comissao_percentual || "0").replace(",", "."));
       if (!Number.isFinite(com) || com < 0 || com > 100)
         throw new Error("A comissão precisa ficar entre 0 e 100%.");
@@ -174,6 +188,9 @@ function Profissionais() {
           ativo: form.ativo,
           ...(form.funcao === "veterinario"
             ? { crmv: normalizarCrmv(form.crmv), crmv_uf: form.crmv_uf }
+            : {}),
+          ...(form.funcao === "farmaceutico"
+            ? { crf: normalizarCrmv(form.crf), crf_uf: form.crf_uf }
             : {}),
         },
       });
@@ -310,6 +327,8 @@ function Profissionais() {
                             ativo: p.ativo,
                             crmv: p.crmv ?? "",
                             crmv_uf: p.crmv_uf ?? "",
+                            crf: p.crf ?? "",
+                            crf_uf: p.crf_uf ?? "",
                             profile_id: p.profile_id ?? "",
                             profile_original: p.profile_id ?? "",
                             criar_acesso: false,
@@ -388,6 +407,38 @@ function Profissionais() {
                     onValueChange={(v) => setForm({ ...form, crmv_uf: v === "__sem_uf" ? "" : v })}
                   >
                     <SelectTrigger id="pf-uf">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__sem_uf">—</SelectItem>
+                      {UFS_CRMV.map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {u}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            {form.funcao === "farmaceutico" && (
+              <div className="grid grid-cols-[1fr_6rem] gap-3">
+                <div>
+                  <Label htmlFor="pf-crf">CRF</Label>
+                  <Input
+                    id="pf-crf"
+                    value={form.crf}
+                    placeholder="Ex.: 12345"
+                    onChange={(e) => setForm({ ...form, crf: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pf-crf-uf">UF</Label>
+                  <Select
+                    value={form.crf_uf || "__sem_uf"}
+                    onValueChange={(v) => setForm({ ...form, crf_uf: v === "__sem_uf" ? "" : v })}
+                  >
+                    <SelectTrigger id="pf-crf-uf">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

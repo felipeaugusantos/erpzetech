@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PawPrint, Pencil, Plus, Search, Syringe } from "lucide-react";
+import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
+import { PesagensPet } from "@/components/app/PesagensPet";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,17 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { dateBR } from "@/lib/format";
-import { ESPECIES, PELAGENS, PORTES, SEXOS, idadeDoPet, rotulo } from "@/lib/pet";
+import {
+  ESPECIES,
+  PELAGENS,
+  PORTES,
+  SEXOS,
+  idadeDoPet,
+  microchipValido,
+  normalizarMicrochip,
+  rotulo,
+} from "@/lib/pet";
+import { reduzirFoto } from "@/lib/pet-foto";
 
 export const Route = createFileRoute("/_authenticated/pets")({
   head: () => ({
@@ -76,6 +87,10 @@ type Form = {
   alergias: string;
   observacoes: string;
   ativo: boolean;
+  microchip: string;
+  /** foto atual do pet (miniatura JPEG); só vai ao banco quando fotoMudou */
+  foto: string | null;
+  fotoMudou: boolean;
 };
 
 const vazio: Form = {
@@ -95,6 +110,9 @@ const vazio: Form = {
   alergias: "",
   observacoes: "",
   ativo: true,
+  microchip: "",
+  foto: null,
+  fotoMudou: false,
 };
 
 function PetsModulo() {
@@ -121,7 +139,12 @@ function Pets() {
     queryKey: ["pets"],
     queryFn: async () => {
       const [pets, clientes] = await Promise.all([
-        supabase.from("pets").select("*").order("nome"),
+        supabase
+          .from("pets")
+          .select(
+            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, microchip, created_at, updated_at",
+          )
+          .order("nome"),
         supabase
           .from("clientes")
           .select("id, nome, cpf, cnpj, telefone")
@@ -163,6 +186,8 @@ function Pets() {
       const peso = form.peso_kg.trim() ? Number(form.peso_kg.replace(",", ".")) : null;
       if (peso !== null && (!Number.isFinite(peso) || peso <= 0))
         throw new Error("Informe um peso válido.");
+      if (form.microchip.trim() && !microchipValido(form.microchip))
+        throw new Error("O microchip tem de 9 a 15 números.");
       let clienteId = form.cliente_id;
       if (form.tutor_novo) {
         const fone = form.novo_tutor_telefone.trim();
@@ -201,6 +226,8 @@ function Pets() {
           alergias: form.alergias.trim() || null,
           observacoes: form.observacoes.trim() || null,
           ativo: form.ativo,
+          microchip: normalizarMicrochip(form.microchip) || null,
+          ...(form.fotoMudou ? { foto: form.foto } : {}),
         },
       });
       if (error) throw error;
@@ -347,6 +374,19 @@ function Pets() {
                           size="icon"
                           aria-label={`Editar ${p.nome}`}
                           onClick={() => {
+                            // a foto não vem na lista (pesa); busca só a deste pet
+                            void supabase
+                              .from("pets")
+                              .select("foto")
+                              .eq("id", p.id)
+                              .maybeSingle()
+                              .then(({ data: f }) =>
+                                setForm((atual) =>
+                                  atual.id === p.id && !atual.fotoMudou
+                                    ? { ...atual, foto: f?.foto ?? null }
+                                    : atual,
+                                ),
+                              );
                             setForm({
                               id: p.id,
                               cliente_id: p.cliente_id,
@@ -365,6 +405,9 @@ function Pets() {
                               alergias: p.alergias ?? "",
                               observacoes: p.observacoes ?? "",
                               ativo: p.ativo,
+                              microchip: p.microchip ?? "",
+                              foto: null,
+                              fotoMudou: false,
                             });
                             tutorNovoId.current = null;
                             setAberto(true);
@@ -565,6 +608,57 @@ function Pets() {
               />
               <Label htmlFor="pet-ativo">Ativo</Label>
             </div>
+            <div>
+              <Label htmlFor="pet-chip">Microchip</Label>
+              <Input
+                id="pet-chip"
+                inputMode="numeric"
+                placeholder="9 a 15 números"
+                value={form.microchip}
+                onChange={(e) => setForm({ ...form, microchip: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              {form.foto ? (
+                <img
+                  src={form.foto}
+                  alt={`Foto de ${form.nome || "pet"}`}
+                  className="size-16 rounded-md border border-border object-cover"
+                />
+              ) : (
+                <div className="flex size-16 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
+                  <Camera className="size-5" />
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="pet-foto" className="cursor-pointer text-sm text-primary underline">
+                  {form.foto ? "Trocar foto" : "Adicionar foto"}
+                </Label>
+                <input
+                  id="pet-foto"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const arq = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!arq) return;
+                    reduzirFoto(arq)
+                      .then((foto) => setForm((f) => ({ ...f, foto, fotoMudou: true })))
+                      .catch((err: Error) => toast.error(err.message));
+                  }}
+                />
+                {form.foto && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground underline"
+                    onClick={() => setForm({ ...form, foto: null, fotoMudou: true })}
+                  >
+                    <Trash2 className="size-3" /> Remover
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <Label htmlFor="pet-alergias">Alergias e cuidados</Label>
               <Input
@@ -581,6 +675,17 @@ function Pets() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
               />
             </div>
+            {form.id && (
+              <PesagensPet
+                petId={form.id}
+                podeExcluir={(session?.roles ?? []).some((r) =>
+                  ["administrador", "gestor"].includes(r),
+                )}
+                aoMudarPeso={(kg) =>
+                  setForm((f) => ({ ...f, peso_kg: kg === null ? "" : String(kg) }))
+                }
+              />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>

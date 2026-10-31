@@ -287,6 +287,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         >
           Exames
         </Link>
+        <Link
+          to="/clinica-ficha"
+          search={{ pet: petId }}
+          className="mt-1 ml-4 inline-block text-sm text-primary underline"
+        >
+          Imprimir ficha clínica
+        </Link>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <span>{rotulo(ESPECIES, p.especie)}</span>
           {p.raca && <span>{p.raca}</span>}
