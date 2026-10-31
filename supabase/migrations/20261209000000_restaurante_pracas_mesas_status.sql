@@ -11,7 +11,7 @@
 -- 30 min antes do horário até 2 h depois; ao abrir a comanda na mesa a reserva vira "atendida". Escrita só por função.
 
 -- ===== Praças de produção =====
-CREATE TABLE public.restaurante_pracas (
+CREATE TABLE IF NOT EXISTS public.restaurante_pracas (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
   codigo text NOT NULL CHECK (codigo ~ '^[a-z0-9_]{2,40}$'),
@@ -19,8 +19,8 @@ CREATE TABLE public.restaurante_pracas (
   ativo boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX restaurante_pracas_codigo_uk ON public.restaurante_pracas (tenant_id, codigo);
-CREATE UNIQUE INDEX restaurante_pracas_nome_uk ON public.restaurante_pracas (tenant_id, lower(btrim(nome)));
+CREATE UNIQUE INDEX IF NOT EXISTS restaurante_pracas_codigo_uk ON public.restaurante_pracas (tenant_id, codigo);
+CREATE UNIQUE INDEX IF NOT EXISTS restaurante_pracas_nome_uk ON public.restaurante_pracas (tenant_id, lower(btrim(nome)));
 
 -- o código nasce do nome, não muda depois e não pode repetir os fixos
 CREATE OR REPLACE FUNCTION public.restaurante_praca_antes()
@@ -34,8 +34,9 @@ BEGIN
     RETURN NEW;
   END IF;
   v_codigo := regexp_replace(
-    lower(translate(btrim(NEW.nome), 'áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ',
-                                     'aaaaaeeeeiiiiooooouuuucnaaaaaeeeeiiiiooooouuuucn')),
+    translate(lower(btrim(NEW.nome)),
+              chr(225) || chr(224) || chr(226) || chr(227) || chr(228) || chr(233) || chr(232) || chr(234) || chr(235) || chr(237) || chr(236) || chr(238) || chr(239) || chr(243) || chr(242) || chr(244) || chr(245) || chr(246) || chr(250) || chr(249) || chr(251) || chr(252) || chr(231) || chr(241),
+              'aaaaaeeeeiiiiooooouuuucn'),
     '[^a-z0-9]+', '_', 'g');
   v_codigo := btrim(v_codigo, '_');
   IF char_length(v_codigo) < 2 THEN
@@ -48,6 +49,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+DROP TRIGGER IF EXISTS trg_restaurante_praca_antes ON public.restaurante_pracas;
 CREATE TRIGGER trg_restaurante_praca_antes BEFORE INSERT OR UPDATE ON public.restaurante_pracas
   FOR EACH ROW EXECUTE FUNCTION public.restaurante_praca_antes();
 
@@ -65,6 +67,7 @@ BEGIN
   RETURN OLD;
 END;
 $$;
+DROP TRIGGER IF EXISTS trg_restaurante_praca_excluir ON public.restaurante_pracas;
 CREATE TRIGGER trg_restaurante_praca_excluir BEFORE DELETE ON public.restaurante_pracas
   FOR EACH ROW EXECUTE FUNCTION public.restaurante_praca_excluir();
 
@@ -73,18 +76,23 @@ REVOKE ALL ON public.restaurante_pracas FROM PUBLIC, anon;
 GRANT ALL ON public.restaurante_pracas TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurante_pracas TO authenticated;
 -- a cozinha e o salão leem as praças para filtrar e mostrar o nome; só a gestão cadastra
+DROP POLICY IF EXISTS restaurante_pracas_select ON public.restaurante_pracas;
 CREATE POLICY restaurante_pracas_select ON public.restaurante_pracas FOR SELECT TO authenticated
   USING (tenant_id = public.current_tenant_id() AND public.restaurante_operador());
+DROP POLICY IF EXISTS restaurante_pracas_insert ON public.restaurante_pracas;
 CREATE POLICY restaurante_pracas_insert ON public.restaurante_pracas FOR INSERT TO authenticated
   WITH CHECK (tenant_id = public.current_tenant_id() AND public.restaurante_gestao());
+DROP POLICY IF EXISTS restaurante_pracas_update ON public.restaurante_pracas;
 CREATE POLICY restaurante_pracas_update ON public.restaurante_pracas FOR UPDATE TO authenticated
   USING (tenant_id = public.current_tenant_id() AND public.restaurante_gestao())
   WITH CHECK (tenant_id = public.current_tenant_id());
+DROP POLICY IF EXISTS restaurante_pracas_delete ON public.restaurante_pracas;
 CREATE POLICY restaurante_pracas_delete ON public.restaurante_pracas FOR DELETE TO authenticated
   USING (tenant_id = public.current_tenant_id() AND public.restaurante_gestao());
 
 -- o item aceita cozinha, bar, nenhuma ou uma praça ativa cadastrada na própria empresa
 ALTER TABLE public.cardapio_itens DROP CONSTRAINT IF EXISTS cardapio_itens_estacao_check;
+ALTER TABLE public.cardapio_itens DROP CONSTRAINT IF EXISTS cardapio_itens_estacao_formato_ck;
 ALTER TABLE public.cardapio_itens ADD CONSTRAINT cardapio_itens_estacao_formato_ck
   CHECK (estacao ~ '^[a-z0-9_]{2,40}$');
 
@@ -105,6 +113,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+DROP TRIGGER IF EXISTS trg_cardapio_itens_praca ON public.cardapio_itens;
 CREATE TRIGGER trg_cardapio_itens_praca BEFORE INSERT OR UPDATE OF estacao ON public.cardapio_itens
   FOR EACH ROW EXECUTE FUNCTION public.restaurante_item_praca_valida();
 
@@ -135,7 +144,7 @@ END;
 $$;
 
 -- ===== Reservas =====
-CREATE TABLE public.mesa_reservas (
+CREATE TABLE IF NOT EXISTS public.mesa_reservas (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants (id) ON DELETE CASCADE,
   mesa_id uuid NOT NULL,
@@ -150,16 +159,18 @@ CREATE TABLE public.mesa_reservas (
   CONSTRAINT mesa_reservas_mesa_fk FOREIGN KEY (mesa_id, tenant_id)
     REFERENCES public.mesas (id, tenant_id) ON DELETE CASCADE
 );
-CREATE INDEX mesa_reservas_idx ON public.mesa_reservas (tenant_id, mesa_id, reservada_para) WHERE situacao = 'ativa';
+CREATE INDEX IF NOT EXISTS mesa_reservas_idx ON public.mesa_reservas (tenant_id, mesa_id, reservada_para) WHERE situacao = 'ativa';
 
 ALTER TABLE public.mesa_reservas ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.mesa_reservas FROM PUBLIC, anon;
 GRANT ALL ON public.mesa_reservas TO service_role;
 GRANT SELECT ON public.mesa_reservas TO authenticated;
+DROP POLICY IF EXISTS mesa_reservas_select ON public.mesa_reservas;
 CREATE POLICY mesa_reservas_select ON public.mesa_reservas FOR SELECT TO authenticated
   USING (tenant_id = public.current_tenant_id() AND public.restaurante_operador());
 
 -- o gatilho de comanda precisa da tabela de reservas, por isso é criado depois dela
+DROP TRIGGER IF EXISTS trg_comandas_mesa_trava ON public.comandas;
 CREATE TRIGGER trg_comandas_mesa_trava BEFORE INSERT OR UPDATE OF mesa_id ON public.comandas
   FOR EACH ROW EXECUTE FUNCTION public.restaurante_comanda_mesa_trava();
 

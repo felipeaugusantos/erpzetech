@@ -1217,6 +1217,94 @@ BEGIN
   PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'cancelada', 'reserva cancelada');
 END $$;
 
+-- 20c. foto do item e cardápio online
+DO $$
+DECLARE
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  outro_tenant uuid; cat uuid; it1 uuid; it2 uuid; g1 uuid; r jsonb; emp record;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  -- a empresa mais antiga da loja recebe o link (o espelho com o cadastro do assinante usa essa mesma)
+  SELECT id, slug, nome_fantasia, ativo INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  IF emp.id IS NOT NULL THEN
+    UPDATE empresas SET slug = 'bistro-ci', nome_fantasia = 'Bistrô CI', ativo = true
+     WHERE id = (SELECT id FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1);
+  ELSE
+    INSERT INTO empresas (tenant_id, razao_social, nome_fantasia, slug) VALUES (demo, 'Cardápio CI LTDA', 'Bistrô CI', 'bistro-ci');
+  END IF;
+  INSERT INTO cardapio_categorias (tenant_id, nome, ordem) VALUES (demo, 'Pratos CI', 1) RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, descricao, preco, ordem, foto_path)
+    VALUES (demo, cat, 'Risoto CI', 'Cremoso', 52.5, 2, demo::text || '/risoto-1.jpg') RETURNING id INTO it1;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, ordem) VALUES (demo, cat, 'Filé CI', 70, 1) RETURNING id INTO it2;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, ativo) VALUES (demo, cat, 'Item inativo CI', 9, false);
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (demo, it2, 'Ponto') RETURNING id INTO g1;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, g1, 'Ao ponto', 0), (demo, g1, 'Bem passado', 2);
+
+  -- foto: caminho precisa ser da própria empresa e ter nome simples
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, outro_tenant::text || '/x.jpg', it1), 'foto no caminho de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, demo::text || '/../x.jpg', it1), 'foto com caminho fora da pasta');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, demo::text || '/a/b.jpg', it1), 'foto em subpasta');
+
+  -- desligado por padrão
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('bistro-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'cardápio online desligado não aparece');
+
+  -- só a gestão liga
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, cardapio_online) VALUES (%L, true)$c$, demo), 'garçom liga o cardápio online');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, cardapio_online) VALUES (demo, true)
+    ON CONFLICT (tenant_id) DO UPDATE SET cardapio_online = true;
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('BISTRO-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r IS NOT NULL AND r->'empresa'->>'nome' = 'Bistrô CI', 'anônimo vê o cardápio ligado (link sem diferenciar maiúsculas)');
+  PERFORM ci.exige(jsonb_array_length(r->'categorias') >= 1, 'cardápio público tem categorias');
+  PERFORM ci.exige((SELECT c->'itens'->0->>'nome' FROM jsonb_array_elements(r->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 'Filé CI', 'itens saem na ordem do cadastro');
+  PERFORM ci.exige(NOT (r::text LIKE '%Item inativo CI%'), 'item inativo não aparece');
+  PERFORM ci.exige((SELECT (c->'itens'->0->'grupos'->0->'opcoes'->1->>'preco_adicional')::numeric FROM jsonb_array_elements(r->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 2, 'adicionais saem com valor');
+  PERFORM ci.exige(r::text LIKE '%risoto-1.jpg%', 'foto do item sai no cardápio');
+  PERFORM ci.exige(r::text NOT LIKE '%custo%' AND r::text NOT LIKE '%estacao%' AND r::text NOT LIKE '%tenant%', 'cardápio público não expõe custo, estação nem empresa');
+
+  -- categoria desativada some do cardápio
+  UPDATE cardapio_categorias SET ativo = false WHERE id = cat;
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('bistro-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r::text LIKE '%Filé CI%'), 'item de categoria desativada some do cardápio online');
+  UPDATE cardapio_categorias SET ativo = true WHERE id = cat;
+
+  -- link inválido ou desconhecido
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_cardapio_publico('nao-existe-ci') IS NULL, 'link desconhecido');
+  PERFORM ci.exige(restaurante_cardapio_publico('a b') IS NULL, 'link inválido');
+  PERFORM ci.exige(restaurante_cardapio_publico(NULL) IS NULL, 'link vazio');
+  PERFORM ci.sair();
+
+  -- empresa inativa não publica
+  UPDATE empresas SET ativo = false WHERE tenant_id = demo AND slug = 'bistro-ci';
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_cardapio_publico('bistro-ci') IS NULL, 'empresa inativa não publica o cardápio');
+  PERFORM ci.sair();
+  UPDATE empresas SET ativo = true WHERE tenant_id = demo AND slug = 'bistro-ci';
+
+  -- armazenamento: só a gestão da própria empresa mexe na pasta
+  PERFORM ci.entrar(adm);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', demo::text || '/prato.jpg');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, outro_tenant::text || '/prato.jpg'), 'gestão envia foto na pasta de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, demo::text || '/garcom.jpg'), 'garçom envia foto do cardápio');
+  PERFORM ci.deve_falhar(NULL, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, demo::text || '/anon.jpg'), 'anônimo envia foto do cardápio');
+
+  -- devolve a empresa ao que era, para não interferir nos testes seguintes
+  UPDATE empresas SET slug = emp.slug, nome_fantasia = emp.nome_fantasia, ativo = emp.ativo WHERE id = emp.id;
+END $$;
+
 -- 21. pedido de obra com retirada parcial: saldo por item e trava de saída
 DO $$
 DECLARE
