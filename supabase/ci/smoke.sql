@@ -8252,3 +8252,89 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id IN (prod, vend);
 END $$;
+
+-- 89. Pet: microchip, foto, pesagens e farmacêutico (CRF)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; tutor_b uuid; pet uuid; pet2 uuid; pet_b uuid; pes uuid; pes2 uuid; prof uuid; v_foto text;
+BEGIN
+  v_foto := 'data:image/jpeg;base64,' || repeat('A', 400);
+  INSERT INTO tenants (nome) VALUES ('Pet ficha B') RETURNING id INTO tb;
+  INSERT INTO auth.users (id, email) VALUES (ub, 'pet-ficha-b@ci');
+  UPDATE profiles SET tenant_id = tb WHERE id = ub;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (ub, tb, 'administrador');
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor ficha CI') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Tutor ficha B') RETURNING id INTO tutor_b;
+
+  -- microchip e foto
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'microchip', '123'))$c$, tutor), 'microchip curto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'foto', 'data:image/png;base64,AAAA'))$c$, tutor), 'foto que não é JPEG');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'foto', 'data:image/jpeg;base64,' || repeat('A', 130000)))$c$, tutor), 'foto grande demais');
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Chipado', 'microchip', '985 112-345.678', 'foto', v_foto, 'peso_kg', 4));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip = '985112345678' AND foto = v_foto FROM pets WHERE id = pet), 'microchip só com números e foto guardados');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Outro', 'microchip', '985112345678'))$c$, tutor), 'microchip repetido na empresa');
+  PERFORM ci.entrar(vend);
+  pet2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Outro', 'microchip', '985112345679'));
+  -- editar sem as chaves não apaga foto nem microchip; com a chave nula remove
+  PERFORM pet_salvar(jsonb_build_object('id', pet, 'cliente_id', tutor, 'nome', 'Chipado', 'peso_kg', 4));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip = '985112345678' AND foto IS NOT NULL FROM pets WHERE id = pet), 'salvar sem as chaves mantém foto e microchip');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_salvar(jsonb_build_object('id', pet, 'cliente_id', tutor, 'nome', 'Chipado', 'peso_kg', 4, 'foto', NULL, 'microchip', NULL));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip IS NULL AND foto IS NULL FROM pets WHERE id = pet), 'chave nula remove foto e microchip');
+  PERFORM ci.entrar(ub);
+  pet_b := pet_salvar(jsonb_build_object('cliente_id', tutor_b, 'nome', 'Outra empresa', 'microchip', '985112345679'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(pet_b IS NOT NULL, 'o mesmo microchip vale em outra empresa');
+
+  -- pesagens
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet), 'garçom pesa');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet), 'anon pesa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 0)$c$, pet), 'peso zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 250)$c$, pet), 'peso acima de 200 kg');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 5, current_date + 10)$c$, pet), 'pesagem no futuro');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet_b), 'pet de outra empresa');
+  PERFORM ci.entrar(vend);
+  pes := pet_pesagem_registrar(pet, 5.2, current_date - 10, 'primeira');
+  pes2 := pet_pesagem_registrar(pet, 5.8, current_date, NULL);
+  PERFORM pet_pesagem_registrar(pet, 4.9, current_date - 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 5.8 FROM pets WHERE id = pet), 'o peso do cadastro acompanha a pesagem mais recente (mesmo lançada fora de ordem)');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM pet_pesagens WHERE pet_id = %L', pet)) = 3, 'vendedor lê as pesagens');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_pesagens') = 0, 'garçom não lê pesagens');
+  PERFORM ci.exige(ci.contar(ub, 'SELECT count(*) FROM pet_pesagens') = 0, 'outra empresa não lê as pesagens');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO pet_pesagens (pet_id, peso_kg) VALUES (%L, 9)$c$, pet), 'gravar pesagem direto na tabela');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_excluir(%L)$c$, pes2), 'vendedor exclui pesagem');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_pesagem_excluir(%L)$c$, pes2), 'outra empresa exclui pesagem');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_pesagem_excluir(pes2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 5.2 FROM pets WHERE id = pet), 'excluir a mais recente volta o peso para a anterior');
+
+  -- farmacêutico com CRF
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico"}'::jsonb)$c$, 'farmacêutico sem CRF');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"XX"}'::jsonb)$c$, 'farmacêutico com UF inválida');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"PE"}'::jsonb)$c$, 'vendedor cria farmacêutico');
+  PERFORM ci.entrar(adm);
+  prof := pet_profissional_salvar('{"nome":"Farma CI","funcao":"farmaceutico","crf":"12.345","crf_uf":"PE","crmv":"999","crmv_uf":"PE"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT crf = '12345' AND crf_uf = 'PE' AND crmv IS NULL FROM pet_profissionais WHERE id = prof), 'farmacêutico guarda o CRF (sem CRMV)');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_profissional_salvar(jsonb_build_object('id', prof, 'nome', 'Farma CI', 'funcao', 'banhista'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT crf IS NULL AND crf_uf IS NULL FROM pet_profissionais WHERE id = prof), 'mudar a função limpa o CRF');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_profissionais SET crf = '123' WHERE id = %L$c$, prof), 'CRF sem UF na tabela');
+
+  DELETE FROM pet_pesagens WHERE tenant_id IN (demo, tb);
+  DELETE FROM pet_profissionais WHERE id = prof;
+  DELETE FROM pets WHERE tenant_id IN (demo, tb) AND nome IN ('Chipado', 'Outro', 'Outra empresa');
+END $$;

@@ -88,6 +88,9 @@ DROP POLICY IF EXISTS pet_pesagens_select ON public.pet_pesagens;
 CREATE POLICY pet_pesagens_select ON public.pet_pesagens FOR SELECT TO authenticated USING (tenant_id = public.current_tenant_id());
 REVOKE ALL ON public.pet_pesagens FROM anon, authenticated;
 GRANT SELECT ON public.pet_pesagens TO authenticated;
+GRANT ALL ON public.pet_pesagens TO service_role;
+DROP POLICY IF EXISTS salao_restrito ON public.pet_pesagens;
+CREATE POLICY salao_restrito ON public.pet_pesagens AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
 
 -- O peso do cadastro acompanha a pesagem mais recente.
 CREATE OR REPLACE FUNCTION public._pet_peso_atual(p_pet_id uuid)
@@ -148,6 +151,9 @@ REVOKE ALL ON FUNCTION public.pet_pesagem_excluir(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_pesagem_excluir(uuid) TO authenticated;
 
 -- ============ farmacêutico (CRF) ============
+ALTER TABLE public.pet_profissionais DROP CONSTRAINT IF EXISTS pet_profissionais_funcao_check;
+ALTER TABLE public.pet_profissionais ADD CONSTRAINT pet_profissionais_funcao_check
+  CHECK (funcao IN ('banhista', 'tosador', 'groomer', 'veterinario', 'farmaceutico', 'auxiliar', 'outro'));
 ALTER TABLE public.pet_profissionais ADD COLUMN IF NOT EXISTS crf text;
 ALTER TABLE public.pet_profissionais ADD COLUMN IF NOT EXISTS crf_uf text;
 ALTER TABLE public.pet_profissionais DROP CONSTRAINT IF EXISTS pet_profissionais_crf_chk;
