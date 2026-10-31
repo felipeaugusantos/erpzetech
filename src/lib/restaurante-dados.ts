@@ -8,6 +8,8 @@ export type Mesa = {
   numero: string;
   capacidade: number | null;
   ativa: boolean;
+  bloqueada: boolean;
+  bloqueio_motivo: string | null;
   filial_id: string | null;
 };
 
@@ -45,6 +47,20 @@ export type Comanda = {
   entregue_cliente_em: string | null;
 };
 
+export type MesaReserva = {
+  id: string;
+  mesa_id: string;
+  nome: string;
+  telefone: string | null;
+  pessoas: number | null;
+  reservada_para: string;
+  observacao: string | null;
+  situacao: "ativa" | "atendida" | "cancelada";
+};
+
+/** Praça de produção cadastrada pela gestão (além de cozinha e bar, que são fixas). */
+export type Praca = { id: string; codigo: string; nome: string; ativo: boolean };
+
 export type ZonaEntrega = { id: string; nome: string; taxa: number; ativo: boolean };
 
 export type ComandaItem = {
@@ -52,7 +68,7 @@ export type ComandaItem = {
   comanda_id: string;
   cardapio_item_id: string;
   nome: string;
-  estacao: "cozinha" | "bar" | "nenhuma";
+  estacao: string;
   opcoes: { nome: string; preco_adicional: number }[];
   quantidade: number;
   preco_unitario: number;
@@ -101,7 +117,7 @@ export type CardapioItem = {
   nome: string;
   descricao: string | null;
   preco: number;
-  estacao: "cozinha" | "bar" | "nenhuma";
+  estacao: string;
   tempo_preparo_min: number | null;
   ordem: number;
   ativo: boolean;

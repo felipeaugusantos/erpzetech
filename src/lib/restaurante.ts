@@ -46,6 +46,46 @@ export const ROTULO_ESTACAO: Record<string, string> = {
   nenhuma: "Pronto para servir",
 };
 
+/** Nome da praça de produção: as fixas têm rótulo próprio; as cadastradas vêm da lista da empresa. */
+export function rotuloEstacao(
+  codigo: string,
+  pracas: readonly { codigo: string; nome: string }[] = [],
+): string {
+  return ROTULO_ESTACAO[codigo] ?? pracas.find((p) => p.codigo === codigo)?.nome ?? codigo;
+}
+
+export type StatusMesa = "livre" | "ocupada" | "reservada" | "bloqueada";
+
+export const ROTULO_STATUS_MESA: Record<StatusMesa, string> = {
+  livre: "Livre",
+  ocupada: "Ocupada",
+  reservada: "Reservada",
+  bloqueada: "Bloqueada",
+};
+
+// Mesma janela do banco (restaurante_comanda_mesa_trava): a mesa fica "reservada" de 30 min antes do horário até 2 h depois.
+const ANTES_DA_RESERVA_MS = 30 * 60_000;
+const DEPOIS_DA_RESERVA_MS = 2 * 3_600_000;
+
+/** A reserva ativa vale para o status da mesa agora? */
+export function reservaVigente(reservadaPara: string, agora: number): boolean {
+  const t = new Date(reservadaPara).getTime();
+  return t - ANTES_DA_RESERVA_MS <= agora && agora <= t + DEPOIS_DA_RESERVA_MS;
+}
+
+/** Status da mesa no mapa: bloqueada vence reservada; comanda aberta vence tudo (a conta não some do mapa). */
+export function statusMesa(e: {
+  bloqueada: boolean;
+  ocupada: boolean;
+  reservas: readonly { reservada_para: string }[];
+  agora: number;
+}): StatusMesa {
+  if (e.ocupada) return "ocupada";
+  if (e.bloqueada) return "bloqueada";
+  if (e.reservas.some((r) => reservaVigente(r.reservada_para, e.agora))) return "reservada";
+  return "livre";
+}
+
 /** Próximo passo do preparo, para o botão da cozinha. */
 export function proximoPreparo(situacao: string): { para: SituacaoItem; rotulo: string } | null {
   if (situacao === "enviado") return { para: "preparando", rotulo: "Iniciar preparo" };

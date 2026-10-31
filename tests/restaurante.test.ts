@@ -6,6 +6,9 @@ import {
   calcularConta,
   dividirConta,
   ehGestaoSalao,
+  reservaVigente,
+  rotuloEstacao,
+  statusMesa,
   ehProfissionalRestrito,
   ehSalaoRestrito,
   minutosDesde,
@@ -235,4 +238,35 @@ test("serviço acumulado: duas baixas somam o serviço da conta inteira (sem per
       desconto: 0,
     }).total,
   );
+});
+
+test("rotuloEstacao: fixas, cadastradas e desconhecidas", () => {
+  const pracas = [{ codigo: "churrascaria", nome: "Churrascaria" }];
+  assert.equal(rotuloEstacao("cozinha", pracas), "Cozinha");
+  assert.equal(rotuloEstacao("nenhuma", pracas), "Pronto para servir");
+  assert.equal(rotuloEstacao("churrascaria", pracas), "Churrascaria");
+  assert.equal(rotuloEstacao("sumiu", pracas), "sumiu");
+});
+
+test("statusMesa: ocupada > bloqueada > reservada > livre", () => {
+  const agora = new Date("2026-11-01T20:00:00Z").getTime();
+  const em = (min: number) => new Date(agora + min * 60_000).toISOString();
+  const base = { bloqueada: false, ocupada: false, reservas: [], agora };
+  assert.equal(statusMesa(base), "livre");
+  assert.equal(statusMesa({ ...base, bloqueada: true }), "bloqueada");
+  assert.equal(statusMesa({ ...base, bloqueada: true, ocupada: true }), "ocupada");
+  assert.equal(statusMesa({ ...base, reservas: [{ reservada_para: em(20) }] }), "reservada");
+  assert.equal(
+    statusMesa({ ...base, bloqueada: true, reservas: [{ reservada_para: em(0) }] }),
+    "bloqueada",
+  );
+});
+
+test("reservaVigente: de 30 min antes a 2 h depois do horário", () => {
+  const agora = new Date("2026-11-01T20:00:00Z").getTime();
+  const em = (min: number) => new Date(agora + min * 60_000).toISOString();
+  assert.equal(reservaVigente(em(31), agora), false);
+  assert.equal(reservaVigente(em(30), agora), true);
+  assert.equal(reservaVigente(em(-120), agora), true);
+  assert.equal(reservaVigente(em(-121), agora), false);
 });

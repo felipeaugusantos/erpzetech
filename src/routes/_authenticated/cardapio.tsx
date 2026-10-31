@@ -30,11 +30,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCardapio } from "@/hooks/useCardapio";
+import { usePracas } from "@/hooks/usePracas";
 import { useZonasEntrega } from "@/hooks/useZonasEntrega";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
 import { brl } from "@/lib/format";
-import { ROTULO_ESTACAO, ehGestaoSalao } from "@/lib/restaurante";
+import { ehGestaoSalao, rotuloEstacao } from "@/lib/restaurante";
 import {
   CHAVE_REST,
   rpcRestaurante,
@@ -87,6 +88,7 @@ function Cardapio() {
           <TabsTrigger value="itens">Itens</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="mesas">Mesas</TabsTrigger>
+          <TabsTrigger value="pracas">Praças de produção</TabsTrigger>
           <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
         </TabsList>
@@ -99,6 +101,9 @@ function Cardapio() {
         <TabsContent value="mesas">
           <Mesas tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
+        <TabsContent value="pracas">
+          <Pracas tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
         <TabsContent value="estoque">
           <EstoqueRestaurante tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
@@ -107,6 +112,79 @@ function Cardapio() {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+/* ===== Praças de produção ===== */
+const SUGESTOES_PRACA = ["Churrascaria", "Lanches", "Pizzaria", "Sobremesas"];
+
+function Pracas({ tenantId }: { tenantId: string }) {
+  const { data: pracas = [] } = usePracas();
+  const salvar = useSalvar("restaurante_pracas", "Praça salva");
+  const [nome, setNome] = useState("");
+
+  const adicionar = (n: string) =>
+    salvar.mutate(
+      { dados: { tenant_id: tenantId, nome: n.trim() } },
+      { onSuccess: () => setNome("") },
+    );
+  const jaTem = (n: string) => pracas.some((p) => p.nome.toLowerCase() === n.toLowerCase());
+
+  return (
+    <div className="mt-4 max-w-2xl space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Praça é o lugar onde o item é preparado. Cozinha e Bar já existem. Cadastre as outras e
+        escolha a praça em cada item do cardápio: o pedido enviado aparece só na tela da praça certa
+        (Cozinha, filtro no topo).
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex-1">
+          <Label htmlFor="praca-nome">Nova praça</Label>
+          <Input
+            id="praca-nome"
+            value={nome}
+            maxLength={40}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="ex.: Churrascaria"
+          />
+        </div>
+        <Button disabled={!nome.trim() || salvar.isPending} onClick={() => adicionar(nome)}>
+          <Plus className="mr-1 size-4" /> Adicionar
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {SUGESTOES_PRACA.filter((n) => !jaTem(n)).map((n) => (
+          <Button
+            key={n}
+            size="sm"
+            variant="outline"
+            disabled={salvar.isPending}
+            onClick={() => adicionar(n)}
+          >
+            <Plus className="mr-1 size-3" /> {n}
+          </Button>
+        ))}
+      </div>
+      {["Cozinha", "Bar"].map((n) => (
+        <div
+          key={n}
+          className="flex items-center justify-between rounded border bg-secondary/40 p-2"
+        >
+          <span>{n}</span>
+          <span className="text-xs text-muted-foreground">fixa</span>
+        </div>
+      ))}
+      {pracas.map((p) => (
+        <div key={p.id} className="flex items-center justify-between rounded border p-2">
+          <span className={p.ativo ? "" : "text-muted-foreground line-through"}>{p.nome}</span>
+          <Switch
+            aria-label={`Praça ${p.nome} ativa`}
+            checked={p.ativo}
+            onCheckedChange={(v) => salvar.mutate({ id: p.id, dados: { ativo: v } })}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -452,7 +530,7 @@ type FormItem = {
   nome: string;
   categoria_id: string;
   preco: string;
-  estacao: "cozinha" | "bar" | "nenhuma";
+  estacao: string;
   tempo: string;
   descricao: string;
   ativo: boolean;
@@ -470,6 +548,7 @@ const itemVazio: FormItem = {
 
 function Itens({ tenantId }: { tenantId: string }) {
   const { data } = useCardapio(true);
+  const { data: pracas = [] } = usePracas();
   const [form, setForm] = useState<FormItem | null>(null);
   const salvar = useSalvar("cardapio_itens", "Item salvo");
   const categorias = data?.categorias ?? [];
@@ -555,7 +634,7 @@ function Itens({ tenantId }: { tenantId: string }) {
                     </p>
                     <p className="text-sm">{brl(i.preco)}</p>
                     <Badge variant="secondary" className="mt-1">
-                      {ROTULO_ESTACAO[i.estacao]}
+                      {rotuloEstacao(i.estacao, pracas)}
                     </Badge>
                   </div>
                   <Button
@@ -617,10 +696,10 @@ function Itens({ tenantId }: { tenantId: string }) {
                 />
               </div>
               <div>
-                <Label>Onde é preparado</Label>
+                <Label>Praça de produção (onde é preparado)</Label>
                 <Select
                   value={form.estacao}
-                  onValueChange={(v) => setForm({ ...form, estacao: v as FormItem["estacao"] })}
+                  onValueChange={(v) => setForm({ ...form, estacao: v })}
                 >
                   <SelectTrigger aria-label="Estação de preparo">
                     <SelectValue />
@@ -628,6 +707,13 @@ function Itens({ tenantId }: { tenantId: string }) {
                   <SelectContent>
                     <SelectItem value="cozinha">Cozinha</SelectItem>
                     <SelectItem value="bar">Bar</SelectItem>
+                    {pracas
+                      .filter((p) => p.ativo || p.codigo === form.estacao)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.codigo}>
+                          {p.nome}
+                        </SelectItem>
+                      ))}
                     <SelectItem value="nenhuma">Pronto para servir (ex.: lata)</SelectItem>
                   </SelectContent>
                 </Select>

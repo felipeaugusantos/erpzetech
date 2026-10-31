@@ -517,6 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
+    'restaurante_pracas', 'mesa_reservas',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -1110,6 +1111,110 @@ BEGIN
   PERFORM ci.deve_falhar(cxa, format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Sul', 5)$c$, demo), 'caixa cadastra zona de entrega');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, ' centro ', 5)$c$, demo), 'zona repetida (sem diferenciar maiúsculas)');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Cara', 5000)$c$, demo), 'taxa de zona absurda');
+END $$;
+
+-- 20b. praças de produção, mesa bloqueada e reserva de mesa
+DO $$
+DECLARE
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  outro_tenant uuid; m1 uuid; m2 uuid; it uuid; cmd uuid; res uuid; praca_churras uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'PZ1') RETURNING id INTO m1;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'PZ2') RETURNING id INTO m2;
+
+  -- praças: a gestão cadastra; garçom e cozinha leem; o código nasce do nome
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (demo, 'Churrascaria Açougue') RETURNING id INTO praca_churras;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT codigo FROM restaurante_pracas WHERE id = praca_churras) = 'churrascaria_acougue', 'código da praça nasce do nome, sem acento');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_pracas') = 1, 'cozinha lê as praças');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_pracas') = 0, 'vendedor não lê as praças');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Pizzaria')$c$, demo), 'garçom cadastra praça');
+  PERFORM ci.deve_falhar(coz, format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Pizzaria')$c$, demo), 'cozinha cadastra praça');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Bar')$c$, demo), 'praça com o nome da fixa (Bar)');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, ' churrascaria  acougue ')$c$, demo), 'praça repetida pelo código');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, '!')$c$, demo), 'praça sem letras');
+  UPDATE restaurante_pracas SET codigo = 'outro', nome = 'Churrasco' WHERE id = praca_churras;
+  PERFORM ci.exige((SELECT codigo FROM restaurante_pracas WHERE id = praca_churras) = 'churrascaria_acougue', 'código da praça não muda ao renomear');
+
+  -- item do cardápio: aceita praça ativa da própria empresa; recusa praça inexistente, de outra empresa ou inativa
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Fantasma', 10, 'nao_existe')$c$, demo), 'item em praça inexistente');
+  INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (outro_tenant, 'Pizzaria');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Pizza', 40, 'pizzaria')$c$, demo), 'item em praça de outra empresa');
+  INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (demo, 'Picanha', 80, 'churrascaria_acougue') RETURNING id INTO it;
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM restaurante_pracas WHERE id = %L$c$, praca_churras), 'excluir praça em uso por item');
+  UPDATE restaurante_pracas SET ativo = false WHERE id = praca_churras;
+  UPDATE cardapio_itens SET preco = 85 WHERE id = it;
+  PERFORM ci.exige(true, 'item segue editável com a praça desativada');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Costela', 70, 'churrascaria_acougue')$c$, demo), 'item novo em praça inativa');
+
+  -- bloqueio de mesa
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, m1), 'vendedor bloqueia mesa');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, m1), 'cozinha bloqueia mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, gen_random_uuid()), 'bloquear mesa que não existe');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m1, true, 'Mesa quebrada');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT bloqueada FROM mesas WHERE id = m1), 'garçom bloqueia mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_abrir_comanda(%L, 2)$c$, m1), 'abrir comanda em mesa bloqueada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day')$c$, m1), 'reservar mesa bloqueada');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m1, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (SELECT bloqueada FROM mesas WHERE id = m1) AND (SELECT bloqueio_motivo FROM mesas WHERE id = m1) IS NULL, 'desbloquear limpa o motivo');
+
+  -- mesa com comanda aberta não bloqueia; transferir para mesa bloqueada é recusado
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(m1, 2);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_bloquear_mesa(%L, true)$c$, m1), 'bloquear mesa com comanda aberta');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m2, true, 'Evento');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_transferir_mesa(%L, %L)$c$, cmd, m2), 'transferir para mesa bloqueada');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd, 'teste');
+  PERFORM restaurante_bloquear_mesa(m2, false);
+  PERFORM ci.sair();
+
+  -- reservas
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day')$c$, m1), 'vendedor reserva mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, '  ', now() + interval '1 day')$c$, m1), 'reserva sem nome');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() - interval '3 hours')$c$, m1), 'reserva no passado');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '2 years')$c$, m1), 'reserva distante demais');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day', NULL, 0)$c$, m1), 'reserva com zero pessoas');
+  PERFORM ci.entrar(gar);
+  res := restaurante_reservar_mesa(m1, 'Ana', now() + interval '10 minutes', '11999990000', 4, 'aniversário');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Bia', now() + interval '70 minutes')$c$, m1), 'duas reservas da mesma mesa com menos de 2 h');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM mesa_reservas') >= 1, 'cozinha lê as reservas');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM mesa_reservas') = 0, 'vendedor não lê reservas');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO mesa_reservas (tenant_id, mesa_id, nome, reservada_para) VALUES (%L, %L, 'Z', now())$c$, demo, m1), 'reserva por escrita direta');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE mesa_reservas SET situacao = 'cancelada' WHERE id = res;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'ativa', 'cancelar reserva por escrita direta não altera nada');
+
+  -- abrir a comanda na mesa reservada atende a reserva
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(m1, 4);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'atendida', 'abrir a comanda atende a reserva');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_cancelar_reserva(%L)$c$, res), 'cancelar reserva já atendida');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd, 'teste');
+  res := restaurante_reservar_mesa(m2, 'Caio', now() + interval '1 day');
+  PERFORM restaurante_cancelar_reserva(res);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'cancelada', 'reserva cancelada');
 END $$;
 
 -- 21. pedido de obra com retirada parcial: saldo por item e trava de saída
