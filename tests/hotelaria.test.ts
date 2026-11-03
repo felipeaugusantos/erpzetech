@@ -335,3 +335,35 @@ test("desconto da nota: rateado em centavos e o último item absorve a diferenç
     5300,
   );
 });
+
+import { celulasDaAcomodacao, percentualOcupacao } from "../src/lib/hotelaria.ts";
+
+test("ocupação em percentual com uma casa (mesmos números da seção 93)", () => {
+  assert.equal(percentualOcupacao(4, 7), 57.1);
+  assert.equal(percentualOcupacao(3, 7), 42.9);
+  assert.equal(percentualOcupacao(2, 7), 28.6);
+  assert.equal(percentualOcupacao(0, 7), 0);
+  assert.equal(percentualOcupacao(3, 0), 0);
+  assert.equal(percentualOcupacao(7, 7), 100);
+});
+
+test("mapa: uma célula por dia, com início da barra e continuação de reserva que veio de antes", () => {
+  const dias = ["2027-06-08", "2027-06-09", "2027-06-10", "2027-06-11", "2027-06-12"];
+  const a = { id: "a", de: "2027-06-07", ate: "2027-06-10" };
+  const b = { id: "b", de: "2027-06-10", ate: "2027-06-11" };
+  const c = celulasDaAcomodacao(dias, [a, b]);
+  assert.deepEqual(
+    c.map((x) => x.ocupacao?.id ?? null),
+    ["a", "a", "b", null, null],
+  );
+  assert.equal(c[0]!.continua, true);
+  assert.equal(c[0]!.inicio, true);
+  assert.equal(c[1]!.inicio, false);
+  assert.equal(c[2]!.inicio, true);
+  assert.equal(c[3]!.inicio, false);
+  assert.equal(c[2]!.continua, false);
+  assert.deepEqual(
+    celulasDaAcomodacao(dias, []).map((x) => x.ocupacao),
+    [null, null, null, null, null],
+  );
+});

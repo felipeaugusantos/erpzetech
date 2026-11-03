@@ -265,3 +265,37 @@ export function ratearDesconto(valores: readonly number[], desconto: number) {
     return reais(net);
   });
 }
+
+/** Ocupação em % com uma casa decimal (ocupadas ÷ vendáveis). Espelho de hs_painel_dia. */
+export function percentualOcupacao(ocupadas: number, vendaveis: number) {
+  return vendaveis > 0 ? Math.round((1000 * ocupadas) / vendaveis) / 10 : 0;
+}
+
+export type OcupacaoDoMapa = { de: string; ate: string };
+export type CelulaDoMapa<T extends OcupacaoDoMapa> = {
+  data: string;
+  ocupacao: T | null;
+  /** primeira noite da ocupação dentro da janela (onde a barra começa) */
+  inicio: boolean;
+  /** a ocupação começou antes da janela */
+  continua: boolean;
+};
+
+/**
+ * Uma célula por dia da janela para uma acomodação do mapa (hs_mapa): a ocupação cobre as noites [de, ate).
+ * A saída de uma reserva e a entrada da próxima caem no mesmo dia: a célula do dia é da que entra.
+ */
+export function celulasDaAcomodacao<T extends OcupacaoDoMapa>(
+  dias: readonly string[],
+  ocupacoes: readonly T[],
+): CelulaDoMapa<T>[] {
+  return dias.map((data) => {
+    const ocupacao = ocupacoes.find((o) => data >= o.de && data < o.ate) ?? null;
+    return {
+      data,
+      ocupacao,
+      inicio: ocupacao ? ocupacao.de === data || data === dias[0] : false,
+      continua: ocupacao ? ocupacao.de < dias[0]! && data === dias[0] : false,
+    };
+  });
+}

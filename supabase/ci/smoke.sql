@@ -9684,3 +9684,244 @@ BEGIN
   UPDATE fiscal_config SET aliquota_iss = coalesce(iss_ant, 0) WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
+
+-- 93. Hotelaria (leitura): mapa de ocupação (acomodação × dia, totais por noite, bloqueios, quartos sem acomodação), painel do dia (chegadas, saídas, atrasos,
+-- hospedados, ocupação, sujas, contas em aberto, dia passado e futuro), resumo da conta e da reserva; só quem pode e só do próprio hotel e da própria empresa
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  hgar constant uuid := 'a0000000-0000-0000-0000-0000000001c8';
+  bges constant uuid := 'a0000000-0000-0000-0000-0000000001c9';
+  hoje date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; sem_ant text[]; iss_ant numeric;
+  fm uuid; fm2 uuid; tnb uuid; ebb uuid; fbb uuid;
+  tpo uuid; tpo2 uuid; tpx uuid;
+  m101 uuid; m102 uuid; m103 uuid; m104 uuid; m105 uuid; m106 uuid; m107 uuid; m108 uuid; m109 uuid; m110 uuid; x1 uuid; ubx uuid;
+  hT uuid; hU uuid; hbx uuid; cx uuid; cx2 uuid;
+  r jsonb; el jsonb; r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid; r6 uuid; r7 uuid; r8 uuid; rsem uuid; rbx uuid;
+  ru1 uuid; ru4 uuid; ru5 uuid; ru7 uuid; rubx uuid; fo1 uuid; fo7 uuid; fobx uuid; blq uuid; lcons uuid; lserv uuid; num1 bigint; nf uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, modulos_sem_cnpj INTO ramo_ant, cnae_ant, cnae2_ant, sem_ant FROM empresas WHERE id = emp;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = NULL, cnae_secundarios = NULL, modulos_sem_cnpj = '{}' WHERE id = emp;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'hotelaria');
+  SELECT aliquota_iss INTO iss_ant FROM fiscal_config WHERE tenant_id = demo AND filial_id IS NULL ORDER BY (empresa_id IS NULL), created_at LIMIT 1;
+  INSERT INTO auth.users (id, email) VALUES (hgar, 'garcom-leitura@ci'), (bges, 'gestor-leitura-b@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = hgar;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Mapa A') RETURNING id INTO fm;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Mapa B') RETURNING id INTO fm2;
+
+  PERFORM ci.entrar(gest);
+  tpo := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fm, 'nome', 'Duplo', 'capacidade_adultos', 3, 'capacidade_criancas', 1));
+  tpo2 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fm2, 'nome', 'Duplo', 'capacidade_adultos', 2));
+  m101 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '101'));  m102 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '102'));
+  m103 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '103'));  m104 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '104'));
+  m105 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '105'));  m106 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '106'));
+  m107 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '107', 'ativo', false));
+  m108 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '108', 'interditada', true, 'motivo_interdicao', 'Reforma'));
+  m109 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '109'));  m110 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '110'));
+  x1 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo2, 'numero', 'X1'));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpo, 'nome', 'Base', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 60)::text, 'valor_diaria', 100));
+  PERFORM hs_config_salvar(fm, '{"taxa_turismo_por_hospede_noite":"5"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  hT := hs_hospede_salvar('{"nome":"Hóspede Mapa T","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb);
+  hU := hs_hospede_salvar('{"nome":"Hóspede Mapa U","documento_tipo":"cpf","documento_numero":"11144477735"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm); cx := abrir_caixa(fm, 0); cx2 := abrir_caixa(fm2, 0); PERFORM ci.sair();
+
+  -- ===== dados do dia =====
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fm, hT, ci.quarto(m101, (hoje - 1)::text, (hoje + 2)::text))); r1 := (r ->> 'reserva_id')::uuid; num1 := (r ->> 'numero')::bigint;
+  r := hs_reserva_criar(ci.reserva(fm, hU, ci.quarto(m104, (hoje - 2)::text, hoje::text)));       r4 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fm, hU, ci.quarto(m105, (hoje - 3)::text, (hoje - 1)::text))); r5 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fm, hU, ci.quarto(m106, (hoje - 1)::text, (hoje + 1)::text))); r6 := (r ->> 'reserva_id')::uuid;
+  blq := hs_uh_interditar(m109, hoje - 1, hoje + 3, 'Pintura');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fm, hU, ci.quarto(m102, hoje::text, (hoje + 1)::text))); r2 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(jsonb_build_object('filial_id', fm, 'titular_id', hU, 'situacao', 'pendente', 'quartos', jsonb_build_array(ci.quarto(m103, hoje::text, (hoje + 3)::text))));
+  r3 := (r ->> 'reserva_id')::uuid;
+  fo1 := hs_folio_principal(r1);
+  PERFORM hs_pagamento_registrar(fo1, 'pix', 50, cx, 'sinal');
+  SELECT id INTO ru1 FROM hs_reserva_uhs WHERE reserva_id = r1;
+  PERFORM hs_checkin(ru1);
+  PERFORM ci.sair();
+  UPDATE hs_reserva_uhs SET checkin_em = now() - interval '1 day' WHERE id = ru1;
+  PERFORM ci.entrar(vend);
+  PERFORM hs_auditoria_noturna(fm, hoje - 1);
+  lcons := hs_lancar(fo1, '{"tipo":"consumo","descricao":"Frigobar","valor_unitario":20}'::jsonb);
+  lserv := hs_lancar(fo1, '{"tipo":"servico","descricao":"Lavanderia","valor_unitario":30}'::jsonb);
+  PERFORM hs_lancamento_estornar(lserv, 'Cobrado por engano');
+  PERFORM ci.sair();
+  -- hóspedes simulados pelo dono do banco depois do fechamento do dia (para não gerar lançamentos)
+  SELECT id INTO ru4 FROM hs_reserva_uhs WHERE reserva_id = r4;  SELECT id INTO ru5 FROM hs_reserva_uhs WHERE reserva_id = r5;
+  UPDATE hs_reserva_uhs SET situacao = 'hospedada', checkin_em = now() - interval '2 days' WHERE id = ru4;
+  UPDATE hs_reserva_uhs SET situacao = 'hospedada', checkin_em = now() - interval '3 days' WHERE id = ru5;
+  PERFORM _hs_reserva_recalcular(r4); PERFORM _hs_reserva_recalcular(r5);
+  UPDATE hs_uhs SET situacao_limpeza = 'sujo' WHERE id IN (m104, m105);
+  INSERT INTO hs_reservas (tenant_id, filial_id, numero, titular_id) VALUES (demo, fm, 9001, hT) RETURNING id INTO rsem;
+  INSERT INTO hs_reserva_uhs (tenant_id, filial_id, reserva_id, tipo_id, uh_id, entrada, saida) VALUES (demo, fm, rsem, tpo, NULL, hoje + 1, hoje + 3);
+
+  -- ===== mapa =====
+  PERFORM ci.entrar(vend); r := hs_mapa(fm, hoje - 2, hoje + 3); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'dias') = 5 AND (r -> 'dias' ->> 0)::date = hoje - 2 AND (r -> 'dias' ->> 4)::date = hoje + 2, 'o mapa traz os 5 dias da janela');
+  PERFORM ci.exige(jsonb_array_length(r -> 'uhs') = 9 AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'uhs') e WHERE e ->> 'numero' = '107'), 'o mapa traz as 9 acomodações ativas e deixa de fora a inativa');
+  PERFORM ci.exige((SELECT array_agg(e ->> 'numero' ORDER BY ord) = ARRAY['101','102','103','104','105','106','108','109','110'] FROM jsonb_array_elements(r -> 'uhs') WITH ORDINALITY x(e, ord)), 'ordem por tipo e número');
+  SELECT e INTO el FROM jsonb_array_elements(r -> 'uhs') e WHERE e ->> 'numero' = '101';
+  PERFORM ci.exige(jsonb_array_length(el -> 'ocupacoes') = 1 AND (el -> 'ocupacoes' -> 0 ->> 'origem') = 'reserva' AND (el -> 'ocupacoes' -> 0 ->> 'situacao') = 'hospedada'
+                   AND (el -> 'ocupacoes' -> 0 ->> 'de')::date = hoje - 1 AND (el -> 'ocupacoes' -> 0 ->> 'ate')::date = hoje + 2 AND (el -> 'ocupacoes' -> 0 ->> 'reserva_numero')::bigint = num1
+                   AND (el -> 'ocupacoes' -> 0 ->> 'titular') = 'Hóspede Mapa T', 'a acomodação 101 mostra a reserva hospedada com as datas reais e o titular');
+  SELECT e INTO el FROM jsonb_array_elements(r -> 'uhs') e WHERE e ->> 'numero' = '109';
+  PERFORM ci.exige((el -> 'ocupacoes' -> 0 ->> 'origem') = 'bloqueio' AND (el -> 'ocupacoes' -> 0 ->> 'motivo') = 'Pintura' AND (el -> 'ocupacoes' -> 0 -> 'reserva_id') = 'null'::jsonb, 'a acomodação 109 mostra o bloqueio com o motivo');
+  SELECT e INTO el FROM jsonb_array_elements(r -> 'uhs') e WHERE e ->> 'numero' = '108';
+  PERFORM ci.exige((el ->> 'interditada')::boolean AND el ->> 'motivo_interdicao' = 'Reforma' AND jsonb_array_length(el -> 'ocupacoes') = 0, 'a acomodação interditada vem marcada');
+  SELECT e INTO el FROM jsonb_array_elements(r -> 'uhs') e WHERE e ->> 'numero' = '104';
+  PERFORM ci.exige((el ->> 'situacao_limpeza') = 'sujo', 'a limpeza aparece no mapa');
+  PERFORM ci.exige((SELECT array_agg(((e ->> 'ocupadas')::int, (e ->> 'bloqueadas')::int, (e ->> 'livres')::int, (e ->> 'total')::int)::text ORDER BY ord)
+                      = ARRAY['(2,0,6,8)', '(3,1,4,8)', '(4,1,3,8)', '(2,1,5,8)', '(1,1,6,8)'] FROM jsonb_array_elements(r -> 'totais_por_dia') WITH ORDINALITY x(e, ord)),
+                   'totais por noite: ocupadas, bloqueadas, livres e vendáveis (a interditada e a inativa ficam fora)');
+  PERFORM ci.exige(jsonb_array_length(r -> 'sem_acomodacao') = 1 AND (r -> 'sem_acomodacao' -> 0 ->> 'reserva_numero')::bigint = 9001 AND (r -> 'sem_acomodacao' -> 0 ->> 'entrada')::date = hoje + 1, 'o quarto reservado sem acomodação aparece à parte');
+  PERFORM ci.entrar(vend); r := hs_mapa(fm, hoje + 10, hoje + 11); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'sem_acomodacao') = 0 AND (r -> 'totais_por_dia' -> 0 ->> 'ocupadas')::int = 0 AND (r -> 'totais_por_dia' -> 0 ->> 'livres')::int = 8, 'janela sem nada: tudo livre');
+  PERFORM ci.entrar(vend); r := hs_mapa(fm, hoje, hoje + 62); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'dias') = 62, 'a janela de 62 dias é aceita');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje + 63), 'janela de 63 dias');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje), 'janela vazia');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje + 1, hoje), 'janela invertida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_mapa(%L, NULL, %L)$c$, fm, hoje), 'janela sem início');
+
+  -- ===== painel do dia =====
+  PERFORM ci.entrar(vend); r := hs_painel_dia(fm); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'data')::date = hoje AND (r ->> 'hoje')::date = hoje, 'o painel abre no dia de hoje');
+  PERFORM ci.exige((SELECT array_agg(e ->> 'uh' ORDER BY ord) = ARRAY['102', '103'] FROM jsonb_array_elements(r -> 'chegadas') WITH ORDINALITY x(e, ord)) AND (r -> 'chegadas' -> 1 ->> 'pendente')::boolean AND NOT (r -> 'chegadas' -> 0 ->> 'pendente')::boolean,
+                   'chegadas do dia: 102 confirmada e 103 pendente');
+  PERFORM ci.exige(jsonb_array_length(r -> 'chegadas_atrasadas') = 1 AND (r -> 'chegadas_atrasadas' -> 0 ->> 'uh') = '106', 'chegada atrasada: a reserva de ontem que não veio');
+  PERFORM ci.exige(jsonb_array_length(r -> 'saidas') = 1 AND (r -> 'saidas' -> 0 ->> 'uh') = '104' AND (r -> 'saidas' -> 0 ->> 'situacao') = 'hospedada', 'saída do dia: a 104 ainda hospedada');
+  PERFORM ci.exige(jsonb_array_length(r -> 'saidas_atrasadas') = 1 AND (r -> 'saidas_atrasadas' -> 0 ->> 'uh') = '105', 'saída atrasada: a 105 devia ter saído ontem');
+  PERFORM ci.exige(jsonb_array_length(r -> 'hospedados') = 1 AND (r -> 'hospedados' -> 0 ->> 'uh') = '101' AND (r -> 'hospedados' -> 0 ->> 'titular') = 'Hóspede Mapa T' AND (r -> 'hospedados' -> 0 ->> 'saldo')::numeric = 75
+                   AND (r -> 'hospedados' -> 0 ->> 'hospedes')::int = 1, 'hospedados: só a 101, com o saldo da conta (75) e o número de hóspedes');
+  PERFORM ci.exige((r -> 'ocupacao' ->> 'acomodacoes')::int = 8 AND (r -> 'ocupacao' ->> 'bloqueadas')::int = 1 AND (r -> 'ocupacao' ->> 'vendaveis')::int = 7 AND (r -> 'ocupacao' ->> 'ocupadas')::int = 4
+                   AND (r -> 'ocupacao' ->> 'livres')::int = 3 AND (r -> 'ocupacao' ->> 'percentual')::numeric = 57.1, 'ocupação de hoje: 4 de 7 vendáveis (57,1%)');
+  PERFORM ci.exige(jsonb_array_length(r -> 'sujas') = 2 AND (r -> 'sujas' -> 0 ->> 'numero') = '104' AND (r -> 'sujas' -> 0 ->> 'ocupada')::boolean, 'acomodações sujas, com a marca de ocupada');
+  PERFORM ci.exige((r -> 'contas_em_aberto' ->> 'quantidade')::int = 1 AND (r -> 'contas_em_aberto' ->> 'total')::numeric = 75, 'contas em aberto: uma, de 75');
+  PERFORM ci.exige((r -> 'totais' ->> 'chegadas')::int = 2 AND (r -> 'totais' ->> 'saidas')::int = 1 AND (r -> 'totais' ->> 'hospedados')::int = 1 AND (r -> 'totais' ->> 'sujas')::int = 2, 'totais do painel');
+  PERFORM ci.entrar(vend); r := hs_painel_dia(fm, hoje - 1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'chegadas') = 2 AND jsonb_array_length(r -> 'saidas') = 1 AND (r -> 'saidas' -> 0 ->> 'uh') = '105'
+                   AND jsonb_array_length(r -> 'chegadas_atrasadas') = 0 AND jsonb_array_length(r -> 'saidas_atrasadas') = 0, 'ontem: 2 chegadas, a saída da 105 e nenhum atraso (atraso só vale de hoje em diante)');
+  PERFORM ci.exige((SELECT array_agg(e ->> 'uh' ORDER BY e ->> 'uh') = ARRAY['101', '104'] FROM jsonb_array_elements(r -> 'hospedados') e), 'ontem dormiram a 101 e a 104');
+  PERFORM ci.exige((r -> 'ocupacao' ->> 'ocupadas')::int = 3 AND (r -> 'ocupacao' ->> 'bloqueadas')::int = 1 AND (r -> 'ocupacao' ->> 'percentual')::numeric = 42.9, 'ocupação de ontem: 3 de 7 (42,9%)');
+  PERFORM ci.entrar(vend); r := hs_painel_dia(fm, hoje + 1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'chegadas') = 1 AND (r -> 'chegadas' -> 0 ->> 'uh') IS NULL AND jsonb_array_length(r -> 'hospedados') = 1 AND (r -> 'hospedados' -> 0 ->> 'uh') = '101'
+                   AND jsonb_array_length(r -> 'chegadas_atrasadas') = 1 AND (r -> 'chegadas_atrasadas' -> 0 ->> 'uh') = '103', 'amanhã: chega o quarto sem acomodação, segue a 101 e a 103 ainda não chegou');
+  PERFORM ci.exige((r -> 'ocupacao' ->> 'ocupadas')::int = 2 AND (r -> 'ocupacao' ->> 'livres')::int = 5 AND (r -> 'ocupacao' ->> 'percentual')::numeric = 28.6, 'ocupação de amanhã: 2 de 7 (28,6%)');
+
+  -- ===== resumo da conta e da reserva =====
+  PERFORM ci.entrar(vend); r := hs_folio_resumo(fo1); PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'folio' ->> 'principal')::boolean AND (r -> 'folio' ->> 'situacao') = 'aberto' AND (r -> 'reserva' ->> 'numero')::bigint = num1 AND (r -> 'reserva' ->> 'titular') = 'Hóspede Mapa T' AND r -> 'nota' = 'null'::jsonb, 'resumo da conta: reserva, titular e sem nota');
+  PERFORM ci.exige(jsonb_array_length(r -> 'lancamentos') = 5 AND (r -> 'totais' ->> 'lancado')::numeric = 125 AND (r -> 'totais' ->> 'recebido')::numeric = 50 AND (r -> 'totais' ->> 'devolvido')::numeric = 0 AND (r -> 'totais' ->> 'saldo')::numeric = 75,
+                   'totais da conta: lançado 125, recebido 50, saldo 75');
+  PERFORM ci.exige((SELECT (e ->> 'estornado')::boolean FROM jsonb_array_elements(r -> 'lancamentos') e WHERE e ->> 'id' = lserv::text) AND (SELECT NOT (e ->> 'estornado')::boolean FROM jsonb_array_elements(r -> 'lancamentos') e WHERE e ->> 'id' = lcons::text)
+                   AND (SELECT count(*) = 1 FROM jsonb_array_elements(r -> 'lancamentos') e WHERE e ->> 'estorna_id' = lserv::text), 'o lançamento estornado vem marcado e o estorno aponta para ele');
+  PERFORM ci.exige((SELECT (e ->> 'uh') = '101' FROM jsonb_array_elements(r -> 'lancamentos') e WHERE e ->> 'tipo' = 'diaria') AND jsonb_array_length(r -> 'pagamentos') = 1 AND (r -> 'pagamentos' -> 0 ->> 'tipo') = 'sinal', 'a diária mostra a acomodação e o sinal aparece nos pagamentos');
+  PERFORM ci.entrar(vend); r := hs_reserva_resumo(r1); PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'reserva' ->> 'situacao') = 'hospedada' AND (r -> 'titular' ->> 'nome') = 'Hóspede Mapa T' AND jsonb_array_length(r -> 'quartos') = 1 AND (r -> 'quartos' -> 0 ->> 'uh') = '101'
+                   AND (r -> 'quartos' -> 0 ->> 'noites')::int = 3 AND (r -> 'quartos' -> 0 -> 'diarias' ->> 'total')::numeric = 300 AND (r -> 'quartos' -> 0 -> 'diarias' ->> 'lancadas')::int = 1
+                   AND jsonb_array_length(r -> 'quartos' -> 0 -> 'hospedes') = 1 AND (r -> 'quartos' -> 0 -> 'hospedes' -> 0 ->> 'principal')::boolean, 'resumo da reserva: quarto, noites, diárias e hóspedes');
+  PERFORM ci.exige(jsonb_array_length(r -> 'contas') = 1 AND (r -> 'contas' -> 0 ->> 'saldo')::numeric = 75 AND (r -> 'totais' ->> 'saldo')::numeric = 75 AND (r -> 'totais' ->> 'sinal_liquido')::numeric = 50 AND (r -> 'totais' ->> 'diarias')::numeric = 300, 'resumo da reserva: conta com saldo 75, sinal 50 e diárias 300');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fm, hT, ci.quarto(m102, (hoje + 5)::text, (hoje + 7)::text))); r8 := (r ->> 'reserva_id')::uuid;
+  PERFORM hs_reserva_cancelar(r8, 'Desistência');
+  r := hs_reserva_resumo(r8);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'reserva' ->> 'situacao') = 'cancelada' AND (r -> 'reserva' ->> 'motivo_cancelamento') = 'Desistência' AND (r -> 'quartos' -> 0 ->> 'situacao') = 'cancelada' AND (r -> 'totais' ->> 'diarias')::numeric = 0, 'reserva cancelada: quarto cancelado e sem diárias no total');
+
+  -- ===== check-out e a nota na conta =====
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fm, hT, ci.quarto(m110, (hoje - 1)::text, (hoje + 1)::text))); r7 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  SELECT id INTO ru7 FROM hs_reserva_uhs WHERE reserva_id = r7;
+  PERFORM ci.entrar(vend); PERFORM hs_checkin(ru7); PERFORM ci.sair();
+  UPDATE hs_reserva_uhs SET checkin_em = now() - interval '1 day' WHERE id = ru7;
+  PERFORM ci.entrar(vend); PERFORM hs_auditoria_noturna(fm, hoje - 1); fo7 := hs_folio_principal(r7); r := hs_checkout(ru7, '[{"forma":"pix","valor":105}]'::jsonb, cx); PERFORM ci.sair();
+  nf := ((r -> 'nfe_ids') ->> 0)::uuid;
+  PERFORM ci.entrar(vend); r := hs_folio_resumo(fo7); PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'folio' ->> 'situacao') = 'fechado' AND (r -> 'nota' ->> 'nfe_id')::uuid = nf AND (r -> 'nota' ->> 'modelo') = 'nfse' AND (r -> 'nota' ->> 'valor_total')::numeric = 100 AND (r -> 'nota' ->> 'situacao') IN ('rascunho', 'pronta')
+                   AND (r -> 'totais' ->> 'lancado')::numeric = 105 AND (r -> 'totais' ->> 'recebido')::numeric = 105 AND (r -> 'totais' ->> 'saldo')::numeric = 0, 'conta fechada mostra a nota (100) e o saldo zerado');
+  PERFORM ci.entrar(vend); r := hs_reserva_resumo(r7); PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'reserva' ->> 'situacao') = 'finalizada' AND (r -> 'quartos' -> 0 ->> 'situacao') = 'finalizada' AND (r -> 'quartos' -> 0 ->> 'checkout_em') IS NOT NULL AND (r -> 'contas' -> 0 ->> 'nfe_id')::uuid = nf, 'resumo da reserva finalizada: quarto finalizado e nota da conta');
+
+  -- ===== permissões e isolamento =====
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje + 5), 'garçom abre o mapa');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_painel_dia(%L)$c$, fm), 'garçom abre o painel do dia');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_folio_resumo(%L)$c$, fo1), 'garçom abre a conta');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_reserva_resumo(%L)$c$, r1), 'garçom abre a reserva');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje + 5), 'anônimo abre o mapa');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_painel_dia(%L)$c$, fm), 'anônimo abre o painel do dia');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_folio_resumo(%L)$c$, fo1), 'anônimo abre a conta');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_reserva_resumo(%L)$c$, r1), 'anônimo abre a reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_resumo(%L)$c$, gen_random_uuid()), 'conta que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_resumo(%L)$c$, gen_random_uuid()), 'reserva que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_painel_dia(%L)$c$, gen_random_uuid()), 'painel de hotel que não existe');
+  UPDATE profiles SET filial_id = fm2 WHERE id = vend;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje + 5), 'recepção do hotel B abre o mapa do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_painel_dia(%L)$c$, fm), 'recepção do hotel B abre o painel do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_resumo(%L)$c$, fo1), 'recepção do hotel B abre a conta do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_resumo(%L)$c$, r1), 'recepção do hotel B abre a reserva do hotel A');
+  PERFORM ci.entrar(vend); r := hs_mapa(fm2, hoje, hoje + 3); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'uhs') = 1 AND (r -> 'uhs' -> 0 ->> 'numero') = 'X1' AND jsonb_array_length(r -> 'sem_acomodacao') = 0, 'a recepção do hotel B vê só o mapa do hotel B');
+  PERFORM ci.entrar(vend); r := hs_painel_dia(fm2); PERFORM ci.sair();
+  PERFORM ci.exige((r -> 'ocupacao' ->> 'acomodacoes')::int = 1 AND jsonb_array_length(r -> 'hospedados') = 0 AND (r -> 'contas_em_aberto' ->> 'quantidade')::int = 0, 'o painel do hotel B não traz nada do hotel A');
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+
+  INSERT INTO tenants (nome) VALUES ('Hotel Leitura B') RETURNING id INTO tnb;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tnb, 'Hotel Leitura B Ltda', 'hotelaria') RETURNING id INTO ebb;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (tnb, ebb, 'Hotel B Leitura') RETURNING id INTO fbb;
+  UPDATE profiles SET tenant_id = tnb WHERE id = bges;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (bges, tnb, 'gestor');
+  PERFORM ci.entrar(bges);
+  tpx := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fbb, 'nome', 'Standard'));
+  ubx := hs_uh_salvar(jsonb_build_object('tipo_id', tpx, 'numero', '1'));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpx, 'nome', 'B', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 60)::text, 'valor_diaria', 70));
+  hbx := hs_hospede_salvar('{"nome":"Hóspede Leitura B","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb);
+  r := hs_reserva_criar(ci.reserva(fbb, hbx, ci.quarto(ubx, hoje::text, (hoje + 2)::text))); rbx := (r ->> 'reserva_id')::uuid;
+  fobx := hs_folio_principal(rbx);
+  r := hs_mapa(fbb, hoje, hoje + 3);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'uhs') = 1 AND (r -> 'uhs' -> 0 ->> 'numero') = '1' AND (r -> 'uhs' -> 0 -> 'ocupacoes' -> 0 ->> 'titular') = 'Hóspede Leitura B', 'o gestor B vê só o próprio mapa');
+  PERFORM ci.entrar(bges); r := hs_painel_dia(fbb); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'chegadas') = 1 AND (r -> 'ocupacao' ->> 'acomodacoes')::int = 1, 'o painel do gestor B traz só a chegada dele');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fbb, hoje, hoje + 5), 'mapa do hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_painel_dia(%L)$c$, fbb), 'painel do hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_folio_resumo(%L)$c$, fobx), 'conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_resumo(%L)$c$, rbx), 'reserva de outra empresa');
+  PERFORM ci.deve_falhar(bges, format($c$SELECT hs_mapa(%L, %L, %L)$c$, fm, hoje, hoje + 5), 'o gestor B abre o mapa do hotel A');
+  PERFORM ci.deve_falhar(bges, format($c$SELECT hs_folio_resumo(%L)$c$, fo1), 'o gestor B abre a conta do hotel A');
+  PERFORM ci.deve_falhar(bges, format($c$SELECT hs_reserva_resumo(%L)$c$, r1), 'o gestor B abre a reserva do hotel A');
+
+  -- limpeza
+  DELETE FROM hs_folio_notas WHERE tenant_id IN (demo, tnb);
+  DELETE FROM nfe_itens WHERE nfe_id IN (SELECT id FROM nfe WHERE natureza_operacao = 'Prestação de serviço — hospedagem');
+  DELETE FROM nfe WHERE natureza_operacao = 'Prestação de serviço — hospedagem';
+  DELETE FROM hs_pagamentos WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_lancamentos WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_folios WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_ocupacoes WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_diarias WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_reserva_hospedes WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_reserva_uhs WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_reservas WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_tarifas WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_uhs WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_tipos_uh WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_hospedes WHERE tenant_id IN (demo, tnb);
+  DELETE FROM hs_config WHERE tenant_id IN (demo, tnb);
+  DELETE FROM user_roles WHERE user_id IN (hgar, bges);
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+END $$;

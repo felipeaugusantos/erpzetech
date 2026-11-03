@@ -144,6 +144,14 @@ Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisã
 | `hs_painel_dia(p_filial, p_data)` | Chegadas, saídas, hospedados, ocupação do dia (UHs ocupadas ÷ UHs vendáveis), UHs sujas e saldos em aberto |
 | `hs_folio_resumo(p_folio)`        | Lançamentos ativos, pagamentos e saldo                                                                     |
 
+**Como ficou na migration 5 (`20261213000000_hotelaria_leitura.sql`), onde difere do plano acima:**
+
+- **`hs_mapa(filial, de, ate)`:** janela de até 62 dias (o plano dizia 31). Devolve os `dias`, as acomodações ativas (ordem tipo e número, com a limpeza e a interdição) e, em cada uma, as `ocupacoes` que tocam a janela com as datas reais (reserva com titular, situação do quarto e da reserva; ou bloqueio com motivo). Traz `totais_por_dia` (vendáveis, ocupadas, bloqueadas, livres por noite; a interditada e a inativa ficam fora) e `sem_acomodacao` (quartos reservados sem acomodação).
+- **`hs_painel_dia(filial, data?)`:** chegadas e saídas do dia com a situação (feitas ou não), `chegadas_atrasadas` e `saidas_atrasadas` (só de hoje em diante), `hospedados` da noite, `ocupacao` (vendáveis sem as bloqueadas, ocupadas, livres, percentual), `sujas` (com a marca de ocupada), `contas_em_aberto` (contas abertas com saldo a receber) e totais. Vale para dia passado e futuro. ADR, RevPAR e previsão ficam na Fase 2.
+- **`hs_folio_resumo(folio)`:** lançamentos com a marca de estornado, pagamentos, totais (lançado, recebido, devolvido, saldo) e a nota. **`hs_reserva_resumo(reserva)`** (novo, não estava no plano): reserva, titular, quartos (acomodação, noites, diárias, hóspedes), contas com saldo e nota, sinal líquido.
+- Em `src/lib/hotelaria.ts`: `celulasDaAcomodacao` (uma célula por dia a partir das ocupações do mapa) e `percentualOcupacao`.
+- Com a migration 5 o banco da Fase 1 está completo; faltam as telas (seção 7).
+
 ## 6. Fiscal e financeiro
 
 - **NFS-e de hospedagem:** `_hs_nfse_rascunho` adapta `_lr_nfse_rascunho` (mesma busca de `fiscal_config` por filial e por empresa, mesmas pendências: CPF/CNPJ do pagador, inscrição municipal, código do serviço, alíquota de ISS, certificado). Natureza: "Prestação de serviço — hospedagem" (LC 116, item 9.01; código municipal vem da configuração, não é fixado no código). Itens da nota = diárias e serviços do folio; **consumos com produto** (frigobar, loja) ficam fora da NFS-e da Fase 1 porque são mercadoria (NFC-e), e o desconto do folio é rateado proporcionalmente, como no Lava-Rápido (`lava_nfse_desconto`).
