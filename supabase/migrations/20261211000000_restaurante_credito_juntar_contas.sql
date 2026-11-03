@@ -145,6 +145,8 @@ DECLARE
   def text := pg_get_functiondef('public.restaurante_cancelar_comanda(uuid, text)'::regprocedure);
   novo text;
 BEGIN
+  -- ja ajustada (migration rodada antes): nada a fazer
+  IF def LIKE '%coalesce(sum(valor), 0) FROM public.comanda_pagamentos%' THEN RETURN; END IF;
   novo := replace(def,
     $q$IF EXISTS (SELECT 1 FROM public.comanda_pagamentos WHERE comanda_id = p_comanda_id) THEN$q$,
     $q$IF (SELECT coalesce(sum(valor), 0) FROM public.comanda_pagamentos WHERE comanda_id = p_comanda_id) <> 0 THEN$q$);

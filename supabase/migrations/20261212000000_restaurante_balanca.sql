@@ -210,6 +210,8 @@ DECLARE
   def text := pg_get_functiondef('public.restaurante_cardapio_publico(text)'::regprocedure);
   novo text;
 BEGIN
+  -- ja ajustada (migration rodada antes): nada a fazer
+  IF def LIKE '%''por_peso'', i.venda_por_peso%' THEN RETURN; END IF;
   novo := replace(def, $q$'preco', i.preco,$q$, $q$'preco', i.preco, 'por_peso', i.venda_por_peso,$q$);
   IF novo = def THEN RAISE EXCEPTION 'Não foi possível ajustar restaurante_cardapio_publico ao item por peso'; END IF;
   EXECUTE novo;
