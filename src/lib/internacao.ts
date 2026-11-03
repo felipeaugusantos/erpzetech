@@ -198,12 +198,12 @@ export const ROTULO_COR: Record<CorExecucao, string> = {
   vermelho: "Atrasada",
 };
 
-/** Texto do prazo: "em 40 min", "agora", "atrasada 25 min". */
+/** Texto do prazo ao lado do rótulo da cor: "em 40 min", "agora", "há 25 min" (o rótulo já diz "Atrasada"). */
 export function textoDoPrazo(previsto: string, agora: string | Date): string {
   const atraso = atrasoEmMinutos(previsto, agora);
   const fmt = (m: number) =>
     m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
-  if (atraso > 15) return `atrasada ${fmt(atraso)}`;
+  if (atraso > 15) return `há ${fmt(atraso)}`;
   if (atraso >= -1) return "agora";
   return `em ${fmt(-atraso)}`;
 }
