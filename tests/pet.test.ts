@@ -209,3 +209,45 @@ test("pacote: dias para vencer", () => {
   assert.equal(diasParaVencer("2026-10-29", hoje), 10);
   assert.equal(diasParaVencer("2026-10-18", hoje), -1);
 });
+
+import {
+  crfValido,
+  evolucaoDasPesagens,
+  microchipValido,
+  normalizarMicrochip,
+} from "../src/lib/pet.ts";
+import { fotoValida, tamanhoDaMiniatura } from "../src/lib/pet-foto.ts";
+
+test("microchip: só números, de 9 a 15", () => {
+  assert.equal(normalizarMicrochip("985 112-345.678"), "985112345678");
+  assert.equal(microchipValido("985112345678901"), true);
+  assert.equal(microchipValido("12345678"), false);
+  assert.equal(microchipValido("1234567890123456"), false);
+});
+
+test("CRF segue o formato do CRMV", () => {
+  assert.equal(crfValido("12.345", "SP"), true);
+  assert.equal(crfValido("12", "SP"), false);
+  assert.equal(crfValido("12345", "XX"), false);
+});
+
+test("evolução das pesagens mostra a diferença para a anterior", () => {
+  const r = evolucaoDasPesagens([
+    { id: "b", pesado_em: "2026-02-01", peso_kg: 5.5 },
+    { id: "a", pesado_em: "2026-01-01", peso_kg: 5 },
+    { id: "c", pesado_em: "2026-03-01", peso_kg: 5.3 },
+  ]);
+  assert.deepEqual(
+    r.map((p) => p.variacao),
+    [null, 0.5, -0.2],
+  );
+});
+
+test("foto: miniatura mantém a proporção e só JPEG pequeno é aceito", () => {
+  assert.deepEqual(tamanhoDaMiniatura(1280, 640), { largura: 320, altura: 160 });
+  assert.deepEqual(tamanhoDaMiniatura(100, 80), { largura: 100, altura: 80 });
+  assert.equal(fotoValida(null), true);
+  assert.equal(fotoValida("data:image/jpeg;base64,AAAA"), true);
+  assert.equal(fotoValida("data:image/png;base64,AAAA"), false);
+  assert.equal(fotoValida(`data:image/jpeg;base64,${"A".repeat(130000)}`), false);
+});

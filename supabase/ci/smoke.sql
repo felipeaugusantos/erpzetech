@@ -564,7 +564,18 @@ DECLARE
     'manufatura_liberada',
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
-    'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
+    'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir',
+    -- internação: cada função confere o perfil (veterinário; auxiliar só em pesagem e ocorrência; gestão só nos boxes), a clínica liberada e o cadastro ligado à conta
+    'pet_box_salvar', 'clinica_boxes', 'clinica_internacao_admitir', 'clinica_internacoes', 'clinica_internacao_obter',
+    'clinica_internacao_pesagem', 'clinica_internacao_relato', 'clinica_internacao_ocorrencia', 'clinica_internacao_box_trocar',
+    'clinica_internacao_encerrar',
+    -- internação, fase 2: prescrição e suspensão (veterinário), execução das doses e mapa (veterinário e auxiliar), itens (auxiliar lança, veterinário cancela)
+    'clinica_internacao_prescrever', 'clinica_prescricao_suspender', 'clinica_execucao_registrar', 'clinica_execucoes_mapa',
+    'clinica_internacao_catalogo', 'clinica_internacao_item_lancar', 'clinica_internacao_item_cancelar',
+    -- SNGPC: cada função confere o perfil (administrador, gestor ou veterinário) e a clínica liberada
+    'sngpc_medicamento_salvar', 'sngpc_medicamentos', 'sngpc_registrar', 'sngpc_cancelar', 'sngpc_saldo', 'sngpc_livro',
+    'sngpc_responsaveis', 'sngpc_periodo', 'sngpc_inventario', 'sngpc_envio_registrar', 'sngpc_envio_transmitir', 'sngpc_envio_cancelar',
+    'sngpc_envios', 'sngpc_envio_xml'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -8251,4 +8262,943 @@ BEGIN
   DELETE FROM pedidos WHERE id = ped;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id IN (prod, vend);
+END $$;
+
+-- 89. Pet: microchip, foto, pesagens e farmacêutico (CRF)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; tutor_b uuid; pet uuid; pet2 uuid; pet_b uuid; pes uuid; pes2 uuid; prof uuid; v_foto text;
+BEGIN
+  v_foto := 'data:image/jpeg;base64,' || repeat('A', 400);
+  INSERT INTO tenants (nome) VALUES ('Pet ficha B') RETURNING id INTO tb;
+  INSERT INTO auth.users (id, email) VALUES (ub, 'pet-ficha-b@ci');
+  UPDATE profiles SET tenant_id = tb WHERE id = ub;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (ub, tb, 'administrador');
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor ficha CI') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Tutor ficha B') RETURNING id INTO tutor_b;
+
+  -- microchip e foto
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'microchip', '123'))$c$, tutor), 'microchip curto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'foto', 'data:image/png;base64,AAAA'))$c$, tutor), 'foto que não é JPEG');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Chip', 'foto', 'data:image/jpeg;base64,' || repeat('A', 130000)))$c$, tutor), 'foto grande demais');
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Chipado', 'microchip', '985 112-345.678', 'foto', v_foto, 'peso_kg', 4));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip = '985112345678' AND foto = v_foto FROM pets WHERE id = pet), 'microchip só com números e foto guardados');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_salvar(jsonb_build_object('cliente_id', %L, 'nome', 'Outro', 'microchip', '985112345678'))$c$, tutor), 'microchip repetido na empresa');
+  PERFORM ci.entrar(vend);
+  pet2 := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Outro', 'microchip', '985112345679'));
+  -- editar sem as chaves não apaga foto nem microchip; com a chave nula remove
+  PERFORM pet_salvar(jsonb_build_object('id', pet, 'cliente_id', tutor, 'nome', 'Chipado', 'peso_kg', 4));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip = '985112345678' AND foto IS NOT NULL FROM pets WHERE id = pet), 'salvar sem as chaves mantém foto e microchip');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_salvar(jsonb_build_object('id', pet, 'cliente_id', tutor, 'nome', 'Chipado', 'peso_kg', 4, 'foto', NULL, 'microchip', NULL));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT microchip IS NULL AND foto IS NULL FROM pets WHERE id = pet), 'chave nula remove foto e microchip');
+  PERFORM ci.entrar(ub);
+  pet_b := pet_salvar(jsonb_build_object('cliente_id', tutor_b, 'nome', 'Outra empresa', 'microchip', '985112345679'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(pet_b IS NOT NULL, 'o mesmo microchip vale em outra empresa');
+
+  -- pesagens
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet), 'garçom pesa');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet), 'anon pesa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 0)$c$, pet), 'peso zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 250)$c$, pet), 'peso acima de 200 kg');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 5, current_date + 10)$c$, pet), 'pesagem no futuro');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_registrar(%L, 5)$c$, pet_b), 'pet de outra empresa');
+  PERFORM ci.entrar(vend);
+  pes := pet_pesagem_registrar(pet, 5.2, current_date - 10, 'primeira');
+  pes2 := pet_pesagem_registrar(pet, 5.8, current_date, NULL);
+  PERFORM pet_pesagem_registrar(pet, 4.9, current_date - 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 5.8 FROM pets WHERE id = pet), 'o peso do cadastro acompanha a pesagem mais recente (mesmo lançada fora de ordem)');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM pet_pesagens WHERE pet_id = %L', pet)) = 3, 'vendedor lê as pesagens');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_pesagens') = 0, 'garçom não lê pesagens');
+  PERFORM ci.exige(ci.contar(ub, 'SELECT count(*) FROM pet_pesagens') = 0, 'outra empresa não lê as pesagens');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO pet_pesagens (pet_id, peso_kg) VALUES (%L, 9)$c$, pet), 'gravar pesagem direto na tabela');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_pesagem_excluir(%L)$c$, pes2), 'vendedor exclui pesagem');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_pesagem_excluir(%L)$c$, pes2), 'outra empresa exclui pesagem');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_pesagem_excluir(pes2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 5.2 FROM pets WHERE id = pet), 'excluir a mais recente volta o peso para a anterior');
+
+  -- farmacêutico com CRF
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico"}'::jsonb)$c$, 'farmacêutico sem CRF');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"XX"}'::jsonb)$c$, 'farmacêutico com UF inválida');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"PE"}'::jsonb)$c$, 'vendedor cria farmacêutico');
+  PERFORM ci.entrar(adm);
+  prof := pet_profissional_salvar('{"nome":"Farma CI","funcao":"farmaceutico","crf":"12.345","crf_uf":"PE","crmv":"999","crmv_uf":"PE","cpf":"529.982.247-25"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT crf = '12345' AND crf_uf = 'PE' AND crmv IS NULL FROM pet_profissionais WHERE id = prof), 'farmacêutico guarda o CRF (sem CRMV)');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_profissional_salvar(jsonb_build_object('id', prof, 'nome', 'Farma CI', 'funcao', 'banhista'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT crf IS NULL AND crf_uf IS NULL FROM pet_profissionais WHERE id = prof), 'mudar a função limpa o CRF');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_profissionais SET crf = '123' WHERE id = %L$c$, prof), 'CRF sem UF na tabela');
+
+  DELETE FROM pet_pesagens WHERE tenant_id IN (demo, tb);
+  DELETE FROM pet_profissionais WHERE id = prof;
+  DELETE FROM pets WHERE tenant_id IN (demo, tb) AND nome IN ('Chipado', 'Outro', 'Outra empresa');
+END $$;
+
+-- 90. Pet: campos personalizados do animal e do tutor
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; tutor_b uuid; pet uuid; pet_b uuid;
+  c_txt uuid; c_num uuid; c_data uuid; c_sn uuid; c_lista uuid; c_obr uuid; c_tutor uuid; c_b uuid;
+BEGIN
+  SELECT tenant_id INTO tb FROM profiles WHERE id = ub;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor campos CI') RETURNING id INTO tutor;
+  SELECT id INTO tutor_b FROM clientes WHERE tenant_id = tb LIMIT 1;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Campos CI') RETURNING id INTO pet;
+  SELECT id INTO pet_b FROM pets WHERE tenant_id = tb LIMIT 1;
+
+  -- definição: só administrador e gestor
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'vendedor cria campo');
+  PERFORM ci.deve_falhar(gar, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'garçom cria campo');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'anon cria campo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"","tipo":"texto"}'::jsonb)$c$, 'campo sem nome');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"clinica","nome":"X","tipo":"texto"}'::jsonb)$c$, 'entidade inválida');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"cor"}'::jsonb)$c$, 'tipo inválido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"L","tipo":"lista","opcoes":["A"]}'::jsonb)$c$, 'lista com uma opção');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"L","tipo":"lista","opcoes":["A","A "]}'::jsonb)$c$, 'lista com opção repetida');
+
+  PERFORM ci.entrar(gest);
+  c_txt := pet_campo_salvar('{"entidade":"pet","nome":"Pedigree","tipo":"texto","ordem":2}'::jsonb);
+  c_num := pet_campo_salvar('{"entidade":"pet","nome":"Altura (cm)","tipo":"numero"}'::jsonb);
+  c_data := pet_campo_salvar('{"entidade":"pet","nome":"Última vermifugação","tipo":"data"}'::jsonb);
+  c_sn := pet_campo_salvar('{"entidade":"pet","nome":"Dócil","tipo":"sim_nao"}'::jsonb);
+  c_lista := pet_campo_salvar('{"entidade":"pet","nome":"Plano","tipo":"lista","opcoes":["Básico","Premium"]}'::jsonb);
+  c_tutor := pet_campo_salvar('{"entidade":"tutor","nome":"Como nos conheceu","tipo":"texto"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":" pedigree ","tipo":"texto"}'::jsonb)$c$, 'nome repetido (sem diferenciar maiúsculas)');
+  PERFORM ci.entrar(ub);
+  c_b := pet_campo_salvar('{"entidade":"pet","nome":"Pedigree","tipo":"texto"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(c_b IS NOT NULL, 'o mesmo nome vale em outra empresa');
+
+  -- valores
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_txt), 'garçom grava valores');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'abc'))$c$, pet, c_num), 'número inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, '2026-02-30'))$c$, pet, c_data), 'data inexistente');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'talvez'))$c$, pet, c_sn), 'sim/não inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'Ouro'))$c$, pet, c_lista), 'opção que não está na lista');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_tutor), 'campo do tutor gravado no pet');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_b), 'campo de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet_b, c_txt), 'pet de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('tutor', %L, jsonb_build_object(%L::text, 'x'))$c$, tutor_b, c_tutor), 'tutor de outra empresa');
+
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_txt::text, ' CBKC 123 ', c_num::text, '45.5', c_data::text, '2026-03-09',
+                                                                  c_sn::text, 'sim', c_lista::text, 'Premium'));
+  PERFORM pet_campos_valores_salvar('tutor', tutor, jsonb_build_object(c_tutor::text, 'Indicação'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor = 'CBKC 123' FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'o valor é guardado sem espaços nas pontas');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM pet_campos_valores WHERE registro_id IN (%L, %L)', pet, tutor)) = 6, 'vendedor lê os valores do pet e do tutor');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_campos') = 0 AND ci.contar(gar, 'SELECT count(*) FROM pet_campos_valores') = 0, 'garçom não lê campos nem valores');
+  PERFORM ci.exige(ci.contar(ub, 'SELECT count(*) FROM pet_campos WHERE nome <> ''Pedigree''') = 0 AND ci.contar(ub, 'SELECT count(*) FROM pet_campos_valores') = 0, 'outra empresa não lê campos nem valores da demo');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO pet_campos_valores (campo_id, registro_id, valor) VALUES (%L, %L, 'x')$c$, c_txt, pet), 'gravar valor direto na tabela');
+  PERFORM ci.deve_falhar(vend, $c$UPDATE pet_campos SET nome = 'Outro'$c$, 'alterar campo direto na tabela');
+
+  -- valor vazio apaga; o que não veio no pacote fica
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_sn::text, ''));
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_sn AND registro_id = pet), 'valor vazio apaga');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'o que não veio no pacote continua');
+
+  -- obrigatório
+  PERFORM ci.entrar(adm);
+  c_obr := pet_campo_salvar('{"entidade":"pet","nome":"Origem","tipo":"texto","obrigatorio":true}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, '{}'::jsonb)$c$, pet), 'obrigatório sem valor (nem veio no pacote)');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, ''))$c$, pet, c_obr), 'obrigatório com valor vazio');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_obr::text, 'Canil X'));
+  PERFORM pet_campos_valores_salvar('pet', pet, '{}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(true, 'obrigatório preenchido salva e deixa salvar de novo sem ele no pacote');
+
+  -- mudar tipo e retirar opção em uso
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_campo_salvar(jsonb_build_object('id', %L::text, 'nome', 'Pedigree', 'tipo', 'numero'))$c$, c_txt), 'mudar o tipo com valores guardados');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_campo_salvar(jsonb_build_object('id', %L::text, 'nome', 'Plano', 'tipo', 'lista', 'opcoes', jsonb_build_array('Básico', 'Ouro')))$c$, c_lista), 'retirar da lista uma opção em uso');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_campo_salvar(jsonb_build_object('id', c_lista, 'nome', 'Plano', 'tipo', 'lista', 'opcoes', jsonb_build_array('Básico', 'Premium', 'Ouro')));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT jsonb_array_length(opcoes) = 3 FROM pet_campos WHERE id = c_lista), 'acrescentar opção na lista');
+
+  -- campo desativado: não aceita valor novo, mas o antigo fica
+  PERFORM ci.entrar(adm);
+  PERFORM pet_campo_salvar(jsonb_build_object('id', c_txt, 'nome', 'Pedigree', 'tipo', 'texto', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'novo'))$c$, pet, c_txt), 'valor novo em campo desativado');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'campo desativado mantém o valor antigo');
+
+  DELETE FROM pet_campos WHERE tenant_id IN (demo, tb);
+  DELETE FROM pets WHERE id = pet;
+  DELETE FROM clientes WHERE id = tutor;
+END $$;
+
+-- 91. Pet: ordem de serviço com os dados do animal
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; pet uuid; pet_b uuid; dep uuid; prod uuid; serv uuid; prof uuid;
+  os uuid; os2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb;
+BEGIN
+  SELECT tenant_id INTO tb FROM profiles WHERE id = ub;
+  SELECT id INTO pet_b FROM pets WHERE tenant_id = tb LIMIT 1;
+  IF pet_b IS NULL THEN
+    INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Tutor OS B') RETURNING id INTO tutor;
+    INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor, 'Pet OS B') RETURNING id INTO pet_b;
+  END IF;
+  INSERT INTO clientes (tenant_id, nome, telefone) VALUES (demo, 'Tutor OS CI', '81999990000') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome, especie, raca, alergias, microchip, peso_kg)
+    VALUES (demo, tutor, 'Rex OS CI', 'cao', 'Beagle', 'frango', '985000000000001', 12) RETURNING id INTO pet;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep OS Pet CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'OSP-RACAO', 'Ração OS Pet', 'un', 20, 35) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda, controla_estoque) VALUES (demo, 'OSP-BANHO', 'Banho OS Pet', 'un', 0, 60, false) RETURNING id INTO serv;
+  INSERT INTO pet_profissionais (tenant_id, nome, funcao) VALUES (demo, 'Banhista OS CI', 'banhista') RETURNING id INTO prof;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- quem abre a OS do pet
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'garçom abre OS do pet');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'estoquista abre OS do pet');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'anon abre OS do pet');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_os_salvar('{}'::jsonb)$c$, 'OS sem animal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet_b), 'animal de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'prioridade', 'ontem'))$c$, pet), 'prioridade inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'desconto', -1))$c$, pet), 'desconto negativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'profissional_id', %L))$c$, pet, gen_random_uuid()), 'profissional que não existe');
+
+  PERFORM ci.entrar(vend);
+  os := pet_os_salvar(jsonb_build_object('pet_id', pet, 'queixa', 'Banho e corte de unhas', 'prioridade', 'alta', 'profissional_id', prof, 'deposito_id', dep));
+  PERFORM ci.sair();
+  r := (SELECT pet_resumo FROM os_ordens WHERE id = os);
+  PERFORM ci.exige(r ->> 'nome' = 'Rex OS CI' AND r ->> 'raca' = 'Beagle' AND r ->> 'alergias' = 'frango' AND r ->> 'tutor' = 'Tutor OS CI'
+                   AND r ->> 'microchip' = '985000000000001' AND r ->> 'tutor_telefone' = '81999990000', 'a OS guarda os dados do animal e do tutor');
+  PERFORM ci.exige((SELECT numero > 0 AND situacao = 'aberta' AND tecnico_nome = 'Banhista OS CI' AND pet_id = pet AND cliente_id = (SELECT cliente_id FROM pets WHERE id = pet)
+                      FROM os_ordens WHERE id = os), 'OS nasce aberta, numerada, com tutor e profissional');
+
+  -- o retrato acompanha o cadastro enquanto a OS está aberta e congela depois da aprovação
+  UPDATE pets SET alergias = 'frango e milho' WHERE id = pet;
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_salvar(jsonb_build_object('id', os, 'queixa', 'Banho', 'deposito_id', dep, 'profissional_id', prof));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT pet_resumo ->> 'alergias' = 'frango e milho' FROM os_ordens WHERE id = os), 'OS aberta atualiza o retrato do animal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('id', %L, 'pet_id', %L))$c$, os, (SELECT id FROM pets WHERE tenant_id = demo AND id <> pet LIMIT 1)), 'trocar o animal da OS');
+
+  -- itens: produto (peça), serviço sem estoque e item livre
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'garçom inclui item');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x","quantidade":0}'::jsonb)$c$, os), 'quantidade zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{}'::jsonb)$c$, os), 'item sem produto nem descrição');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x","preco":-5}'::jsonb)$c$, os), 'preço negativo');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'outra empresa inclui item');
+  PERFORM ci.entrar(vend);
+  it_prod := pet_os_item_adicionar(os, jsonb_build_object('produto_id', prod, 'quantidade', 2));
+  it_serv := pet_os_item_adicionar(os, jsonb_build_object('produto_id', serv));
+  it_livre := pet_os_item_adicionar(os, '{"descricao":"Tosa higiênica","quantidade":1,"preco":25.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo = 'peca' AND preco_unitario = 35 AND total = 70 FROM os_itens WHERE id = it_prod), 'produto com estoque vira peça, com o preço de venda');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 60 FROM os_itens WHERE id = it_serv), 'produto sem controle de estoque vira serviço');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 25.5 FROM os_itens WHERE id = it_livre), 'item livre vira serviço');
+  PERFORM ci.exige((SELECT valor_pecas = 70 AND valor_servicos = 85.5 AND valor_total = 155.5 FROM os_ordens WHERE id = os), 'totais da OS recalculados');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_salvar(jsonb_build_object('id', os, 'queixa', 'Banho', 'deposito_id', dep, 'desconto', 5.5));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor_total = 150 FROM os_ordens WHERE id = os), 'desconto abate do total');
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'antes da aprovação o estoque não muda');
+
+  -- andamento e estoque
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_situacao(%L, 'aprovada')$c$, os), 'garçom muda a situação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'voando')$c$, os), 'situação inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'entregue')$c$, os), 'entregar sem estar pronta');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_os_situacao(%L, 'aprovada')$c$, os), 'outra empresa muda a situação');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'aprovada', dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 8 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'aprovar baixa o produto do estoque (10 - 2)');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'o serviço não cria estoque');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_item_remover(it_prod);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'remover o produto devolve o estoque');
+  PERFORM ci.exige((SELECT valor_pecas = 0 AND valor_total = 80 FROM os_ordens WHERE id = os), 'remover o item recalcula o total');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'em_reparo');
+  PERFORM pet_os_situacao(os, 'pronta');
+  PERFORM pet_os_situacao(os, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND entregue_em IS NOT NULL FROM os_ordens WHERE id = os), 'entrega registra quando');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'cancelada')$c$, os), 'cancelar OS entregue');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'incluir item em OS encerrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_remover(%L)$c$, it_serv), 'remover item de OS encerrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('id', %L, 'queixa', 'x'))$c$, os), 'editar OS encerrada');
+
+  -- cancelar devolve o estoque
+  PERFORM ci.entrar(vend);
+  os2 := pet_os_salvar(jsonb_build_object('pet_id', pet, 'deposito_id', dep));
+  PERFORM pet_os_item_adicionar(os2, jsonb_build_object('produto_id', prod, 'quantidade', 3));
+  PERFORM pet_os_situacao(os2, 'aprovada', dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 7 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'segunda OS baixa 3');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os2, 'cancelada');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'cancelar a OS devolve o estoque');
+
+  -- leitura e proteção direta
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM os_ordens WHERE pet_id = %L', pet)) = 2, 'vendedor lê as OS do pet');
+  PERFORM ci.exige(ci.contar(ub, format('SELECT count(*) FROM os_ordens WHERE pet_id = %L', pet)) = 0, 'outra empresa não lê as OS do pet');
+  PERFORM ci.entrar(vend);
+  UPDATE os_ordens SET pet_id = NULL, pet_resumo = NULL WHERE id = os2;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT pet_id = pet AND pet_resumo IS NOT NULL FROM os_ordens WHERE id = os2), 'o cliente não desfaz o vínculo com o animal pela tabela');
+  PERFORM ci.entrar(adm);
+  INSERT INTO os_ordens (tenant_id, equipamento, pet_id) VALUES (demo, 'Furadeira direta', pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM os_ordens WHERE equipamento = 'Furadeira direta' AND pet_id IS NOT NULL), 'o cliente não cria OS de pet pela tabela');
+
+  DELETE FROM os_itens WHERE os_id IN (os, os2);
+  DELETE FROM os_ordens WHERE tenant_id = demo AND (pet_id = pet OR equipamento = 'Furadeira direta');
+  DELETE FROM pet_profissionais WHERE id = prof;
+  DELETE FROM pets WHERE id = pet;
+END $$;
+
+-- 92. Clínica: internação (admissão, box, pesagem, relato, ocorrência, alta e óbito)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ban  constant uuid := 'a0000000-0000-0000-0000-0000000001d3';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; pet2 uuid; pet3 uuid; pv uuid; pa uuid; pb uuid; b1 uuid; b2 uuid; b3 uuid; i1 uuid; i2 uuid; r jsonb; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (vet, 'vet-int@ci'), (aux, 'aux-int@ci'), (ban, 'ban-int@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (vet, aux, ban);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vet, demo, 'veterinario'), (aux, demo, 'profissional'), (ban, demo, 'profissional');
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Internação CI') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome, alergias) VALUES (demo, tutor, 'Paciente Int CI', 'dipirona') RETURNING id INTO pet;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Int 2 CI') RETURNING id INTO pet2;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Int 3 CI') RETURNING id INTO pet3;
+  PERFORM ci.entrar(gest);
+  pv := pet_profissional_salvar('{"nome":"Vet Int CI","funcao":"veterinario","crmv":"7777","crmv_uf":"PE"}'::jsonb);
+  pa := pet_profissional_salvar('{"nome":"Aux Int CI","funcao":"auxiliar"}'::jsonb);
+  pb := pet_profissional_salvar('{"nome":"Banhista Int CI","funcao":"banhista"}'::jsonb);
+  PERFORM pet_profissional_vincular(pv, vet);
+  PERFORM pet_profissional_vincular(pa, aux);
+  PERFORM pet_profissional_vincular(pb, ban);
+  b1 := pet_box_salvar('{"nome":"Box 1 CI"}'::jsonb);
+  b2 := pet_box_salvar('{"nome":"Box 2 CI"}'::jsonb);
+  b3 := pet_box_salvar('{"nome":"Box 3 CI","ativo":false}'::jsonb);
+  PERFORM ci.sair();
+
+  -- boxes
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_box_salvar('{"nome":"X"}'::jsonb)$c$, 'vendedor cria box');
+  PERFORM ci.deve_falhar(aux, $c$SELECT pet_box_salvar('{"nome":"X"}'::jsonb)$c$, 'auxiliar cria box');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_box_salvar('{"nome":" "}'::jsonb)$c$, 'box sem nome');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_box_salvar('{"nome":" box 1 ci "}'::jsonb)$c$, 'nome de box repetido');
+  PERFORM ci.deve_falhar(ub, $c$SELECT pet_box_salvar('{"nome":"Outra empresa"}'::jsonb)$c$, 'empresa sem clínica liberada cria box');
+  PERFORM ci.deve_falhar(gar, $c$SELECT clinica_boxes()$c$, 'garçom lista boxes');
+  PERFORM ci.entrar(aux); SELECT jsonb_array_length(clinica_boxes()) INTO n; PERFORM ci.sair();
+  PERFORM ci.exige(n = 3, 'auxiliar lista os boxes');
+
+  -- admissão: só o veterinário com CRMV
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'gestor admite');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'administrador admite');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'auxiliar admite');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'banhista admite');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', ' '))$c$, pet, b1), 'admissão sem motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b3), 'box desativado');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('motivo', 'x'))$c$, pet), 'admissão sem box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x', 'peso_kg', 300))$c$, pet, b1), 'peso acima de 200 kg');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, gen_random_uuid(), b1), 'animal que não existe');
+  PERFORM ci.entrar(vet);
+  i1 := clinica_internacao_admitir(pet, jsonb_build_object('box_id', b1, 'motivo', 'Gastroenterite com desidratação', 'peso_kg', 8.4, 'observacoes', 'Dieta zero 12h'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'internado' AND crmv = '7777' AND crmv_uf = 'PE' AND box_id = b1 FROM pet_internacoes WHERE id = i1), 'admissão guarda box, veterinário e o CRMV da hora');
+  PERFORM ci.exige((SELECT peso_kg = 8.4 AND internacao_id = i1 FROM pet_pesagens WHERE pet_id = pet), 'o peso da admissão entra no histórico de pesagens');
+  PERFORM ci.exige((SELECT peso_kg = 8.4 FROM pets WHERE id = pet), 'o peso do cadastro acompanha');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b2), 'animal já internado');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet2, b1), 'box ocupado');
+
+  -- nenhuma leitura direta das tabelas, nem para quem opera
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM pet_internacoes', 'veterinário lê as internações direto');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_internacoes', 'administrador lê as internações direto');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_internacao_relatos', 'gestor lê os relatos direto');
+  PERFORM ci.deve_falhar(aux, 'SELECT count(*) FROM pet_internacao_ocorrencias', 'auxiliar lê as ocorrências direto');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_boxes', 'gestor lê os boxes direto');
+  PERFORM ci.deve_falhar(vet, format($c$INSERT INTO pet_internacao_relatos (internacao_id, veterinario_id, crmv, crmv_uf, texto) VALUES (%L, %L, '1', 'PE', 'x')$c$, i1, pv), 'gravar relato direto na tabela');
+
+  -- mapa
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_internacoes()$c$, 'gestor lê o mapa');
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_internacoes()$c$, 'banhista lê o mapa');
+  PERFORM ci.entrar(aux); r := clinica_internacoes(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 -> 'box' ->> 'nome' = 'Box 1 CI' AND r -> 0 -> 'pet' ->> 'alergias' = 'dipirona' AND (r -> 0 ->> 'ultimo_peso')::numeric = 8.4
+                   AND NOT (r -> 0 ? 'motivo'), 'auxiliar vê o mapa com box, alergia e peso, sem o motivo');
+
+  -- pesagem e ocorrência: veterinário e auxiliar
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_pesagem(%L, 8)$c$, i1), 'banhista pesa');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_pesagem(%L, 0)$c$, i1), 'pesagem zero');
+  PERFORM ci.entrar(aux);
+  PERFORM clinica_internacao_pesagem(i1, 8.1);
+  PERFORM clinica_internacao_ocorrencia(i1, 'alimentacao', 'Aceitou ração úmida');
+  PERFORM clinica_internacao_ocorrencia(i1, 'intercorrencia', 'Vomitou uma vez às 14h');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 8.1 FROM pets WHERE id = pet), 'a pesagem da internação atualiza o peso do cadastro');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'transferencia', 'x')$c$, i1), 'ocorrência de transferência feita à mão');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'outro', ' ')$c$, i1), 'ocorrência vazia');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'festa', 'x')$c$, i1), 'tipo de ocorrência inválido');
+
+  -- relato médico: só o veterinário
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_relato(%L, 'tentativa')$c$, i1), 'auxiliar escreve relato médico');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_relato(%L, 'tentativa')$c$, i1), 'gestor escreve relato médico');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_relato(%L, '  ')$c$, i1), 'relato vazio');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_relato(i1, 'Hidratação em curso, abdome menos doloroso.');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_relatos SET texto = 'outro' WHERE internacao_id = %L$c$, i1), 'alterar relato');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_ocorrencias WHERE internacao_id = %L$c$, i1), 'apagar ocorrência');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacoes WHERE id = %L$c$, i1), 'apagar internação');
+
+  -- ficha: o auxiliar não lê o texto clínico
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'internacao' ->> 'motivo' = 'Gastroenterite com desidratação' AND jsonb_array_length(r -> 'relatos') = 1
+                   AND jsonb_array_length(r -> 'ocorrencias') = 2 AND jsonb_array_length(r -> 'pesagens') = 2 AND (r ->> 'sou_veterinario')::boolean, 'o veterinário vê a ficha completa');
+  PERFORM ci.entrar(aux); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'internacao' -> 'motivo' = 'null'::jsonb AND r -> 'relatos' = 'null'::jsonb AND jsonb_array_length(r -> 'ocorrencias') = 2
+                   AND r -> 'pet' ->> 'alergias' = 'dipirona', 'o auxiliar vê alergia e ocorrências, sem motivo nem relatos');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_obter(%L)$c$, i1), 'gestor lê a ficha da internação');
+  PERFORM ci.exige((SELECT count(*) >= 3 FROM clinica_acessos WHERE pet_id = pet AND acao = 'internacao'), 'abrir a ficha e admitir ficam na auditoria de acessos');
+
+  -- troca de box
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b2), 'auxiliar troca o box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b1), 'trocar para o mesmo box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b3), 'trocar para box desativado');
+  PERFORM ci.entrar(vet);
+  i2 := clinica_internacao_admitir(pet2, jsonb_build_object('box_id', b2, 'motivo', 'Pós-operatório'));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b2), 'trocar para box ocupado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_box_salvar(jsonb_build_object('id', %L, 'nome', 'Box 1 CI', 'ativo', false))$c$, b1), 'desativar box com animal');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i2, 'alta', 'Alta no mesmo dia');
+  PERFORM clinica_internacao_box_trocar(i1, b2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT box_id = b2 FROM pet_internacoes WHERE id = i1), 'troca de box');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_ocorrencias WHERE internacao_id = i1 AND tipo = 'transferencia' AND texto = 'Transferido do box Box 1 CI para o box Box 2 CI'), 'a troca fica registrada como ocorrência');
+
+  -- alta e óbito
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'auxiliar dá alta');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'gestor dá alta');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', ' ')$c$, i1), 'alta sem resumo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'saiu', 'x')$c$, i1), 'tipo de encerramento inválido');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x', now() + interval '2 days')$c$, i1), 'alta no futuro');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x', now() - interval '5 days')$c$, i1), 'alta antes da admissão');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i1, 'obito', 'Parada cardiorrespiratória apesar das manobras.');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'obito' AND encerrado_em IS NOT NULL AND encerrado_por = pv FROM pet_internacoes WHERE id = i1), 'óbito encerra a internação');
+  PERFORM ci.exige((SELECT NOT ativo AND obito_em IS NOT NULL FROM pets WHERE id = pet), 'óbito inativa o cadastro do animal e guarda a data');
+  PERFORM ci.entrar(gest); r := clinica_boxes(); PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = b2 AND NOT (e ->> 'ocupado')::boolean), 'depois do óbito o box fica livre');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_relato(%L, 'tarde demais')$c$, i1), 'relato em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_pesagem(%L, 8)$c$, i1), 'pesagem em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'encerrar de novo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacoes SET observacoes = 'mexi' WHERE id = %L$c$, i1), 'alterar internação encerrada');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacoes SET motivo = 'outro' WHERE id = %L$c$, i2), 'alterar o motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'internar animal falecido (inativo)');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_admitir(pet3, jsonb_build_object('box_id', b2, 'motivo', 'Reinternação no box liberado'));
+  r := clinica_internacoes('todas', NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 3, 'o histórico lista internadas e encerradas');
+  PERFORM ci.entrar(vet); r := clinica_internacoes('obito', pet); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1, 'histórico filtrado por animal e situação');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 93. Clínica: internação, fase 2 (prescrição, mapa de execuções e itens)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ban  constant uuid := 'a0000000-0000-0000-0000-0000000001d3';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; b4 uuid; i1 uuid; dep uuid; prod uuid; serv uuid;
+  p1 uuid; p2 uuid; p3 uuid; p4 uuid; e1 uuid; e2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Prescrição CI') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Presc CI') RETURNING id INTO pet;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep Internação CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'INT-SORO', 'Soro Ringer Internação CI', 'un', 8, 20) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda, controla_estoque) VALUES (demo, 'INT-DIARIA', 'Diária de internação CI', 'un', 0, 120, false) RETURNING id INTO serv;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  b4 := pet_box_salvar('{"nome":"Box 4 CI"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vet);
+  i1 := clinica_internacao_admitir(pet, jsonb_build_object('box_id', b4, 'motivo', 'Pós-cirúrgico'));
+  PERFORM ci.sair();
+
+  -- prescrever: só o veterinário, com dados válidos
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'auxiliar prescreve');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'gestor prescreve');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'banhista prescreve');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"dose":"1 ml"}'::jsonb)$c$, i1), 'prescrição sem medicamento');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X"}'::jsonb)$c$, i1), 'prescrição sem dose');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":8}'::jsonb)$c$, i1), 'frequência sem duração');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":8,"dias":20}'::jsonb)$c$, i1), 'duração de 20 dias');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":0,"dias":1}'::jsonb)$c$, i1), 'frequência zero');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, jsonb_build_object('medicamento','X','dose','1','inicio', now() - interval '10 days'))$c$, i1), 'início antes da admissão');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, jsonb_build_object('medicamento','X','dose','1','inicio', now() + interval '3 days'))$c$, i1), 'início a mais de 24 horas');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1"}'::jsonb)$c$, gen_random_uuid()), 'internação que não existe');
+
+  PERFORM ci.entrar(vet);
+  p1 := clinica_internacao_prescrever(i1, '{"medicamento":"Dipirona","dose":"25 mg/kg","via":"IV","frequencia_horas":8,"dias":1,"observacao":"Diluir"}'::jsonb);
+  p2 := clinica_internacao_prescrever(i1, '{"medicamento":"Ringer lactato","dose":"20 ml/kg/h"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 3 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'pendente'), 'a cada 8 horas durante 1 dia dá 3 doses');
+  PERFORM ci.exige((SELECT max(previsto_em) - min(previsto_em) = interval '16 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p1), 'as doses ficam 8 horas uma da outra');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p2), 'sem frequência é dose única');
+  PERFORM ci.exige((SELECT crmv = '7777' AND situacao = 'ativa' FROM pet_internacao_prescricoes WHERE id = p1), 'a prescrição guarda o CRMV de quem prescreveu');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_prescricoes SET dose = '1 g' WHERE id = %L$c$, p1), 'alterar a prescrição');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_prescricoes WHERE id = %L$c$, p1), 'apagar a prescrição');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_execucoes WHERE prescricao_id = %L$c$, p1), 'apagar doses');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_execucoes SET previsto_em = now() WHERE prescricao_id = %L$c$, p1), 'mudar o horário de uma dose');
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM pet_internacao_prescricoes', 'ler as prescrições direto');
+
+  -- mapa
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_execucoes_mapa()$c$, 'gestor lê o mapa de execuções');
+  PERFORM ci.deve_falhar(gar, $c$SELECT clinica_execucoes_mapa()$c$, 'garçom lê o mapa de execuções');
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_execucoes_mapa()$c$, 'banhista lê o mapa de execuções');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_execucoes_mapa(0)$c$, 'mapa de 0 horas');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_execucoes_mapa(100)$c$, 'mapa de 100 horas');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(24); PERFORM ci.sair();
+  SELECT count(*) INTO n FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI';
+  PERFORM ci.exige(n = 4 AND r ? 'agora', 'o auxiliar vê as 4 doses do paciente no mapa');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(1); PERFORM ci.sair();
+  SELECT count(*) INTO n FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI';
+  PERFORM ci.exige(n = 2, 'o mapa de 1 hora só traz as doses desta hora (as duas de agora)');
+
+  -- execução
+  SELECT id INTO e1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 ORDER BY previsto_em LIMIT 1;
+  SELECT id INTO e2 FROM pet_internacao_execucoes WHERE prescricao_id = p1 ORDER BY previsto_em OFFSET 1 LIMIT 1;
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'banhista executa dose');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'gestor executa dose');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'feita')$c$, e1), 'situação de dose inválida');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e2), 'adiantar dose de 8 horas');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'nao_executada')$c$, e2), 'dose não feita sem motivo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, gen_random_uuid()), 'dose que não existe');
+  PERFORM ci.entrar(aux);
+  PERFORM clinica_execucao_registrar(e1, 'executada', 'Sem intercorrência');
+  PERFORM clinica_execucao_registrar(e2, 'nao_executada', 'Animal em jejum para exame');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'executada' AND executado_por IS NOT NULL AND executado_em IS NOT NULL AND observacao = 'Sem intercorrência' FROM pet_internacao_execucoes WHERE id = e1), 'a execução guarda quem fez e quando');
+  PERFORM ci.exige((SELECT situacao = 'nao_executada' FROM pet_internacao_execucoes WHERE id = e2), 'dose não feita guarda o motivo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'executar a mesma dose de novo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_execucoes SET situacao = 'pendente' WHERE id = %L$c$, e1), 'reabrir dose resolvida');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(1); PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'itens') e WHERE (e ->> 'id')::uuid = e1 AND e ->> 'situacao' = 'executada' AND e ->> 'executado_por' = 'Aux Int CI'),
+                   'o mapa mostra a dose feita há pouco, com quem fez');
+
+  -- suspensão
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_prescricao_suspender(%L, 'x')$c$, p1), 'auxiliar suspende prescrição');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, ' ')$c$, p1), 'suspender sem motivo');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_prescricao_suspender(p1, 'Trocar por tramadol');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'suspensa' AND suspensa_motivo = 'Trocar por tramadol' FROM pet_internacao_prescricoes WHERE id = p1), 'suspensão guarda o motivo');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'cancelada')
+                   AND (SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'executada')
+                   AND (SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'nao_executada'), 'suspender cancela só as doses pendentes');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, 'de novo')$c$, p1), 'suspender duas vezes');
+
+  -- itens
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_internacao_catalogo('soro')$c$, 'banhista consulta o catálogo');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_internacao_catalogo('s')$c$, 'catálogo com 1 letra');
+  PERFORM ci.entrar(aux); r := clinica_internacao_catalogo('soro ringer'); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND (r -> 0 ->> 'preco_venda')::numeric = 20 AND (r -> 0 ->> 'controla_estoque')::boolean, 'o auxiliar acha o produto no catálogo');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'banhista lança item');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'gestor lança item');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{}'::jsonb)$c$, i1), 'item sem produto nem descrição');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x","quantidade":0}'::jsonb)$c$, i1), 'item com quantidade zero');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x","preco":-1}'::jsonb)$c$, i1), 'item com preço negativo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, jsonb_build_object('produto_id', %L))$c$, i1, gen_random_uuid()), 'produto que não existe');
+  PERFORM ci.entrar(aux);
+  it_prod := clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', prod, 'quantidade', 2, 'deposito_id', dep));
+  it_serv := clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', serv));
+  it_livre := clinica_internacao_item_lancar(i1, '{"descricao":"Curativo","quantidade":2,"preco":15.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 8 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'lançar produto baixa o estoque (10 - 2)');
+  PERFORM ci.exige((SELECT tipo = 'produto' AND total = 40 AND baixa_quantidade = 2 FROM pet_internacao_itens WHERE id = it_prod), 'produto com estoque: tipo, total e baixa guardados');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 120 AND baixa_deposito_id IS NULL FROM pet_internacao_itens WHERE id = it_serv), 'serviço não baixa estoque');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 31 FROM pet_internacao_itens WHERE id = it_livre), 'item livre vira serviço');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'serviço não cria estoque');
+  PERFORM ci.entrar(aux); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 3 AND (r ->> 'total_itens')::numeric = 191 AND jsonb_array_length(r -> 'prescricoes') = 2
+                   AND r -> 'relatos' = 'null'::jsonb, 'a ficha traz itens, total e prescrições, sem os relatos para o auxiliar');
+  PERFORM ci.exige(jsonb_array_length((SELECT p -> 'execucoes' FROM jsonb_array_elements(r -> 'prescricoes') p WHERE p ->> 'medicamento' = 'Dipirona')) = 3, 'a prescrição vem com as suas doses');
+
+  -- cancelar item: só o veterinário, com motivo, e devolve o estoque
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_cancelar(%L, 'x')$c$, it_prod), 'auxiliar cancela item');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, ' ')$c$, it_prod), 'cancelar item sem motivo');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_item_cancelar(it_prod, 'Lançado no animal errado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'cancelar o item devolve o estoque');
+  PERFORM ci.exige((SELECT cancelado_em IS NOT NULL AND baixa_deposito_id IS NULL AND cancelado_motivo = 'Lançado no animal errado' FROM pet_internacao_itens WHERE id = it_prod), 'o item cancelado fica registrado com o motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, 'de novo')$c$, it_prod), 'cancelar item duas vezes');
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total_itens')::numeric = 151, 'o total não conta o item cancelado');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_itens WHERE id = %L$c$, it_serv), 'apagar item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET quantidade = 9 WHERE id = %L$c$, it_serv), 'mudar a quantidade do item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET descricao = 'x' WHERE id = %L$c$, it_prod), 'mexer em item cancelado');
+
+  -- duração que não é múltiplo da frequência: toda dose que cabe na duração entra (5 h por 1 dia = 0, 5, 10, 15 e 20 h)
+  PERFORM ci.entrar(vet);
+  p3 := clinica_internacao_prescrever(i1, '{"medicamento":"Omeprazol","dose":"1 mg/kg","frequencia_horas":5,"dias":1}'::jsonb);
+  p4 := clinica_internacao_prescrever(i1, '{"medicamento":"Tramadol","dose":"2 mg/kg","frequencia_horas":7,"dias":1}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 5 AND max(previsto_em) - min(previsto_em) = interval '20 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p3), 'a cada 5 h por 1 dia dá 5 doses, a última na hora 20');
+  PERFORM ci.exige((SELECT count(*) = 4 AND max(previsto_em) - min(previsto_em) = interval '21 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p4), 'a cada 7 h por 1 dia dá 4 doses, a última na hora 21');
+
+  -- alta: as doses que faltam são canceladas e nada mais entra
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i1, 'alta', 'Alta com medicação oral');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM pet_internacao_execucoes WHERE internacao_id = i1 AND situacao = 'pendente'), 'a alta cancela as doses pendentes');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1"}'::jsonb)$c$, i1), 'prescrever em internação encerrada');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'lançar item em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, 'tarde')$c$, it_serv), 'cancelar item de internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, 'tarde')$c$, p2), 'suspender prescrição de internação encerrada');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(72); PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI'), 'o mapa não traz internação encerrada');
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'prescricoes') = 4 AND jsonb_array_length(r -> 'itens') = 3, 'o histórico continua completo depois da alta');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 94. SNGPC: medicamentos controlados, livro, período, inventário e envios
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  hoje constant date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; cnpj_ant text;
+  p1 uuid; p2 uuid; p3 uuid; m1 uuid; m2 uuid; farma uuid; farma_off uuid;
+  d_saldo uuid; d_ent uuid; d_venda uuid; d_perda uuid; env1 uuid; env2 uuid; r jsonb; n bigint; x text;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, cnpj INTO ramo_ant, cnae_ant, cnae2_ant, cnpj_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica', cnpj = '11222333000181' WHERE tenant_id = demo;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-DIAZ', 'Diazepam 10 mg SNGPC CI', 'un', 5, 12) RETURNING id INTO p1;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-CETA', 'Cetamina 50 mg/ml SNGPC CI', 'un', 30, 60) RETURNING id INTO p2;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-OUTRO', 'Outro SNGPC CI', 'un', 1, 2) RETURNING id INTO p3;
+
+  -- CPF do farmacêutico
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma sem CPF","funcao":"farmaceutico","crf":"1234","crf_uf":"PE"}'::jsonb)$c$, 'farmacêutico sem CPF');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma CPF ruim","funcao":"farmaceutico","crf":"1234","crf_uf":"PE","cpf":"11111111111"}'::jsonb)$c$, 'farmacêutico com CPF inválido');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma CPF ruim","funcao":"farmaceutico","crf":"1234","crf_uf":"PE","cpf":"52998224726"}'::jsonb)$c$, 'farmacêutico com dígito do CPF errado');
+  PERFORM ci.entrar(gest);
+  farma := pet_profissional_salvar('{"nome":"Farma SNGPC CI","funcao":"farmaceutico","crf":"4321","crf_uf":"PE","cpf":"529.982.247-25"}'::jsonb);
+  farma_off := pet_profissional_salvar('{"nome":"Farma Inativa CI","funcao":"farmaceutico","crf":"4322","crf_uf":"PE","cpf":"52998224725","ativo":false}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cpf = '52998224725' FROM pet_profissionais WHERE id = farma), 'o CPF do farmacêutico é guardado só com números');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_salvar(jsonb_build_object('id', farma_off, 'nome', 'Farma Inativa CI', 'funcao', 'banhista'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cpf IS NULL FROM pet_profissionais WHERE id = farma_off), 'mudar a função limpa o CPF');
+
+  -- quem opera
+  PERFORM ci.deve_falhar(vend, $c$SELECT sngpc_saldo()$c$, 'vendedor lê o saldo do SNGPC');
+  PERFORM ci.deve_falhar(aux, $c$SELECT sngpc_livro()$c$, 'auxiliar lê o livro do SNGPC');
+  PERFORM ci.deve_falhar(gar, $c$SELECT sngpc_medicamentos()$c$, 'garçom lê os medicamentos controlados');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT sngpc_envios()$c$, 'anon lê os envios');
+  PERFORM ci.deve_falhar(ub, $c$SELECT sngpc_medicamentos()$c$, 'empresa sem clínica liberada usa o SNGPC');
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM sngpc_documentos', 'ler o livro direto na tabela');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM sngpc_envios', 'ler os envios direto na tabela');
+
+  -- cadastro do medicamento controlado
+  PERFORM ci.deve_falhar(vend, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'vendedor cadastra controlado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '123456789012', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'registro com 12 números');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'Z9', 'unidade_medida', 1))$c$, p1), 'lista inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 3))$c$, p1), 'unidade inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, gen_random_uuid()), 'produto que não existe');
+  PERFORM ci.entrar(gest);
+  m1 := sngpc_medicamento_salvar(jsonb_build_object('produto_id', p1, 'registro_ms', '1.234.567.890.123', 'lista', 'b1', 'unidade_medida', 1));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vet);
+  m2 := sngpc_medicamento_salvar(jsonb_build_object('produto_id', p2, 'registro_ms', '9876543210987', 'lista', 'A1', 'unidade_medida', 2));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT registro_ms = '1234567890123' AND lista = 'B1' FROM sngpc_medicamentos WHERE id = m1), 'registro só com números e lista em maiúsculas');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'o mesmo produto de novo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p3), 'o mesmo registro em outro produto');
+
+  -- saldo inicial, entrada, dispensação e perda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', '[]'::jsonb))$c$), 'lançamento sem itens');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('compra', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'tipo de lançamento inválido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date + 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'lançamento no futuro');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 0))))$c$, m1), 'quantidade zero');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1000))))$c$, m1), 'quantidade acima de 999');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', '  ', 'quantidade', 1))))$c$, m1), 'lote vazio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, gen_random_uuid()), 'medicamento controlado que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'vendedor lança no livro');
+
+  PERFORM ci.entrar(gest);
+  d_saldo := sngpc_registrar('saldo_inicial', jsonb_build_object('data', hoje - 6, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', ' l1 ', 'quantidade', 10, 'validade', hoje + 200))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lote = 'L1' FROM sngpc_itens WHERE documento_id = d_saldo), 'o lote é guardado sem espaços e em maiúsculas');
+
+  -- entrada: nota fiscal de compra completa
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'entrada sem nota fiscal');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date, 'nf_numero', 55, 'nf_data', current_date, 'cnpj_origem', '123', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'entrada com CNPJ de origem curto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date - 4, 'nf_numero', 55, 'nf_data', current_date, 'cnpj_origem', '12345678000195', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'nota fiscal posterior ao recebimento');
+  PERFORM ci.entrar(vet);
+  d_ent := sngpc_registrar('entrada', jsonb_build_object('data', hoje - 3, 'nf_numero', 123, 'nf_data', hoje - 4, 'cnpj_origem', '12.345.678/0001-95',
+             'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 20, 'validade', hoje + 300),
+                                        jsonb_build_object('medicamento_id', m2, 'lote', 'K1', 'quantidade', 8, 'validade', hoje + 100))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cnpj_origem = '12345678000195' AND nf_numero = 123 FROM sngpc_documentos WHERE id = d_ent), 'a entrada guarda a nota fiscal e o CNPJ só com números');
+
+  -- dispensação (venda): receita, prescritor CRMV, comprador e animal
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'dispensação sem receita');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 5, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receituário de antimicrobiano (tipo 5)');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'XX', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'prescritor com UF inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 2, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'tipo de documento do comprador fora do que o guia confirma');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receita sem número de notificação');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date - 1, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receita datada depois da dispensação');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'paciente_nome', 'Rex', 'paciente_idade', 3, 'paciente_unidade_idade', 1,
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'animal sem sexo');
+
+  PERFORM ci.entrar(gest);
+  d_venda := sngpc_registrar('venda', jsonb_build_object(
+      'data', hoje - 1, 'tipo_receituario', 2, 'numero_notificacao', '0012345', 'data_prescricao', hoje - 2, 'prescritor_nome', 'Dra. Vet Silva', 'prescritor_registro', '12.345',
+      'prescritor_uf', 'pe', 'comprador_nome', 'Maria Tutora', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'paciente_nome', 'Rex', 'paciente_idade', 3, 'paciente_unidade_idade', 1, 'paciente_sexo', 1,
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L1', 'quantidade', 4))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT prescritor_registro = '12345' AND prescritor_uf = 'PE' AND numero_notificacao = '0012345' FROM sngpc_documentos WHERE id = d_venda), 'a dispensação guarda o prescritor (registro só com números, UF em maiúsculas)');
+
+  -- perda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'perda sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 10, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'motivo de perda inexistente');
+  PERFORM ci.entrar(gest);
+  d_perda := sngpc_registrar('perda', jsonb_build_object('data', hoje - 1, 'motivo_perda', 2, 'observacao', 'Frasco quebrado', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 1))));
+  r := sngpc_saldo();
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L1' AND e ->> 'registro_ms' = '1234567890123') = 6, 'saldo do lote L1: 10 - 4');
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L2') = 19, 'saldo do lote L2: 20 - 1');
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'K1') = 8, 'saldo do lote da cetamina');
+  PERFORM ci.exige(jsonb_array_length(r) = 3, 'só os lotes com saldo aparecem');
+
+  -- o saldo nunca fica negativo
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 7))))$c$, m1), 'perda maior que o saldo do lote');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'NAOEXISTE', 'quantidade', 1))))$c$, m1), 'perda de lote que não existe');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 5, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'perda de lote antes da entrada dele');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 4), jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 4))))$c$, m1, m1), 'duas linhas do mesmo lote que passam do saldo juntas');
+  PERFORM ci.exige((SELECT count(*) = 4 FROM sngpc_documentos WHERE tenant_id = demo AND cancelado_em IS NULL), 'lançamento recusado não deixa rastro (continuam 4)');
+
+  -- cancelar
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_cancelar(%L, 'x')$c$, d_perda), 'auxiliar cancela lançamento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, ' ')$c$, d_perda), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'x')$c$, gen_random_uuid()), 'cancelar lançamento que não existe');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Lançado errado')$c$, d_saldo), 'cancelar o saldo inicial que a dispensação já usou');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_cancelar(d_perda, 'Lançada em duplicidade');
+  r := sngpc_saldo();
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L2') = 20, 'cancelar a perda devolve o saldo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'de novo')$c$, d_perda), 'cancelar duas vezes');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_documentos WHERE id = %L$c$, d_venda), 'apagar lançamento');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_documentos SET numero_notificacao = '999' WHERE id = %L$c$, d_venda), 'alterar lançamento');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_itens SET quantidade = 9 WHERE documento_id = %L$c$, d_venda), 'alterar item');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_itens WHERE documento_id = %L$c$, d_venda), 'apagar item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_documentos SET cancelado_motivo = 'mexi' WHERE id = %L$c$, d_perda), 'alterar lançamento cancelado');
+
+  -- medicamento com movimento não muda o registro nem a unidade
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('id', %L, 'registro_ms', '1111111111111', 'lista', 'B1', 'unidade_medida', 1))$c$, m1), 'mudar o registro com movimento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 2))$c$, m1), 'mudar a unidade com movimento');
+
+  -- livro
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'documentos') = 4 AND r -> 'fechado_ate' = 'null'::jsonb, 'o livro traz os 4 lançamentos (um cancelado) e nenhum período fechado');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'documentos') d WHERE d ->> 'id' = d_perda::text AND d ->> 'cancelado_motivo' = 'Lançada em duplicidade'), 'o cancelado aparece marcado, com o motivo');
+
+  -- período e inventário (dados para o XML)
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date, current_date - 1)$c$), 'período invertido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date - 40, current_date)$c$), 'período de 41 dias');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date, current_date + 2)$c$), 'período no futuro');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_periodo(current_date - 3, current_date)$c$), 'auxiliar gera o período');
+  PERFORM ci.entrar(gest); r := sngpc_periodo(hoje - 6, hoje); PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'cnpj' = '11222333000181' AND jsonb_array_length(r -> 'documentos') = 2, 'o período traz entrada e dispensação (sem saldo inicial nem cancelados)');
+  PERFORM ci.exige((r -> 'documentos' -> 0 ->> 'tipo') = 'entrada' AND jsonb_array_length(r -> 'documentos' -> 0 -> 'itens') = 2, 'a entrada vem primeiro, com os 2 itens');
+  PERFORM ci.exige((r -> 'documentos' -> 1 -> 'itens' -> 0 ->> 'registro_ms') = '1234567890123' AND (r -> 'documentos' -> 1 -> 'itens' -> 0 ->> 'quantidade') = '4', 'o item traz o registro na Anvisa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_inventario(current_date - 10)$c$), 'inventário de 10 dias atrás');
+  PERFORM ci.entrar(gest); r := sngpc_inventario(hoje); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 3, 'o inventário lista os 3 lotes com saldo');
+  PERFORM ci.entrar(gest); r := sngpc_inventario(hoje - 5); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 1 AND (r -> 'itens' -> 0 ->> 'quantidade') = '10', 'o inventário de 5 dias atrás só tem o saldo inicial');
+  UPDATE empresas SET cnpj = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date - 3, current_date)$c$), 'gerar sem CNPJ da empresa');
+  UPDATE empresas SET cnpj = '11222333000181' WHERE tenant_id = demo;
+
+  -- responsáveis
+  PERFORM ci.entrar(gest); r := sngpc_responsaveis(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) >= 1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = farma AND e ->> 'cpf' = '52998224725')
+                   AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = farma_off), 'só farmacêutico ativo com CPF válido responde pelo envio');
+
+  -- envios
+  x := '<?xml version="1.0" encoding="iso-8859-1" ?><mensagemSNGPC xmlns="urn:sngpc-schema"><cabecalho/></mensagemSNGPC>';
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'auxiliar registra envio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma_off, x), 'envio com farmacêutico inativo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', 'texto qualquer'))$c$, farma), 'envio que não é XML');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 1, 'fim', current_date - 6, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período invertido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 60, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período de 60 dias');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'remessa', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'tipo de envio inválido');
+  -- o arquivo só vale para o livro como estava na montagem: assinatura errada, ou livro que mudou depois, recusa
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L, 'assinatura', 'errada'))$c$, farma, x), 'envio com assinatura errada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio sem assinatura');
+  PERFORM ci.entrar(gest);
+  r := sngpc_periodo(hoje - 6, hoje - 1);
+  PERFORM sngpc_registrar('perda', jsonb_build_object('data', hoje - 1, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L1', 'quantidade', 1))));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L, 'assinatura', %L))$c$, farma, x, r ->> 'assinatura'), 'arquivo montado antes de um lançamento novo no período');
+  PERFORM ci.entrar(gest);
+  r := sngpc_periodo(hoje - 6, hoje - 1);
+  env1 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje - 6, 'fim', hoje - 1, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
+  PERFORM ci.sair();
+  -- enquanto há arquivo gerado, o livro das datas dele não muda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 2, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'lançar em período com arquivo gerado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Receita errada')$c$, d_venda), 'cancelar lançamento de período com arquivo gerado');
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'periodos_travados') = 1 AND (r -> 'periodos_travados' -> 0 ->> 'situacao') = 'gerado', 'o livro mostra o período travado pelo arquivo gerado');
+  PERFORM ci.exige((SELECT length(sha256) = 64 AND situacao = 'gerado' AND gerado_por_nome <> '' FROM sngpc_envios WHERE id = env1), 'o envio guarda o hash do arquivo e quem gerou');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio que se sobrepõe a outro gerado');
+  PERFORM ci.entrar(vet); r := sngpc_envios(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND NOT (r -> 0 ? 'xml'), 'a lista de envios não carrega o arquivo');
+  PERFORM ci.entrar(vet); x := sngpc_envio_xml(env1); PERFORM ci.sair();
+  PERFORM ci.exige(x LIKE '<?xml version="1.0" encoding="iso-8859-1" ?><mensagemSNGPC%', 'o arquivo gerado pode ser baixado de novo, igual ao que foi guardado');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_xml(%L)$c$, env1), 'auxiliar baixa o arquivo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_envios SET xml = '<?xml outro ?>............................................' WHERE id = %L$c$, env1), 'trocar o arquivo gerado');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_envios WHERE id = %L$c$, env1), 'apagar o envio');
+
+  -- transmitir: sem o protocolo não vale, e fecha o período
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_transmitir(%L, 'ABC123')$c$, env1), 'auxiliar marca como transmitido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, ' ')$c$, env1), 'transmitir sem protocolo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, 'ABC123')$c$, gen_random_uuid()), 'transmitir envio que não existe');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_envio_transmitir(env1, 'SNGPC-2026-0001');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'transmitido' AND protocolo = 'SNGPC-2026-0001' AND transmitido_em IS NOT NULL FROM sngpc_envios WHERE id = env1), 'transmitido guarda o protocolo e quando');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, 'OUTRO')$c$, env1), 'transmitir duas vezes');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_cancelar(%L, 'engano')$c$, env1), 'cancelar envio já transmitido');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_envios SET protocolo = 'X' WHERE id = %L$c$, env1), 'alterar envio transmitido');
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'fechado_ate')::date = hoje - 1, 'o livro mostra até onde o período está fechado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 1, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'lançar em período já transmitido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Receita errada')$c$, d_venda), 'cancelar lançamento de período já transmitido');
+  PERFORM ci.entrar(gest);
+  d_perda := sngpc_registrar('perda', jsonb_build_object('data', hoje, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 2))));
+  PERFORM ci.sair();
+  PERFORM ci.exige(d_perda IS NOT NULL, 'depois do período fechado, lançar com data nova continua valendo');
+
+  -- novo período: o seguinte ao transmitido; cancelar o gerado libera o período
+  PERFORM ci.entrar(gest);
+  r := sngpc_periodo(hoje, hoje);
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'lançar no dia de um arquivo gerado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_cancelar(%L, ' ')$c$, env2), 'cancelar envio sem motivo');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_envio_cancelar(env2, 'Faltou lançar uma nota');
+  -- cancelado o arquivo gerado, o livro da data volta a aceitar lançamento; o arquivo novo precisa da assinatura nova
+  PERFORM sngpc_registrar('perda', jsonb_build_object('data', hoje, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 1))));
+  r := sngpc_periodo(hoje, hoje);
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 3 FROM sngpc_envios WHERE tenant_id = demo), 'cancelar o gerado libera o período para um arquivo novo');
+
+  -- inventário: uma data por vez
+  PERFORM ci.entrar(gest);
+  r := sngpc_inventario(hoje);
+  PERFORM sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário com período em vez de uma data');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 9, 'fim', current_date - 9, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário de 9 dias atrás');
+
+  -- limpeza (os registros do SNGPC não se apagam pelo cliente; aqui só o dono do banco desfaz o teste)
+  ALTER TABLE sngpc_envios DISABLE TRIGGER trg_sngpc_envio_guarda;
+  ALTER TABLE sngpc_itens DISABLE TRIGGER trg_sngpc_item_guarda;
+  ALTER TABLE sngpc_documentos DISABLE TRIGGER trg_sngpc_documento_guarda;
+  DELETE FROM sngpc_envios WHERE tenant_id = demo;
+  DELETE FROM sngpc_itens WHERE tenant_id = demo;
+  DELETE FROM sngpc_documentos WHERE tenant_id = demo;
+  ALTER TABLE sngpc_envios ENABLE TRIGGER trg_sngpc_envio_guarda;
+  ALTER TABLE sngpc_itens ENABLE TRIGGER trg_sngpc_item_guarda;
+  ALTER TABLE sngpc_documentos ENABLE TRIGGER trg_sngpc_documento_guarda;
+  DELETE FROM sngpc_medicamentos WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, cnpj = cnpj_ant WHERE tenant_id = demo;
 END $$;

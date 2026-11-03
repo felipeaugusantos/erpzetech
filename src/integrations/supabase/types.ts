@@ -7454,6 +7454,9 @@ export type Database = {
           numero: number
           numero_serie: string | null
           observacoes: string | null
+          pet_id: string | null
+          pet_profissional_id: string | null
+          pet_resumo: Json | null
           previsao: string | null
           prioridade: string
           situacao: Database["public"]["Enums"]["os_situacao"]
@@ -7488,6 +7491,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -7522,6 +7528,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -9466,11 +9475,132 @@ export type Database = {
           },
         ]
       }
+      pet_campos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          entidade: string
+          id: string
+          nome: string
+          obrigatorio: boolean
+          opcoes: Json
+          ordem: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          entidade: string
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          entidade?: string
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_campos_valores: {
+        Row: {
+          campo_id: string
+          registro_id: string
+          tenant_id: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          campo_id: string
+          registro_id: string
+          tenant_id?: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          campo_id?: string
+          registro_id?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_campos_valores_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_campos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_pesagens: {
+        Row: {
+          created_at: string
+          id: string
+          internacao_id: string | null
+          observacao: string | null
+          pesado_em: string
+          pet_id: string
+          peso_kg: number
+          registrado_por: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          internacao_id?: string | null
+          observacao?: string | null
+          pesado_em?: string
+          pet_id: string
+          peso_kg: number
+          registrado_por?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          internacao_id?: string | null
+          observacao?: string | null
+          pesado_em?: string
+          pet_id?: string
+          peso_kg?: number
+          registrado_por?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_pesagens_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_profissionais: {
         Row: {
           ativo: boolean
           comissao_percentual: number
           created_at: string
+          crf: string | null
+          crf_uf: string | null
+          cpf: string | null
           crmv: string | null
           crmv_uf: string | null
           filial_id: string | null
@@ -9485,6 +9615,9 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crf?: string | null
+          crf_uf?: string | null
+          cpf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -9499,6 +9632,9 @@ export type Database = {
           ativo?: boolean
           comissao_percentual?: number
           created_at?: string
+          crf?: string | null
+          crf_uf?: string | null
+          cpf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -9853,9 +9989,12 @@ export type Database = {
           cliente_id: string
           created_at: string
           especie: string
+          foto: string | null
           id: string
+          microchip: string | null
           nascimento: string | null
           nome: string
+          obito_em: string | null
           observacoes: string | null
           pelagem: string | null
           peso_kg: number | null
@@ -9872,9 +10011,12 @@ export type Database = {
           cliente_id: string
           created_at?: string
           especie?: string
+          foto?: string | null
           id?: string
+          microchip?: string | null
           nascimento?: string | null
           nome: string
+          obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
           peso_kg?: number | null
@@ -9891,9 +10033,12 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           especie?: string
+          foto?: string | null
           id?: string
+          microchip?: string | null
           nascimento?: string | null
           nome?: string
+          obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
           peso_kg?: number | null
@@ -12212,6 +12357,44 @@ export type Database = {
         }
         Returns: string
       }
+      clinica_boxes: { Args: never; Returns: Json }
+      clinica_execucao_registrar: {
+        Args: { p_id: string; p_obs?: string; p_situacao: string }
+        Returns: undefined
+      }
+      clinica_execucoes_mapa: { Args: { p_horas?: number }; Returns: Json }
+      clinica_internacao_catalogo: { Args: { p_busca: string }; Returns: Json }
+      clinica_internacao_item_cancelar: {
+        Args: { p_item_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_internacao_item_lancar: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_internacao_prescrever: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_prescricao_suspender: {
+        Args: { p_motivo: string; p_prescricao_id: string }
+        Returns: undefined
+      }
+      clinica_internacao_admitir: { Args: { p_dados: Json; p_pet_id: string }; Returns: string }
+      clinica_internacao_box_trocar: {
+        Args: { p_box_id: string; p_id: string }
+        Returns: undefined
+      }
+      clinica_internacao_encerrar: {
+        Args: { p_id: string; p_quando?: string; p_texto: string; p_tipo: string }
+        Returns: undefined
+      }
+      clinica_internacao_obter: { Args: { p_id: string }; Returns: Json }
+      clinica_internacao_ocorrencia: {
+        Args: { p_id: string; p_texto: string; p_tipo: string }
+        Returns: string
+      }
+      clinica_internacao_pesagem: { Args: { p_id: string; p_peso_kg: number }; Returns: string }
+      clinica_internacao_relato: { Args: { p_id: string; p_texto: string }; Returns: string }
+      clinica_internacoes: {
+        Args: { p_pet_id?: string; p_situacao?: string }
+        Returns: Json
+      }
+      pet_box_salvar: { Args: { p_dados: Json }; Returns: string }
       clinica_adendo_criar: {
         Args: { p_atendimento_id: string; p_texto: string }
         Returns: Json
@@ -13368,6 +13551,37 @@ export type Database = {
         }
         Returns: string
       }
+      pet_campo_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_campos_valores_salvar: {
+        Args: { p_entidade: string; p_registro_id: string; p_valores: Json }
+        Returns: undefined
+      }
+      pet_os_item_adicionar: { Args: { p_dados: Json; p_os_id: string }; Returns: string }
+      pet_os_item_remover: { Args: { p_item_id: string }; Returns: undefined }
+      pet_os_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_os_situacao: {
+        Args: { p_deposito_id?: string; p_os_id: string; p_situacao: string }
+        Returns: undefined
+      }
+      pet_pesagem_excluir: { Args: { p_id: string }; Returns: undefined }
+      pet_pesagem_registrar: {
+        Args: { p_data?: string; p_observacao?: string; p_pet_id: string; p_peso_kg: number }
+        Returns: string
+      }
+      sngpc_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      sngpc_envio_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      sngpc_envio_registrar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_envio_transmitir: { Args: { p_id: string; p_protocolo: string }; Returns: undefined }
+      sngpc_envio_xml: { Args: { p_id: string }; Returns: string }
+      sngpc_envios: { Args: never; Returns: Json }
+      sngpc_inventario: { Args: { p_data: string }; Returns: Json }
+      sngpc_livro: { Args: { p_fim?: string; p_inicio?: string }; Returns: Json }
+      sngpc_medicamento_salvar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_medicamentos: { Args: never; Returns: Json }
+      sngpc_periodo: { Args: { p_fim: string; p_inicio: string }; Returns: Json }
+      sngpc_registrar: { Args: { p_dados: Json; p_tipo: string }; Returns: string }
+      sngpc_responsaveis: { Args: never; Returns: Json }
+      sngpc_saldo: { Args: { p_data?: string }; Returns: Json }
       pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_profissional_vincular: {
         Args: { p_profile_id: string; p_profissional_id: string }
