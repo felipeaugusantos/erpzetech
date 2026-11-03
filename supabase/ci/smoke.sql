@@ -517,7 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
-    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -1130,6 +1130,61 @@ BEGIN
   -- o mesmo código do canal não vira duas comandas
   ext4 := restaurante_externo_receber(demo, 'ifood', 'P-1', ped);
   PERFORM ci.exige(ext4 = ext AND (SELECT count(*) = 1 FROM comandas WHERE tenant_id = demo AND canal = 'ifood' AND codigo_externo = 'P-1'), 'pedido reenviado depois de aceito não cria outra comanda');
+END $$;
+
+-- 17e. senha do pedido de balcão
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cat uuid; lanche uuid; mesa uuid; c1 uuid; c2 uuid; c3 uuid; cm uuid; r jsonb; i1 uuid;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Senha CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Lanche Senha CI', 20, 'cozinha') RETURNING id INTO lanche;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'senha-1') RETURNING id INTO mesa;
+
+  PERFORM ci.entrar(gar);
+  c1 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  c2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  c3 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  cm := restaurante_abrir_comanda(mesa, 2, NULL, 10, 0);
+  PERFORM ci.sair();
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'senha para comanda sem itens');
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(c1, lanche, 2);
+  PERFORM restaurante_lancar_item(c2, lanche, 1);
+  PERFORM restaurante_lancar_item(c3, lanche, 1);
+  PERFORM restaurante_lancar_item(cm, lanche, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'vendedor emite senha');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'cozinha emite senha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, cm), 'senha para comanda de mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, gen_random_uuid()), 'senha para comanda que não existe');
+
+  PERFORM ci.entrar(gar);
+  r := restaurante_emitir_senha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'senha')::int >= 1 AND (r ->> 'enviados')::int = 1 AND (r ->> 'nova')::boolean, 'emitir a senha atribui o número e envia o pedido');
+  PERFORM ci.exige((SELECT situacao = 'enviado' FROM comanda_itens WHERE id = i1), 'o item foi para a fila da produção');
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_emitir_senha(c1) ->> 'senha')::int = (r ->> 'senha')::int, 'reemitir devolve a mesma senha');
+  PERFORM ci.exige(NOT (restaurante_emitir_senha(c1) ->> 'nova')::boolean, 'reemitir não é senha nova');
+  r := restaurante_emitir_senha(c2);
+  PERFORM ci.exige((r ->> 'senha')::int = (SELECT senha + 1 FROM comandas WHERE id = c1), 'a senha seguinte é sequencial');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT senha_data = (now() AT TIME ZONE 'America/Sao_Paulo')::date FROM comandas WHERE id = c1), 'a senha vale para o dia de hoje');
+
+  -- o contador do dia nunca repete, mesmo após comanda cancelada
+  PERFORM ci.entrar(gar);
+  r := restaurante_emitir_senha(c3);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'senha')::int = (SELECT senha + 2 FROM comandas WHERE id = c1), 'terceira senha do dia');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET senha = (SELECT senha FROM comandas WHERE id = %L), senha_data = (SELECT senha_data FROM comandas WHERE id = %L) WHERE id = %L$c$, c1, c1, c2), 'duas comandas com a mesma senha no dia');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET senha = 7 WHERE id = %L$c$, cm), 'senha sem data');
+  PERFORM ci.deve_falhar(gar, 'SELECT count(*) FROM restaurante_senhas_contador', 'o contador de senhas lido pelo cliente');
 END $$;
 
 -- 18. quantidade de mesas do restaurante
