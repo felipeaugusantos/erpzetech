@@ -222,3 +222,46 @@ export function destinoDoCredito(saldo: number): "devolver_ou_reter" | "quitada"
   if (saldo < 0) return "devolver_ou_reter";
   return saldo === 0 ? "quitada" : "a_receber";
 }
+
+/** Soma dias a uma data AAAA-MM-DD, sem depender do fuso do navegador. */
+export function somarDias(data: string, dias: number) {
+  return new Date(Date.parse(`${data}T00:00:00Z`) + dias * DIA_MS).toISOString().slice(0, 10);
+}
+
+const maxData = (...datas: string[]) => datas.reduce((a, b) => (a >= b ? a : b));
+const minData = (...datas: string[]) => datas.reduce((a, b) => (a <= b ? a : b));
+
+/**
+ * Saída que vale depois do check-out: espelho de hs_checkout. Nunca passa da saída prevista; fica em hoje (ou na noite seguinte à última noite já
+ * lançada), cobra ao menos uma noite a partir do dia do check-in e mantém as noites já lançadas.
+ */
+export function saidaDoCheckout(q: {
+  hoje: string;
+  entrada: string;
+  saida: string;
+  /** dia (no fuso do hotel) em que o check-in foi feito */
+  diaDoCheckin: string;
+  /** última noite já lançada na conta, se houver */
+  ultimaNoiteLancada?: string | null;
+}) {
+  const primeira = maxData(q.entrada, q.diaDoCheckin);
+  const aposLancada = q.ultimaNoiteLancada ? somarDias(q.ultimaNoiteLancada, 1) : q.hoje;
+  return minData(q.saida, maxData(q.hoje, somarDias(primeira, 1), aposLancada));
+}
+
+/**
+ * Desconto rateado entre os itens da nota em centavos; o último item absorve a diferença de arredondamento (como no Lava-Rápido).
+ * Devolve o total líquido de cada item na mesma ordem.
+ */
+export function ratearDesconto(valores: readonly number[], desconto: number) {
+  const bruto = valores.reduce((s, v) => s + centavos(v), 0);
+  if (bruto <= 0) return valores.map(() => 0);
+  const liquido = Math.max(bruto - centavos(desconto), 0);
+  let acumulado = 0;
+  return valores.map((v, i) => {
+    const net =
+      i === valores.length - 1 ? liquido - acumulado : Math.round((centavos(v) * liquido) / bruto);
+    acumulado += net;
+    return reais(net);
+  });
+}

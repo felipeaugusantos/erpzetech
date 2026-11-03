@@ -127,6 +127,15 @@ Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisã
 - **Acompanhantes:** `hs_reserva_hospede_adicionar` e `hs_reserva_hospede_remover`.
 - Ficam para a migration 4: check-out, NFS-e em rascunho e `hs_uh_situacao`.
 
+**Como ficou na migration 4 (`20261212000000_hotelaria_checkout_nfse.sql`), onde difere do plano acima:**
+
+- **Check-out:** `hs_checkout(p_reserva_uh, p_pagamentos jsonb, p_caixa)`, com pagamentos `[{forma, valor, tipo?, folio_id?}]` (tipo `pagamento` ou `devolucao`; conta principal por padrão). Pagamento só até o saldo; devolução só do crédito do hóspede (a recepção pode devolver no check-out). Sem a conta zerada o check-out é recusado e nada fica gravado.
+- **Noites:** lança as diárias que faltam a partir do dia do check-in (a noite anterior a um check-in atrasado não é lançada nem cobrada), tira as noites que sobram da estadia (saída antecipada, calendário termina na nova saída), mantém as noites já lançadas e **cobra sempre ao menos uma noite**. Estadia vencida não cobra além da saída prevista.
+- **Vários quartos:** a conta é compartilhada. Os quartos que saem antes só encerram a estadia (sem pagamento); a cobrança, o fechamento das contas e a nota ficam para o último quarto.
+- **Depois do check-out:** o quarto fica finalizado, a acomodação fica suja e `hs_uh_situacao(uh, limpo | sujo | inspecionado)` (recepção) a libera; acomodação com hóspede só pode ser marcada como suja. Repetir o check-out devolve o mesmo resultado.
+- **NFS-e:** uma por conta (`hs_folio_notas`), criada em rascunho (ou pronta, se a configuração fiscal está completa; só então gasta número da prefeitura). Itens: hospedagem por quarto (diárias líquidas de estorno) e serviços; ajuste negativo da gestão vira desconto rateado entre os itens (o último absorve o centavo) e o ISS sai sobre o líquido. **Ficam fora da nota a taxa de turismo e o consumo de mercadoria** (frigobar, loja). Pagador: cliente da reserva, senão o cliente do titular, senão os dados do titular (CPF). Conta sem nada a faturar não gera nota.
+- **Decisão 4 aplicada:** não existe "desfazer check-out"; a correção é estorno e novo lançamento.
+
 ### 5.4 Leitura (STABLE, só leitura)
 
 | Função                            | O que devolve                                                                                              |

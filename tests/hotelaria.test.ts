@@ -263,3 +263,75 @@ test("encerrar sem estadia: crédito pede devolução ou retenção; débito fic
   assert.equal(destinoDoCredito(0), "quitada");
   assert.equal(destinoDoCredito(30), "a_receber");
 });
+
+import { ratearDesconto, saidaDoCheckout, somarDias } from "../src/lib/hotelaria.ts";
+
+// Mesmos cenários da seção 92 do smoke do banco (com hoje = 2027-06-10).
+const hoje = "2027-06-10";
+test("saída do check-out: antecipada, no dia previsto, no mesmo dia e chegada atrasada", () => {
+  assert.equal(somarDias("2027-02-28", 1), "2027-03-01");
+  // ia até amanhã, entrou há 2 dias e as 2 noites já foram lançadas: sai hoje
+  assert.equal(
+    saidaDoCheckout({
+      hoje,
+      entrada: "2027-06-08",
+      saida: "2027-06-11",
+      diaDoCheckin: "2027-06-08",
+      ultimaNoiteLancada: "2027-06-09",
+    }),
+    "2027-06-10",
+  );
+  // entrou e saiu hoje: cobra ao menos uma noite
+  assert.equal(
+    saidaDoCheckout({ hoje, entrada: hoje, saida: "2027-06-12", diaDoCheckin: hoje }),
+    "2027-06-11",
+  );
+  // chegada atrasada: a noite anterior ao check-in não conta
+  assert.equal(
+    saidaDoCheckout({
+      hoje,
+      entrada: "2027-06-09",
+      saida: "2027-06-11",
+      diaDoCheckin: hoje,
+      ultimaNoiteLancada: hoje,
+    }),
+    "2027-06-11",
+  );
+  // nunca passa da saída prevista (estadia vencida)
+  assert.equal(
+    saidaDoCheckout({
+      hoje: "2027-06-20",
+      entrada: "2027-06-08",
+      saida: "2027-06-11",
+      diaDoCheckin: "2027-06-08",
+    }),
+    "2027-06-11",
+  );
+  // noite de hoje já lançada pelo fechamento do dia: continua cobrada
+  assert.equal(
+    saidaDoCheckout({
+      hoje,
+      entrada: "2027-06-09",
+      saida: "2027-06-13",
+      diaDoCheckin: "2027-06-09",
+      ultimaNoiteLancada: hoje,
+    }),
+    "2027-06-11",
+  );
+});
+
+test("desconto da nota: rateado em centavos e o último item absorve a diferença", () => {
+  assert.deepEqual(ratearDesconto([200], 20), [180]);
+  assert.deepEqual(ratearDesconto([30, 30, 40], 10), [27, 27, 36]);
+  assert.deepEqual(ratearDesconto([100, 100, 100], 10), [96.67, 96.67, 96.66]);
+  assert.equal(
+    ratearDesconto([33.33, 33.33, 33.34], 0).reduce((s, v) => s + Math.round(v * 100), 0),
+    10000,
+  );
+  assert.deepEqual(ratearDesconto([50, 50], 500), [0, 0]);
+  assert.deepEqual(ratearDesconto([], 5), []);
+  assert.equal(
+    ratearDesconto([10, 20, 30], 7).reduce((s, v) => s + Math.round(v * 100), 0),
+    5300,
+  );
+});
