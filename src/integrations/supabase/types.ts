@@ -7454,6 +7454,9 @@ export type Database = {
           numero: number
           numero_serie: string | null
           observacoes: string | null
+          pet_id: string | null
+          pet_profissional_id: string | null
+          pet_resumo: Json | null
           previsao: string | null
           prioridade: string
           situacao: Database["public"]["Enums"]["os_situacao"]
@@ -7488,6 +7491,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -7522,6 +7528,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -13498,6 +13507,13 @@ export type Database = {
       pet_campo_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_campos_valores_salvar: {
         Args: { p_entidade: string; p_registro_id: string; p_valores: Json }
+        Returns: undefined
+      }
+      pet_os_item_adicionar: { Args: { p_dados: Json; p_os_id: string }; Returns: string }
+      pet_os_item_remover: { Args: { p_item_id: string }; Returns: undefined }
+      pet_os_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_os_situacao: {
+        Args: { p_deposito_id?: string; p_os_id: string; p_situacao: string }
         Returns: undefined
       }
       pet_pesagem_excluir: { Args: { p_id: string }; Returns: undefined }

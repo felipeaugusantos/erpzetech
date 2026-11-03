@@ -8442,3 +8442,136 @@ BEGIN
   DELETE FROM pets WHERE id = pet;
   DELETE FROM clientes WHERE id = tutor;
 END $$;
+
+-- 91. Pet: ordem de serviço com os dados do animal
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; pet uuid; pet_b uuid; dep uuid; prod uuid; serv uuid; prof uuid;
+  os uuid; os2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb;
+BEGIN
+  SELECT tenant_id INTO tb FROM profiles WHERE id = ub;
+  SELECT id INTO pet_b FROM pets WHERE tenant_id = tb LIMIT 1;
+  IF pet_b IS NULL THEN
+    INSERT INTO clientes (tenant_id, nome) VALUES (tb, 'Tutor OS B') RETURNING id INTO tutor;
+    INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor, 'Pet OS B') RETURNING id INTO pet_b;
+  END IF;
+  INSERT INTO clientes (tenant_id, nome, telefone) VALUES (demo, 'Tutor OS CI', '81999990000') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome, especie, raca, alergias, microchip, peso_kg)
+    VALUES (demo, tutor, 'Rex OS CI', 'cao', 'Beagle', 'frango', '985000000000001', 12) RETURNING id INTO pet;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep OS Pet CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'OSP-RACAO', 'Ração OS Pet', 'un', 20, 35) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda, controla_estoque) VALUES (demo, 'OSP-BANHO', 'Banho OS Pet', 'un', 0, 60, false) RETURNING id INTO serv;
+  INSERT INTO pet_profissionais (tenant_id, nome, funcao) VALUES (demo, 'Banhista OS CI', 'banhista') RETURNING id INTO prof;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  PERFORM ci.sair();
+
+  -- quem abre a OS do pet
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'garçom abre OS do pet');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'estoquista abre OS do pet');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet), 'anon abre OS do pet');
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_os_salvar('{}'::jsonb)$c$, 'OS sem animal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L))$c$, pet_b), 'animal de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'prioridade', 'ontem'))$c$, pet), 'prioridade inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'desconto', -1))$c$, pet), 'desconto negativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('pet_id', %L, 'profissional_id', %L))$c$, pet, gen_random_uuid()), 'profissional que não existe');
+
+  PERFORM ci.entrar(vend);
+  os := pet_os_salvar(jsonb_build_object('pet_id', pet, 'queixa', 'Banho e corte de unhas', 'prioridade', 'alta', 'profissional_id', prof, 'deposito_id', dep));
+  PERFORM ci.sair();
+  r := (SELECT pet_resumo FROM os_ordens WHERE id = os);
+  PERFORM ci.exige(r ->> 'nome' = 'Rex OS CI' AND r ->> 'raca' = 'Beagle' AND r ->> 'alergias' = 'frango' AND r ->> 'tutor' = 'Tutor OS CI'
+                   AND r ->> 'microchip' = '985000000000001' AND r ->> 'tutor_telefone' = '81999990000', 'a OS guarda os dados do animal e do tutor');
+  PERFORM ci.exige((SELECT numero > 0 AND situacao = 'aberta' AND tecnico_nome = 'Banhista OS CI' AND pet_id = pet AND cliente_id = (SELECT cliente_id FROM pets WHERE id = pet)
+                      FROM os_ordens WHERE id = os), 'OS nasce aberta, numerada, com tutor e profissional');
+
+  -- o retrato acompanha o cadastro enquanto a OS está aberta e congela depois da aprovação
+  UPDATE pets SET alergias = 'frango e milho' WHERE id = pet;
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_salvar(jsonb_build_object('id', os, 'queixa', 'Banho', 'deposito_id', dep, 'profissional_id', prof));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT pet_resumo ->> 'alergias' = 'frango e milho' FROM os_ordens WHERE id = os), 'OS aberta atualiza o retrato do animal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('id', %L, 'pet_id', %L))$c$, os, (SELECT id FROM pets WHERE tenant_id = demo AND id <> pet LIMIT 1)), 'trocar o animal da OS');
+
+  -- itens: produto (peça), serviço sem estoque e item livre
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'garçom inclui item');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x","quantidade":0}'::jsonb)$c$, os), 'quantidade zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{}'::jsonb)$c$, os), 'item sem produto nem descrição');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x","preco":-5}'::jsonb)$c$, os), 'preço negativo');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'outra empresa inclui item');
+  PERFORM ci.entrar(vend);
+  it_prod := pet_os_item_adicionar(os, jsonb_build_object('produto_id', prod, 'quantidade', 2));
+  it_serv := pet_os_item_adicionar(os, jsonb_build_object('produto_id', serv));
+  it_livre := pet_os_item_adicionar(os, '{"descricao":"Tosa higiênica","quantidade":1,"preco":25.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo = 'peca' AND preco_unitario = 35 AND total = 70 FROM os_itens WHERE id = it_prod), 'produto com estoque vira peça, com o preço de venda');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 60 FROM os_itens WHERE id = it_serv), 'produto sem controle de estoque vira serviço');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 25.5 FROM os_itens WHERE id = it_livre), 'item livre vira serviço');
+  PERFORM ci.exige((SELECT valor_pecas = 70 AND valor_servicos = 85.5 AND valor_total = 155.5 FROM os_ordens WHERE id = os), 'totais da OS recalculados');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_salvar(jsonb_build_object('id', os, 'queixa', 'Banho', 'deposito_id', dep, 'desconto', 5.5));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor_total = 150 FROM os_ordens WHERE id = os), 'desconto abate do total');
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'antes da aprovação o estoque não muda');
+
+  -- andamento e estoque
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_situacao(%L, 'aprovada')$c$, os), 'garçom muda a situação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'voando')$c$, os), 'situação inválida');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'entregue')$c$, os), 'entregar sem estar pronta');
+  PERFORM ci.deve_falhar(ub, format($c$SELECT pet_os_situacao(%L, 'aprovada')$c$, os), 'outra empresa muda a situação');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'aprovada', dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 8 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'aprovar baixa o produto do estoque (10 - 2)');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'o serviço não cria estoque');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_item_remover(it_prod);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'remover o produto devolve o estoque');
+  PERFORM ci.exige((SELECT valor_pecas = 0 AND valor_total = 80 FROM os_ordens WHERE id = os), 'remover o item recalcula o total');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'em_reparo');
+  PERFORM pet_os_situacao(os, 'pronta');
+  PERFORM pet_os_situacao(os, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND entregue_em IS NOT NULL FROM os_ordens WHERE id = os), 'entrega registra quando');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'cancelada')$c$, os), 'cancelar OS entregue');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_adicionar(%L, '{"descricao":"x"}'::jsonb)$c$, os), 'incluir item em OS encerrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_item_remover(%L)$c$, it_serv), 'remover item de OS encerrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_salvar(jsonb_build_object('id', %L, 'queixa', 'x'))$c$, os), 'editar OS encerrada');
+
+  -- cancelar devolve o estoque
+  PERFORM ci.entrar(vend);
+  os2 := pet_os_salvar(jsonb_build_object('pet_id', pet, 'deposito_id', dep));
+  PERFORM pet_os_item_adicionar(os2, jsonb_build_object('produto_id', prod, 'quantidade', 3));
+  PERFORM pet_os_situacao(os2, 'aprovada', dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 7 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'segunda OS baixa 3');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os2, 'cancelada');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'cancelar a OS devolve o estoque');
+
+  -- leitura e proteção direta
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM os_ordens WHERE pet_id = %L', pet)) = 2, 'vendedor lê as OS do pet');
+  PERFORM ci.exige(ci.contar(ub, format('SELECT count(*) FROM os_ordens WHERE pet_id = %L', pet)) = 0, 'outra empresa não lê as OS do pet');
+  PERFORM ci.entrar(vend);
+  UPDATE os_ordens SET pet_id = NULL, pet_resumo = NULL WHERE id = os2;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT pet_id = pet AND pet_resumo IS NOT NULL FROM os_ordens WHERE id = os2), 'o cliente não desfaz o vínculo com o animal pela tabela');
+  PERFORM ci.entrar(adm);
+  INSERT INTO os_ordens (tenant_id, equipamento, pet_id) VALUES (demo, 'Furadeira direta', pet);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM os_ordens WHERE equipamento = 'Furadeira direta' AND pet_id IS NOT NULL), 'o cliente não cria OS de pet pela tabela');
+
+  DELETE FROM os_itens WHERE os_id IN (os, os2);
+  DELETE FROM os_ordens WHERE tenant_id = demo AND (pet_id = pet OR equipamento = 'Furadeira direta');
+  DELETE FROM pet_profissionais WHERE id = prof;
+  DELETE FROM pets WHERE id = pet;
+END $$;

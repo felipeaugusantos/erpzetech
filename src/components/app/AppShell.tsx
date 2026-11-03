@@ -211,6 +211,7 @@ const groups: Group[] = [
     items: [
       { label: "Agenda", to: "/pet-agenda", icon: CalendarClock },
       { label: "Pets e tutores", to: "/pets", icon: PawPrint },
+      { label: "Ordens de serviço", to: "/pet-os", icon: ClipboardList },
       { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
       { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },
       { label: "Campos personalizados", to: "/pet-campos", icon: ClipboardList },

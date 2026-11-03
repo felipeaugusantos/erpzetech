@@ -153,6 +153,7 @@ function Assistencia() {
       const { data, error } = await supabase
         .from("os_ordens")
         .select("*, clientes(nome)")
+        .is("pet_id", null)
         .order("numero", { ascending: false });
       if (error) throw error;
       return data;
