@@ -35,6 +35,7 @@ export type Comanda = {
   tipo: "salao" | "delivery";
   canal: "proprio" | "ifood";
   codigo_externo: string | null;
+  unida_em_id: string | null;
   entrega_telefone: string | null;
   entrega_endereco: string | null;
   entrega_bairro: string | null;
@@ -89,6 +90,8 @@ export type PagamentoComanda = {
   valor: number;
   pagante: string | null;
   parcial: boolean;
+  credito: boolean;
+  observacao: string | null;
   created_at: string;
 };
 

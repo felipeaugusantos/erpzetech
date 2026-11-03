@@ -4,7 +4,9 @@ import {
   ArrowRightLeft,
   Check,
   ChefHat,
+  GitMerge,
   HandCoins,
+  Wallet,
   MoreHorizontal,
   Printer,
   Receipt,
@@ -33,6 +35,9 @@ import {
 } from "@/components/ui/select";
 import { BaixaParcialDialog } from "@/components/restaurante/BaixaParcialDialog";
 import { DeliveryPainel } from "@/components/restaurante/DeliveryPainel";
+import { CreditoDialog } from "@/components/restaurante/CreditoDialog";
+import { DevolverCreditoDialog } from "@/components/restaurante/DevolverCreditoDialog";
+import { JuntarContasDialog } from "@/components/restaurante/JuntarContasDialog";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
@@ -83,6 +88,9 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const [destino, setDestino] = useState("");
   const [fechando, setFechando] = useState(false);
   const [baixando, setBaixando] = useState(false);
+  const [creditando, setCreditando] = useState(false);
+  const [juntando, setJuntando] = useState(false);
+  const [devolvendo, setDevolvendo] = useState(false);
 
   const { data: cardapio } = useCardapio();
 
@@ -228,6 +236,10 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
         jaPago,
       })
     : null;
+
+  // sobra: recebido acima do total atual da conta (com serviço e couvert), a devolver ao cliente
+  const sobraCredito = conta ? Math.round((jaPago - (conta.total ?? 0)) * 100) / 100 : 0;
+  const rotuloConta = mesa ? `mesa ${mesa.numero}` : `comanda ${comanda?.numero ?? ""}`;
 
   const itensFiltrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -536,6 +548,34 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       </Button>
                     )}
                   </div>
+                  {comanda?.tipo !== "delivery" && (
+                    <Button variant="outline" onClick={() => setJuntando(true)}>
+                      <GitMerge className="mr-2 size-4" /> Juntar contas
+                    </Button>
+                  )}
+                  {recebeConta(roles) && (
+                    <Button variant="outline" onClick={() => setCreditando(true)}>
+                      <Wallet className="mr-2 size-4" /> Adicionar crédito
+                    </Button>
+                  )}
+                  {conta?.pagoExcede && (
+                    <p className="rounded border border-amber-300 bg-amber-50 p-2 text-sm">
+                      O recebido passa do total da conta em {brl(sobraCredito)}. Devolva a sobra
+                      para poder fechar.
+                      {gestao ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-2"
+                          onClick={() => setDevolvendo(true)}
+                        >
+                          Devolver sobra
+                        </Button>
+                      ) : (
+                        " A devolução é feita pela gestão."
+                      )}
+                    </p>
+                  )}
                   {recebeConta(roles) && (
                     <Button
                       variant="outline"
@@ -645,6 +685,32 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
             setFechando(false);
             onFechar();
           }}
+        />
+      )}
+
+      {creditando && comanda && (
+        <CreditoDialog
+          comanda={comanda}
+          rotulo={rotuloConta}
+          onFechar={() => setCreditando(false)}
+        />
+      )}
+
+      {juntando && comanda && (
+        <JuntarContasDialog
+          comanda={comanda}
+          rotulo={rotuloConta}
+          mesas={mesas}
+          gestao={gestao}
+          onFechar={() => setJuntando(false)}
+        />
+      )}
+
+      {devolvendo && comanda && sobraCredito > 0 && (
+        <DevolverCreditoDialog
+          comanda={comanda}
+          sobra={sobraCredito}
+          onFechar={() => setDevolvendo(false)}
         />
       )}
 
