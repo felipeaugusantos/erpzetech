@@ -517,7 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
-    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -1020,6 +1020,116 @@ BEGIN
 
   -- os testes seguintes partem de uma empresa sem configuração do restaurante
   DELETE FROM restaurante_config WHERE tenant_id = demo;
+END $$;
+
+-- 17d. pedidos externos (caixa de entrada do iFood)
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro_tenant uuid; cat uuid; burger uuid; suco uuid; pesado uuid; alheio uuid; ext uuid; ext2 uuid; ext3 uuid; ext4 uuid; cmd uuid;
+  ped jsonb; r jsonb; c record; msg text;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Externo CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Burger Externo CI', 30, 'cozinha') RETURNING id INTO burger;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, codigo_externo, preco_ifood) VALUES (demo, cat, 'Suco Externo CI', 8, 'nenhuma', 'IF-SUCO', 9.5) RETURNING id INTO suco;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso) VALUES (demo, cat, 'Kg Externo CI', 60, 'nenhuma', true) RETURNING id INTO pesado;
+  INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (outro_tenant, 'Item alheio CI', 5, 'cozinha') RETURNING id INTO alheio;
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao, codigo_externo) VALUES (%L, 'Duplicado', 1, 'cozinha', 'IF-SUCO')$c$, demo), 'código do canal repetido na mesma empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET preco_ifood = -1 WHERE id = %L$c$, burger), 'preço do iFood negativo');
+
+  ped := '{"numero":"4321","tipo":"entrega","cliente":{"nome":"Marina","telefone":"11988887777"},
+           "endereco":{"texto":"Rua das Flores, 100","bairro":"Centro","referencia":"portão azul"},
+           "itens":[{"codigo":"IF-BURGER","nome":"X-Burger","quantidade":2,"preco":30,"observacao":"sem cebola",
+                     "adicionais":[{"nome":"Bacon","preco":4},{"nome":"Queijo","preco":2.5}]},
+                    {"codigo":"IF-SUCO","nome":"Suco de laranja","quantidade":1,"preco":9.5}],
+           "taxa_entrega":6,"desconto":5,"total":88,"pagamento":"pago_online","observacao":"tocar a campainha"}'::jsonb;
+
+  -- só o servidor recebe
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'garçom injeta pedido externo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'gestão injeta pedido externo');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'anônimo injeta pedido externo');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'rappi', 'P-1', %L::jsonb)$c$, demo, ped), 'canal inventado');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"itens":[]}'::jsonb)$c$, demo), 'pedido sem itens');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"itens":[{"codigo":"a","nome":"x","quantidade":0,"preco":1}]}'::jsonb)$c$, demo), 'item com quantidade zero');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"tipo":"voando","itens":[{"codigo":"a","nome":"x","quantidade":1,"preco":1}]}'::jsonb)$c$, demo), 'tipo de pedido inventado');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, gen_random_uuid(), ped), 'pedido para empresa que não existe');
+
+  ext := restaurante_externo_receber(demo, 'ifood', 'P-1', ped);
+  PERFORM ci.exige(restaurante_externo_receber(demo, 'ifood', 'P-1', ped) = ext, 'pedido repetido do canal devolve o mesmo registro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM restaurante_pedidos_externos WHERE tenant_id = demo AND codigo_externo = 'P-1'), 'pedido repetido não duplica');
+  PERFORM restaurante_externo_receber(outro_tenant, 'ifood', 'P-ALHEIO', ped);
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_pedidos_externos') = 1, 'garçom vê só os pedidos da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_pedidos_externos') = 0, 'vendedor não vê pedidos externos');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE restaurante_pedidos_externos SET situacao = 'aceito', decidido_em = now() WHERE id = ext;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'recebido' FROM restaurante_pedidos_externos WHERE id = ext), 'decidir pedido por escrita direta não altera nada');
+
+  -- aceitar
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext), 'vendedor aceita pedido externo');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    PERFORM restaurante_externo_aceitar(ext);
+    msg := NULL;
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg LIKE '%X-Burger%' AND msg NOT LIKE '%Suco de laranja%', 'aceitar sem correspondência lista só o item que falta');
+  PERFORM ci.exige((SELECT situacao = 'recebido' FROM restaurante_pedidos_externos WHERE id = ext), 'pedido segue na caixa de entrada após o erro');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, %L::jsonb)$c$, ext, jsonb_build_object('IF-BURGER', alheio)), 'mapear para item de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, %L::jsonb)$c$, ext, jsonb_build_object('IF-BURGER', pesado)), 'mapear para item vendido por peso');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, '{"IF-BURGER":"nao-e-uuid"}'::jsonb)$c$, ext), 'mapeamento com id inválido');
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_externo_aceitar(ext, jsonb_build_object('IF-BURGER', burger));
+  PERFORM ci.sair();
+  SELECT * INTO c FROM comandas WHERE id = cmd;
+  PERFORM ci.exige(c.tipo = 'delivery' AND c.canal = 'ifood' AND c.codigo_externo = 'P-1' AND c.entrega_situacao = 'aguardando', 'aceitar abre o delivery do canal');
+  PERFORM ci.exige(c.entrega_pagamento = 'pago_online' AND c.entrega_bairro = 'Centro' AND c.cliente_nome = 'Marina', 'dados da entrega e do pagamento');
+  PERFORM ci.exige(c.observacao LIKE '%Pedido iFood 4321%' AND c.observacao LIKE '%Desconto%5,00%' OR c.observacao LIKE '%Desconto%5.00%', 'desconto e total do canal anotados');
+  -- 2 x (30 + 4 + 2,5) = 73 ; suco 9,50 ; taxa 6 => 88,50 (o canal informou 88 com R$ 5 de desconto: a diferença fica anotada)
+  PERFORM ci.exige((SELECT sum(total) = 88.5 FROM comanda_itens WHERE comanda_id = cmd AND situacao <> 'cancelado'), 'itens saem pelo preço do pedido, com adicionais e taxa');
+  PERFORM ci.exige((SELECT preco_unitario = 36.5 AND quantidade = 2 AND observacao = 'sem cebola' AND jsonb_array_length(opcoes) = 2 FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Burger Externo CI'), 'adicionais viram opções do item');
+  PERFORM ci.exige((SELECT situacao = 'enviado' FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Burger Externo CI'), 'item de cozinha vai para a fila');
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Suco Externo CI'), 'item pronto para servir já sai entregue');
+  PERFORM ci.exige((SELECT codigo_externo = 'IF-BURGER' FROM cardapio_itens WHERE id = burger), 'o mapeamento escolhido fica guardado no item');
+  PERFORM ci.exige((SELECT situacao = 'aceito' AND comanda_id = cmd FROM restaurante_pedidos_externos WHERE id = ext), 'pedido marcado como aceito e ligado à comanda');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext), 'aceitar o mesmo pedido de novo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_recusar(%L, 'tarde demais')$c$, ext), 'recusar pedido já aceito');
+
+  -- retirada (sem endereço), telefone mascarado e reconhecimento pelo código guardado
+  ext2 := restaurante_externo_receber(demo, 'ifood', 'P-2',
+    '{"tipo":"retirada","cliente":{"nome":"","telefone":"0800"},"itens":[{"codigo":"IF-BURGER","nome":"X-Burger","quantidade":1,"preco":30}],"pagamento":"inventado"}'::jsonb);
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_externo_aceitar(ext2);
+  PERFORM ci.sair();
+  SELECT * INTO c FROM comandas WHERE id = cmd;
+  PERFORM ci.exige(c.entrega_endereco LIKE 'Retirada no balcão%' AND c.entrega_telefone IS NULL AND c.cliente_nome = 'Cliente iFood' AND c.entrega_pagamento IS NULL,
+                   'retirada: endereço padrão, telefone mascarado ignorado, nome e pagamento padrão');
+  PERFORM ci.exige((SELECT sum(total) = 30 FROM comanda_itens WHERE comanda_id = cmd), 'item reconhecido pelo código já guardado, sem taxa');
+
+  -- entrega sem endereço é recusada pelo banco; recusa com motivo
+  ext3 := restaurante_externo_receber(demo, 'ifood', 'P-3',
+    '{"tipo":"entrega","cliente":{"nome":"Zé"},"itens":[{"codigo":"IF-SUCO","nome":"Suco","quantidade":1,"preco":9.5}]}'::jsonb);
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext3), 'aceitar entrega sem endereço');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_recusar(%L, 'x')$c$, ext3), 'recusar sem motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_externo_recusar(%L, 'sem estoque')$c$, ext3), 'vendedor recusa pedido');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_externo_recusar(ext3, 'sem estoque');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'recusado' AND motivo = 'sem estoque' AND decidido_em IS NOT NULL FROM restaurante_pedidos_externos WHERE id = ext3), 'pedido recusado com motivo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext3), 'aceitar pedido recusado');
+
+  -- o mesmo código do canal não vira duas comandas
+  ext4 := restaurante_externo_receber(demo, 'ifood', 'P-1', ped);
+  PERFORM ci.exige(ext4 = ext AND (SELECT count(*) = 1 FROM comandas WHERE tenant_id = demo AND canal = 'ifood' AND codigo_externo = 'P-1'), 'pedido reenviado depois de aceito não cria outra comanda');
 END $$;
 
 -- 18. quantidade de mesas do restaurante
