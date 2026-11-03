@@ -114,7 +114,7 @@ function PetOs() {
       const { data, error } = await supabase
         .from("os_ordens")
         .select(
-          "id, numero, situacao, abertura, previsao, prioridade, defeito_relatado, observacoes, desconto, valor_pecas, valor_servicos, valor_total, tecnico_nome, pet_id, pet_resumo, pet_profissional_id, deposito_id",
+          "id, numero, situacao, abertura, previsao, prioridade, defeito_relatado, observacoes, desconto, valor_pecas, valor_servicos, valor_total, tecnico_nome, pet_id, pet_resumo, pet_profissional_id, deposito_id, venda_id",
         )
         .not("pet_id", "is", null)
         .order("numero", { ascending: false })
@@ -726,7 +726,10 @@ function PetOs() {
                   {brl(Number(ordem.valor_servicos ?? 0))}
                   {Number(ordem.desconto) > 0 ? ` · Desconto ${brl(Number(ordem.desconto))}` : ""}
                 </span>
-                <strong className="text-base">Total {brl(Number(ordem.valor_total ?? 0))}</strong>
+                <strong className="text-base">
+                  Total {brl(Number(ordem.valor_total ?? 0))}
+                  {ordem.venda_id ? " · cobrada no caixa" : ""}
+                </strong>
               </div>
 
               <DialogFooter className="flex-wrap gap-2">
@@ -762,13 +765,21 @@ function PetOs() {
                     >
                       Cancelar ordem
                     </Button>
-                    {prox && (
-                      <Button
-                        onClick={() => mudarSituacao.mutate(prox.para)}
-                        disabled={mudarSituacao.isPending}
-                      >
-                        {prox.rotulo}
+                    {ordem.situacao === "pronta" && Number(ordem.valor_total ?? 0) > 0 ? (
+                      <Button asChild>
+                        <Link to="/frente-caixa" search={{ os: ordem.id }}>
+                          Cobrar no caixa
+                        </Link>
                       </Button>
+                    ) : (
+                      prox && (
+                        <Button
+                          onClick={() => mudarSituacao.mutate(prox.para)}
+                          disabled={mudarSituacao.isPending}
+                        >
+                          {prox.rotulo}
+                        </Button>
+                      )
                     )}
                   </>
                 )}

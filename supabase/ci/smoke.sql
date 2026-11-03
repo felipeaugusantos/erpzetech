@@ -575,7 +575,9 @@ DECLARE
     -- SNGPC: cada função confere o perfil (administrador, gestor ou veterinário) e a clínica liberada
     'sngpc_medicamento_salvar', 'sngpc_medicamentos', 'sngpc_registrar', 'sngpc_cancelar', 'sngpc_saldo', 'sngpc_livro',
     'sngpc_responsaveis', 'sngpc_periodo', 'sngpc_inventario', 'sngpc_envio_registrar', 'sngpc_envio_transmitir', 'sngpc_envio_cancelar',
-    'sngpc_envios', 'sngpc_envio_xml'];
+    'sngpc_envios', 'sngpc_envio_xml',
+    -- cobrança no caixa da ordem de serviço do pet e da internação: confere perfil de recepção/gestão e, na internação, a clínica liberada
+    'clinica_internacoes_a_cobrar', 'clinica_internacao_cobranca', 'clinica_internacao_cobrar'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -8549,6 +8551,8 @@ BEGIN
   PERFORM ci.entrar(vend);
   PERFORM pet_os_situacao(os, 'em_reparo');
   PERFORM pet_os_situacao(os, 'pronta');
+  -- ordem com valor só sai pela cobrança no caixa (seção 95); aqui o valor é zerado por desconto
+  PERFORM pet_os_salvar(jsonb_build_object('id', os, 'deposito_id', dep, 'desconto', 85.5));
   PERFORM pet_os_situacao(os, 'entregue');
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'entregue' AND entregue_em IS NOT NULL FROM os_ordens WHERE id = os), 'entrega registra quando');
@@ -9201,4 +9205,210 @@ BEGIN
   ALTER TABLE sngpc_documentos ENABLE TRIGGER trg_sngpc_documento_guarda;
   DELETE FROM sngpc_medicamentos WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, cnpj = cnpj_ant WHERE tenant_id = demo;
+END $$;
+
+-- 95. Pet: cobrança no caixa da ordem de serviço e da internação (vínculo, estoque e venda cancelada)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  dep uuid; merc uuid; serv uuid; serv_prod uuid; avulso uuid; tutor uuid; pet uuid; pet2 uuid; box uuid; box2 uuid;
+  os uuid; os2 uuid; os3 uuid; it uuid; ped uuid; ped2 uuid; ped3 uuid; ped_errado uuid; ped_cancelado uuid; aut uuid; i1 uuid; i2 uuid; r jsonb; q numeric;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Cobrança OS CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'COB-RACAO', 'Ração cobrança OS', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança OS CI', '52998224725') RETURNING id INTO tutor;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := pet_servico_salvar('{"nome":"Banho Cobrança OS","duracao_min":60}'::jsonb);
+  PERFORM ci.sair();
+  SELECT produto_id INTO serv_prod FROM pet_servicos WHERE id = serv;
+  PERFORM ci.entrar(vend);
+  pet := pet_salvar(jsonb_build_object('cliente_id', tutor, 'nome', 'Rex Cobrança OS'));
+  PERFORM ci.sair();
+
+  -- ===== ordem de serviço =====
+  PERFORM ci.entrar(vend);
+  os := pet_os_salvar(jsonb_build_object('pet_id', pet, 'queixa', 'Banho e tosa', 'deposito_id', dep));
+  PERFORM pet_os_item_adicionar(os, jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco', 60));
+  PERFORM pet_os_item_adicionar(os, jsonb_build_object('produto_id', merc, 'quantidade', 2));
+  PERFORM pet_os_item_adicionar(os, '{"descricao":"Tosa higiênica","quantidade":1,"preco":25.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobranca(%L)$c$, os), 'cobrar ordem que ainda não está pronta');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'aprovada', dep);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 48 FROM estoques WHERE produto_id = merc AND deposito_id = dep), 'aprovar a ordem baixa a ração (50 - 2)');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_situacao(os, 'em_reparo'); PERFORM pet_os_situacao(os, 'pronta');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_situacao(%L, 'entregue')$c$, os), 'entregar ordem com valor sem cobrar no caixa');
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_cobranca(%L)$c$, os), 'garçom abre a cobrança da ordem');
+  PERFORM ci.deve_falhar(est, format($c$SELECT pet_os_cobranca(%L)$c$, os), 'estoquista abre a cobrança da ordem');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pet_os_cobranca(%L)$c$, os), 'anon abre a cobrança da ordem');
+  PERFORM ci.entrar(vend); r := pet_os_cobranca(os); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'linhas') = 3 AND (r ->> 'cliente_id')::uuid = tutor AND r ->> 'pet' = 'Rex Cobrança OS', 'a cobrança da ordem traz 3 linhas, o tutor e o animal');
+  avulso := (SELECT (e ->> 'produto_id')::uuid FROM jsonb_array_elements(r -> 'linhas') e WHERE e ->> 'descricao' = 'Tosa higiênica');
+  PERFORM ci.exige(avulso = (SELECT id FROM produtos WHERE tenant_id = demo AND codigo_interno = 'PET-AVULSO') AND NOT (SELECT controla_estoque FROM produtos WHERE id = avulso),
+                   'o item avulso vai no produto de apoio, que não controla estoque');
+
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60),
+                                          jsonb_build_object('produto_id', merc, 'quantidade', 2, 'preco_unitario', 20),
+                                          jsonb_build_object('produto_id', avulso, 'quantidade', 1, 'preco_unitario', 25.5)), 'crediario', tutor, 0, 1, current_date + 30);
+  ped_errado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60),
+                                                 jsonb_build_object('produto_id', merc, 'quantidade', 1, 'preco_unitario', 20),
+                                                 jsonb_build_object('produto_id', avulso, 'quantidade', 1, 'preco_unitario', 25.5)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 45 FROM estoques WHERE produto_id = merc AND deposito_id = dep), 'as duas vendas baixam 2 + 1 (48 - 3): hoje a baixa está em dobro');
+
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobrar(%L, %L)$c$, os, ped_errado), 'venda com menos ração do que a ordem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobrar(%L, %L)$c$, os, gen_random_uuid()), 'venda que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobrar(%L)$c$, os), 'cobrar sem informar a venda');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_os_cobrar(%L, %L)$c$, os, ped), 'garçom cobra a ordem');
+  PERFORM ci.entrar(vend);
+  r := pet_os_cobrar(os, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id = ped AND entregue_em IS NOT NULL AND NOT controla_estoque FROM os_ordens WHERE id = os), 'cobrada: a ordem fica entregue, ligada à venda');
+  PERFORM ci.exige((SELECT quantidade = 47 FROM estoques WHERE produto_id = merc AND deposito_id = dep), 'a baixa da ordem foi devolvida: sobra a da venda (45 + 2)');
+  PERFORM ci.entrar(vend); r := pet_os_cobrar(os, ped); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT quantidade = 47 FROM estoques WHERE produto_id = merc AND deposito_id = dep), 'repetir a cobrança não mexe no estoque');
+  PERFORM ci.entrar(vend);
+  os2 := pet_os_salvar(jsonb_build_object('pet_id', pet, 'deposito_id', dep));
+  PERFORM pet_os_item_adicionar(os2, jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco', 60));
+  PERFORM pet_os_situacao(os2, 'aprovada', dep); PERFORM pet_os_situacao(os2, 'em_reparo'); PERFORM pet_os_situacao(os2, 'pronta');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobrar(%L, %L)$c$, os2, ped), 'a mesma venda cobrando duas ordens');
+  PERFORM ci.entrar(vend);
+  UPDATE os_ordens SET venda_id = NULL, situacao = 'pronta', controla_estoque = true WHERE id = os;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT venda_id = ped AND situacao = 'entregue' AND NOT controla_estoque FROM os_ordens WHERE id = os), 'o cliente não desfaz o vínculo nem anda a ordem pela tabela');
+  PERFORM ci.entrar(vend);
+  UPDATE os_ordens SET situacao = 'entregue' WHERE id = os2;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronta' FROM os_ordens WHERE id = os2), 'marcar a ordem do pet como entregue pela tabela não vale (a cobrança não se contorna)');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO os_itens (tenant_id, os_id, tipo, descricao, quantidade, preco_unitario, total) VALUES (%L, %L, 'servico', 'Item por fora', 1, 5, 5)$c$, demo, os), 'incluir item na ordem do pet pela tabela');
+  PERFORM ci.deve_falhar(vend, format($c$DELETE FROM os_itens WHERE os_id = %L$c$, os), 'apagar item da ordem do pet pela tabela');
+  PERFORM ci.deve_falhar(vend, format($c$UPDATE os_itens SET preco_unitario = 1 WHERE os_id = %L$c$, os), 'alterar item da ordem do pet pela tabela');
+
+  -- venda cancelada: a ordem volta a pronta e a baixa dela é refeita
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut;
+  PERFORM ci.entrar(adm);
+  PERFORM frente_cancelar_venda(ped, aut, 'Teste da cobrança da ordem');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronta' AND venda_id IS NULL AND entregue_em IS NULL AND controla_estoque FROM os_ordens WHERE id = os), 'venda cancelada devolve a ordem a pronta');
+  PERFORM ci.exige((SELECT baixa_quantidade = 2 FROM os_itens WHERE os_id = os AND produto_id = merc), 'a ordem baixa a ração de novo');
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 47, 'estoque depois do cancelamento: 47 + 2 (venda devolvida) - 2 (a ordem baixa de novo) = 47');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobrar(%L, %L)$c$, os, ped), 'cobrar com venda cancelada');
+  PERFORM ci.entrar(vend);
+  ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 60),
+                                           jsonb_build_object('produto_id', merc, 'quantidade', 2, 'preco_unitario', 20),
+                                           jsonb_build_object('produto_id', avulso, 'quantidade', 1, 'preco_unitario', 25.5)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM pet_os_cobrar(os, ped2);
+  PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 47, 'cobrar de novo: a venda baixa 2 e a ordem devolve 2 (continua 47)');
+
+  -- o mesmo produto com dois valores na ordem não dá para cobrar de uma vez
+  PERFORM ci.entrar(vend);
+  os3 := pet_os_salvar(jsonb_build_object('pet_id', pet, 'deposito_id', dep));
+  PERFORM pet_os_item_adicionar(os3, jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco', 60));
+  PERFORM pet_os_item_adicionar(os3, jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco', 70));
+  PERFORM pet_os_situacao(os3, 'aprovada', dep); PERFORM pet_os_situacao(os3, 'em_reparo'); PERFORM pet_os_situacao(os3, 'pronta');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_os_cobranca(%L)$c$, os3), 'mesmo produto com dois valores na ordem');
+
+  -- ordem sem valor entrega direto, sem caixa
+  PERFORM ci.entrar(vend);
+  PERFORM pet_os_salvar(jsonb_build_object('id', os2, 'desconto', 60));
+  PERFORM pet_os_situacao(os2, 'entregue');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND valor_total = 0 FROM os_ordens WHERE id = os2), 'ordem zerada por desconto entrega sem cobrança');
+
+  -- ===== internação =====
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Cobrança CI') RETURNING id INTO pet2;
+  PERFORM ci.entrar(gest);
+  box := pet_box_salvar('{"nome":"Box Cobrança CI"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vet);
+  i1 := clinica_internacao_admitir(pet2, jsonb_build_object('box_id', box, 'motivo', 'Cobrança'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(aux);
+  PERFORM clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', merc, 'quantidade', 3, 'deposito_id', dep));
+  PERFORM clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', serv_prod, 'preco', 80));
+  PERFORM clinica_internacao_item_lancar(i1, '{"descricao":"Curativo","quantidade":2,"preco":15}'::jsonb);
+  PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 44, 'a internação baixou 3 ração (47 - 3)');
+
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_internacao_cobranca(%L)$c$, i1), 'cobrar animal ainda internado');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i1, 'alta', 'Alta no mesmo dia');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_cobranca(%L)$c$, i1), 'veterinário abre a cobrança');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_cobranca(%L)$c$, i1), 'auxiliar abre a cobrança');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_internacao_cobranca(%L)$c$, i1), 'garçom abre a cobrança');
+  PERFORM ci.deve_falhar(vet, 'SELECT clinica_internacoes_a_cobrar()', 'veterinário lista as internações a cobrar');
+  PERFORM ci.entrar(vend); r := clinica_internacoes_a_cobrar(); PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = i1 AND (e ->> 'total')::numeric = 170 AND (e ->> 'itens')::int = 3 AND e ->> 'pet' = 'Paciente Cobrança CI'),
+                   'a recepção vê a internação a cobrar: ração 3 × 20 + serviço 80 + curativo 2 × 15 = 170');
+  PERFORM ci.entrar(vend); r := clinica_internacao_cobranca(i1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'linhas') = 3 AND NOT (r::text ILIKE '%motivo%') AND (r ->> 'cliente_id')::uuid = tutor, 'a cobrança traz só itens, tutor e animal (nada do texto clínico)');
+
+  PERFORM ci.entrar(vend);
+  ped3 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', merc, 'quantidade', 3, 'preco_unitario', 20),
+                                           jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 80),
+                                           jsonb_build_object('produto_id', avulso, 'quantidade', 2, 'preco_unitario', 15)), 'crediario', tutor, 0, 1, current_date + 30);
+  ped_cancelado := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', merc, 'quantidade', 1, 'preco_unitario', 20)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_internacao_cobrar(%L, %L)$c$, i1, ped_cancelado), 'venda que não traz os itens da internação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_internacao_cobrar(%L, %L)$c$, i1, ped), 'venda cancelada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT clinica_internacao_cobrar(%L, %L)$c$, i1, ped3), 'garçom cobra a internação');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_cobrar(%L, %L)$c$, i1, ped3), 'veterinário cobra a internação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_internacao_cobrar(%L, %L)$c$, i1, ped2), 'venda que já cobrou uma ordem');
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 40, 'antes do vínculo a baixa está em dobro (44 - 3 da venda - 1 da venda extra)');
+  PERFORM ci.entrar(vend); r := clinica_internacao_cobrar(i1, ped3); PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean AND q = 43, 'vínculo: a baixa da internação (3) volta ao estoque e fica a da venda');
+  PERFORM ci.exige((SELECT (devolvido -> 0 ->> 'quantidade')::numeric = 3 FROM pet_internacao_cobrancas WHERE internacao_id = i1), 'o que foi devolvido fica registrado');
+  PERFORM ci.entrar(vend); r := clinica_internacao_cobrar(i1, ped3); PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND q = 43, 'repetir não devolve de novo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_internacao_cobranca(%L)$c$, i1), 'abrir a cobrança de internação já cobrada');
+  PERFORM ci.entrar(vend); r := clinica_internacoes_a_cobrar(); PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = i1), 'cobrada, sai da lista');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacoes SET observacoes = 'x' WHERE id = %L$c$, i1), 'a internação cobrada segue imutável');
+
+  -- venda cancelada: a internação volta a ficar por cobrar e a baixa dela é refeita
+  INSERT INTO gestor_autorizacoes (tenant_id, gestor_id, operador_id, acao) VALUES (demo, gest, adm, 'cancelar_venda') RETURNING id INTO aut;
+  PERFORM ci.entrar(adm);
+  PERFORM frente_cancelar_venda(ped3, aut, 'Teste da cobrança da internação');
+  PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 43, 'cancelada: a venda devolve 3 e a internação baixa 3 de novo (43)');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM pet_internacao_cobrancas WHERE internacao_id = i1), 'cancelada: a internação volta a ficar por cobrar');
+  PERFORM ci.entrar(vend);
+  ped3 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', merc, 'quantidade', 3, 'preco_unitario', 20),
+                                           jsonb_build_object('produto_id', serv_prod, 'quantidade', 1, 'preco_unitario', 80),
+                                           jsonb_build_object('produto_id', avulso, 'quantidade', 2, 'preco_unitario', 15)), 'crediario', tutor, 0, 1, current_date + 30);
+  PERFORM clinica_internacao_cobrar(i1, ped3);
+  PERFORM ci.sair();
+  SELECT quantidade INTO q FROM estoques WHERE produto_id = merc AND deposito_id = dep;
+  PERFORM ci.exige(q = 43, 'cobrar de novo: a venda baixa 3, a internação devolve 3 (43)');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
