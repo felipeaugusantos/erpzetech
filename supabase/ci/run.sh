@@ -37,4 +37,6 @@ for f in $ordem; do
 done
 
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/smoke.sql
+# concorrência de verdade (duas sessões ao mesmo tempo) da agenda do lava rápido
+bash ci/lava-agenda-concorrencia.sh
 echo "Migrations e testes de segurança OK"

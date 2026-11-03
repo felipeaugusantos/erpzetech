@@ -11185,3 +11185,294 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
+
+-- 102. Lava rápido (agenda): RLS nas quatro tabelas, escrita só por função, papel e módulo, empresa de cada referência (cross-tenant),
+-- conflito por lavador e por box (intervalo aberto), cancelar e faltar liberam, remarcar ignora o próprio, regra por empresa,
+-- chegada idempotente que cria a ordem em aguardando sem cobrar, sem plano e sem baixa, e que respeita o checklist do pátio
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  u2   constant uuid := 'a0000000-0000-0000-0000-000000007802';
+  u3   constant uuid := 'a0000000-0000-0000-0000-000000007803';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  t2 uuid; t3 uuid;
+  cli uuid; cli_b uuid; v1 uuid; v2 uuid; v3 uuid; v_b uuid; l1 uuid; l2 uuid; l_b uuid; s1 uuid; s2 uuid; s_sem uuid; s_b uuid; s_prod uuid;
+  dep uuid; ped uuid;
+  a1 uuid; a2 uuid; a3 uuid; a4 uuid; a5 uuid; a6 uuid; a_b uuid; o uuid; o2 uuid; r jsonb; n int; n0 int; i1 uuid;
+  ini timestamptz := '2030-03-15 09:00:00-03';
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+
+  -- outra empresa com o módulo e um administrador (prova de que a recusa é por empresa) e uma empresa sem o módulo
+  INSERT INTO tenants (nome) VALUES ('Lava Agenda T2 CI') RETURNING id INTO t2;
+  INSERT INTO tenants (nome) VALUES ('Lava Agenda T3 CI') RETURNING id INTO t3;
+  INSERT INTO empresas (tenant_id, razao_social, cnae) VALUES (t2, 'Lava Agenda T2 Ltda', '4520-0/06');
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (t3, 'Lava Agenda T3 Ltda');
+  INSERT INTO auth.users (id, email) VALUES (u2, 'agenda-t2@ci'), (u3, 'agenda-t3@ci');
+  UPDATE profiles SET tenant_id = t2, nome = 'Admin T2' WHERE id = u2;
+  UPDATE profiles SET tenant_id = t3, nome = 'Admin T3' WHERE id = u3;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (u2, t2, 'administrador'), (u3, t3, 'administrador');
+
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Agenda CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Agenda CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (t2, 'Cliente Agenda T2', '11144477735') RETURNING id INTO cli_b;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AGD1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'AGD2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  v3 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AGD3C33', 'fabricante', 'VW', 'modelo', 'Polo'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  s1 := lr_servico_salvar('{"nome":"Lavagem agenda","duracao_min":30,"preco_base":40}'::jsonb);
+  s2 := lr_servico_salvar('{"nome":"Cera agenda","duracao_min":45,"preco_base":30}'::jsonb);
+  s_sem := lr_servico_salvar('{"nome":"Serviço sem preço agenda","duracao_min":20,"preco_base":10}'::jsonb);
+  l1 := lr_lavador_salvar('{"nome":"Lavador Agenda 1","comissao_percentual":10}'::jsonb);
+  l2 := lr_lavador_salvar('{"nome":"Lavador Agenda 2","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  -- serviço sem nenhum preço cadastrado (nem por tipo, nem geral, nem no cadastro)
+  UPDATE produtos SET preco_venda = 0 WHERE id = (SELECT produto_id FROM lr_servicos WHERE id = s_sem);
+  DELETE FROM lr_servico_precos WHERE servico_id = s_sem;
+  -- preço por tipo vence o geral no carro
+  INSERT INTO lr_servico_precos (tenant_id, servico_id, tipo, preco) VALUES (demo, s1, 'carro', 55);
+  SELECT produto_id INTO s_prod FROM lr_servicos WHERE id = s1;
+
+  PERFORM ci.entrar(u2);
+  v_b := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_b, 'tipo', 'carro', 'identificacao', 'AGB1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  s_b := lr_servico_salvar('{"nome":"Lavagem T2","duracao_min":30,"preco_base":40}'::jsonb);
+  l_b := lr_lavador_salvar('{"nome":"Lavador T2","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+
+  -- ===== escrita direta e leitura: só pelas funções, só da própria empresa =====
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agendamentos (tenant_id, veiculo_id, cliente_id, inicio, fim) VALUES (%L, %L, %L, now(), now() + interval '1 hour')$c$, demo, v1, cli), 'inserir agendamento direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agendamento_itens (tenant_id, agendamento_id, servico_id, duracao_min) VALUES (%L, gen_random_uuid(), %L, 30)$c$, demo, s1), 'inserir item de agendamento direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agenda_ocupacoes (tenant_id, agendamento_id, recurso, chave, periodo) VALUES (%L, gen_random_uuid(), 'box', 'x', tstzrange(now(), now() + interval '1 hour'))$c$, demo), 'inserir ocupação direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agenda_config (tenant_id) VALUES (%L)$c$, demo), 'inserir configuração da agenda direto');
+  PERFORM ci.deve_falhar(adm, $c$UPDATE lr_agendamentos SET situacao = 'faltou'$c$, 'alterar agendamento direto');
+  PERFORM ci.deve_falhar(adm, $c$DELETE FROM lr_agendamentos$c$, 'apagar agendamento direto');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT count(*) FROM lr_agendamentos$c$, 'anon lê agendamentos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT count(*) FROM lr_agendamento_itens$c$, 'anon lê itens');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_agendamentos') = 0, 'garçom não lê agendamentos');
+
+  -- ===== papel e módulo nas cinco funções de escrita =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'garçom agenda');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'estoquista agenda');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'anon agenda');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'administrador de empresa sem o módulo agenda');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'vendedor muda a regra da agenda');
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'garçom muda a regra da agenda');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'anon muda a regra da agenda');
+  PERFORM ci.deve_falhar(u3, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'empresa sem o módulo muda a regra da agenda');
+
+  -- ===== agendar: validações, fim sugerido, preço e duração do cadastro =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, ini, s1), 'agendar sem lavador e sem box');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, s1), 'agendar sem início');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array()))$c$, v1, l1, ini), 'agendar sem serviço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, ini, s1), 'fim igual ao início');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, ini + interval '25 hours', s1), 'agendamento de mais de 24 horas');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'cliente_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, cli_b, l1, ini, s1), 'cliente que não é dono do veículo');
+  PERFORM ci.entrar(vend);
+  a1 := lr_agendar(jsonb_build_object('veiculo_id', v1, 'cliente_id', cli, 'lavador_id', l1, 'box', ' Box 1 ', 'inicio', ini, 'servicos', jsonb_build_array(s1, s2), 'observacoes', 'Cliente pede cuidado com o banco'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT fim = inicio + interval '75 minutes' AND situacao = 'agendado' AND box = 'Box 1' AND lavador_id = l1 AND cliente_id = cli FROM lr_agendamentos WHERE id = a1),
+                   'o fim sugerido é a soma das durações cadastradas (30 + 45) e o box é gravado sem espaços');
+  PERFORM ci.exige((SELECT preco_estimado = 55 AND duracao_min = 30 FROM lr_agendamento_itens WHERE agendamento_id = a1 AND servico_id = s1), 'o preço previsto é o do tipo do veículo e a duração é a do serviço');
+  PERFORM ci.exige((SELECT preco_estimado = 30 AND duracao_min = 45 FROM lr_agendamento_itens WHERE agendamento_id = a1 AND servico_id = s2), 'sem preço por tipo, vale o preço do cadastro do serviço');
+  PERFORM ci.entrar(vend);
+  a2 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'lavador_id', l2, 'inicio', ini + interval '3 hours', 'servicos', jsonb_build_array(s_sem)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_estimado IS NULL FROM lr_agendamento_itens WHERE agendamento_id = a2), 'serviço sem preço cadastrado fica sem preço previsto (nada é inventado)');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_agenda_ocupacoes WHERE agendamento_id = a1) AND (SELECT count(*) = 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a2), 'o calendário guarda lavador e box de cada agendamento');
+
+  -- ===== cross-tenant: cada referência precisa ser da empresa de quem chama =====
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l_b, ini, s_b), 'agendar com veículo de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l1, ini, s_b), 'agendar com lavador de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l_b, ini, s1), 'agendar com serviço de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'cliente_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, cli, l_b, ini, s_b), 'agendar com cliente de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l1, ini + interval '5 hours', s1), 'a empresa de demonstração agenda veículo da T2');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l_b, ini + interval '5 hours', s1), 'a empresa de demonstração agenda com lavador da T2');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini + interval '5 hours', s_b), 'a empresa de demonstração agenda serviço da T2');
+  PERFORM ci.entrar(u2);
+  a_b := lr_agendar(jsonb_build_object('veiculo_id', v_b, 'cliente_id', cli_b, 'lavador_id', l_b, 'inicio', ini, 'servicos', jsonb_build_array(s_b)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a_b IS NOT NULL, 'a T2 agenda com os próprios cadastros (a recusa acima é por empresa, não por papel ou módulo)');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'confirmar agendamento de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l_b), 'remarcar agendamento de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'registrar chegada de agendamento de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a_b), 'chegada de agendamento da T2 pela empresa de demonstração');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l_b), 'remarcar com lavador de outra empresa');
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_agendamentos') = 1 AND ci.contar(u2, 'SELECT count(*) FROM lr_agendamento_itens') = 1, 'a T2 só lê o que é dela (cabeçalho e itens)');
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_agenda_ocupacoes') = 1, 'a T2 só lê as ocupações dela');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM lr_agendamentos WHERE id = %L$c$, a_b)) = 0, 'a empresa de demonstração não lê agendamento da T2');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM lr_agendamentos') >= 2, 'a empresa de demonstração lê os seus');
+
+  -- ===== conflito por lavador e por box (intervalo aberto no fim) =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini + interval '30 minutes', ini + interval '90 minutes', s1), 'mesmo lavador em horário que cruza');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini - interval '30 minutes', ini + interval '1 minute', s1), 'mesmo lavador cruzando só o começo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'box', 'BOX 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l2, ini + interval '10 minutes', ini + interval '40 minutes', s1), 'mesmo box (maiúsculas e minúsculas não diferenciam) em horário que cruza');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'box', 'Box 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, ini + interval '10 minutes', ini + interval '40 minutes', s1), 'só o box informado, que está ocupado');
+  PERFORM ci.entrar(vend);
+  a3 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 1', 'inicio', ini + interval '75 minutes', 'servicos', jsonb_build_array(s1)));
+  a4 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l2, 'box', 'Box 2', 'inicio', ini, 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a3 IS NOT NULL, 'começar quando o outro termina é permitido (intervalo aberto no fim)');
+  PERFORM ci.exige(a4 IS NOT NULL, 'outro lavador e outro box no mesmo horário é permitido');
+  -- só o box, sem lavador
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'box', 'Box 3', 'inicio', ini + interval '6 hours', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a5 IS NOT NULL AND (SELECT count(*) = 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a5 AND recurso = 'box'), 'agendar só com o box vale e ocupa o box');
+
+  -- ===== situação: confirmar, cancelar com motivo, faltar =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'garçom confirma');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'estoquista confirma');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'anon confirma');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'empresa sem o módulo confirma');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'concluido')$c$, a1), 'concluir sem registrar a chegada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado')$c$, a1), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', '   ')$c$, a1), 'cancelar com motivo em branco');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a1, 'confirmado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmado' FROM lr_agendamentos WHERE id = a1), 'confirmar');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'agendado')$c$, a1), 'voltar de confirmado para agendado');
+  -- cancelar libera o horário do lavador e do box
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a3, 'cancelado', 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelado' AND motivo = 'cliente desistiu' FROM lr_agendamentos WHERE id = a3) AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3), 'cancelar guarda o motivo e libera o calendário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a3), 'confirmar agendamento cancelado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'faltou')$c$, a3), 'marcar falta em agendamento cancelado');
+  PERFORM ci.entrar(vend);
+  a6 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 1', 'inicio', ini + interval '75 minutes', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a6 IS NOT NULL, 'o horário liberado pelo cancelamento pode ser agendado de novo');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a6, 'faltou');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'faltou' FROM lr_agendamentos WHERE id = a6) AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a6), 'falta libera o calendário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', 'x')$c$, a6), 'cancelar depois da falta');
+
+  -- ===== remarcar =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'garçom remarca');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'anon remarca');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'empresa sem o módulo remarca');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, NULL, NULL)$c$, a1, ini + interval '1 day'), 'remarcar sem lavador e sem box');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a3, ini + interval '1 day', l1), 'remarcar agendamento cancelado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, 'Box 2')$c$, a1, ini, l2), 'remarcar para cima de outro lavador e outro box');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_remarcar(a1, ini + interval '10 minutes', NULL, l1, 'Box 1');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT inicio = ini + interval '10 minutes' AND fim = ini + interval '85 minutes' AND situacao = 'agendado' FROM lr_agendamentos WHERE id = a1),
+                   'remarcar para um horário que cruza só o próprio agendamento vale, mantém a duração e volta a "agendado"');
+  PERFORM ci.exige((SELECT periodo = tstzrange(ini + interval '10 minutes', ini + interval '85 minutes', '[)') FROM lr_agenda_ocupacoes WHERE agendamento_id = a1 AND recurso = 'lavador'), 'o calendário acompanha a remarcação');
+
+  -- ===== regra por empresa =====
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(false, true, true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  a3 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 9', 'inicio', ini + interval '20 minutes', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a3 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3 AND recurso = 'lavador'), 'com o conflito por lavador desligado, o lavador pode repetir (e o calendário não o trava)');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'box', 'Box 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v2, l2, ini + interval '20 minutes', ini + interval '50 minutes', s1), 'o conflito por box continua ligado');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(true, false, false);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'inicio', ini + interval '8 hours', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a5 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a5), 'sem exigir recurso, agendar sem lavador e sem box vale (e não ocupa nada)');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(true, true, true);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v2, ini + interval '9 hours', s1), 'a regra padrão volta a exigir lavador ou box');
+  -- no fundo, o banco recusa cruzamento mesmo fora das funções
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO lr_agenda_ocupacoes (tenant_id, agendamento_id, recurso, chave, periodo)
+      VALUES (%L, %L, 'lavador', %L, tstzrange(%L::timestamptz, %L::timestamptz, '[)'))$c$, demo, a4, l2::text, ini + interval '10 minutes', ini + interval '20 minutes'), 'a restrição de exclusão do calendário recusa cruzamento');
+
+  -- ===== chegada =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'garçom registra chegada');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'estoquista registra chegada');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'anon registra chegada');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'empresa sem o módulo registra chegada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, gen_random_uuid()), 'chegada de agendamento que não existe');
+  SELECT count(*) INTO n0 FROM lr_ordens WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a6), 'agendamento marcado como falta não gera ordem');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a2, 'cancelado', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'agendamento cancelado não gera ordem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'clique repetido em agendamento cancelado continua sem gerar ordem');
+  PERFORM ci.exige((SELECT count(*) = n0 FROM lr_ordens WHERE tenant_id = demo) AND (SELECT ordem_id IS NULL FROM lr_agendamentos WHERE id = a2), 'cancelado e falta não criaram ordem');
+
+  -- serviço sem preço: a chegada recusa e nada fica pela metade
+  PERFORM ci.entrar(vend);
+  a2 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'lavador_id', l2, 'inicio', ini + interval '12 hours', 'servicos', jsonb_build_array(s_sem)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'chegada com serviço sem preço cadastrado');
+  PERFORM ci.exige((SELECT count(*) = n0 FROM lr_ordens WHERE tenant_id = demo) AND (SELECT situacao = 'agendado' AND ordem_id IS NULL FROM lr_agendamentos WHERE id = a2), 'a chegada recusada não deixou ordem nem mudou o agendamento');
+
+  -- chegada de verdade (checklist obrigatório na empresa)
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a1, 'confirmado');
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  o := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.exige(o IS NOT NULL AND NOT (r ->> 'repetido')::boolean, 'a chegada cria a ordem');
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND veiculo_id = v1 AND cliente_id = cli AND lavador_id = l1 AND box = 'Box 1' AND observacoes = 'Cliente pede cuidado com o banco' AND checklist_em IS NULL
+                      FROM lr_ordens WHERE id = o), 'a ordem nasce em aguardando, com cliente, veículo, lavador, box e observações, sem checklist');
+  PERFORM ci.exige((SELECT situacao = 'concluido' AND ordem_id = o AND chegada_em IS NOT NULL FROM lr_agendamentos WHERE id = a1), 'o agendamento guarda o ordem_id e fica concluído');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o AND cobertura IS NULL AND assinatura_id IS NULL), 'os serviços previstos entram como itens comuns, sem plano nem brinde');
+  PERFORM ci.exige((SELECT preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s1) AND (SELECT preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s2), 'preço da ordem: o do cadastro, por tipo de veículo');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o), 'a chegada não usa plano nem fidelidade');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_insumo_baixas b WHERE b.ordem_id = o) AND NOT EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o) AND (SELECT venda_id IS NULL FROM lr_ordens WHERE id = o), 'a chegada não cobra, não baixa insumo e não gera comissão');
+  -- repetir a chegada devolve a mesma ordem
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'clique repetido devolve a ordem existente');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_ordens WHERE veiculo_id = v1 AND situacao <> 'cancelada') AND (SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o), 'e não cria outra ordem nem repete itens');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', 'x')$c$, a1), 'cancelar agendamento já concluído');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '2 days', l1), 'remarcar agendamento já concluído');
+  -- veículo que já tem ordem aberta: a chegada seguinte recusa
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v1, 'lavador_id', l2, 'inicio', ini + interval '2 days', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a5), 'chegada de veículo que já tem ordem aberta');
+  PERFORM ci.exige((SELECT situacao = 'agendado' AND ordem_id IS NULL FROM lr_agendamentos WHERE id = a5), 'a recusa deixou o agendamento como estava');
+
+  -- o pátio manda: checklist obrigatório vale para a ordem vinda da agenda
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o), 'lavar sem o checklist (a agenda não contorna)');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o, true);
+  PERFORM lr_ordem_situacao(o, 'lavando');
+  PERFORM lr_ordem_situacao(o, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronto' FROM lr_ordens WHERE id = o), 'com o checklist concluído a ordem segue o pátio normalmente');
+  -- entregar e cobrar: pelo fluxo de sempre
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(
+           jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = s1), 'quantidade', 1, 'preco_unitario', 55),
+           jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = s2), 'quantidade', 1, 'preco_unitario', 30)), 'crediario', cli, 0, 1, current_date + 30);
+  r := lr_ordem_retirar(o, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id = ped FROM lr_ordens WHERE id = o), 'Entregar e cobrar cobra a ordem da agenda pelo fluxo existente');
+  PERFORM ci.exige((SELECT valor = 8.5 FROM lr_comissoes WHERE ordem_id = o), 'a comissão sai só na entrega (10% de 85)');
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'depois de entregue, a chegada repetida ainda devolve a mesma ordem');
+
+  -- limpeza
+  DELETE FROM lr_agenda_config WHERE tenant_id = demo;
+  DELETE FROM lr_config WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;

@@ -226,6 +226,7 @@ const groups: Group[] = [
     label: "Lava rápido",
     icon: Droplets,
     items: [
+      { label: "Agenda", to: "/lava-agenda", icon: CalendarClock },
       { label: "Pátio", to: "/lava-patio", icon: Droplets },
       { label: "Veículos", to: "/lava-veiculos", icon: Car },
       { label: "Serviços e preços", to: "/lava-servicos", icon: Tag },

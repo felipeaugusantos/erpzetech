@@ -5114,6 +5114,194 @@ export type Database = {
           },
         ]
       }
+      lr_agenda_config: {
+        Row: {
+          conflito_box: boolean
+          conflito_lavador: boolean
+          created_at: string
+          exigir_recurso: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          conflito_box?: boolean
+          conflito_lavador?: boolean
+          created_at?: string
+          exigir_recurso?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          conflito_box?: boolean
+          conflito_lavador?: boolean
+          created_at?: string
+          exigir_recurso?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lr_agenda_ocupacoes: {
+        Row: {
+          agendamento_id: string
+          chave: string
+          created_at: string
+          id: string
+          periodo: unknown
+          recurso: string
+          tenant_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          chave: string
+          created_at?: string
+          id?: string
+          periodo: unknown
+          recurso: string
+          tenant_id?: string
+        }
+        Update: {
+          agendamento_id?: string
+          chave?: string
+          created_at?: string
+          id?: string
+          periodo?: unknown
+          recurso?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      lr_agendamento_itens: {
+        Row: {
+          agendamento_id: string
+          created_at: string
+          duracao_min: number
+          id: string
+          preco_estimado: number | null
+          servico_id: string
+          tenant_id: string
+        }
+        Insert: {
+          agendamento_id: string
+          created_at?: string
+          duracao_min: number
+          id?: string
+          preco_estimado?: number | null
+          servico_id: string
+          tenant_id?: string
+        }
+        Update: {
+          agendamento_id?: string
+          created_at?: string
+          duracao_min?: number
+          id?: string
+          preco_estimado?: number | null
+          servico_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_agendamento_itens_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "lr_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_agendamento_itens_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "lr_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_agendamentos: {
+        Row: {
+          box: string | null
+          chegada_em: string | null
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          fim: string
+          id: string
+          inicio: string
+          lavador_id: string | null
+          motivo: string | null
+          observacoes: string | null
+          ordem_id: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          box?: string | null
+          chegada_em?: string | null
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          fim: string
+          id?: string
+          inicio: string
+          lavador_id?: string | null
+          motivo?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          box?: string | null
+          chegada_em?: string | null
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          fim?: string
+          id?: string
+          inicio?: string
+          lavador_id?: string | null
+          motivo?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_agendamentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "lr_veiculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_agendamentos_lavador_id_fkey"
+            columns: ["lavador_id"]
+            isOneToOne: false
+            referencedRelation: "lr_lavadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_agendamentos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "lr_ordens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_contatos: {
         Row: {
           canal: string
@@ -13084,6 +13272,17 @@ export type Database = {
         Args: { p_texto: string; p_tipo: string }
         Returns: undefined
       }
+      lr_agenda_chegada: { Args: { p_id: string }; Returns: Json }
+      lr_agenda_config_salvar: {
+        Args: { p_conflito_box: boolean; p_conflito_lavador: boolean; p_exigir_recurso: boolean }
+        Returns: undefined
+      }
+      lr_agenda_remarcar: {
+        Args: { p_box: string; p_fim: string; p_id: string; p_inicio: string; p_lavador_id: string }
+        Returns: undefined
+      }
+      lr_agenda_situacao: { Args: { p_id: string; p_motivo?: string; p_para: string }; Returns: undefined }
+      lr_agendar: { Args: { p_dados: Json }; Returns: string }
       lr_mensagens_pendentes: {
         Args: { p_janela?: number; p_tipo: string }
         Returns: Json
