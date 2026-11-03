@@ -73,6 +73,9 @@ export type FichaInternacao = {
   };
   tutor: string;
   tutor_telefone: string | null;
+  prescricoes: PrescricaoInternacao[];
+  itens: ItemInternacao[];
+  total_itens: number;
   relatos:
     | {
         id: string;
@@ -112,4 +115,95 @@ export function variacaoDePeso(
   return (
     Math.round((Number(ordem[ordem.length - 1]!.peso_kg) - Number(ordem[0]!.peso_kg)) * 100) / 100
   );
+}
+
+export type ExecucaoDose = {
+  id: string;
+  previsto_em: string;
+  situacao: "pendente" | "executada" | "nao_executada" | "cancelada";
+  executado_em: string | null;
+  executado_por: string | null;
+  observacao: string | null;
+};
+
+export type PrescricaoInternacao = {
+  id: string;
+  medicamento: string;
+  dose: string;
+  via: string | null;
+  frequencia_horas: number | null;
+  dias: number | null;
+  inicio: string;
+  observacao: string | null;
+  situacao: "ativa" | "suspensa";
+  suspensa_em: string | null;
+  suspensa_motivo: string | null;
+  veterinario: string;
+  crmv: string;
+  crmv_uf: string;
+  execucoes: ExecucaoDose[];
+};
+
+export type ItemInternacao = {
+  id: string;
+  tipo: "produto" | "servico";
+  descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  total: number;
+  lancado_por: string;
+  created_at: string;
+  cancelado_em: string | null;
+  cancelado_motivo: string | null;
+};
+
+/** "A cada 8 h por 3 dias" ou "Dose única". */
+export function descricaoDaFrequencia(
+  p: Pick<PrescricaoInternacao, "frequencia_horas" | "dias">,
+): string {
+  if (!p.frequencia_horas || !p.dias) return "Dose única";
+  return `A cada ${p.frequencia_horas} h por ${p.dias} dia${p.dias === 1 ? "" : "s"}`;
+}
+
+export type CorExecucao = "verde" | "cinza" | "laranja" | "azul" | "amarelo" | "vermelho";
+
+/** Minutos de atraso (negativo = ainda falta) de uma dose em relação ao relógio do servidor. */
+export const atrasoEmMinutos = (previsto: string, agora: string | Date) =>
+  Math.round((new Date(agora).getTime() - new Date(previsto).getTime()) / 60_000);
+
+/**
+ * Cor do aviso da dose no mapa de execuções:
+ * verde = feita · laranja = não feita · cinza = cancelada · azul = programada (falta mais de 1 h) ·
+ * amarelo = na hora (de 1 h antes até 15 min depois do horário) · vermelho = atrasada (mais de 15 min depois do horário).
+ */
+export function corDaExecucao(
+  e: { situacao: ExecucaoDose["situacao"]; previsto_em: string },
+  agora: string | Date,
+): CorExecucao {
+  if (e.situacao === "executada") return "verde";
+  if (e.situacao === "nao_executada") return "laranja";
+  if (e.situacao === "cancelada") return "cinza";
+  const atraso = atrasoEmMinutos(e.previsto_em, agora);
+  if (atraso > 15) return "vermelho";
+  if (atraso >= -60) return "amarelo";
+  return "azul";
+}
+
+export const ROTULO_COR: Record<CorExecucao, string> = {
+  verde: "Feita",
+  laranja: "Não feita",
+  cinza: "Cancelada",
+  azul: "Programada",
+  amarelo: "Na hora",
+  vermelho: "Atrasada",
+};
+
+/** Texto do prazo: "em 40 min", "agora", "atrasada 25 min". */
+export function textoDoPrazo(previsto: string, agora: string | Date): string {
+  const atraso = atrasoEmMinutos(previsto, agora);
+  const fmt = (m: number) =>
+    m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
+  if (atraso > 15) return `atrasada ${fmt(atraso)}`;
+  if (atraso >= -1) return "agora";
+  return `em ${fmt(-atraso)}`;
 }

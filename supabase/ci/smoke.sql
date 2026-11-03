@@ -568,7 +568,10 @@ DECLARE
     -- internação: cada função confere o perfil (veterinário; auxiliar só em pesagem e ocorrência; gestão só nos boxes), a clínica liberada e o cadastro ligado à conta
     'pet_box_salvar', 'clinica_boxes', 'clinica_internacao_admitir', 'clinica_internacoes', 'clinica_internacao_obter',
     'clinica_internacao_pesagem', 'clinica_internacao_relato', 'clinica_internacao_ocorrencia', 'clinica_internacao_box_trocar',
-    'clinica_internacao_encerrar'];
+    'clinica_internacao_encerrar',
+    -- internação, fase 2: prescrição e suspensão (veterinário), execução das doses e mapa (veterinário e auxiliar), itens (auxiliar lança, veterinário cancela)
+    'clinica_internacao_prescrever', 'clinica_prescricao_suspender', 'clinica_execucao_registrar', 'clinica_execucoes_mapa',
+    'clinica_internacao_catalogo', 'clinica_internacao_item_lancar', 'clinica_internacao_item_cancelar'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -8737,6 +8740,168 @@ BEGIN
   PERFORM ci.exige(jsonb_array_length(r) = 3, 'o histórico lista internadas e encerradas');
   PERFORM ci.entrar(vet); r := clinica_internacoes('obito', pet); PERFORM ci.sair();
   PERFORM ci.exige(jsonb_array_length(r) = 1, 'histórico filtrado por animal e situação');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 93. Clínica: internação, fase 2 (prescrição, mapa de execuções e itens)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ban  constant uuid := 'a0000000-0000-0000-0000-0000000001d3';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; b4 uuid; i1 uuid; dep uuid; prod uuid; serv uuid;
+  p1 uuid; p2 uuid; e1 uuid; e2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Prescrição CI') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Presc CI') RETURNING id INTO pet;
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Dep Internação CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'INT-SORO', 'Soro Ringer Internação CI', 'un', 8, 20) RETURNING id INTO prod;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda, controla_estoque) VALUES (demo, 'INT-DIARIA', 'Diária de internação CI', 'un', 0, 120, false) RETURNING id INTO serv;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(prod, dep, 'entrada'::mov_tipo, 10, 'ci', 'ci');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  b4 := pet_box_salvar('{"nome":"Box 4 CI"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vet);
+  i1 := clinica_internacao_admitir(pet, jsonb_build_object('box_id', b4, 'motivo', 'Pós-cirúrgico'));
+  PERFORM ci.sair();
+
+  -- prescrever: só o veterinário, com dados válidos
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'auxiliar prescreve');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'gestor prescreve');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"Dipirona","dose":"25 mg/kg"}'::jsonb)$c$, i1), 'banhista prescreve');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"dose":"1 ml"}'::jsonb)$c$, i1), 'prescrição sem medicamento');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X"}'::jsonb)$c$, i1), 'prescrição sem dose');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":8}'::jsonb)$c$, i1), 'frequência sem duração');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":8,"dias":20}'::jsonb)$c$, i1), 'duração de 20 dias');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1","frequencia_horas":0,"dias":1}'::jsonb)$c$, i1), 'frequência zero');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, jsonb_build_object('medicamento','X','dose','1','inicio', now() - interval '10 days'))$c$, i1), 'início antes da admissão');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, jsonb_build_object('medicamento','X','dose','1','inicio', now() + interval '3 days'))$c$, i1), 'início a mais de 24 horas');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1"}'::jsonb)$c$, gen_random_uuid()), 'internação que não existe');
+
+  PERFORM ci.entrar(vet);
+  p1 := clinica_internacao_prescrever(i1, '{"medicamento":"Dipirona","dose":"25 mg/kg","via":"IV","frequencia_horas":8,"dias":1,"observacao":"Diluir"}'::jsonb);
+  p2 := clinica_internacao_prescrever(i1, '{"medicamento":"Ringer lactato","dose":"20 ml/kg/h"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 3 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'pendente'), 'a cada 8 horas durante 1 dia dá 3 doses');
+  PERFORM ci.exige((SELECT max(previsto_em) - min(previsto_em) = interval '16 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p1), 'as doses ficam 8 horas uma da outra');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p2), 'sem frequência é dose única');
+  PERFORM ci.exige((SELECT crmv = '7777' AND situacao = 'ativa' FROM pet_internacao_prescricoes WHERE id = p1), 'a prescrição guarda o CRMV de quem prescreveu');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_prescricoes SET dose = '1 g' WHERE id = %L$c$, p1), 'alterar a prescrição');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_prescricoes WHERE id = %L$c$, p1), 'apagar a prescrição');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_execucoes WHERE prescricao_id = %L$c$, p1), 'apagar doses');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_execucoes SET previsto_em = now() WHERE prescricao_id = %L$c$, p1), 'mudar o horário de uma dose');
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM pet_internacao_prescricoes', 'ler as prescrições direto');
+
+  -- mapa
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_execucoes_mapa()$c$, 'gestor lê o mapa de execuções');
+  PERFORM ci.deve_falhar(gar, $c$SELECT clinica_execucoes_mapa()$c$, 'garçom lê o mapa de execuções');
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_execucoes_mapa()$c$, 'banhista lê o mapa de execuções');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_execucoes_mapa(0)$c$, 'mapa de 0 horas');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_execucoes_mapa(100)$c$, 'mapa de 100 horas');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(24); PERFORM ci.sair();
+  SELECT count(*) INTO n FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI';
+  PERFORM ci.exige(n = 4 AND r ? 'agora', 'o auxiliar vê as 4 doses do paciente no mapa');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(1); PERFORM ci.sair();
+  SELECT count(*) INTO n FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI';
+  PERFORM ci.exige(n = 2, 'o mapa de 1 hora só traz as doses desta hora (as duas de agora)');
+
+  -- execução
+  SELECT id INTO e1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 ORDER BY previsto_em LIMIT 1;
+  SELECT id INTO e2 FROM pet_internacao_execucoes WHERE prescricao_id = p1 ORDER BY previsto_em OFFSET 1 LIMIT 1;
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'banhista executa dose');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'gestor executa dose');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'feita')$c$, e1), 'situação de dose inválida');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e2), 'adiantar dose de 8 horas');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'nao_executada')$c$, e2), 'dose não feita sem motivo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, gen_random_uuid()), 'dose que não existe');
+  PERFORM ci.entrar(aux);
+  PERFORM clinica_execucao_registrar(e1, 'executada', 'Sem intercorrência');
+  PERFORM clinica_execucao_registrar(e2, 'nao_executada', 'Animal em jejum para exame');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'executada' AND executado_por IS NOT NULL AND executado_em IS NOT NULL AND observacao = 'Sem intercorrência' FROM pet_internacao_execucoes WHERE id = e1), 'a execução guarda quem fez e quando');
+  PERFORM ci.exige((SELECT situacao = 'nao_executada' FROM pet_internacao_execucoes WHERE id = e2), 'dose não feita guarda o motivo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_execucao_registrar(%L, 'executada')$c$, e1), 'executar a mesma dose de novo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_execucoes SET situacao = 'pendente' WHERE id = %L$c$, e1), 'reabrir dose resolvida');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(1); PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'itens') e WHERE (e ->> 'id')::uuid = e1 AND e ->> 'situacao' = 'executada' AND e ->> 'executado_por' = 'Aux Int CI'),
+                   'o mapa mostra a dose feita há pouco, com quem fez');
+
+  -- suspensão
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_prescricao_suspender(%L, 'x')$c$, p1), 'auxiliar suspende prescrição');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, ' ')$c$, p1), 'suspender sem motivo');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_prescricao_suspender(p1, 'Trocar por tramadol');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'suspensa' AND suspensa_motivo = 'Trocar por tramadol' FROM pet_internacao_prescricoes WHERE id = p1), 'suspensão guarda o motivo');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'cancelada')
+                   AND (SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'executada')
+                   AND (SELECT count(*) = 1 FROM pet_internacao_execucoes WHERE prescricao_id = p1 AND situacao = 'nao_executada'), 'suspender cancela só as doses pendentes');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, 'de novo')$c$, p1), 'suspender duas vezes');
+
+  -- itens
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_internacao_catalogo('soro')$c$, 'banhista consulta o catálogo');
+  PERFORM ci.deve_falhar(aux, $c$SELECT clinica_internacao_catalogo('s')$c$, 'catálogo com 1 letra');
+  PERFORM ci.entrar(aux); r := clinica_internacao_catalogo('soro ringer'); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND (r -> 0 ->> 'preco_venda')::numeric = 20 AND (r -> 0 ->> 'controla_estoque')::boolean, 'o auxiliar acha o produto no catálogo');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'banhista lança item');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'gestor lança item');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{}'::jsonb)$c$, i1), 'item sem produto nem descrição');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x","quantidade":0}'::jsonb)$c$, i1), 'item com quantidade zero');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x","preco":-1}'::jsonb)$c$, i1), 'item com preço negativo');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, jsonb_build_object('produto_id', %L))$c$, i1, gen_random_uuid()), 'produto que não existe');
+  PERFORM ci.entrar(aux);
+  it_prod := clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', prod, 'quantidade', 2, 'deposito_id', dep));
+  it_serv := clinica_internacao_item_lancar(i1, jsonb_build_object('produto_id', serv));
+  it_livre := clinica_internacao_item_lancar(i1, '{"descricao":"Curativo","quantidade":2,"preco":15.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 8 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'lançar produto baixa o estoque (10 - 2)');
+  PERFORM ci.exige((SELECT tipo = 'produto' AND total = 40 AND baixa_quantidade = 2 FROM pet_internacao_itens WHERE id = it_prod), 'produto com estoque: tipo, total e baixa guardados');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 120 AND baixa_deposito_id IS NULL FROM pet_internacao_itens WHERE id = it_serv), 'serviço não baixa estoque');
+  PERFORM ci.exige((SELECT tipo = 'servico' AND total = 31 FROM pet_internacao_itens WHERE id = it_livre), 'item livre vira serviço');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM estoques WHERE produto_id = serv), 'serviço não cria estoque');
+  PERFORM ci.entrar(aux); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 3 AND (r ->> 'total_itens')::numeric = 191 AND jsonb_array_length(r -> 'prescricoes') = 2
+                   AND r -> 'relatos' = 'null'::jsonb, 'a ficha traz itens, total e prescrições, sem os relatos para o auxiliar');
+  PERFORM ci.exige(jsonb_array_length((SELECT p -> 'execucoes' FROM jsonb_array_elements(r -> 'prescricoes') p WHERE p ->> 'medicamento' = 'Dipirona')) = 3, 'a prescrição vem com as suas doses');
+
+  -- cancelar item: só o veterinário, com motivo, e devolve o estoque
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_cancelar(%L, 'x')$c$, it_prod), 'auxiliar cancela item');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, ' ')$c$, it_prod), 'cancelar item sem motivo');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_item_cancelar(it_prod, 'Lançado no animal errado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade = 10 FROM estoques WHERE produto_id = prod AND deposito_id = dep), 'cancelar o item devolve o estoque');
+  PERFORM ci.exige((SELECT cancelado_em IS NOT NULL AND baixa_deposito_id IS NULL AND cancelado_motivo = 'Lançado no animal errado' FROM pet_internacao_itens WHERE id = it_prod), 'o item cancelado fica registrado com o motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, 'de novo')$c$, it_prod), 'cancelar item duas vezes');
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total_itens')::numeric = 151, 'o total não conta o item cancelado');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_itens WHERE id = %L$c$, it_serv), 'apagar item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET quantidade = 9 WHERE id = %L$c$, it_serv), 'mudar a quantidade do item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET descricao = 'x' WHERE id = %L$c$, it_prod), 'mexer em item cancelado');
+
+  -- alta: as doses que faltam são canceladas e nada mais entra
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i1, 'alta', 'Alta com medicação oral');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM pet_internacao_execucoes WHERE internacao_id = i1 AND situacao = 'pendente'), 'a alta cancela as doses pendentes');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_prescrever(%L, '{"medicamento":"X","dose":"1"}'::jsonb)$c$, i1), 'prescrever em internação encerrada');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_item_lancar(%L, '{"descricao":"x"}'::jsonb)$c$, i1), 'lançar item em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_item_cancelar(%L, 'tarde')$c$, it_serv), 'cancelar item de internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_prescricao_suspender(%L, 'tarde')$c$, p2), 'suspender prescrição de internação encerrada');
+  PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(72); PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI'), 'o mapa não traz internação encerrada');
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'prescricoes') = 2 AND jsonb_array_length(r -> 'itens') = 3, 'o histórico continua completo depois da alta');
 
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

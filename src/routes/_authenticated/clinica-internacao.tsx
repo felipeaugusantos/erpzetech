@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BedDouble, Plus, TriangleAlert } from "lucide-react";
+import { BedDouble, Plus, Printer, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -28,10 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
-import { dateTimeBR, num } from "@/lib/format";
+import { brl, dateTimeBR, num } from "@/lib/format";
 import {
   SITUACOES_INTERNACAO,
   TIPOS_OCORRENCIA,
+  descricaoDaFrequencia,
   diasInternado,
   rotuloSituacaoInternacao,
   rotuloTipoOcorrencia,
@@ -664,6 +665,23 @@ function FichaDialog({
               </div>
             )}
 
+            <PrescricaoSecao
+              f={f}
+              id={id}
+              souVet={souVet}
+              aberta={aberta}
+              aoMudar={depois}
+              aoErro={erro}
+            />
+            <ItensSecao
+              f={f}
+              id={id}
+              souVet={souVet}
+              aberta={aberta}
+              aoMudar={depois}
+              aoErro={erro}
+            />
+
             {souVet && f.relatos && (
               <div>
                 <h4 className="mb-1 text-sm font-semibold">Relatos médicos</h4>
@@ -733,29 +751,35 @@ function FichaDialog({
               </div>
             </div>
 
-            {aberta && souVet && (
-              <DialogFooter className="flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEncerrando("alta");
-                    setTextoFim("");
-                  }}
-                >
-                  Dar alta
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setEncerrando("obito");
-                    setTextoFim("");
-                  }}
-                >
-                  Registrar óbito
-                </Button>
-              </DialogFooter>
-            )}
-
+            <DialogFooter className="flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link to="/clinica-internacao-historico" search={{ id }}>
+                  <Printer className="size-4" /> Imprimir histórico
+                </Link>
+              </Button>
+              {aberta && souVet && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEncerrando("alta");
+                      setTextoFim("");
+                    }}
+                  >
+                    Dar alta
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setEncerrando("obito");
+                      setTextoFim("");
+                    }}
+                  >
+                    Registrar óbito
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
             {encerrando && (
               <Dialog open onOpenChange={(o) => !o && setEncerrando(null)}>
                 <DialogContent className="max-w-md">
@@ -800,5 +824,472 @@ function FichaDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+type PropsSecao = {
+  f: FichaInternacao;
+  id: string;
+  souVet: boolean;
+  aberta: boolean;
+  aoMudar: () => void;
+  aoErro: (e: Error) => void;
+};
+
+const SITUACAO_DOSE: Record<string, string> = {
+  pendente: "Pendente",
+  executada: "Feita",
+  nao_executada: "Não feita",
+  cancelada: "Cancelada",
+};
+
+function PrescricaoSecao({ f, id, souVet, aberta, aoMudar, aoErro }: PropsSecao) {
+  const vazio = { medicamento: "", dose: "", via: "", frequencia: "", dias: "", observacao: "" };
+  const [form, setForm] = useState(vazio);
+  const [suspendendo, setSuspendendo] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
+
+  const prescrever = useMutation({
+    mutationFn: async () => {
+      if (!form.medicamento.trim() || !form.dose.trim())
+        throw new Error("Informe o medicamento e a dose.");
+      const freq = form.frequencia.trim() ? Number(form.frequencia) : null;
+      const dias = form.dias.trim() ? Number(form.dias) : null;
+      if ((freq === null) !== (dias === null))
+        throw new Error(
+          "Informe a frequência e a duração, ou deixe as duas vazias para dose única.",
+        );
+      const { error } = await supabase.rpc("clinica_internacao_prescrever", {
+        p_id: id,
+        p_dados: {
+          medicamento: form.medicamento,
+          dose: form.dose,
+          via: form.via,
+          observacao: form.observacao,
+          ...(freq !== null && dias !== null ? { frequencia_horas: freq, dias } : {}),
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prescrição registrada. As doses entraram no mapa de execuções.");
+      setForm(vazio);
+      aoMudar();
+    },
+    onError: aoErro,
+  });
+  const suspender = useMutation({
+    mutationFn: async () => {
+      if (!suspendendo) return;
+      const { error } = await supabase.rpc("clinica_prescricao_suspender", {
+        p_prescricao_id: suspendendo,
+        p_motivo: motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prescrição suspensa.");
+      setSuspendendo(null);
+      setMotivo("");
+      aoMudar();
+    },
+    onError: aoErro,
+  });
+
+  return (
+    <div>
+      <h4 className="mb-1 text-sm font-semibold">Prescrição médica</h4>
+      {aberta && souVet && (
+        <div className="mb-3 grid gap-2 rounded-md border border-border p-3 sm:grid-cols-6">
+          <div className="sm:col-span-3">
+            <Label htmlFor="pr-med" className="text-xs">
+              Medicamento
+            </Label>
+            <Input
+              id="pr-med"
+              maxLength={120}
+              value={form.medicamento}
+              onChange={(e) => setForm({ ...form, medicamento: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="pr-dose" className="text-xs">
+              Dose
+            </Label>
+            <Input
+              id="pr-dose"
+              maxLength={80}
+              placeholder="Ex.: 25 mg/kg"
+              value={form.dose}
+              onChange={(e) => setForm({ ...form, dose: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="pr-via" className="text-xs">
+              Via
+            </Label>
+            <Input
+              id="pr-via"
+              maxLength={40}
+              placeholder="IV, VO…"
+              value={form.via}
+              onChange={(e) => setForm({ ...form, via: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="pr-freq" className="text-xs">
+              A cada (h)
+            </Label>
+            <Input
+              id="pr-freq"
+              inputMode="numeric"
+              placeholder="vazio = dose única"
+              value={form.frequencia}
+              onChange={(e) => setForm({ ...form, frequencia: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="pr-dias" className="text-xs">
+              Por (dias)
+            </Label>
+            <Input
+              id="pr-dias"
+              inputMode="numeric"
+              value={form.dias}
+              onChange={(e) => setForm({ ...form, dias: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <Label htmlFor="pr-obs" className="text-xs">
+              Observação
+            </Label>
+            <Input
+              id="pr-obs"
+              maxLength={300}
+              value={form.observacao}
+              onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={() => prescrever.mutate()} disabled={prescrever.isPending}>
+              Prescrever
+            </Button>
+          </div>
+        </div>
+      )}
+      {f.prescricoes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhuma prescrição.</p>
+      ) : (
+        <div className="space-y-2">
+          {f.prescricoes.map((p) => {
+            const feitas = p.execucoes.filter((e) => e.situacao === "executada").length;
+            return (
+              <div
+                key={p.id}
+                className={`rounded-md border border-border p-3 text-sm ${p.situacao === "suspensa" ? "opacity-70" : ""}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p>
+                    <strong>{p.medicamento}</strong> · {p.dose}
+                    {p.via ? ` · ${p.via}` : ""} · {descricaoDaFrequencia(p)}
+                    {p.observacao ? (
+                      <span className="block text-xs text-muted-foreground">{p.observacao}</span>
+                    ) : null}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={p.situacao === "ativa" ? "default" : "outline"}>
+                      {p.situacao === "ativa"
+                        ? `${feitas}/${p.execucoes.length} feitas`
+                        : "Suspensa"}
+                    </Badge>
+                    {aberta && souVet && p.situacao === "ativa" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSuspendendo(p.id);
+                          setMotivo("");
+                        }}
+                      >
+                        Suspender
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {p.veterinario} (CRMV {p.crmv}/{p.crmv_uf}) · desde {dateTimeBR(p.inicio)}
+                  {p.suspensa_motivo
+                    ? ` · suspensa em ${dateTimeBR(p.suspensa_em)}: ${p.suspensa_motivo}`
+                    : ""}
+                </p>
+                <p className="mt-1 flex flex-wrap gap-1">
+                  {p.execucoes.map((e) => (
+                    <span
+                      key={e.id}
+                      className="rounded border border-border px-1.5 py-0.5 text-xs"
+                      title={`${SITUACAO_DOSE[e.situacao]}${e.executado_por ? ` por ${e.executado_por}` : ""}${e.observacao ? ` — ${e.observacao}` : ""}`}
+                    >
+                      {dateTimeBR(e.previsto_em)} · {SITUACAO_DOSE[e.situacao]}
+                    </span>
+                  ))}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {suspendendo && (
+        <Dialog open onOpenChange={(o) => !o && setSuspendendo(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Suspender prescrição</DialogTitle>
+            </DialogHeader>
+            <Label htmlFor="pr-motivo">Motivo (as doses que faltam serão canceladas)</Label>
+            <Textarea
+              id="pr-motivo"
+              rows={3}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSuspendendo(null)}>
+                Voltar
+              </Button>
+              <Button
+                onClick={() => suspender.mutate()}
+                disabled={suspender.isPending || !motivo.trim()}
+              >
+                Suspender
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function ItensSecao({ f, id, souVet, aberta, aoMudar, aoErro }: PropsSecao) {
+  const [busca, setBusca] = useState("");
+  const [termo, setTermo] = useState("");
+  const [produto, setProduto] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [quantidade, setQuantidade] = useState("1");
+  const [preco, setPreco] = useState("");
+  const [cancelando, setCancelando] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
+
+  const achados = useQuery({
+    queryKey: ["clinica-internacao-catalogo", termo],
+    enabled: termo.length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_internacao_catalogo", { p_busca: termo });
+      if (error) throw error;
+      return (data ?? []) as unknown as {
+        id: string;
+        descricao: string;
+        preco_venda: number | null;
+        controla_estoque: boolean;
+      }[];
+    },
+  });
+
+  const lancar = useMutation({
+    mutationFn: async () => {
+      const qtd = Number(quantidade.replace(",", "."));
+      if (!(qtd > 0)) throw new Error("Quantidade inválida.");
+      const valor = preco.trim() === "" ? undefined : Number(preco.replace(",", "."));
+      if (valor !== undefined && !(valor >= 0)) throw new Error("Preço inválido.");
+      if (!produto && !descricao.trim())
+        throw new Error("Escolha um produto ou descreva o serviço.");
+      const { error } = await supabase.rpc("clinica_internacao_item_lancar", {
+        p_id: id,
+        p_dados: {
+          ...(produto ? { produto_id: produto } : { descricao }),
+          quantidade: qtd,
+          ...(valor !== undefined ? { preco: valor } : {}),
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setProduto("");
+      setDescricao("");
+      setQuantidade("1");
+      setPreco("");
+      aoMudar();
+    },
+    onError: aoErro,
+  });
+  const cancelar = useMutation({
+    mutationFn: async () => {
+      if (!cancelando) return;
+      const { error } = await supabase.rpc("clinica_internacao_item_cancelar", {
+        p_item_id: cancelando,
+        p_motivo: motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Item cancelado.");
+      setCancelando(null);
+      setMotivo("");
+      aoMudar();
+    },
+    onError: aoErro,
+  });
+
+  return (
+    <div>
+      <h4 className="mb-1 text-sm font-semibold">
+        Produtos e serviços
+        <span className="ml-2 text-xs font-normal text-muted-foreground">
+          Total {brl(Number(f.total_itens))}
+        </span>
+      </h4>
+      {aberta && (
+        <div className="mb-3 grid gap-2 rounded-md border border-border p-3">
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setTermo(busca.trim());
+              setProduto("");
+            }}
+          >
+            <Input
+              aria-label="Buscar produto ou serviço"
+              placeholder="Buscar no cadastro de produtos"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+            <Button type="submit" variant="outline" disabled={busca.trim().length < 2}>
+              Buscar
+            </Button>
+          </form>
+          {termo && (
+            <Select
+              value={produto || NENHUM}
+              onValueChange={(v) => {
+                setProduto(v === NENHUM ? "" : v);
+                const p = (achados.data ?? []).find((x) => x.id === v);
+                if (p) setPreco(String(p.preco_venda ?? "").replace(".", ","));
+              }}
+            >
+              <SelectTrigger aria-label="Produto ou serviço">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NENHUM}>
+                  {achados.isLoading
+                    ? "Buscando…"
+                    : (achados.data ?? []).length
+                      ? "Escolha…"
+                      : "Nada encontrado (use item avulso)"}
+                </SelectItem>
+                {(achados.data ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.descricao}
+                    {p.controla_estoque ? "" : " (serviço)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <div className="grid gap-2 sm:grid-cols-[1fr_5rem_7rem_auto]">
+            {!produto ? (
+              <Input
+                aria-label="Descrição do item avulso"
+                placeholder="Ou descreva um serviço avulso"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+              />
+            ) : (
+              <p className="self-center text-sm text-muted-foreground">
+                Produto escolhido; a quantidade sai do estoque.
+              </p>
+            )}
+            <Input
+              aria-label="Quantidade"
+              inputMode="decimal"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+            />
+            <Input
+              aria-label="Preço (R$)"
+              inputMode="decimal"
+              placeholder="Preço"
+              value={preco}
+              onChange={(e) => setPreco(e.target.value)}
+            />
+            <Button onClick={() => lancar.mutate()} disabled={lancar.isPending}>
+              Lançar
+            </Button>
+          </div>
+        </div>
+      )}
+      {f.itens.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum item lançado.</p>
+      ) : (
+        <ul className="divide-y divide-border text-sm">
+          {f.itens.map((i) => (
+            <li
+              key={i.id}
+              className={`flex flex-wrap items-center justify-between gap-2 py-1 ${i.cancelado_em ? "opacity-60" : ""}`}
+            >
+              <span className={i.cancelado_em ? "line-through" : ""}>
+                {i.descricao} · {String(i.quantidade).replace(".", ",")} ×{" "}
+                {brl(Number(i.preco_unitario))} = <strong>{brl(Number(i.total))}</strong>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {i.tipo === "produto" ? "Produto" : "Serviço"} · {i.lancado_por}
+                </span>
+                {i.cancelado_em && (
+                  <span className="ml-2 text-xs no-underline">cancelado: {i.cancelado_motivo}</span>
+                )}
+              </span>
+              {aberta && souVet && !i.cancelado_em && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setCancelando(i.id);
+                    setMotivo("");
+                  }}
+                >
+                  Cancelar item
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {cancelando && (
+        <Dialog open onOpenChange={(o) => !o && setCancelando(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cancelar item</DialogTitle>
+            </DialogHeader>
+            <Label htmlFor="it-motivo">Motivo (o produto volta ao estoque)</Label>
+            <Textarea
+              id="it-motivo"
+              rows={3}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelando(null)}>
+                Voltar
+              </Button>
+              <Button
+                onClick={() => cancelar.mutate()}
+                disabled={cancelar.isPending || !motivo.trim()}
+              >
+                Cancelar item
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }

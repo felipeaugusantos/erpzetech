@@ -12355,6 +12355,22 @@ export type Database = {
         Returns: string
       }
       clinica_boxes: { Args: never; Returns: Json }
+      clinica_execucao_registrar: {
+        Args: { p_id: string; p_obs?: string; p_situacao: string }
+        Returns: undefined
+      }
+      clinica_execucoes_mapa: { Args: { p_horas?: number }; Returns: Json }
+      clinica_internacao_catalogo: { Args: { p_busca: string }; Returns: Json }
+      clinica_internacao_item_cancelar: {
+        Args: { p_item_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_internacao_item_lancar: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_internacao_prescrever: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_prescricao_suspender: {
+        Args: { p_motivo: string; p_prescricao_id: string }
+        Returns: undefined
+      }
       clinica_internacao_admitir: { Args: { p_dados: Json; p_pet_id: string }; Returns: string }
       clinica_internacao_box_trocar: {
         Args: { p_box_id: string; p_id: string }

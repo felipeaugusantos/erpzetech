@@ -243,6 +243,7 @@ const groups: Group[] = [
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
       { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
+      { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
       { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
@@ -532,7 +533,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 i.to === "/clinica-offline"
               )
                 return souVeterinario;
-              if (i.to === "/clinica-internacao") return souVeterinario;
+              if (i.to === "/clinica-internacao" || i.to === "/clinica-execucoes")
+                return souVeterinario;
               if (i.to === "/clinica-boxes") return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
@@ -620,7 +622,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: [
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
             ...(modulos.clinica
-              ? [{ label: "Internação", to: "/clinica-internacao", icon: BedDouble }]
+              ? [
+                  { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
+                  { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
+                ]
               : []),
             ...(souVeterinario && modulos.clinica
               ? [
@@ -671,6 +676,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-documento",
       "/clinica-ficha",
       "/clinica-internacao",
+      "/clinica-internacao-historico",
+      "/clinica-execucoes",
       "/clinica-boxes",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
