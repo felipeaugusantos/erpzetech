@@ -1,6 +1,6 @@
 -- Hotelaria (Fase 1, migration 5): leituras para as telas: mapa de ocupação (grade acomodação × dia), painel do dia da recepção, resumo da conta
 -- do hóspede e resumo da reserva. Só leitura (STABLE), com a mesma porta de entrada das demais funções (salão, papel, módulo e hotel).
--- Especificação: docs/hotelaria-fase-1.md. Pode ser rodado de novo sem erro. Rode antes 20261212000000_hotelaria_checkout_nfse.sql.
+-- Especificação: docs/hotelaria-fase-1.md. Pode ser rodado de novo sem erro. Rode antes 20261220000000_hotelaria_checkout_nfse.sql.
 
 -- ============ mapa de ocupação ============
 -- Janela [p_de, p_ate) de no máximo 62 dias. Devolve:

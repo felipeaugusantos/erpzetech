@@ -2,7 +2,7 @@
 -- alterar, trocar de acomodação, cancelar, não comparecimento e interdição por período.
 -- A reserva do balcão escolhe a acomodação na hora; a coluna uh_id aceita nulo para as reservas de canais (Fase 4).
 -- Sinal, conta do hóspede, check-in e check-out vêm nas próximas migrations. Especificação: docs/hotelaria-fase-1.md.
--- Pode ser rodado de novo sem erro (tabelas, funções, políticas e gatilhos são refeitos). Rode antes 20261209000000_hotelaria_base.sql.
+-- Pode ser rodado de novo sem erro (tabelas, funções, políticas e gatilhos são refeitos). Rode antes 20261217000000_hotelaria_base.sql.
 
 -- ============ calendário: duas ocupações da mesma acomodação não podem se cruzar ============
 DO $$

@@ -166,6 +166,18 @@ export const MODELOS_INICIAIS: readonly ModeloDocumento[] = [
       "Atesto, para os devidos fins, que {tutor} compareceu a {clinica} em {data}, acompanhando o animal {pet} (espécie {especie}) para atendimento médico-veterinário.",
   },
   {
+    tipo: "atestado",
+    titulo: "Atestado de vacinação",
+    corpo:
+      "Atesto, para os devidos fins, que o animal {pet}, da espécie {especie}, raça {raca}, de propriedade de {tutor}, recebeu nesta clínica as vacinas e os vermífugos abaixo, conforme o cartão de vacinação do paciente:\n\nVacina / produto — data de aplicação — lote — próxima dose\n____________________________________________\n____________________________________________\n____________________________________________\n\nA conferência das datas e dos lotes é feita pelo cartão de vacinação (Clínica > Cartão de vacinação).\n\n{clinica}, {data}.",
+  },
+  {
+    tipo: "atestado",
+    titulo: "Atestado de saúde para trânsito",
+    corpo:
+      "Atesto, para fins de trânsito, que o animal {pet}, da espécie {especie}, raça {raca}, de propriedade de {tutor}, foi examinado nesta data e, ao exame clínico, apresentava-se clinicamente saudável, sem sinais de doença infectocontagiosa ou de parasitas visíveis, e em condições de ser transportado.\n\nOrigem: ____________________   Destino: ____________________\nMeio de transporte: ____________________   Data da viagem: ____ / ____ / ______\nIdentificação (microchip ou outra): ____________________\nVacina antirrábica aplicada em: ____ / ____ / ______   Validade: ____ / ____ / ______\n\n{clinica}, {data}.\n\nO trânsito interestadual e internacional pode exigir atestado oficial, GTA ou certificado veterinário internacional, emitidos por veterinário habilitado e pelo órgão competente (MAPA/Agrodefesa). Confirme as exigências do destino antes da viagem.",
+  },
+  {
     tipo: "termo",
     titulo: "Termo de consentimento — anestesia e procedimento",
     corpo:

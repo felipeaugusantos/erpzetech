@@ -2,7 +2,7 @@
 -- check-in com a ficha, "fechar o dia" (diária e taxa de turismo da noite, sem duplicar), estorno, transferência entre contas,
 -- estender, encurtar e trocar de quarto no meio da estadia. Cancelamento e não comparecimento passam a tratar o sinal.
 -- O check-out e a NFS-e vêm na migration seguinte. Especificação: docs/hotelaria-fase-1.md.
--- Pode ser rodado de novo sem erro. Rode antes 20261210000000_hotelaria_reservas.sql.
+-- Pode ser rodado de novo sem erro. Rode antes 20261218000000_hotelaria_reservas.sql.
 
 -- ============ tabelas ============
 -- Uma conta principal por reserva (criada no primeiro sinal ou no check-in) e contas extras abertas pela recepção

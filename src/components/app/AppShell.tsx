@@ -213,8 +213,10 @@ const groups: Group[] = [
     items: [
       { label: "Agenda", to: "/pet-agenda", icon: CalendarClock },
       { label: "Pets e tutores", to: "/pets", icon: PawPrint },
+      { label: "Ordens de serviço", to: "/pet-os", icon: ClipboardList },
       { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
       { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },
+      { label: "Campos personalizados", to: "/pet-campos", icon: ClipboardList },
       { label: "Contatos", to: "/pet-contatos", icon: MessageCircle },
       { label: "Pacotes", to: "/pet-pacotes", icon: Package },
       { label: "Comissões", to: "/pet-comissoes", icon: Tag },
@@ -254,11 +256,16 @@ const groups: Group[] = [
     icon: Stethoscope,
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+      { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
+      { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
+      { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
+      { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
+      { label: "Internações a cobrar", to: "/clinica-cobrancas", icon: BedDouble },
     ],
   },
   {
@@ -543,10 +550,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 i.to === "/clinica-offline"
               )
                 return souVeterinario;
+              if (i.to === "/clinica-internacao" || i.to === "/clinica-execucoes")
+                return souVeterinario;
+              if (i.to === "/clinica-boxes" || i.to === "/sngpc")
+                return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
-              if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
+              if (i.to === "/clinica-reforcos" || i.to === "/clinica-cobrancas")
+                return souGestao || souRecepcao;
               if (
                 i.to === "/personalizacao" ||
                 i.to === "/custo-par" ||
@@ -629,9 +641,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           icon: PawPrint,
           items: [
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
+            ...(modulos.clinica
+              ? [
+                  { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
+                  { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
+                ]
+              : []),
             ...(souVeterinario && modulos.clinica
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+                  { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
+                  { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
@@ -675,6 +695,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-vacinas",
       "/clinica-cartao",
       "/clinica-documento",
+      "/clinica-ficha",
+      "/clinica-internacao",
+      "/clinica-internacao-historico",
+      "/clinica-execucoes",
+      "/clinica-boxes",
+      "/sngpc",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
       navigate({ to: "/pet-minha-agenda", replace: true });

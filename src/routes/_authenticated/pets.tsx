@@ -1,11 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PawPrint, Pencil, Plus, Search, Syringe } from "lucide-react";
+import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
+import {
+  CamposPersonalizados,
+  useCamposPet,
+  useValoresCamposPet,
+} from "@/components/app/CamposPersonalizados";
+import { PesagensPet } from "@/components/app/PesagensPet";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +46,18 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { dateBR } from "@/lib/format";
-import { ESPECIES, PELAGENS, PORTES, SEXOS, idadeDoPet, rotulo } from "@/lib/pet";
+import {
+  ESPECIES,
+  PELAGENS,
+  PORTES,
+  SEXOS,
+  idadeDoPet,
+  microchipValido,
+  normalizarMicrochip,
+  rotulo,
+} from "@/lib/pet";
+import { reduzirFoto } from "@/lib/pet-foto";
+import { camposAtivos, erroDosCampos, valoresParaEnvio } from "@/lib/pet-campos";
 
 export const Route = createFileRoute("/_authenticated/pets")({
   head: () => ({
@@ -76,6 +93,10 @@ type Form = {
   alergias: string;
   observacoes: string;
   ativo: boolean;
+  microchip: string;
+  /** foto atual do pet (miniatura JPEG); só vai ao banco quando fotoMudou */
+  foto: string | null;
+  fotoMudou: boolean;
 };
 
 const vazio: Form = {
@@ -95,6 +116,9 @@ const vazio: Form = {
   alergias: "",
   observacoes: "",
   ativo: true,
+  microchip: "",
+  foto: null,
+  fotoMudou: false,
 };
 
 function PetsModulo() {
@@ -121,7 +145,12 @@ function Pets() {
     queryKey: ["pets"],
     queryFn: async () => {
       const [pets, clientes] = await Promise.all([
-        supabase.from("pets").select("*").order("nome"),
+        supabase
+          .from("pets")
+          .select(
+            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, microchip, created_at, updated_at",
+          )
+          .order("nome"),
         supabase
           .from("clientes")
           .select("id, nome, cpf, cnpj, telefone")
@@ -137,6 +166,20 @@ function Pets() {
   const pets = data?.pets ?? [];
   const clientes = data?.clientes ?? [];
   const tutor = (id: string) => clientes.find((c) => c.id === id);
+  // campos personalizados do pet e do tutor (valores guardados à parte; vão ao banco depois do pet)
+  const { data: camposPet = [] } = useCamposPet();
+  const [valoresPet, setValoresPet] = useState<Record<string, string>>({});
+  const [valoresTutor, setValoresTutor] = useState<Record<string, string>>({});
+  const guardadosPet = useValoresCamposPet(aberto ? form.id : undefined);
+  const guardadosTutor = useValoresCamposPet(
+    aberto && !form.tutor_novo && form.cliente_id ? form.cliente_id : undefined,
+  );
+  useEffect(() => {
+    setValoresPet(form.id ? (guardadosPet.data ?? {}) : {});
+  }, [form.id, aberto, guardadosPet.data]);
+  useEffect(() => {
+    setValoresTutor(!form.tutor_novo && form.cliente_id ? (guardadosTutor.data ?? {}) : {});
+  }, [form.cliente_id, form.tutor_novo, aberto, guardadosTutor.data]);
   const parecidos = form.tutor_novo
     ? tutoresParecidos(clientes, form.novo_tutor_nome, form.novo_tutor_telefone)
     : [];
@@ -163,6 +206,12 @@ function Pets() {
       const peso = form.peso_kg.trim() ? Number(form.peso_kg.replace(",", ".")) : null;
       if (peso !== null && (!Number.isFinite(peso) || peso <= 0))
         throw new Error("Informe um peso válido.");
+      if (form.microchip.trim() && !microchipValido(form.microchip))
+        throw new Error("O microchip tem de 9 a 15 números.");
+      const erroCampos =
+        erroDosCampos(camposPet, "pet", valoresPet) ??
+        erroDosCampos(camposPet, "tutor", valoresTutor);
+      if (erroCampos) throw new Error(erroCampos);
       let clienteId = form.cliente_id;
       if (form.tutor_novo) {
         const fone = form.novo_tutor_telefone.trim();
@@ -185,7 +234,7 @@ function Pets() {
         setForm((f) => ({ ...f, cliente_id: idTutor, tutor_novo: false }));
         void qc.invalidateQueries({ queryKey: ["clientes"] });
       }
-      const { error } = await supabase.rpc("pet_salvar", {
+      const { data: petId, error } = await supabase.rpc("pet_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           cliente_id: clienteId,
@@ -201,9 +250,30 @@ function Pets() {
           alergias: form.alergias.trim() || null,
           observacoes: form.observacoes.trim() || null,
           ativo: form.ativo,
+          microchip: normalizarMicrochip(form.microchip) || null,
+          ...(form.fotoMudou ? { foto: form.foto } : {}),
         },
       });
       if (error) throw error;
+      // o pet já existe: se os campos falharem, salvar de novo atualiza este pet em vez de criar outro
+      setForm((f) => ({ ...f, id: petId }));
+      if (camposAtivos(camposPet, "tutor").length > 0) {
+        const { error: e } = await supabase.rpc("pet_campos_valores_salvar", {
+          p_entidade: "tutor",
+          p_registro_id: clienteId,
+          p_valores: valoresParaEnvio(camposPet, "tutor", valoresTutor),
+        });
+        if (e) throw new Error(`Pet salvo, mas os campos do tutor não: ${e.message}`);
+      }
+      if (camposAtivos(camposPet, "pet").length > 0) {
+        const { error: e } = await supabase.rpc("pet_campos_valores_salvar", {
+          p_entidade: "pet",
+          p_registro_id: petId,
+          p_valores: valoresParaEnvio(camposPet, "pet", valoresPet),
+        });
+        if (e) throw new Error(`Pet salvo, mas os campos do animal não: ${e.message}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["pet-campos-valores"] });
     },
     onSuccess: () => {
       toast.success(form.id ? "Pet atualizado." : "Pet cadastrado.");
@@ -347,6 +417,19 @@ function Pets() {
                           size="icon"
                           aria-label={`Editar ${p.nome}`}
                           onClick={() => {
+                            // a foto não vem na lista (pesa); busca só a deste pet
+                            void supabase
+                              .from("pets")
+                              .select("foto")
+                              .eq("id", p.id)
+                              .maybeSingle()
+                              .then(({ data: f }) =>
+                                setForm((atual) =>
+                                  atual.id === p.id && !atual.fotoMudou
+                                    ? { ...atual, foto: f?.foto ?? null }
+                                    : atual,
+                                ),
+                              );
                             setForm({
                               id: p.id,
                               cliente_id: p.cliente_id,
@@ -365,6 +448,9 @@ function Pets() {
                               alergias: p.alergias ?? "",
                               observacoes: p.observacoes ?? "",
                               ativo: p.ativo,
+                              microchip: p.microchip ?? "",
+                              foto: null,
+                              fotoMudou: false,
                             });
                             tutorNovoId.current = null;
                             setAberto(true);
@@ -565,6 +651,57 @@ function Pets() {
               />
               <Label htmlFor="pet-ativo">Ativo</Label>
             </div>
+            <div>
+              <Label htmlFor="pet-chip">Microchip</Label>
+              <Input
+                id="pet-chip"
+                inputMode="numeric"
+                placeholder="9 a 15 números"
+                value={form.microchip}
+                onChange={(e) => setForm({ ...form, microchip: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              {form.foto ? (
+                <img
+                  src={form.foto}
+                  alt={`Foto de ${form.nome || "pet"}`}
+                  className="size-16 rounded-md border border-border object-cover"
+                />
+              ) : (
+                <div className="flex size-16 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
+                  <Camera className="size-5" />
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="pet-foto" className="cursor-pointer text-sm text-primary underline">
+                  {form.foto ? "Trocar foto" : "Adicionar foto"}
+                </Label>
+                <input
+                  id="pet-foto"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const arq = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!arq) return;
+                    reduzirFoto(arq)
+                      .then((foto) => setForm((f) => ({ ...f, foto, fotoMudou: true })))
+                      .catch((err: Error) => toast.error(err.message));
+                  }}
+                />
+                {form.foto && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground underline"
+                    onClick={() => setForm({ ...form, foto: null, fotoMudou: true })}
+                  >
+                    <Trash2 className="size-3" /> Remover
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <Label htmlFor="pet-alergias">Alergias e cuidados</Label>
               <Input
@@ -581,6 +718,31 @@ function Pets() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
               />
             </div>
+            <CamposPersonalizados
+              campos={camposPet}
+              entidade="pet"
+              titulo="Campos do animal"
+              valores={valoresPet}
+              onChange={(id, v) => setValoresPet((x) => ({ ...x, [id]: v }))}
+            />
+            <CamposPersonalizados
+              campos={camposPet}
+              entidade="tutor"
+              titulo="Campos do tutor"
+              valores={valoresTutor}
+              onChange={(id, v) => setValoresTutor((x) => ({ ...x, [id]: v }))}
+            />
+            {form.id && (
+              <PesagensPet
+                petId={form.id}
+                podeExcluir={(session?.roles ?? []).some((r) =>
+                  ["administrador", "gestor"].includes(r),
+                )}
+                aoMudarPeso={(kg) =>
+                  setForm((f) => ({ ...f, peso_kg: kg === null ? "" : String(kg) }))
+                }
+              />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)}>

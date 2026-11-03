@@ -1,7 +1,7 @@
 -- Hotelaria (Fase 1, migration 6): prévia do check-out. Diz o que hs_checkout vai fazer SEM fazer: saída que passa a valer, noites cobradas, quanto
 -- ainda vai ser lançado (diárias e taxa de turismo das noites que faltam) e o saldo previsto de cada conta. A tela de check-out usa isto para
 -- sugerir os pagamentos certos. Mesma regra de noites de hs_checkout (espelho em saidaDoCheckout, src/lib/hotelaria.ts).
--- Pode ser rodado de novo sem erro. Rode antes 20261213000000_hotelaria_leitura.sql.
+-- Pode ser rodado de novo sem erro. Rode antes 20261221000000_hotelaria_leitura.sql.
 
 CREATE OR REPLACE FUNCTION public.hs_checkout_previa(p_reserva_uh uuid)
 RETURNS jsonb

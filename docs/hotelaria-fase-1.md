@@ -88,7 +88,7 @@ Todas `SECURITY DEFINER`, `SET search_path TO public`, começam por `exige_nao_s
 | `hs_reserva_cancelar(p_id, p_motivo, p_devolver_sinal boolean)`         | Libera ocupação. Sinal: se `p_devolver_sinal` é falso fica como receita retida e exige gestão e motivo. Não cancela hospedada (usa check-out antecipado)                            |
 | `hs_reserva_no_show(p_reserva_uh)`                                      | Só depois da data de entrada; libera a UH; cobrança da 1ª diária é decisão da gestão (lança `ajuste`)                                                                               |
 
-**Como ficou na migration 2 (`20261210000000_hotelaria_reservas.sql`), onde difere do plano acima:**
+**Como ficou na migration 2 (`20261218000000_hotelaria_reservas.sql`), onde difere do plano acima:**
 
 - **Quarto da reserva:** `hs_reserva_alterar` cuida só dos dados da reserva (titular, pagador, origem, observações). Datas, pessoas e valor acordado mudam no quarto, em `hs_reserva_uh_alterar`. Cancelar existe por reserva (`hs_reserva_cancelar`) e por quarto (`hs_reserva_uh_cancelar`), para reserva de vários quartos.
 - **Decisão 6 aplicada:** a reserva do balcão escolhe a acomodação na hora (`uh_id` obrigatório em `hs_reserva_criar`); a coluna segue aceitando nulo para os canais da Fase 4. Por isso `hs_uhs_livres` (acomodações livres no período) entrou para alimentar a escolha.
@@ -116,7 +116,7 @@ Todas `SECURITY DEFINER`, `SET search_path TO public`, começam por `exige_nao_s
 
 Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisão fiscal; o erro se corrige por estorno e novo lançamento. Fica como pergunta na seção 10.
 
-**Como ficou na migration 3 (`20261211000000_hotelaria_estadia.sql`), onde difere do plano acima:**
+**Como ficou na migration 3 (`20261219000000_hotelaria_estadia.sql`), onde difere do plano acima:**
 
 - **Check-in:** `hs_checkin(p_reserva_uh, p_acompanhantes uuid[])`. Não existe check-in antes do dia da entrada: antecipe a data com `hs_reserva_uh_alterar` e faça o check-in depois (o calendário confere a vaga). Sem chave: o check-in é idempotente pelo estado do quarto. Exige reserva confirmada, acomodação limpa e documento do titular (se o hotel exige). Chegada atrasada faz check-in; as noites anteriores ao check-in não são lançadas (a gestão lança um ajuste, se quiser).
 - **Razão da conta:** o lançamento não tem situação nem "cancelado"; corrigir é `hs_lancamento_estornar`, que grava a linha de sinal oposto ligada por `estorna_id` (um estorno por lançamento, estorno não se estorna). Diária, taxa de turismo e ajuste só a gestão estorna. A transferência (`hs_lancamento_transferir`) leva o lançamento original junto com o estorno dele.
@@ -127,7 +127,7 @@ Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisã
 - **Acompanhantes:** `hs_reserva_hospede_adicionar` e `hs_reserva_hospede_remover`.
 - Ficam para a migration 4: check-out, NFS-e em rascunho e `hs_uh_situacao`.
 
-**Como ficou na migration 4 (`20261212000000_hotelaria_checkout_nfse.sql`), onde difere do plano acima:**
+**Como ficou na migration 4 (`20261220000000_hotelaria_checkout_nfse.sql`), onde difere do plano acima:**
 
 - **Check-out:** `hs_checkout(p_reserva_uh, p_pagamentos jsonb, p_caixa)`, com pagamentos `[{forma, valor, tipo?, folio_id?}]` (tipo `pagamento` ou `devolucao`; conta principal por padrão). Pagamento só até o saldo; devolução só do crédito do hóspede (a recepção pode devolver no check-out). Sem a conta zerada o check-out é recusado e nada fica gravado.
 - **Noites:** lança as diárias que faltam a partir do dia do check-in (a noite anterior a um check-in atrasado não é lançada nem cobrada), tira as noites que sobram da estadia (saída antecipada, calendário termina na nova saída), mantém as noites já lançadas e **cobra sempre ao menos uma noite**. Estadia vencida não cobra além da saída prevista.
@@ -144,7 +144,7 @@ Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisã
 | `hs_painel_dia(p_filial, p_data)` | Chegadas, saídas, hospedados, ocupação do dia (UHs ocupadas ÷ UHs vendáveis), UHs sujas e saldos em aberto |
 | `hs_folio_resumo(p_folio)`        | Lançamentos ativos, pagamentos e saldo                                                                     |
 
-**Como ficou na migration 5 (`20261213000000_hotelaria_leitura.sql`), onde difere do plano acima:**
+**Como ficou na migration 5 (`20261221000000_hotelaria_leitura.sql`), onde difere do plano acima:**
 
 - **`hs_mapa(filial, de, ate)`:** janela de até 62 dias (o plano dizia 31). Devolve os `dias`, as acomodações ativas (ordem tipo e número, com a limpeza e a interdição) e, em cada uma, as `ocupacoes` que tocam a janela com as datas reais (reserva com titular, situação do quarto e da reserva; ou bloqueio com motivo). Traz `totais_por_dia` (vendáveis, ocupadas, bloqueadas, livres por noite; a interditada e a inativa ficam fora) e `sem_acomodacao` (quartos reservados sem acomodação).
 - **`hs_painel_dia(filial, data?)`:** chegadas e saídas do dia com a situação (feitas ou não), `chegadas_atrasadas` e `saidas_atrasadas` (só de hoje em diante), `hospedados` da noite, `ocupacao` (vendáveis sem as bloqueadas, ocupadas, livres, percentual), `sujas` (com a marca de ocupada), `contas_em_aberto` (contas abertas com saldo a receber) e totais. Vale para dia passado e futuro. ADR, RevPAR e previsão ficam na Fase 2.
@@ -182,7 +182,7 @@ Todas as telas mostram só os hotéis que o usuário acessa (`pode_filial`). Err
 - `hotel-mapa`: acomodação × dia (14 a 45 dias), uma barra por reserva, bloqueios, totais por noite; clicar num dia livre abre a reserva já com a acomodação e a data; clicar na reserva abre a conta.
 - `hotel-reservas` (lista e busca) e `hotel-estadia/$id` (quartos com as ações de cada situação e a conta do hóspede com lançar, receber sinal ou pagamento, devolver, estornar, transferir entre contas e a nota).
 - `hotel-hospedes` (com histórico de estadias), `hotel-acomodacoes` (tipos, acomodações, limpeza e bloqueios), `hotel-tarifas` (com simulador de preço) e `hotel-configuracoes`.
-- Migration 6 (`20261214000000_hotelaria_checkout_previa.sql`): `hs_checkout_previa`, que diz o que o check-out vai cobrar sem gravar nada; a tela de check-out sugere os pagamentos a partir dela.
+- Migration 6 (`20261222000000_hotelaria_checkout_previa.sql`): `hs_checkout_previa`, que diz o que o check-out vai cobrar sem gravar nada; a tela de check-out sugere os pagamentos a partir dela.
 - Em `hotel-configuracoes` os horários de check-in e check-out são informativos (o sistema não bloqueia fora deles) e a opção "cobrar diária no check-out tardio" não foi exposta, porque o check-out ainda não a usa.
 - As telas falam com o banco por `src/lib/hotelaria-api.ts` (sem os tipos gerados do Supabase, que só passam a conhecer as tabelas `hs_*` depois que as migrations são aplicadas); os formatos estão em `src/lib/hotelaria-tipos.ts`.
 
@@ -190,11 +190,11 @@ Todas as telas mostram só os hotéis que o usuário acessa (`pode_filial`). Err
 
 **Migrations** (próxima numeração livre: após `20261208000000`):
 
-1. `20261209000000_hotelaria_base.sql`: módulo (constraints de `empresas.modulos_sem_cnpj` e `empresa_modulos_liberados`), `hotelaria_liberada()`, `hs_config`, `hs_tipos_uh`, `hs_uhs`, `hs_tarifas`, `hs_hospedes` e funções de cadastro.
-2. `20261210000000_hotelaria_reservas.sql`: `btree_gist`, `hs_reservas`, `hs_reserva_uhs`, `hs_diarias`, `hs_ocupacoes`, `hs_reserva_hospedes`, cotação, disponibilidade, criar/alterar/atribuir/cancelar/no-show.
-3. `20261211000000_hotelaria_estadia.sql`: folio, lançamentos, pagamentos, check-in, lançar, estorno, transferência, auditoria noturna, estender/encurtar.
-4. `20261212000000_hotelaria_checkout_nfse.sql`: `hs_checkout`, `_hs_nfse_rascunho`, `hs_uh_situacao`.
-5. `20261213000000_hotelaria_leitura.sql`: `hs_mapa`, `hs_painel_dia`, `hs_folio_resumo`.
+1. `20261217000000_hotelaria_base.sql`: módulo (constraints de `empresas.modulos_sem_cnpj` e `empresa_modulos_liberados`), `hotelaria_liberada()`, `hs_config`, `hs_tipos_uh`, `hs_uhs`, `hs_tarifas`, `hs_hospedes` e funções de cadastro.
+2. `20261218000000_hotelaria_reservas.sql`: `btree_gist`, `hs_reservas`, `hs_reserva_uhs`, `hs_diarias`, `hs_ocupacoes`, `hs_reserva_hospedes`, cotação, disponibilidade, criar/alterar/atribuir/cancelar/no-show.
+3. `20261219000000_hotelaria_estadia.sql`: folio, lançamentos, pagamentos, check-in, lançar, estorno, transferência, auditoria noturna, estender/encurtar.
+4. `20261220000000_hotelaria_checkout_nfse.sql`: `hs_checkout`, `_hs_nfse_rascunho`, `hs_uh_situacao`.
+5. `20261221000000_hotelaria_leitura.sql`: `hs_mapa`, `hs_painel_dia`, `hs_folio_resumo`.
 
 **Código:** `cnae-regras.ts` (módulo e prefixos), `cnae.ts`, `ramo.ts` (ramo "Hotelaria"), `AppShell.tsx` (grupo e visibilidade), telas da seção 7.
 

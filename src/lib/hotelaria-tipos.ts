@@ -1,4 +1,4 @@
-// Formatos das tabelas e das respostas das funções da Hotelaria (supabase/migrations/20261209 a 20261213).
+// Formatos das tabelas e das respostas das funções da Hotelaria (supabase/migrations/20261217 a 20261221).
 // Escritos à mão: o arquivo de tipos gerado do Supabase só os conhece depois que as migrations são aplicadas e ele é gerado de novo.
 
 export type SituacaoLimpeza = "limpo" | "sujo" | "inspecionado";

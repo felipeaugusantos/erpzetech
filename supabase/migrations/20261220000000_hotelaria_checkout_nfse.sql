@@ -1,6 +1,6 @@
 -- Hotelaria (Fase 1, migration 4): check-out (lança as noites que faltam, exige a conta zerada, libera o calendário, deixa a acomodação suja),
 -- NFS-e de hospedagem em rascunho por conta e liberação da limpeza pela recepção. Especificação: docs/hotelaria-fase-1.md.
--- Pode ser rodado de novo sem erro. Rode antes 20261211000000_hotelaria_estadia.sql.
+-- Pode ser rodado de novo sem erro. Rode antes 20261219000000_hotelaria_estadia.sql.
 
 -- ============ nota da conta ============
 -- Uma NFS-e por conta (folio). A nota é rascunho (ou pronta, se a configuração fiscal está completa), como no Lava-Rápido e no Pet shop.

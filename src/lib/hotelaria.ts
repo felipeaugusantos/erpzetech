@@ -1,7 +1,7 @@
 import { cpfValido } from "./nfce-consumidor.ts";
 
 // Regras da Hotelaria sem dependência de tela: ficam à parte para os testes rodarem no Node.
-// As mesmas regras estão no banco (hs_* em supabase/migrations/20261209000000_hotelaria_base.sql); o banco é quem decide.
+// As mesmas regras estão no banco (hs_* em supabase/migrations/20261217000000_hotelaria_base.sql); o banco é quem decide.
 
 export const TIPOS_DOCUMENTO = [
   { value: "cpf", label: "CPF" },
