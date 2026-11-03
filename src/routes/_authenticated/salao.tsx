@@ -16,6 +16,7 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { AbrirComandaDialog } from "@/components/restaurante/AbrirComandaDialog";
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
+import { ChamadosBar } from "@/components/restaurante/ChamadosBar";
 import { MesaAcoesDialog } from "@/components/restaurante/MesaAcoesDialog";
 import { RestauranteOffline } from "@/components/restaurante/RestauranteOffline";
 import { useOnline } from "@/lib/offline";
@@ -218,6 +219,7 @@ function Salao() {
       />
 
       <RestauranteOffline modo="salao" pendencias />
+      <ChamadosBar mesas={mesas} />
 
       <form
         className="mb-4 flex flex-wrap items-center gap-3"

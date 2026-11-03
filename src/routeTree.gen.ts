@@ -170,6 +170,7 @@ import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
@@ -1073,6 +1074,11 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
+  id: '/chamar/$empresa/$mesa',
+  path: '/chamar/$empresa/$mesa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
@@ -1250,6 +1256,7 @@ export interface FileRoutesByFullPath {
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1415,6 +1422,7 @@ export interface FileRoutesByTo {
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
@@ -1582,6 +1590,7 @@ export interface FileRoutesById {
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1749,6 +1758,7 @@ export interface FileRouteTypes {
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
@@ -1914,6 +1924,7 @@ export interface FileRouteTypes {
     | '/compras/$id'
     | '/depositos/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/compras'
     | '/depositos'
     | '/pedidos'
@@ -2080,6 +2091,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
@@ -2098,6 +2110,7 @@ export interface RootRouteChildren {
   FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
   MenuEmpresaRoute: typeof MenuEmpresaRoute
+  ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -3232,6 +3245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/chamar/$empresa/$mesa': {
+      id: '/chamar/$empresa/$mesa'
+      path: '/chamar/$empresa/$mesa'
+      fullPath: '/chamar/$empresa/$mesa'
+      preLoaderRoute: typeof ChamarEmpresaMesaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/whatsapp-despachar': {
       id: '/api/public/hooks/whatsapp-despachar'
       path: '/api/public/hooks/whatsapp-despachar'
@@ -3584,6 +3604,7 @@ const rootRouteChildren: RootRouteChildren = {
   FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
   MenuEmpresaRoute: MenuEmpresaRoute,
+  ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,

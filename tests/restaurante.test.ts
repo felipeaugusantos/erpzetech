@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { urlChamarMesa } from "../src/lib/chamados.ts";
 import {
   cardapioSugerido,
   dentroDoHorario,
@@ -437,4 +438,11 @@ test("vários cardápios: horário, sugestão, preço e ordem", () => {
   assert.equal(precoNoCardapio(itens[0]!, vinculos, "j"), 25);
   assert.equal(precoNoCardapio(itens[1]!, vinculos, "j"), 30);
   assert.equal(precoNoCardapio(itens[0]!, vinculos, null), 20);
+});
+
+test("chamar garçom: endereço do QR da mesa", () => {
+  assert.equal(
+    urlChamarMesa("https://app.exemplo.com/", "meu-bistro", "11111111-2222-3333-4444-555555555555"),
+    "https://app.exemplo.com/chamar/meu-bistro/11111111-2222-3333-4444-555555555555",
+  );
 });

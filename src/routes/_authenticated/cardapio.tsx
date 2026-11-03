@@ -5,6 +5,7 @@ import { Copy, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { ChamadosAdmin } from "@/components/restaurante/ChamadosAdmin";
 import { CardapiosAdmin } from "@/components/restaurante/CardapiosAdmin";
 import { EstoqueRestaurante } from "@/components/restaurante/EstoqueRestaurante";
 import { FichaEditor } from "@/components/restaurante/FichaEditor";
@@ -99,6 +100,7 @@ function Cardapio() {
           <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="balanca">Balança e tara</TabsTrigger>
+          <TabsTrigger value="chamados">Chamar garçom</TabsTrigger>
           <TabsTrigger value="online">Cardápio online</TabsTrigger>
         </TabsList>
         <TabsContent value="itens">
@@ -121,6 +123,9 @@ function Cardapio() {
         </TabsContent>
         <TabsContent value="balanca">
           <Balanca tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
+        <TabsContent value="chamados">
+          <ChamadosAdmin tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
         <TabsContent value="online">
           <CardapioOnline tenantId={session?.profile?.tenant_id ?? ""} />
