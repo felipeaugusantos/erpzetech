@@ -59,6 +59,19 @@ export type MesaReserva = {
   situacao: "ativa" | "atendida" | "cancelada";
 };
 
+/** Pedido de canal externo na caixa de entrada (o conteúdo está em `pedido`). */
+export type PedidoExternoRegistro = {
+  id: string;
+  canal: "ifood";
+  codigo_externo: string;
+  numero_exibicao: string | null;
+  pedido: import("@/lib/pedido-externo").PedidoExterno;
+  situacao: "recebido" | "aceito" | "recusado";
+  comanda_id: string | null;
+  motivo: string | null;
+  recebido_em: string;
+};
+
 /** Tara (prato, vasilhame) descontada na pesagem. */
 export type Tara = { id: string; nome: string; peso_g: number; ativo: boolean };
 
@@ -137,6 +150,8 @@ export type CardapioItem = {
   /** preço é por KG; o item só entra na comanda pela pesagem */
   venda_por_peso: boolean;
   tara_id: string | null;
+  codigo_externo: string | null;
+  preco_ifood: number | null;
   ativo: boolean;
 };
 

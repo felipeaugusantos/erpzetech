@@ -805,6 +805,8 @@ type FormItem = {
   ordem: string;
   por_peso: boolean;
   tara_id: string;
+  codigo_externo: string;
+  preco_ifood: string;
   /** foto gravada no item e foto escolhida agora (só vale ao salvar) */
   foto_path: string | null;
   foto_original: string | null;
@@ -821,6 +823,8 @@ const itemVazio: FormItem = {
   ordem: "0",
   por_peso: false,
   tara_id: "nenhuma",
+  codigo_externo: "",
+  preco_ifood: "",
   foto_path: null,
   foto_original: null,
   ativo: true,
@@ -848,6 +852,8 @@ function Itens({ tenantId }: { tenantId: string }) {
       ordem: String(i.ordem ?? 0),
       por_peso: i.venda_por_peso,
       tara_id: i.tara_id ?? "nenhuma",
+      codigo_externo: i.codigo_externo ?? "",
+      preco_ifood: textoNumero(i.preco_ifood),
       foto_path: i.foto_path,
       foto_original: i.foto_path,
       ativo: i.ativo,
@@ -900,6 +906,8 @@ function Itens({ tenantId }: { tenantId: string }) {
           descricao: form.descricao.trim() || null,
           ordem: Math.round(dinheiro(form.ordem)),
           venda_por_peso: form.por_peso,
+          codigo_externo: form.codigo_externo.trim() || null,
+          preco_ifood: form.preco_ifood.trim() ? dinheiro(form.preco_ifood) : null,
           tara_id: form.por_peso && form.tara_id !== "nenhuma" ? form.tara_id : null,
           foto_path: form.foto_path,
           ativo: form.ativo,
@@ -1091,6 +1099,24 @@ function Itens({ tenantId }: { tenantId: string }) {
                   </Select>
                 </div>
               )}
+              <div>
+                <Label htmlFor="i-preco-ifood">Preço no iFood (R$, opcional)</Label>
+                <Input
+                  id="i-preco-ifood"
+                  inputMode="decimal"
+                  value={form.preco_ifood}
+                  onChange={(e) => setForm({ ...form, preco_ifood: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="i-cod-ifood">Código no iFood (opcional)</Label>
+                <Input
+                  id="i-cod-ifood"
+                  maxLength={100}
+                  value={form.codigo_externo}
+                  onChange={(e) => setForm({ ...form, codigo_externo: e.target.value })}
+                />
+              </div>
               <div>
                 <Label htmlFor="i-ordem">Ordem no cardápio</Label>
                 <Input

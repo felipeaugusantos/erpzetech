@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { itensSemCorrespondencia, totalItensPedido } from "../src/lib/pedido-externo.ts";
 import { calcularPesagem, kgTexto, pesoEmGramas } from "../src/lib/pesagem.ts";
 import {
   calcularBaixa,
@@ -324,4 +325,38 @@ test("pesoEmGramas e kgTexto", () => {
   assert.equal(pesoEmGramas("31", "kg"), null);
   assert.equal(kgTexto(500), "0,500 kg");
   assert.equal(kgTexto(1250), "1,250 kg");
+});
+
+test("pedido externo: itens sem correspondência e total dos itens", () => {
+  const pedido = {
+    itens: [
+      {
+        codigo: "A",
+        nome: "Burger",
+        quantidade: 2,
+        preco: 30,
+        adicionais: [
+          { nome: "Bacon", preco: 4 },
+          { nome: "Queijo", preco: 2.5 },
+        ],
+      },
+      { codigo: "B", nome: "Suco", quantidade: 1, preco: 9.5 },
+      { codigo: "B", nome: "Suco", quantidade: 1, preco: 9.5 },
+    ],
+  };
+  assert.deepEqual(
+    itensSemCorrespondencia(pedido, [{ codigo_externo: "B" }, { codigo_externo: null }]).map(
+      (i) => i.codigo,
+    ),
+    ["A"],
+  );
+  assert.deepEqual(
+    itensSemCorrespondencia(pedido, []).map((i) => i.codigo),
+    ["A", "B"],
+  );
+  assert.equal(
+    itensSemCorrespondencia(pedido, [{ codigo_externo: "A" }, { codigo_externo: "B" }]).length,
+    0,
+  );
+  assert.equal(totalItensPedido(pedido), 2 * 36.5 + 19);
 });
