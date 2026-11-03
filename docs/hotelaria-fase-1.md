@@ -176,6 +176,16 @@ Rotas em `src/routes/_authenticated/`, TanStack Router, mesmo padrão das telas 
 
 Todas as telas mostram só os hotéis que o usuário acessa (`pode_filial`). Erro do banco aparece como mensagem em português, nunca em silêncio.
 
+**Como ficou nas telas (grupo de menu "Hotelaria", visível só com o módulo liberado):**
+
+- `hotel-recepcao`: painel do dia (chegadas, saídas, atrasos, hóspedes na casa, ocupação, sujas, a receber), check-in com acompanhantes e ficha para imprimir, check-out com prévia do que será cobrado, "Fechar o dia" e liberar a limpeza.
+- `hotel-mapa`: acomodação × dia (14 a 45 dias), uma barra por reserva, bloqueios, totais por noite; clicar num dia livre abre a reserva já com a acomodação e a data; clicar na reserva abre a conta.
+- `hotel-reservas` (lista e busca) e `hotel-estadia/$id` (quartos com as ações de cada situação e a conta do hóspede com lançar, receber sinal ou pagamento, devolver, estornar, transferir entre contas e a nota).
+- `hotel-hospedes` (com histórico de estadias), `hotel-acomodacoes` (tipos, acomodações, limpeza e bloqueios), `hotel-tarifas` (com simulador de preço) e `hotel-configuracoes`.
+- Migration 6 (`20261214000000_hotelaria_checkout_previa.sql`): `hs_checkout_previa`, que diz o que o check-out vai cobrar sem gravar nada; a tela de check-out sugere os pagamentos a partir dela.
+- Em `hotel-configuracoes` os horários de check-in e check-out são informativos (o sistema não bloqueia fora deles) e a opção "cobrar diária no check-out tardio" não foi exposta, porque o check-out ainda não a usa.
+- As telas falam com o banco por `src/lib/hotelaria-api.ts` (sem os tipos gerados do Supabase, que só passam a conhecer as tabelas `hs_*` depois que as migrations são aplicadas); os formatos estão em `src/lib/hotelaria-tipos.ts`.
+
 ## 8. Ordem de entrega e testes
 
 **Migrations** (próxima numeração livre: após `20261208000000`):

@@ -367,3 +367,138 @@ test("mapa: uma célula por dia, com início da barra e continuação de reserva
     [null, null, null, null, null],
   );
 });
+
+import { htmlFichaHospedagem } from "../src/lib/ficha-hospedagem.ts";
+import {
+  textoNoites,
+  textoPessoas,
+  tomDaSituacao,
+  rotuloSituacaoReserva,
+} from "../src/lib/hotelaria.ts";
+
+test("ficha de hospedagem: dados do quarto, hóspedes e escape de HTML", () => {
+  const html = htmlFichaHospedagem({
+    hotel: "Hotel <Mar> & Sol",
+    empresa: "Mar e Sol Ltda",
+    ficha: {
+      reserva_numero: 12,
+      uh: "101",
+      entrada: "2027-03-01",
+      saida: "2027-03-04",
+      adultos: 2,
+      criancas: 1,
+      hospedes: [
+        {
+          hospede_id: "a",
+          principal: true,
+          nome: "Maria <b>Silva</b>",
+          documento_tipo: "cpf",
+          documento_numero: "52998224725",
+          nacionalidade: "Brasileira",
+          data_nascimento: "1990-05-20",
+          sexo: "F",
+          profissao: null,
+          telefone: null,
+          email: null,
+          cidade_residencia: "Recife",
+          estado_residencia: "PE",
+          pais_residencia: "Brasil",
+          procedencia: null,
+          destino: null,
+          motivo_viagem: "lazer",
+          meio_transporte: "automovel",
+        },
+        {
+          hospede_id: "b",
+          principal: false,
+          nome: "João",
+          documento_tipo: null,
+          documento_numero: null,
+          nacionalidade: "Brasileira",
+          data_nascimento: null,
+          sexo: null,
+          profissao: null,
+          telefone: null,
+          email: null,
+          cidade_residencia: null,
+          estado_residencia: null,
+          pais_residencia: "Brasil",
+          procedencia: null,
+          destino: null,
+          motivo_viagem: null,
+          meio_transporte: null,
+        },
+      ],
+    },
+  });
+  assert.match(html, /Ficha de hospedagem 12/);
+  assert.match(html, /Hotel &lt;Mar&gt; &amp; Sol — Mar e Sol Ltda/);
+  assert.match(html, /Maria &lt;b&gt;Silva&lt;\/b&gt;/);
+  assert.doesNotMatch(html, /<b>Silva<\/b>/);
+  assert.match(html, /01\/03\/2027/);
+  assert.match(html, /04\/03\/2027/);
+  assert.match(html, /CPF 52998224725/);
+  assert.match(html, /Hóspede principal/);
+  assert.match(html, /Acompanhante 1/);
+  assert.match(html, /20\/05\/1990/);
+  assert.match(html, /Feminino/);
+  assert.match(html, /Lazer/);
+  assert.match(html, /Recife \/ PE \/ Brasil/);
+  assert.match(html, /2 adulto\(s\) e 1 criança\(s\)/);
+  assert.equal((html.match(/class="assinatura"/g) ?? []).length, 2);
+});
+
+test("rótulos e textos curtos das telas", () => {
+  assert.equal(rotuloSituacaoReserva("no_show"), "Não compareceu");
+  assert.equal(rotuloSituacaoReserva("xyz"), "—");
+  assert.equal(tomDaSituacao("hospedada"), "default");
+  assert.equal(tomDaSituacao("cancelada"), "destructive");
+  assert.equal(tomDaSituacao("confirmada"), "outline");
+  assert.equal(textoPessoas(1, 0), "1 adulto");
+  assert.equal(textoPessoas(2, 1), "2 adultos + 1 criança");
+  assert.equal(textoPessoas(3, 2), "3 adultos + 2 crianças");
+  assert.equal(textoNoites(1), "1 noite");
+  assert.equal(textoNoites(3), "3 noites");
+});
+
+import { cabecalhoDoDia, segmentosDaLinha } from "../src/lib/hotelaria.ts";
+
+test("mapa: uma barra por reserva e blocos de dias livres", () => {
+  const dias = ["2027-06-08", "2027-06-09", "2027-06-10", "2027-06-11", "2027-06-12", "2027-06-13"];
+  const a = { id: "a", de: "2027-06-07", ate: "2027-06-10" };
+  const b = { id: "b", de: "2027-06-10", ate: "2027-06-11" };
+  const seg = segmentosDaLinha(celulasDaAcomodacao(dias, [a, b]));
+  assert.deepEqual(
+    seg.map((s) => [s.inicio, s.dias, s.ocupacao?.id ?? null]),
+    [
+      [0, 2, "a"],
+      [2, 1, "b"],
+      [3, 3, null],
+    ],
+  );
+  assert.deepEqual(
+    segmentosDaLinha(celulasDaAcomodacao(dias, [])).map((s) => [s.inicio, s.dias]),
+    [[0, 6]],
+  );
+  assert.deepEqual(segmentosDaLinha([]), []);
+  // duas reservas coladas não viram uma barra só
+  const c = { id: "c", de: "2027-06-08", ate: "2027-06-09" };
+  const d = { id: "d", de: "2027-06-09", ate: "2027-06-10" };
+  assert.equal(segmentosDaLinha(celulasDaAcomodacao(dias.slice(0, 2), [c, d])).length, 2);
+});
+
+test("cabeçalho do dia no mapa", () => {
+  assert.deepEqual(cabecalhoDoDia("2027-01-01"), { semana: "sex", dia: "01", fimDeSemana: false });
+  assert.deepEqual(cabecalhoDoDia("2027-01-02"), { semana: "sáb", dia: "02", fimDeSemana: true });
+  assert.deepEqual(cabecalhoDoDia("2027-01-03"), { semana: "dom", dia: "03", fimDeSemana: true });
+});
+
+import { horaCurta, lerPeriodo } from "../src/lib/hotelaria.ts";
+
+test("período do bloqueio e hora curta", () => {
+  assert.deepEqual(lerPeriodo("[2027-05-01,2027-05-04)"), { de: "2027-05-01", ate: "2027-05-04" });
+  assert.equal(lerPeriodo("vazio"), null);
+  assert.equal(lerPeriodo(null), null);
+  assert.equal(horaCurta("14:00:00"), "14:00");
+  assert.equal(horaCurta(null), "");
+});

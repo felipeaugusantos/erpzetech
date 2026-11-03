@@ -11,6 +11,8 @@ import {
   Landmark,
   CalendarClock,
   CalendarDays,
+  Hotel,
+  BedDouble,
   Hammer,
   Factory,
   Wrench,
@@ -232,6 +234,19 @@ const groups: Group[] = [
       { label: "Lavadores e comissões", to: "/lava-lavadores", icon: Users },
       { label: "Avisos ao cliente", to: "/lava-avisos", icon: MessageCircle },
       { label: "WhatsApp automático", to: "/lava-whatsapp", icon: MessageCircle },
+    ],
+  },
+  {
+    label: "Hotelaria",
+    icon: Hotel,
+    items: [
+      { label: "Recepção", to: "/hotel-recepcao", icon: ConciergeBell },
+      { label: "Mapa de ocupação", to: "/hotel-mapa", icon: LayoutGrid },
+      { label: "Reservas", to: "/hotel-reservas", icon: CalendarDays },
+      { label: "Hóspedes", to: "/hotel-hospedes", icon: Users },
+      { label: "Acomodações", to: "/hotel-acomodacoes", icon: BedDouble },
+      { label: "Tarifas", to: "/hotel-tarifas", icon: Tag },
+      { label: "Configurações do hotel", to: "/hotel-configuracoes", icon: Settings },
     ],
   },
   {
@@ -464,6 +479,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Restaurante") return modulos.restaurante;
           if (g.label === "Pet shop") return modulos.petshop;
           if (g.label === "Lava rápido") return modulos.lavarapido;
+          if (g.label === "Hotelaria") return modulos.hotelaria;
           if (g.label === "Manufatura")
             return (
               manufatura &&
@@ -548,6 +564,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.restaurante,
       modulos.petshop,
       modulos.lavarapido,
+      modulos.hotelaria,
       modulos.clinica,
       souVeterinario,
       souGestao,

@@ -9925,3 +9925,103 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
+
+-- 94. Hotelaria (prévia do check-out): a prévia diz o mesmo que o check-out faz (noites, saída, valor a lançar e saldo de cada conta), sem gravar nada
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  hgar constant uuid := 'a0000000-0000-0000-0000-0000000001ca';
+  hoje date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; sem_ant text[];
+  fp uuid; fp2 uuid; tpo uuid; p101 uuid; p102 uuid; p103 uuid; p104 uuid; p105 uuid; hT uuid; cx uuid;
+  r jsonb; pv jsonb; rs1 uuid; rs2 uuid; rs3 uuid; rs4 uuid; ru1 uuid; ru2 uuid; ru3a uuid; ru3b uuid; ru4 uuid; fo2 uuid; n0 bigint; saldo numeric;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, modulos_sem_cnpj INTO ramo_ant, cnae_ant, cnae2_ant, sem_ant FROM empresas WHERE id = emp;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = NULL, cnae_secundarios = NULL, modulos_sem_cnpj = '{}' WHERE id = emp;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'hotelaria');
+  INSERT INTO auth.users (id, email) VALUES (hgar, 'garcom-previa@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = hgar;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Prévia A') RETURNING id INTO fp;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Prévia B') RETURNING id INTO fp2;
+
+  PERFORM ci.entrar(gest);
+  tpo := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fp, 'nome', 'Duplo', 'capacidade_adultos', 3, 'capacidade_criancas', 1));
+  p101 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '101')); p102 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '102'));
+  p103 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '103')); p104 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '104'));
+  p105 := hs_uh_salvar(jsonb_build_object('tipo_id', tpo, 'numero', '105'));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpo, 'nome', 'Base', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 60)::text, 'valor_diaria', 100));
+  PERFORM hs_config_salvar(fp, '{"taxa_turismo_por_hospede_noite":"5"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); hT := hs_hospede_salvar('{"nome":"Hóspede Prévia","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb); PERFORM ci.sair();
+  PERFORM ci.entrar(adm); cx := abrir_caixa(fp, 0); PERFORM ci.sair();
+
+  -- P1: duas noites já lançadas, sai hoje: nada a lançar, saída encurtada
+  PERFORM ci.entrar(gest); r := hs_reserva_criar(ci.reserva(fp, hT, ci.quarto(p101, (hoje - 2)::text, (hoje + 1)::text))); rs1 := (r ->> 'reserva_id')::uuid; PERFORM ci.sair();
+  SELECT id INTO ru1 FROM hs_reserva_uhs WHERE reserva_id = rs1;
+  PERFORM ci.entrar(vend); PERFORM hs_checkin(ru1); PERFORM ci.sair();
+  UPDATE hs_reserva_uhs SET checkin_em = now() - interval '2 days' WHERE id = ru1;
+  PERFORM ci.entrar(vend); PERFORM hs_auditoria_noturna(fp, hoje - 2); PERFORM hs_auditoria_noturna(fp, hoje - 1); pv := hs_checkout_previa(ru1); PERFORM ci.sair();
+  PERFORM ci.exige((pv ->> 'saida')::date = hoje AND (pv ->> 'saida_prevista')::date = hoje + 1 AND (pv ->> 'noites_cobradas')::int = 2 AND (pv ->> 'a_lancar')::numeric = 0 AND (pv ->> 'ultimo_quarto')::boolean
+                   AND (pv -> 'contas' -> 0 ->> 'saldo_atual')::numeric = 210 AND (pv -> 'contas' -> 0 ->> 'saldo_previsto')::numeric = 210, 'prévia com as noites já lançadas: saída hoje, nada a lançar, saldo 210');
+  n0 := (SELECT count(*) FROM hs_lancamentos WHERE tenant_id = demo AND filial_id = fp);
+  PERFORM ci.entrar(vend); PERFORM hs_checkout_previa(ru1); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'hospedada' AND saida = hoje + 1 FROM hs_reserva_uhs WHERE id = ru1) AND (SELECT count(*) = n0 FROM hs_lancamentos WHERE tenant_id = demo AND filial_id = fp), 'a prévia não grava nada');
+  PERFORM ci.entrar(vend); r := hs_checkout(ru1, '[{"forma":"pix","valor":210}]'::jsonb, cx); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'noites_cobradas')::int = (pv ->> 'noites_cobradas')::int AND (r ->> 'saida')::date = (pv ->> 'saida')::date, 'o check-out fez o que a prévia disse (noites e saída) e o saldo previsto foi o que pagou');
+
+  -- P2: noite de ontem ainda não lançada: a prévia soma a diária e a taxa e o check-out cobra exatamente isso
+  PERFORM ci.entrar(gest); r := hs_reserva_criar(ci.reserva(fp, hT, ci.quarto(p102, (hoje - 1)::text, (hoje + 1)::text))); rs2 := (r ->> 'reserva_id')::uuid; PERFORM ci.sair();
+  SELECT id INTO ru2 FROM hs_reserva_uhs WHERE reserva_id = rs2;
+  PERFORM ci.entrar(vend); fo2 := hs_folio_principal(rs2); PERFORM hs_pagamento_registrar(fo2, 'pix', 300, cx, 'sinal'); PERFORM hs_checkin(ru2); PERFORM ci.sair();
+  UPDATE hs_reserva_uhs SET checkin_em = now() - interval '1 day' WHERE id = ru2;
+  PERFORM ci.entrar(vend); pv := hs_checkout_previa(ru2); PERFORM ci.sair();
+  PERFORM ci.exige((pv ->> 'a_lancar')::numeric = 105 AND (pv ->> 'noites_cobradas')::int = 1 AND (pv ->> 'saida')::date = hoje AND (pv -> 'contas' -> 0 ->> 'saldo_atual')::numeric = -300 AND (pv -> 'contas' -> 0 ->> 'saldo_previsto')::numeric = -195,
+                   'prévia com a noite de ontem por lançar: a lançar 105 e saldo previsto −195 (sinal de 300)');
+  PERFORM ci.entrar(vend); r := hs_checkout(ru2, '[{"forma":"pix","valor":195,"tipo":"devolucao"}]'::jsonb, cx); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'recebido')::numeric = -195 AND (SELECT situacao = 'fechado' FROM hs_folios WHERE id = fo2), 'devolver o crédito previsto fecha a conta');
+
+  -- P3: dois quartos: o primeiro não é o último; sem conta principal ainda a prévia traz a conta virtual
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fp, hT, ci.quarto(p103, (hoje - 1)::text, (hoje + 1)::text), ci.quarto(p104, (hoje - 1)::text, (hoje + 1)::text))); rs3 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  SELECT min(id::text)::uuid, max(id::text)::uuid INTO ru3a, ru3b FROM hs_reserva_uhs WHERE reserva_id = rs3;
+  PERFORM ci.entrar(vend); PERFORM hs_checkin(ru3a); PERFORM hs_checkin(ru3b); PERFORM ci.sair();
+  UPDATE hs_reserva_uhs SET checkin_em = now() - interval '1 day' WHERE reserva_id = rs3;
+  DELETE FROM hs_folios WHERE reserva_id = rs3 AND NOT EXISTS (SELECT 1 FROM hs_lancamentos l WHERE l.folio_id = hs_folios.id) AND NOT EXISTS (SELECT 1 FROM hs_pagamentos p WHERE p.folio_id = hs_folios.id);
+  PERFORM ci.entrar(vend); pv := hs_checkout_previa(ru3a); PERFORM ci.sair();
+  PERFORM ci.exige(NOT (pv ->> 'ultimo_quarto')::boolean AND (pv ->> 'a_lancar')::numeric = 105 AND (pv -> 'contas' -> 0 ->> 'folio_id') IS NULL AND (pv -> 'contas' -> 0 ->> 'saldo_previsto')::numeric = 105,
+                   'com dois quartos hospedados o primeiro não é o último; sem conta ainda a prévia traz a principal virtual');
+  PERFORM ci.entrar(vend); PERFORM hs_checkout(ru3a); pv := hs_checkout_previa(ru3b); PERFORM ci.sair();
+  PERFORM ci.exige((pv ->> 'ultimo_quarto')::boolean AND (pv -> 'contas' -> 0 ->> 'saldo_atual')::numeric = 105 AND (pv -> 'contas' -> 0 ->> 'saldo_previsto')::numeric = 210, 'depois que o primeiro saiu o segundo é o último e a conta prevista soma os dois');
+  PERFORM ci.entrar(vend); saldo := (pv -> 'contas' -> 0 ->> 'saldo_previsto')::numeric; r := hs_checkout(ru3b, jsonb_build_array(jsonb_build_object('forma', 'pix', 'valor', saldo)), cx); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'finalizada' FROM hs_reservas WHERE id = rs3) AND jsonb_array_length(r -> 'nfe_ids') = 1, 'pagar o saldo previsto fecha a reserva de dois quartos');
+
+  -- guardas
+  PERFORM ci.entrar(gest); r := hs_reserva_criar(ci.reserva(fp, hT, ci.quarto(p105, (hoje + 3)::text, (hoje + 4)::text))); rs4 := (r ->> 'reserva_id')::uuid; PERFORM ci.sair();
+  SELECT id INTO ru4 FROM hs_reserva_uhs WHERE reserva_id = rs4;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkout_previa(%L)$c$, ru4), 'prévia de quarto que não está hospedado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkout_previa(%L)$c$, gen_random_uuid()), 'prévia de quarto que não existe');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_checkout_previa(%L)$c$, ru3b), 'garçom pede a prévia');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_checkout_previa(%L)$c$, ru3b), 'anônimo pede a prévia');
+  UPDATE profiles SET filial_id = fp2 WHERE id = vend;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkout_previa(%L)$c$, ru4), 'recepção de outro hotel pede a prévia');
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+
+  -- limpeza
+  DELETE FROM hs_folio_notas WHERE tenant_id = demo;
+  DELETE FROM nfe_itens WHERE nfe_id IN (SELECT id FROM nfe WHERE natureza_operacao = 'Prestação de serviço — hospedagem');
+  DELETE FROM nfe WHERE natureza_operacao = 'Prestação de serviço — hospedagem';
+  DELETE FROM hs_pagamentos WHERE tenant_id = demo; DELETE FROM hs_lancamentos WHERE tenant_id = demo; DELETE FROM hs_folios WHERE tenant_id = demo;
+  DELETE FROM hs_ocupacoes WHERE tenant_id = demo; DELETE FROM hs_diarias WHERE tenant_id = demo; DELETE FROM hs_reserva_hospedes WHERE tenant_id = demo;
+  DELETE FROM hs_reserva_uhs WHERE tenant_id = demo; DELETE FROM hs_reservas WHERE tenant_id = demo; DELETE FROM hs_tarifas WHERE tenant_id = demo;
+  DELETE FROM hs_uhs WHERE tenant_id = demo; DELETE FROM hs_tipos_uh WHERE tenant_id = demo; DELETE FROM hs_hospedes WHERE tenant_id = demo; DELETE FROM hs_config WHERE tenant_id = demo;
+  DELETE FROM user_roles WHERE user_id = hgar;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+END $$;

@@ -299,3 +299,129 @@ export function celulasDaAcomodacao<T extends OcupacaoDoMapa>(
     };
   });
 }
+
+// ===== rótulos das telas =====
+export const SITUACOES_RESERVA = [
+  { value: "pendente", label: "Pendente" },
+  { value: "confirmada", label: "Confirmada" },
+  { value: "hospedada", label: "Hospedada" },
+  { value: "finalizada", label: "Finalizada" },
+  { value: "cancelada", label: "Cancelada" },
+  { value: "no_show", label: "Não compareceu" },
+] as const;
+
+export const SITUACOES_QUARTO = [
+  { value: "reservada", label: "Reservado" },
+  { value: "hospedada", label: "Hospedado" },
+  { value: "finalizada", label: "Finalizado" },
+  { value: "cancelada", label: "Cancelado" },
+  { value: "no_show", label: "Não compareceu" },
+] as const;
+
+export const ORIGENS_RESERVA = [
+  { value: "balcao", label: "Balcão" },
+  { value: "telefone", label: "Telefone" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "email", label: "E-mail" },
+  { value: "outro", label: "Outro" },
+] as const;
+
+export const TIPOS_LANCAMENTO = [
+  { value: "diaria", label: "Diária" },
+  { value: "taxa_turismo", label: "Taxa de turismo" },
+  { value: "consumo", label: "Consumo" },
+  { value: "servico", label: "Serviço" },
+  { value: "ajuste", label: "Ajuste" },
+] as const;
+
+const rotuloDe = (
+  lista: readonly { value: string; label: string }[],
+  v: string | null | undefined,
+  padrao: string,
+) => lista.find((x) => x.value === v)?.label ?? padrao;
+
+export const rotuloSituacaoReserva = (v: string | null | undefined) =>
+  rotuloDe(SITUACOES_RESERVA, v, "—");
+export const rotuloSituacaoQuarto = (v: string | null | undefined) =>
+  rotuloDe(SITUACOES_QUARTO, v, "—");
+export const rotuloOrigem = (v: string | null | undefined) => rotuloDe(ORIGENS_RESERVA, v, "—");
+export const rotuloLancamento = (v: string | null | undefined) =>
+  rotuloDe(TIPOS_LANCAMENTO, v, "Lançamento");
+export const rotuloLimpeza = (v: string | null | undefined) => rotuloDe(SITUACOES_LIMPEZA, v, "—");
+export const rotuloMotivoViagem = (v: string | null | undefined) =>
+  rotuloDe(MOTIVOS_VIAGEM, v, "—");
+export const rotuloTransporte = (v: string | null | undefined) =>
+  rotuloDe(MEIOS_TRANSPORTE, v, "—");
+
+/** Cor do selo da situação: verde = em curso, cinza = encerrada, vermelho = cancelada ou não compareceu, contorno = ainda por vir. */
+export function tomDaSituacao(
+  situacao: string | null | undefined,
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (situacao) {
+    case "hospedada":
+      return "default";
+    case "finalizada":
+      return "secondary";
+    case "cancelada":
+    case "no_show":
+      return "destructive";
+    default:
+      return "outline";
+  }
+}
+
+/** Texto curto de pessoas: "2 adultos + 1 criança". */
+export function textoPessoas(adultos: number, criancas: number) {
+  const a = `${adultos} adulto${adultos === 1 ? "" : "s"}`;
+  return criancas > 0 ? `${a} + ${criancas} criança${criancas === 1 ? "" : "s"}` : a;
+}
+
+/** Texto das noites: "3 noites". */
+export const textoNoites = (n: number) => `${n} noite${n === 1 ? "" : "s"}`;
+
+export type SegmentoDaLinha<T extends OcupacaoDoMapa> = {
+  /** posição (0 = primeiro dia da janela) onde o segmento começa */
+  inicio: number;
+  /** quantos dias ele ocupa */
+  dias: number;
+  ocupacao: T | null;
+};
+
+/** Junta dias seguidos da mesma ocupação (ou de vários dias livres) em um segmento, para desenhar uma barra por reserva. */
+export function segmentosDaLinha<T extends OcupacaoDoMapa & { id?: string }>(
+  celulas: readonly CelulaDoMapa<T>[],
+): SegmentoDaLinha<T>[] {
+  const segmentos: SegmentoDaLinha<T>[] = [];
+  celulas.forEach((c, i) => {
+    const ultimo = segmentos[segmentos.length - 1];
+    const mesma =
+      ultimo &&
+      ((ultimo.ocupacao === null && c.ocupacao === null) ||
+        (ultimo.ocupacao !== null &&
+          c.ocupacao !== null &&
+          ultimo.ocupacao.id === c.ocupacao.id &&
+          ultimo.ocupacao.id !== undefined));
+    if (mesma) ultimo.dias += 1;
+    else segmentos.push({ inicio: i, dias: 1, ocupacao: c.ocupacao });
+  });
+  return segmentos;
+}
+
+const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+/** Cabeçalho de um dia do mapa: "seg" e "08". */
+export function cabecalhoDoDia(data: string) {
+  return {
+    semana: SEMANA[diaDaSemana(data)]!,
+    dia: data.slice(8, 10),
+    fimDeSemana: [0, 6].includes(diaDaSemana(data)),
+  };
+}
+
+/** Lê o período que o banco devolve para uma ocupação, "[2027-05-01,2027-05-04)": de = primeiro dia, até = dia da volta (já livre). */
+export function lerPeriodo(texto: string | null | undefined): { de: string; ate: string } | null {
+  const m = /^[[(](\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})[)\]]$/.exec((texto ?? "").trim());
+  return m ? { de: m[1]!, ate: m[2]! } : null;
+}
+
+/** Hora do banco ("14:00:00") para o campo de hora ("14:00"). */
+export const horaCurta = (hora: string | null | undefined) => (hora ?? "").slice(0, 5);

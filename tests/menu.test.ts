@@ -40,6 +40,7 @@ test("o menu da loja tem os grupos esperados, com Relatórios antes de Administr
     "Restaurante",
     "Pet shop",
     "Lava rápido",
+    "Hotelaria",
     "Clínica",
     "Assistência técnica",
     "Locação de equipamentos",
