@@ -562,6 +562,8 @@ DECLARE
     'saas_taxa_inicial_cliente',
     -- manufatura: só responde se a empresa tem o módulo liberado pela equipe
     'manufatura_liberada',
+    -- hotelaria: só responde se a empresa tem o módulo liberado
+    'hotelaria_liberada',
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
     'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
@@ -8251,4 +8253,232 @@ BEGIN
   DELETE FROM pedidos WHERE id = ped;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'manufatura';
   DELETE FROM user_roles WHERE user_id IN (prod, vend);
+END $$;
+
+-- 89. Hotelaria (base): módulo liberado por ramo, liberação, CNAE e escolha sem CNPJ; cadastros só por função, só gestão, só do próprio hotel e da própria empresa; tarifa certa pela prioridade; hóspede com CPF conferido
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  f1   constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  hgar constant uuid := 'a0000000-0000-0000-0000-0000000001c0';
+  bges constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  ramo_ant text; cnae_ant text; cnae2_ant text; sem_ant text[];
+  f2 uuid; tb uuid; eb uuid; fb uuid;
+  t1 uuid; t2 uuid; tb1 uuid; u1 uuid; u2 uuid; hb uuid;
+  ta uuid; tbw uuid; tc uuid; td uuid; h1 uuid; h2 uuid; cfg uuid; cfg2 uuid;
+  lib boolean;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, modulos_sem_cnpj INTO ramo_ant, cnae_ant, cnae2_ant, sem_ant FROM empresas WHERE id = emp;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = NULL, cnae_secundarios = NULL, modulos_sem_cnpj = '{}' WHERE id = emp;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+
+  INSERT INTO auth.users (id, email) VALUES (hgar, 'garcom-hotel@ci'), (bges, 'gestor-hotel-b@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = hgar;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI 2') RETURNING id INTO f2;
+
+  -- sem o módulo nada abre
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'Standard'))$c$, f1), 'tipo de acomodação sem o módulo liberado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_config_salvar(%L, '{}'::jsonb)$c$, f1), 'configuração do hotel sem o módulo liberado');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Sem módulo"}'::jsonb)$c$, 'hóspede sem o módulo liberado');
+
+  -- como o módulo é liberado: ramo, CNAE (5510 e 5590), escolha sem CNPJ e liberação explícita; outros CNAE e ramos não liberam
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS FALSE, 'empresa de outro ramo e sem CNAE de hospedagem não tem o módulo');
+  UPDATE empresas SET ramo_atividade = 'hotelaria' WHERE id = emp;
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS TRUE, 'ramo Hotelaria libera o módulo');
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '5510-8/01' WHERE id = emp;
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS TRUE, 'CNAE 55.10-8 (hotéis) libera o módulo');
+  UPDATE empresas SET cnae = NULL, cnae_secundarios = '4711-3/02, 5590-6/01' WHERE id = emp;
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS TRUE, 'CNAE secundário 55.90-6 (outros alojamentos) libera o módulo');
+  UPDATE empresas SET cnae = '5611-2/01', cnae_secundarios = '5620-1/04' WHERE id = emp;
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS FALSE, 'restaurante (56.xx) não libera hotelaria');
+  UPDATE empresas SET cnae = NULL, cnae_secundarios = NULL WHERE id = emp;
+  UPDATE empresas SET modulos_sem_cnpj = ARRAY['hotelaria'] WHERE id = emp;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE empresas SET modulos_sem_cnpj = ARRAY['hotel'] WHERE id = %L$c$, emp), 'módulo sem CNPJ com nome fora da lista');
+  UPDATE empresas SET modulos_sem_cnpj = '{}' WHERE id = emp;
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'hotelaria');
+  PERFORM ci.entrar(gest); lib := hotelaria_liberada(); PERFORM ci.sair();
+  PERFORM ci.exige(lib IS TRUE, 'liberação explícita abre o módulo');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT hotelaria_liberada()$c$, 'anônimo consulta o módulo');
+  PERFORM ci.deve_falhar(gest, $c$SELECT _hs_exige_liberado()$c$, 'usuário chama a trava interna do módulo');
+
+  -- cadastros: só gestão
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'Standard'))$c$, f1), 'vendedor cria tipo de acomodação');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'Standard'))$c$, f1), 'garçom cria tipo de acomodação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_config_salvar(%L, '{}'::jsonb)$c$, f1), 'vendedor mexe na configuração do hotel');
+  PERFORM ci.deve_falhar(hgar, $c$SELECT hs_hospede_salvar('{"nome":"Garçom"}'::jsonb)$c$, 'garçom cadastra hóspede');
+
+  PERFORM ci.entrar(gest);
+  t1 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f1, 'nome', 'Standard casal', 'capacidade_adultos', 2, 'capacidade_criancas', 1,
+                                             'comodidades', jsonb_build_array('Ar-condicionado', ' TV ', 'tv', '')));
+  t2 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f2, 'nome', 'Standard casal'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT comodidades = ARRAY['Ar-condicionado', 'TV', 'tv'] AND capacidade_criancas = 1 FROM hs_tipos_uh WHERE id = t1), 'tipo guarda capacidade e comodidades sem vazios');
+  PERFORM ci.exige(t1 <> t2, 'o mesmo nome vale em hotéis diferentes');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', ' standard CASAL '))$c$, f1), 'tipo com nome repetido no mesmo hotel');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'X', 'capacidade_adultos', 0))$c$, f1), 'tipo sem adulto');
+  PERFORM ci.deve_falhar(gest, $c$SELECT hs_tipo_uh_salvar('{"nome":"Sem hotel"}'::jsonb)$c$, 'tipo sem hotel');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('id', %L, 'filial_id', %L, 'nome', 'Mudou'))$c$, t1, f2), 'tipo trocado de hotel');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO hs_tipos_uh (tenant_id, filial_id, nome) VALUES (%L, %L, 'Direto')$c$, demo, f1), 'administrador insere tipo direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_tipos_uh SET nome = 'Direto' WHERE id = %L$c$, t1), 'administrador altera tipo direto na tabela');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM hs_tipos_uh WHERE id = %L$c$, t1), 'administrador apaga tipo direto na tabela');
+
+  -- acomodações
+  PERFORM ci.entrar(gest);
+  u1 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '101', 'andar', '1'));
+  u2 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '102', 'interditada', true, 'motivo_interdicao', 'Infiltração'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT filial_id = f1 AND situacao_limpeza = 'limpo' AND NOT interditada FROM hs_uhs WHERE id = u1), 'a UH nasce limpa e no hotel do tipo');
+  PERFORM ci.exige((SELECT interditada AND motivo_interdicao = 'Infiltração' FROM hs_uhs WHERE id = u2), 'UH interditada guarda o motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('tipo_id', %L, 'numero', ' 101 '))$c$, t1), 'UH com número repetido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('tipo_id', %L, 'numero', '103', 'interditada', true))$c$, t1), 'UH interditada sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('tipo_id', %L, 'numero', ''))$c$, t1), 'UH sem número');
+  PERFORM ci.deve_falhar(gest, $c$SELECT hs_uh_salvar('{"numero":"200"}'::jsonb)$c$, 'UH sem tipo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'numero', '101'))$c$, u1, t2), 'UH trocada para o tipo de outro hotel');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('id', %L, 'filial_id', %L, 'nome', 'Standard casal', 'ativo', false))$c$, t1, f1), 'inativar tipo que ainda tem UH ativa');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_uhs SET situacao_limpeza = 'sujo' WHERE id = %L$c$, u1), 'administrador suja a UH direto na tabela');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_uhs (tenant_id, filial_id, tipo_id, numero) VALUES (%L, %L, %L, '999')$c$, demo, f2, t1), 'UH de um hotel com tipo de outro hotel');
+  -- tipo inativo não recebe UH nova
+  PERFORM ci.entrar(gest);
+  PERFORM hs_uh_salvar(jsonb_build_object('id', u1, 'tipo_id', t1, 'numero', '101', 'ativo', false));
+  PERFORM hs_uh_salvar(jsonb_build_object('id', u2, 'tipo_id', t1, 'numero', '102', 'ativo', false, 'interditada', true, 'motivo_interdicao', 'Infiltração'));
+  PERFORM hs_tipo_uh_salvar(jsonb_build_object('id', t1, 'filial_id', f1, 'nome', 'Standard casal', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('tipo_id', %L, 'numero', '104'))$c$, t1), 'UH ativa num tipo inativo');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_tipo_uh_salvar(jsonb_build_object('id', t1, 'filial_id', f1, 'nome', 'Standard casal', 'ativo', true));
+  PERFORM hs_uh_salvar(jsonb_build_object('id', u1, 'tipo_id', t1, 'numero', '101', 'ativo', true));
+  PERFORM ci.sair();
+
+  -- tarifas: A todo ano (100), B fim de semana (150, prioridade 1), C réveillon (300, prioridade 5), D julho (120, mesma prioridade da A, vigência menor)
+  PERFORM ci.entrar(gest);
+  ta  := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Balcão 2027', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-12-31', 'valor_diaria', 100));
+  tbw := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Fim de semana', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-12-31',
+                                             'dias_semana', jsonb_build_array(6, 5, 6), 'valor_diaria', 150, 'prioridade', 1));
+  tc  := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Réveillon', 'vigencia_de', '2027-12-30', 'vigencia_ate', '2027-12-31',
+                                             'valor_diaria', 300, 'prioridade', 5, 'minimo_noites', 3));
+  td  := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Julho', 'vigencia_de', '2027-07-01', 'vigencia_ate', '2027-07-31', 'valor_diaria', 120));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT dias_semana = ARRAY[5, 6]::smallint[] FROM hs_tarifas WHERE id = tbw), 'dias da semana saem sem repetir e em ordem');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-01-04') = ta, 'segunda-feira: tarifa de balcão');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-01-01') = tbw, 'sexta-feira: a de fim de semana vence pela prioridade');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-01-02') = tbw, 'sábado: a de fim de semana');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-07-14') = td, 'quarta de julho: empate de prioridade, vence a de menor vigência');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-07-17') = tbw, 'sábado de julho: maior prioridade vence a de menor vigência');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-12-31') = tc, 'réveillon: a de maior prioridade');
+  PERFORM ci.exige(_hs_tarifa(t1, date '2026-12-31') IS NULL AND _hs_tarifa(t1, date '2028-01-01') IS NULL, 'fora de toda vigência não há tarifa');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_tarifa_salvar(jsonb_build_object('id', td, 'tipo_id', t1, 'nome', 'Julho', 'vigencia_de', '2027-07-01', 'vigencia_ate', '2027-07-31', 'valor_diaria', 120, 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.exige(_hs_tarifa(t1, date '2027-07-14') = ta, 'tarifa inativa não vale');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-02-01', 'vigencia_ate', '2027-01-01', 'valor_diaria', 1))$c$, t1), 'vigência invertida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02'))$c$, t1), 'tarifa sem valor');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', -5))$c$, t1), 'diária negativa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1, 'dias_semana', jsonb_build_array(7)))$c$, t1), 'dia da semana 7');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1, 'minimo_noites', 0))$c$, t1), 'mínimo de noites zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1))$c$, t1), 'vendedor cria tarifa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1))$c$, ta, t1), 'vendedor altera tarifa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_tarifa_remover(%L)$c$, ta), 'vendedor remove tarifa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1))$c$, ta, t2), 'tarifa trocada para o tipo de outro hotel');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_tarifas SET valor_diaria = 1 WHERE id = %L$c$, ta), 'administrador muda o preço direto na tabela');
+  PERFORM ci.entrar(gest); PERFORM hs_tarifa_remover(tc); PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM hs_tarifas WHERE id = tc), 'a gestão remove a tarifa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_remover(%L)$c$, tc), 'remover tarifa que já não existe');
+
+  -- configuração do hotel
+  PERFORM ci.entrar(gest);
+  cfg := hs_config_salvar(f1, '{"checkin_hora":"15:00","taxa_turismo_por_hospede_noite":"3.50","exige_documento_checkin":false}'::jsonb);
+  cfg2 := hs_config_salvar(f1, '{"checkout_hora":"11:00","cobra_diaria_no_checkout_tardio":true}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(cfg = cfg2 AND (SELECT count(*) FROM hs_config WHERE filial_id = f1) = 1, 'a configuração é uma por hotel e salvar de novo atualiza');
+  PERFORM ci.exige((SELECT checkin_hora = '14:00' AND checkout_hora = '11:00' AND taxa_turismo_por_hospede_noite = 0 AND exige_documento_checkin AND cobra_diaria_no_checkout_tardio
+                      FROM hs_config WHERE filial_id = f1), 'salvar de novo traz o que foi enviado e o padrão do resto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_config_salvar(%L, '{"taxa_turismo_por_hospede_noite":-1}'::jsonb)$c$, f1), 'taxa de turismo negativa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_config_salvar(%L, '{"fuso":"Marte/Olimpo"}'::jsonb)$c$, f1), 'fuso horário inexistente');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_config SET taxa_turismo_por_hospede_noite = 99 WHERE filial_id = %L$c$, f1), 'administrador muda a configuração direto na tabela');
+
+  -- hóspedes
+  PERFORM ci.entrar(vend);
+  h1 := hs_hospede_salvar('{"nome":"Maria Silva","documento_tipo":"cpf","documento_numero":"529.982.247-25","sexo":"F","motivo_viagem":"lazer","meio_transporte":"automovel","estado_residencia":"pe","email":"maria@ex.com"}'::jsonb);
+  h2 := hs_hospede_salvar('{"nome":"John Smith","documento_tipo":"passaporte","documento_numero":"ab-123 456","nacionalidade":"Americana","pais_residencia":"Estados Unidos"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT documento_numero = '52998224725' AND estado_residencia = 'PE' AND pais_residencia = 'Brasil' FROM hs_hospedes WHERE id = h1), 'CPF guardado só com dígitos e UF em maiúsculas');
+  PERFORM ci.exige((SELECT documento_numero = 'AB123456' AND pais_residencia = 'Estados Unidos' FROM hs_hospedes WHERE id = h2), 'passaporte guardado em maiúsculas e sem pontuação; estrangeiro sem CPF é aceito');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Dup","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb)$c$, 'hóspede com CPF repetido (outra pontuação)');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Dup","documento_tipo":"passaporte","documento_numero":"AB 123456"}'::jsonb)$c$, 'hóspede com passaporte repetido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"CPF ruim","documento_tipo":"cpf","documento_numero":"12345678900"}'::jsonb)$c$, 'CPF com dígito verificador errado');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"CPF ruim","documento_tipo":"cpf","documento_numero":"11111111111"}'::jsonb)$c$, 'CPF de dígitos repetidos');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Sem número","documento_tipo":"rg"}'::jsonb)$c$, 'tipo de documento sem número');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Sem tipo","documento_numero":"123456"}'::jsonb)$c$, 'número de documento sem tipo');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"  "}'::jsonb)$c$, 'hóspede sem nome');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Futuro","data_nascimento":"2999-01-01"}'::jsonb)$c$, 'nascimento no futuro');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Mail","email":"sem-arroba"}'::jsonb)$c$, 'e-mail inválido');
+  PERFORM ci.deve_falhar(vend, $c$SELECT hs_hospede_salvar('{"nome":"Motivo","motivo_viagem":"turismo-espacial"}'::jsonb)$c$, 'motivo de viagem fora da lista');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_hospede_salvar(jsonb_build_object('id', %L, 'nome', 'Troca', 'documento_tipo', 'cpf', 'documento_numero', '52998224725'))$c$, h2), 'passar para o hóspede o CPF de outro');
+  PERFORM ci.entrar(vend);
+  PERFORM hs_hospede_salvar(jsonb_build_object('id', h1, 'nome', 'Maria Silva Souza', 'documento_tipo', 'cpf', 'documento_numero', '52998224725'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT nome = 'Maria Silva Souza' AND (SELECT count(*) FROM hs_hospedes WHERE tenant_id = demo AND documento_numero = '52998224725') = 1 FROM hs_hospedes WHERE id = h1), 'editar o hóspede com o próprio CPF não conta como repetido');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_hospedes SET nome = 'Direto' WHERE id = %L$c$, h1), 'administrador altera hóspede direto na tabela');
+  PERFORM ci.deve_falhar(hgar, $c$SELECT hs_hospede_salvar('{"nome":"Garçom"}'::jsonb)$c$, 'garçom cadastra hóspede (com o módulo liberado)');
+
+  -- o salão (garçom e cozinha) não enxerga nada do hotel; anônimo também não
+  PERFORM ci.exige(ci.contar(hgar, 'SELECT count(*) FROM hs_hospedes') = 0, 'garçom não lê os hóspedes');
+  PERFORM ci.exige(ci.contar(hgar, 'SELECT count(*) FROM hs_tipos_uh') = 0, 'garçom não lê os tipos de acomodação');
+  PERFORM ci.exige(ci.contar(hgar, 'SELECT count(*) FROM hs_tarifas') = 0, 'garçom não lê as tarifas');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM hs_uhs', 'anônimo lê as acomodações');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT hs_hospede_salvar('{"nome":"Anon"}'::jsonb)$c$, 'anônimo cadastra hóspede');
+
+  -- quem só acessa um hotel só enxerga o cadastro dele
+  UPDATE profiles SET filial_id = f2 WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_tipos_uh') = 1, 'recepção do hotel 2 só lê os tipos do hotel 2');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM hs_uhs WHERE filial_id = %L', f1)) = 0, 'recepção do hotel 2 não lê as acomodações do hotel 1');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_tarifas') = 0, 'recepção do hotel 2 não lê as tarifas do hotel 1');
+  UPDATE profiles SET filial_id = f1 WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_tipos_uh') = 1 AND ci.contar(vend, 'SELECT count(*) FROM hs_tarifas') > 0, 'recepção do hotel 1 lê o cadastro do hotel 1');
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_tipos_uh') = 2, 'recepção sem filial fixa lê todos os hotéis da empresa');
+
+  -- outra empresa: não vê, não usa e não altera
+  INSERT INTO tenants (nome) VALUES ('Hotel B') RETURNING id INTO tb;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tb, 'Hotel B Ltda', 'hotelaria') RETURNING id INTO eb;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (tb, eb, 'Hotel B Centro') RETURNING id INTO fb;
+  UPDATE profiles SET tenant_id = tb WHERE id = bges;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (bges, tb, 'gestor');
+  PERFORM ci.entrar(bges);
+  tb1 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fb, 'nome', 'Standard casal'));
+  PERFORM hs_hospede_salvar('{"nome":"Hóspede B","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb);
+  PERFORM ci.sair();
+  SELECT id INTO hb FROM hs_hospedes WHERE tenant_id = tb LIMIT 1;
+  PERFORM ci.exige(ci.contar(bges, 'SELECT count(*) FROM hs_tipos_uh') = 1 AND ci.contar(bges, 'SELECT count(*) FROM hs_hospedes') = 1, 'o gestor B só lê o que é do hotel B');
+  PERFORM ci.exige(ci.contar(gest, format('SELECT count(*) FROM hs_tipos_uh WHERE tenant_id = %L', tb)) = 0, 'o gestor A não lê o tipo do hotel B');
+  PERFORM ci.exige(ci.contar(gest, 'SELECT count(*) FROM hs_hospedes WHERE nome = ''Hóspede B''') = 0, 'o gestor A não lê o hóspede da outra empresa');
+  PERFORM ci.exige(ci.contar(bges, 'SELECT count(*) FROM hs_tarifas') = 0 AND ci.contar(bges, 'SELECT count(*) FROM hs_uhs') = 0, 'o gestor B não lê tarifas nem UHs do hotel A');
+  PERFORM ci.exige((SELECT count(*) FROM hs_hospedes WHERE documento_numero = '52998224725') = 2, 'o mesmo CPF vale em empresas diferentes');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'Invasor'))$c$, fb), 'criar tipo no hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_config_salvar(%L, '{}'::jsonb)$c$, fb), 'configurar o hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('tipo_id', %L, 'numero', '1'))$c$, tb1), 'criar UH num tipo de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1))$c$, tb1), 'criar tarifa num tipo de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_hospede_salvar(jsonb_build_object('id', %L, 'nome', 'Invasor'))$c$, hb), 'editar o hóspede de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_tarifas (tenant_id, tipo_id, nome, vigencia_de, vigencia_ate, valor_diaria) VALUES (%L, %L, 'x', '2027-01-01', '2027-01-02', 1)$c$, demo, tb1), 'tarifa da empresa A num tipo da empresa B');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_tipos_uh (tenant_id, filial_id, nome) VALUES (%L, %L, 'Cruzado')$c$, demo, fb), 'tipo da empresa A num hotel da empresa B');
+
+  -- limpeza
+  DELETE FROM hs_tarifas WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_uhs WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_tipos_uh WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_hospedes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_config WHERE tenant_id IN (demo, tb);
+  DELETE FROM user_roles WHERE user_id IN (hgar, bges);
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
