@@ -785,6 +785,126 @@ BEGIN
                    'cancelar item continua permitido quando a conta fica acima do recebido');
 END $$;
 
+-- 17b. crédito na conta e juntar contas
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  cat uuid; it uuid; ma uuid; mb uuid; mc uuid; md uuid; me uuid; cx uuid; cx_f uuid;
+  c1 uuid; c3 uuid; c4 uuid; c5 uuid; c6 uuid; c7 uuid; c8 uuid; r jsonb; n4 integer; i1 uuid;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Credito CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Rodizio CI', 50, 'nenhuma') RETURNING id INTO it;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-a') RETURNING id INTO ma;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-b') RETURNING id INTO mb;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-c') RETURNING id INTO mc;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-d') RETURNING id INTO md;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-e') RETURNING id INTO me;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- crédito: só quem recebe; forma a prazo, valor zero e valor absurdo recusados
+  PERFORM ci.entrar(gar);
+  c1 := restaurante_abrir_comanda(ma, 2, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, cx), 'garçom recebe crédito');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, cx), 'vendedor recebe crédito');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"boleto","valor":100}]'::jsonb, %L)$c$, c1, cx), 'boleto como crédito');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":0}]'::jsonb, %L)$c$, c1, cx), 'crédito de valor zero');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100001}]'::jsonb, %L)$c$, c1, cx), 'crédito acima do limite');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":10}]'::jsonb, NULL)$c$, c1), 'crédito sem caixa');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":10}]'::jsonb, %L)$c$, gen_random_uuid(), cx), 'crédito em comanda que não existe');
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c1, '[{"forma":"pix","valor":100,"pagante":"Ana"}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(credito) AND sum(valor) = 100 FROM comanda_pagamentos WHERE comanda_id = c1), 'crédito gravado na comanda');
+  PERFORM ci.exige((SELECT sum(valor) = 100 FROM caixa_movimentos WHERE caixa_id = cx AND descricao = 'Comanda ' || (SELECT numero FROM comandas WHERE id = c1) || ' (crédito)'), 'o crédito entra no caixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_cancelar_comanda(%L, 'teste')$c$, c1), 'cancelar comanda com crédito recebido');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO comanda_pagamentos (tenant_id, comanda_id, forma, valor, credito) VALUES (%L, %L, 'pix', -5, true)$c$, demo, c1), 'devolução por escrita direta');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO comanda_pagamentos (tenant_id, comanda_id, forma, valor) VALUES (%L, %L, 'pix', -5)$c$, demo, c1), 'valor negativo fora de crédito');
+
+  -- 1 rodízio de 50 + serviço 10% = 55; crédito 100; sobra 45
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(c1, it, 1);
+  PERFORM restaurante_enviar_cozinha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb, %L)$c$, c1, cx), 'fechar com crédito acima da conta sem devolver a sobra');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_devolver_credito(%L, 45, %L, 'sobra')$c$, c1, cx), 'caixa devolve crédito (só a gestão)');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 45.01, %L, 'sobra')$c$, c1, cx), 'devolver mais do que a sobra');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 45, %L, ' ')$c$, c1, cx), 'devolver sem motivo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 0, %L, 'sobra')$c$, c1, cx), 'devolver zero');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_devolver_credito(c1, 45, cx, 'cliente pediu a sobra');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(valor) = 55 FROM comanda_pagamentos WHERE comanda_id = c1), 'devolução reduz o que foi recebido');
+  PERFORM ci.exige((SELECT sum(valor) = 45 FROM caixa_movimentos WHERE caixa_id = cx AND tipo = 'saida' AND descricao = 'Devolução de crédito - comanda ' || (SELECT numero FROM comandas WHERE id = c1)), 'a devolução sai do caixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 1, %L, 'de novo')$c$, c1, cx), 'devolver de novo sem sobra');
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(c1, '[]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 55 AND (r ->> 'restante')::numeric = 0, 'conta paga só com o crédito fecha sem novo recebimento');
+  PERFORM ci.exige((SELECT situacao = 'fechada' FROM comandas WHERE id = c1), 'comanda fechada');
+
+  -- crédito inteiro devolvido libera o cancelamento
+  PERFORM ci.entrar(gar);
+  c3 := restaurante_abrir_comanda(mc, 1, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c3, '[{"forma":"dinheiro","valor":30}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_devolver_credito(c3, 30, cx, 'desistiu');
+  PERFORM restaurante_cancelar_comanda(c3, 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM comandas WHERE id = c3), 'comanda com crédito devolvido pode ser cancelada');
+
+  -- juntar contas
+  PERFORM ci.entrar(gar);
+  c4 := restaurante_abrir_comanda(mb, 2, NULL, 10, 0);
+  PERFORM restaurante_lancar_item(c4, it, 1);
+  c5 := restaurante_abrir_comanda(md, 3, NULL, 10, 0);
+  PERFORM restaurante_lancar_item(c5, it, 2);
+  c6 := restaurante_abrir_comanda(me, 1, NULL, 15, 0);
+  PERFORM restaurante_lancar_item(c6, it, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c5), 'vendedor junta contas');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[]::uuid[])$c$, c4), 'juntar sem escolher contas');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c4), 'juntar a conta com ela mesma');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, gen_random_uuid()), 'juntar conta que não existe');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c1), 'juntar conta já fechada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c6), 'juntar contas com serviço diferente sem autorização');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[], true)$c$, c4, c6), 'garçom autoriza usar o serviço da conta de destino');
+
+  PERFORM ci.entrar(gar);
+  r := restaurante_juntar_comandas(c4, ARRAY[c5]);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'unidas')::int = 1 AND (r ->> 'itens')::int = 1, 'junção devolve o resumo');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM comanda_itens WHERE comanda_id = c4 AND situacao <> 'cancelado'), 'itens da origem passaram para o destino');
+  PERFORM ci.exige((SELECT sum(quantidade) = 3 FROM comanda_itens WHERE comanda_id = c4 AND situacao <> 'cancelado'), 'as quantidades foram preservadas');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM comanda_itens WHERE comanda_id = c5), 'a origem ficou sem itens');
+  PERFORM ci.exige((SELECT pessoas = 5 FROM comandas WHERE id = c4), 'pessoas somadas');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND unida_em_id = c4 FROM comandas WHERE id = c5), 'origem marcada como unida');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_abrir_comanda(md, 1, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.exige(true, 'a mesa da conta unida fica livre');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c5), 'juntar conta já unida');
+
+  -- a gestão autoriza o serviço do destino; o crédito da origem acompanha
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c6, '[{"forma":"pix","valor":20}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  r := restaurante_juntar_comandas(c4, ARRAY[c6], true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'taxas_do_destino')::boolean AND (r ->> 'pagamentos')::int = 1, 'gestão junta contas com serviço diferente');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 20 FROM comanda_pagamentos WHERE comanda_id = c4), 'o crédito da conta de origem passou para o destino');
+  PERFORM ci.exige((SELECT pessoas = 6 FROM comandas WHERE id = c4), 'pessoas somadas na segunda junção');
+END $$;
+
 -- 18. quantidade de mesas do restaurante
 DO $$
 DECLARE
