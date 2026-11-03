@@ -245,6 +245,7 @@ const groups: Group[] = [
       { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
       { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
       { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
+      { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
@@ -535,7 +536,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario;
               if (i.to === "/clinica-internacao" || i.to === "/clinica-execucoes")
                 return souVeterinario;
-              if (i.to === "/clinica-boxes") return souVeterinario || souGestao;
+              if (i.to === "/clinica-boxes" || i.to === "/sngpc")
+                return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
@@ -631,6 +633,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
                   { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
+                  { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
@@ -679,6 +682,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-internacao-historico",
       "/clinica-execucoes",
       "/clinica-boxes",
+      "/sngpc",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
       navigate({ to: "/pet-minha-agenda", replace: true });

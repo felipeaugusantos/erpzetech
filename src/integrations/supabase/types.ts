@@ -9600,6 +9600,7 @@ export type Database = {
           created_at: string
           crf: string | null
           crf_uf: string | null
+          cpf: string | null
           crmv: string | null
           crmv_uf: string | null
           filial_id: string | null
@@ -9616,6 +9617,7 @@ export type Database = {
           created_at?: string
           crf?: string | null
           crf_uf?: string | null
+          cpf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -9632,6 +9634,7 @@ export type Database = {
           created_at?: string
           crf?: string | null
           crf_uf?: string | null
+          cpf?: string | null
           crmv?: string | null
           crmv_uf?: string | null
           filial_id?: string | null
@@ -13565,6 +13568,20 @@ export type Database = {
         Args: { p_data?: string; p_observacao?: string; p_pet_id: string; p_peso_kg: number }
         Returns: string
       }
+      sngpc_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      sngpc_envio_cancelar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      sngpc_envio_registrar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_envio_transmitir: { Args: { p_id: string; p_protocolo: string }; Returns: undefined }
+      sngpc_envio_xml: { Args: { p_id: string }; Returns: string }
+      sngpc_envios: { Args: never; Returns: Json }
+      sngpc_inventario: { Args: { p_data: string }; Returns: Json }
+      sngpc_livro: { Args: { p_fim?: string; p_inicio?: string }; Returns: Json }
+      sngpc_medicamento_salvar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_medicamentos: { Args: never; Returns: Json }
+      sngpc_periodo: { Args: { p_fim: string; p_inicio: string }; Returns: Json }
+      sngpc_registrar: { Args: { p_dados: Json; p_tipo: string }; Returns: string }
+      sngpc_responsaveis: { Args: never; Returns: Json }
+      sngpc_saldo: { Args: { p_data?: string }; Returns: Json }
       pet_profissional_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_profissional_vincular: {
         Args: { p_profile_id: string; p_profissional_id: string }

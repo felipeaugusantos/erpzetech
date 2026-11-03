@@ -571,7 +571,11 @@ DECLARE
     'clinica_internacao_encerrar',
     -- internação, fase 2: prescrição e suspensão (veterinário), execução das doses e mapa (veterinário e auxiliar), itens (auxiliar lança, veterinário cancela)
     'clinica_internacao_prescrever', 'clinica_prescricao_suspender', 'clinica_execucao_registrar', 'clinica_execucoes_mapa',
-    'clinica_internacao_catalogo', 'clinica_internacao_item_lancar', 'clinica_internacao_item_cancelar'];
+    'clinica_internacao_catalogo', 'clinica_internacao_item_lancar', 'clinica_internacao_item_cancelar',
+    -- SNGPC: cada função confere o perfil (administrador, gestor ou veterinário) e a clínica liberada
+    'sngpc_medicamento_salvar', 'sngpc_medicamentos', 'sngpc_registrar', 'sngpc_cancelar', 'sngpc_saldo', 'sngpc_livro',
+    'sngpc_responsaveis', 'sngpc_periodo', 'sngpc_inventario', 'sngpc_envio_registrar', 'sngpc_envio_transmitir', 'sngpc_envio_cancelar',
+    'sngpc_envios', 'sngpc_envio_xml'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -8332,7 +8336,7 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"XX"}'::jsonb)$c$, 'farmacêutico com UF inválida');
   PERFORM ci.deve_falhar(vend, $c$SELECT pet_profissional_salvar('{"nome":"Farma","funcao":"farmaceutico","crf":"12345","crf_uf":"PE"}'::jsonb)$c$, 'vendedor cria farmacêutico');
   PERFORM ci.entrar(adm);
-  prof := pet_profissional_salvar('{"nome":"Farma CI","funcao":"farmaceutico","crf":"12.345","crf_uf":"PE","crmv":"999","crmv_uf":"PE"}'::jsonb);
+  prof := pet_profissional_salvar('{"nome":"Farma CI","funcao":"farmaceutico","crf":"12.345","crf_uf":"PE","crmv":"999","crmv_uf":"PE","cpf":"529.982.247-25"}'::jsonb);
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT crf = '12345' AND crf_uf = 'PE' AND crmv IS NULL FROM pet_profissionais WHERE id = prof), 'farmacêutico guarda o CRF (sem CRMV)');
   PERFORM ci.entrar(adm);
@@ -8904,4 +8908,269 @@ BEGIN
   PERFORM ci.exige(jsonb_array_length(r -> 'prescricoes') = 2 AND jsonb_array_length(r -> 'itens') = 3, 'o histórico continua completo depois da alta');
 
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 94. SNGPC: medicamentos controlados, livro, período, inventário e envios
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  hoje constant date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; cnpj_ant text;
+  p1 uuid; p2 uuid; p3 uuid; m1 uuid; m2 uuid; farma uuid; farma_off uuid;
+  d_saldo uuid; d_ent uuid; d_venda uuid; d_perda uuid; env1 uuid; env2 uuid; r jsonb; n bigint; x text;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, cnpj INTO ramo_ant, cnae_ant, cnae2_ant, cnpj_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica', cnpj = '11222333000181' WHERE tenant_id = demo;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-DIAZ', 'Diazepam 10 mg SNGPC CI', 'un', 5, 12) RETURNING id INTO p1;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-CETA', 'Cetamina 50 mg/ml SNGPC CI', 'un', 30, 60) RETURNING id INTO p2;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo, preco_venda) VALUES (demo, 'SNG-OUTRO', 'Outro SNGPC CI', 'un', 1, 2) RETURNING id INTO p3;
+
+  -- CPF do farmacêutico
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma sem CPF","funcao":"farmaceutico","crf":"1234","crf_uf":"PE"}'::jsonb)$c$, 'farmacêutico sem CPF');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma CPF ruim","funcao":"farmaceutico","crf":"1234","crf_uf":"PE","cpf":"11111111111"}'::jsonb)$c$, 'farmacêutico com CPF inválido');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_profissional_salvar('{"nome":"Farma CPF ruim","funcao":"farmaceutico","crf":"1234","crf_uf":"PE","cpf":"52998224726"}'::jsonb)$c$, 'farmacêutico com dígito do CPF errado');
+  PERFORM ci.entrar(gest);
+  farma := pet_profissional_salvar('{"nome":"Farma SNGPC CI","funcao":"farmaceutico","crf":"4321","crf_uf":"PE","cpf":"529.982.247-25"}'::jsonb);
+  farma_off := pet_profissional_salvar('{"nome":"Farma Inativa CI","funcao":"farmaceutico","crf":"4322","crf_uf":"PE","cpf":"52998224725","ativo":false}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cpf = '52998224725' FROM pet_profissionais WHERE id = farma), 'o CPF do farmacêutico é guardado só com números');
+  PERFORM ci.entrar(gest);
+  PERFORM pet_profissional_salvar(jsonb_build_object('id', farma_off, 'nome', 'Farma Inativa CI', 'funcao', 'banhista'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cpf IS NULL FROM pet_profissionais WHERE id = farma_off), 'mudar a função limpa o CPF');
+
+  -- quem opera
+  PERFORM ci.deve_falhar(vend, $c$SELECT sngpc_saldo()$c$, 'vendedor lê o saldo do SNGPC');
+  PERFORM ci.deve_falhar(aux, $c$SELECT sngpc_livro()$c$, 'auxiliar lê o livro do SNGPC');
+  PERFORM ci.deve_falhar(gar, $c$SELECT sngpc_medicamentos()$c$, 'garçom lê os medicamentos controlados');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT sngpc_envios()$c$, 'anon lê os envios');
+  PERFORM ci.deve_falhar(ub, $c$SELECT sngpc_medicamentos()$c$, 'empresa sem clínica liberada usa o SNGPC');
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM sngpc_documentos', 'ler o livro direto na tabela');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM sngpc_envios', 'ler os envios direto na tabela');
+
+  -- cadastro do medicamento controlado
+  PERFORM ci.deve_falhar(vend, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'vendedor cadastra controlado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '123456789012', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'registro com 12 números');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'Z9', 'unidade_medida', 1))$c$, p1), 'lista inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 3))$c$, p1), 'unidade inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, gen_random_uuid()), 'produto que não existe');
+  PERFORM ci.entrar(gest);
+  m1 := sngpc_medicamento_salvar(jsonb_build_object('produto_id', p1, 'registro_ms', '1.234.567.890.123', 'lista', 'b1', 'unidade_medida', 1));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vet);
+  m2 := sngpc_medicamento_salvar(jsonb_build_object('produto_id', p2, 'registro_ms', '9876543210987', 'lista', 'A1', 'unidade_medida', 2));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT registro_ms = '1234567890123' AND lista = 'B1' FROM sngpc_medicamentos WHERE id = m1), 'registro só com números e lista em maiúsculas');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p1), 'o mesmo produto de novo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('produto_id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 1))$c$, p3), 'o mesmo registro em outro produto');
+
+  -- saldo inicial, entrada, dispensação e perda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', '[]'::jsonb))$c$), 'lançamento sem itens');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('compra', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'tipo de lançamento inválido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date + 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'lançamento no futuro');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 0))))$c$, m1), 'quantidade zero');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1000))))$c$, m1), 'quantidade acima de 999');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', '  ', 'quantidade', 1))))$c$, m1), 'lote vazio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, gen_random_uuid()), 'medicamento controlado que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT sngpc_registrar('saldo_inicial', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'A1', 'quantidade', 1))))$c$, m1), 'vendedor lança no livro');
+
+  PERFORM ci.entrar(gest);
+  d_saldo := sngpc_registrar('saldo_inicial', jsonb_build_object('data', hoje - 6, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', ' l1 ', 'quantidade', 10, 'validade', hoje + 200))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT lote = 'L1' FROM sngpc_itens WHERE documento_id = d_saldo), 'o lote é guardado sem espaços e em maiúsculas');
+
+  -- entrada: nota fiscal de compra completa
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'entrada sem nota fiscal');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date, 'nf_numero', 55, 'nf_data', current_date, 'cnpj_origem', '123', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'entrada com CNPJ de origem curto');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('entrada', jsonb_build_object('data', current_date - 4, 'nf_numero', 55, 'nf_data', current_date, 'cnpj_origem', '12345678000195', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 5))))$c$, m1), 'nota fiscal posterior ao recebimento');
+  PERFORM ci.entrar(vet);
+  d_ent := sngpc_registrar('entrada', jsonb_build_object('data', hoje - 3, 'nf_numero', 123, 'nf_data', hoje - 4, 'cnpj_origem', '12.345.678/0001-95',
+             'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 20, 'validade', hoje + 300),
+                                        jsonb_build_object('medicamento_id', m2, 'lote', 'K1', 'quantidade', 8, 'validade', hoje + 100))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cnpj_origem = '12345678000195' AND nf_numero = 123 FROM sngpc_documentos WHERE id = d_ent), 'a entrada guarda a nota fiscal e o CNPJ só com números');
+
+  -- dispensação (venda): receita, prescritor CRMV, comprador e animal
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'dispensação sem receita');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 5, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receituário de antimicrobiano (tipo 5)');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'XX', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'prescritor com UF inválida');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 2, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'tipo de documento do comprador fora do que o guia confirma');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receita sem número de notificação');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date - 1, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'receita datada depois da dispensação');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('venda', jsonb_build_object(
+      'data', current_date, 'tipo_receituario', 2, 'numero_notificacao', '12345', 'data_prescricao', current_date, 'prescritor_nome', 'Dr. A', 'prescritor_registro', '1234',
+      'prescritor_uf', 'PE', 'comprador_nome', 'Tutor', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'paciente_nome', 'Rex', 'paciente_idade', 3, 'paciente_unidade_idade', 1,
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'animal sem sexo');
+
+  PERFORM ci.entrar(gest);
+  d_venda := sngpc_registrar('venda', jsonb_build_object(
+      'data', hoje - 1, 'tipo_receituario', 2, 'numero_notificacao', '0012345', 'data_prescricao', hoje - 2, 'prescritor_nome', 'Dra. Vet Silva', 'prescritor_registro', '12.345',
+      'prescritor_uf', 'pe', 'comprador_nome', 'Maria Tutora', 'comprador_tipo_documento', 1, 'comprador_documento', '1234567', 'comprador_orgao', 'SSP', 'comprador_uf', 'PE',
+      'paciente_nome', 'Rex', 'paciente_idade', 3, 'paciente_unidade_idade', 1, 'paciente_sexo', 1,
+      'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L1', 'quantidade', 4))));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT prescritor_registro = '12345' AND prescritor_uf = 'PE' AND numero_notificacao = '0012345' FROM sngpc_documentos WHERE id = d_venda), 'a dispensação guarda o prescritor (registro só com números, UF em maiúsculas)');
+
+  -- perda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'perda sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 10, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'motivo de perda inexistente');
+  PERFORM ci.entrar(gest);
+  d_perda := sngpc_registrar('perda', jsonb_build_object('data', hoje - 1, 'motivo_perda', 2, 'observacao', 'Frasco quebrado', 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 1))));
+  r := sngpc_saldo();
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L1' AND e ->> 'registro_ms' = '1234567890123') = 6, 'saldo do lote L1: 10 - 4');
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L2') = 19, 'saldo do lote L2: 20 - 1');
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'K1') = 8, 'saldo do lote da cetamina');
+  PERFORM ci.exige(jsonb_array_length(r) = 3, 'só os lotes com saldo aparecem');
+
+  -- o saldo nunca fica negativo
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 7))))$c$, m1), 'perda maior que o saldo do lote');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'NAOEXISTE', 'quantidade', 1))))$c$, m1), 'perda de lote que não existe');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 5, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'perda de lote antes da entrada dele');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 4), jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 4))))$c$, m1, m1), 'duas linhas do mesmo lote que passam do saldo juntas');
+  PERFORM ci.exige((SELECT count(*) = 4 FROM sngpc_documentos WHERE tenant_id = demo AND cancelado_em IS NULL), 'lançamento recusado não deixa rastro (continuam 4)');
+
+  -- cancelar
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_cancelar(%L, 'x')$c$, d_perda), 'auxiliar cancela lançamento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, ' ')$c$, d_perda), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'x')$c$, gen_random_uuid()), 'cancelar lançamento que não existe');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Lançado errado')$c$, d_saldo), 'cancelar o saldo inicial que a dispensação já usou');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_cancelar(d_perda, 'Lançada em duplicidade');
+  r := sngpc_saldo();
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT (e ->> 'saldo')::integer FROM jsonb_array_elements(r) e WHERE e ->> 'lote' = 'L2') = 20, 'cancelar a perda devolve o saldo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'de novo')$c$, d_perda), 'cancelar duas vezes');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_documentos WHERE id = %L$c$, d_venda), 'apagar lançamento');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_documentos SET numero_notificacao = '999' WHERE id = %L$c$, d_venda), 'alterar lançamento');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_itens SET quantidade = 9 WHERE documento_id = %L$c$, d_venda), 'alterar item');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_itens WHERE documento_id = %L$c$, d_venda), 'apagar item');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_documentos SET cancelado_motivo = 'mexi' WHERE id = %L$c$, d_perda), 'alterar lançamento cancelado');
+
+  -- medicamento com movimento não muda o registro nem a unidade
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('id', %L, 'registro_ms', '1111111111111', 'lista', 'B1', 'unidade_medida', 1))$c$, m1), 'mudar o registro com movimento');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_medicamento_salvar(jsonb_build_object('id', %L, 'registro_ms', '1234567890123', 'lista', 'B1', 'unidade_medida', 2))$c$, m1), 'mudar a unidade com movimento');
+
+  -- livro
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'documentos') = 4 AND r -> 'fechado_ate' = 'null'::jsonb, 'o livro traz os 4 lançamentos (um cancelado) e nenhum período fechado');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'documentos') d WHERE d ->> 'id' = d_perda::text AND d ->> 'cancelado_motivo' = 'Lançada em duplicidade'), 'o cancelado aparece marcado, com o motivo');
+
+  -- período e inventário (dados para o XML)
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date, current_date - 1)$c$), 'período invertido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date - 40, current_date)$c$), 'período de 41 dias');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date, current_date + 2)$c$), 'período no futuro');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_periodo(current_date - 3, current_date)$c$), 'auxiliar gera o período');
+  PERFORM ci.entrar(gest); r := sngpc_periodo(hoje - 6, hoje); PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'cnpj' = '11222333000181' AND jsonb_array_length(r -> 'documentos') = 2, 'o período traz entrada e dispensação (sem saldo inicial nem cancelados)');
+  PERFORM ci.exige((r -> 'documentos' -> 0 ->> 'tipo') = 'entrada' AND jsonb_array_length(r -> 'documentos' -> 0 -> 'itens') = 2, 'a entrada vem primeiro, com os 2 itens');
+  PERFORM ci.exige((r -> 'documentos' -> 1 -> 'itens' -> 0 ->> 'registro_ms') = '1234567890123' AND (r -> 'documentos' -> 1 -> 'itens' -> 0 ->> 'quantidade') = '4', 'o item traz o registro na Anvisa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_inventario(current_date - 10)$c$), 'inventário de 10 dias atrás');
+  PERFORM ci.entrar(gest); r := sngpc_inventario(hoje); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 3, 'o inventário lista os 3 lotes com saldo');
+  PERFORM ci.entrar(gest); r := sngpc_inventario(hoje - 5); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'itens') = 1 AND (r -> 'itens' -> 0 ->> 'quantidade') = '10', 'o inventário de 5 dias atrás só tem o saldo inicial');
+  UPDATE empresas SET cnpj = NULL WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_periodo(current_date - 3, current_date)$c$), 'gerar sem CNPJ da empresa');
+  UPDATE empresas SET cnpj = '11222333000181' WHERE tenant_id = demo;
+
+  -- responsáveis
+  PERFORM ci.entrar(gest); r := sngpc_responsaveis(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) >= 1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = farma AND e ->> 'cpf' = '52998224725')
+                   AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = farma_off), 'só farmacêutico ativo com CPF válido responde pelo envio');
+
+  -- envios
+  x := '<?xml version="1.0" encoding="iso-8859-1" ?><mensagemSNGPC xmlns="urn:sngpc-schema"><cabecalho/></mensagemSNGPC>';
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'auxiliar registra envio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma_off, x), 'envio com farmacêutico inativo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', 'texto qualquer'))$c$, farma), 'envio que não é XML');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 1, 'fim', current_date - 6, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período invertido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 60, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período de 60 dias');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'remessa', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'tipo de envio inválido');
+  PERFORM ci.entrar(gest);
+  env1 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje - 6, 'fim', hoje - 1, 'farmaceutico_id', farma, 'xml', x));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT length(sha256) = 64 AND situacao = 'gerado' AND gerado_por_nome <> '' FROM sngpc_envios WHERE id = env1), 'o envio guarda o hash do arquivo e quem gerou');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio que se sobrepõe a outro gerado');
+  PERFORM ci.entrar(vet); r := sngpc_envios(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND NOT (r -> 0 ? 'xml'), 'a lista de envios não carrega o arquivo');
+  PERFORM ci.entrar(vet); x := sngpc_envio_xml(env1); PERFORM ci.sair();
+  PERFORM ci.exige(x LIKE '<?xml version="1.0" encoding="iso-8859-1" ?><mensagemSNGPC%', 'o arquivo gerado pode ser baixado de novo, igual ao que foi guardado');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_xml(%L)$c$, env1), 'auxiliar baixa o arquivo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_envios SET xml = '<?xml outro ?>............................................' WHERE id = %L$c$, env1), 'trocar o arquivo gerado');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM sngpc_envios WHERE id = %L$c$, env1), 'apagar o envio');
+
+  -- transmitir: sem o protocolo não vale, e fecha o período
+  PERFORM ci.deve_falhar(aux, format($c$SELECT sngpc_envio_transmitir(%L, 'ABC123')$c$, env1), 'auxiliar marca como transmitido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, ' ')$c$, env1), 'transmitir sem protocolo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, 'ABC123')$c$, gen_random_uuid()), 'transmitir envio que não existe');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_envio_transmitir(env1, 'SNGPC-2026-0001');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'transmitido' AND protocolo = 'SNGPC-2026-0001' AND transmitido_em IS NOT NULL FROM sngpc_envios WHERE id = env1), 'transmitido guarda o protocolo e quando');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_transmitir(%L, 'OUTRO')$c$, env1), 'transmitir duas vezes');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_cancelar(%L, 'engano')$c$, env1), 'cancelar envio já transmitido');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE sngpc_envios SET protocolo = 'X' WHERE id = %L$c$, env1), 'alterar envio transmitido');
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'fechado_ate')::date = hoje - 1, 'o livro mostra até onde o período está fechado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 1, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'lançar em período já transmitido');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Receita errada')$c$, d_venda), 'cancelar lançamento de período já transmitido');
+  PERFORM ci.entrar(gest);
+  d_perda := sngpc_registrar('perda', jsonb_build_object('data', hoje, 'motivo_perda', 3, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 2))));
+  PERFORM ci.sair();
+  PERFORM ci.exige(d_perda IS NOT NULL, 'depois do período fechado, lançar com data nova continua valendo');
+
+  -- novo período: o seguinte ao transmitido; cancelar o gerado libera o período
+  PERFORM ci.entrar(gest);
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_cancelar(%L, ' ')$c$, env2), 'cancelar envio sem motivo');
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_envio_cancelar(env2, 'Faltou lançar uma nota');
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 3 FROM sngpc_envios WHERE tenant_id = demo), 'cancelar o gerado libera o período para um arquivo novo');
+
+  -- inventário: uma data por vez
+  PERFORM ci.entrar(gest);
+  PERFORM sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário com período em vez de uma data');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 9, 'fim', current_date - 9, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário de 9 dias atrás');
+
+  -- limpeza (os registros do SNGPC não se apagam pelo cliente; aqui só o dono do banco desfaz o teste)
+  ALTER TABLE sngpc_envios DISABLE TRIGGER trg_sngpc_envio_guarda;
+  ALTER TABLE sngpc_itens DISABLE TRIGGER trg_sngpc_item_guarda;
+  ALTER TABLE sngpc_documentos DISABLE TRIGGER trg_sngpc_documento_guarda;
+  DELETE FROM sngpc_envios WHERE tenant_id = demo;
+  DELETE FROM sngpc_itens WHERE tenant_id = demo;
+  DELETE FROM sngpc_documentos WHERE tenant_id = demo;
+  ALTER TABLE sngpc_envios ENABLE TRIGGER trg_sngpc_envio_guarda;
+  ALTER TABLE sngpc_itens ENABLE TRIGGER trg_sngpc_item_guarda;
+  ALTER TABLE sngpc_documentos ENABLE TRIGGER trg_sngpc_documento_guarda;
+  DELETE FROM sngpc_medicamentos WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, cnpj = cnpj_ant WHERE tenant_id = demo;
 END $$;

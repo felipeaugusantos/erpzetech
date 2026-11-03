@@ -51,6 +51,7 @@ import {
   normalizarCrmv,
   rotulo,
 } from "@/lib/pet";
+import { cpfValido } from "@/lib/nfce-consumidor";
 
 export const Route = createFileRoute("/_authenticated/pet-profissionais")({
   head: () => ({
@@ -84,6 +85,8 @@ type Form = {
   /** só para farmacêutico (responsável pelo envio do SNGPC) */
   crf: string;
   crf_uf: string;
+  /** CPF do farmacêutico: vai no cabeçalho do arquivo do SNGPC */
+  cpf: string;
   /** conta de acesso (perfil Profissional) ligada ao cadastro; vazio = sem acesso próprio */
   profile_id: string;
   profile_original: string;
@@ -103,6 +106,7 @@ const vazio: Form = {
   crmv_uf: "",
   crf: "",
   crf_uf: "",
+  cpf: "",
   profile_id: "",
   profile_original: "",
   criar_acesso: false,
@@ -170,6 +174,8 @@ function Profissionais() {
         throw new Error("Informe o CRMV (de 3 a 12 letras ou números) e a UF do veterinário.");
       if (form.funcao === "farmaceutico" && !crfValido(form.crf, form.crf_uf))
         throw new Error("Informe o CRF (de 3 a 12 letras ou números) e a UF do farmacêutico.");
+      if (form.funcao === "farmaceutico" && !cpfValido(form.cpf))
+        throw new Error("Informe o CPF do farmacêutico (11 números, válido): o SNGPC exige.");
       const com = Number((form.comissao_percentual || "0").replace(",", "."));
       if (!Number.isFinite(com) || com < 0 || com > 100)
         throw new Error("A comissão precisa ficar entre 0 e 100%.");
@@ -190,7 +196,11 @@ function Profissionais() {
             ? { crmv: normalizarCrmv(form.crmv), crmv_uf: form.crmv_uf }
             : {}),
           ...(form.funcao === "farmaceutico"
-            ? { crf: normalizarCrmv(form.crf), crf_uf: form.crf_uf }
+            ? {
+                crf: normalizarCrmv(form.crf),
+                crf_uf: form.crf_uf,
+                cpf: form.cpf.replace(/\D/g, ""),
+              }
             : {}),
         },
       });
@@ -329,6 +339,7 @@ function Profissionais() {
                             crmv_uf: p.crmv_uf ?? "",
                             crf: p.crf ?? "",
                             crf_uf: p.crf_uf ?? "",
+                            cpf: p.cpf ?? "",
                             profile_id: p.profile_id ?? "",
                             profile_original: p.profile_id ?? "",
                             criar_acesso: false,
@@ -451,6 +462,18 @@ function Profissionais() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            )}
+            {form.funcao === "farmaceutico" && (
+              <div>
+                <Label htmlFor="pf-cpf">CPF</Label>
+                <Input
+                  id="pf-cpf"
+                  inputMode="numeric"
+                  placeholder="Para o arquivo do SNGPC"
+                  value={form.cpf}
+                  onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                />
               </div>
             )}
             {filiais.length > 1 && (

@@ -147,6 +147,7 @@ import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_au
 import { Route as AuthenticatedRelatorioPetProfissionaisRouteImport } from './routes/_authenticated/relatorio-pet-profissionais'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
+import { Route as AuthenticatedSngpcRouteImport } from './routes/_authenticated/sngpc'
 import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
@@ -949,6 +950,11 @@ const AuthenticatedSalaoRoute = AuthenticatedSalaoRouteImport.update({
   path: '/salao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSngpcRoute = AuthenticatedSngpcRouteImport.update({
+  id: '/sngpc',
+  path: '/sngpc',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSugestaoCompraRoute =
   AuthenticatedSugestaoCompraRouteImport.update({
     id: '/sugestao-compra',
@@ -1265,6 +1271,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sngpc': typeof AuthenticatedSngpcRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
@@ -1435,6 +1442,7 @@ export interface FileRoutesByTo {
   '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sngpc': typeof AuthenticatedSngpcRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
@@ -1607,6 +1615,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
+  '/_authenticated/sngpc': typeof AuthenticatedSngpcRoute
   '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
@@ -1779,6 +1788,7 @@ export interface FileRouteTypes {
     | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
+    | '/sngpc'
     | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
@@ -1949,6 +1959,7 @@ export interface FileRouteTypes {
     | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
+    | '/sngpc'
     | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
@@ -2120,6 +2131,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-pet-profissionais'
     | '/_authenticated/rota'
     | '/_authenticated/salao'
+    | '/_authenticated/sngpc'
     | '/_authenticated/sugestao-compra'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
@@ -3135,6 +3147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sngpc': {
+      id: '/_authenticated/sngpc'
+      path: '/sngpc'
+      fullPath: '/sngpc'
+      preLoaderRoute: typeof AuthenticatedSngpcRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sugestao-compra': {
       id: '/_authenticated/sugestao-compra'
       path: '/sugestao-compra'
@@ -3486,6 +3505,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioPetProfissionaisRoute: typeof AuthenticatedRelatorioPetProfissionaisRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
+  AuthenticatedSngpcRoute: typeof AuthenticatedSngpcRoute
   AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
@@ -3652,6 +3672,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRelatorioPetProfissionaisRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
+  AuthenticatedSngpcRoute: AuthenticatedSngpcRoute,
   AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
