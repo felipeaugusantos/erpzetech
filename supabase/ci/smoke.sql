@@ -9482,7 +9482,8 @@ BEGIN
                                              'comodidades', jsonb_build_array('Ar-condicionado', ' TV ', 'tv', '')));
   t2 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f2, 'nome', 'Standard casal'));
   PERFORM ci.sair();
-  PERFORM ci.exige((SELECT comodidades = ARRAY['Ar-condicionado', 'TV', 'tv'] AND capacidade_criancas = 1 FROM hs_tipos_uh WHERE id = t1), 'tipo guarda capacidade e comodidades sem vazios');
+  -- a ordem das comodidades depende da collation do banco: confere como conjunto
+  PERFORM ci.exige((SELECT comodidades @> ARRAY['Ar-condicionado', 'TV', 'tv'] AND comodidades <@ ARRAY['Ar-condicionado', 'TV', 'tv'] AND cardinality(comodidades) = 3 AND capacidade_criancas = 1 FROM hs_tipos_uh WHERE id = t1), 'tipo guarda capacidade e comodidades sem vazios');
   PERFORM ci.exige(t1 <> t2, 'o mesmo nome vale em hotéis diferentes');
   PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', ' standard CASAL '))$c$, f1), 'tipo com nome repetido no mesmo hotel');
   PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'X', 'capacidade_adultos', 0))$c$, f1), 'tipo sem adulto');
