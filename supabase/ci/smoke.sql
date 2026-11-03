@@ -8760,7 +8760,7 @@ DECLARE
   ban  constant uuid := 'a0000000-0000-0000-0000-0000000001d3';
   ramo_ant text; cnae_ant text; cnae2_ant text;
   tutor uuid; pet uuid; b4 uuid; i1 uuid; dep uuid; prod uuid; serv uuid;
-  p1 uuid; p2 uuid; e1 uuid; e2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb; n bigint;
+  p1 uuid; p2 uuid; p3 uuid; p4 uuid; e1 uuid; e2 uuid; it_prod uuid; it_serv uuid; it_livre uuid; r jsonb; n bigint;
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
@@ -8893,6 +8893,14 @@ BEGIN
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET quantidade = 9 WHERE id = %L$c$, it_serv), 'mudar a quantidade do item');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_itens SET descricao = 'x' WHERE id = %L$c$, it_prod), 'mexer em item cancelado');
 
+  -- duração que não é múltiplo da frequência: toda dose que cabe na duração entra (5 h por 1 dia = 0, 5, 10, 15 e 20 h)
+  PERFORM ci.entrar(vet);
+  p3 := clinica_internacao_prescrever(i1, '{"medicamento":"Omeprazol","dose":"1 mg/kg","frequencia_horas":5,"dias":1}'::jsonb);
+  p4 := clinica_internacao_prescrever(i1, '{"medicamento":"Tramadol","dose":"2 mg/kg","frequencia_horas":7,"dias":1}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 5 AND max(previsto_em) - min(previsto_em) = interval '20 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p3), 'a cada 5 h por 1 dia dá 5 doses, a última na hora 20');
+  PERFORM ci.exige((SELECT count(*) = 4 AND max(previsto_em) - min(previsto_em) = interval '21 hours' FROM pet_internacao_execucoes WHERE prescricao_id = p4), 'a cada 7 h por 1 dia dá 4 doses, a última na hora 21');
+
   -- alta: as doses que faltam são canceladas e nada mais entra
   PERFORM ci.entrar(vet);
   PERFORM clinica_internacao_encerrar(i1, 'alta', 'Alta com medicação oral');
@@ -8905,7 +8913,7 @@ BEGIN
   PERFORM ci.entrar(aux); r := clinica_execucoes_mapa(72); PERFORM ci.sair();
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'itens') e WHERE e -> 'pet' ->> 'nome' = 'Paciente Presc CI'), 'o mapa não traz internação encerrada');
   PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
-  PERFORM ci.exige(jsonb_array_length(r -> 'prescricoes') = 2 AND jsonb_array_length(r -> 'itens') = 3, 'o histórico continua completo depois da alta');
+  PERFORM ci.exige(jsonb_array_length(r -> 'prescricoes') = 4 AND jsonb_array_length(r -> 'itens') = 3, 'o histórico continua completo depois da alta');
 
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
@@ -9110,9 +9118,23 @@ BEGIN
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 1, 'fim', current_date - 6, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período invertido');
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 60, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio com período de 60 dias');
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'remessa', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'tipo de envio inválido');
+  -- o arquivo só vale para o livro como estava na montagem: assinatura errada, ou livro que mudou depois, recusa
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L, 'assinatura', 'errada'))$c$, farma, x), 'envio com assinatura errada');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio sem assinatura');
   PERFORM ci.entrar(gest);
-  env1 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje - 6, 'fim', hoje - 1, 'farmaceutico_id', farma, 'xml', x));
+  r := sngpc_periodo(hoje - 6, hoje - 1);
+  PERFORM sngpc_registrar('perda', jsonb_build_object('data', hoje - 1, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L1', 'quantidade', 1))));
   PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 6, 'fim', current_date - 1, 'farmaceutico_id', %L, 'xml', %L, 'assinatura', %L))$c$, farma, x, r ->> 'assinatura'), 'arquivo montado antes de um lançamento novo no período');
+  PERFORM ci.entrar(gest);
+  r := sngpc_periodo(hoje - 6, hoje - 1);
+  env1 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje - 6, 'fim', hoje - 1, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
+  PERFORM ci.sair();
+  -- enquanto há arquivo gerado, o livro das datas dele não muda
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date - 2, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L1', 'quantidade', 1))))$c$, m1), 'lançar em período com arquivo gerado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_cancelar(%L, 'Receita errada')$c$, d_venda), 'cancelar lançamento de período com arquivo gerado');
+  PERFORM ci.entrar(vet); r := sngpc_livro(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r -> 'periodos_travados') = 1 AND (r -> 'periodos_travados' -> 0 ->> 'situacao') = 'gerado', 'o livro mostra o período travado pelo arquivo gerado');
   PERFORM ci.exige((SELECT length(sha256) = 64 AND situacao = 'gerado' AND gerado_por_nome <> '' FROM sngpc_envios WHERE id = env1), 'o envio guarda o hash do arquivo e quem gerou');
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'envio que se sobrepõe a outro gerado');
   PERFORM ci.entrar(vet); r := sngpc_envios(); PERFORM ci.sair();
@@ -9145,18 +9167,24 @@ BEGIN
 
   -- novo período: o seguinte ao transmitido; cancelar o gerado libera o período
   PERFORM ci.entrar(gest);
-  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  r := sngpc_periodo(hoje, hoje);
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
   PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_registrar('perda', jsonb_build_object('data', current_date, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', %L, 'lote', 'L2', 'quantidade', 1))))$c$, m1), 'lançar no dia de um arquivo gerado');
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_cancelar(%L, ' ')$c$, env2), 'cancelar envio sem motivo');
   PERFORM ci.entrar(gest);
   PERFORM sngpc_envio_cancelar(env2, 'Faltou lançar uma nota');
-  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  -- cancelado o arquivo gerado, o livro da data volta a aceitar lançamento; o arquivo novo precisa da assinatura nova
+  PERFORM sngpc_registrar('perda', jsonb_build_object('data', hoje, 'motivo_perda', 2, 'itens', jsonb_build_array(jsonb_build_object('medicamento_id', m1, 'lote', 'L2', 'quantidade', 1))));
+  r := sngpc_periodo(hoje, hoje);
+  env2 := sngpc_envio_registrar(jsonb_build_object('tipo', 'movimentacao', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT count(*) = 3 FROM sngpc_envios WHERE tenant_id = demo), 'cancelar o gerado libera o período para um arquivo novo');
 
   -- inventário: uma data por vez
   PERFORM ci.entrar(gest);
-  PERFORM sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x));
+  r := sngpc_inventario(hoje);
+  PERFORM sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', hoje, 'fim', hoje, 'farmaceutico_id', farma, 'xml', x, 'assinatura', r ->> 'assinatura'));
   PERFORM ci.sair();
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 3, 'fim', current_date, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário com período em vez de uma data');
   PERFORM ci.deve_falhar(gest, format($c$SELECT sngpc_envio_registrar(jsonb_build_object('tipo', 'inventario', 'inicio', current_date - 9, 'fim', current_date - 9, 'farmaceutico_id', %L, 'xml', %L))$c$, farma, x), 'inventário de 9 dias atrás');

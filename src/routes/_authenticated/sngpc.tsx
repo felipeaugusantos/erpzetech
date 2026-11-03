@@ -47,6 +47,7 @@ import {
   TIPOS_RECEITUARIO,
   TIPO_DOCUMENTO_COMPRADOR,
   UNIDADES_MEDIDA,
+  dataTravada,
   erroDoItem,
   idadeParaSngpc,
   rotuloMotivoPerda,
@@ -60,6 +61,7 @@ import {
   type InventarioSngpc,
   type MedicamentoControlado,
   type PeriodoSngpc,
+  type PeriodoTravado,
   type ResponsavelSngpc,
   type SaldoLote,
   type TipoLancamento,
@@ -459,7 +461,11 @@ function Livro({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("sngpc_livro", {});
       if (error) throw error;
-      return data as unknown as { fechado_ate: string | null; documentos: DocumentoLivro[] };
+      return data as unknown as {
+        fechado_ate: string | null;
+        periodos_travados: PeriodoTravado[];
+        documentos: DocumentoLivro[];
+      };
     },
   });
 
@@ -488,6 +494,7 @@ function Livro({
   const ativos = medicamentos.filter((m) => m.ativo);
   const docs = livro.data?.documentos ?? [];
   const fechado = livro.data?.fechado_ate ?? null;
+  const travados = livro.data?.periodos_travados ?? [];
 
   return (
     <div className="mt-4 grid gap-4">
@@ -495,6 +502,17 @@ function Livro({
         <p className="flex items-center gap-2 rounded-md border border-border bg-muted/50 p-3 text-sm">
           <TriangleAlert className="size-4" /> Período fechado até {dateBR(fechado)}: o que já foi
           transmitido ao SNGPC não muda.
+        </p>
+      )}
+      {travados.some((t) => t.situacao === "gerado") && (
+        <p className="flex items-center gap-2 rounded-md border border-border bg-muted/50 p-3 text-sm">
+          <TriangleAlert className="size-4" /> Há arquivo gerado (ainda não transmitido) para{" "}
+          {travados
+            .filter((t) => t.situacao === "gerado")
+            .map((t) => `${dateBR(t.inicio)} a ${dateBR(t.fim)}`)
+            .join("; ")}
+          : o livro dessas datas não muda. Para lançar ou cancelar nelas, cancele o arquivo gerado
+          na aba Envios.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
@@ -600,19 +618,21 @@ function Livro({
                       ))}
                     </TableCell>
                     <TableCell className="text-right">
-                      {!d.cancelado_em && (!fechado || d.data > fechado) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Cancelar lançamento"
-                          onClick={() => {
-                            setCancelando(d.id);
-                            setMotivo("");
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      )}
+                      {!d.cancelado_em &&
+                        (!fechado || d.data > fechado) &&
+                        !dataTravada(d.data, travados) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Cancelar lançamento"
+                            onClick={() => {
+                              setCancelando(d.id);
+                              setMotivo("");
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1291,6 +1311,7 @@ type Montado = {
   inicio: string;
   fim: string;
   xml: string;
+  assinatura: string;
   linhas: string[];
   farmaceutico: string;
 };
@@ -1346,6 +1367,7 @@ function Envios() {
           inicio: p.inicio,
           fim: p.fim,
           xml: gerarXmlMovimentacao(p, responsavel.cpf),
+          assinatura: p.assinatura,
           farmaceutico: responsavel.nome,
           linhas: [
             `${r.entradas} entrada(s)`,
@@ -1364,6 +1386,7 @@ function Envios() {
         inicio: inv.data,
         fim: inv.data,
         xml: gerarXmlInventario(inv, responsavel.cpf),
+        assinatura: inv.assinatura,
         farmaceutico: responsavel.nome,
         linhas: [`Inventário em ${dateBR(inv.data)}`, `${inv.itens.length} lote(s) com saldo`],
       };
@@ -1382,6 +1405,7 @@ function Envios() {
           fim: montado.fim,
           farmaceutico_id: responsavel.id,
           xml: montado.xml,
+          assinatura: montado.assinatura,
         },
       });
       if (error) throw error;

@@ -25,6 +25,7 @@ const periodo: PeriodoSngpc = {
   cnpj: "11222333000181",
   inicio: "2026-11-01",
   fim: "2026-11-05",
+  assinatura: "abc",
   documentos: [
     {
       id: "1",
@@ -185,6 +186,7 @@ test("XML de inventário", () => {
     {
       cnpj: "11.222.333/0001-81",
       data: "2026-11-05",
+      assinatura: "abc",
       itens: [{ registro_ms: "1234567890123", lote: "L1", quantidade: 6, unidade_medida: 1 }],
     },
     "52998224725",
@@ -261,4 +263,19 @@ test("rótulos", () => {
   assert.match(rotuloReceituario(2), /azul/);
   assert.equal(rotuloReceituario(5), "");
   assert.equal(rotuloMotivoPerda(3), "Vencimento");
+});
+
+import { dataTravada } from "../src/lib/sngpc.ts";
+
+test("data travada: dentro de um período com arquivo gerado ou transmitido", () => {
+  const periodos = [
+    { inicio: "2026-11-01", fim: "2026-11-05", situacao: "gerado" as const },
+    { inicio: "2026-11-10", fim: "2026-11-12", situacao: "transmitido" as const },
+  ];
+  assert.equal(dataTravada("2026-11-01", periodos), true);
+  assert.equal(dataTravada("2026-11-05", periodos), true);
+  assert.equal(dataTravada("2026-11-06", periodos), false);
+  assert.equal(dataTravada("2026-11-11", periodos), true);
+  assert.equal(dataTravada("2026-11-13", periodos), false);
+  assert.equal(dataTravada("2026-11-01", []), false);
 });

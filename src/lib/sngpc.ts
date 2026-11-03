@@ -148,13 +148,26 @@ export type DocumentoEnvio = {
   itens: ItemEnvio[];
 };
 
+/** `assinatura` é a impressão digital do livro na hora da montagem: o envio recusa se o livro mudou depois. */
 export type PeriodoSngpc = {
   cnpj: string;
   inicio: string;
   fim: string;
+  assinatura: string;
   documentos: DocumentoEnvio[];
 };
-export type InventarioSngpc = { cnpj: string; data: string; itens: ItemEnvio[] };
+export type InventarioSngpc = {
+  cnpj: string;
+  data: string;
+  assinatura: string;
+  itens: ItemEnvio[];
+};
+
+export type PeriodoTravado = { inicio: string; fim: string; situacao: "gerado" | "transmitido" };
+
+/** A data está dentro de um período que já tem arquivo gerado ou transmitido (o livro dela não muda). */
+export const dataTravada = (data: string, periodos: readonly PeriodoTravado[]) =>
+  periodos.some((p) => data >= p.inicio && data <= p.fim);
 export type ResponsavelSngpc = {
   id: string;
   nome: string;

@@ -22,8 +22,8 @@ O layout vem do **Guia para geração do padrão de transmissão SNGPC, versão 
 ## O que o módulo faz
 
 1. **Medicamentos controlados:** liga um produto do cadastro ao registro na Anvisa (13 dígitos), à lista da Portaria 344 (A1, A2, A3, B1, B2, C1 a C5) e à unidade (caixa ou frasco).
-2. **Livro (escrituração):** lançamentos de saldo inicial, entrada (nota fiscal de compra), dispensação (receita ou notificação, prescritor CRMV, tutor, animal) e perda (motivo). O saldo é por medicamento e lote; **nenhum lançamento pode deixar o saldo de um lote negativo em nenhuma data**. Lançamento não se apaga: cancela-se com motivo, e só fora de período já transmitido.
-3. **Envios:** o responsável técnico escolhe o período, o sistema monta o XML, mostra a conferência, baixa o `.zip` e guarda uma cópia do que foi gerado. Depois do envio ao SNGPC, registra-se o protocolo e o período fica fechado. Há também o XML de inventário (saldo numa data).
+2. **Livro (escrituração):** lançamentos de saldo inicial, entrada (nota fiscal de compra), dispensação (receita ou notificação, prescritor CRMV, tutor, animal) e perda (motivo). O saldo é por medicamento e lote; **nenhum lançamento pode deixar o saldo de um lote negativo em nenhuma data**. Lançamento não se apaga: cancela-se com motivo, e só fora de período já transmitido. Lançar e cancelar passam por um cadeado por empresa (duas saídas do mesmo lote ao mesmo tempo não furam o saldo).
+3. **Envios:** o responsável técnico escolhe o período, o sistema monta o XML, mostra a conferência, baixa o `.zip` e guarda uma cópia do que foi gerado. O arquivo só vale para o livro como estava na montagem: o envio confere uma assinatura do livro e recusa se algo mudou, e **enquanto há arquivo gerado ou transmitido cobrindo uma data, o livro dessa data não muda** (para alterar, cancela-se o arquivo gerado e gera-se de novo). Depois do envio ao SNGPC, registra-se o protocolo e o período fica fechado. Há também o XML de inventário (saldo numa data).
 
 ## Decisões
 
