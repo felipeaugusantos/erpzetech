@@ -517,7 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
-    'restaurante_pracas', 'mesa_reservas',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -903,6 +903,123 @@ BEGIN
   PERFORM ci.exige((r ->> 'taxas_do_destino')::boolean AND (r ->> 'pagamentos')::int = 1, 'gestão junta contas com serviço diferente');
   PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 20 FROM comanda_pagamentos WHERE comanda_id = c4), 'o crédito da conta de origem passou para o destino');
   PERFORM ci.exige((SELECT pessoas = 6 FROM comandas WHERE id = c4), 'pessoas somadas na segunda junção');
+END $$;
+
+-- 17c. balança: item por peso, tara e teto do buffet livre
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  outro_tenant uuid; cat uuid; kg uuid; un uuid; prato uuid; vasi uuid; inativa uuid; tara_alheia uuid;
+  cmd uuid; cx uuid; r jsonb; it record;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- taras: a gestão cadastra, a operação lê
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Prato CI', 350) RETURNING id INTO prato;
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Vasilhame CI', 120) RETURNING id INTO vasi;
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g, ativo) VALUES (demo, 'Antiga CI', 200, false) RETURNING id INTO inativa;
+  PERFORM ci.sair();
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (outro_tenant, 'Prato alheio', 300) RETURNING id INTO tara_alheia;
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_taras') = 3, 'garçom lê só as taras da própria empresa');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_taras') = 3, 'cozinha lê as taras');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_taras') = 0, 'vendedor não lê as taras');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Outra', 100)$c$, demo), 'garçom cadastra tara');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, ' prato ci ', 100)$c$, demo), 'tara repetida');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Zero', 0)$c$, demo), 'tara de peso zero');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Gigante', 5001)$c$, demo), 'tara acima de 5 kg');
+
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Balanca CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso, tara_id)
+    VALUES (demo, cat, 'Buffet por kg CI', 60, 'nenhuma', true, prato) RETURNING id INTO kg;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Suco CI', 8, 'nenhuma') RETURNING id INTO un;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET tara_id = %L WHERE id = %L$c$, prato, un), 'tara padrão em item que não é por peso');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET tara_id = %L WHERE id = %L$c$, tara_alheia, kg), 'tara de outra empresa no item');
+
+  -- cálculo
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_pesagem_calcular(%L, 850, %L)$c$, kg, prato), 'vendedor pesa');
+  PERFORM ci.entrar(gar);
+  r := restaurante_pesagem_calcular(kg, 850, prato);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'liquido_g')::int = 500 AND (r ->> 'valor')::numeric = 30 AND NOT (r ->> 'teto_aplicado')::boolean, 'prato de 850 g com tara de 350 g custa 500 g x R$ 60/kg');
+  PERFORM ci.entrar(gar);
+  r := restaurante_pesagem_calcular(kg, 850, NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'tara_g')::int = 0 AND (r ->> 'valor')::numeric = 51, 'sem tara cobra o peso bruto');
+  UPDATE cardapio_itens SET preco = 59.90 WHERE id = kg;
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 683, prato) ->> 'valor')::numeric = 19.95, 'arredondamento: 333 g x 59,90 = 19,95');
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 685, prato) ->> 'valor')::numeric = 20.07, 'arredondamento: 335 g x 59,90 = 20,07');
+  PERFORM ci.sair();
+  UPDATE cardapio_itens SET preco = 60 WHERE id = kg;
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 350, %L)$c$, kg, prato), 'peso igual à tara');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 300, %L)$c$, kg, prato), 'peso menor que a tara');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 0, NULL)$c$, kg), 'peso zero');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 30001, NULL)$c$, kg), 'peso acima de 30 kg');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, %L)$c$, kg, inativa), 'tara inativa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, %L)$c$, kg, tara_alheia), 'tara de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, NULL)$c$, un), 'pesar item que não é por peso');
+
+  -- lançar: só pela balança
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, 'Balança CI', 0, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, cmd, kg), 'lançar item por peso pelo lançamento comum');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 850, %L)$c$, cmd, kg, prato), 'vendedor lança pesagem');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO comanda_itens (tenant_id, comanda_id, cardapio_item_id, nome, estacao, quantidade, preco_unitario, total) VALUES (%L, %L, %L, 'x', 'nenhuma', 1, 60, 60)$c$, demo, cmd, kg), 'inserir item por peso direto no banco');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 850, %L)$c$, gen_random_uuid(), kg, prato), 'pesagem em comanda que não existe');
+  PERFORM ci.entrar(gar);
+  r := restaurante_lancar_pesagem(cmd, kg, 850, prato, 'sem pimenta');
+  PERFORM ci.sair();
+  SELECT * INTO it FROM comanda_itens WHERE id = (r ->> 'item_id')::uuid;
+  PERFORM ci.exige(it.quantidade = 0.5 AND it.total = 30 AND it.preco_unitario = 60 AND it.situacao = 'entregue', 'pesagem vira item entregue com o peso líquido e o valor');
+  PERFORM ci.exige(it.peso_bruto_g = 850 AND it.tara_g = 350 AND it.peso_liquido_g = 500 AND NOT it.teto_buffet, 'pesagem fica gravada no item');
+  PERFORM ci.exige(it.observacao LIKE '%Prato CI%' AND it.observacao LIKE '%sem pimenta%', 'observação traz a tara e o pedido');
+
+  -- buffet livre
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo) VALUES (%L, true) ON CONFLICT (tenant_id) DO UPDATE SET buffet_livre_ativo = true$c$, demo), 'buffet livre ativo sem preço');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo, buffet_livre_preco) VALUES (%L, true, 40)$c$, demo), 'garçom configura o buffet livre');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo, buffet_livre_preco) VALUES (demo, true, 40)
+    ON CONFLICT (tenant_id) DO UPDATE SET buffet_livre_ativo = true, buffet_livre_preco = 40;
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gar);
+  r := restaurante_balanca_config();
+  PERFORM ci.exige((r ->> 'buffet_livre_ativo')::boolean AND (r ->> 'buffet_livre_preco')::numeric = 40, 'operação lê o buffet livre configurado');
+  r := restaurante_pesagem_calcular(kg, 1350, prato);
+  PERFORM ci.exige((r ->> 'valor_sem_teto')::numeric = 60 AND (r ->> 'valor')::numeric = 40 AND (r ->> 'teto_aplicado')::boolean, 'prato acima do buffet livre cobra o buffet livre');
+  r := restaurante_pesagem_calcular(kg, 850, prato);
+  PERFORM ci.exige((r ->> 'valor')::numeric = 30 AND NOT (r ->> 'teto_aplicado')::boolean, 'prato abaixo do buffet livre cobra o peso');
+  r := restaurante_pesagem_calcular(kg, 1017, prato);
+  PERFORM ci.exige((r ->> 'valor_sem_teto')::numeric = 40.02 AND (r ->> 'valor')::numeric = 40 AND (r ->> 'teto_aplicado')::boolean, 'um centavo acima do buffet livre já aplica o teto');
+  r := restaurante_lancar_pesagem(cmd, kg, 1350, prato);
+  PERFORM ci.sair();
+  SELECT * INTO it FROM comanda_itens WHERE id = (r ->> 'item_id')::uuid;
+  PERFORM ci.exige(it.total = 40 AND it.teto_buffet AND it.quantidade = 1 AND it.observacao LIKE '%limitado ao buffet livre%', 'item com teto guarda o valor do buffet livre e a marca');
+  PERFORM ci.deve_falhar(vend, 'SELECT restaurante_balanca_config()', 'vendedor lê a configuração da balança');
+
+  -- desligado: volta ao peso
+  UPDATE restaurante_config SET buffet_livre_ativo = false WHERE tenant_id = demo;
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 1350, prato) ->> 'valor')::numeric = 60, 'buffet livre desligado não limita');
+  PERFORM ci.exige((restaurante_balanca_config() ->> 'buffet_livre_preco') IS NULL, 'configuração desligada não expõe o preço');
+  PERFORM ci.sair();
+
+  -- fecha a conta com os dois pratos: 30 + 40 = 70
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(cmd, '[{"forma":"pix","valor":70}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 70, 'a conta soma o valor das pesagens (sem recalcular pelo peso)');
+
+  -- os testes seguintes partem de uma empresa sem configuração do restaurante
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
 END $$;
 
 -- 18. quantidade de mesas do restaurante
