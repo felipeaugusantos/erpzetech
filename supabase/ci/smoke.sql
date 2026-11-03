@@ -517,7 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
-    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador', 'cardapios', 'cardapio_cardapio_itens',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -1187,6 +1187,66 @@ BEGIN
   PERFORM ci.deve_falhar(gar, 'SELECT count(*) FROM restaurante_senhas_contador', 'o contador de senhas lido pelo cliente');
 END $$;
 
+-- 17f. vários cardápios
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro_tenant uuid; principal uuid; jantar uuid; inativo uuid; alheio uuid; cat uuid; it_a uuid; it_b uuid; it_c uuid; op uuid; grp uuid;
+  cmd uuid; i1 uuid; i2 uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO cardapios (tenant_id, nome) VALUES (%L, 'Do garçom')$c$, demo), 'garçom cria cardápio');
+  PERFORM ci.entrar(adm);
+  INSERT INTO cardapios (tenant_id, nome, padrao, ordem) VALUES (demo, 'Principal CI', true, 0) RETURNING id INTO principal;
+  INSERT INTO cardapios (tenant_id, nome, ordem, uso_ifood, hora_inicio, hora_fim) VALUES (demo, 'Jantar CI', 1, true, '18:00', '23:30') RETURNING id INTO jantar;
+  INSERT INTO cardapios (tenant_id, nome, ativo) VALUES (demo, 'Parado CI', false) RETURNING id INTO inativo;
+  PERFORM ci.sair();
+  INSERT INTO cardapios (tenant_id, nome, padrao) VALUES (outro_tenant, 'Principal alheio', true) RETURNING id INTO alheio;
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome, padrao) VALUES (%L, 'Outro padrão', true)$c$, demo), 'dois cardápios padrão na mesma empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome) VALUES (%L, ' principal ci ')$c$, demo), 'nome de cardápio repetido');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome, hora_inicio) VALUES (%L, 'Meio horário', '10:00')$c$, demo), 'horário com só o início');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM cardapios') = 3, 'garçom lê só os cardápios da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM cardapios') = 0, 'vendedor não lê cardápios');
+
+  -- item novo entra no cardápio padrão sozinho
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Varios CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato A CI', 40, 'nenhuma') RETURNING id INTO it_a;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato B CI', 25, 'nenhuma') RETURNING id INTO it_b;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, interno, ativo) VALUES (demo, cat, 'Interno CI', 1, 'nenhuma', true, false) RETURNING id INTO it_c;
+  PERFORM ci.exige((SELECT count(*) = 2 FROM cardapio_cardapio_itens WHERE cardapio_id = principal AND item_id IN (it_a, it_b)), 'item novo entra no cardápio padrão');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM cardapio_cardapio_itens WHERE item_id = it_c), 'item interno não entra em cardápio');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id) VALUES (%L, %L, %L)$c$, demo, alheio, it_a), 'item ligado a cardápio de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id, preco) VALUES (%L, %L, %L, -1)$c$, demo, jantar, it_a), 'preço negativo no cardápio');
+
+  -- o jantar vende só o prato A, por 50 (base 40)
+  INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id, preco, ordem) VALUES (demo, jantar, it_a, 50, 1);
+  INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id) VALUES (demo, inativo, it_b);
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (demo, it_a, 'Molho CI') RETURNING id INTO grp;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, grp, 'Extra', 3) RETURNING id INTO op;
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_a, jantar), 'vendedor lança item por cardápio');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, NULL)$c$, cmd, it_a), 'lançar sem escolher o cardápio');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_b, jantar), 'item que não está no cardápio escolhido');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_b, inativo), 'lançar por cardápio inativo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_a, alheio), 'lançar por cardápio de outra empresa');
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item_no_cardapio(cmd, it_a, 2, jantar, ARRAY[op], 'sem sal');
+  i2 := restaurante_lancar_item_no_cardapio(cmd, it_a, 1, principal);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_unitario = 53 AND total = 106 AND observacao = 'sem sal' FROM comanda_itens WHERE id = i1), 'jantar cobra o preço do cardápio mais a opção');
+  PERFORM ci.exige((SELECT preco_unitario = 40 AND total = 40 FROM comanda_itens WHERE id = i2), 'cardápio sem preço próprio cobra o preço base');
+  UPDATE cardapio_itens SET preco = 45 WHERE id = it_a;
+  PERFORM ci.exige((SELECT preco_unitario = 53 FROM comanda_itens WHERE id = i1), 'mudar o preço depois não altera o item já lançado');
+
+END $$;
+
 -- 18. quantidade de mesas do restaurante
 DO $$
 DECLARE
@@ -1666,11 +1726,16 @@ BEGIN
   r := restaurante_cardapio_publico('BISTRO-ci');
   PERFORM ci.sair();
   PERFORM ci.exige(r IS NOT NULL AND r->'empresa'->>'nome' = 'Bistrô CI', 'anônimo vê o cardápio ligado (link sem diferenciar maiúsculas)');
-  PERFORM ci.exige(jsonb_array_length(r->'categorias') >= 1, 'cardápio público tem categorias');
-  PERFORM ci.exige((SELECT c->'itens'->0->>'nome' FROM jsonb_array_elements(r->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 'Filé CI', 'itens saem na ordem do cadastro');
+  PERFORM ci.exige(jsonb_array_length(r->'cardapios') >= 1 AND jsonb_array_length(r->'cardapios'->0->'categorias') >= 1, 'cardápio público tem cardápios e categorias');
+  PERFORM ci.exige((SELECT c->'itens'->0->>'nome' FROM jsonb_array_elements(r->'cardapios'->0->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 'Filé CI', 'itens saem na ordem do cadastro');
   PERFORM ci.exige(NOT (r::text LIKE '%Item inativo CI%'), 'item inativo não aparece');
-  PERFORM ci.exige((SELECT (c->'itens'->0->'grupos'->0->'opcoes'->1->>'preco_adicional')::numeric FROM jsonb_array_elements(r->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 2, 'adicionais saem com valor');
+  PERFORM ci.exige((SELECT (c->'itens'->0->'grupos'->0->'opcoes'->1->>'preco_adicional')::numeric FROM jsonb_array_elements(r->'cardapios'->0->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 2, 'adicionais saem com valor');
   PERFORM ci.exige(r::text LIKE '%risoto-1.jpg%', 'foto do item sai no cardápio');
+  PERFORM ci.exige((SELECT (i->>'preco')::numeric FROM jsonb_array_elements(r->'cardapios') m, jsonb_array_elements(m->'categorias') c, jsonb_array_elements(c->'itens') i
+                     WHERE m->>'nome' = 'Jantar CI' AND i->>'nome' = 'Prato A CI') = 50, 'cada cardápio público mostra o seu preço');
+  PERFORM ci.exige((SELECT (i->>'preco')::numeric FROM jsonb_array_elements(r->'cardapios') m, jsonb_array_elements(m->'categorias') c, jsonb_array_elements(c->'itens') i
+                     WHERE m->>'nome' = 'Principal CI' AND i->>'nome' = 'Prato A CI') = 45, 'cardápio sem preço próprio mostra o preço base');
+  PERFORM ci.exige(NOT (r::text LIKE '%Parado CI%'), 'cardápio inativo não aparece no público');
   PERFORM ci.exige(r::text NOT LIKE '%custo%' AND r::text NOT LIKE '%estacao%' AND r::text NOT LIKE '%tenant%', 'cardápio público não expõe custo, estação nem empresa');
 
   -- categoria desativada some do cardápio
