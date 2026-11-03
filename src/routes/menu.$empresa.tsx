@@ -87,7 +87,10 @@ function CardapioOnline() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <h3 className="font-medium">{i.nome}</h3>
-                    <span className="shrink-0 font-semibold">{brl(i.preco)}</span>
+                    <span className="shrink-0 font-semibold">
+                      {brl(i.preco)}
+                      {i.porPeso ? "/kg" : ""}
+                    </span>
                   </div>
                   {i.descricao && <p className="text-sm text-muted-foreground">{i.descricao}</p>}
                   {i.grupos

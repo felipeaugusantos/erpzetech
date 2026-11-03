@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { calcularPesagem, kgTexto, pesoEmGramas } from "../src/lib/pesagem.ts";
 import {
   calcularBaixa,
   calcularConta,
@@ -269,4 +270,58 @@ test("reservaVigente: de 30 min antes a 2 h depois do horário", () => {
   assert.equal(reservaVigente(em(30), agora), true);
   assert.equal(reservaVigente(em(-120), agora), true);
   assert.equal(reservaVigente(em(-121), agora), false);
+});
+
+test("calcularPesagem: peso líquido x preço do kg, arredondado no centavo", () => {
+  assert.deepEqual(calcularPesagem({ brutoG: 850, taraG: 350, precoKg: 60 }), {
+    liquidoG: 500,
+    valorSemTeto: 30,
+    valor: 30,
+    tetoAplicado: false,
+  });
+  assert.equal(calcularPesagem({ brutoG: 683, taraG: 350, precoKg: 59.9 })?.valor, 19.95);
+  assert.equal(calcularPesagem({ brutoG: 685, taraG: 350, precoKg: 59.9 })?.valor, 20.07);
+  assert.equal(calcularPesagem({ brutoG: 350, taraG: 350, precoKg: 60 }), null);
+  assert.equal(calcularPesagem({ brutoG: 300, taraG: 350, precoKg: 60 }), null);
+});
+
+test("calcularPesagem: o buffet livre limita o valor do prato", () => {
+  const r = calcularPesagem({ brutoG: 1350, taraG: 350, precoKg: 60, buffetLivre: 40 });
+  assert.equal(r?.valorSemTeto, 60);
+  assert.equal(r?.valor, 40);
+  assert.equal(r?.tetoAplicado, true);
+  // um centavo acima já aplica; igual ao teto não conta como aplicado
+  assert.equal(
+    calcularPesagem({ brutoG: 1367, taraG: 350, precoKg: 60, buffetLivre: 40 })?.tetoAplicado,
+    true,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1017, taraG: 350, precoKg: 60, buffetLivre: 40 })?.valor,
+    40,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1017, taraG: 350, precoKg: 60, buffetLivre: 40.02 })?.tetoAplicado,
+    false,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 850, taraG: 350, precoKg: 60, buffetLivre: 40 })?.tetoAplicado,
+    false,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1350, taraG: 350, precoKg: 60, buffetLivre: null })?.valor,
+    60,
+  );
+});
+
+test("pesoEmGramas e kgTexto", () => {
+  assert.equal(pesoEmGramas("850", "g"), 850);
+  assert.equal(pesoEmGramas("0,850", "kg"), 850);
+  assert.equal(pesoEmGramas("0.850", "kg"), 850);
+  assert.equal(pesoEmGramas("1,25", "kg"), 1250);
+  assert.equal(pesoEmGramas("", "g"), null);
+  assert.equal(pesoEmGramas("abc", "g"), null);
+  assert.equal(pesoEmGramas("0", "g"), null);
+  assert.equal(pesoEmGramas("31", "kg"), null);
+  assert.equal(kgTexto(500), "0,500 kg");
+  assert.equal(kgTexto(1250), "1,250 kg");
 });

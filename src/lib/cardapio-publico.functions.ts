@@ -7,6 +7,7 @@ export type ItemPublico = {
   nome: string;
   descricao: string | null;
   preco: number;
+  porPeso: boolean;
   fotoUrl: string | null;
   grupos: {
     nome: string;
@@ -50,7 +51,10 @@ export const buscarCardapioPublico = createServerFn({ method: "GET" })
       empresa: { nome: string; cor: string | null; logo_path: string | null };
       categorias: {
         nome: string;
-        itens: (Omit<ItemPublico, "fotoUrl"> & { foto_path: string | null })[];
+        itens: (Omit<ItemPublico, "fotoUrl" | "porPeso"> & {
+          foto_path: string | null;
+          por_peso?: boolean;
+        })[];
       }[];
     } | null;
     if (!r) return null;
@@ -75,6 +79,7 @@ export const buscarCardapioPublico = createServerFn({ method: "GET" })
           nome: i.nome,
           descricao: i.descricao,
           preco: Number(i.preco),
+          porPeso: i.por_peso === true,
           fotoUrl: urlPublicaFoto(url, i.foto_path),
           grupos: i.grupos ?? [],
         })),

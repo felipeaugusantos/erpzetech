@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   Calculator,
   Bike,
+  Scale,
   ChefHat,
   ConciergeBell,
   UtensilsCrossed,
@@ -201,6 +202,7 @@ const groups: Group[] = [
     items: [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Delivery", to: "/delivery", icon: Bike },
+      { label: "Balança", to: "/balanca", icon: Scale },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
     ],
@@ -569,12 +571,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Delivery", to: "/delivery", icon: Bike },
+      { label: "Balança", to: "/balanca", icon: Scale },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
     ].filter((i) =>
       i.to === "/pet-minha-agenda"
         ? roles.some((r) => r === "profissional" || r === "veterinario")
-        : i.to === "/salao" || i.to === "/delivery"
+        : i.to === "/salao" || i.to === "/delivery" || i.to === "/balanca"
           ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
           : gestao || roles.includes("cozinha"),
     );

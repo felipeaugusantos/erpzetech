@@ -59,6 +59,9 @@ export type MesaReserva = {
   situacao: "ativa" | "atendida" | "cancelada";
 };
 
+/** Tara (prato, vasilhame) descontada na pesagem. */
+export type Tara = { id: string; nome: string; peso_g: number; ativo: boolean };
+
 /** Praça de produção cadastrada pela gestão (além de cozinha e bar, que são fixas). */
 export type Praca = { id: string; codigo: string; nome: string; ativo: boolean };
 
@@ -76,6 +79,10 @@ export type ComandaItem = {
   total: number;
   observacao: string | null;
   situacao: "pendente" | "enviado" | "preparando" | "pronto" | "entregue" | "cancelado";
+  peso_bruto_g: number | null;
+  tara_g: number | null;
+  peso_liquido_g: number | null;
+  teto_buffet: boolean;
   pago_em: string | null;
   pagante: string | null;
   enviado_em: string | null;
@@ -109,6 +116,8 @@ export type RestauranteConfig = {
   baixa_estoque: boolean;
   deposito_id: string | null;
   cardapio_online: boolean;
+  buffet_livre_ativo: boolean;
+  buffet_livre_preco: number | null;
 };
 
 export type CardapioCategoria = { id: string; nome: string; ordem: number; ativo: boolean };
@@ -125,6 +134,9 @@ export type CardapioItem = {
   tempo_preparo_min: number | null;
   ordem: number;
   foto_path: string | null;
+  /** preço é por KG; o item só entra na comanda pela pesagem */
+  venda_por_peso: boolean;
+  tara_id: string | null;
   ativo: boolean;
 };
 

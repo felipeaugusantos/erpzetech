@@ -243,11 +243,14 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
 
   const itensFiltrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return (cardapio?.itens ?? []).filter(
-      (i) =>
-        (categoria === "todas" || i.categoria_id === categoria) &&
-        (!t || i.nome.toLowerCase().includes(t)),
-    );
+    // item por peso só entra pela Balança (o banco recusa o lançamento comum)
+    return (cardapio?.itens ?? [])
+      .filter((i) => !i.venda_por_peso)
+      .filter(
+        (i) =>
+          (categoria === "todas" || i.categoria_id === categoria) &&
+          (!t || i.nome.toLowerCase().includes(t)),
+      );
   }, [cardapio, categoria, busca]);
 
   function tocar(item: CardapioItem) {

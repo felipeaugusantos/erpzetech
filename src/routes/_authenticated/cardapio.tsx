@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCardapio } from "@/hooks/useCardapio";
 import { usePracas } from "@/hooks/usePracas";
+import { useTaras } from "@/hooks/useTaras";
 import { useZonasEntrega } from "@/hooks/useZonasEntrega";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -95,6 +96,7 @@ function Cardapio() {
           <TabsTrigger value="pracas">Praças de produção</TabsTrigger>
           <TabsTrigger value="estoque">Estoque e custos</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          <TabsTrigger value="balanca">Balança e tara</TabsTrigger>
           <TabsTrigger value="online">Cardápio online</TabsTrigger>
         </TabsList>
         <TabsContent value="itens">
@@ -112,6 +114,9 @@ function Cardapio() {
         <TabsContent value="estoque">
           <EstoqueRestaurante tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
+        <TabsContent value="balanca">
+          <Balanca tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
         <TabsContent value="online">
           <CardapioOnline tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
@@ -120,6 +125,153 @@ function Cardapio() {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+/* ===== Balança: taras e buffet livre ===== */
+function Balanca({ tenantId }: { tenantId: string }) {
+  const qc = useQueryClient();
+  const { data: taras = [] } = useTaras();
+  const salvarTara = useSalvar("restaurante_taras", "Tara salva");
+  const [nome, setNome] = useState("");
+  const [peso, setPeso] = useState("");
+  const { data: config } = useQuery({
+    queryKey: [CHAVE_REST, "config-balanca"],
+    queryFn: async () => {
+      const r = await tabela("restaurante_config")
+        .select("buffet_livre_ativo, buffet_livre_preco")
+        .maybeSingle();
+      if (r.error) throw new Error(r.error.message);
+      return (r.data ?? null) as unknown as {
+        buffet_livre_ativo: boolean;
+        buffet_livre_preco: number | null;
+      } | null;
+    },
+  });
+  const [ativo, setAtivo] = useState(false);
+  const [preco, setPreco] = useState("");
+  useEffect(() => {
+    if (config) {
+      setAtivo(config.buffet_livre_ativo);
+      setPreco(textoNumero(config.buffet_livre_preco));
+    }
+  }, [config]);
+
+  const salvarBuffet = useMutation({
+    mutationFn: async () => {
+      const valor = dinheiro(preco);
+      if (ativo && valor <= 0) throw new Error("Informe o preço do buffet livre");
+      const r = await tabela("restaurante_config").upsert(
+        {
+          tenant_id: tenantId,
+          buffet_livre_ativo: ativo,
+          buffet_livre_preco: valor > 0 ? valor : null,
+          updated_at: new Date().toISOString(),
+        } as never,
+        { onConflict: "tenant_id" },
+      );
+      if (r.error) throw new Error(r.error.message);
+    },
+    onSuccess: () => {
+      toast.success("Buffet livre salvo");
+      void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-4 max-w-2xl space-y-6">
+      <section className="space-y-3">
+        <h3 className="font-display font-semibold">Taras</h3>
+        <p className="text-sm text-muted-foreground">
+          Peso do prato ou vasilhame, descontado do peso na balança. Marque o item como “vendido por
+          peso” na aba Itens e escolha a tara padrão dele.
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1">
+            <Label htmlFor="tara-nome">Nova tara</Label>
+            <Input
+              id="tara-nome"
+              value={nome}
+              maxLength={40}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="ex.: Prato grande"
+            />
+          </div>
+          <div className="w-28">
+            <Label htmlFor="tara-peso">Peso (g)</Label>
+            <Input
+              id="tara-peso"
+              inputMode="numeric"
+              value={peso}
+              onChange={(e) => setPeso(e.target.value)}
+            />
+          </div>
+          <Button
+            disabled={!nome.trim() || !(Math.round(dinheiro(peso)) > 0) || salvarTara.isPending}
+            onClick={() =>
+              salvarTara.mutate(
+                {
+                  dados: {
+                    tenant_id: tenantId,
+                    nome: nome.trim(),
+                    peso_g: Math.round(dinheiro(peso)),
+                  },
+                },
+                {
+                  onSuccess: () => {
+                    setNome("");
+                    setPeso("");
+                  },
+                },
+              )
+            }
+          >
+            <Plus className="mr-1 size-4" /> Adicionar
+          </Button>
+        </div>
+        {taras.map((t) => (
+          <div key={t.id} className="flex items-center justify-between rounded border p-2">
+            <span className={t.ativo ? "" : "text-muted-foreground line-through"}>
+              {t.nome} <span className="text-xs text-muted-foreground">· {t.peso_g} g</span>
+            </span>
+            <Switch
+              aria-label={`Tara ${t.nome} ativa`}
+              checked={t.ativo}
+              onCheckedChange={(v) => salvarTara.mutate({ id: t.id, dados: { ativo: v } })}
+            />
+          </div>
+        ))}
+        {taras.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhuma tara cadastrada.</p>
+        )}
+      </section>
+
+      <section className="space-y-3 rounded border p-3">
+        <h3 className="font-display font-semibold">Buffet livre</h3>
+        <p className="text-sm text-muted-foreground">
+          Com o buffet livre ligado, o prato pesado nunca custa mais do que o preço do buffet livre:
+          o sistema cobra o menor entre o peso × preço do KG e este valor. O limite vale por prato
+          pesado.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={ativo} onCheckedChange={setAtivo} aria-label="Limitar ao buffet livre" />
+          Limitar o prato ao preço do buffet livre
+        </label>
+        <div className="w-40">
+          <Label htmlFor="buffet-preco">Preço do buffet livre (R$)</Label>
+          <Input
+            id="buffet-preco"
+            inputMode="decimal"
+            value={preco}
+            onChange={(e) => setPreco(e.target.value)}
+          />
+        </div>
+        <Button onClick={() => salvarBuffet.mutate()} disabled={salvarBuffet.isPending}>
+          Salvar buffet livre
+        </Button>
+      </section>
+    </div>
   );
 }
 
@@ -651,6 +803,8 @@ type FormItem = {
   tempo: string;
   descricao: string;
   ordem: string;
+  por_peso: boolean;
+  tara_id: string;
   /** foto gravada no item e foto escolhida agora (só vale ao salvar) */
   foto_path: string | null;
   foto_original: string | null;
@@ -665,6 +819,8 @@ const itemVazio: FormItem = {
   tempo: "",
   descricao: "",
   ordem: "0",
+  por_peso: false,
+  tara_id: "nenhuma",
   foto_path: null,
   foto_original: null,
   ativo: true,
@@ -673,6 +829,7 @@ const itemVazio: FormItem = {
 function Itens({ tenantId }: { tenantId: string }) {
   const { data } = useCardapio(true);
   const { data: pracas = [] } = usePracas();
+  const { data: taras = [] } = useTaras();
   const [form, setForm] = useState<FormItem | null>(null);
   const salvar = useSalvar("cardapio_itens", "Item salvo");
   const categorias = data?.categorias ?? [];
@@ -689,6 +846,8 @@ function Itens({ tenantId }: { tenantId: string }) {
       tempo: textoNumero(i.tempo_preparo_min),
       descricao: i.descricao ?? "",
       ordem: String(i.ordem ?? 0),
+      por_peso: i.venda_por_peso,
+      tara_id: i.tara_id ?? "nenhuma",
       foto_path: i.foto_path,
       foto_original: i.foto_path,
       ativo: i.ativo,
@@ -740,6 +899,8 @@ function Itens({ tenantId }: { tenantId: string }) {
           tempo_preparo_min: form.tempo.trim() ? Math.round(dinheiro(form.tempo)) : null,
           descricao: form.descricao.trim() || null,
           ordem: Math.round(dinheiro(form.ordem)),
+          venda_por_peso: form.por_peso,
+          tara_id: form.por_peso && form.tara_id !== "nenhuma" ? form.tara_id : null,
           foto_path: form.foto_path,
           ativo: form.ativo,
         },
@@ -800,7 +961,10 @@ function Itens({ tenantId }: { tenantId: string }) {
                     >
                       {i.nome}
                     </p>
-                    <p className="text-sm">{brl(i.preco)}</p>
+                    <p className="text-sm">
+                      {brl(i.preco)}
+                      {i.venda_por_peso ? " /kg" : ""}
+                    </p>
                     <Badge variant="secondary" className="mt-1">
                       {rotuloEstacao(i.estacao, pracas)}
                     </Badge>
@@ -855,7 +1019,9 @@ function Itens({ tenantId }: { tenantId: string }) {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="i-preco">Preço (R$)</Label>
+                <Label htmlFor="i-preco">
+                  {form.por_peso ? "Preço por KG (R$)" : "Preço (R$)"}
+                </Label>
                 <Input
                   id="i-preco"
                   inputMode="decimal"
@@ -895,6 +1061,36 @@ function Itens({ tenantId }: { tenantId: string }) {
                   onChange={(e) => setForm({ ...form, tempo: e.target.value })}
                 />
               </div>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <Switch
+                  checked={form.por_peso}
+                  onCheckedChange={(v) => setForm({ ...form, por_peso: v })}
+                />
+                Vendido por peso (o preço acima é por KG; lançado pela Balança)
+              </label>
+              {form.por_peso && (
+                <div className="sm:col-span-2">
+                  <Label>Tara padrão (descontada na pesagem)</Label>
+                  <Select
+                    value={form.tara_id}
+                    onValueChange={(v) => setForm({ ...form, tara_id: v })}
+                  >
+                    <SelectTrigger aria-label="Tara padrão">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhuma">Sem tara</SelectItem>
+                      {taras
+                        .filter((t) => t.ativo || t.id === form.tara_id)
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.nome} ({t.peso_g} g)
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label htmlFor="i-ordem">Ordem no cardápio</Label>
                 <Input
