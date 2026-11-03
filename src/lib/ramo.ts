@@ -15,6 +15,7 @@ export const ramos = [
   { value: "distribuidora", label: "Distribuidora / atacado" },
   { value: "papelaria", label: "Papelaria" },
   { value: "restaurante", label: "Restaurante e lanchonete" },
+  { value: "hotelaria", label: "Hotelaria" },
   { value: "outro", label: "Outro varejo de produtos" },
 ] as const;
 

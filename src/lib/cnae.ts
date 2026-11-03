@@ -17,5 +17,6 @@ export function useModulosCnae() {
     petshop: moduloLiberadoEmpresa(empresa, "petshop"),
     clinica: moduloLiberadoEmpresa(empresa, "clinica"),
     lavarapido: moduloLiberadoEmpresa(empresa, "lavarapido"),
+    hotelaria: moduloLiberadoEmpresa(empresa, "hotelaria"),
   };
 }

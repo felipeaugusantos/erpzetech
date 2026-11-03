@@ -74,6 +74,13 @@ import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedFrotaMapaRouteImport } from './routes/_authenticated/frota-mapa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedGranelRouteImport } from './routes/_authenticated/granel'
+import { Route as AuthenticatedHotelAcomodacoesRouteImport } from './routes/_authenticated/hotel-acomodacoes'
+import { Route as AuthenticatedHotelConfiguracoesRouteImport } from './routes/_authenticated/hotel-configuracoes'
+import { Route as AuthenticatedHotelHospedesRouteImport } from './routes/_authenticated/hotel-hospedes'
+import { Route as AuthenticatedHotelMapaRouteImport } from './routes/_authenticated/hotel-mapa'
+import { Route as AuthenticatedHotelRecepcaoRouteImport } from './routes/_authenticated/hotel-recepcao'
+import { Route as AuthenticatedHotelReservasRouteImport } from './routes/_authenticated/hotel-reservas'
+import { Route as AuthenticatedHotelTarifasRouteImport } from './routes/_authenticated/hotel-tarifas'
 import { Route as AuthenticatedImportacaoRouteImport } from './routes/_authenticated/importacao'
 import { Route as AuthenticatedImportarCteRouteImport } from './routes/_authenticated/importar-cte'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
@@ -175,6 +182,7 @@ import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
+import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authenticated/hotel-estadia.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
@@ -542,6 +550,47 @@ const AuthenticatedGranelRoute = AuthenticatedGranelRouteImport.update({
   path: '/granel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHotelAcomodacoesRoute =
+  AuthenticatedHotelAcomodacoesRouteImport.update({
+    id: '/hotel-acomodacoes',
+    path: '/hotel-acomodacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelConfiguracoesRoute =
+  AuthenticatedHotelConfiguracoesRouteImport.update({
+    id: '/hotel-configuracoes',
+    path: '/hotel-configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelHospedesRoute =
+  AuthenticatedHotelHospedesRouteImport.update({
+    id: '/hotel-hospedes',
+    path: '/hotel-hospedes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelMapaRoute = AuthenticatedHotelMapaRouteImport.update({
+  id: '/hotel-mapa',
+  path: '/hotel-mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHotelRecepcaoRoute =
+  AuthenticatedHotelRecepcaoRouteImport.update({
+    id: '/hotel-recepcao',
+    path: '/hotel-recepcao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelReservasRoute =
+  AuthenticatedHotelReservasRouteImport.update({
+    id: '/hotel-reservas',
+    path: '/hotel-reservas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelTarifasRoute =
+  AuthenticatedHotelTarifasRouteImport.update({
+    id: '/hotel-tarifas',
+    path: '/hotel-tarifas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImportacaoRoute = AuthenticatedImportacaoRouteImport.update({
   id: '/importacao',
   path: '/importacao',
@@ -1110,6 +1159,12 @@ const AuthenticatedDepositosIdRoute =
     path: '/depositos/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHotelEstadiaIdRoute =
+  AuthenticatedHotelEstadiaIdRouteImport.update({
+    id: '/hotel-estadia/$id',
+    path: '/hotel-estadia/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPedidosIndexRoute =
   AuthenticatedPedidosIndexRouteImport.update({
     id: '/pedidos/',
@@ -1205,6 +1260,13 @@ export interface FileRoutesByFullPath {
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/granel': typeof AuthenticatedGranelRoute
+  '/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/importacao': typeof AuthenticatedImportacaoRoute
   '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
@@ -1304,6 +1366,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -1377,6 +1440,13 @@ export interface FileRoutesByTo {
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/granel': typeof AuthenticatedGranelRoute
+  '/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/importacao': typeof AuthenticatedImportacaoRoute
   '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
@@ -1476,6 +1546,7 @@ export interface FileRoutesByTo {
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
@@ -1551,6 +1622,13 @@ export interface FileRoutesById {
   '/_authenticated/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/granel': typeof AuthenticatedGranelRoute
+  '/_authenticated/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/_authenticated/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/_authenticated/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/_authenticated/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/_authenticated/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/_authenticated/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/_authenticated/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/_authenticated/importacao': typeof AuthenticatedImportacaoRoute
   '/_authenticated/importar-cte': typeof AuthenticatedImportarCteRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
@@ -1650,6 +1728,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -1725,6 +1804,13 @@ export interface FileRouteTypes {
     | '/frota-mapa'
     | '/giro-estoque'
     | '/granel'
+    | '/hotel-acomodacoes'
+    | '/hotel-configuracoes'
+    | '/hotel-hospedes'
+    | '/hotel-mapa'
+    | '/hotel-recepcao'
+    | '/hotel-reservas'
+    | '/hotel-tarifas'
     | '/importacao'
     | '/importar-cte'
     | '/impostos'
@@ -1824,6 +1910,7 @@ export interface FileRouteTypes {
     | '/ze-tech-tempo-real'
     | '/compras/$id'
     | '/depositos/$id'
+    | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/compras/'
     | '/depositos/'
@@ -1897,6 +1984,13 @@ export interface FileRouteTypes {
     | '/frota-mapa'
     | '/giro-estoque'
     | '/granel'
+    | '/hotel-acomodacoes'
+    | '/hotel-configuracoes'
+    | '/hotel-hospedes'
+    | '/hotel-mapa'
+    | '/hotel-recepcao'
+    | '/hotel-reservas'
+    | '/hotel-tarifas'
     | '/importacao'
     | '/importar-cte'
     | '/impostos'
@@ -1996,6 +2090,7 @@ export interface FileRouteTypes {
     | '/ze-tech-tempo-real'
     | '/compras/$id'
     | '/depositos/$id'
+    | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/compras'
     | '/depositos'
@@ -2070,6 +2165,13 @@ export interface FileRouteTypes {
     | '/_authenticated/frota-mapa'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/granel'
+    | '/_authenticated/hotel-acomodacoes'
+    | '/_authenticated/hotel-configuracoes'
+    | '/_authenticated/hotel-hospedes'
+    | '/_authenticated/hotel-mapa'
+    | '/_authenticated/hotel-recepcao'
+    | '/_authenticated/hotel-reservas'
+    | '/_authenticated/hotel-tarifas'
     | '/_authenticated/importacao'
     | '/_authenticated/importar-cte'
     | '/_authenticated/impostos'
@@ -2169,6 +2271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-tempo-real'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
+    | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
@@ -2647,6 +2750,55 @@ declare module '@tanstack/react-router' {
       path: '/granel'
       fullPath: '/granel'
       preLoaderRoute: typeof AuthenticatedGranelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-acomodacoes': {
+      id: '/_authenticated/hotel-acomodacoes'
+      path: '/hotel-acomodacoes'
+      fullPath: '/hotel-acomodacoes'
+      preLoaderRoute: typeof AuthenticatedHotelAcomodacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-configuracoes': {
+      id: '/_authenticated/hotel-configuracoes'
+      path: '/hotel-configuracoes'
+      fullPath: '/hotel-configuracoes'
+      preLoaderRoute: typeof AuthenticatedHotelConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-hospedes': {
+      id: '/_authenticated/hotel-hospedes'
+      path: '/hotel-hospedes'
+      fullPath: '/hotel-hospedes'
+      preLoaderRoute: typeof AuthenticatedHotelHospedesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-mapa': {
+      id: '/_authenticated/hotel-mapa'
+      path: '/hotel-mapa'
+      fullPath: '/hotel-mapa'
+      preLoaderRoute: typeof AuthenticatedHotelMapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-recepcao': {
+      id: '/_authenticated/hotel-recepcao'
+      path: '/hotel-recepcao'
+      fullPath: '/hotel-recepcao'
+      preLoaderRoute: typeof AuthenticatedHotelRecepcaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-reservas': {
+      id: '/_authenticated/hotel-reservas'
+      path: '/hotel-reservas'
+      fullPath: '/hotel-reservas'
+      preLoaderRoute: typeof AuthenticatedHotelReservasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-tarifas': {
+      id: '/_authenticated/hotel-tarifas'
+      path: '/hotel-tarifas'
+      fullPath: '/hotel-tarifas'
+      preLoaderRoute: typeof AuthenticatedHotelTarifasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/importacao': {
@@ -3356,6 +3508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDepositosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hotel-estadia/$id': {
+      id: '/_authenticated/hotel-estadia/$id'
+      path: '/hotel-estadia/$id'
+      fullPath: '/hotel-estadia/$id'
+      preLoaderRoute: typeof AuthenticatedHotelEstadiaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pedidos/': {
       id: '/_authenticated/pedidos/'
       path: '/pedidos'
@@ -3452,6 +3611,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFrotaMapaRoute: typeof AuthenticatedFrotaMapaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedGranelRoute: typeof AuthenticatedGranelRoute
+  AuthenticatedHotelAcomodacoesRoute: typeof AuthenticatedHotelAcomodacoesRoute
+  AuthenticatedHotelConfiguracoesRoute: typeof AuthenticatedHotelConfiguracoesRoute
+  AuthenticatedHotelHospedesRoute: typeof AuthenticatedHotelHospedesRoute
+  AuthenticatedHotelMapaRoute: typeof AuthenticatedHotelMapaRoute
+  AuthenticatedHotelRecepcaoRoute: typeof AuthenticatedHotelRecepcaoRoute
+  AuthenticatedHotelReservasRoute: typeof AuthenticatedHotelReservasRoute
+  AuthenticatedHotelTarifasRoute: typeof AuthenticatedHotelTarifasRoute
   AuthenticatedImportacaoRoute: typeof AuthenticatedImportacaoRoute
   AuthenticatedImportarCteRoute: typeof AuthenticatedImportarCteRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
@@ -3551,6 +3717,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechTempoRealRoute: typeof AuthenticatedZeTechTempoRealRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
+  AuthenticatedHotelEstadiaIdRoute: typeof AuthenticatedHotelEstadiaIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedDepositosIndexRoute: typeof AuthenticatedDepositosIndexRoute
@@ -3617,6 +3784,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFrotaMapaRoute: AuthenticatedFrotaMapaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedGranelRoute: AuthenticatedGranelRoute,
+  AuthenticatedHotelAcomodacoesRoute: AuthenticatedHotelAcomodacoesRoute,
+  AuthenticatedHotelConfiguracoesRoute: AuthenticatedHotelConfiguracoesRoute,
+  AuthenticatedHotelHospedesRoute: AuthenticatedHotelHospedesRoute,
+  AuthenticatedHotelMapaRoute: AuthenticatedHotelMapaRoute,
+  AuthenticatedHotelRecepcaoRoute: AuthenticatedHotelRecepcaoRoute,
+  AuthenticatedHotelReservasRoute: AuthenticatedHotelReservasRoute,
+  AuthenticatedHotelTarifasRoute: AuthenticatedHotelTarifasRoute,
   AuthenticatedImportacaoRoute: AuthenticatedImportacaoRoute,
   AuthenticatedImportarCteRoute: AuthenticatedImportarCteRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
@@ -3720,6 +3894,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechTempoRealRoute: AuthenticatedZeTechTempoRealRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
+  AuthenticatedHotelEstadiaIdRoute: AuthenticatedHotelEstadiaIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedDepositosIndexRoute: AuthenticatedDepositosIndexRoute,
