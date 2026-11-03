@@ -213,6 +213,7 @@ const groups: Group[] = [
       { label: "Pets e tutores", to: "/pets", icon: PawPrint },
       { label: "Serviços e preços", to: "/pet-servicos", icon: Tag },
       { label: "Profissionais", to: "/pet-profissionais", icon: Scissors },
+      { label: "Campos personalizados", to: "/pet-campos", icon: ClipboardList },
       { label: "Contatos", to: "/pet-contatos", icon: MessageCircle },
       { label: "Pacotes", to: "/pet-pacotes", icon: Package },
       { label: "Comissões", to: "/pet-comissoes", icon: Tag },

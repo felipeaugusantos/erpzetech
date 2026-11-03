@@ -8338,3 +8338,107 @@ BEGIN
   DELETE FROM pet_profissionais WHERE id = prof;
   DELETE FROM pets WHERE tenant_id IN (demo, tb) AND nome IN ('Chipado', 'Outro', 'Outra empresa');
 END $$;
+
+-- 90. Pet: campos personalizados do animal e do tutor
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  tb uuid; tutor uuid; tutor_b uuid; pet uuid; pet_b uuid;
+  c_txt uuid; c_num uuid; c_data uuid; c_sn uuid; c_lista uuid; c_obr uuid; c_tutor uuid; c_b uuid;
+BEGIN
+  SELECT tenant_id INTO tb FROM profiles WHERE id = ub;
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor campos CI') RETURNING id INTO tutor;
+  SELECT id INTO tutor_b FROM clientes WHERE tenant_id = tb LIMIT 1;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Campos CI') RETURNING id INTO pet;
+  SELECT id INTO pet_b FROM pets WHERE tenant_id = tb LIMIT 1;
+
+  -- definição: só administrador e gestor
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'vendedor cria campo');
+  PERFORM ci.deve_falhar(gar, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'garçom cria campo');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"texto"}'::jsonb)$c$, 'anon cria campo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"","tipo":"texto"}'::jsonb)$c$, 'campo sem nome');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"clinica","nome":"X","tipo":"texto"}'::jsonb)$c$, 'entidade inválida');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"X","tipo":"cor"}'::jsonb)$c$, 'tipo inválido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"L","tipo":"lista","opcoes":["A"]}'::jsonb)$c$, 'lista com uma opção');
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":"L","tipo":"lista","opcoes":["A","A "]}'::jsonb)$c$, 'lista com opção repetida');
+
+  PERFORM ci.entrar(gest);
+  c_txt := pet_campo_salvar('{"entidade":"pet","nome":"Pedigree","tipo":"texto","ordem":2}'::jsonb);
+  c_num := pet_campo_salvar('{"entidade":"pet","nome":"Altura (cm)","tipo":"numero"}'::jsonb);
+  c_data := pet_campo_salvar('{"entidade":"pet","nome":"Última vermifugação","tipo":"data"}'::jsonb);
+  c_sn := pet_campo_salvar('{"entidade":"pet","nome":"Dócil","tipo":"sim_nao"}'::jsonb);
+  c_lista := pet_campo_salvar('{"entidade":"pet","nome":"Plano","tipo":"lista","opcoes":["Básico","Premium"]}'::jsonb);
+  c_tutor := pet_campo_salvar('{"entidade":"tutor","nome":"Como nos conheceu","tipo":"texto"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, $c$SELECT pet_campo_salvar('{"entidade":"pet","nome":" pedigree ","tipo":"texto"}'::jsonb)$c$, 'nome repetido (sem diferenciar maiúsculas)');
+  PERFORM ci.entrar(ub);
+  c_b := pet_campo_salvar('{"entidade":"pet","nome":"Pedigree","tipo":"texto"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(c_b IS NOT NULL, 'o mesmo nome vale em outra empresa');
+
+  -- valores
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_txt), 'garçom grava valores');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'abc'))$c$, pet, c_num), 'número inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, '2026-02-30'))$c$, pet, c_data), 'data inexistente');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'talvez'))$c$, pet, c_sn), 'sim/não inválido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'Ouro'))$c$, pet, c_lista), 'opção que não está na lista');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_tutor), 'campo do tutor gravado no pet');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet, c_b), 'campo de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'x'))$c$, pet_b, c_txt), 'pet de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('tutor', %L, jsonb_build_object(%L::text, 'x'))$c$, tutor_b, c_tutor), 'tutor de outra empresa');
+
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_txt::text, ' CBKC 123 ', c_num::text, '45.5', c_data::text, '2026-03-09',
+                                                                  c_sn::text, 'sim', c_lista::text, 'Premium'));
+  PERFORM pet_campos_valores_salvar('tutor', tutor, jsonb_build_object(c_tutor::text, 'Indicação'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT valor = 'CBKC 123' FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'o valor é guardado sem espaços nas pontas');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT count(*) FROM pet_campos_valores WHERE registro_id IN (%L, %L)', pet, tutor)) = 6, 'vendedor lê os valores do pet e do tutor');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM pet_campos') = 0 AND ci.contar(gar, 'SELECT count(*) FROM pet_campos_valores') = 0, 'garçom não lê campos nem valores');
+  PERFORM ci.exige(ci.contar(ub, 'SELECT count(*) FROM pet_campos WHERE nome <> ''Pedigree''') = 0 AND ci.contar(ub, 'SELECT count(*) FROM pet_campos_valores') = 0, 'outra empresa não lê campos nem valores da demo');
+  PERFORM ci.deve_falhar(vend, format($c$INSERT INTO pet_campos_valores (campo_id, registro_id, valor) VALUES (%L, %L, 'x')$c$, c_txt, pet), 'gravar valor direto na tabela');
+  PERFORM ci.deve_falhar(vend, $c$UPDATE pet_campos SET nome = 'Outro'$c$, 'alterar campo direto na tabela');
+
+  -- valor vazio apaga; o que não veio no pacote fica
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_sn::text, ''));
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_sn AND registro_id = pet), 'valor vazio apaga');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'o que não veio no pacote continua');
+
+  -- obrigatório
+  PERFORM ci.entrar(adm);
+  c_obr := pet_campo_salvar('{"entidade":"pet","nome":"Origem","tipo":"texto","obrigatorio":true}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, '{}'::jsonb)$c$, pet), 'obrigatório sem valor (nem veio no pacote)');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, ''))$c$, pet, c_obr), 'obrigatório com valor vazio');
+  PERFORM ci.entrar(vend);
+  PERFORM pet_campos_valores_salvar('pet', pet, jsonb_build_object(c_obr::text, 'Canil X'));
+  PERFORM pet_campos_valores_salvar('pet', pet, '{}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(true, 'obrigatório preenchido salva e deixa salvar de novo sem ele no pacote');
+
+  -- mudar tipo e retirar opção em uso
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_campo_salvar(jsonb_build_object('id', %L::text, 'nome', 'Pedigree', 'tipo', 'numero'))$c$, c_txt), 'mudar o tipo com valores guardados');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pet_campo_salvar(jsonb_build_object('id', %L::text, 'nome', 'Plano', 'tipo', 'lista', 'opcoes', jsonb_build_array('Básico', 'Ouro')))$c$, c_lista), 'retirar da lista uma opção em uso');
+  PERFORM ci.entrar(adm);
+  PERFORM pet_campo_salvar(jsonb_build_object('id', c_lista, 'nome', 'Plano', 'tipo', 'lista', 'opcoes', jsonb_build_array('Básico', 'Premium', 'Ouro')));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT jsonb_array_length(opcoes) = 3 FROM pet_campos WHERE id = c_lista), 'acrescentar opção na lista');
+
+  -- campo desativado: não aceita valor novo, mas o antigo fica
+  PERFORM ci.entrar(adm);
+  PERFORM pet_campo_salvar(jsonb_build_object('id', c_txt, 'nome', 'Pedigree', 'tipo', 'texto', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT pet_campos_valores_salvar('pet', %L, jsonb_build_object(%L::text, 'novo'))$c$, pet, c_txt), 'valor novo em campo desativado');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pet_campos_valores WHERE campo_id = c_txt AND registro_id = pet), 'campo desativado mantém o valor antigo');
+
+  DELETE FROM pet_campos WHERE tenant_id IN (demo, tb);
+  DELETE FROM pets WHERE id = pet;
+  DELETE FROM clientes WHERE id = tutor;
+END $$;

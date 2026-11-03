@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-react";
@@ -6,6 +6,11 @@ import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
+import {
+  CamposPersonalizados,
+  useCamposPet,
+  useValoresCamposPet,
+} from "@/components/app/CamposPersonalizados";
 import { PesagensPet } from "@/components/app/PesagensPet";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
@@ -52,6 +57,7 @@ import {
   rotulo,
 } from "@/lib/pet";
 import { reduzirFoto } from "@/lib/pet-foto";
+import { camposAtivos, erroDosCampos, valoresParaEnvio } from "@/lib/pet-campos";
 
 export const Route = createFileRoute("/_authenticated/pets")({
   head: () => ({
@@ -160,6 +166,20 @@ function Pets() {
   const pets = data?.pets ?? [];
   const clientes = data?.clientes ?? [];
   const tutor = (id: string) => clientes.find((c) => c.id === id);
+  // campos personalizados do pet e do tutor (valores guardados à parte; vão ao banco depois do pet)
+  const { data: camposPet = [] } = useCamposPet();
+  const [valoresPet, setValoresPet] = useState<Record<string, string>>({});
+  const [valoresTutor, setValoresTutor] = useState<Record<string, string>>({});
+  const guardadosPet = useValoresCamposPet(aberto ? form.id : undefined);
+  const guardadosTutor = useValoresCamposPet(
+    aberto && !form.tutor_novo && form.cliente_id ? form.cliente_id : undefined,
+  );
+  useEffect(() => {
+    setValoresPet(form.id ? (guardadosPet.data ?? {}) : {});
+  }, [form.id, aberto, guardadosPet.data]);
+  useEffect(() => {
+    setValoresTutor(!form.tutor_novo && form.cliente_id ? (guardadosTutor.data ?? {}) : {});
+  }, [form.cliente_id, form.tutor_novo, aberto, guardadosTutor.data]);
   const parecidos = form.tutor_novo
     ? tutoresParecidos(clientes, form.novo_tutor_nome, form.novo_tutor_telefone)
     : [];
@@ -188,6 +208,10 @@ function Pets() {
         throw new Error("Informe um peso válido.");
       if (form.microchip.trim() && !microchipValido(form.microchip))
         throw new Error("O microchip tem de 9 a 15 números.");
+      const erroCampos =
+        erroDosCampos(camposPet, "pet", valoresPet) ??
+        erroDosCampos(camposPet, "tutor", valoresTutor);
+      if (erroCampos) throw new Error(erroCampos);
       let clienteId = form.cliente_id;
       if (form.tutor_novo) {
         const fone = form.novo_tutor_telefone.trim();
@@ -210,7 +234,7 @@ function Pets() {
         setForm((f) => ({ ...f, cliente_id: idTutor, tutor_novo: false }));
         void qc.invalidateQueries({ queryKey: ["clientes"] });
       }
-      const { error } = await supabase.rpc("pet_salvar", {
+      const { data: petId, error } = await supabase.rpc("pet_salvar", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           cliente_id: clienteId,
@@ -231,6 +255,25 @@ function Pets() {
         },
       });
       if (error) throw error;
+      // o pet já existe: se os campos falharem, salvar de novo atualiza este pet em vez de criar outro
+      setForm((f) => ({ ...f, id: petId }));
+      if (camposAtivos(camposPet, "tutor").length > 0) {
+        const { error: e } = await supabase.rpc("pet_campos_valores_salvar", {
+          p_entidade: "tutor",
+          p_registro_id: clienteId,
+          p_valores: valoresParaEnvio(camposPet, "tutor", valoresTutor),
+        });
+        if (e) throw new Error(`Pet salvo, mas os campos do tutor não: ${e.message}`);
+      }
+      if (camposAtivos(camposPet, "pet").length > 0) {
+        const { error: e } = await supabase.rpc("pet_campos_valores_salvar", {
+          p_entidade: "pet",
+          p_registro_id: petId,
+          p_valores: valoresParaEnvio(camposPet, "pet", valoresPet),
+        });
+        if (e) throw new Error(`Pet salvo, mas os campos do animal não: ${e.message}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["pet-campos-valores"] });
     },
     onSuccess: () => {
       toast.success(form.id ? "Pet atualizado." : "Pet cadastrado.");
@@ -675,6 +718,20 @@ function Pets() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
               />
             </div>
+            <CamposPersonalizados
+              campos={camposPet}
+              entidade="pet"
+              titulo="Campos do animal"
+              valores={valoresPet}
+              onChange={(id, v) => setValoresPet((x) => ({ ...x, [id]: v }))}
+            />
+            <CamposPersonalizados
+              campos={camposPet}
+              entidade="tutor"
+              titulo="Campos do tutor"
+              valores={valoresTutor}
+              onChange={(id, v) => setValoresTutor((x) => ({ ...x, [id]: v }))}
+            />
             {form.id && (
               <PesagensPet
                 petId={form.id}

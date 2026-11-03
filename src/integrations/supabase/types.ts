@@ -9466,6 +9466,80 @@ export type Database = {
           },
         ]
       }
+      pet_campos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          entidade: string
+          id: string
+          nome: string
+          obrigatorio: boolean
+          opcoes: Json
+          ordem: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          entidade: string
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          entidade?: string
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pet_campos_valores: {
+        Row: {
+          campo_id: string
+          registro_id: string
+          tenant_id: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          campo_id: string
+          registro_id: string
+          tenant_id?: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          campo_id?: string
+          registro_id?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_campos_valores_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_campos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_pesagens: {
         Row: {
           created_at: string
@@ -13420,6 +13494,11 @@ export type Database = {
           p_servico_id: string
         }
         Returns: string
+      }
+      pet_campo_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_campos_valores_salvar: {
+        Args: { p_entidade: string; p_registro_id: string; p_valores: Json }
+        Returns: undefined
       }
       pet_pesagem_excluir: { Args: { p_id: string }; Returns: undefined }
       pet_pesagem_registrar: {

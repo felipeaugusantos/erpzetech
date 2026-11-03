@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Printer } from "lucide-react";
 
+import { useCamposPet, useValoresCamposPet } from "@/components/app/CamposPersonalizados";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import type { AtendimentoClinico, PetClinico } from "@/lib/clinica";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
+import { camposAtivos, valorLegivel } from "@/lib/pet-campos";
 import { ESPECIES, PELAGENS, PORTES, idadeDoPet, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/clinica-ficha")({
@@ -55,6 +57,9 @@ function FichaImpressa() {
     },
   });
 
+  const campos = useCamposPet();
+  const valores = useValoresCamposPet(pet);
+
   if (!pet)
     return (
       <EmptyState
@@ -79,6 +84,7 @@ function FichaImpressa() {
     );
 
   const p = data.pet;
+  const extras = camposAtivos(campos.data ?? [], "pet").filter((c) => valores.data?.[c.id]);
   // do mais antigo para o mais novo, como uma ficha de papel
   const atendimentos = [...data.atendimentos].sort((a, b) =>
     a.aberto_em.localeCompare(b.aberto_em),
@@ -151,6 +157,12 @@ function FichaImpressa() {
               <strong>{p.alergias}</strong>
             </p>
           )}
+          {extras.map((c) => (
+            <p key={c.id}>
+              <span className="text-muted-foreground">{c.nome}: </span>
+              {valorLegivel(c, valores.data?.[c.id] ?? "")}
+            </p>
+          ))}
           {p.observacoes && (
             <p className="sm:col-span-2">
               <span className="text-muted-foreground">Observações: </span>
