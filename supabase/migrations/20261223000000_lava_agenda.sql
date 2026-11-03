@@ -306,7 +306,7 @@ GRANT EXECUTE ON FUNCTION public.lr_agendar(jsonb) TO authenticated;
 
 -- ============ confirmar, cancelar e faltar ============
 -- agendado vai para confirmado, cancelado ou faltou. confirmado vai para cancelado ou faltou. Concluído só pela chegada.
--- Cancelar pede o motivo. Cancelado e falta liberam o horário do lavador e do box.
+-- Cancelar pede o motivo. Cancelado e falta liberam o horário do lavador e do box. Confirmar não mexe no calendário.
 CREATE OR REPLACE FUNCTION public.lr_agenda_situacao(p_id uuid, p_para text, p_motivo text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -331,7 +331,10 @@ BEGIN
   IF p_para = 'cancelado' AND v_motivo IS NULL THEN RAISE EXCEPTION 'Informe o motivo do cancelamento'; END IF;
   IF length(coalesce(v_motivo, '')) > 300 THEN RAISE EXCEPTION 'O motivo aceita até 300 caracteres'; END IF;
   UPDATE public.lr_agendamentos SET situacao = p_para, motivo = CASE WHEN p_para = 'confirmado' THEN NULL ELSE v_motivo END WHERE id = a.id;
-  PERFORM public._lr_agenda_ocupar(a.id);
+  -- confirmar não muda horário nem recurso: as ocupações ficam como estão (a regra da empresa vale só para agendar e remarcar)
+  IF p_para IN ('cancelado', 'faltou') THEN
+    DELETE FROM public.lr_agenda_ocupacoes WHERE agendamento_id = a.id;
+  END IF;
 END $fn$;
 REVOKE ALL ON FUNCTION public.lr_agenda_situacao(uuid, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lr_agenda_situacao(uuid, text, text) TO authenticated;

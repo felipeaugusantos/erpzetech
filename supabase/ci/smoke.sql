@@ -11391,6 +11391,14 @@ BEGIN
   PERFORM lr_agenda_config_salvar(true, true, true);
   PERFORM ci.sair();
   PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v2, ini + interval '9 hours', s1), 'a regra padrão volta a exigir lavador ou box');
+  -- o agendamento aceito com o conflito por lavador desligado (a3 cruza a1) ainda se confirma depois que a regra volta: confirmar não refaz o calendário
+  SELECT count(*) INTO n FROM lr_agenda_ocupacoes WHERE agendamento_id IN (a1, a3);
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a3, 'confirmado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmado' FROM lr_agendamentos WHERE id = a3) AND (SELECT count(*) = n FROM lr_agenda_ocupacoes WHERE agendamento_id IN (a1, a3))
+                   AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3 AND recurso = 'lavador'),
+                   'confirmar preserva o calendário: agendamento aceito antes da regra nova continua confirmável');
   -- no fundo, o banco recusa cruzamento mesmo fora das funções
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO lr_agenda_ocupacoes (tenant_id, agendamento_id, recurso, chave, periodo)
       VALUES (%L, %L, 'lavador', %L, tstzrange(%L::timestamptz, %L::timestamptz, '[)'))$c$, demo, a4, l2::text, ini + interval '10 minutes', ini + interval '20 minutes'), 'a restrição de exclusão do calendário recusa cruzamento');
