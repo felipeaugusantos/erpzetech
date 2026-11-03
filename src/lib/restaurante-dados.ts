@@ -74,6 +74,8 @@ export type PedidoExternoRegistro = {
   recebido_em: string;
 };
 
+export type { CardapioCadastro as Cardapio, VinculoCardapio } from "@/lib/cardapios";
+
 /** Tara (prato, vasilhame) descontada na pesagem. */
 export type Tara = { id: string; nome: string; peso_g: number; ativo: boolean };
 

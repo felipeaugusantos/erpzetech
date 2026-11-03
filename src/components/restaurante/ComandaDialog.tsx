@@ -43,6 +43,7 @@ import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
 import { urlFotoCardapio } from "@/lib/cardapio-foto";
+import { cardapioSugerido, itensDoCardapio, precoNoCardapio } from "@/lib/cardapios";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
@@ -85,6 +86,7 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const [categoria, setCategoria] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [escolhendo, setEscolhendo] = useState<CardapioItem | null>(null);
+  const [cardapioSel, setCardapioSel] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<ComandaItem | "comanda" | null>(null);
   const [transferindo, setTransferindo] = useState(false);
   const [destino, setDestino] = useState("");
@@ -151,17 +153,34 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   });
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
+
+  // cardápios em uso nesta comanda (salão ou delivery); o sugerido segue o horário, e dá para trocar
+  const menusUso = (cardapio?.cardapios ?? []).filter(
+    (m) => m.ativo && (comanda?.tipo === "delivery" ? m.uso_delivery : m.uso_salao),
+  );
+  const menuAtual =
+    menusUso.find((m) => m.id === cardapioSel) ?? cardapioSugerido(menusUso, agora) ?? null;
   const erro = (e: Error) => toast.error(e.message);
 
   const lancar = useMutation({
     mutationFn: (p: { item: string; qtd: number; opcoes: string[]; obs: string }) =>
-      rpcRestaurante("restaurante_lancar_item", {
-        p_comanda_id: comandaId,
-        p_cardapio_item_id: p.item,
-        p_quantidade: p.qtd,
-        p_opcoes: p.opcoes,
-        p_observacao: p.obs || null,
-      }),
+      // com um cardápio em uso, o banco cobra o preço daquele cardápio
+      menuAtual
+        ? rpcRestaurante("restaurante_lancar_item_no_cardapio", {
+            p_comanda_id: comandaId,
+            p_cardapio_item_id: p.item,
+            p_quantidade: p.qtd,
+            p_cardapio_id: menuAtual.id,
+            p_opcoes: p.opcoes,
+            p_observacao: p.obs || null,
+          })
+        : rpcRestaurante("restaurante_lancar_item", {
+            p_comanda_id: comandaId,
+            p_cardapio_item_id: p.item,
+            p_quantidade: p.qtd,
+            p_opcoes: p.opcoes,
+            p_observacao: p.obs || null,
+          }),
     onSuccess: atualizar,
     onError: erro,
   });
@@ -246,14 +265,17 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const itensFiltrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
     // item por peso só entra pela Balança (o banco recusa o lançamento comum)
-    return (cardapio?.itens ?? [])
+    const base = menuAtual
+      ? itensDoCardapio(cardapio?.itens ?? [], cardapio?.vinculos ?? [], menuAtual.id)
+      : (cardapio?.itens ?? []);
+    return base
       .filter((i) => !i.venda_por_peso)
       .filter(
         (i) =>
           (categoria === "todas" || i.categoria_id === categoria) &&
           (!t || i.nome.toLowerCase().includes(t)),
       );
-  }, [cardapio, categoria, busca]);
+  }, [cardapio, categoria, busca, menuAtual]);
 
   function tocar(item: CardapioItem) {
     const grupos = (cardapio?.grupos ?? []).filter((g) => g.item_id === item.id);
@@ -387,6 +409,19 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       onChange={(e) => setBusca(e.target.value)}
                       aria-label="Buscar no cardápio"
                     />
+                    {menusUso.length > 1 && (
+                      <div className="flex flex-wrap gap-1" role="group" aria-label="Cardápio">
+                        {menusUso.map((m) => (
+                          <Chip
+                            key={m.id}
+                            ativo={menuAtual?.id === m.id}
+                            onClick={() => setCardapioSel(m.id)}
+                          >
+                            {m.nome}
+                          </Chip>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-1">
                       <Chip ativo={categoria === "todas"} onClick={() => setCategoria("todas")}>
                         Todas
@@ -421,7 +456,9 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                           )}
                           <span className="block pr-6 font-medium leading-tight">{i.nome}</span>
                           <span className="mt-1 block text-sm text-muted-foreground">
-                            {brl(i.preco)}
+                            {brl(
+                              precoNoCardapio(i, cardapio?.vinculos ?? [], menuAtual?.id ?? null),
+                            )}
                           </span>
                         </button>
                         <button
@@ -673,7 +710,10 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
 
       {escolhendo && cardapio && (
         <EscolherItemDialog
-          item={escolhendo}
+          item={{
+            ...escolhendo,
+            preco: precoNoCardapio(escolhendo, cardapio.vinculos, menuAtual?.id ?? null),
+          }}
           grupos={cardapio.grupos.filter((g) => g.item_id === escolhendo.id)}
           opcoes={cardapio.opcoes}
           carregando={lancar.isPending}

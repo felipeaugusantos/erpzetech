@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import {
+  cardapioSugerido,
+  dentroDoHorario,
+  itensDoCardapio,
+  precoNoCardapio,
+} from "../src/lib/cardapios.ts";
 import { itensSemCorrespondencia, totalItensPedido } from "../src/lib/pedido-externo.ts";
 import { calcularPesagem, kgTexto, pesoEmGramas } from "../src/lib/pesagem.ts";
 import {
@@ -359,4 +365,76 @@ test("pedido externo: itens sem correspondência e total dos itens", () => {
     0,
   );
   assert.equal(totalItensPedido(pedido), 2 * 36.5 + 19);
+});
+
+test("vários cardápios: horário, sugestão, preço e ordem", () => {
+  const base = {
+    ativo: true,
+    uso_salao: true,
+    uso_delivery: true,
+    uso_online: true,
+    uso_ifood: false,
+  };
+  const almoco = {
+    ...base,
+    id: "a",
+    nome: "Almoço",
+    ordem: 1,
+    padrao: false,
+    hora_inicio: "11:00:00",
+    hora_fim: "15:00:00",
+  };
+  const jantar = {
+    ...base,
+    id: "j",
+    nome: "Jantar",
+    ordem: 2,
+    padrao: false,
+    hora_inicio: "18:00",
+    hora_fim: "02:00",
+  };
+  const principal = {
+    ...base,
+    id: "p",
+    nome: "Principal",
+    ordem: 0,
+    padrao: true,
+    hora_inicio: null,
+    hora_fim: null,
+  };
+  const hora = (h: number, m = 0) => new Date(2026, 10, 1, h, m);
+  assert.equal(dentroDoHorario(almoco, hora(11, 0)), true);
+  assert.equal(dentroDoHorario(almoco, hora(15, 0)), false);
+  assert.equal(dentroDoHorario(jantar, hora(23, 30)), true);
+  assert.equal(dentroDoHorario(jantar, hora(1, 0)), true);
+  assert.equal(dentroDoHorario(jantar, hora(2, 0)), false);
+  assert.equal(dentroDoHorario(principal, hora(12)), false);
+  const todos = [jantar, principal, almoco];
+  assert.equal(cardapioSugerido(todos, hora(12))?.id, "a");
+  assert.equal(cardapioSugerido(todos, hora(20))?.id, "j");
+  assert.equal(cardapioSugerido(todos, hora(16))?.id, "p");
+  assert.equal(cardapioSugerido([almoco, jantar], hora(16))?.id, "a");
+  assert.equal(cardapioSugerido([], hora(16)), null);
+
+  const itens = [
+    { id: "x", nome: "Xis", ordem: 5, preco: 20 },
+    { id: "y", nome: "Yakisoba", ordem: 1, preco: 30 },
+    { id: "z", nome: "Zebu", ordem: 2, preco: 40 },
+  ];
+  const vinculos = [
+    { cardapio_id: "j", item_id: "x", preco: 25, ordem: 0 },
+    { cardapio_id: "j", item_id: "y", preco: null, ordem: null },
+    { cardapio_id: "p", item_id: "z", preco: null, ordem: null },
+  ];
+  assert.deepEqual(
+    itensDoCardapio(itens, vinculos, "j").map((i) => i.id),
+    ["x", "y"],
+  );
+  assert.deepEqual(
+    itensDoCardapio(itens, vinculos, "p").map((i) => i.id),
+    ["z"],
+  );
+  assert.equal(precoNoCardapio(itens[0]!, vinculos, "j"), 25);
+  assert.equal(precoNoCardapio(itens[1]!, vinculos, "j"), 30);
+  assert.equal(precoNoCardapio(itens[0]!, vinculos, null), 20);
 });

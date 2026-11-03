@@ -18,7 +18,7 @@ export type ItemPublico = {
 };
 export type CardapioPublico = {
   empresa: { nome: string; cor: string | null; logoUrl: string | null };
-  categorias: { nome: string; itens: ItemPublico[] }[];
+  cardapios: { nome: string; categorias: { nome: string; itens: ItemPublico[] }[] }[];
 };
 
 /** Cardápio online (só leitura) de uma empresa que ligou a página pública. */
@@ -47,15 +47,13 @@ export const buscarCardapioPublico = createServerFn({ method: "GET" })
         : {},
     });
     const { data: bruto } = await sb.rpc("restaurante_cardapio_publico", { p_slug: data.slug });
+    type ItemBruto = Omit<ItemPublico, "fotoUrl" | "porPeso"> & {
+      foto_path: string | null;
+      por_peso?: boolean;
+    };
     const r = bruto as {
       empresa: { nome: string; cor: string | null; logo_path: string | null };
-      categorias: {
-        nome: string;
-        itens: (Omit<ItemPublico, "fotoUrl" | "porPeso"> & {
-          foto_path: string | null;
-          por_peso?: boolean;
-        })[];
-      }[];
+      cardapios: { nome: string; categorias: { nome: string; itens: ItemBruto[] }[] }[];
     } | null;
     if (!r) return null;
 
@@ -73,15 +71,18 @@ export const buscarCardapioPublico = createServerFn({ method: "GET" })
     }
     return {
       empresa: { nome: r.empresa.nome, cor: r.empresa.cor, logoUrl },
-      categorias: r.categorias.map((c) => ({
-        nome: c.nome,
-        itens: c.itens.map((i) => ({
-          nome: i.nome,
-          descricao: i.descricao,
-          preco: Number(i.preco),
-          porPeso: i.por_peso === true,
-          fotoUrl: urlPublicaFoto(url, i.foto_path),
-          grupos: i.grupos ?? [],
+      cardapios: (r.cardapios ?? []).map((m) => ({
+        nome: m.nome,
+        categorias: m.categorias.map((c) => ({
+          nome: c.nome,
+          itens: c.itens.map((i) => ({
+            nome: i.nome,
+            descricao: i.descricao,
+            preco: Number(i.preco),
+            porPeso: i.por_peso === true,
+            fotoUrl: urlPublicaFoto(url, i.foto_path),
+            grupos: i.grupos ?? [],
+          })),
         })),
       })),
     };

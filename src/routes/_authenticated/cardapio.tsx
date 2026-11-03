@@ -5,6 +5,7 @@ import { Copy, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { CardapiosAdmin } from "@/components/restaurante/CardapiosAdmin";
 import { EstoqueRestaurante } from "@/components/restaurante/EstoqueRestaurante";
 import { FichaEditor } from "@/components/restaurante/FichaEditor";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -91,6 +92,7 @@ function Cardapio() {
       <Tabs defaultValue="itens">
         <TabsList>
           <TabsTrigger value="itens">Itens</TabsTrigger>
+          <TabsTrigger value="cardapios">Cardápios</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="mesas">Mesas</TabsTrigger>
           <TabsTrigger value="pracas">Praças de produção</TabsTrigger>
@@ -101,6 +103,9 @@ function Cardapio() {
         </TabsList>
         <TabsContent value="itens">
           <Itens tenantId={session?.profile?.tenant_id ?? ""} />
+        </TabsContent>
+        <TabsContent value="cardapios">
+          <CardapiosAdmin tenantId={session?.profile?.tenant_id ?? ""} />
         </TabsContent>
         <TabsContent value="categorias">
           <Categorias tenantId={session?.profile?.tenant_id ?? ""} />
