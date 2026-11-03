@@ -70,8 +70,8 @@ test("atraso e texto do prazo", () => {
   assert.equal(textoDoPrazo(dose(40).previsto_em, agora), "em 40 min");
   assert.equal(textoDoPrazo(dose(150).previsto_em, agora), "em 2 h 30 min");
   assert.equal(textoDoPrazo(dose(0).previsto_em, agora), "agora");
-  assert.equal(textoDoPrazo(dose(-25).previsto_em, agora), "atrasada 25 min");
-  assert.equal(textoDoPrazo(dose(-120).previsto_em, agora), "atrasada 2 h");
+  assert.equal(textoDoPrazo(dose(-25).previsto_em, agora), "há 25 min");
+  assert.equal(textoDoPrazo(dose(-120).previsto_em, agora), "há 2 h");
 });
 
 test("descrição da frequência da prescrição", () => {

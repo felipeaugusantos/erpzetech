@@ -943,7 +943,7 @@ function PrescricaoSecao({ f, id, souVet, aberta, aoMudar, aoErro }: PropsSecao)
             <Input
               id="pr-freq"
               inputMode="numeric"
-              placeholder="vazio = dose única"
+              placeholder="dose única"
               value={form.frequencia}
               onChange={(e) => setForm({ ...form, frequencia: e.target.value })}
             />
