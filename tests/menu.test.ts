@@ -40,6 +40,7 @@ test("o menu da loja tem os grupos esperados, com Relatórios antes de Administr
     "Restaurante",
     "Pet shop",
     "Lava rápido",
+    "Hotelaria",
     "Clínica",
     "Assistência técnica",
     "Locação de equipamentos",
@@ -157,8 +158,10 @@ test("o grupo Pet shop só aparece quando o módulo está liberado e traz as tel
     [
       "/pet-agenda",
       "/pets",
+      "/pet-os",
       "/pet-servicos",
       "/pet-profissionais",
+      "/pet-campos",
       "/pet-contatos",
       "/pet-pacotes",
       "/pet-comissoes",

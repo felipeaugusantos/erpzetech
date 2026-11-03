@@ -43,6 +43,7 @@ export const FUNCOES_PROFISSIONAL = [
   { value: "tosador", label: "Tosador" },
   { value: "groomer", label: "Groomer" },
   { value: "veterinario", label: "Veterinário" },
+  { value: "farmaceutico", label: "Farmacêutico (responsável SNGPC)" },
   { value: "auxiliar", label: "Auxiliar" },
   { value: "outro", label: "Outro" },
 ] as const;
@@ -326,3 +327,33 @@ export const normalizarCrmv = (texto: string) => texto.replace(/[^0-9A-Za-z]/g, 
 /** CRMV aceito pelo banco: de 3 a 12 letras/números e uma UF válida. */
 export const crmvValido = (crmv: string, uf: string) =>
   /^[0-9A-Z]{3,12}$/.test(normalizarCrmv(crmv)) && (UFS_CRMV as readonly string[]).includes(uf);
+
+/** CRF do farmacêutico: mesmas regras de formato do CRMV (o banco confere de novo). */
+export const crfValido = (crf: string, uf: string) => crmvValido(crf, uf);
+
+/** Microchip: só números, de 9 a 15 dígitos (ISO 11784 usa 15). */
+export const normalizarMicrochip = (texto: string) => texto.replace(/\D/g, "");
+export const microchipValido = (texto: string) => /^[0-9]{9,15}$/.test(normalizarMicrochip(texto));
+
+export type Pesagem = {
+  id: string;
+  pet_id: string;
+  pesado_em: string;
+  peso_kg: number;
+  observacao: string | null;
+};
+
+/** Pesagens da mais antiga para a mais nova, com a diferença para a anterior (kg). */
+export function evolucaoDasPesagens<T extends Pick<Pesagem, "id" | "pesado_em" | "peso_kg">>(
+  pesagens: readonly T[],
+) {
+  const ordem = [...pesagens].sort(
+    (a, b) => a.pesado_em.localeCompare(b.pesado_em) || a.id.localeCompare(b.id),
+  );
+  return ordem.map((p, i) => ({
+    ...p,
+    peso_kg: Number(p.peso_kg),
+    variacao:
+      i === 0 ? null : Math.round((Number(p.peso_kg) - Number(ordem[i - 1]?.peso_kg)) * 100) / 100,
+  }));
+}

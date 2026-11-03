@@ -84,3 +84,9 @@ test("o que falta para emitir", () => {
     "o texto do documento",
   ]);
 });
+
+test("há modelos de atestado de vacinação e de trânsito", () => {
+  const titulos = MODELOS_INICIAIS.filter((m) => m.tipo === "atestado").map((m) => m.titulo);
+  assert.ok(titulos.includes("Atestado de vacinação"));
+  assert.ok(titulos.includes("Atestado de saúde para trânsito"));
+});

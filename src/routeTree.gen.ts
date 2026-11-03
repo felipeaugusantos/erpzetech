@@ -31,11 +31,17 @@ import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_auth
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
+import { Route as AuthenticatedClinicaBoxesRouteImport } from './routes/_authenticated/clinica-boxes'
 import { Route as AuthenticatedClinicaCartaoRouteImport } from './routes/_authenticated/clinica-cartao'
 import { Route as AuthenticatedClinicaCatalogoRouteImport } from './routes/_authenticated/clinica-catalogo'
+import { Route as AuthenticatedClinicaCobrancasRouteImport } from './routes/_authenticated/clinica-cobrancas'
 import { Route as AuthenticatedClinicaDocumentoRouteImport } from './routes/_authenticated/clinica-documento'
 import { Route as AuthenticatedClinicaExamesRouteImport } from './routes/_authenticated/clinica-exames'
 import { Route as AuthenticatedClinicaExamesModelosRouteImport } from './routes/_authenticated/clinica-exames-modelos'
+import { Route as AuthenticatedClinicaExecucoesRouteImport } from './routes/_authenticated/clinica-execucoes'
+import { Route as AuthenticatedClinicaFichaRouteImport } from './routes/_authenticated/clinica-ficha'
+import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
+import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
@@ -69,6 +75,13 @@ import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedFrotaMapaRouteImport } from './routes/_authenticated/frota-mapa'
 import { Route as AuthenticatedGiroEstoqueRouteImport } from './routes/_authenticated/giro-estoque'
 import { Route as AuthenticatedGranelRouteImport } from './routes/_authenticated/granel'
+import { Route as AuthenticatedHotelAcomodacoesRouteImport } from './routes/_authenticated/hotel-acomodacoes'
+import { Route as AuthenticatedHotelConfiguracoesRouteImport } from './routes/_authenticated/hotel-configuracoes'
+import { Route as AuthenticatedHotelHospedesRouteImport } from './routes/_authenticated/hotel-hospedes'
+import { Route as AuthenticatedHotelMapaRouteImport } from './routes/_authenticated/hotel-mapa'
+import { Route as AuthenticatedHotelRecepcaoRouteImport } from './routes/_authenticated/hotel-recepcao'
+import { Route as AuthenticatedHotelReservasRouteImport } from './routes/_authenticated/hotel-reservas'
+import { Route as AuthenticatedHotelTarifasRouteImport } from './routes/_authenticated/hotel-tarifas'
 import { Route as AuthenticatedImportacaoRouteImport } from './routes/_authenticated/importacao'
 import { Route as AuthenticatedImportarCteRouteImport } from './routes/_authenticated/importar-cte'
 import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticated/impostos'
@@ -120,9 +133,12 @@ import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pd
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
 import { Route as AuthenticatedPetAgendaRouteImport } from './routes/_authenticated/pet-agenda'
+import { Route as AuthenticatedPetCamposRouteImport } from './routes/_authenticated/pet-campos'
 import { Route as AuthenticatedPetComissoesRouteImport } from './routes/_authenticated/pet-comissoes'
 import { Route as AuthenticatedPetContatosRouteImport } from './routes/_authenticated/pet-contatos'
 import { Route as AuthenticatedPetMinhaAgendaRouteImport } from './routes/_authenticated/pet-minha-agenda'
+import { Route as AuthenticatedPetOsRouteImport } from './routes/_authenticated/pet-os'
+import { Route as AuthenticatedPetOsDocumentoRouteImport } from './routes/_authenticated/pet-os-documento'
 import { Route as AuthenticatedPetPacotesRouteImport } from './routes/_authenticated/pet-pacotes'
 import { Route as AuthenticatedPetProfissionaisRouteImport } from './routes/_authenticated/pet-profissionais'
 import { Route as AuthenticatedPetServicosRouteImport } from './routes/_authenticated/pet-servicos'
@@ -141,6 +157,7 @@ import { Route as AuthenticatedRelatorioLocacoesRouteImport } from './routes/_au
 import { Route as AuthenticatedRelatorioPetProfissionaisRouteImport } from './routes/_authenticated/relatorio-pet-profissionais'
 import { Route as AuthenticatedRotaRouteImport } from './routes/_authenticated/rota'
 import { Route as AuthenticatedSalaoRouteImport } from './routes/_authenticated/salao'
+import { Route as AuthenticatedSngpcRouteImport } from './routes/_authenticated/sngpc'
 import { Route as AuthenticatedSugestaoCompraRouteImport } from './routes/_authenticated/sugestao-compra'
 import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticated/tecnicos'
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
@@ -168,6 +185,7 @@ import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
 import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenticated/depositos.$id'
+import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authenticated/hotel-estadia.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
@@ -292,6 +310,12 @@ const AuthenticatedClinicaAtendimentoRoute =
     path: '/clinica-atendimento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaBoxesRoute =
+  AuthenticatedClinicaBoxesRouteImport.update({
+    id: '/clinica-boxes',
+    path: '/clinica-boxes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClinicaCartaoRoute =
   AuthenticatedClinicaCartaoRouteImport.update({
     id: '/clinica-cartao',
@@ -302,6 +326,12 @@ const AuthenticatedClinicaCatalogoRoute =
   AuthenticatedClinicaCatalogoRouteImport.update({
     id: '/clinica-catalogo',
     path: '/clinica-catalogo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaCobrancasRoute =
+  AuthenticatedClinicaCobrancasRouteImport.update({
+    id: '/clinica-cobrancas',
+    path: '/clinica-cobrancas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaDocumentoRoute =
@@ -320,6 +350,30 @@ const AuthenticatedClinicaExamesModelosRoute =
   AuthenticatedClinicaExamesModelosRouteImport.update({
     id: '/clinica-exames-modelos',
     path: '/clinica-exames-modelos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaExecucoesRoute =
+  AuthenticatedClinicaExecucoesRouteImport.update({
+    id: '/clinica-execucoes',
+    path: '/clinica-execucoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaFichaRoute =
+  AuthenticatedClinicaFichaRouteImport.update({
+    id: '/clinica-ficha',
+    path: '/clinica-ficha',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaInternacaoRoute =
+  AuthenticatedClinicaInternacaoRouteImport.update({
+    id: '/clinica-internacao',
+    path: '/clinica-internacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaInternacaoHistoricoRoute =
+  AuthenticatedClinicaInternacaoHistoricoRouteImport.update({
+    id: '/clinica-internacao-historico',
+    path: '/clinica-internacao-historico',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaOfflineRoute =
@@ -505,6 +559,47 @@ const AuthenticatedGranelRoute = AuthenticatedGranelRouteImport.update({
   path: '/granel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHotelAcomodacoesRoute =
+  AuthenticatedHotelAcomodacoesRouteImport.update({
+    id: '/hotel-acomodacoes',
+    path: '/hotel-acomodacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelConfiguracoesRoute =
+  AuthenticatedHotelConfiguracoesRouteImport.update({
+    id: '/hotel-configuracoes',
+    path: '/hotel-configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelHospedesRoute =
+  AuthenticatedHotelHospedesRouteImport.update({
+    id: '/hotel-hospedes',
+    path: '/hotel-hospedes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelMapaRoute = AuthenticatedHotelMapaRouteImport.update({
+  id: '/hotel-mapa',
+  path: '/hotel-mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHotelRecepcaoRoute =
+  AuthenticatedHotelRecepcaoRouteImport.update({
+    id: '/hotel-recepcao',
+    path: '/hotel-recepcao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelReservasRoute =
+  AuthenticatedHotelReservasRouteImport.update({
+    id: '/hotel-reservas',
+    path: '/hotel-reservas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHotelTarifasRoute =
+  AuthenticatedHotelTarifasRouteImport.update({
+    id: '/hotel-tarifas',
+    path: '/hotel-tarifas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImportacaoRoute = AuthenticatedImportacaoRouteImport.update({
   id: '/importacao',
   path: '/importacao',
@@ -794,6 +889,11 @@ const AuthenticatedPetAgendaRoute = AuthenticatedPetAgendaRouteImport.update({
   path: '/pet-agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPetCamposRoute = AuthenticatedPetCamposRouteImport.update({
+  id: '/pet-campos',
+  path: '/pet-campos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPetComissoesRoute =
   AuthenticatedPetComissoesRouteImport.update({
     id: '/pet-comissoes',
@@ -810,6 +910,17 @@ const AuthenticatedPetMinhaAgendaRoute =
   AuthenticatedPetMinhaAgendaRouteImport.update({
     id: '/pet-minha-agenda',
     path: '/pet-minha-agenda',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPetOsRoute = AuthenticatedPetOsRouteImport.update({
+  id: '/pet-os',
+  path: '/pet-os',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPetOsDocumentoRoute =
+  AuthenticatedPetOsDocumentoRouteImport.update({
+    id: '/pet-os-documento',
+    path: '/pet-os-documento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPetPacotesRoute = AuthenticatedPetPacotesRouteImport.update({
@@ -908,6 +1019,11 @@ const AuthenticatedRotaRoute = AuthenticatedRotaRouteImport.update({
 const AuthenticatedSalaoRoute = AuthenticatedSalaoRouteImport.update({
   id: '/salao',
   path: '/salao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSngpcRoute = AuthenticatedSngpcRouteImport.update({
+  id: '/sngpc',
+  path: '/sngpc',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSugestaoCompraRoute =
@@ -1063,6 +1179,12 @@ const AuthenticatedDepositosIdRoute =
     path: '/depositos/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHotelEstadiaIdRoute =
+  AuthenticatedHotelEstadiaIdRouteImport.update({
+    id: '/hotel-estadia/$id',
+    path: '/hotel-estadia/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPedidosIndexRoute =
   AuthenticatedPedidosIndexRouteImport.update({
     id: '/pedidos/',
@@ -1120,11 +1242,17 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
+  '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
+  '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
+  '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
@@ -1158,6 +1286,13 @@ export interface FileRoutesByFullPath {
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/granel': typeof AuthenticatedGranelRoute
+  '/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/importacao': typeof AuthenticatedImportacaoRoute
   '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
@@ -1209,9 +1344,12 @@ export interface FileRoutesByFullPath {
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/pet-campos': typeof AuthenticatedPetCamposRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
+  '/pet-os': typeof AuthenticatedPetOsRoute
+  '/pet-os-documento': typeof AuthenticatedPetOsDocumentoRoute
   '/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1230,6 +1368,7 @@ export interface FileRoutesByFullPath {
   '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sngpc': typeof AuthenticatedSngpcRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
@@ -1255,6 +1394,7 @@ export interface FileRoutesByFullPath {
   '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
@@ -1286,11 +1426,17 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
+  '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
+  '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
+  '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
@@ -1324,6 +1470,13 @@ export interface FileRoutesByTo {
   '/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/granel': typeof AuthenticatedGranelRoute
+  '/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/importacao': typeof AuthenticatedImportacaoRoute
   '/importar-cte': typeof AuthenticatedImportarCteRoute
   '/impostos': typeof AuthenticatedImpostosRoute
@@ -1375,9 +1528,12 @@ export interface FileRoutesByTo {
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/pet-campos': typeof AuthenticatedPetCamposRoute
   '/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
+  '/pet-os': typeof AuthenticatedPetOsRoute
+  '/pet-os-documento': typeof AuthenticatedPetOsDocumentoRoute
   '/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1396,6 +1552,7 @@ export interface FileRoutesByTo {
   '/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/rota': typeof AuthenticatedRotaRoute
   '/salao': typeof AuthenticatedSalaoRoute
+  '/sngpc': typeof AuthenticatedSngpcRoute
   '/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/tecnicos': typeof AuthenticatedTecnicosRoute
   '/tef': typeof AuthenticatedTefRoute
@@ -1421,6 +1578,7 @@ export interface FileRoutesByTo {
   '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
@@ -1454,11 +1612,17 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
+  '/_authenticated/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/_authenticated/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/_authenticated/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/_authenticated/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/_authenticated/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/_authenticated/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/_authenticated/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
+  '/_authenticated/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
+  '/_authenticated/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
+  '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
@@ -1492,6 +1656,13 @@ export interface FileRoutesById {
   '/_authenticated/frota-mapa': typeof AuthenticatedFrotaMapaRoute
   '/_authenticated/giro-estoque': typeof AuthenticatedGiroEstoqueRoute
   '/_authenticated/granel': typeof AuthenticatedGranelRoute
+  '/_authenticated/hotel-acomodacoes': typeof AuthenticatedHotelAcomodacoesRoute
+  '/_authenticated/hotel-configuracoes': typeof AuthenticatedHotelConfiguracoesRoute
+  '/_authenticated/hotel-hospedes': typeof AuthenticatedHotelHospedesRoute
+  '/_authenticated/hotel-mapa': typeof AuthenticatedHotelMapaRoute
+  '/_authenticated/hotel-recepcao': typeof AuthenticatedHotelRecepcaoRoute
+  '/_authenticated/hotel-reservas': typeof AuthenticatedHotelReservasRoute
+  '/_authenticated/hotel-tarifas': typeof AuthenticatedHotelTarifasRoute
   '/_authenticated/importacao': typeof AuthenticatedImportacaoRoute
   '/_authenticated/importar-cte': typeof AuthenticatedImportarCteRoute
   '/_authenticated/impostos': typeof AuthenticatedImpostosRoute
@@ -1543,9 +1714,12 @@ export interface FileRoutesById {
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
   '/_authenticated/pet-agenda': typeof AuthenticatedPetAgendaRoute
+  '/_authenticated/pet-campos': typeof AuthenticatedPetCamposRoute
   '/_authenticated/pet-comissoes': typeof AuthenticatedPetComissoesRoute
   '/_authenticated/pet-contatos': typeof AuthenticatedPetContatosRoute
   '/_authenticated/pet-minha-agenda': typeof AuthenticatedPetMinhaAgendaRoute
+  '/_authenticated/pet-os': typeof AuthenticatedPetOsRoute
+  '/_authenticated/pet-os-documento': typeof AuthenticatedPetOsDocumentoRoute
   '/_authenticated/pet-pacotes': typeof AuthenticatedPetPacotesRoute
   '/_authenticated/pet-profissionais': typeof AuthenticatedPetProfissionaisRoute
   '/_authenticated/pet-servicos': typeof AuthenticatedPetServicosRoute
@@ -1564,6 +1738,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorio-pet-profissionais': typeof AuthenticatedRelatorioPetProfissionaisRoute
   '/_authenticated/rota': typeof AuthenticatedRotaRoute
   '/_authenticated/salao': typeof AuthenticatedSalaoRoute
+  '/_authenticated/sngpc': typeof AuthenticatedSngpcRoute
   '/_authenticated/sugestao-compra': typeof AuthenticatedSugestaoCompraRoute
   '/_authenticated/tecnicos': typeof AuthenticatedTecnicosRoute
   '/_authenticated/tef': typeof AuthenticatedTefRoute
@@ -1589,6 +1764,7 @@ export interface FileRoutesById {
   '/menu/$empresa': typeof MenuEmpresaRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
+  '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
@@ -1622,11 +1798,17 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
+    | '/clinica-boxes'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-cobrancas'
     | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
+    | '/clinica-execucoes'
+    | '/clinica-ficha'
+    | '/clinica-internacao'
+    | '/clinica-internacao-historico'
     | '/clinica-offline'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
@@ -1660,6 +1842,13 @@ export interface FileRouteTypes {
     | '/frota-mapa'
     | '/giro-estoque'
     | '/granel'
+    | '/hotel-acomodacoes'
+    | '/hotel-configuracoes'
+    | '/hotel-hospedes'
+    | '/hotel-mapa'
+    | '/hotel-recepcao'
+    | '/hotel-reservas'
+    | '/hotel-tarifas'
     | '/importacao'
     | '/importar-cte'
     | '/impostos'
@@ -1711,9 +1900,12 @@ export interface FileRouteTypes {
     | '/pendencias-fiscais'
     | '/personalizacao'
     | '/pet-agenda'
+    | '/pet-campos'
     | '/pet-comissoes'
     | '/pet-contatos'
     | '/pet-minha-agenda'
+    | '/pet-os'
+    | '/pet-os-documento'
     | '/pet-pacotes'
     | '/pet-profissionais'
     | '/pet-servicos'
@@ -1732,6 +1924,7 @@ export interface FileRouteTypes {
     | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
+    | '/sngpc'
     | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
@@ -1757,6 +1950,7 @@ export interface FileRouteTypes {
     | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
+    | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
     | '/compras/'
@@ -1788,11 +1982,17 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
+    | '/clinica-boxes'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-cobrancas'
     | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
+    | '/clinica-execucoes'
+    | '/clinica-ficha'
+    | '/clinica-internacao'
+    | '/clinica-internacao-historico'
     | '/clinica-offline'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
@@ -1826,6 +2026,13 @@ export interface FileRouteTypes {
     | '/frota-mapa'
     | '/giro-estoque'
     | '/granel'
+    | '/hotel-acomodacoes'
+    | '/hotel-configuracoes'
+    | '/hotel-hospedes'
+    | '/hotel-mapa'
+    | '/hotel-recepcao'
+    | '/hotel-reservas'
+    | '/hotel-tarifas'
     | '/importacao'
     | '/importar-cte'
     | '/impostos'
@@ -1877,9 +2084,12 @@ export interface FileRouteTypes {
     | '/pendencias-fiscais'
     | '/personalizacao'
     | '/pet-agenda'
+    | '/pet-campos'
     | '/pet-comissoes'
     | '/pet-contatos'
     | '/pet-minha-agenda'
+    | '/pet-os'
+    | '/pet-os-documento'
     | '/pet-pacotes'
     | '/pet-profissionais'
     | '/pet-servicos'
@@ -1898,6 +2108,7 @@ export interface FileRouteTypes {
     | '/relatorio-pet-profissionais'
     | '/rota'
     | '/salao'
+    | '/sngpc'
     | '/sugestao-compra'
     | '/tecnicos'
     | '/tef'
@@ -1923,6 +2134,7 @@ export interface FileRouteTypes {
     | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
+    | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
     | '/compras'
@@ -1955,11 +2167,17 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/clinica-atendimento'
+    | '/_authenticated/clinica-boxes'
     | '/_authenticated/clinica-cartao'
     | '/_authenticated/clinica-catalogo'
+    | '/_authenticated/clinica-cobrancas'
     | '/_authenticated/clinica-documento'
     | '/_authenticated/clinica-exames'
     | '/_authenticated/clinica-exames-modelos'
+    | '/_authenticated/clinica-execucoes'
+    | '/_authenticated/clinica-ficha'
+    | '/_authenticated/clinica-internacao'
+    | '/_authenticated/clinica-internacao-historico'
     | '/_authenticated/clinica-offline'
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
@@ -1993,6 +2211,13 @@ export interface FileRouteTypes {
     | '/_authenticated/frota-mapa'
     | '/_authenticated/giro-estoque'
     | '/_authenticated/granel'
+    | '/_authenticated/hotel-acomodacoes'
+    | '/_authenticated/hotel-configuracoes'
+    | '/_authenticated/hotel-hospedes'
+    | '/_authenticated/hotel-mapa'
+    | '/_authenticated/hotel-recepcao'
+    | '/_authenticated/hotel-reservas'
+    | '/_authenticated/hotel-tarifas'
     | '/_authenticated/importacao'
     | '/_authenticated/importar-cte'
     | '/_authenticated/impostos'
@@ -2044,9 +2269,12 @@ export interface FileRouteTypes {
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
     | '/_authenticated/pet-agenda'
+    | '/_authenticated/pet-campos'
     | '/_authenticated/pet-comissoes'
     | '/_authenticated/pet-contatos'
     | '/_authenticated/pet-minha-agenda'
+    | '/_authenticated/pet-os'
+    | '/_authenticated/pet-os-documento'
     | '/_authenticated/pet-pacotes'
     | '/_authenticated/pet-profissionais'
     | '/_authenticated/pet-servicos'
@@ -2065,6 +2293,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorio-pet-profissionais'
     | '/_authenticated/rota'
     | '/_authenticated/salao'
+    | '/_authenticated/sngpc'
     | '/_authenticated/sugestao-compra'
     | '/_authenticated/tecnicos'
     | '/_authenticated/tef'
@@ -2090,6 +2319,7 @@ export interface FileRouteTypes {
     | '/menu/$empresa'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
+    | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/chamar/$empresa/$mesa'
     | '/_authenticated/compras/'
@@ -2272,6 +2502,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClinicaAtendimentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinica-boxes': {
+      id: '/_authenticated/clinica-boxes'
+      path: '/clinica-boxes'
+      fullPath: '/clinica-boxes'
+      preLoaderRoute: typeof AuthenticatedClinicaBoxesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clinica-cartao': {
       id: '/_authenticated/clinica-cartao'
       path: '/clinica-cartao'
@@ -2284,6 +2521,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-catalogo'
       fullPath: '/clinica-catalogo'
       preLoaderRoute: typeof AuthenticatedClinicaCatalogoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-cobrancas': {
+      id: '/_authenticated/clinica-cobrancas'
+      path: '/clinica-cobrancas'
+      fullPath: '/clinica-cobrancas'
+      preLoaderRoute: typeof AuthenticatedClinicaCobrancasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-documento': {
@@ -2305,6 +2549,34 @@ declare module '@tanstack/react-router' {
       path: '/clinica-exames-modelos'
       fullPath: '/clinica-exames-modelos'
       preLoaderRoute: typeof AuthenticatedClinicaExamesModelosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-execucoes': {
+      id: '/_authenticated/clinica-execucoes'
+      path: '/clinica-execucoes'
+      fullPath: '/clinica-execucoes'
+      preLoaderRoute: typeof AuthenticatedClinicaExecucoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-ficha': {
+      id: '/_authenticated/clinica-ficha'
+      path: '/clinica-ficha'
+      fullPath: '/clinica-ficha'
+      preLoaderRoute: typeof AuthenticatedClinicaFichaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-internacao': {
+      id: '/_authenticated/clinica-internacao'
+      path: '/clinica-internacao'
+      fullPath: '/clinica-internacao'
+      preLoaderRoute: typeof AuthenticatedClinicaInternacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-internacao-historico': {
+      id: '/_authenticated/clinica-internacao-historico'
+      path: '/clinica-internacao-historico'
+      fullPath: '/clinica-internacao-historico'
+      preLoaderRoute: typeof AuthenticatedClinicaInternacaoHistoricoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-offline': {
@@ -2536,6 +2808,55 @@ declare module '@tanstack/react-router' {
       path: '/granel'
       fullPath: '/granel'
       preLoaderRoute: typeof AuthenticatedGranelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-acomodacoes': {
+      id: '/_authenticated/hotel-acomodacoes'
+      path: '/hotel-acomodacoes'
+      fullPath: '/hotel-acomodacoes'
+      preLoaderRoute: typeof AuthenticatedHotelAcomodacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-configuracoes': {
+      id: '/_authenticated/hotel-configuracoes'
+      path: '/hotel-configuracoes'
+      fullPath: '/hotel-configuracoes'
+      preLoaderRoute: typeof AuthenticatedHotelConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-hospedes': {
+      id: '/_authenticated/hotel-hospedes'
+      path: '/hotel-hospedes'
+      fullPath: '/hotel-hospedes'
+      preLoaderRoute: typeof AuthenticatedHotelHospedesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-mapa': {
+      id: '/_authenticated/hotel-mapa'
+      path: '/hotel-mapa'
+      fullPath: '/hotel-mapa'
+      preLoaderRoute: typeof AuthenticatedHotelMapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-recepcao': {
+      id: '/_authenticated/hotel-recepcao'
+      path: '/hotel-recepcao'
+      fullPath: '/hotel-recepcao'
+      preLoaderRoute: typeof AuthenticatedHotelRecepcaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-reservas': {
+      id: '/_authenticated/hotel-reservas'
+      path: '/hotel-reservas'
+      fullPath: '/hotel-reservas'
+      preLoaderRoute: typeof AuthenticatedHotelReservasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel-tarifas': {
+      id: '/_authenticated/hotel-tarifas'
+      path: '/hotel-tarifas'
+      fullPath: '/hotel-tarifas'
+      preLoaderRoute: typeof AuthenticatedHotelTarifasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/importacao': {
@@ -2895,6 +3216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPetAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pet-campos': {
+      id: '/_authenticated/pet-campos'
+      path: '/pet-campos'
+      fullPath: '/pet-campos'
+      preLoaderRoute: typeof AuthenticatedPetCamposRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pet-comissoes': {
       id: '/_authenticated/pet-comissoes'
       path: '/pet-comissoes'
@@ -2914,6 +3242,20 @@ declare module '@tanstack/react-router' {
       path: '/pet-minha-agenda'
       fullPath: '/pet-minha-agenda'
       preLoaderRoute: typeof AuthenticatedPetMinhaAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pet-os': {
+      id: '/_authenticated/pet-os'
+      path: '/pet-os'
+      fullPath: '/pet-os'
+      preLoaderRoute: typeof AuthenticatedPetOsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pet-os-documento': {
+      id: '/_authenticated/pet-os-documento'
+      path: '/pet-os-documento'
+      fullPath: '/pet-os-documento'
+      preLoaderRoute: typeof AuthenticatedPetOsDocumentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pet-pacotes': {
@@ -3040,6 +3382,13 @@ declare module '@tanstack/react-router' {
       path: '/salao'
       fullPath: '/salao'
       preLoaderRoute: typeof AuthenticatedSalaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sngpc': {
+      id: '/_authenticated/sngpc'
+      path: '/sngpc'
+      fullPath: '/sngpc'
+      preLoaderRoute: typeof AuthenticatedSngpcRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sugestao-compra': {
@@ -3231,6 +3580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDepositosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hotel-estadia/$id': {
+      id: '/_authenticated/hotel-estadia/$id'
+      path: '/hotel-estadia/$id'
+      fullPath: '/hotel-estadia/$id'
+      preLoaderRoute: typeof AuthenticatedHotelEstadiaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pedidos/': {
       id: '/_authenticated/pedidos/'
       path: '/pedidos'
@@ -3291,11 +3647,17 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
+  AuthenticatedClinicaBoxesRoute: typeof AuthenticatedClinicaBoxesRoute
   AuthenticatedClinicaCartaoRoute: typeof AuthenticatedClinicaCartaoRoute
   AuthenticatedClinicaCatalogoRoute: typeof AuthenticatedClinicaCatalogoRoute
+  AuthenticatedClinicaCobrancasRoute: typeof AuthenticatedClinicaCobrancasRoute
   AuthenticatedClinicaDocumentoRoute: typeof AuthenticatedClinicaDocumentoRoute
   AuthenticatedClinicaExamesRoute: typeof AuthenticatedClinicaExamesRoute
   AuthenticatedClinicaExamesModelosRoute: typeof AuthenticatedClinicaExamesModelosRoute
+  AuthenticatedClinicaExecucoesRoute: typeof AuthenticatedClinicaExecucoesRoute
+  AuthenticatedClinicaFichaRoute: typeof AuthenticatedClinicaFichaRoute
+  AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
+  AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
@@ -3329,6 +3691,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFrotaMapaRoute: typeof AuthenticatedFrotaMapaRoute
   AuthenticatedGiroEstoqueRoute: typeof AuthenticatedGiroEstoqueRoute
   AuthenticatedGranelRoute: typeof AuthenticatedGranelRoute
+  AuthenticatedHotelAcomodacoesRoute: typeof AuthenticatedHotelAcomodacoesRoute
+  AuthenticatedHotelConfiguracoesRoute: typeof AuthenticatedHotelConfiguracoesRoute
+  AuthenticatedHotelHospedesRoute: typeof AuthenticatedHotelHospedesRoute
+  AuthenticatedHotelMapaRoute: typeof AuthenticatedHotelMapaRoute
+  AuthenticatedHotelRecepcaoRoute: typeof AuthenticatedHotelRecepcaoRoute
+  AuthenticatedHotelReservasRoute: typeof AuthenticatedHotelReservasRoute
+  AuthenticatedHotelTarifasRoute: typeof AuthenticatedHotelTarifasRoute
   AuthenticatedImportacaoRoute: typeof AuthenticatedImportacaoRoute
   AuthenticatedImportarCteRoute: typeof AuthenticatedImportarCteRoute
   AuthenticatedImpostosRoute: typeof AuthenticatedImpostosRoute
@@ -3380,9 +3749,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
   AuthenticatedPetAgendaRoute: typeof AuthenticatedPetAgendaRoute
+  AuthenticatedPetCamposRoute: typeof AuthenticatedPetCamposRoute
   AuthenticatedPetComissoesRoute: typeof AuthenticatedPetComissoesRoute
   AuthenticatedPetContatosRoute: typeof AuthenticatedPetContatosRoute
   AuthenticatedPetMinhaAgendaRoute: typeof AuthenticatedPetMinhaAgendaRoute
+  AuthenticatedPetOsRoute: typeof AuthenticatedPetOsRoute
+  AuthenticatedPetOsDocumentoRoute: typeof AuthenticatedPetOsDocumentoRoute
   AuthenticatedPetPacotesRoute: typeof AuthenticatedPetPacotesRoute
   AuthenticatedPetProfissionaisRoute: typeof AuthenticatedPetProfissionaisRoute
   AuthenticatedPetServicosRoute: typeof AuthenticatedPetServicosRoute
@@ -3401,6 +3773,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatorioPetProfissionaisRoute: typeof AuthenticatedRelatorioPetProfissionaisRoute
   AuthenticatedRotaRoute: typeof AuthenticatedRotaRoute
   AuthenticatedSalaoRoute: typeof AuthenticatedSalaoRoute
+  AuthenticatedSngpcRoute: typeof AuthenticatedSngpcRoute
   AuthenticatedSugestaoCompraRoute: typeof AuthenticatedSugestaoCompraRoute
   AuthenticatedTecnicosRoute: typeof AuthenticatedTecnicosRoute
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
@@ -3425,6 +3798,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechTempoRealRoute: typeof AuthenticatedZeTechTempoRealRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
+  AuthenticatedHotelEstadiaIdRoute: typeof AuthenticatedHotelEstadiaIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedDepositosIndexRoute: typeof AuthenticatedDepositosIndexRoute
@@ -3446,12 +3820,19 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
+  AuthenticatedClinicaBoxesRoute: AuthenticatedClinicaBoxesRoute,
   AuthenticatedClinicaCartaoRoute: AuthenticatedClinicaCartaoRoute,
   AuthenticatedClinicaCatalogoRoute: AuthenticatedClinicaCatalogoRoute,
+  AuthenticatedClinicaCobrancasRoute: AuthenticatedClinicaCobrancasRoute,
   AuthenticatedClinicaDocumentoRoute: AuthenticatedClinicaDocumentoRoute,
   AuthenticatedClinicaExamesRoute: AuthenticatedClinicaExamesRoute,
   AuthenticatedClinicaExamesModelosRoute:
     AuthenticatedClinicaExamesModelosRoute,
+  AuthenticatedClinicaExecucoesRoute: AuthenticatedClinicaExecucoesRoute,
+  AuthenticatedClinicaFichaRoute: AuthenticatedClinicaFichaRoute,
+  AuthenticatedClinicaInternacaoRoute: AuthenticatedClinicaInternacaoRoute,
+  AuthenticatedClinicaInternacaoHistoricoRoute:
+    AuthenticatedClinicaInternacaoHistoricoRoute,
   AuthenticatedClinicaOfflineRoute: AuthenticatedClinicaOfflineRoute,
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
@@ -3485,6 +3866,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFrotaMapaRoute: AuthenticatedFrotaMapaRoute,
   AuthenticatedGiroEstoqueRoute: AuthenticatedGiroEstoqueRoute,
   AuthenticatedGranelRoute: AuthenticatedGranelRoute,
+  AuthenticatedHotelAcomodacoesRoute: AuthenticatedHotelAcomodacoesRoute,
+  AuthenticatedHotelConfiguracoesRoute: AuthenticatedHotelConfiguracoesRoute,
+  AuthenticatedHotelHospedesRoute: AuthenticatedHotelHospedesRoute,
+  AuthenticatedHotelMapaRoute: AuthenticatedHotelMapaRoute,
+  AuthenticatedHotelRecepcaoRoute: AuthenticatedHotelRecepcaoRoute,
+  AuthenticatedHotelReservasRoute: AuthenticatedHotelReservasRoute,
+  AuthenticatedHotelTarifasRoute: AuthenticatedHotelTarifasRoute,
   AuthenticatedImportacaoRoute: AuthenticatedImportacaoRoute,
   AuthenticatedImportarCteRoute: AuthenticatedImportarCteRoute,
   AuthenticatedImpostosRoute: AuthenticatedImpostosRoute,
@@ -3537,9 +3925,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
   AuthenticatedPetAgendaRoute: AuthenticatedPetAgendaRoute,
+  AuthenticatedPetCamposRoute: AuthenticatedPetCamposRoute,
   AuthenticatedPetComissoesRoute: AuthenticatedPetComissoesRoute,
   AuthenticatedPetContatosRoute: AuthenticatedPetContatosRoute,
   AuthenticatedPetMinhaAgendaRoute: AuthenticatedPetMinhaAgendaRoute,
+  AuthenticatedPetOsRoute: AuthenticatedPetOsRoute,
+  AuthenticatedPetOsDocumentoRoute: AuthenticatedPetOsDocumentoRoute,
   AuthenticatedPetPacotesRoute: AuthenticatedPetPacotesRoute,
   AuthenticatedPetProfissionaisRoute: AuthenticatedPetProfissionaisRoute,
   AuthenticatedPetServicosRoute: AuthenticatedPetServicosRoute,
@@ -3560,6 +3951,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRelatorioPetProfissionaisRoute,
   AuthenticatedRotaRoute: AuthenticatedRotaRoute,
   AuthenticatedSalaoRoute: AuthenticatedSalaoRoute,
+  AuthenticatedSngpcRoute: AuthenticatedSngpcRoute,
   AuthenticatedSugestaoCompraRoute: AuthenticatedSugestaoCompraRoute,
   AuthenticatedTecnicosRoute: AuthenticatedTecnicosRoute,
   AuthenticatedTefRoute: AuthenticatedTefRoute,
@@ -3585,6 +3977,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechTempoRealRoute: AuthenticatedZeTechTempoRealRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
+  AuthenticatedHotelEstadiaIdRoute: AuthenticatedHotelEstadiaIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedDepositosIndexRoute: AuthenticatedDepositosIndexRoute,

@@ -33,6 +33,7 @@ import { FrenteClientes, type ClienteFrente } from "@/components/app/FrenteClien
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { EmitirNfce } from "@/components/app/EmitirNfce";
 import { avisoDepoisDoUso } from "@/lib/pet";
+import { erroDasLinhasCobradas } from "@/lib/pet-cobranca";
 
 export const Route = createFileRoute("/_authenticated/frente-caixa")({
   head: () => ({
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
   // ?pacote=<modelo>&para=<pet>&validade=30|60|90: venda de pacote de banhos para um pet.
   // ?lava=<ordem>: "Entregar e cobrar" do pátio do lava rápido abre o caixa com os serviços da ordem.
   // ?plano=<plano>&veiculo=<veículo>: venda de plano de lavagens para um veículo.
+  // ?os=<ordem>: "Cobrar no caixa" da ordem de serviço do pet (pronta). ?internacao=<internação>: cobrança da internação encerrada.
   validateSearch: (
     s: Record<string, unknown>,
   ): {
@@ -66,6 +68,8 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
     lava?: string;
     plano?: string;
     veiculo?: string;
+    os?: string;
+    internacao?: string;
   } => {
     const out: {
       pet?: string;
@@ -75,11 +79,15 @@ export const Route = createFileRoute("/_authenticated/frente-caixa")({
       lava?: string;
       plano?: string;
       veiculo?: string;
+      os?: string;
+      internacao?: string;
     } = {};
     if (typeof s["plano"] === "string" && s["plano"]) out.plano = s["plano"];
     if (typeof s["veiculo"] === "string" && s["veiculo"]) out.veiculo = s["veiculo"];
     if (typeof s["pet"] === "string" && s["pet"]) out.pet = s["pet"];
     if (typeof s["lava"] === "string" && s["lava"]) out.lava = s["lava"];
+    if (typeof s["os"] === "string" && s["os"]) out.os = s["os"];
+    if (typeof s["internacao"] === "string" && s["internacao"]) out.internacao = s["internacao"];
     if (typeof s["pacote"] === "string" && s["pacote"]) out.pacote = s["pacote"];
     if (typeof s["para"] === "string" && s["para"]) out.para = s["para"];
     const v = Number(s["validade"]);
@@ -117,6 +125,15 @@ type LavaCobranca = {
   cliente: string;
   servicos: { produto_id: string; descricao: string; preco: number }[];
 };
+/** Ordem de serviço do pet ou internação que esta venda vai cobrar: as linhas vêm prontas do banco (serviço avulso no produto de apoio). */
+type CobrancaClinica = {
+  tipo: "os" | "internacao";
+  id: string;
+  rotulo: string;
+  pet: string;
+  tutor: string;
+  linhas: { produto_id: string; descricao: string; quantidade: number; preco: number }[];
+};
 /** Venda de um plano de lavagens para um veículo. */
 type PlanoVenda = {
   planoId: string;
@@ -132,7 +149,9 @@ type VinculoPet =
   | { tipo: "atendimento"; agendamentoId: string; usarPacote: boolean }
   | { tipo: "pacote"; modeloId: string; petId: string; validade: number }
   | { tipo: "lava"; ordemId: string }
-  | { tipo: "plano"; planoId: string; veiculoId: string };
+  | { tipo: "plano"; planoId: string; veiculoId: string }
+  | { tipo: "os"; osId: string }
+  | { tipo: "internacao"; internacaoId: string };
 /** Venda já feita cujo vínculo com o atendimento ainda não foi confirmado (a conexão caiu depois da venda). */
 const CHAVE_PET_PENDENTE = "fc-pet-vinculo-pendente";
 
@@ -234,8 +253,11 @@ function FrenteCaixa() {
   const [pacoteVenda, setPacoteVenda] = useState<PacoteVenda | null>(null);
   const [lavaCobranca, setLavaCobranca] = useState<LavaCobranca | null>(null);
   const [planoVenda, setPlanoVenda] = useState<PlanoVenda | null>(null);
+  const [cobrancaClinica, setCobrancaClinica] = useState<CobrancaClinica | null>(null);
   const {
     lava: lavaParam,
+    os: osParam,
+    internacao: internacaoParam,
     plano: planoParam,
     veiculo: veiculoParam,
     pet: petParam,
@@ -513,12 +535,74 @@ function FrenteCaixa() {
     })();
   }, [pacoteParam, paraParam, validadeParam]);
 
+  const clinicaCarregada = useRef<string | null>(null);
+  useEffect(() => {
+    const chave = osParam ? `os:${osParam}` : internacaoParam ? `int:${internacaoParam}` : null;
+    if (!chave || clinicaCarregada.current === chave) return;
+    clinicaCarregada.current = chave;
+    void (async () => {
+      const r = osParam
+        ? await supabase.rpc("pet_os_cobranca", { p_os_id: osParam })
+        : await supabase.rpc("clinica_internacao_cobranca", { p_id: internacaoParam as string });
+      if (r.error) {
+        toast.error(r.error.message);
+        clinicaCarregada.current = null;
+        void navegar({ to: "/frente-caixa", search: {} });
+        return;
+      }
+      const d = r.data as unknown as {
+        os_id?: string;
+        numero?: number;
+        internacao_id?: string;
+        cliente_id: string;
+        pet: string;
+        tutor: string;
+        desconto?: number;
+        linhas: { produto_id: string; descricao: string; quantidade: number; preco: number }[];
+      };
+      const linhasCobradas = d.linhas.map((x) => ({
+        produto_id: x.produto_id,
+        descricao: x.descricao,
+        quantidade: Number(x.quantidade),
+        preco: Number(x.preco),
+      }));
+      setCobrancaClinica({
+        tipo: osParam ? "os" : "internacao",
+        id: (osParam ?? internacaoParam) as string,
+        rotulo: osParam ? `ordem de serviço nº ${d.numero}` : "internação",
+        pet: d.pet,
+        tutor: d.tutor,
+        linhas: linhasCobradas,
+      });
+      setLinhas(
+        linhasCobradas.map((x) => ({
+          produto_id: x.produto_id,
+          descricao: `${x.descricao} — ${d.pet}`,
+          unidade: "UN",
+          preco: x.preco,
+          quantidade: x.quantidade,
+        })),
+      );
+      // o desconto combinado na ordem entra na venda (acima do limite do operador, vale a autorização do gestor)
+      if (osParam && Number(d.desconto) > 0) setDesconto(String(d.desconto));
+      const cli = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, cnpj, telefone")
+        .eq("id", d.cliente_id)
+        .maybeSingle();
+      if (cli.data) setCliente(cli.data);
+    })();
+  }, [osParam, internacaoParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function desistirDaCobrancaPet() {
     setPetCobranca(null);
     setPacoteVenda(null);
     setLavaCobranca(null);
     setPlanoVenda(null);
+    setCobrancaClinica(null);
+    clinicaCarregada.current = null;
     planoCarregado.current = null;
+    setDesconto("0");
     setLinhas([]);
     setCliente(null);
     petCarregado.current = null;
@@ -541,35 +625,43 @@ function FrenteCaixa() {
   async function vincularPet(v: VinculoPet, chave: string, pedidoId: string | null) {
     const ref = pedidoId ? { p_pedido_id: pedidoId } : { p_chave: chave };
     const { data, error } =
-      v.tipo === "atendimento"
-        ? await supabase.rpc("pet_agenda_retirar", {
-            p_agendamento_id: v.agendamentoId,
-            p_usar_pacote: v.usarPacote,
-            ...ref,
-          })
-        : v.tipo === "lava"
-          ? await supabase.rpc("lr_ordem_retirar", { p_ordem_id: v.ordemId, ...ref })
-          : v.tipo === "plano"
-            ? await supabase.rpc("lr_plano_vender", {
-                p_plano_id: v.planoId,
-                p_veiculo_id: v.veiculoId,
+      v.tipo === "os"
+        ? await supabase.rpc("pet_os_cobrar", { p_os_id: v.osId, ...ref })
+        : v.tipo === "internacao"
+          ? await supabase.rpc("clinica_internacao_cobrar", { p_id: v.internacaoId, ...ref })
+          : v.tipo === "atendimento"
+            ? await supabase.rpc("pet_agenda_retirar", {
+                p_agendamento_id: v.agendamentoId,
+                p_usar_pacote: v.usarPacote,
                 ...ref,
               })
-            : await supabase.rpc("pet_pacote_vender", {
-                p_modelo_id: v.modeloId,
-                p_pet_id: v.petId,
-                p_validade_dias: v.validade,
-                ...ref,
-              });
+            : v.tipo === "lava"
+              ? await supabase.rpc("lr_ordem_retirar", { p_ordem_id: v.ordemId, ...ref })
+              : v.tipo === "plano"
+                ? await supabase.rpc("lr_plano_vender", {
+                    p_plano_id: v.planoId,
+                    p_veiculo_id: v.veiculoId,
+                    ...ref,
+                  })
+                : await supabase.rpc("pet_pacote_vender", {
+                    p_modelo_id: v.modeloId,
+                    p_pet_id: v.petId,
+                    p_validade_dias: v.validade,
+                    ...ref,
+                  });
     if (error) {
       const o =
-        v.tipo === "atendimento"
-          ? "o atendimento"
-          : v.tipo === "lava"
-            ? "a ordem"
-            : v.tipo === "plano"
-              ? "o plano"
-              : "o pacote";
+        v.tipo === "os"
+          ? "a ordem de serviço"
+          : v.tipo === "internacao"
+            ? "a internação"
+            : v.tipo === "atendimento"
+              ? "o atendimento"
+              : v.tipo === "lava"
+                ? "a ordem"
+                : v.tipo === "plano"
+                  ? "o plano"
+                  : "o pacote";
       const rede = /fetch|network|failed/i.test(error.message);
       atualizarPendencias((l) => [
         ...l.filter((x) => x.chave !== chave),
@@ -978,20 +1070,28 @@ function FrenteCaixa() {
         // identifica esta venda: se ela for reenviada (resposta perdida, outra aba), o banco não vende de novo
         p_chave: crypto.randomUUID(),
       };
-      const vinculo: VinculoPet | null = petCobranca
-        ? { tipo: "atendimento", agendamentoId: petCobranca.id, usarPacote: petCobranca.usarPacote }
-        : pacoteVenda
+      const vinculo: VinculoPet | null = cobrancaClinica
+        ? cobrancaClinica.tipo === "os"
+          ? { tipo: "os", osId: cobrancaClinica.id }
+          : { tipo: "internacao", internacaoId: cobrancaClinica.id }
+        : petCobranca
           ? {
-              tipo: "pacote",
-              modeloId: pacoteVenda.modeloId,
-              petId: pacoteVenda.petId,
-              validade: pacoteVenda.validade,
+              tipo: "atendimento",
+              agendamentoId: petCobranca.id,
+              usarPacote: petCobranca.usarPacote,
             }
-          : lavaCobranca
-            ? { tipo: "lava", ordemId: lavaCobranca.id }
-            : planoVenda
-              ? { tipo: "plano", planoId: planoVenda.planoId, veiculoId: planoVenda.veiculoId }
-              : null;
+          : pacoteVenda
+            ? {
+                tipo: "pacote",
+                modeloId: pacoteVenda.modeloId,
+                petId: pacoteVenda.petId,
+                validade: pacoteVenda.validade,
+              }
+            : lavaCobranca
+              ? { tipo: "lava", ordemId: lavaCobranca.id }
+              : planoVenda
+                ? { tipo: "plano", planoId: planoVenda.planoId, veiculoId: planoVenda.veiculoId }
+                : null;
       const guardar = () => {
         const atual: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
         salvarFila([
@@ -1007,7 +1107,10 @@ function FrenteCaixa() {
         ]);
         return "offline";
       };
-      if ((petCobranca || pacoteVenda || lavaCobranca || planoVenda) && !navigator.onLine)
+      if (
+        (petCobranca || pacoteVenda || lavaCobranca || planoVenda || cobrancaClinica) &&
+        !navigator.onLine
+      )
         throw new Error("A cobrança do pet shop e do lava rápido precisa de internet");
       if (!navigator.onLine) return guardar();
       const { data, error } = await supabase.rpc("frente_venda", params);
@@ -1065,6 +1168,11 @@ function FrenteCaixa() {
             throw new Error(`Mantenha "${sv.descricao}" na venda, uma vez, por ${brl(sv.preco)}`);
         }
       }
+      if (cobrancaClinica) {
+        // a venda precisa trazer cada item cobrado, na quantidade e pelo valor combinados
+        const erro = erroDasLinhasCobradas(linhas, cobrancaClinica.linhas);
+        if (erro) throw new Error(erro);
+      }
       // A resposta simulada não entra na fila offline (ela só guarda os parâmetros de frente_venda).
       if (simulado && !navigator.onLine)
         throw new Error("Modo de teste: a maquininha simulada precisa de internet");
@@ -1121,11 +1229,13 @@ function FrenteCaixa() {
           : {}),
       });
       setTef({ nsu: "", aut: "", bandeira: "" });
-      if (petCobranca || pacoteVenda || lavaCobranca || planoVenda) {
+      if (petCobranca || pacoteVenda || lavaCobranca || planoVenda || cobrancaClinica) {
         setPetCobranca(null);
         setPacoteVenda(null);
         setLavaCobranca(null);
         setPlanoVenda(null);
+        setCobrancaClinica(null);
+        clinicaCarregada.current = null;
         planoCarregado.current = null;
         petCarregado.current = null;
         pacoteCarregado.current = null;
@@ -1529,6 +1639,19 @@ function FrenteCaixa() {
                   <strong>Cobrando ordem do lava rápido:</strong> {lavaCobranca.veiculo}
                   {lavaCobranca.cliente ? ` (${lavaCobranca.cliente})` : ""}. Mantenha os serviços
                   na venda; pode somar produtos e escolher a forma de pagamento.
+                </span>
+                <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
+                  Desistir da cobrança
+                </Button>
+              </div>
+            )}
+
+            {cobrancaClinica && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+                <span>
+                  <strong>Cobrando {cobrancaClinica.rotulo}:</strong> {cobrancaClinica.pet}
+                  {cobrancaClinica.tutor ? ` (${cobrancaClinica.tutor})` : ""}. Mantenha os itens na
+                  venda; pode somar produtos e escolher a forma de pagamento.
                 </span>
                 <Button size="sm" variant="outline" onClick={desistirDaCobrancaPet}>
                   Desistir da cobrança

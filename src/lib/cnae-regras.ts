@@ -2,7 +2,7 @@
 import { temCnpj } from "./cnpj-alfa.ts";
 /** Módulos que só ficam disponíveis quando a atividade da empresa permite. */
 export type ModuloCnae =
-  "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica" | "lavarapido";
+  "assistencia" | "locacao" | "restaurante" | "petshop" | "clinica" | "lavarapido" | "hotelaria";
 
 /** Grupos de CNAE que liberam cada módulo (comparação pelo início do código). */
 const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
@@ -36,6 +36,17 @@ const REGRAS: Record<ModuloCnae, { prefixos: string[]; exemplos: string[] }> = {
       "45.20-0/06 — Serviços de lavagem, lubrificação e polimento de veículos automotores",
     ],
   },
+  hotelaria: {
+    // hotéis, apart-hotéis e motéis (5510) e outros alojamentos: albergues, camping, pensões (5590)
+    prefixos: ["5510", "5590"],
+    exemplos: [
+      "55.10-8/01 — Hotéis",
+      "55.10-8/02 — Apart-hotéis",
+      "55.10-8/03 — Motéis",
+      "55.90-6/01 — Albergues, exceto assistenciais",
+      "55.90-6/03 — Pensões (alojamento)",
+    ],
+  },
   assistencia: {
     prefixos: ["95", "3314", "3319", "4321", "4322", "4520", "4543"],
     exemplos: [
@@ -66,6 +77,7 @@ export const ROTULO_MODULO: Record<ModuloCnae, string> = {
   petshop: "Pet shop e veterinária",
   clinica: "Clínica veterinária",
   lavarapido: "Lava rápido",
+  hotelaria: "Hotelaria",
 };
 
 export function exemplosCnae(modulo: ModuloCnae) {
@@ -117,5 +129,6 @@ export function moduloLiberadoEmpresa(
   if (modulo === "clinica" && empresa?.ramo_atividade === "clinica") return true;
   if (modulo === "petshop" && empresa?.ramo_atividade === "petshop") return true;
   if (modulo === "lavarapido" && empresa?.ramo_atividade === "lavarapido") return true;
+  if (modulo === "hotelaria" && empresa?.ramo_atividade === "hotelaria") return true;
   return moduloLiberadoPorCnae(cnaesDaEmpresa(empresa), modulo);
 }
