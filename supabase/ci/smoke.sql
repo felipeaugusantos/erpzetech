@@ -517,7 +517,7 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
-    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador', 'cardapios', 'cardapio_cardapio_itens',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador', 'cardapios', 'cardapio_cardapio_itens', 'restaurante_chamados', 'restaurante_chamados_motivos',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
@@ -1245,6 +1245,100 @@ BEGIN
   UPDATE cardapio_itens SET preco = 45 WHERE id = it_a;
   PERFORM ci.exige((SELECT preco_unitario = 53 FROM comanda_itens WHERE id = i1), 'mudar o preço depois não altera o item já lançado');
 
+END $$;
+
+-- 17g. chamar o garçom pelo QR da mesa
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  outro_tenant uuid; emp record; mesa uuid; mesa_off uuid; mesa_alheia uuid; m_conta uuid; m_agua uuid; r jsonb; r2 jsonb; ch uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  SELECT id, slug, nome_fantasia, ativo INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET slug = 'chamar-ci', ativo = true WHERE id = emp.id;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'ch-1') RETURNING id INTO mesa;
+  INSERT INTO mesas (tenant_id, numero, ativa) VALUES (demo, 'ch-off', false) RETURNING id INTO mesa_off;
+  INSERT INTO mesas (tenant_id, numero) VALUES (outro_tenant, 'ch-alheia') RETURNING id INTO mesa_alheia;
+
+  -- desligado por padrão
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa) IS NULL, 'chamar garçom desligado não mostra a página');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa), 'chamar com o recurso desligado');
+
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, chamar_garcom) VALUES (%L, true)$c$, demo), 'garçom liga o chamar garçom');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, chamar_garcom) VALUES (demo, true)
+    ON CONFLICT (tenant_id) DO UPDATE SET chamar_garcom = true;
+  INSERT INTO restaurante_chamados_motivos (tenant_id, nome, ordem) VALUES (demo, 'Pedir a conta CI', 2) RETURNING id INTO m_conta;
+  INSERT INTO restaurante_chamados_motivos (tenant_id, nome, ordem) VALUES (demo, 'Pedir água CI', 1) RETURNING id INTO m_agua;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_chamados_motivos (tenant_id, nome) VALUES (%L, 'Do garçom')$c$, demo), 'garçom cadastra motivo');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_chamados_motivos (tenant_id, nome) VALUES (%L, ' pedir a conta ci ')$c$, demo), 'motivo repetido');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_chamados_motivos') = 2, 'cozinha lê os motivos');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_chamados_motivos') = 0, 'vendedor não lê os motivos');
+
+  -- página da mesa
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_info('CHAMAR-ci', mesa);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'mesa' = 'ch-1' AND jsonb_array_length(r -> 'motivos') = 2 AND r -> 'motivos' -> 0 ->> 'nome' = 'Pedir água CI', 'página da mesa lista os motivos na ordem');
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa_off) IS NULL, 'mesa desativada não mostra a página');
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa_alheia) IS NULL, 'mesa de outra empresa não aparece');
+  PERFORM ci.exige(restaurante_chamar_info('a b', mesa) IS NULL AND restaurante_chamar_info(NULL, mesa) IS NULL, 'link inválido');
+  PERFORM ci.sair();
+
+  -- chamar (anônimo)
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa_off), 'chamar de mesa desativada');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa_alheia), 'chamar de mesa de outra empresa');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L, %L)$c$, mesa, gen_random_uuid()), 'chamar com motivo que não existe');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('nao-existe-ci', %L)$c$, mesa), 'chamar com link desconhecido');
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  r2 := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean AND (r2 ->> 'repetido')::boolean AND r ->> 'id' = r2 ->> 'id', 'toque repetido devolve o mesmo chamado');
+  PERFORM ci.entrar(NULL);
+  r2 := restaurante_chamar_garcom('chamar-ci', mesa, m_agua);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean, 'outro chamado da mesma mesa em menos de 20 s é tratado como repetição');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM restaurante_chamados WHERE mesa_id = mesa AND situacao = 'aberto'), 'um só chamado aberto');
+  ch := (r ->> 'id')::uuid;
+  PERFORM ci.exige((SELECT motivo = 'Pedir a conta CI' FROM restaurante_chamados WHERE id = ch), 'o chamado guarda o motivo');
+
+  -- quem vê e quem atende
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_chamados') = 1, 'garçom vê os chamados da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_chamados') = 0, 'vendedor não vê chamados');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM restaurante_chamados', 'anônimo lê chamados');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'vendedor atende chamado');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'anônimo atende chamado');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE restaurante_chamados SET situacao = 'atendido', atendido_em = now() WHERE id = ch;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aberto' FROM restaurante_chamados WHERE id = ch), 'atender por escrita direta não altera nada');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_chamado_atender(ch);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'atendido' AND atendido_por = gar FROM restaurante_chamados WHERE id = ch), 'garçom atende o chamado');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'atender de novo');
+
+  -- depois de atendido (e passados os 20 s) a mesa pode chamar de novo
+  UPDATE restaurante_chamados SET criado_em = now() - interval '1 minute' WHERE id = ch;
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean, 'mesa chama de novo depois do atendimento');
+
+  UPDATE empresas SET slug = emp.slug, ativo = emp.ativo WHERE id = emp.id;
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
 END $$;
 
 -- 18. quantidade de mesas do restaurante
