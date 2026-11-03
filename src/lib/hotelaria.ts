@@ -188,3 +188,37 @@ export function ratearValor(total: number, noites: number) {
   valores[noites - 1] = centavos(total) - base * (noites - 1);
   return valores.map(reais);
 }
+
+export type LancamentoConta = { total: number };
+export type PagamentoConta = { tipo: "sinal" | "pagamento" | "devolucao"; valor: number };
+
+/**
+ * Saldo da conta do hóspede: lançamentos − (sinais + pagamentos) + devoluções, em centavos exatos.
+ * Positivo = o hóspede deve; negativo = crédito dele. Espelho de _hs_folio_saldo no banco.
+ */
+export function saldoDoFolio(
+  lancamentos: readonly LancamentoConta[],
+  pagamentos: readonly PagamentoConta[],
+) {
+  const lancado = lancamentos.reduce((s, l) => s + centavos(l.total), 0);
+  const recebido = pagamentos.reduce(
+    (s, p) => s + (p.tipo === "devolucao" ? -centavos(p.valor) : centavos(p.valor)),
+    0,
+  );
+  return reais(lancado - recebido);
+}
+
+/** Taxa de turismo da noite: hóspedes × valor por hóspede e noite (em centavos). */
+export const taxaDeTurismo = (hospedes: number, valorPorHospede: number) =>
+  reais(Math.round(hospedes * centavos(valorPorHospede)));
+
+/** O estorno é a linha de sinal oposto: o lançamento original nunca muda. */
+export function estornoDe<T extends { valor_unitario: number; total: number }>(l: T) {
+  return { ...l, valor_unitario: -l.valor_unitario || 0, total: -l.total || 0 };
+}
+
+/** O que a conta pede ao encerrar sem estadia (cancelamento ou não comparecimento) com crédito do hóspede. */
+export function destinoDoCredito(saldo: number): "devolver_ou_reter" | "quitada" | "a_receber" {
+  if (saldo < 0) return "devolver_ou_reter";
+  return saldo === 0 ? "quitada" : "a_receber";
+}

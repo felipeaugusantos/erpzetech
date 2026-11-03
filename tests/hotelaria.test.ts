@@ -202,3 +202,64 @@ test("valor acordado: rateio em centavos com a sobra na última noite", () => {
   );
   assert.throws(() => ratearValor(100, 0));
 });
+
+import { destinoDoCredito, estornoDe, saldoDoFolio, taxaDeTurismo } from "../src/lib/hotelaria.ts";
+
+// Mesmos passos da conta do quarto 101 na seção 91 do smoke do banco.
+test("saldo da conta: sinal, consumo, desconto, estorno, pagamento e devolução", () => {
+  const diaria = { total: 100 };
+  const taxa = { total: 10 };
+  const sinal = { tipo: "sinal" as const, valor: 100 };
+  assert.equal(saldoDoFolio([], [sinal]), -100);
+  assert.equal(saldoDoFolio([diaria, taxa], [sinal]), 10);
+  const consumo = { total: 15 };
+  assert.equal(saldoDoFolio([diaria, taxa, consumo], [sinal]), 25);
+  const desconto = { total: -10 };
+  assert.equal(saldoDoFolio([diaria, taxa, consumo, desconto], [sinal]), 15);
+  const estornoConsumo = { total: -15 };
+  assert.equal(saldoDoFolio([diaria, taxa, consumo, desconto, estornoConsumo], [sinal]), 0);
+  const estornoTaxa = { total: -10 };
+  const lanc = [diaria, taxa, consumo, desconto, estornoConsumo, estornoTaxa];
+  assert.equal(saldoDoFolio(lanc, [sinal]), -10);
+  const lavanderia = { total: 60 };
+  assert.equal(saldoDoFolio([...lanc, lavanderia], [sinal]), 50);
+  const pago = { tipo: "pagamento" as const, valor: 50 };
+  assert.equal(saldoDoFolio([...lanc, lavanderia], [sinal, pago]), 0);
+  const devolucao = { tipo: "devolucao" as const, valor: 20 };
+  assert.equal(saldoDoFolio([...lanc, lavanderia], [sinal, pago, devolucao]), 20);
+});
+
+test("saldo da conta: centavos não acumulam erro de ponto flutuante", () => {
+  assert.equal(saldoDoFolio([{ total: 0.1 }, { total: 0.2 }], []), 0.3);
+  assert.equal(
+    saldoDoFolio(
+      [{ total: 0.3 }],
+      [
+        { tipo: "pagamento", valor: 0.1 },
+        { tipo: "pagamento", valor: 0.2 },
+      ],
+    ),
+    0,
+  );
+});
+
+test("taxa de turismo e estorno", () => {
+  assert.equal(taxaDeTurismo(2, 5), 10);
+  assert.equal(taxaDeTurismo(3, 3.33), 9.99);
+  assert.equal(taxaDeTurismo(0, 5), 0);
+  assert.deepEqual(estornoDe({ valor_unitario: 7.5, total: 15 }), {
+    valor_unitario: -7.5,
+    total: -15,
+  });
+  assert.deepEqual(estornoDe({ valor_unitario: -10, total: -10 }), {
+    valor_unitario: 10,
+    total: 10,
+  });
+  assert.deepEqual(estornoDe({ valor_unitario: 0, total: 0 }), { valor_unitario: 0, total: 0 });
+});
+
+test("encerrar sem estadia: crédito pede devolução ou retenção; débito fica a receber", () => {
+  assert.equal(destinoDoCredito(-70), "devolver_ou_reter");
+  assert.equal(destinoDoCredito(0), "quitada");
+  assert.equal(destinoDoCredito(30), "a_receber");
+});

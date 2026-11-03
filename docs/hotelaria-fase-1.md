@@ -19,16 +19,16 @@ Fica fora da Fase 1 (seção 9): governança completa, lançamento do restaurant
 
 ## 3. O que reaproveita
 
-| Já existe | Uso na hotelaria |
-| --- | --- |
-| `filiais`, `pode_filial()`, RLS por tenant | Hotel = filial; rede = tenant |
-| `clientes` | Pagador/faturamento (CPF/CNPJ, endereço) para NFS-e |
-| `caixas` + `caixa_lancar()` | Recebimento de sinal e de check-out, igual a `restaurante_fechar_comanda` |
-| `fiscal_config` + `nfe`/`nfe_itens` modelo `nfse` | NFS-e de hospedagem em rascunho, adaptando `_lr_nfse_rascunho` |
-| `auditoria` | Estornos, descontos, cancelamentos |
-| `webhook.ts` / chave idempotente | Base para canais na Fase 4; as RPCs já nascem idempotentes |
-| `salao.tsx`, `lava-patio.tsx`, `painel-locacao.tsx` | Referência visual do mapa e do painel do dia |
-| `exige_nao_salao()`, `exige_papel()` | Mesma porta de entrada de toda RPC |
+| Já existe                                           | Uso na hotelaria                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `filiais`, `pode_filial()`, RLS por tenant          | Hotel = filial; rede = tenant                                             |
+| `clientes`                                          | Pagador/faturamento (CPF/CNPJ, endereço) para NFS-e                       |
+| `caixas` + `caixa_lancar()`                         | Recebimento de sinal e de check-out, igual a `restaurante_fechar_comanda` |
+| `fiscal_config` + `nfe`/`nfe_itens` modelo `nfse`   | NFS-e de hospedagem em rascunho, adaptando `_lr_nfse_rascunho`            |
+| `auditoria`                                         | Estornos, descontos, cancelamentos                                        |
+| `webhook.ts` / chave idempotente                    | Base para canais na Fase 4; as RPCs já nascem idempotentes                |
+| `salao.tsx`, `lava-patio.tsx`, `painel-locacao.tsx` | Referência visual do mapa e do painel do dia                              |
+| `exige_nao_salao()`, `exige_papel()`                | Mesma porta de entrada de toda RPC                                        |
 
 ## 4. Modelo de dados
 
@@ -67,26 +67,26 @@ Todas `SECURITY DEFINER`, `SET search_path TO public`, começam por `exige_nao_s
 
 ### 5.1 Cadastros (administrador, gestor)
 
-| Função | O que faz |
-| --- | --- |
-| `hs_config_salvar(p_filial, p_dados jsonb)` | Horários e taxa de turismo da filial |
-| `hs_tipo_uh_salvar(p_dados)` | Cria/edita tipo; inativar não apaga |
-| `hs_uh_salvar(p_dados)` | Cria/edita UH; não deixa mudar o tipo de UH com reserva futura |
-| `hs_uh_interditar(p_uh, p_de, p_ate, p_motivo)` | Bloqueio em `hs_ocupacoes`; recusa se houver reserva no período (a gestão remaneja antes) |
-| `hs_tarifa_salvar(p_dados)` / `hs_tarifa_remover(p_id)` | Tarifa com vigência; remover não altera `hs_diarias` já gravadas |
-| `hs_hospede_salvar(p_dados)` | (também vendedor e caixa) valida documento por tipo (CPF com dígito verificador) e duplicidade |
+| Função                                                  | O que faz                                                                                      |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `hs_config_salvar(p_filial, p_dados jsonb)`             | Horários e taxa de turismo da filial                                                           |
+| `hs_tipo_uh_salvar(p_dados)`                            | Cria/edita tipo; inativar não apaga                                                            |
+| `hs_uh_salvar(p_dados)`                                 | Cria/edita UH; não deixa mudar o tipo de UH com reserva futura                                 |
+| `hs_uh_interditar(p_uh, p_de, p_ate, p_motivo)`         | Bloqueio em `hs_ocupacoes`; recusa se houver reserva no período (a gestão remaneja antes)      |
+| `hs_tarifa_salvar(p_dados)` / `hs_tarifa_remover(p_id)` | Tarifa com vigência; remover não altera `hs_diarias` já gravadas                               |
+| `hs_hospede_salvar(p_dados)`                            | (também vendedor e caixa) valida documento por tipo (CPF com dígito verificador) e duplicidade |
 
 ### 5.2 Reservas (administrador, gestor, vendedor, caixa)
 
-| Função | O que faz |
-| --- | --- |
-| `hs_cotar(p_filial, p_tipo, p_entrada, p_saida, p_adultos, p_criancas)` | STABLE. Devolve noite a noite e total; erra se faltar tarifa ou `minimo_noites` |
-| `hs_disponibilidade(p_filial, p_entrada, p_saida)` | STABLE. Por tipo: total, ocupadas, bloqueadas, sem-UH, disponíveis e preço total |
-| `hs_reserva_criar(p_dados jsonb, p_chave uuid)` | Titular, 1..N quartos (tipo + datas + pessoas), UH opcional, sinal opcional. Grava reserva, `hs_reserva_uhs`, `hs_diarias`, `hs_ocupacoes`. Atômica: se um quarto falha, nada grava |
-| `hs_reserva_alterar(p_id, p_dados)` | Muda datas, pessoas ou tipo; recota diárias **só das noites ainda não lançadas**; refaz ocupação; recusa se a nova janela não tem vaga |
-| `hs_reserva_uh_atribuir(p_reserva_uh, p_uh)` | Atribui/troca a UH (upgrade, troca de quarto); a exclusão do banco é a última barreira |
-| `hs_reserva_cancelar(p_id, p_motivo, p_devolver_sinal boolean)` | Libera ocupação. Sinal: se `p_devolver_sinal` é falso fica como receita retida e exige gestão e motivo. Não cancela hospedada (usa check-out antecipado) |
-| `hs_reserva_no_show(p_reserva_uh)` | Só depois da data de entrada; libera a UH; cobrança da 1ª diária é decisão da gestão (lança `ajuste`) |
+| Função                                                                  | O que faz                                                                                                                                                                           |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hs_cotar(p_filial, p_tipo, p_entrada, p_saida, p_adultos, p_criancas)` | STABLE. Devolve noite a noite e total; erra se faltar tarifa ou `minimo_noites`                                                                                                     |
+| `hs_disponibilidade(p_filial, p_entrada, p_saida)`                      | STABLE. Por tipo: total, ocupadas, bloqueadas, sem-UH, disponíveis e preço total                                                                                                    |
+| `hs_reserva_criar(p_dados jsonb, p_chave uuid)`                         | Titular, 1..N quartos (tipo + datas + pessoas), UH opcional, sinal opcional. Grava reserva, `hs_reserva_uhs`, `hs_diarias`, `hs_ocupacoes`. Atômica: se um quarto falha, nada grava |
+| `hs_reserva_alterar(p_id, p_dados)`                                     | Muda datas, pessoas ou tipo; recota diárias **só das noites ainda não lançadas**; refaz ocupação; recusa se a nova janela não tem vaga                                              |
+| `hs_reserva_uh_atribuir(p_reserva_uh, p_uh)`                            | Atribui/troca a UH (upgrade, troca de quarto); a exclusão do banco é a última barreira                                                                                              |
+| `hs_reserva_cancelar(p_id, p_motivo, p_devolver_sinal boolean)`         | Libera ocupação. Sinal: se `p_devolver_sinal` é falso fica como receita retida e exige gestão e motivo. Não cancela hospedada (usa check-out antecipado)                            |
+| `hs_reserva_no_show(p_reserva_uh)`                                      | Só depois da data de entrada; libera a UH; cobrança da 1ª diária é decisão da gestão (lança `ajuste`)                                                                               |
 
 **Como ficou na migration 2 (`20261210000000_hotelaria_reservas.sql`), onde difere do plano acima:**
 
@@ -102,27 +102,38 @@ Todas `SECURITY DEFINER`, `SET search_path TO public`, começam por `exige_nao_s
 
 ### 5.3 Estadia e conta (administrador, gestor, vendedor, caixa)
 
-| Função | O que faz |
-| --- | --- |
-| `hs_checkin(p_reserva_uh, p_hospedes jsonb, p_chave uuid)` | Exige UH atribuída, não interditada e `limpo`/`inspecionado`; titular com documento (se `exige_documento_checkin`); acompanhantes; cria folio principal; situação → `hospedada`; devolve dados da ficha. Check-in antes da data prevista só para a gestão |
-| `hs_lancar(p_folio, p_dados jsonb)` | Consumo/serviço/ajuste manual. Desconto e ajuste negativo só gestão |
-| `hs_lancamento_cancelar(p_id, p_motivo)` | Cria o estorno (linha de sinal oposto + `auditoria`). Diária lançada só a gestão |
-| `hs_folio_abrir(p_reserva, p_titulo)` / `hs_lancamento_transferir(p_ids[], p_folio_destino)` | Separar contas e transferir lançamentos entre folios da mesma reserva; trilha em `auditoria` |
-| `hs_pagamento_registrar(p_folio, p_forma, p_valor, p_caixa, p_tipo, p_chave)` | Entra no caixa por `caixa_lancar`; filial do caixa = filial da reserva |
-| `hs_auditoria_noturna(p_filial, p_data)` | "Fechar o dia": para cada hospedada, lança a diária e a taxa de turismo da noite (idempotente pelo índice único), marca no-shows pendentes para decisão e devolve o resumo. Fase 1 é botão; a Fase 2 pode agendar por cron |
-| `hs_estadia_estender(p_reserva_uh, p_nova_saida)` / `hs_estadia_encurtar(...)` | Estender checa vaga e cota as novas noites; encurtar cancela as noites futuras não lançadas |
-| `hs_checkout(p_reserva_uh, p_pagamentos jsonb, p_caixa, p_chave)` | Lança as noites pendentes até hoje, exige saldo zerado pelos pagamentos informados (ou saldo zero), fecha o folio, `hospedada` → `finalizada`, UH → `sujo`, cria `_hs_nfse_rascunho` e devolve `{nfe_id, total}`. Repetir devolve o mesmo resultado |
-| `hs_uh_situacao(p_uh, p_para)` | Recepção marca UH como `limpo`/`inspecionado`; é a ponte até a governança da Fase 2 |
+| Função                                                                                       | O que faz                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hs_checkin(p_reserva_uh, p_hospedes jsonb, p_chave uuid)`                                   | Exige UH atribuída, não interditada e `limpo`/`inspecionado`; titular com documento (se `exige_documento_checkin`); acompanhantes; cria folio principal; situação → `hospedada`; devolve dados da ficha. Check-in antes da data prevista só para a gestão |
+| `hs_lancar(p_folio, p_dados jsonb)`                                                          | Consumo/serviço/ajuste manual. Desconto e ajuste negativo só gestão                                                                                                                                                                                       |
+| `hs_lancamento_cancelar(p_id, p_motivo)`                                                     | Cria o estorno (linha de sinal oposto + `auditoria`). Diária lançada só a gestão                                                                                                                                                                          |
+| `hs_folio_abrir(p_reserva, p_titulo)` / `hs_lancamento_transferir(p_ids[], p_folio_destino)` | Separar contas e transferir lançamentos entre folios da mesma reserva; trilha em `auditoria`                                                                                                                                                              |
+| `hs_pagamento_registrar(p_folio, p_forma, p_valor, p_caixa, p_tipo, p_chave)`                | Entra no caixa por `caixa_lancar`; filial do caixa = filial da reserva                                                                                                                                                                                    |
+| `hs_auditoria_noturna(p_filial, p_data)`                                                     | "Fechar o dia": para cada hospedada, lança a diária e a taxa de turismo da noite (idempotente pelo índice único), marca no-shows pendentes para decisão e devolve o resumo. Fase 1 é botão; a Fase 2 pode agendar por cron                                |
+| `hs_estadia_estender(p_reserva_uh, p_nova_saida)` / `hs_estadia_encurtar(...)`               | Estender checa vaga e cota as novas noites; encurtar cancela as noites futuras não lançadas                                                                                                                                                               |
+| `hs_checkout(p_reserva_uh, p_pagamentos jsonb, p_caixa, p_chave)`                            | Lança as noites pendentes até hoje, exige saldo zerado pelos pagamentos informados (ou saldo zero), fecha o folio, `hospedada` → `finalizada`, UH → `sujo`, cria `_hs_nfse_rascunho` e devolve `{nfe_id, total}`. Repetir devolve o mesmo resultado       |
+| `hs_uh_situacao(p_uh, p_para)`                                                               | Recepção marca UH como `limpo`/`inspecionado`; é a ponte até a governança da Fase 2                                                                                                                                                                       |
 
 Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisão fiscal; o erro se corrige por estorno e novo lançamento. Fica como pergunta na seção 10.
 
+**Como ficou na migration 3 (`20261211000000_hotelaria_estadia.sql`), onde difere do plano acima:**
+
+- **Check-in:** `hs_checkin(p_reserva_uh, p_acompanhantes uuid[])`. Não existe check-in antes do dia da entrada: antecipe a data com `hs_reserva_uh_alterar` e faça o check-in depois (o calendário confere a vaga). Sem chave: o check-in é idempotente pelo estado do quarto. Exige reserva confirmada, acomodação limpa e documento do titular (se o hotel exige). Chegada atrasada faz check-in; as noites anteriores ao check-in não são lançadas (a gestão lança um ajuste, se quiser).
+- **Razão da conta:** o lançamento não tem situação nem "cancelado"; corrigir é `hs_lancamento_estornar`, que grava a linha de sinal oposto ligada por `estorna_id` (um estorno por lançamento, estorno não se estorna). Diária, taxa de turismo e ajuste só a gestão estorna. A transferência (`hs_lancamento_transferir`) leva o lançamento original junto com o estorno dele.
+- **Pagamentos:** sinal e pagamento entram no caixa do hotel como `venda`; devolução sai como `saida` e só a gestão faz. Pagamento não passa do saldo; devolução não passa do recebido; crediário é recusado. A conta principal nasce no primeiro sinal ou no check-in (`hs_folio_principal`).
+- **Fechar o dia:** `hs_auditoria_noturna(filial, data?)` lança a diária e a taxa de turismo (por hóspede registrado no quarto) e devolve também `chegadas_pendentes` e `saidas_atrasadas`, que pedem decisão. Noite estornada não é lançada de novo.
+- **Sinal no cancelamento e no não comparecimento:** `hs_reserva_cancelar` e `hs_reserva_uh_cancelar` ganharam `p_caixa` e `p_forma`; por padrão o crédito é devolvido (precisa de caixa e forma) e **reter** é decisão da gestão, que vira um lançamento "Sinal retido" e fecha a conta. `hs_reserva_no_show(quarto, cobrar_diaria, devolver_sinal, caixa, forma)`: cobrar a primeira diária (sem taxa de turismo) é da gestão; o padrão é reter. Conta com saldo a receber continua aberta. Em reserva de vários quartos o sinal só é tratado quando a reserva inteira acaba.
+- **Estadia:** `hs_estadia_estender` (vaga conferida; noites novas pela tarifa de hoje ou por um total que a gestão combina), `hs_estadia_encurtar` (nenhuma noite cortada pode estar lançada) e `hs_estadia_trocar_uh` (a ocupação antiga termina hoje, a nova vai até a saída, a acomodação antiga fica suja e o tipo novo recota só as noites ainda não lançadas). Quarto trocado no meio da estadia passa a ter duas linhas no calendário: o check-out (próxima migration) precisa tratar isso.
+- **Acompanhantes:** `hs_reserva_hospede_adicionar` e `hs_reserva_hospede_remover`.
+- Ficam para a migration 4: check-out, NFS-e em rascunho e `hs_uh_situacao`.
+
 ### 5.4 Leitura (STABLE, só leitura)
 
-| Função | O que devolve |
-| --- | --- |
-| `hs_mapa(p_filial, p_de, p_ate)` | Grade UH × dia (até 31 dias): célula livre, reservada, hospedada, bloqueada, e a reserva dona |
+| Função                            | O que devolve                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `hs_mapa(p_filial, p_de, p_ate)`  | Grade UH × dia (até 31 dias): célula livre, reservada, hospedada, bloqueada, e a reserva dona              |
 | `hs_painel_dia(p_filial, p_data)` | Chegadas, saídas, hospedados, ocupação do dia (UHs ocupadas ÷ UHs vendáveis), UHs sujas e saldos em aberto |
-| `hs_folio_resumo(p_folio)` | Lançamentos ativos, pagamentos e saldo |
+| `hs_folio_resumo(p_folio)`        | Lançamentos ativos, pagamentos e saldo                                                                     |
 
 ## 6. Fiscal e financeiro
 
@@ -135,16 +146,16 @@ Não existe "desfazer check-out" na Fase 1: com a NFS-e criada isso vira decisã
 
 Rotas em `src/routes/_authenticated/`, TanStack Router, mesmo padrão das telas `lava-*`; lógica pura em `src/lib/hotelaria*.ts` (testável no Node, sem React).
 
-| Rota | Conteúdo |
-| --- | --- |
-| `hotel-recepcao` | Painel do dia: chegadas, hospedados, saídas, UHs sujas; botões Check-in, Ver conta, Check-out; botão **Fechar o dia** |
-| `hotel-mapa` | Grade UH × dias com cor por situação; clicar numa célula livre abre a nova reserva já com UH e datas; clicar numa reserva abre a conta; filtro por hotel, tipo e período |
-| `hotel-reservas` | Lista com filtros (situação, datas, hóspede, número); diálogo **Nova reserva** com cotação ao vivo e aviso de falta de vaga |
-| `hotel-estadia.$id` | Conta do hóspede: lançamentos, pagamentos, saldo, hóspedes do quarto, **ficha de hospedagem** (impressão em PDF com os campos da FNRH), trocar de quarto, estender/encurtar, check-out e link para a NFS-e |
-| `hotel-hospedes` | Cadastro e histórico de estadias do hóspede |
-| `hotel-acomodacoes` | Tipos de UH e UHs, interdições |
-| `hotel-tarifas` | Tarifas por tipo, vigência, dia da semana e prioridade; simulador de preço de uma estadia |
-| `hotel-configuracoes` | Horários, taxa de turismo e regras por hotel |
+| Rota                  | Conteúdo                                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hotel-recepcao`      | Painel do dia: chegadas, hospedados, saídas, UHs sujas; botões Check-in, Ver conta, Check-out; botão **Fechar o dia**                                                                                      |
+| `hotel-mapa`          | Grade UH × dias com cor por situação; clicar numa célula livre abre a nova reserva já com UH e datas; clicar numa reserva abre a conta; filtro por hotel, tipo e período                                   |
+| `hotel-reservas`      | Lista com filtros (situação, datas, hóspede, número); diálogo **Nova reserva** com cotação ao vivo e aviso de falta de vaga                                                                                |
+| `hotel-estadia.$id`   | Conta do hóspede: lançamentos, pagamentos, saldo, hóspedes do quarto, **ficha de hospedagem** (impressão em PDF com os campos da FNRH), trocar de quarto, estender/encurtar, check-out e link para a NFS-e |
+| `hotel-hospedes`      | Cadastro e histórico de estadias do hóspede                                                                                                                                                                |
+| `hotel-acomodacoes`   | Tipos de UH e UHs, interdições                                                                                                                                                                             |
+| `hotel-tarifas`       | Tarifas por tipo, vigência, dia da semana e prioridade; simulador de preço de uma estadia                                                                                                                  |
+| `hotel-configuracoes` | Horários, taxa de turismo e regras por hotel                                                                                                                                                               |
 
 Todas as telas mostram só os hotéis que o usuário acessa (`pode_filial`). Erro do banco aparece como mensagem em português, nunca em silêncio.
 

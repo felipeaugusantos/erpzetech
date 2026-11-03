@@ -8936,3 +8936,475 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
+
+-- 91. Hotelaria (estadia): conta do hóspede com razão que só cresce (estorno), pagamentos pelo caixa do mesmo hotel e sinal, check-in com ficha,
+-- fechar o dia sem duplicar, estender, encurtar, trocar de quarto, cancelar e não comparecimento tratando o sinal, permissões e isolamento
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  hgar constant uuid := 'a0000000-0000-0000-0000-0000000001c4';
+  bges constant uuid := 'a0000000-0000-0000-0000-0000000001c5';
+  hoje date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; sem_ant text[];
+  fa uuid; fb2 uuid; tb uuid; eb uuid; fbb uuid;
+  tpA uuid; tpB uuid; tpC uuid; tbx uuid;
+  a101 uuid; a102 uuid; a103 uuid; a104 uuid; a105 uuid; a106 uuid; a107 uuid; a201 uuid; a301 uuid; c1 uuid; ubx uuid;
+  hA uuid; hNo uuid; hC uuid; hD uuid; hbx uuid;
+  cxA uuid; cxB uuid; cxbx uuid;
+  r jsonb; r1 uuid; r2 uuid; r3 uuid; r5 uuid; r6 uuid; r7 uuid; r8 uuid; r9 uuid; r10 uuid; r11 uuid; r12 uuid; r13 uuid; rf uuid; rp uuid; rs uuid; rbx uuid;
+  ru1 uuid; ru2 uuid; ru3 uuid; ru5 uuid; ru6 uuid; ru10a uuid; ru10b uuid; ru11 uuid; ru12 uuid; ru13 uuid; rurf uuid; rurp uuid; rurs uuid; rubx uuid;
+  fo1 uuid; fo2 uuid; fx uuid; fo7 uuid; fo8 uuid; fo9 uuid; fo10 uuid; fo11 uuid; fo12 uuid; fo13 uuid; fobx uuid;
+  kp1 uuid := 'c0000000-0000-0000-0000-0000000000a1';
+  kp2 uuid := 'c0000000-0000-0000-0000-0000000000a2';
+  lc uuid; ld uuid; lt uuid; lest uuid; lbx uuid; n bigint; el jsonb; pg uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, modulos_sem_cnpj INTO ramo_ant, cnae_ant, cnae2_ant, sem_ant FROM empresas WHERE id = emp;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = NULL, cnae_secundarios = NULL, modulos_sem_cnpj = '{}' WHERE id = emp;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'hotelaria');
+  INSERT INTO auth.users (id, email) VALUES (hgar, 'garcom-estadia@ci'), (bges, 'gestor-estadia-b@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = hgar;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Estadia A') RETURNING id INTO fa;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Estadia B') RETURNING id INTO fb2;
+
+  -- cadastro base
+  PERFORM ci.entrar(gest);
+  tpA := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fa, 'nome', 'Duplo', 'capacidade_adultos', 3, 'capacidade_criancas', 1));
+  tpB := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fa, 'nome', 'Suíte', 'capacidade_adultos', 2, 'capacidade_criancas', 0));
+  tpC := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fb2, 'nome', 'Duplo', 'capacidade_adultos', 2));
+  a101 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '101'));
+  a102 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '102'));
+  a103 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '103'));
+  a104 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '104'));
+  a105 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '105'));
+  a106 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '106'));
+  a107 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '107'));
+  a301 := hs_uh_salvar(jsonb_build_object('tipo_id', tpA, 'numero', '301'));
+  a201 := hs_uh_salvar(jsonb_build_object('tipo_id', tpB, 'numero', '201'));
+  c1 := hs_uh_salvar(jsonb_build_object('tipo_id', tpC, 'numero', 'C1'));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpA, 'nome', 'Base', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 120)::text, 'valor_diaria', 100,
+                                              'valor_adulto_extra', 40, 'valor_crianca', 20, 'pessoas_incluidas', 2));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpB, 'nome', 'Base suíte', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 120)::text, 'valor_diaria', 200));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tpC, 'nome', 'Base hotel B', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 120)::text, 'valor_diaria', 80));
+  PERFORM hs_config_salvar(fa, '{"taxa_turismo_por_hospede_noite":"5"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  hA := hs_hospede_salvar('{"nome":"Hóspede Estadia A","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb);
+  hNo := hs_hospede_salvar('{"nome":"Hóspede Sem Documento"}'::jsonb);
+  hC := hs_hospede_salvar('{"nome":"Acompanhante C"}'::jsonb);
+  hD := hs_hospede_salvar('{"nome":"Acompanhante D"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  cxA := abrir_caixa(fa, 0);
+  cxB := abrir_caixa(fb2, 0);
+  PERFORM ci.sair();
+
+  -- ===== reservas usadas nos testes =====
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a101, hoje::text, (hoje + 3)::text)));       r1 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hNo, ci.quarto(a102, hoje::text, (hoje + 2)::text)));      r2 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a101, (hoje + 5)::text, (hoje + 7)::text))); r6 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a105, (hoje + 1)::text, (hoje + 3)::text))); rf := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(jsonb_build_object('filial_id', fa, 'titular_id', hA, 'situacao', 'pendente', 'quartos', jsonb_build_array(ci.quarto(a106, hoje::text, (hoje + 1)::text))));
+  rp := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a301, hoje::text, (hoje + 1)::text)));       rs := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a103, (hoje - 1)::text, (hoje + 2)::text, 1))); r3 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  SELECT id INTO ru1 FROM hs_reserva_uhs WHERE reserva_id = r1;   SELECT id INTO ru2 FROM hs_reserva_uhs WHERE reserva_id = r2;
+  SELECT id INTO ru3 FROM hs_reserva_uhs WHERE reserva_id = r3;   SELECT id INTO ru6 FROM hs_reserva_uhs WHERE reserva_id = r6;
+  SELECT id INTO rurf FROM hs_reserva_uhs WHERE reserva_id = rf;  SELECT id INTO rurp FROM hs_reserva_uhs WHERE reserva_id = rp;
+  SELECT id INTO rurs FROM hs_reserva_uhs WHERE reserva_id = rs;
+
+  -- ===== conta e sinal antes do check-in =====
+  PERFORM ci.entrar(vend);
+  fo1 := hs_folio_principal(r1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(fo1 = (SELECT id FROM hs_folios WHERE reserva_id = r1 AND principal) AND (SELECT count(*) FROM hs_folios WHERE reserva_id = r1) = 1, 'a conta principal é criada uma vez por reserva');
+  PERFORM ci.entrar(vend); PERFORM ci.exige(hs_folio_principal(r1) = fo1, 'pedir a conta principal de novo devolve a mesma'); PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  r := hs_pagamento_registrar(fo1, 'pix', 100, cxA, 'sinal', kp1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'saldo')::numeric = -100 AND NOT (r ->> 'repetido')::boolean, 'sinal de 100 deixa a conta com crédito de 100');
+  pg := (r ->> 'pagamento_id')::uuid;
+  PERFORM ci.entrar(vend); r := hs_pagamento_registrar(fo1, 'pix', 100, cxA, 'sinal', kp1); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (r ->> 'pagamento_id')::uuid = pg AND (SELECT count(*) FROM hs_pagamentos WHERE folio_id = fo1) = 1, 'repetir o sinal com a mesma chave não recebe duas vezes');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 100 FROM caixa_movimentos WHERE caixa_id = cxA AND tipo = 'venda' AND forma_pagamento = 'pix'), 'o sinal entrou uma vez no caixa do hotel');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'crediario', 10, %L, 'sinal')$c$, fo1, cxA), 'sinal em crediário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 0, %L, 'sinal')$c$, fo1, cxA), 'sinal de valor zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'sinal')$c$, fo1, cxB), 'sinal no caixa de outro hotel');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'xyz')$c$, fo1, cxA), 'tipo de pagamento inventado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'pagamento')$c$, fo1, cxA), 'pagamento em conta que ainda não deve nada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'devolucao')$c$, fo1, cxA), 'recepção faz devolução');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, gen_random_uuid(), 'sinal')$c$, fo1), 'caixa que não existe');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'sinal')$c$, fo1, cxA), 'garçom recebe sinal');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 10, %L, 'sinal')$c$, fo1, cxA), 'anônimo recebe sinal');
+
+  -- ===== check-in =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, ru2), 'check-in de titular sem documento');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, rurf), 'check-in antes do dia da entrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, rurp), 'check-in de reserva pendente');
+  UPDATE hs_uhs SET situacao_limpeza = 'sujo' WHERE id = a301;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, rurs), 'check-in em acomodação suja');
+  UPDATE hs_uhs SET situacao_limpeza = 'limpo' WHERE id = a301;
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_checkin(%L)$c$, ru1), 'garçom faz check-in');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L, ARRAY[%L, %L]::uuid[])$c$, ru1, hC, hD), 'check-in com mais pessoas que a reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L, ARRAY[gen_random_uuid()]::uuid[])$c$, ru1), 'acompanhante que não existe');
+  PERFORM ci.exige((SELECT situacao = 'reservada' FROM hs_reserva_uhs WHERE id = ru1) AND NOT EXISTS (SELECT 1 FROM hs_reserva_hospedes WHERE reserva_uh_id = ru1), 'o check-in recusado não deixou nada gravado');
+  PERFORM ci.entrar(vend);
+  r := hs_checkin(ru1, ARRAY[hC]);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean AND (r ->> 'folio_id')::uuid = fo1 AND (r ->> 'uh') = '101' AND jsonb_array_length(r -> 'hospedes') = 2, 'check-in devolve a ficha com os dois hóspedes e a conta principal');
+  PERFORM ci.exige((r -> 'hospedes' -> 0 ->> 'principal')::boolean AND (r -> 'hospedes' -> 0 ->> 'documento_numero') = '52998224725', 'o titular vem primeiro na ficha, com o documento');
+  PERFORM ci.exige((SELECT situacao = 'hospedada' AND checkin_em IS NOT NULL FROM hs_reserva_uhs WHERE id = ru1) AND (SELECT situacao = 'hospedada' FROM hs_reservas WHERE id = r1), 'quarto e reserva ficam hospedados');
+  PERFORM ci.entrar(vend); r := hs_checkin(ru1, ARRAY[hC]); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 2 FROM hs_reserva_hospedes WHERE reserva_uh_id = ru1), 'repetir o check-in devolve a mesma ficha');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_hospede_adicionar(%L, %L)$c$, ru1, hD), 'acompanhante além das pessoas da reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_hospede_remover(%L, %L)$c$, ru1, hA), 'tirar o hóspede principal do quarto');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_hospede_remover(ru1, hC); PERFORM hs_reserva_hospede_adicionar(ru1, hD); PERFORM hs_reserva_hospede_adicionar(ru1, hD); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT array_agg(hospede_id ORDER BY principal DESC) = ARRAY[hA, hD] FROM hs_reserva_hospedes WHERE reserva_uh_id = ru1), 'trocar o acompanhante do quarto (adicionar de novo não duplica)');
+  PERFORM ci.entrar(vend);
+  PERFORM hs_hospede_salvar(jsonb_build_object('id', hNo, 'nome', 'Hóspede Sem Documento', 'documento_tipo', 'passaporte', 'documento_numero', 'XX123456'));
+  r := hs_checkin(ru2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'hospedada' FROM hs_reserva_uhs WHERE id = ru2), 'com o documento informado o check-in passa');
+  PERFORM ci.entrar(vend); r := hs_checkin(ru3); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'hospedada' FROM hs_reserva_uhs WHERE id = ru3), 'chegada atrasada (entrada ontem) faz check-in hoje');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, ru6), 'check-in de reserva que só chega daqui a cinco dias');
+
+  -- ===== fechar o dia =====
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_auditoria_noturna(%L)$c$, fa), 'garçom fecha o dia');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_auditoria_noturna(%L, %L)$c$, fa, hoje + 1), 'fechar um dia que ainda não chegou');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_auditoria_noturna(%L, %L)$c$, fa, hoje - 40), 'fechar um dia de mais de 31 dias atrás');
+  PERFORM ci.entrar(vend);
+  r := hs_auditoria_noturna(fa);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'quartos')::integer = 3 AND (r ->> 'total_lancado')::numeric = 320, 'fechar o dia lança 3 quartos: diária + taxa de turismo por hóspede (110 + 105 + 105)');
+  PERFORM ci.exige((SELECT count(*) = 6 FROM hs_lancamentos WHERE tenant_id = demo AND filial_id = fa), 'seis lançamentos: uma diária e uma taxa por quarto');
+  PERFORM ci.exige((SELECT sum(total) = 110 FROM hs_lancamentos WHERE folio_id = fo1), 'a conta do quarto 101 tem diária de 100 e taxa de 2 hóspedes (10)');
+  PERFORM ci.exige((SELECT bool_and(lancada) FROM hs_diarias WHERE reserva_uh_id = ru1 AND data = hoje) AND (SELECT NOT lancada FROM hs_diarias WHERE reserva_uh_id = ru3 AND data = hoje - 1), 'a noite lançada fica marcada; a anterior ao check-in atrasado não é lançada');
+  PERFORM ci.entrar(vend); r := hs_auditoria_noturna(fa); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'quartos')::integer = 0 AND (r ->> 'total_lancado')::numeric = 0 AND (SELECT count(*) = 6 FROM hs_lancamentos WHERE tenant_id = demo AND filial_id = fa), 'fechar o dia de novo não duplica nada');
+  PERFORM ci.exige(jsonb_array_length(r -> 'chegadas_pendentes') >= 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'chegadas_pendentes') e WHERE (e ->> 'reserva_uh_id')::uuid = rurp), 'chegadas que não vieram aparecem para decisão');
+  PERFORM ci.exige(jsonb_array_length(r -> 'saidas_atrasadas') = 0, 'sem saídas atrasadas');
+  -- saída atrasada (simulada pelo dono do banco): aparece e não é cobrada
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a107, (hoje - 3)::text, (hoje - 1)::text)));
+  PERFORM ci.sair();
+  r5 := (r ->> 'reserva_id')::uuid; SELECT id INTO ru5 FROM hs_reserva_uhs WHERE reserva_id = r5;
+  UPDATE hs_reserva_uhs SET situacao = 'hospedada', checkin_em = now() - interval '3 days' WHERE id = ru5;
+  PERFORM _hs_reserva_recalcular(r5);
+  PERFORM ci.entrar(vend); r := hs_auditoria_noturna(fa); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'quartos')::integer = 0 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r -> 'saidas_atrasadas') e WHERE (e ->> 'reserva_uh_id')::uuid = ru5), 'saída atrasada aparece e não gera diária');
+  UPDATE hs_reserva_uhs SET situacao = 'finalizada' WHERE id = ru5;
+  PERFORM _hs_reserva_recalcular(r5);
+
+  -- ===== lançamentos e estornos =====
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = 10)::int', fo1)) = 1, 'saldo da conta: 110 lançados − 100 de sinal = 10');
+  PERFORM ci.entrar(vend);
+  lc := hs_lancar(fo1, '{"tipo":"consumo","descricao":" Frigobar ","quantidade":2,"valor_unitario":7.5}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT total = 15 AND descricao = 'Frigobar' AND tipo = 'consumo' AND criado_por = vend FROM hs_lancamentos WHERE id = lc), 'consumo de 2 × 7,50 vira um lançamento de 15');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"ajuste","descricao":"x","valor_unitario":-5}'::jsonb)$c$, fo1), 'recepção dá ajuste');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x","valor_unitario":-5}'::jsonb)$c$, fo1), 'consumo com valor negativo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":" ","valor_unitario":5}'::jsonb)$c$, fo1), 'lançamento sem descrição');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"diaria","descricao":"x","valor_unitario":5}'::jsonb)$c$, fo1), 'diária lançada à mão');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x","valor_unitario":5,"quantidade":0}'::jsonb)$c$, fo1), 'quantidade zero');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x"}'::jsonb)$c$, fo1), 'lançamento sem valor');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, jsonb_build_object('tipo','consumo','descricao','x','valor_unitario',5,'reserva_uh_id',%L))$c$, fo1, ru2), 'lançar para o quarto de outra reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, jsonb_build_object('tipo','consumo','descricao','x','valor_unitario',5,'produto_id',gen_random_uuid()))$c$, fo1), 'produto que não existe');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x","valor_unitario":5}'::jsonb)$c$, fo1), 'garçom lança na conta');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_lancar(fo1, '{"tipo":"ajuste","descricao":"Cortesia da gerência","valor_unitario":-10}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = 15)::int', fo1)) = 1, 'com consumo (+15) e desconto da gestão (−10) o saldo é 15');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM auditoria WHERE entidade = 'hs_lancamentos' AND operacao = 'ajuste' AND tenant_id = demo), 'o ajuste da gestão fica na auditoria');
+  SELECT id INTO ld FROM hs_lancamentos WHERE folio_id = fo1 AND tipo = 'diaria';
+  SELECT id INTO lt FROM hs_lancamentos WHERE folio_id = fo1 AND tipo = 'taxa_turismo';
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_estornar(%L, 'Lançado errado')$c$, ld), 'recepção estorna diária');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_estornar(%L, 'Lançado errado')$c$, lt), 'recepção estorna taxa de turismo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_estornar(%L, 'ab')$c$, lc), 'estorno com motivo curto');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_lancamento_estornar(%L, 'Lançado errado')$c$, lc), 'garçom estorna');
+  PERFORM ci.entrar(vend); r := hs_lancamento_estornar(lc, 'Lançado errado'); PERFORM ci.sair();
+  lest := (r ->> 'estorno_id')::uuid;
+  PERFORM ci.exige((SELECT total = -15 AND valor_unitario = -7.5 AND estorna_id = lc AND tipo = 'consumo' FROM hs_lancamentos WHERE id = lest) AND (SELECT total = 15 FROM hs_lancamentos WHERE id = lc), 'o estorno é uma linha de sinal oposto e o original não muda');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = 0)::int', fo1)) = 1, 'com o consumo estornado o saldo volta a 0');
+  PERFORM ci.entrar(vend); r := hs_lancamento_estornar(lc, 'Outra vez'); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM hs_lancamentos WHERE estorna_id = lc), 'estornar de novo não cria outra linha');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_estornar(%L, 'Estorno do estorno')$c$, lest), 'estornar um estorno');
+  PERFORM ci.entrar(gest); PERFORM hs_lancamento_estornar(lt, 'Hóspede isento da taxa'); PERFORM ci.sair();
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = -10)::int', fo1)) = 1, 'a gestão estorna a taxa de turismo: saldo −10');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM auditoria WHERE entidade = 'hs_lancamentos' AND operacao = 'estorno' AND entidade_id = lt), 'o estorno da gestão fica na auditoria');
+  PERFORM ci.entrar(vend); r := hs_auditoria_noturna(fa); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'quartos')::integer = 0 AND (SELECT count(*) = 10 FROM hs_lancamentos WHERE tenant_id = demo AND filial_id = fa), 'fechar o dia depois do estorno não lança a taxa estornada de novo');
+
+  -- ===== pagamento e devolução =====
+  PERFORM ci.entrar(vend); PERFORM hs_lancar(fo1, '{"tipo":"servico","descricao":"Lavanderia","valor_unitario":60}'::jsonb); PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'dinheiro', 80, %L)$c$, fo1, cxA), 'pagamento maior que o saldo');
+  PERFORM ci.entrar(vend); r := hs_pagamento_registrar(fo1, 'dinheiro', 50, cxA); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'saldo')::numeric = 0, 'pagar o saldo (50) zera a conta');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'dinheiro', 20, %L, 'devolucao')$c$, fo1, cxA), 'recepção devolve dinheiro');
+  PERFORM ci.entrar(gest); r := hs_pagamento_registrar(fo1, 'dinheiro', 20, cxA, 'devolucao'); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'saldo')::numeric = 20, 'a gestão devolve 20: a conta volta a dever 20');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 20 FROM caixa_movimentos WHERE caixa_id = cxA AND tipo = 'saida'), 'a devolução saiu do caixa');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM auditoria WHERE entidade = 'hs_folios' AND operacao = 'devolucao' AND entidade_id = fo1), 'a devolução fica na auditoria');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_pagamento_registrar(%L, 'dinheiro', 500, %L, 'devolucao')$c$, fo1, cxA), 'devolver mais do que foi recebido');
+
+  -- ===== separar contas =====
+  PERFORM ci.entrar(vend); fo2 := hs_folio_principal(r2); fx := hs_folio_abrir(r1, 'Empresa'); PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_abrir(%L, ' empresa ')$c$, r1), 'conta extra com nome repetido');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_abrir(%L, ' ')$c$, r1), 'conta extra sem nome');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_transferir(ARRAY[%L]::uuid[], %L)$c$, lest, fx), 'transferir só o estorno');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_transferir(ARRAY[%L]::uuid[], %L)$c$, ld, fo2), 'transferir para a conta de outra reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_transferir('{}'::uuid[], %L)$c$, fx), 'transferir nada');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_lancamento_transferir(ARRAY[%L]::uuid[], %L)$c$, ld, fx), 'garçom transfere');
+  PERFORM ci.entrar(vend); n := hs_lancamento_transferir(ARRAY[ld, lt], fx); PERFORM ci.sair();
+  PERFORM ci.exige(n = 2, 'transferiu a diária e a taxa');
+  PERFORM ci.exige((SELECT folio_id = fx FROM hs_lancamentos WHERE estorna_id = lt), 'o estorno da taxa foi junto com ela');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = 100)::int', fx)) = 1, 'a conta da empresa: diária 100 + taxa 10 − estorno 10');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = -80)::int', fo1)) = 1, 'a conta principal ficou com crédito de 80');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM auditoria WHERE entidade = 'hs_lancamentos' AND operacao = 'transferencia' AND entidade_id = ld), 'a transferência fica na auditoria');
+  PERFORM ci.entrar(vend); n := hs_lancamento_transferir(ARRAY[ld], fx); PERFORM ci.sair();
+  PERFORM ci.exige(n = 0, 'transferir para a conta onde já está não faz nada');
+
+  -- ===== estender e encurtar =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_estender(%L, %L)$c$, ru1, hoje + 3), 'estender para a mesma saída');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_estender(%L, %L)$c$, ru6, hoje + 9), 'estender quarto que ainda não fez check-in');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_estender(%L, %L)$c$, ru1, hoje + 6), 'estender por cima da reserva seguinte');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_estender(%L, %L, 150)$c$, ru1, hoje + 5), 'recepção combina o valor das noites novas');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_estadia_estender(%L, %L)$c$, ru1, hoje + 5), 'garçom estende');
+  PERFORM ci.exige((SELECT periodo = daterange(hoje, hoje + 3, '[)') FROM hs_ocupacoes WHERE reserva_uh_id = ru1) AND (SELECT count(*) = 3 FROM hs_diarias WHERE reserva_uh_id = ru1), 'a tentativa recusada não mexeu no calendário nem nas diárias');
+  PERFORM ci.entrar(vend); r := hs_estadia_estender(ru1, hoje + 5); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'noites_novas')::integer = 2 AND (r ->> 'valor_novas_noites')::numeric = 200 AND (SELECT saida = hoje + 5 FROM hs_reserva_uhs WHERE id = ru1), 'estender encosta na reserva seguinte: 2 noites novas de 100');
+  PERFORM ci.exige((SELECT periodo = daterange(hoje, hoje + 5, '[)') FROM hs_ocupacoes WHERE reserva_uh_id = ru1) AND (SELECT count(*) = 5 AND count(*) FILTER (WHERE lancada) = 1 FROM hs_diarias WHERE reserva_uh_id = ru1), 'o calendário acompanha e a noite lançada continua lançada');
+  PERFORM ci.entrar(gest); r := hs_estadia_estender(ru3, hoje + 4, 150); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT array_agg(valor ORDER BY data) FILTER (WHERE data >= hoje + 2) = ARRAY[75, 75]::numeric[] FROM hs_diarias WHERE reserva_uh_id = ru3), 'a gestão combina 150 para as 2 noites novas: 75 + 75');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_encurtar(%L, %L)$c$, ru1, hoje + 5), 'encurtar para a mesma saída');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_encurtar(%L, %L)$c$, ru1, hoje), 'encurtar até a data da entrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_encurtar(%L, %L)$c$, ru3, hoje), 'encurtar cortando uma noite já lançada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_encurtar(%L, %L)$c$, ru6, hoje + 6), 'encurtar quarto que ainda não fez check-in');
+  PERFORM ci.entrar(vend); r := hs_estadia_encurtar(ru1, hoje + 4); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'noites_removidas')::integer = 1 AND (SELECT periodo = daterange(hoje, hoje + 4, '[)') FROM hs_ocupacoes WHERE reserva_uh_id = ru1) AND (SELECT count(*) = 4 FROM hs_diarias WHERE reserva_uh_id = ru1), 'encurtar tira a última noite e libera o dia no calendário');
+  PERFORM ci.entrar(gest); r := hs_estadia_encurtar(ru3, hoje + 3); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT saida = hoje + 3 FROM hs_reserva_uhs WHERE id = ru3) AND (SELECT count(*) = 4 FROM hs_diarias WHERE reserva_uh_id = ru3), 'encurtar a estadia da chegada atrasada');
+
+  -- ===== trocar de quarto no meio da estadia =====
+  UPDATE hs_uhs SET situacao_limpeza = 'sujo' WHERE id = a301;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Barulho no quarto')$c$, ru2, a301), 'trocar para acomodação suja');
+  UPDATE hs_uhs SET situacao_limpeza = 'limpo' WHERE id = a301;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Barulho no quarto')$c$, ru2, a101), 'trocar para acomodação ocupada por outro hóspede');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'x')$c$, ru2, a201), 'trocar de quarto sem motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Barulho no quarto', true)$c$, ru2, a201), 'recepção manda manter o preço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Barulho no quarto')$c$, ru6, a201), 'trocar quarto que ainda não fez check-in');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Barulho no quarto')$c$, ru2, a201), 'garçom troca o quarto');
+  PERFORM ci.entrar(vend); r := hs_estadia_trocar_uh(ru2, a201, 'Barulho no quarto'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT uh_id = a201 AND tipo_id = tpB FROM hs_reserva_uhs WHERE id = ru2) AND (SELECT situacao_limpeza = 'sujo' FROM hs_uhs WHERE id = a102), 'trocou para a suíte e a acomodação antiga ficou suja');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(uh_id = a201) FROM hs_ocupacoes WHERE reserva_uh_id = ru2), 'trocar no dia do check-in só muda a acomodação no calendário');
+  PERFORM ci.exige((SELECT array_agg(valor ORDER BY data) = ARRAY[100, 200]::numeric[] FROM hs_diarias WHERE reserva_uh_id = ru2), 'a noite lançada fica com o preço antigo e a seguinte passa a valer pela suíte');
+  PERFORM ci.entrar(vend); r := hs_estadia_trocar_uh(ru2, a201, 'Barulho no quarto'); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean, 'trocar para a mesma acomodação não faz nada');
+  PERFORM ci.entrar(vend); r := hs_estadia_trocar_uh(ru3, a104, 'Ar-condicionado quebrado'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 2 FROM hs_ocupacoes WHERE reserva_uh_id = ru3)
+                   AND EXISTS (SELECT 1 FROM hs_ocupacoes WHERE reserva_uh_id = ru3 AND uh_id = a103 AND periodo = daterange(hoje - 1, hoje, '[)'))
+                   AND EXISTS (SELECT 1 FROM hs_ocupacoes WHERE reserva_uh_id = ru3 AND uh_id = a104 AND periodo = daterange(hoje, hoje + 3, '[)')), 'trocar no meio da estadia divide o calendário: a antiga até hoje e a nova até a saída');
+  PERFORM ci.exige((SELECT situacao_limpeza = 'sujo' FROM hs_uhs WHERE id = a103) AND (SELECT count(*) = 4 AND sum(valor) = 375 FROM hs_diarias WHERE reserva_uh_id = ru3), 'a troca dentro do mesmo tipo não mexe nos preços');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM auditoria WHERE entidade = 'hs_reserva_uhs' AND operacao = 'troca_de_quarto'), 'as duas trocas ficam na auditoria');
+  UPDATE hs_uhs SET situacao_limpeza = 'limpo' WHERE id = a102;
+  PERFORM ci.entrar(gest);
+  r := hs_estadia_trocar_uh(ru2, a102, 'Voltou ao quarto de origem', true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo_id = tpA AND uh_id = a102 FROM hs_reserva_uhs WHERE id = ru2) AND (SELECT array_agg(valor ORDER BY data) = ARRAY[100, 200]::numeric[] FROM hs_diarias WHERE reserva_uh_id = ru2), 'a gestão troca de tipo mantendo o preço combinado');
+
+  -- ===== cancelar com sinal =====
+  -- R7: sinal devolvido
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a105, (hoje + 10)::text, (hoje + 12)::text))); r7 := (r ->> 'reserva_id')::uuid;
+  fo7 := hs_folio_principal(r7);
+  PERFORM hs_pagamento_registrar(fo7, 'pix', 80, cxA, 'sinal');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Desistência')$c$, r7), 'cancelar com sinal sem informar o caixa para devolver');
+  PERFORM ci.exige((SELECT situacao = 'confirmada' FROM hs_reservas WHERE id = r7) AND EXISTS (SELECT 1 FROM hs_ocupacoes o JOIN hs_reserva_uhs u ON u.id = o.reserva_uh_id WHERE u.reserva_id = r7), 'o cancelamento recusado não mexeu na reserva');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Desistência', true, %L, 'pix')$c$, r7, cxB), 'devolver o sinal pelo caixa de outro hotel');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_cancelar(r7, 'Desistência', true, cxA, 'pix'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM hs_reservas WHERE id = r7) AND (SELECT situacao = 'fechado' AND fechado_em IS NOT NULL FROM hs_folios WHERE id = fo7), 'cancelar com devolução fecha a conta');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 80 FROM hs_pagamentos WHERE folio_id = fo7 AND tipo = 'devolucao') AND (SELECT count(*) = 1 AND sum(valor) = 80 FROM caixa_movimentos WHERE caixa_id = cxA AND tipo = 'saida' AND valor = 80), 'a devolução do sinal saiu do caixa uma vez');
+  PERFORM ci.entrar(vend); r := hs_reserva_cancelar(r7, 'Outra vez', true, cxA, 'pix'); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT count(*) = 1 FROM hs_pagamentos WHERE folio_id = fo7 AND tipo = 'devolucao'), 'cancelar de novo não devolve outra vez');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x","valor_unitario":5}'::jsonb)$c$, fo7), 'lançar em conta fechada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 5, %L, 'sinal')$c$, fo7, cxA), 'receber em conta fechada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_abrir(%L, 'Outra')$c$, r7), 'abrir conta em reserva cancelada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_principal(%L)$c$, (SELECT id FROM hs_reservas WHERE id = r7 AND false)), 'conta principal sem reserva');
+  -- R8: sinal retido (só a gestão)
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a105, (hoje + 20)::text, (hoje + 22)::text))); r8 := (r ->> 'reserva_id')::uuid;
+  fo8 := hs_folio_principal(r8);
+  PERFORM hs_pagamento_registrar(fo8, 'dinheiro', 60, cxA, 'sinal');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Cancelou em cima da hora', false)$c$, r8), 'recepção retém o sinal');
+  PERFORM ci.entrar(gest); PERFORM hs_reserva_cancelar(r8, 'Cancelou em cima da hora', false); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'fechado' FROM hs_folios WHERE id = fo8) AND (SELECT count(*) = 1 AND sum(total) = 60 FROM hs_lancamentos WHERE folio_id = fo8 AND tipo = 'servico' AND descricao LIKE 'Sinal retido%')
+                   AND NOT EXISTS (SELECT 1 FROM hs_pagamentos WHERE folio_id = fo8 AND tipo = 'devolucao'), 'a gestão retém o sinal: vira receita na própria conta e a conta fecha');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM auditoria WHERE entidade = 'hs_folios' AND operacao = 'retencao_sinal' AND entidade_id = fo8), 'reter o sinal fica na auditoria');
+  -- R9: cancelamento que falha no meio não deixa nada pela metade
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a105, (hoje + 30)::text, (hoje + 32)::text))); r9 := (r ->> 'reserva_id')::uuid;
+  fo9 := hs_folio_principal(r9);
+  PERFORM hs_pagamento_registrar(fo9, 'pix', 50, cxA, 'sinal');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Teste de falha', true, %L, 'pix')$c$, r9, cxB), 'cancelar devolvendo por caixa de outro hotel');
+  PERFORM ci.exige((SELECT situacao = 'confirmada' FROM hs_reservas WHERE id = r9) AND (SELECT situacao = 'aberto' FROM hs_folios WHERE id = fo9)
+                   AND EXISTS (SELECT 1 FROM hs_ocupacoes o JOIN hs_reserva_uhs u ON u.id = o.reserva_uh_id WHERE u.reserva_id = r9), 'a falha na devolução desfaz o cancelamento inteiro');
+  -- R10: dois quartos, o sinal só é tratado quando a reserva inteira acaba
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a105, (hoje + 40)::text, (hoje + 42)::text), ci.quarto(a106, (hoje + 40)::text, (hoje + 42)::text))); r10 := (r ->> 'reserva_id')::uuid;
+  fo10 := hs_folio_principal(r10);
+  PERFORM hs_pagamento_registrar(fo10, 'pix', 100, cxA, 'sinal');
+  PERFORM ci.sair();
+  SELECT min(id::text)::uuid, max(id::text)::uuid INTO ru10a, ru10b FROM hs_reserva_uhs WHERE reserva_id = r10;
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_uh_cancelar(ru10a, 'Um quarto a menos'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmada' FROM hs_reservas WHERE id = r10) AND (SELECT situacao = 'aberto' FROM hs_folios WHERE id = fo10) AND NOT EXISTS (SELECT 1 FROM hs_pagamentos WHERE folio_id = fo10 AND tipo = 'devolucao'), 'cancelar um dos dois quartos não mexe no sinal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_cancelar(%L, 'O outro também')$c$, ru10b), 'cancelar o último quarto sem informar o caixa para devolver o sinal');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_uh_cancelar(ru10b, 'O outro também', true, cxA, 'pix'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM hs_reservas WHERE id = r10) AND (SELECT situacao = 'fechado' FROM hs_folios WHERE id = fo10) AND (SELECT sum(valor) = 100 FROM hs_pagamentos WHERE folio_id = fo10 AND tipo = 'devolucao'), 'cancelar o último quarto devolve o sinal e fecha a conta');
+
+  -- ===== não comparecimento com sinal =====
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a106, (hoje - 1)::text, hoje::text)));       r11 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a106, (hoje - 3)::text, (hoje - 2)::text))); r12 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(fa, hA, ci.quarto(a106, (hoje - 5)::text, (hoje - 4)::text))); r13 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  SELECT id INTO ru11 FROM hs_reserva_uhs WHERE reserva_id = r11; SELECT id INTO ru12 FROM hs_reserva_uhs WHERE reserva_id = r12; SELECT id INTO ru13 FROM hs_reserva_uhs WHERE reserva_id = r13;
+  PERFORM ci.entrar(vend);
+  fo11 := hs_folio_principal(r11); fo12 := hs_folio_principal(r12); fo13 := hs_folio_principal(r13);
+  PERFORM hs_pagamento_registrar(fo11, 'pix', 70, cxA, 'sinal'); PERFORM hs_pagamento_registrar(fo12, 'dinheiro', 40, cxA, 'sinal'); PERFORM hs_pagamento_registrar(fo13, 'pix', 30, cxA, 'sinal');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_no_show(%L)$c$, ru11), 'recepção marca não comparecimento retendo o sinal');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_no_show(%L, true, true, %L, 'dinheiro')$c$, ru12, cxA), 'recepção cobra a diária do não comparecimento');
+  PERFORM ci.exige((SELECT situacao = 'reservada' FROM hs_reserva_uhs WHERE id = ru11) AND (SELECT situacao = 'reservada' FROM hs_reserva_uhs WHERE id = ru12), 'os não comparecimentos recusados não mexeram nos quartos');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_no_show(ru12, false, true, cxA, 'dinheiro'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'no_show' FROM hs_reservas WHERE id = r12) AND (SELECT situacao = 'fechado' FROM hs_folios WHERE id = fo12) AND (SELECT sum(valor) = 40 FROM hs_pagamentos WHERE folio_id = fo12 AND tipo = 'devolucao'), 'a recepção marca o não comparecimento devolvendo o sinal');
+  PERFORM ci.entrar(gest); PERFORM hs_reserva_no_show(ru13); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'fechado' FROM hs_folios WHERE id = fo13) AND (SELECT sum(total) = 30 FROM hs_lancamentos WHERE folio_id = fo13 AND descricao LIKE 'Sinal retido%'), 'a gestão marca o não comparecimento e o sinal vira receita');
+  PERFORM ci.entrar(gest); PERFORM hs_reserva_no_show(ru11, true); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'no_show' FROM hs_reservas WHERE id = r11) AND (SELECT situacao = 'aberto' FROM hs_folios WHERE id = fo11)
+                   AND (SELECT count(*) = 1 AND sum(total) = 100 FROM hs_lancamentos WHERE folio_id = fo11 AND tipo = 'diaria') AND NOT EXISTS (SELECT 1 FROM hs_lancamentos WHERE folio_id = fo11 AND tipo = 'taxa_turismo'),
+                   'cobrar a primeira diária do não comparecimento: 100 sem taxa de turismo, sobra 30 a receber e a conta continua aberta');
+  PERFORM ci.exige(ci.contar(vend, format('SELECT (hs_folio_saldo(%L) = 30)::int', fo11)) = 1, 'saldo a receber de 30 (diária 100 − sinal 70)');
+
+  -- ===== salão, anônimo e escrita direta =====
+  PERFORM ci.exige(ci.contar(hgar, 'SELECT count(*) FROM hs_folios') = 0 AND ci.contar(hgar, 'SELECT count(*) FROM hs_lancamentos') = 0
+                   AND ci.contar(hgar, 'SELECT count(*) FROM hs_pagamentos') = 0, 'garçom não lê contas, lançamentos nem pagamentos');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM hs_lancamentos', 'anônimo lê lançamentos');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_checkin(%L)$c$, ru6), 'anônimo faz check-in');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_auditoria_noturna(%L)$c$, fa), 'anônimo fecha o dia');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, 5, 5)$c$, demo, fa, fo1), 'administrador lança direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_lancamentos SET valor_unitario = 1, total = 1 WHERE id = %L$c$, ld), 'administrador muda o valor de um lançamento');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM hs_lancamentos WHERE id = %L$c$, ld), 'administrador apaga um lançamento');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO hs_pagamentos (tenant_id, filial_id, folio_id, tipo, forma, valor, caixa_id) VALUES (%L, %L, %L, 'pagamento', 'pix', 5, %L)$c$, demo, fa, fo1, cxA), 'administrador recebe direto');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM hs_pagamentos WHERE folio_id = %L$c$, fo1), 'administrador apaga pagamentos');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_folios SET situacao = 'fechado' WHERE id = %L$c$, fo1), 'administrador fecha a conta direto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_lancar_diaria(%L, current_date)$c$, ru1), 'usuário chama a rotina interna de diária');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_registrar_pagamento(%L, 'pix', 10, %L, 'pagamento', NULL)$c$, fo1, cxA), 'usuário chama a rotina interna de pagamento');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_encerrar_sem_estadia(%L, true, NULL, NULL, 'x')$c$, r1), 'usuário chama a rotina interna de encerramento');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_folio_saldo(%L)$c$, fo1), 'usuário chama a rotina interna de saldo');
+
+  -- ===== restrições do banco, vistas pelo dono =====
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 2, 5, 11)$c$, demo, fa, fo1), 'lançamento com total diferente de quantidade × valor');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, -5, -5)$c$, demo, fa, fo1), 'consumo com valor negativo direto no banco');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', ' ', 1, 5, 5)$c$, demo, fa, fo1), 'lançamento sem descrição');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 0, 5, 0)$c$, demo, fa, fo1), 'lançamento de quantidade zero');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, reserva_uh_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, %L, %L, 'diaria', 'Repetida', 1, 100, 100)$c$, demo, fa, fo1, ru1, hoje), 'a mesma diária duas vezes para o mesmo quarto e noite');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total, estorna_id) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, -15, -15, %L)$c$, demo, fa, fo1, lc), 'estorno sem motivo');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total, estorna_id, motivo) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, -15, -15, %L, 'Segundo estorno')$c$, demo, fa, fo1, lc), 'dois estornos do mesmo lançamento');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, 5, 5)$c$, demo, fb2, fo1), 'lançamento de um hotel na conta de outro');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_pagamentos (tenant_id, filial_id, folio_id, tipo, forma, valor, caixa_id) VALUES (%L, %L, %L, 'pagamento', 'crediario', 5, %L)$c$, demo, fa, fo1, cxA), 'pagamento em crediário direto no banco');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_pagamentos (tenant_id, filial_id, folio_id, tipo, forma, valor, caixa_id) VALUES (%L, %L, %L, 'pagamento', 'pix', 0, %L)$c$, demo, fa, fo1, cxA), 'pagamento de valor zero direto no banco');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_pagamentos (tenant_id, filial_id, folio_id, tipo, forma, valor, caixa_id) VALUES (%L, %L, %L, 'pagamento', 'pix', 5, %L)$c$, demo, fb2, fo1, cxB), 'pagamento de um hotel na conta de outro');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_pagamentos (tenant_id, filial_id, folio_id, tipo, forma, valor, caixa_id, chave_idempotencia) VALUES (%L, %L, %L, 'pagamento', 'pix', 5, %L, %L)$c$, demo, fa, fo1, cxA, kp1), 'chave de pagamento repetida na empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_folios (tenant_id, filial_id, reserva_id, principal) VALUES (%L, %L, %L, true)$c$, demo, fa, r1), 'segunda conta principal na mesma reserva');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_folios (tenant_id, filial_id, reserva_id, titulo) VALUES (%L, %L, %L, 'Cruzada')$c$, demo, fb2, r1), 'conta de um hotel numa reserva de outro');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reserva_hospedes (tenant_id, reserva_uh_id, hospede_id, principal) VALUES (%L, %L, %L, true)$c$, demo, ru1, hC), 'dois hóspedes principais no mesmo quarto');
+
+  -- ===== quem só acessa um hotel =====
+  UPDATE profiles SET filial_id = fb2 WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_folios') = 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_lancamentos') = 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_pagamentos') = 0,
+                   'recepção do hotel B não lê contas, lançamentos nem pagamentos do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"x","valor_unitario":5}'::jsonb)$c$, fo1), 'recepção do hotel B lança na conta do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 5, %L, 'sinal')$c$, fo1, cxB), 'recepção do hotel B recebe na conta do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_folio_saldo(%L)$c$, fo1), 'recepção do hotel B consulta o saldo do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_checkin(%L)$c$, ru6), 'recepção do hotel B faz check-in no hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_auditoria_noturna(%L)$c$, fa), 'recepção do hotel B fecha o dia do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_estadia_estender(%L, %L)$c$, ru1, hoje + 4), 'recepção do hotel B estende estadia do hotel A');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_lancamento_estornar(%L, 'Outro hotel')$c$, lc), 'recepção do hotel B estorna lançamento do hotel A');
+  UPDATE profiles SET filial_id = fa WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_folios') > 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_lancamentos') > 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_pagamentos') > 0, 'recepção do hotel A lê as contas do hotel A');
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+
+  -- ===== outra empresa =====
+  INSERT INTO tenants (nome) VALUES ('Hotel Estadia B') RETURNING id INTO tb;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tb, 'Hotel Estadia B Ltda', 'hotelaria') RETURNING id INTO eb;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (tb, eb, 'Hotel B Estadia') RETURNING id INTO fbb;
+  UPDATE profiles SET tenant_id = tb WHERE id = bges;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (bges, tb, 'gestor');
+  INSERT INTO caixas (tenant_id, filial_id) VALUES (tb, fbb) RETURNING id INTO cxbx;
+  PERFORM ci.entrar(bges);
+  tbx := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fbb, 'nome', 'Standard'));
+  ubx := hs_uh_salvar(jsonb_build_object('tipo_id', tbx, 'numero', '1'));
+  PERFORM hs_tarifa_salvar(jsonb_build_object('tipo_id', tbx, 'nome', 'B', 'vigencia_de', (hoje - 10)::text, 'vigencia_ate', (hoje + 120)::text, 'valor_diaria', 70));
+  hbx := hs_hospede_salvar('{"nome":"Hóspede Estadia B","documento_tipo":"cpf","documento_numero":"52998224725"}'::jsonb);
+  r := hs_reserva_criar(ci.reserva(fbb, hbx, ci.quarto(ubx, hoje::text, (hoje + 2)::text))); rbx := (r ->> 'reserva_id')::uuid;
+  fobx := hs_folio_principal(rbx);
+  PERFORM hs_pagamento_registrar(fobx, 'pix', 50, cxbx, 'sinal');
+  SELECT id INTO rubx FROM hs_reserva_uhs WHERE reserva_id = rbx;
+  PERFORM hs_checkin(rubx);
+  PERFORM hs_auditoria_noturna(fbb);
+  PERFORM ci.sair();
+  SELECT id INTO lbx FROM hs_lancamentos WHERE folio_id = fobx AND tipo = 'diaria';
+  PERFORM ci.exige(lbx IS NOT NULL AND ci.contar(bges, 'SELECT count(*) FROM hs_folios') = 1 AND ci.contar(bges, 'SELECT count(*) FROM hs_pagamentos') = 1, 'o gestor B opera o próprio hotel (sinal, check-in e fechar o dia)');
+  PERFORM ci.exige(ci.contar(gest, format('SELECT count(*) FROM hs_folios WHERE tenant_id = %L', tb)) = 0 AND ci.contar(gest, format('SELECT count(*) FROM hs_lancamentos WHERE tenant_id = %L', tb)) = 0
+                   AND ci.contar(gest, format('SELECT count(*) FROM hs_pagamentos WHERE tenant_id = %L', tb)) = 0, 'o gestor A não lê contas, lançamentos nem pagamentos do hotel B');
+  PERFORM ci.exige(ci.contar(bges, format('SELECT count(*) FROM hs_lancamentos WHERE folio_id = %L', fo1)) = 0, 'o gestor B não lê a conta do hotel A');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_lancar(%L, '{"tipo":"consumo","descricao":"Invasor","valor_unitario":5}'::jsonb)$c$, fobx), 'lançar na conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 5, %L, 'sinal')$c$, fobx, cxA), 'receber na conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_pagamento_registrar(%L, 'pix', 5, %L, 'devolucao')$c$, fobx, cxbx), 'devolver dinheiro da conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_lancamento_estornar(%L, 'Invasor')$c$, lbx), 'estornar lançamento de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_lancamento_transferir(ARRAY[%L]::uuid[], %L)$c$, lbx, fx), 'transferir lançamento de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_lancamento_transferir(ARRAY[%L]::uuid[], %L)$c$, ld, fobx), 'transferir para a conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_folio_saldo(%L)$c$, fobx), 'ver o saldo da conta de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_folio_principal(%L)$c$, rbx), 'abrir a conta de reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_folio_abrir(%L, 'Invasora')$c$, rbx), 'abrir conta extra em reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_checkin(%L)$c$, rubx), 'check-in em quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_auditoria_noturna(%L)$c$, fbb), 'fechar o dia de hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_estadia_estender(%L, %L)$c$, rubx, hoje + 4), 'estender estadia de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_estadia_encurtar(%L, %L)$c$, rubx, hoje + 1), 'encurtar estadia de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_estadia_trocar_uh(%L, %L, 'Invasor aqui')$c$, rubx, a104), 'trocar quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_hospede_adicionar(%L, %L)$c$, rubx, hD), 'adicionar hóspede em quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_cancelar(%L, 'Invasor aqui', false)$c$, rbx), 'cancelar reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_no_show(%L, true)$c$, rubx), 'não comparecimento de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_lancamentos (tenant_id, filial_id, folio_id, data_competencia, tipo, descricao, quantidade, valor_unitario, total) VALUES (%L, %L, %L, current_date, 'consumo', 'x', 1, 5, 5)$c$, demo, fa, fobx), 'lançamento da empresa A na conta da empresa B');
+
+  -- limpeza
+  DELETE FROM hs_pagamentos WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_lancamentos WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_folios WHERE tenant_id IN (demo, tb);
+  -- os movimentos de caixa são imutáveis: os caixas do teste ficam como estão
+  DELETE FROM hs_ocupacoes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_diarias WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reserva_hospedes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reserva_uhs WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reservas WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_tarifas WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_uhs WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_tipos_uh WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_hospedes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_config WHERE tenant_id IN (demo, tb);
+  DELETE FROM user_roles WHERE user_id IN (hgar, bges);
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+END $$;
