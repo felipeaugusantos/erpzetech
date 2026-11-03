@@ -25,10 +25,13 @@ const campo =
 export function DevolverCreditoDialog({
   comanda,
   sobra,
+  cobrarServico = true,
   onFechar,
 }: {
   comanda: Comanda;
   sobra: number;
+  /** o serviço opcional entra na conta? O banco calcula a sobra com a mesma escolha */
+  cobrarServico?: boolean;
   onFechar: () => void;
 }) {
   const qc = useQueryClient();
@@ -52,6 +55,7 @@ export function DevolverCreditoDialog({
         p_caixa_id: caixa,
         p_motivo: motivo.trim(),
         p_forma: forma,
+        p_cobrar_servico: cobrarServico,
       });
     },
     onSuccess: () => {

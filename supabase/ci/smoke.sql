@@ -1341,6 +1341,50 @@ BEGIN
   DELETE FROM restaurante_config WHERE tenant_id = demo;
 END $$;
 
+-- 17h. a pesagem baixa o estoque pela ficha técnica
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  dep uuid; arroz uuid; kg uuid; cat uuid; prato uuid; cmd uuid; r jsonb; n bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Cozinha pesagem CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'PS-ARROZ', 'Arroz pesagem CI', 'kg', 8) RETURNING id INTO arroz;
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Pesagem estoque CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso) VALUES (demo, cat, 'Buffet estoque CI', 60, 'nenhuma', true) RETURNING id INTO kg;
+  -- 0,4 kg de arroz por kg vendido, com 20% de perda de preparo
+  INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade, perda_percentual) VALUES (demo, kg, arroz, 0.4, 20);
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Prato estoque CI', 300) RETURNING id INTO prato;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(arroz, dep, 'entrada'::mov_tipo, 2, 'ci', 'ci', NULL, 8);
+  PERFORM ci.sair();
+  INSERT INTO restaurante_config (tenant_id, baixa_estoque, deposito_id) VALUES (demo, true, dep);
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  -- 1,3 kg bruto - 0,3 de tara = 1 kg líquido: 1 x 0,4 / 0,8 = 0,5 kg de arroz
+  r := restaurante_lancar_pesagem(cmd, kg, 1300, prato);
+  PERFORM ci.sair();
+  SELECT numero INTO n FROM comandas WHERE id = cmd;
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'a pesagem baixa o insumo pela ficha, com a perda de preparo');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(tipo = 'saida') AND bool_and(quantidade = 0.5) FROM estoque_movimentacoes WHERE documento = 'COMANDA-' || n), 'a baixa da pesagem gera uma movimentação de saída');
+
+  -- sem saldo, a pesagem é recusada e nada é lançado
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 4300, %L)$c$, cmd, kg, prato), 'pesagem sem estoque suficiente do insumo');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM comanda_itens WHERE comanda_id = cmd), 'pesagem recusada não deixa item na comanda');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'pesagem recusada não mexe no estoque');
+
+  -- baixa desligada: a pesagem não mexe no estoque
+  UPDATE restaurante_config SET baixa_estoque = false, deposito_id = NULL WHERE tenant_id = demo;
+  PERFORM ci.entrar(gar);
+  r := restaurante_lancar_pesagem(cmd, kg, 1300, prato);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'sem baixa de estoque configurada a pesagem não baixa');
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
+  DELETE FROM cardapio_ficha WHERE item_id = kg;
+END $$;
+
 -- 18. quantidade de mesas do restaurante
 DO $$
 DECLARE
