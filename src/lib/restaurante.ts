@@ -205,3 +205,17 @@ export function calcularBaixa(e: {
     total: reais(itens + servico + couvert),
   };
 }
+
+export type EtapaSenha = "preparo" | "pronto" | null;
+
+/**
+ * Onde a senha aparece no painel: "preparo" enquanto algum item está na fila ou sendo feito;
+ * "pronto" quando nada mais está em preparo e algum item está pronto; fora do painel quando tudo foi entregue
+ * (ou nada foi enviado ainda).
+ */
+export function etapaSenha(situacoes: readonly string[]): EtapaSenha {
+  const vivos = situacoes.filter((s) => s !== "cancelado");
+  if (vivos.some((s) => s === "enviado" || s === "preparando")) return "preparo";
+  if (vivos.some((s) => s === "pronto")) return "pronto";
+  return null;
+}

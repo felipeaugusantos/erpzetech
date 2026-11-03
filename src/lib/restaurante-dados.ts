@@ -36,6 +36,8 @@ export type Comanda = {
   canal: "proprio" | "ifood";
   codigo_externo: string | null;
   unida_em_id: string | null;
+  senha: number | null;
+  senha_data: string | null;
   entrega_telefone: string | null;
   entrega_endereco: string | null;
   entrega_bairro: string | null;

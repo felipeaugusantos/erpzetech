@@ -115,6 +115,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
 import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
+import { Route as AuthenticatedPainelSenhasRouteImport } from './routes/_authenticated/painel-senhas'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
@@ -764,6 +765,12 @@ const AuthenticatedPainelLocacaoRoute =
     path: '/painel-locacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPainelSenhasRoute =
+  AuthenticatedPainelSenhasRouteImport.update({
+    id: '/painel-senhas',
+    path: '/painel-senhas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
@@ -1191,6 +1198,7 @@ export interface FileRoutesByFullPath {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1355,6 +1363,7 @@ export interface FileRoutesByTo {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1521,6 +1530,7 @@ export interface FileRoutesById {
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/_authenticated/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1687,6 +1697,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -1851,6 +1862,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -2016,6 +2028,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel-filial'
     | '/_authenticated/painel-fiscal'
     | '/_authenticated/painel-locacao'
+    | '/_authenticated/painel-senhas'
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
@@ -2834,6 +2847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelLocacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel-senhas': {
+      id: '/_authenticated/painel-senhas'
+      path: '/painel-senhas'
+      fullPath: '/painel-senhas'
+      preLoaderRoute: typeof AuthenticatedPainelSenhasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pdv': {
       id: '/_authenticated/pdv'
       path: '/pdv'
@@ -3335,6 +3355,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
   AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
+  AuthenticatedPainelSenhasRoute: typeof AuthenticatedPainelSenhasRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
@@ -3491,6 +3512,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,
   AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
+  AuthenticatedPainelSenhasRoute: AuthenticatedPainelSenhasRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,

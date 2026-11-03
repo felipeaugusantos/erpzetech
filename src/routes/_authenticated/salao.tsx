@@ -380,7 +380,10 @@ function Salao() {
                   onClick={() => setComandaAberta(c.id)}
                   className={`rounded-xl border-2 border-red-500 bg-red-50 p-3 text-left hover:shadow-md ${r.prontos > 0 ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
                 >
-                  <span className="font-display text-xl font-bold">Nº {c.numero}</span>
+                  <span className="font-display text-xl font-bold">
+                    {c.senha ? `Senha ${c.senha}` : `Nº ${c.numero}`}
+                  </span>
+                  {c.senha && <p className="text-xs text-muted-foreground">Comanda {c.numero}</p>}
                   {c.cliente_nome && <p className="text-sm">{c.cliente_nome}</p>}
                   <p className="text-sm font-medium">{brl(r.total)}</p>
                   {r.prontos > 0 && (

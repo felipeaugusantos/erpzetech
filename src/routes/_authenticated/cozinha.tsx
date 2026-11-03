@@ -115,6 +115,7 @@ function Cozinha() {
     if (mesa) return `Mesa ${mesa.numero}`;
     if (c?.tipo === "delivery")
       return `Delivery ${c.numero}${c.cliente_nome ? ` · ${c.cliente_nome}` : ""}`;
+    if (c?.senha) return `Senha ${c.senha}`;
     return c ? `Comanda ${c.numero}` : "—";
   };
 

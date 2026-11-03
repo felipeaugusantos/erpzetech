@@ -11,6 +11,7 @@ import {
   Printer,
   Receipt,
   Send,
+  Ticket,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ import { urlFotoCardapio } from "@/lib/cardapio-foto";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
+import { htmlTicketSenha } from "@/lib/ticket-senha";
 import { htmlEtiquetaComanda } from "@/lib/etiqueta-comanda";
 import { brl } from "@/lib/format";
 import {
@@ -278,6 +280,52 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
     janela.document.close();
     janela.focus();
     setTimeout(() => janela.print(), 300);
+  }
+
+  /** Senha do pedido de balcão: envia o pedido à produção e imprime o ticket. */
+  const emitirSenha = useMutation({
+    mutationFn: async (janela: Window | null) => {
+      if (!comanda) throw new Error("Comanda não carregada");
+      const r = await rpcRestaurante<{ senha: number; enviados: number; nova: boolean }>(
+        "restaurante_emitir_senha",
+        { p_comanda_id: comanda.id },
+      );
+      return { r, janela };
+    },
+    onSuccess: ({ r, janela }) => {
+      toast.success(
+        r.nova ? `Senha ${r.senha} emitida e pedido enviado` : `Senha ${r.senha} (reimpressa)`,
+      );
+      if (janela && comanda) {
+        janela.document.write(
+          htmlTicketSenha({
+            loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+            senha: r.senha,
+            comanda: comanda.numero,
+            itens: validos.map((i) => ({
+              nome: i.nome,
+              quantidade: Number(i.quantidade),
+              observacao: i.observacao,
+            })),
+            emitidoEm: new Date().toLocaleString("pt-BR"),
+          }),
+        );
+        janela.document.close();
+        janela.focus();
+        setTimeout(() => janela.print(), 300);
+      }
+      atualizar();
+    },
+    onError: (e: Error, janela) => {
+      janela?.close();
+      toast.error(e.message);
+    },
+  });
+
+  function pedirSenha() {
+    // a janela de impressão abre no clique, antes de chamar o banco
+    const janela = window.open("", "_blank", "width=420,height=640");
+    emitirSenha.mutate(janela);
   }
 
   /** Conta para conferência na mesa: o cliente vê o total com e sem o serviço opcional. */
@@ -551,6 +599,14 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       </Button>
                     )}
                   </div>
+                  {comanda?.tipo === "salao" && !comanda.mesa_id && validos.length > 0 && (
+                    <Button variant="outline" onClick={pedirSenha} disabled={emitirSenha.isPending}>
+                      <Ticket className="mr-2 size-4" />
+                      {comanda.senha
+                        ? `Reimprimir senha ${comanda.senha}`
+                        : "Emitir senha e enviar à produção"}
+                    </Button>
+                  )}
                   {comanda?.tipo !== "delivery" && (
                     <Button variant="outline" onClick={() => setJuntando(true)}>
                       <GitMerge className="mr-2 size-4" /> Juntar contas
