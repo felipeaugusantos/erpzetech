@@ -7464,6 +7464,7 @@ export type Database = {
           tecnico_nome: string | null
           tenant_id: string
           updated_at: string
+          venda_id: string | null
           valor_pecas: number
           valor_servicos: number
           valor_total: number
@@ -7501,6 +7502,7 @@ export type Database = {
           tecnico_nome?: string | null
           tenant_id: string
           updated_at?: string
+          venda_id?: string | null
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
@@ -7538,6 +7540,7 @@ export type Database = {
           tecnico_nome?: string | null
           tenant_id?: string
           updated_at?: string
+          venda_id?: string | null
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
@@ -12373,6 +12376,17 @@ export type Database = {
       clinica_prescricao_suspender: {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
+      }
+      clinica_internacao_cobranca: { Args: { p_id: string }; Returns: Json }
+      clinica_internacao_cobrar: {
+        Args: { p_chave?: string; p_id: string; p_pedido_id?: string }
+        Returns: Json
+      }
+      clinica_internacoes_a_cobrar: { Args: never; Returns: Json }
+      pet_os_cobranca: { Args: { p_os_id: string }; Returns: Json }
+      pet_os_cobrar: {
+        Args: { p_chave?: string; p_os_id: string; p_pedido_id?: string }
+        Returns: Json
       }
       clinica_internacao_admitir: { Args: { p_dados: Json; p_pet_id: string }; Returns: string }
       clinica_internacao_box_trocar: {

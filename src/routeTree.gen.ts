@@ -33,6 +33,7 @@ import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_a
 import { Route as AuthenticatedClinicaBoxesRouteImport } from './routes/_authenticated/clinica-boxes'
 import { Route as AuthenticatedClinicaCartaoRouteImport } from './routes/_authenticated/clinica-cartao'
 import { Route as AuthenticatedClinicaCatalogoRouteImport } from './routes/_authenticated/clinica-catalogo'
+import { Route as AuthenticatedClinicaCobrancasRouteImport } from './routes/_authenticated/clinica-cobrancas'
 import { Route as AuthenticatedClinicaDocumentoRouteImport } from './routes/_authenticated/clinica-documento'
 import { Route as AuthenticatedClinicaExamesRouteImport } from './routes/_authenticated/clinica-exames'
 import { Route as AuthenticatedClinicaExamesModelosRouteImport } from './routes/_authenticated/clinica-exames-modelos'
@@ -308,6 +309,12 @@ const AuthenticatedClinicaCatalogoRoute =
   AuthenticatedClinicaCatalogoRouteImport.update({
     id: '/clinica-catalogo',
     path: '/clinica-catalogo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaCobrancasRoute =
+  AuthenticatedClinicaCobrancasRouteImport.update({
+    id: '/clinica-cobrancas',
+    path: '/clinica-cobrancas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaDocumentoRoute =
@@ -1157,6 +1164,7 @@ export interface FileRoutesByFullPath {
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
@@ -1328,6 +1336,7 @@ export interface FileRoutesByTo {
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
@@ -1501,6 +1510,7 @@ export interface FileRoutesById {
   '/_authenticated/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
   '/_authenticated/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/_authenticated/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
+  '/_authenticated/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
   '/_authenticated/clinica-documento': typeof AuthenticatedClinicaDocumentoRoute
   '/_authenticated/clinica-exames': typeof AuthenticatedClinicaExamesRoute
   '/_authenticated/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
@@ -1674,6 +1684,7 @@ export interface FileRouteTypes {
     | '/clinica-boxes'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-cobrancas'
     | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
@@ -1845,6 +1856,7 @@ export interface FileRouteTypes {
     | '/clinica-boxes'
     | '/clinica-cartao'
     | '/clinica-catalogo'
+    | '/clinica-cobrancas'
     | '/clinica-documento'
     | '/clinica-exames'
     | '/clinica-exames-modelos'
@@ -2017,6 +2029,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-boxes'
     | '/_authenticated/clinica-cartao'
     | '/_authenticated/clinica-catalogo'
+    | '/_authenticated/clinica-cobrancas'
     | '/_authenticated/clinica-documento'
     | '/_authenticated/clinica-exames'
     | '/_authenticated/clinica-exames-modelos'
@@ -2347,6 +2360,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-catalogo'
       fullPath: '/clinica-catalogo'
       preLoaderRoute: typeof AuthenticatedClinicaCatalogoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-cobrancas': {
+      id: '/_authenticated/clinica-cobrancas'
+      path: '/clinica-cobrancas'
+      fullPath: '/clinica-cobrancas'
+      preLoaderRoute: typeof AuthenticatedClinicaCobrancasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-documento': {
@@ -3391,6 +3411,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaBoxesRoute: typeof AuthenticatedClinicaBoxesRoute
   AuthenticatedClinicaCartaoRoute: typeof AuthenticatedClinicaCartaoRoute
   AuthenticatedClinicaCatalogoRoute: typeof AuthenticatedClinicaCatalogoRoute
+  AuthenticatedClinicaCobrancasRoute: typeof AuthenticatedClinicaCobrancasRoute
   AuthenticatedClinicaDocumentoRoute: typeof AuthenticatedClinicaDocumentoRoute
   AuthenticatedClinicaExamesRoute: typeof AuthenticatedClinicaExamesRoute
   AuthenticatedClinicaExamesModelosRoute: typeof AuthenticatedClinicaExamesModelosRoute
@@ -3553,6 +3574,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaBoxesRoute: AuthenticatedClinicaBoxesRoute,
   AuthenticatedClinicaCartaoRoute: AuthenticatedClinicaCartaoRoute,
   AuthenticatedClinicaCatalogoRoute: AuthenticatedClinicaCatalogoRoute,
+  AuthenticatedClinicaCobrancasRoute: AuthenticatedClinicaCobrancasRoute,
   AuthenticatedClinicaDocumentoRoute: AuthenticatedClinicaDocumentoRoute,
   AuthenticatedClinicaExamesRoute: AuthenticatedClinicaExamesRoute,
   AuthenticatedClinicaExamesModelosRoute:

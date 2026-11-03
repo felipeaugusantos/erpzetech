@@ -251,6 +251,7 @@ const groups: Group[] = [
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
+      { label: "Internações a cobrar", to: "/clinica-cobrancas", icon: BedDouble },
     ],
   },
   {
@@ -541,7 +542,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
-              if (i.to === "/clinica-reforcos") return souGestao || souRecepcao;
+              if (i.to === "/clinica-reforcos" || i.to === "/clinica-cobrancas")
+                return souGestao || souRecepcao;
               if (
                 i.to === "/personalizacao" ||
                 i.to === "/custo-par" ||
