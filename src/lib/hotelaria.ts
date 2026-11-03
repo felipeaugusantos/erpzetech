@@ -112,3 +112,79 @@ export function escolherTarifa<T extends Tarifa>(tarifas: readonly T[], noite: s
   );
   return candidatas[0] ?? null;
 }
+
+export type TarifaPreco = Tarifa & {
+  valor_diaria: number;
+  valor_adulto_extra: number;
+  valor_crianca: number;
+  minimo_noites: number;
+  /** quantas pessoas a diária já inclui; o adulto além disso paga o extra */
+  pessoas_incluidas: number;
+};
+
+const centavos = (v: number) => Math.round(v * 100);
+const reais = (c: number) => c / 100;
+
+/** Diária + adultos além do incluído × extra + crianças × valor da criança. Espelho de _hs_preco_noite no banco. */
+export function precoDaNoite(t: TarifaPreco, adultos: number, criancas: number) {
+  const extraAdultos = Math.max(adultos - t.pessoas_incluidas, 0);
+  return reais(
+    centavos(t.valor_diaria) +
+      extraAdultos * centavos(t.valor_adulto_extra) +
+      criancas * centavos(t.valor_crianca),
+  );
+}
+
+export type NoiteCotada = { data: string; valor: number; tarifa_id: string };
+export type Cotacao = { noites: NoiteCotada[]; total: number };
+
+/** Datas AAAA-MM-DD das noites de [entrada, saída). */
+export function noitesDaEstadia(entrada: string, saida: string) {
+  const n = diasEntre(entrada, saida);
+  const base = Date.parse(`${entrada}T00:00:00Z`);
+  return Array.from({ length: Math.max(n, 0) }, (_, i) =>
+    new Date(base + i * DIA_MS).toISOString().slice(0, 10),
+  );
+}
+
+/**
+ * Cotação noite a noite: espelho de _hs_precificar. Sem tarifa para uma noite a venda é recusada
+ * (nunca há preço implícito) e o mínimo de noites é o da tarifa da noite de chegada.
+ */
+export function cotarEstadia<T extends TarifaPreco>(
+  tarifas: readonly T[],
+  entrada: string,
+  saida: string,
+  adultos: number,
+  criancas: number,
+): Cotacao {
+  const datas = noitesDaEstadia(entrada, saida);
+  if (datas.length === 0) throw new Error("A saída precisa ser depois da entrada");
+  if (datas.length > 365) throw new Error("A estadia não pode passar de 365 noites");
+  const noites = datas.map((data) => {
+    const t = escolherTarifa(tarifas, data);
+    if (!t) {
+      const [a, m, d] = data.split("-");
+      throw new Error(`Sem tarifa para a noite de ${d}/${m}/${a}`);
+    }
+    return {
+      data,
+      valor: precoDaNoite(t, adultos, criancas),
+      tarifa_id: t.id,
+      minimo: t.minimo_noites,
+    };
+  });
+  const minimo = noites[0]?.minimo ?? 1;
+  if (noites.length < minimo) throw new Error(`A tarifa exige no mínimo ${minimo} noite(s)`);
+  const cotadas = noites.map(({ data, valor, tarifa_id }) => ({ data, valor, tarifa_id }));
+  return { noites: cotadas, total: reais(cotadas.reduce((s, n) => s + centavos(n.valor), 0)) };
+}
+
+/** Total acordado rateado entre as noites em centavos; a sobra vai para a última (igual a _hs_gravar_diarias). */
+export function ratearValor(total: number, noites: number) {
+  if (noites < 1) throw new Error("Informe ao menos uma noite");
+  const base = Math.floor(centavos(total) / noites);
+  const valores = Array.from({ length: noites }, () => base);
+  valores[noites - 1] = centavos(total) - base * (noites - 1);
+  return valores.map(reais);
+}

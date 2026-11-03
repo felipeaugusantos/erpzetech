@@ -88,6 +88,18 @@ Todas `SECURITY DEFINER`, `SET search_path TO public`, começam por `exige_nao_s
 | `hs_reserva_cancelar(p_id, p_motivo, p_devolver_sinal boolean)` | Libera ocupação. Sinal: se `p_devolver_sinal` é falso fica como receita retida e exige gestão e motivo. Não cancela hospedada (usa check-out antecipado) |
 | `hs_reserva_no_show(p_reserva_uh)` | Só depois da data de entrada; libera a UH; cobrança da 1ª diária é decisão da gestão (lança `ajuste`) |
 
+**Como ficou na migration 2 (`20261210000000_hotelaria_reservas.sql`), onde difere do plano acima:**
+
+- **Quarto da reserva:** `hs_reserva_alterar` cuida só dos dados da reserva (titular, pagador, origem, observações). Datas, pessoas e valor acordado mudam no quarto, em `hs_reserva_uh_alterar`. Cancelar existe por reserva (`hs_reserva_cancelar`) e por quarto (`hs_reserva_uh_cancelar`), para reserva de vários quartos.
+- **Decisão 6 aplicada:** a reserva do balcão escolhe a acomodação na hora (`uh_id` obrigatório em `hs_reserva_criar`); a coluna segue aceitando nulo para os canais da Fase 4. Por isso `hs_uhs_livres` (acomodações livres no período) entrou para alimentar a escolha.
+- **Tarifa:** nova coluna `pessoas_incluidas` (padrão 2). Noite = diária + adultos além do incluído × extra + crianças × valor da criança. O mínimo de noites é o da tarifa da noite de chegada.
+- **Alterar mantém o preço:** mudar só as datas preserva o preço das noites que continuam e cota as novas; mudar as pessoas recota todas; valor acordado só pela gestão.
+- **Sinal:** fica para a migration 3 (depende da conta do hóspede). `hs_reserva_cancelar` já aceita `p_devolver_sinal`, mas só a migration 3 passa a tratá-lo.
+- **Interdição por período:** `hs_uh_interditar` (início, data de volta, motivo) e `hs_bloqueio_remover`, só da gestão. `hs_uh_salvar` recusa mudar o tipo, inativar ou interditar acomodação com reserva a partir de hoje.
+- **Calendário:** um bloqueio de lock por hotel (`hs_cal:<filial>`) serializa quem mexe no calendário; a restrição `EXCLUDE` do banco segue como última barreira.
+- **Não comparecimento:** a partir do dia da entrada; no próprio dia só a gestão.
+- **Hoje** é calculado no fuso do hotel (`hs_config.fuso`, padrão Brasília).
+
 ### 5.3 Estadia e conta (administrador, gestor, vendedor, caixa)
 
 | Função | O que faz |

@@ -124,3 +124,81 @@ test("tarifa da noite: empate total é decidido sempre do mesmo jeito, qualquer 
   assert.equal(diasEntre(antes.vigencia_de, antes.vigencia_ate), 334);
   assert.equal(escolherTarifa([antes, mais_tarde], "2027-03-03")?.id, "z");
 });
+
+// Mesmas tarifas e contas da seção 90 do smoke do banco.
+import {
+  cotarEstadia,
+  noitesDaEstadia,
+  precoDaNoite,
+  ratearValor,
+  type TarifaPreco,
+} from "../src/lib/hotelaria.ts";
+
+const marco: TarifaPreco = {
+  id: "marco",
+  vigencia_de: "2027-03-01",
+  vigencia_ate: "2027-03-31",
+  dias_semana: [],
+  prioridade: 0,
+  ativo: true,
+  valor_diaria: 100,
+  valor_adulto_extra: 40,
+  valor_crianca: 20,
+  minimo_noites: 1,
+  pessoas_incluidas: 2,
+};
+const abril: TarifaPreco = {
+  ...marco,
+  id: "abril",
+  vigencia_de: "2027-04-01",
+  vigencia_ate: "2027-04-30",
+  valor_diaria: 90,
+  valor_adulto_extra: 0,
+  valor_crianca: 0,
+  minimo_noites: 3,
+};
+
+test("preço da noite: adulto além do incluído e criança pagam extra", () => {
+  assert.equal(precoDaNoite(marco, 2, 0), 100);
+  assert.equal(precoDaNoite(marco, 1, 0), 100);
+  assert.equal(precoDaNoite(marco, 3, 0), 140);
+  assert.equal(precoDaNoite(marco, 3, 1), 160);
+  assert.equal(precoDaNoite({ ...marco, pessoas_incluidas: 1 }, 2, 0), 140);
+  assert.equal(precoDaNoite({ ...marco, valor_diaria: 0.1, valor_crianca: 0.2 }, 2, 1), 0.3);
+});
+
+test("cotação: noite a noite, total e mínimo de noites da chegada", () => {
+  const t = [marco, abril];
+  assert.equal(cotarEstadia(t, "2027-03-01", "2027-03-04", 2, 0).total, 300);
+  assert.equal(cotarEstadia(t, "2027-03-01", "2027-03-04", 3, 1).total, 480);
+  assert.equal(cotarEstadia(t, "2027-04-01", "2027-04-04", 2, 0).total, 270);
+  assert.deepEqual(noitesDaEstadia("2027-02-27", "2027-03-02"), [
+    "2027-02-27",
+    "2027-02-28",
+    "2027-03-01",
+  ]);
+  assert.throws(() => cotarEstadia(t, "2027-04-01", "2027-04-03", 2, 0), /mínimo de 3|no mínimo 3/);
+  assert.throws(
+    () => cotarEstadia(t, "2027-02-27", "2027-03-02", 2, 0),
+    /Sem tarifa para a noite de 27\/02\/2027/,
+  );
+  assert.throws(
+    () => cotarEstadia(t, "2027-03-03", "2027-03-03", 2, 0),
+    /saída precisa ser depois/,
+  );
+  assert.throws(() => cotarEstadia(t, "2027-03-01", "2028-03-05", 2, 0), /365/);
+  // mínimo é o da noite de chegada: começar em março e entrar em abril não herda as 3 noites de abril
+  assert.equal(cotarEstadia(t, "2027-03-31", "2027-04-02", 2, 0).total, 190);
+});
+
+test("valor acordado: rateio em centavos com a sobra na última noite", () => {
+  assert.deepEqual(ratearValor(250, 3), [83.33, 83.33, 83.34]);
+  assert.deepEqual(ratearValor(100, 3), [33.33, 33.33, 33.34]);
+  assert.deepEqual(ratearValor(100, 4), [25, 25, 25, 25]);
+  assert.deepEqual(ratearValor(0, 2), [0, 0]);
+  assert.equal(
+    ratearValor(250, 3).reduce((s, v) => s + Math.round(v * 100), 0),
+    25000,
+  );
+  assert.throws(() => ratearValor(100, 0));
+});

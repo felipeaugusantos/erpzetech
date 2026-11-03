@@ -8482,3 +8482,457 @@ BEGIN
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
 END $$;
+
+-- 90. Hotelaria (reservas): calendário sem cruzar (o banco recusa), cotação e disponibilidade, reserva atômica e idempotente, preço guardado por noite,
+-- alterar, trocar de acomodação, cancelar, não comparecimento, interdição por período, permissões e isolamento por hotel e por empresa
+CREATE FUNCTION ci.quarto(p_uh uuid, p_entrada text, p_saida text, p_adultos integer DEFAULT 2, p_criancas integer DEFAULT 0, p_acordo numeric DEFAULT NULL) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_strip_nulls(jsonb_build_object('uh_id', p_uh, 'entrada', p_entrada, 'saida', p_saida, 'adultos', p_adultos, 'criancas', p_criancas, 'valor_acordado_total', p_acordo))
+$$;
+CREATE FUNCTION ci.reserva(p_filial uuid, p_titular uuid, VARIADIC p_quartos jsonb[]) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_build_object('filial_id', p_filial, 'titular_id', p_titular, 'quartos', to_jsonb(p_quartos))
+$$;
+CREATE FUNCTION ci.n_calendario() RETURNS bigint LANGUAGE sql AS $$
+  SELECT (SELECT count(*) FROM hs_reservas) + (SELECT count(*) FROM hs_reserva_uhs) + (SELECT count(*) FROM hs_diarias) + (SELECT count(*) FROM hs_ocupacoes)
+$$;
+
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  emp  constant uuid := '22222222-2222-2222-2222-222222222222';
+  f1   constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  hgar constant uuid := 'a0000000-0000-0000-0000-0000000001c2';
+  bges constant uuid := 'a0000000-0000-0000-0000-0000000001c3';
+  hoje date := current_date;
+  ramo_ant text; cnae_ant text; cnae2_ant text; sem_ant text[];
+  f2 uuid; tb uuid; eb uuid; fb uuid;
+  t1 uuid; t2 uuid; t3 uuid; tbx uuid;
+  u101 uuid; u102 uuid; u103 uuid; u104 uuid; u201 uuid; u301 uuid; ubx uuid;
+  ta1 uuid; tarb uuid; ta2 uuid; ta3 uuid; tabx uuid;
+  h1 uuid; h2 uuid; hbx uuid;
+  r jsonb; r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid; r6 uuid; rns uuid; rhoje uuid; rbx uuid;
+  ru1 uuid; ru2 uuid; ru3 uuid; ru4 uuid; ru5a uuid; ru5b uuid; ru6 uuid; rune uuid; ruhoje uuid; rubx uuid; ruac uuid;
+  k1 uuid := 'c0000000-0000-0000-0000-000000000001';
+  n0 bigint; blq uuid; el jsonb; racordo uuid;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios, modulos_sem_cnpj INTO ramo_ant, cnae_ant, cnae2_ant, sem_ant FROM empresas WHERE id = emp;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = NULL, cnae_secundarios = NULL, modulos_sem_cnpj = '{}' WHERE id = emp;
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  INSERT INTO empresa_modulos_liberados (empresa_id, modulo) VALUES (emp, 'hotelaria');
+  INSERT INTO auth.users (id, email) VALUES (hgar, 'garcom-reservas@ci'), (bges, 'gestor-reservas-b@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id = hgar;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Reservas 2') RETURNING id INTO f2;
+
+  -- cadastro base
+  PERFORM ci.entrar(gest);
+  t1 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f1, 'nome', 'Duplo', 'capacidade_adultos', 3, 'capacidade_criancas', 1));
+  t2 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f1, 'nome', 'Suíte', 'capacidade_adultos', 2, 'capacidade_criancas', 0));
+  t3 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f2, 'nome', 'Duplo', 'capacidade_adultos', 2));
+  u101 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '101'));
+  u102 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '102'));
+  u103 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '103'));
+  u104 := hs_uh_salvar(jsonb_build_object('tipo_id', t1, 'numero', '104', 'interditada', true, 'motivo_interdicao', 'Reforma'));
+  u201 := hs_uh_salvar(jsonb_build_object('tipo_id', t2, 'numero', '201'));
+  u301 := hs_uh_salvar(jsonb_build_object('tipo_id', t3, 'numero', '301'));
+  ta1 := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Março', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 100,
+                                             'valor_adulto_extra', 40, 'valor_crianca', 20, 'pessoas_incluidas', 2));
+  tarb := hs_tarifa_salvar(jsonb_build_object('tipo_id', t1, 'nome', 'Abril 3 noites', 'vigencia_de', '2027-04-01', 'vigencia_ate', '2027-04-30', 'valor_diaria', 90, 'minimo_noites', 3));
+  ta2 := hs_tarifa_salvar(jsonb_build_object('tipo_id', t2, 'nome', 'Março suíte', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 200));
+  ta3 := hs_tarifa_salvar(jsonb_build_object('tipo_id', t3, 'nome', 'Março hotel 2', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 80));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  h1 := hs_hospede_salvar('{"nome":"Hóspede Reserva Um"}'::jsonb);
+  h2 := hs_hospede_salvar('{"nome":"Hóspede Reserva Dois"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT pessoas_incluidas = 2 FROM hs_tarifas WHERE id = ta1) AND (SELECT pessoas_incluidas = 2 FROM hs_tarifas WHERE id = tarb), 'a tarifa guarda as pessoas incluídas (padrão 2)');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tarifa_salvar(jsonb_build_object('tipo_id', %L, 'nome', 'x', 'vigencia_de', '2027-01-01', 'vigencia_ate', '2027-01-02', 'valor_diaria', 1, 'pessoas_incluidas', 0))$c$, t1), 'tarifa sem nenhuma pessoa incluída');
+
+  -- cotação: diária + adulto além do incluído + crianças; mínimo de noites; sem tarifa; capacidade
+  PERFORM ci.entrar(vend);
+  r := hs_cotar(f1, t1, date '2027-03-01', date '2027-03-04', 2, 0);
+  PERFORM ci.exige((r ->> 'total')::numeric = 300 AND (r ->> 'quantidade')::integer = 3, 'cotação de 3 noites para 2 adultos: 300');
+  r := hs_cotar(f1, t1, date '2027-03-01', date '2027-03-04', 3, 1);
+  PERFORM ci.exige((r ->> 'total')::numeric = 480, 'cotação com adulto extra (40) e criança (20) por noite: 3 × 160');
+  r := hs_cotar(f1, t1, date '2027-04-01', date '2027-04-04');
+  PERFORM ci.exige((r ->> 'total')::numeric = 270, 'tarifa de 3 noites mínimas: 3 × 90');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-04-01', date '2027-04-03')$c$, f1, t1), 'cotar abaixo do mínimo de noites da tarifa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-02-27', date '2027-03-02')$c$, f1, t1), 'cotar noite sem tarifa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03', 4, 0)$c$, f1, t1), 'cotar acima da capacidade de adultos');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03', 2, 2)$c$, f1, t1), 'cotar acima da capacidade de crianças');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-03', date '2027-03-03')$c$, f1, t1), 'cotar sem noite');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03')$c$, f1, t3), 'cotar com tipo de outro hotel');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2028-03-05')$c$, f1, t1), 'cotar estadia de mais de 365 noites');
+
+  -- disponibilidade antes de reservar: 3 vendáveis no Duplo (a 104 está interditada)
+  PERFORM ci.entrar(vend);
+  r := hs_disponibilidade(f1, date '2027-03-01', date '2027-03-04');
+  PERFORM ci.sair();
+  SELECT e INTO el FROM jsonb_array_elements(r) e WHERE e ->> 'tipo_id' = t1::text;
+  PERFORM ci.exige((el ->> 'total')::integer = 3 AND (el ->> 'disponiveis')::integer = 3 AND (el ->> 'preco_total')::numeric = 300, 'disponibilidade: 3 livres e preço do período');
+  SELECT e INTO el FROM jsonb_array_elements(r) e WHERE e ->> 'tipo_id' = t2::text;
+  PERFORM ci.exige((el ->> 'disponiveis')::integer = 1 AND (el ->> 'preco_total')::numeric = 200 * 3, 'disponibilidade da suíte');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE e ->> 'tipo_id' = t3::text), 'disponibilidade só traz os tipos do hotel pedido');
+
+  -- reserva R1: grava reserva, quarto, diárias por noite e a ocupação no calendário
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u101, '2027-03-01', '2027-03-04')), k1);
+  PERFORM ci.sair();
+  r1 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.exige((r ->> 'total')::numeric = 300 AND (r ->> 'numero')::bigint > 0 AND (r ->> 'repetido')::boolean IS FALSE, 'reserva criada com total e número');
+  SELECT id INTO ru1 FROM hs_reserva_uhs WHERE reserva_id = r1;
+  PERFORM ci.exige((SELECT situacao = 'confirmada' AND origem = 'balcao' AND criada_por = vend FROM hs_reservas WHERE id = r1), 'reserva nasce confirmada, do balcão e com quem criou');
+  PERFORM ci.exige((SELECT count(*) = 3 AND sum(valor) = 300 AND bool_and(NOT lancada) FROM hs_diarias WHERE reserva_uh_id = ru1), 'uma diária por noite, ainda não lançada');
+  PERFORM ci.exige((SELECT periodo = daterange(date '2027-03-01', date '2027-03-04', '[)') AND origem = 'reserva' FROM hs_ocupacoes WHERE reserva_uh_id = ru1), 'a ocupação é [entrada, saída)');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u101, '2027-03-01', '2027-03-04')), k1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'reserva_id')::uuid = r1 AND (r ->> 'repetido')::boolean AND (r ->> 'total')::numeric = 300, 'repetir a chamada com a mesma chave devolve a mesma reserva');
+  PERFORM ci.exige((SELECT count(*) FROM hs_reservas WHERE chave_idempotencia = k1) = 1, 'a repetição não cria outra reserva');
+
+  -- calendário: cruzar é recusado, encostar é aceito; a restrição vale até para o dono do banco
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u101, '2027-03-03', '2027-03-05'))::text), 'reservar a mesma acomodação em período que cruza');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u101, '2027-02-28', '2027-03-02'))::text), 'cruzar pela frente');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u101, '2027-03-02', '2027-03-03'))::text), 'cruzar por dentro');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h2, ci.quarto(u101, '2027-03-04', '2027-03-06')));
+  PERFORM ci.sair();
+  r2 := (r ->> 'reserva_id')::uuid;
+  SELECT id INTO ru2 FROM hs_reserva_uhs WHERE reserva_id = r2;
+  PERFORM ci.exige(r2 IS NOT NULL, 'a saída de uma reserva é a entrada da próxima: encostar é aceito');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem, motivo) VALUES (%L, %L, %L, daterange(date '2027-03-02', date '2027-03-03', '[)'), 'bloqueio', 'x')$c$, demo, f1, u101), 'o dono do banco cruza duas ocupações da mesma acomodação');
+  PERFORM ci.entrar(vend);
+  r := hs_disponibilidade(f1, date '2027-03-02', date '2027-03-03');
+  PERFORM ci.sair();
+  SELECT e INTO el FROM jsonb_array_elements(r) e WHERE e ->> 'tipo_id' = t1::text;
+  PERFORM ci.exige((el ->> 'ocupadas')::integer = 1 AND (el ->> 'disponiveis')::integer = 2, 'disponibilidade com uma acomodação ocupada na noite');
+  PERFORM ci.entrar(vend);
+  SELECT e INTO el FROM jsonb_array_elements(hs_disponibilidade(f1, date '2027-03-03', date '2027-03-05')) e WHERE e ->> 'tipo_id' = t1::text;
+  PERFORM ci.sair();
+  PERFORM ci.exige((el ->> 'ocupadas')::integer = 1 AND (el ->> 'disponiveis')::integer = 2, 'a acomodação com duas reservas no período conta uma vez, e quem ocupa só parte dele também sai da lista');
+
+  -- atômica: se um quarto falha, nada fica gravado
+  n0 := ci.n_calendario();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-12'), ci.quarto(u101, '2027-03-05', '2027-03-07'))::text), 'reserva de dois quartos em que o segundo cruza');
+  PERFORM ci.exige(ci.n_calendario() = n0, 'a reserva que falhou não deixou reserva, quarto, diária nem ocupação');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u103, '2027-06-01', '2027-06-03'))::text), 'reservar noite sem tarifa');
+  PERFORM ci.exige(ci.n_calendario() = n0, 'sem tarifa não grava nada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-12'), ci.quarto(u102, '2027-03-11', '2027-03-13'))::text), 'o mesmo quarto duas vezes na mesma reserva, cruzando');
+  PERFORM ci.exige(ci.n_calendario() = n0, 'a mesma acomodação duas vezes não deixa nada pela metade');
+
+  -- regras da reserva
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u104, '2027-03-10', '2027-03-12'))::text), 'reservar acomodação interditada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u301, '2027-03-10', '2027-03-12'))::text), 'reservar acomodação de outro hotel');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-12', 4))::text), 'reservar acima da capacidade');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-12', '2027-03-10'))::text), 'reservar com a saída antes da entrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, jsonb_build_object('filial_id', f1, 'titular_id', h1, 'quartos', '[]'::jsonb)::text), 'reservar sem nenhum quarto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, jsonb_build_object('filial_id', f1, 'quartos', jsonb_build_array(ci.quarto(u102, '2027-03-10', '2027-03-12')))::text), 'reservar sem titular');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, (hoje - 1)::text, (hoje + 1)::text))::text), 'recepção reserva com entrada no passado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-13', 2, 0, 250))::text), 'recepção dá valor acordado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, jsonb_build_object('filial_id', f1, 'titular_id', h1, 'origem', 'pombo', 'quartos', jsonb_build_array(ci.quarto(u102, '2027-03-10', '2027-03-12')))::text), 'origem fora da lista');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, jsonb_build_object('filial_id', f1, 'titular_id', h1, 'situacao', 'hospedada', 'quartos', jsonb_build_array(ci.quarto(u102, '2027-03-10', '2027-03-12')))::text), 'criar a reserva já hospedada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, jsonb_build_object('filial_id', f1, 'titular_id', h1, 'quartos', jsonb_build_array(jsonb_build_object('uh_id', u102, 'tipo_id', t2, 'entrada', '2027-03-10', 'saida', '2027-03-12')))::text), 'tipo informado diferente do tipo da acomodação');
+
+  -- gestão: valor acordado rateado (a sobra vai para a última noite) e data passada
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-13', 2, 0, 250)));
+  racordo := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(ci.reserva(f1, h2, ci.quarto(u103, (hoje - 2)::text, (hoje - 1)::text, 2, 0, 100)));
+  PERFORM ci.sair();
+  ruac := (SELECT id FROM hs_reserva_uhs WHERE reserva_id = racordo);
+  PERFORM ci.exige((SELECT array_agg(valor ORDER BY data) = ARRAY[83.33, 83.33, 83.34]::numeric[] AND sum(valor) = 250 AND bool_and(tarifa_id IS NULL) FROM hs_diarias WHERE reserva_uh_id = ruac), 'valor acordado rateado em centavos, sem tarifa');
+  rns := (r ->> 'reserva_id')::uuid;
+  rune := (SELECT id FROM hs_reserva_uhs WHERE reserva_id = rns);
+  PERFORM ci.exige((SELECT entrada = hoje - 2 FROM hs_reserva_uhs WHERE id = rune), 'a gestão registra reserva com data passada');
+
+  -- mais reservas para as próximas etapas
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u103, '2027-03-20', '2027-03-22')));
+  r3 := (r ->> 'reserva_id')::uuid;
+  r := hs_reserva_criar(jsonb_build_object('filial_id', f1, 'titular_id', h2, 'situacao', 'pendente', 'origem', 'telefone',
+                                           'quartos', jsonb_build_array(ci.quarto(u201, '2027-03-05', '2027-03-07'))));
+  r4 := (r ->> 'reserva_id')::uuid;
+  PERFORM ci.sair();
+  SELECT id INTO ru3 FROM hs_reserva_uhs WHERE reserva_id = r3;
+  SELECT id INTO ru4 FROM hs_reserva_uhs WHERE reserva_id = r4;
+  PERFORM ci.exige((SELECT situacao = 'pendente' AND origem = 'telefone' FROM hs_reservas WHERE id = r4), 'reserva pendente de origem telefone');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_confirmar(r4); PERFORM hs_reserva_confirmar(r4); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmada' FROM hs_reservas WHERE id = r4), 'confirmar a reserva pendente (e confirmar de novo não muda nada)');
+
+  -- alterar o quarto: cruzar recusado; preço das noites que continuam é preservado
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"saida":"2027-03-05"}'::jsonb)$c$, ru1), 'esticar a saída para cima de outra reserva');
+  PERFORM ci.exige((SELECT periodo = daterange(date '2027-03-01', date '2027-03-04', '[)') FROM hs_ocupacoes WHERE reserva_uh_id = ru1), 'a tentativa recusada não mexeu no calendário');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_tarifa_salvar(jsonb_build_object('id', ta1, 'tipo_id', t1, 'nome', 'Março', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 120,
+                                              'valor_adulto_extra', 40, 'valor_crianca', 20, 'pessoas_incluidas', 2));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(valor) = 200 FROM hs_diarias WHERE reserva_uh_id = ru3), 'mudar a tarifa depois não muda a reserva já feita');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_alterar(ru3, '{"saida":"2027-03-23"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 320, 'esticar a saída cota só a noite nova pela tarifa de hoje: 100 + 100 + 120');
+  PERFORM ci.exige((SELECT array_agg(valor ORDER BY data) = ARRAY[100, 100, 120]::numeric[] FROM hs_diarias WHERE reserva_uh_id = ru3), 'as noites que continuam mantêm o preço');
+  PERFORM ci.exige((SELECT periodo = daterange(date '2027-03-20', date '2027-03-23', '[)') FROM hs_ocupacoes WHERE reserva_uh_id = ru3), 'o calendário acompanha a nova saída');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_alterar(ru3, '{"entrada":"2027-03-21"}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT array_agg(valor ORDER BY data) = ARRAY[100, 120]::numeric[] FROM hs_diarias WHERE reserva_uh_id = ru3) AND (SELECT count(*) = 2 FROM hs_diarias WHERE reserva_uh_id = ru3), 'encurtar pela frente tira a diária que sobrou');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_alterar(ru3, '{"entrada":"2027-03-20","adultos":3}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 3 * (120 + 40), 'mudar as pessoas recota todas as noites pela tarifa de hoje');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_tarifa_salvar(jsonb_build_object('id', ta1, 'tipo_id', t1, 'nome', 'Março', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 100,
+                                              'valor_adulto_extra', 40, 'valor_crianca', 20, 'pessoas_incluidas', 2));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_alterar(ru3, '{"adultos":2}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 300, 'voltando a 2 adultos com a tarifa de 100: 3 × 100');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"adultos":4}'::jsonb)$c$, ru3), 'alterar acima da capacidade');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, jsonb_build_object('entrada', %L))$c$, ru3, (hoje - 1)::text), 'recepção move a entrada para o passado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"valor_acordado_total":100}'::jsonb)$c$, ru3), 'recepção dá valor acordado ao alterar');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"saida":"2027-03-20"}'::jsonb)$c$, ru3), 'saída igual à entrada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"saida":"2027-06-01"}'::jsonb)$c$, ru3), 'esticar para noites sem tarifa');
+  PERFORM ci.exige((SELECT count(*) = 3 AND sum(valor) = 300 FROM hs_diarias WHERE reserva_uh_id = ru3), 'a alteração recusada não deixa a reserva pela metade');
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_uh_alterar(ru3, '{"valor_acordado_total":250}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 250, 'a gestão passa o quarto para valor acordado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_uh_alterar(%L, '{"saida":"2027-03-24"}'::jsonb)$c$, ru3), 'mudar o número de noites mantendo o acordado sem informar o novo valor');
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_uh_alterar(ru3, '{"valor_acordado_total":null}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 300 AND (SELECT valor_acordado_total IS NULL FROM hs_reserva_uhs WHERE id = ru3), 'voltar para a tarifa recota as noites');
+
+  -- dados da reserva
+  PERFORM ci.entrar(vend);
+  PERFORM hs_reserva_alterar(r3, jsonb_build_object('titular_id', h2, 'observacoes', ' Chegada tarde ', 'origem', 'whatsapp'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT titular_id = h2 AND observacoes = 'Chegada tarde' AND origem = 'whatsapp' FROM hs_reservas WHERE id = r3), 'alterar titular, origem e observações');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_alterar(%L, jsonb_build_object('titular_id', %L))$c$, r3, gen_random_uuid()), 'titular que não existe');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_alterar(%L, '{"origem":"pombo"}'::jsonb)$c$, r3), 'origem inválida ao alterar');
+
+  -- trocar de acomodação
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru2, u201), 'trocar para acomodação ocupada no período');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru3, u104), 'trocar para acomodação interditada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru3, u301), 'trocar para acomodação de outro hotel');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_atribuir(ru3, u102);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT uh_id = u102 FROM hs_reserva_uhs WHERE id = ru3) AND (SELECT uh_id = u102 FROM hs_ocupacoes WHERE reserva_uh_id = ru3) AND (r ->> 'total')::numeric = 300, 'trocar dentro do mesmo tipo mantém o preço');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_atribuir(ru3, u102);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean, 'trocar para a mesma acomodação não faz nada');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_uh_atribuir(ru3, u201);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo_id = t2 FROM hs_reserva_uhs WHERE id = ru3) AND (r ->> 'total')::numeric = 600, 'trocar de tipo recota as noites pelo tipo novo (3 × 200)');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L, true)$c$, ru3, u102), 'recepção manda manter o preço na troca de tipo');
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_uh_atribuir(ru3, u102, true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT tipo_id = t1 FROM hs_reserva_uhs WHERE id = ru3) AND (r ->> 'total')::numeric = 600, 'a gestão mantém o preço combinado na troca de tipo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru4, u101), 'trocar para a acomodação que a reserva 2 ocupa nas mesmas noites');
+
+  -- cancelar: libera a acomodação, exige motivo e repetir não faz mal
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, '')$c$, r2), 'cancelar sem motivo');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_cancelar(r2, 'Hóspede desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND motivo_cancelamento = 'Hóspede desistiu' AND cancelada_em IS NOT NULL FROM hs_reservas WHERE id = r2), 'reserva cancelada com motivo e data');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM hs_reserva_uhs WHERE id = ru2) AND NOT EXISTS (SELECT 1 FROM hs_ocupacoes WHERE reserva_uh_id = ru2), 'cancelar libera a acomodação no calendário');
+  PERFORM ci.entrar(vend);
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(hs_uhs_livres(f1, date '2027-03-04', date '2027-03-06')) e WHERE e ->> 'id' = u101::text), 'a acomodação cancelada volta na lista de livres');
+  r := hs_reserva_cancelar(r2, 'Outra vez');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean AND (SELECT motivo_cancelamento = 'Hóspede desistiu' FROM hs_reservas WHERE id = r2), 'cancelar de novo não reescreve o motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"adultos":1}'::jsonb)$c$, ru2), 'alterar quarto de reserva cancelada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_alterar(%L, '{"observacoes":"x"}'::jsonb)$c$, r2), 'alterar dados de reserva cancelada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_confirmar(%L)$c$, r2), 'confirmar reserva cancelada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru2, u102), 'trocar a acomodação de quarto cancelado');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u101, '2027-03-04', '2027-03-06')));
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'reserva_id')::uuid IS NOT NULL, 'o período liberado pelo cancelamento pode ser vendido de novo');
+
+  -- reserva de dois quartos: cancelar um quarto de cada vez
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u101, '2027-03-25', '2027-03-27'), ci.quarto(u102, '2027-03-25', '2027-03-27')));
+  PERFORM ci.sair();
+  r5 := (r ->> 'reserva_id')::uuid;
+  SELECT min(id::text)::uuid, max(id::text)::uuid INTO ru5a, ru5b FROM hs_reserva_uhs WHERE reserva_id = r5;
+  PERFORM ci.exige((r ->> 'quartos')::integer = 2 AND (r ->> 'total')::numeric = 400, 'reserva de dois quartos');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_uh_cancelar(ru5a, 'Um quarto a menos'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmada' FROM hs_reservas WHERE id = r5) AND (SELECT count(*) = 1 FROM hs_ocupacoes WHERE reserva_uh_id IN (ru5a, ru5b)), 'cancelar um dos quartos mantém a reserva');
+  PERFORM ci.entrar(vend); PERFORM hs_reserva_uh_cancelar(ru5b, 'O outro também'); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND motivo_cancelamento = 'O outro também' FROM hs_reservas WHERE id = r5), 'cancelar o último quarto cancela a reserva');
+
+  -- quarto já ocupado (simulado pelo dono do banco; o check-in vem na migration seguinte): nada disso mexe nele
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u103, '2027-03-28', '2027-03-30')));
+  PERFORM ci.sair();
+  r6 := (r ->> 'reserva_id')::uuid;
+  SELECT id INTO ru6 FROM hs_reserva_uhs WHERE reserva_id = r6;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_cancelar(%L, 'x')$c$, ru6), 'motivo de cancelamento curto demais');
+  PERFORM ci.exige((SELECT situacao = 'reservada' FROM hs_reserva_uhs WHERE id = ru6), 'o cancelamento recusado não mexeu no quarto');
+  UPDATE hs_reserva_uhs SET situacao = 'hospedada' WHERE id = ru6;
+  PERFORM _hs_reserva_recalcular(r6);
+  PERFORM ci.exige((SELECT situacao = 'hospedada' FROM hs_reservas WHERE id = r6), 'a situação da reserva acompanha o quarto');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Cancelar hospedado')$c$, r6), 'cancelar reserva com quarto hospedado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_cancelar(%L, 'Cancelar hospedado')$c$, ru6), 'cancelar o quarto hospedado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_no_show(%L)$c$, ru6), 'não comparecimento de quarto hospedado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_alterar(%L, '{"adultos":1}'::jsonb)$c$, ru6), 'alterar quarto hospedado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, ru6, u102), 'trocar a acomodação de quarto hospedado pela reserva');
+  UPDATE hs_reserva_uhs SET situacao = 'reservada' WHERE id = ru6;
+  PERFORM _hs_reserva_recalcular(r6);
+
+  -- não comparecimento
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_no_show(%L)$c$, ru1), 'não comparecimento antes do dia da entrada');
+  PERFORM ci.entrar(vend);
+  r := hs_reserva_no_show(rune);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'no_show' FROM hs_reserva_uhs WHERE id = rune) AND (SELECT situacao = 'no_show' FROM hs_reservas WHERE id = rns) AND NOT EXISTS (SELECT 1 FROM hs_ocupacoes WHERE reserva_uh_id = rune), 'a recepção marca não comparecimento depois do dia da entrada e a acomodação sai do calendário');
+  PERFORM ci.entrar(vend); r := hs_reserva_no_show(rune); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'repetido')::boolean, 'marcar de novo não faz nada');
+  PERFORM ci.entrar(gest);
+  r := hs_reserva_criar(ci.reserva(f1, h1, ci.quarto(u103, hoje::text, (hoje + 1)::text, 2, 0, 100)));
+  PERFORM ci.sair();
+  rhoje := (r ->> 'reserva_id')::uuid;
+  SELECT id INTO ruhoje FROM hs_reserva_uhs WHERE reserva_id = rhoje;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_no_show(%L)$c$, ruhoje), 'a recepção marca não comparecimento no próprio dia da entrada');
+  PERFORM ci.entrar(gest); PERFORM hs_reserva_no_show(ruhoje); PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'no_show' FROM hs_reserva_uhs WHERE id = ruhoje), 'a gestão marca no próprio dia da entrada');
+
+  -- interdição por período
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_uh_interditar(%L, date '2027-05-01', date '2027-05-04', 'Pintura')$c$, u103), 'recepção interdita acomodação');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2027-05-01', date '2027-05-04', '')$c$, u103), 'interdição sem motivo');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2027-05-04', date '2027-05-04', 'Pintura')$c$, u103), 'interdição sem noite');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2020-01-01', date '2020-01-05', 'Pintura')$c$, u103), 'interdição que já acabou');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2027-03-01', date '2027-03-10', 'Pintura')$c$, u101), 'interditar por cima de reserva');
+  PERFORM ci.entrar(gest);
+  blq := hs_uh_interditar(u103, date '2027-05-01', date '2027-05-04', 'Pintura');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT origem = 'bloqueio' AND motivo = 'Pintura' AND periodo = daterange(date '2027-05-01', date '2027-05-04', '[)') FROM hs_ocupacoes WHERE id = blq), 'bloqueio no calendário até a data de volta');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2027-05-03', date '2027-05-06', 'Outra')$c$, u103), 'bloqueio por cima de bloqueio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u103, '2027-05-02', '2027-05-03', 2, 0, 100))::text), 'reservar acomodação bloqueada');
+  PERFORM ci.entrar(vend);
+  r := hs_disponibilidade(f1, date '2027-05-01', date '2027-05-02');
+  PERFORM ci.sair();
+  SELECT e INTO el FROM jsonb_array_elements(r) e WHERE e ->> 'tipo_id' = t1::text;
+  PERFORM ci.exige((el ->> 'bloqueadas')::integer = 1 AND (el ->> 'disponiveis')::integer = 2 AND el ->> 'motivo_sem_preco' IS NOT NULL, 'disponibilidade conta o bloqueio e avisa que não há tarifa em maio');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_bloqueio_remover(%L)$c$, blq), 'recepção remove bloqueio');
+  PERFORM ci.entrar(gest); PERFORM hs_bloqueio_remover(blq); PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM hs_ocupacoes WHERE id = blq), 'a gestão remove o bloqueio');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_bloqueio_remover(%L)$c$, blq), 'remover bloqueio que não existe');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_bloqueio_remover(%L)$c$, (SELECT id FROM hs_ocupacoes WHERE reserva_uh_id = ru1)), 'remover como bloqueio uma ocupação de reserva');
+
+  -- acomodação com reserva a partir de hoje: não troca de tipo, não inativa, não interdita
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'numero', '101'))$c$, u101, t2), 'mudar o tipo da acomodação com reserva futura');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'numero', '101', 'ativo', false))$c$, u101, t1), 'inativar acomodação com reserva futura');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_salvar(jsonb_build_object('id', %L, 'tipo_id', %L, 'numero', '101', 'interditada', true, 'motivo_interdicao', 'Reforma'))$c$, u101, t1), 'interditar acomodação com reserva futura');
+  PERFORM ci.entrar(gest);
+  PERFORM hs_uh_salvar(jsonb_build_object('id', u104, 'tipo_id', t2, 'numero', '104', 'interditada', true, 'motivo_interdicao', 'Reforma'));
+  PERFORM hs_uh_salvar(jsonb_build_object('id', u104, 'tipo_id', t1, 'numero', '104', 'ativo', false));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT NOT ativo FROM hs_uhs WHERE id = u104), 'acomodação sem reserva futura muda de tipo e inativa');
+
+  -- permissões: salão e anônimo
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03')$c$, f1, t1), 'garçom cota');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_disponibilidade(%L, date '2027-03-01', date '2027-03-03')$c$, f1), 'garçom consulta disponibilidade');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-11', 2, 0, 50))::text), 'garçom reserva');
+  PERFORM ci.deve_falhar(hgar, format($c$SELECT hs_reserva_cancelar(%L, 'garçom')$c$, r1), 'garçom cancela');
+  PERFORM ci.exige(ci.contar(hgar, 'SELECT count(*) FROM hs_reservas') = 0 AND ci.contar(hgar, 'SELECT count(*) FROM hs_ocupacoes') = 0
+                   AND ci.contar(hgar, 'SELECT count(*) FROM hs_diarias') = 0 AND ci.contar(hgar, 'SELECT count(*) FROM hs_reserva_uhs') = 0, 'garçom não lê reservas, ocupações nem diárias');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM hs_reservas', 'anônimo lê reservas');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03')$c$, f1, t1), 'anônimo cota');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT hs_reserva_cancelar(%L, 'anônimo')$c$, r1), 'anônimo cancela');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_gravar_diarias(%L, false)$c$, ru1), 'usuário chama a rotina interna de diárias');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT _hs_precificar(%L, date '2027-03-01', date '2027-03-03', 2, 0)$c$, t1), 'usuário chama a rotina interna de preço');
+
+  -- sem escrita direta nas tabelas, nem pelo administrador
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO hs_reservas (tenant_id, filial_id, numero, titular_id) VALUES (%L, %L, 9999, %L)$c$, demo, f1, h1), 'administrador insere reserva direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_reservas SET situacao = 'cancelada' WHERE id = %L$c$, r1), 'administrador cancela reserva direto');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM hs_reservas WHERE id = %L$c$, r1), 'administrador apaga reserva direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_reserva_uhs SET saida = saida + 1 WHERE id = %L$c$, ru1), 'administrador muda o quarto direto');
+  PERFORM ci.deve_falhar(adm, format($c$UPDATE hs_diarias SET valor = 1 WHERE reserva_uh_id = %L$c$, ru1), 'administrador muda o preço da noite direto');
+  PERFORM ci.deve_falhar(adm, format($c$DELETE FROM hs_ocupacoes WHERE reserva_uh_id = %L$c$, ru1), 'administrador libera o calendário direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem, motivo) VALUES (%L, %L, %L, daterange(date '2030-01-01', date '2030-01-03', '[)'), 'bloqueio', 'x')$c$, demo, f1, u102), 'administrador bloqueia direto');
+
+  -- restrições do banco, vistas pelo dono
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reserva_uhs (tenant_id, filial_id, reserva_id, tipo_id, uh_id, entrada, saida) VALUES (%L, %L, %L, %L, %L, '2030-01-01', '2030-01-03')$c$, demo, f1, r1, t1, u301), 'quarto de um hotel com acomodação de outro');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reserva_uhs (tenant_id, filial_id, reserva_id, tipo_id, uh_id, entrada, saida) VALUES (%L, %L, %L, %L, %L, '2030-01-01', '2030-01-03')$c$, demo, f1, r1, t3, u102), 'quarto de um hotel com tipo de outro');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reserva_uhs (tenant_id, filial_id, reserva_id, tipo_id, uh_id, entrada, saida) VALUES (%L, %L, %L, %L, %L, '2030-01-03', '2030-01-03')$c$, demo, f1, r1, t1, u102), 'quarto com saída igual à entrada');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem, motivo) VALUES (%L, %L, %L, daterange(date '2030-01-03', date '2030-01-03', '[)'), 'bloqueio', 'x')$c$, demo, f1, u102), 'ocupação de período vazio');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem) VALUES (%L, %L, %L, daterange(date '2030-01-01', date '2030-01-03', '[)'), 'reserva')$c$, demo, f1, u102), 'ocupação de reserva sem quarto');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem) VALUES (%L, %L, %L, daterange(date '2030-01-01', date '2030-01-03', '[)'), 'bloqueio')$c$, demo, f1, u102), 'bloqueio sem motivo');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_ocupacoes (tenant_id, filial_id, uh_id, periodo, origem, motivo) VALUES (%L, %L, %L, daterange(date '2030-01-01', NULL, '[)'), 'bloqueio', 'x')$c$, demo, f1, u102), 'ocupação sem fim');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_diarias (tenant_id, reserva_uh_id, data, valor) VALUES (%L, %L, '2027-03-01', 5)$c$, demo, ru1), 'a mesma noite duas vezes no quarto');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reservas (tenant_id, filial_id, numero, titular_id) VALUES (%L, %L, (SELECT numero FROM hs_reservas WHERE id = %L), %L)$c$, demo, f1, r1, h1), 'número de reserva repetido na empresa');
+
+  -- quem só acessa um hotel só enxerga as reservas dele
+  UPDATE profiles SET filial_id = f2 WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_reservas') = 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_reserva_uhs') = 0
+                   AND ci.contar(vend, 'SELECT count(*) FROM hs_diarias') = 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_ocupacoes') = 0, 'recepção do hotel 2 não lê reservas, quartos, diárias nem ocupações do hotel 1');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03')$c$, f1, t1), 'recepção do hotel 2 cota no hotel 1');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_cancelar(%L, 'Outro hotel')$c$, r1), 'recepção do hotel 2 cancela reserva do hotel 1');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(u102, '2027-03-10', '2027-03-11'))::text), 'recepção do hotel 2 reserva no hotel 1');
+  UPDATE profiles SET filial_id = f1 WHERE id = vend;
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM hs_reservas') > 0 AND ci.contar(vend, 'SELECT count(*) FROM hs_diarias') > 0, 'recepção do hotel 1 lê as reservas do hotel 1');
+  UPDATE profiles SET filial_id = NULL WHERE id = vend;
+
+  -- outra empresa: não vê, não usa e não altera
+  INSERT INTO tenants (nome) VALUES ('Hotel Reservas B') RETURNING id INTO tb;
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tb, 'Hotel Reservas B Ltda', 'hotelaria') RETURNING id INTO eb;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (tb, eb, 'Hotel B Reservas') RETURNING id INTO fb;
+  UPDATE profiles SET tenant_id = tb WHERE id = bges;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (bges, tb, 'gestor');
+  PERFORM ci.entrar(bges);
+  tbx := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fb, 'nome', 'Standard'));
+  ubx := hs_uh_salvar(jsonb_build_object('tipo_id', tbx, 'numero', '1'));
+  tabx := hs_tarifa_salvar(jsonb_build_object('tipo_id', tbx, 'nome', 'B', 'vigencia_de', '2027-03-01', 'vigencia_ate', '2027-03-31', 'valor_diaria', 70));
+  hbx := hs_hospede_salvar('{"nome":"Hóspede Reserva B"}'::jsonb);
+  r := hs_reserva_criar(ci.reserva(fb, hbx, ci.quarto(ubx, '2027-03-01', '2027-03-03')));
+  PERFORM ci.sair();
+  rbx := (r ->> 'reserva_id')::uuid;
+  SELECT id INTO rubx FROM hs_reserva_uhs WHERE reserva_id = rbx;
+  PERFORM ci.exige((r ->> 'numero')::bigint = 1, 'a numeração de reservas é por empresa');
+  PERFORM ci.exige(ci.contar(bges, 'SELECT count(*) FROM hs_reservas') = 1 AND ci.contar(bges, 'SELECT count(*) FROM hs_ocupacoes') = 1, 'o gestor B só lê o que é do hotel B');
+  PERFORM ci.exige(ci.contar(gest, format('SELECT count(*) FROM hs_reservas WHERE tenant_id = %L', tb)) = 0 AND ci.contar(gest, format('SELECT count(*) FROM hs_ocupacoes WHERE tenant_id = %L', tb)) = 0
+                   AND ci.contar(gest, format('SELECT count(*) FROM hs_diarias WHERE tenant_id = %L', tb)) = 0, 'o gestor A não lê reservas, ocupações nem diárias do hotel B');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_cancelar(%L, 'Invasor')$c$, rbx), 'cancelar reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_uh_cancelar(%L, 'Invasor')$c$, rubx), 'cancelar quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_uh_alterar(%L, '{"adultos":1}'::jsonb)$c$, rubx), 'alterar quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_uh_atribuir(%L, %L)$c$, rubx, u102), 'trocar a acomodação de quarto de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_no_show(%L)$c$, rubx), 'não comparecimento de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_alterar(%L, '{"observacoes":"x"}'::jsonb)$c$, rbx), 'alterar reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_confirmar(%L)$c$, rbx), 'confirmar reserva de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_cotar(%L, %L, date '2027-03-01', date '2027-03-03')$c$, fb, tbx), 'cotar no hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_disponibilidade(%L, date '2027-03-01', date '2027-03-03')$c$, fb), 'disponibilidade do hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uhs_livres(%L, date '2027-03-01', date '2027-03-03')$c$, fb), 'acomodações livres do hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_uh_interditar(%L, date '2027-08-01', date '2027-08-03', 'Invasor')$c$, ubx), 'interditar acomodação de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(fb, h1, ci.quarto(ubx, '2027-03-10', '2027-03-12'))::text), 'reservar no hotel de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, hbx, ci.quarto(u102, '2027-03-10', '2027-03-12'))::text), 'reservar com titular de outra empresa');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT hs_reserva_criar(%L::jsonb)$c$, ci.reserva(f1, h1, ci.quarto(ubx, '2027-03-10', '2027-03-12'))::text), 'reservar com acomodação de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reserva_uhs (tenant_id, filial_id, reserva_id, tipo_id, uh_id, entrada, saida) VALUES (%L, %L, %L, %L, %L, '2030-01-01', '2030-01-03')$c$, demo, f1, rbx, t1, u102), 'quarto de uma empresa na reserva de outra');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO hs_reservas (tenant_id, filial_id, numero, titular_id) VALUES (%L, %L, 9997, %L)$c$, demo, f1, hbx), 'reserva da empresa A com hóspede da empresa B');
+
+  -- limpeza
+  DELETE FROM hs_ocupacoes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_diarias WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reserva_hospedes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reserva_uhs WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_reservas WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_tarifas WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_uhs WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_tipos_uh WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_hospedes WHERE tenant_id IN (demo, tb);
+  DELETE FROM hs_config WHERE tenant_id IN (demo, tb);
+  DELETE FROM user_roles WHERE user_id IN (hgar, bges);
+  DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+END $$;
