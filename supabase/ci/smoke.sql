@@ -564,7 +564,11 @@ DECLARE
     'manufatura_liberada',
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
-    'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir'];
+    'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir',
+    -- internação: cada função confere o perfil (veterinário; auxiliar só em pesagem e ocorrência; gestão só nos boxes), a clínica liberada e o cadastro ligado à conta
+    'pet_box_salvar', 'clinica_boxes', 'clinica_internacao_admitir', 'clinica_internacoes', 'clinica_internacao_obter',
+    'clinica_internacao_pesagem', 'clinica_internacao_relato', 'clinica_internacao_ocorrencia', 'clinica_internacao_box_trocar',
+    'clinica_internacao_encerrar'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -8574,4 +8578,165 @@ BEGIN
   DELETE FROM os_ordens WHERE tenant_id = demo AND (pet_id = pet OR equipamento = 'Furadeira direta');
   DELETE FROM pet_profissionais WHERE id = prof;
   DELETE FROM pets WHERE id = pet;
+END $$;
+
+-- 92. Clínica: internação (admissão, box, pesagem, relato, ocorrência, alta e óbito)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ub   constant uuid := 'a0000000-0000-0000-0000-0000000001c1';
+  vet  constant uuid := 'a0000000-0000-0000-0000-0000000001d1';
+  aux  constant uuid := 'a0000000-0000-0000-0000-0000000001d2';
+  ban  constant uuid := 'a0000000-0000-0000-0000-0000000001d3';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  tutor uuid; pet uuid; pet2 uuid; pet3 uuid; pv uuid; pa uuid; pb uuid; b1 uuid; b2 uuid; b3 uuid; i1 uuid; i2 uuid; r jsonb; n bigint;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
+  INSERT INTO auth.users (id, email) VALUES (vet, 'vet-int@ci'), (aux, 'aux-int@ci'), (ban, 'ban-int@ci');
+  UPDATE profiles SET tenant_id = demo WHERE id IN (vet, aux, ban);
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vet, demo, 'veterinario'), (aux, demo, 'profissional'), (ban, demo, 'profissional');
+  INSERT INTO clientes (tenant_id, nome) VALUES (demo, 'Tutor Internação CI') RETURNING id INTO tutor;
+  INSERT INTO pets (tenant_id, cliente_id, nome, alergias) VALUES (demo, tutor, 'Paciente Int CI', 'dipirona') RETURNING id INTO pet;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Int 2 CI') RETURNING id INTO pet2;
+  INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (demo, tutor, 'Paciente Int 3 CI') RETURNING id INTO pet3;
+  PERFORM ci.entrar(gest);
+  pv := pet_profissional_salvar('{"nome":"Vet Int CI","funcao":"veterinario","crmv":"7777","crmv_uf":"PE"}'::jsonb);
+  pa := pet_profissional_salvar('{"nome":"Aux Int CI","funcao":"auxiliar"}'::jsonb);
+  pb := pet_profissional_salvar('{"nome":"Banhista Int CI","funcao":"banhista"}'::jsonb);
+  PERFORM pet_profissional_vincular(pv, vet);
+  PERFORM pet_profissional_vincular(pa, aux);
+  PERFORM pet_profissional_vincular(pb, ban);
+  b1 := pet_box_salvar('{"nome":"Box 1 CI"}'::jsonb);
+  b2 := pet_box_salvar('{"nome":"Box 2 CI"}'::jsonb);
+  b3 := pet_box_salvar('{"nome":"Box 3 CI","ativo":false}'::jsonb);
+  PERFORM ci.sair();
+
+  -- boxes
+  PERFORM ci.deve_falhar(vend, $c$SELECT pet_box_salvar('{"nome":"X"}'::jsonb)$c$, 'vendedor cria box');
+  PERFORM ci.deve_falhar(aux, $c$SELECT pet_box_salvar('{"nome":"X"}'::jsonb)$c$, 'auxiliar cria box');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_box_salvar('{"nome":" "}'::jsonb)$c$, 'box sem nome');
+  PERFORM ci.deve_falhar(gest, $c$SELECT pet_box_salvar('{"nome":" box 1 ci "}'::jsonb)$c$, 'nome de box repetido');
+  PERFORM ci.deve_falhar(ub, $c$SELECT pet_box_salvar('{"nome":"Outra empresa"}'::jsonb)$c$, 'empresa sem clínica liberada cria box');
+  PERFORM ci.deve_falhar(gar, $c$SELECT clinica_boxes()$c$, 'garçom lista boxes');
+  PERFORM ci.entrar(aux); SELECT jsonb_array_length(clinica_boxes()) INTO n; PERFORM ci.sair();
+  PERFORM ci.exige(n = 3, 'auxiliar lista os boxes');
+
+  -- admissão: só o veterinário com CRMV
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'gestor admite');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'administrador admite');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'auxiliar admite');
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'banhista admite');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', ' '))$c$, pet, b1), 'admissão sem motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b3), 'box desativado');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('motivo', 'x'))$c$, pet), 'admissão sem box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x', 'peso_kg', 300))$c$, pet, b1), 'peso acima de 200 kg');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, gen_random_uuid(), b1), 'animal que não existe');
+  PERFORM ci.entrar(vet);
+  i1 := clinica_internacao_admitir(pet, jsonb_build_object('box_id', b1, 'motivo', 'Gastroenterite com desidratação', 'peso_kg', 8.4, 'observacoes', 'Dieta zero 12h'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'internado' AND crmv = '7777' AND crmv_uf = 'PE' AND box_id = b1 FROM pet_internacoes WHERE id = i1), 'admissão guarda box, veterinário e o CRMV da hora');
+  PERFORM ci.exige((SELECT peso_kg = 8.4 AND internacao_id = i1 FROM pet_pesagens WHERE pet_id = pet), 'o peso da admissão entra no histórico de pesagens');
+  PERFORM ci.exige((SELECT peso_kg = 8.4 FROM pets WHERE id = pet), 'o peso do cadastro acompanha');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b2), 'animal já internado');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet2, b1), 'box ocupado');
+
+  -- nenhuma leitura direta das tabelas, nem para quem opera
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM pet_internacoes', 'veterinário lê as internações direto');
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM pet_internacoes', 'administrador lê as internações direto');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_internacao_relatos', 'gestor lê os relatos direto');
+  PERFORM ci.deve_falhar(aux, 'SELECT count(*) FROM pet_internacao_ocorrencias', 'auxiliar lê as ocorrências direto');
+  PERFORM ci.deve_falhar(gest, 'SELECT count(*) FROM pet_boxes', 'gestor lê os boxes direto');
+  PERFORM ci.deve_falhar(vet, format($c$INSERT INTO pet_internacao_relatos (internacao_id, veterinario_id, crmv, crmv_uf, texto) VALUES (%L, %L, '1', 'PE', 'x')$c$, i1, pv), 'gravar relato direto na tabela');
+
+  -- mapa
+  PERFORM ci.deve_falhar(gest, $c$SELECT clinica_internacoes()$c$, 'gestor lê o mapa');
+  PERFORM ci.deve_falhar(ban, $c$SELECT clinica_internacoes()$c$, 'banhista lê o mapa');
+  PERFORM ci.entrar(aux); r := clinica_internacoes(); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND r -> 0 -> 'box' ->> 'nome' = 'Box 1 CI' AND r -> 0 -> 'pet' ->> 'alergias' = 'dipirona' AND (r -> 0 ->> 'ultimo_peso')::numeric = 8.4
+                   AND NOT (r -> 0 ? 'motivo'), 'auxiliar vê o mapa com box, alergia e peso, sem o motivo');
+
+  -- pesagem e ocorrência: veterinário e auxiliar
+  PERFORM ci.deve_falhar(ban, format($c$SELECT clinica_internacao_pesagem(%L, 8)$c$, i1), 'banhista pesa');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_pesagem(%L, 0)$c$, i1), 'pesagem zero');
+  PERFORM ci.entrar(aux);
+  PERFORM clinica_internacao_pesagem(i1, 8.1);
+  PERFORM clinica_internacao_ocorrencia(i1, 'alimentacao', 'Aceitou ração úmida');
+  PERFORM clinica_internacao_ocorrencia(i1, 'intercorrencia', 'Vomitou uma vez às 14h');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT peso_kg = 8.1 FROM pets WHERE id = pet), 'a pesagem da internação atualiza o peso do cadastro');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'transferencia', 'x')$c$, i1), 'ocorrência de transferência feita à mão');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'outro', ' ')$c$, i1), 'ocorrência vazia');
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_ocorrencia(%L, 'festa', 'x')$c$, i1), 'tipo de ocorrência inválido');
+
+  -- relato médico: só o veterinário
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_relato(%L, 'tentativa')$c$, i1), 'auxiliar escreve relato médico');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_relato(%L, 'tentativa')$c$, i1), 'gestor escreve relato médico');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_relato(%L, '  ')$c$, i1), 'relato vazio');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_relato(i1, 'Hidratação em curso, abdome menos doloroso.');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacao_relatos SET texto = 'outro' WHERE internacao_id = %L$c$, i1), 'alterar relato');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacao_ocorrencias WHERE internacao_id = %L$c$, i1), 'apagar ocorrência');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_internacoes WHERE id = %L$c$, i1), 'apagar internação');
+
+  -- ficha: o auxiliar não lê o texto clínico
+  PERFORM ci.entrar(vet); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'internacao' ->> 'motivo' = 'Gastroenterite com desidratação' AND jsonb_array_length(r -> 'relatos') = 1
+                   AND jsonb_array_length(r -> 'ocorrencias') = 2 AND jsonb_array_length(r -> 'pesagens') = 2 AND (r ->> 'sou_veterinario')::boolean, 'o veterinário vê a ficha completa');
+  PERFORM ci.entrar(aux); r := clinica_internacao_obter(i1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'internacao' -> 'motivo' = 'null'::jsonb AND r -> 'relatos' = 'null'::jsonb AND jsonb_array_length(r -> 'ocorrencias') = 2
+                   AND r -> 'pet' ->> 'alergias' = 'dipirona', 'o auxiliar vê alergia e ocorrências, sem motivo nem relatos');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_obter(%L)$c$, i1), 'gestor lê a ficha da internação');
+  PERFORM ci.exige((SELECT count(*) >= 3 FROM clinica_acessos WHERE pet_id = pet AND acao = 'internacao'), 'abrir a ficha e admitir ficam na auditoria de acessos');
+
+  -- troca de box
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b2), 'auxiliar troca o box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b1), 'trocar para o mesmo box');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b3), 'trocar para box desativado');
+  PERFORM ci.entrar(vet);
+  i2 := clinica_internacao_admitir(pet2, jsonb_build_object('box_id', b2, 'motivo', 'Pós-operatório'));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_box_trocar(%L, %L)$c$, i1, b2), 'trocar para box ocupado');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT pet_box_salvar(jsonb_build_object('id', %L, 'nome', 'Box 1 CI', 'ativo', false))$c$, b1), 'desativar box com animal');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i2, 'alta', 'Alta no mesmo dia');
+  PERFORM clinica_internacao_box_trocar(i1, b2);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT box_id = b2 FROM pet_internacoes WHERE id = i1), 'troca de box');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM pet_internacao_ocorrencias WHERE internacao_id = i1 AND tipo = 'transferencia' AND texto = 'Transferido do box Box 1 CI para o box Box 2 CI'), 'a troca fica registrada como ocorrência');
+
+  -- alta e óbito
+  PERFORM ci.deve_falhar(aux, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'auxiliar dá alta');
+  PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'gestor dá alta');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', ' ')$c$, i1), 'alta sem resumo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'saiu', 'x')$c$, i1), 'tipo de encerramento inválido');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x', now() + interval '2 days')$c$, i1), 'alta no futuro');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x', now() - interval '5 days')$c$, i1), 'alta antes da admissão');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_encerrar(i1, 'obito', 'Parada cardiorrespiratória apesar das manobras.');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'obito' AND encerrado_em IS NOT NULL AND encerrado_por = pv FROM pet_internacoes WHERE id = i1), 'óbito encerra a internação');
+  PERFORM ci.exige((SELECT NOT ativo AND obito_em IS NOT NULL FROM pets WHERE id = pet), 'óbito inativa o cadastro do animal e guarda a data');
+  PERFORM ci.entrar(gest); r := clinica_boxes(); PERFORM ci.sair();
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r) e WHERE (e ->> 'id')::uuid = b2 AND NOT (e ->> 'ocupado')::boolean), 'depois do óbito o box fica livre');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_relato(%L, 'tarde demais')$c$, i1), 'relato em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_pesagem(%L, 8)$c$, i1), 'pesagem em internação encerrada');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_encerrar(%L, 'alta', 'x')$c$, i1), 'encerrar de novo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacoes SET observacoes = 'mexi' WHERE id = %L$c$, i1), 'alterar internação encerrada');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_internacoes SET motivo = 'outro' WHERE id = %L$c$, i2), 'alterar o motivo');
+  PERFORM ci.deve_falhar(vet, format($c$SELECT clinica_internacao_admitir(%L, jsonb_build_object('box_id', %L, 'motivo', 'x'))$c$, pet, b1), 'internar animal falecido (inativo)');
+  PERFORM ci.entrar(vet);
+  PERFORM clinica_internacao_admitir(pet3, jsonb_build_object('box_id', b2, 'motivo', 'Reinternação no box liberado'));
+  r := clinica_internacoes('todas', NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 3, 'o histórico lista internadas e encerradas');
+  PERFORM ci.entrar(vet); r := clinica_internacoes('obito', pet); PERFORM ci.sair();
+  PERFORM ci.exige(jsonb_array_length(r) = 1, 'histórico filtrado por animal e situação');
+
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

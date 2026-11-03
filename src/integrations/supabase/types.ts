@@ -9553,6 +9553,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          internacao_id: string | null
           observacao: string | null
           pesado_em: string
           pet_id: string
@@ -9563,6 +9564,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          internacao_id?: string | null
           observacao?: string | null
           pesado_em?: string
           pet_id: string
@@ -9573,6 +9575,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          internacao_id?: string | null
           observacao?: string | null
           pesado_em?: string
           pet_id?: string
@@ -9988,6 +9991,7 @@ export type Database = {
           microchip: string | null
           nascimento: string | null
           nome: string
+          obito_em: string | null
           observacoes: string | null
           pelagem: string | null
           peso_kg: number | null
@@ -10009,6 +10013,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome: string
+          obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
           peso_kg?: number | null
@@ -10030,6 +10035,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome?: string
+          obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
           peso_kg?: number | null
@@ -12348,6 +12354,28 @@ export type Database = {
         }
         Returns: string
       }
+      clinica_boxes: { Args: never; Returns: Json }
+      clinica_internacao_admitir: { Args: { p_dados: Json; p_pet_id: string }; Returns: string }
+      clinica_internacao_box_trocar: {
+        Args: { p_box_id: string; p_id: string }
+        Returns: undefined
+      }
+      clinica_internacao_encerrar: {
+        Args: { p_id: string; p_quando?: string; p_texto: string; p_tipo: string }
+        Returns: undefined
+      }
+      clinica_internacao_obter: { Args: { p_id: string }; Returns: Json }
+      clinica_internacao_ocorrencia: {
+        Args: { p_id: string; p_texto: string; p_tipo: string }
+        Returns: string
+      }
+      clinica_internacao_pesagem: { Args: { p_id: string; p_peso_kg: number }; Returns: string }
+      clinica_internacao_relato: { Args: { p_id: string; p_texto: string }; Returns: string }
+      clinica_internacoes: {
+        Args: { p_pet_id?: string; p_situacao?: string }
+        Returns: Json
+      }
+      pet_box_salvar: { Args: { p_dados: Json }; Returns: string }
       clinica_adendo_criar: {
         Args: { p_atendimento_id: string; p_texto: string }
         Returns: Json

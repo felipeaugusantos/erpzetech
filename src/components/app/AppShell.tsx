@@ -17,6 +17,7 @@ import {
   Building2,
   Boxes,
   ChevronDown,
+  BedDouble,
   ClipboardList,
   FileText,
   FlaskConical,
@@ -241,6 +242,8 @@ const groups: Group[] = [
     icon: Stethoscope,
     items: [
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+      { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
+      { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
@@ -529,6 +532,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 i.to === "/clinica-offline"
               )
                 return souVeterinario;
+              if (i.to === "/clinica-internacao") return souVeterinario;
+              if (i.to === "/clinica-boxes") return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
@@ -614,9 +619,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           icon: PawPrint,
           items: [
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
+            ...(modulos.clinica
+              ? [{ label: "Internação", to: "/clinica-internacao", icon: BedDouble }]
+              : []),
             ...(souVeterinario && modulos.clinica
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+                  { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
@@ -661,6 +670,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-cartao",
       "/clinica-documento",
       "/clinica-ficha",
+      "/clinica-internacao",
+      "/clinica-boxes",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
       navigate({ to: "/pet-minha-agenda", replace: true });
