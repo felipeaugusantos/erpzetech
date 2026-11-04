@@ -519,7 +519,9 @@ DECLARE
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
     'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador', 'cardapios', 'cardapio_cardapio_itens', 'restaurante_chamados', 'restaurante_chamados_motivos',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
-    'empresa_modulos_liberados'];
+    'empresa_modulos_liberados',
+    -- bulário veterinário (base global do MAPA): sem empresa dona e sem nenhum grant para authenticated; só as funções bulario_* leem, e elas exigem papel e clínica liberada
+    'bulario_medicamentos'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
@@ -530,6 +532,8 @@ DECLARE
     'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao',
     -- só responde se a empresa tem a clínica liberada
     'clinica_liberada',
+    -- bulário veterinário: exigem administrador, gestor ou veterinário (nunca o perfil restrito do salão) e clínica liberada; bulario_total é só da equipe EZRA
+    'bulario_buscar', 'bulario_resumo', 'bulario_ficha', 'bulario_nota_salvar', 'bulario_total',
     -- só responde se a empresa tem o lava rápido liberado
     'lava_rapido_liberado',
     -- fotos do lava rápido: respondem só verdadeiro com perfil do pátio, módulo liberado e foto reservada ou ativa
