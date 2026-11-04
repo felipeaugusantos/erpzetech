@@ -568,6 +568,10 @@ DECLARE
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
     'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir',
+    -- modelos de receita: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
+    'clinica_receita_modelos', 'clinica_receita_modelo_salvar', 'clinica_receita_modelo_excluir',
+    -- fila do dia: cada função confere perfil da recepção ou da gestão e a clínica liberada (veterinário é perfil restrito)
+    'clinica_fila_listar', 'clinica_fila_buscar_paciente', 'clinica_fila_entrada', 'clinica_fila_gravidade', 'clinica_fila_situacao',
     -- internação: cada função confere o perfil (veterinário; auxiliar só em pesagem e ocorrência; gestão só nos boxes), a clínica liberada e o cadastro ligado à conta
     'pet_box_salvar', 'clinica_boxes', 'clinica_internacao_admitir', 'clinica_internacoes', 'clinica_internacao_obter',
     'clinica_internacao_pesagem', 'clinica_internacao_relato', 'clinica_internacao_ocorrencia', 'clinica_internacao_box_trocar',

@@ -210,6 +210,87 @@ export const MODELOS_INICIAIS: readonly ModeloDocumento[] = [
 /** Receita em branco para começar o formulário. */
 export const itemReceitaVazio = (): ItemReceita => ({ medicamento: "", posologia: "" });
 
+/** Modelo de receita guardado pela clínica (pet_receita_modelos): prescrição recorrente para aplicar com um toque. */
+export type ModeloReceita = {
+  id: string;
+  titulo: string;
+  itens: ItemReceita[];
+  orientacoes: string | null;
+};
+
+/** Itens do modelo como a tela edita. Linha sem medicamento ou sem posologia é descartada (o banco confere de novo). */
+export function itensDoModeloReceita(bruto: unknown): ItemReceita[] {
+  if (!Array.isArray(bruto)) return [];
+  const itens: ItemReceita[] = [];
+  for (const i of bruto as Record<string, unknown>[]) {
+    if (!i || typeof i !== "object") continue;
+    const medicamento = typeof i["medicamento"] === "string" ? i["medicamento"].trim() : "";
+    const posologia = typeof i["posologia"] === "string" ? i["posologia"].trim() : "";
+    if (!medicamento || !posologia) continue;
+    const via = typeof i["via"] === "string" && i["via"].trim() ? i["via"].trim() : undefined;
+    const duracao =
+      typeof i["duracao"] === "string" && i["duracao"].trim() ? i["duracao"].trim() : undefined;
+    const quantidade =
+      typeof i["quantidade"] === "string" && i["quantidade"].trim()
+        ? i["quantidade"].trim()
+        : undefined;
+    itens.push({
+      medicamento,
+      posologia,
+      ...(via ? { via } : {}),
+      ...(duracao ? { duracao } : {}),
+      ...(quantidade ? { quantidade } : {}),
+    });
+  }
+  return itens;
+}
+
+/** Confere a lista que o banco devolveu (formato inesperado vira lista vazia, nunca erro de tela). */
+export function modelosReceitaDaResposta(bruto: unknown): ModeloReceita[] {
+  if (!Array.isArray(bruto)) return [];
+  const lista: ModeloReceita[] = [];
+  for (const m of bruto as Record<string, unknown>[]) {
+    if (!m || typeof m["id"] !== "string" || typeof m["titulo"] !== "string") continue;
+    lista.push({
+      id: m["id"],
+      titulo: m["titulo"],
+      itens: itensDoModeloReceita(m["itens"]),
+      orientacoes: typeof m["orientacoes"] === "string" ? m["orientacoes"] : null,
+    });
+  }
+  return lista;
+}
+
+const linhaItemReceita = (i: ItemReceita, k: number) =>
+  `${k + 1}. ${i.medicamento}${i.quantidade ? ` — ${i.quantidade}` : ""}
+   ${i.posologia}` +
+  (i.via || i.duracao
+    ? `
+   ${[i.via ? `Via ${i.via}` : null, i.duracao ? `Duração: ${i.duracao}` : null]
+     .filter(Boolean)
+     .join(" · ")}`
+    : "");
+
+/**
+ * Texto da receita para mandar ao tutor no WhatsApp (a recepção/veterinário revisa e envia; o sistema
+ * não envia sozinho). O documento é emitido sem assinatura digital, com campo para assinar à mão.
+ */
+export function textoReceitaWhatsApp(d: DocumentoClinico): string {
+  const partes = [
+    `${TIPOS_DOCUMENTO[d.tipo].rotulo} nº ${numeroDoDocumento(d)} — ${d.pet.nome}`,
+    "",
+    ...d.itens.map(linhaItemReceita),
+  ];
+  if (d.corpo?.trim()) partes.push("", `Orientações: ${d.corpo.trim()}`);
+  partes.push(
+    "",
+    `${d.veterinario.nome} · CRMV ${d.veterinario.crmv}/${d.veterinario.crmv_uf}` +
+      (d.clinica?.nome ? ` · ${d.clinica.nome}` : ""),
+    "Documento sem assinatura digital. Campo para assinatura do médico-veterinário.",
+  );
+  return partes.join("\n");
+}
+
 /** O que falta para emitir (mesma conferência que o banco faz de novo). */
 export function faltaParaEmitir(
   tipo: TipoDocumento,

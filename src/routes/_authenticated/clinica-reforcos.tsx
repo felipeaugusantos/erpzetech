@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Phone } from "lucide-react";
+import { MessageCircle, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModeloMensagem } from "@/components/app/ModeloMensagem";
@@ -101,6 +101,31 @@ function Reforcos() {
       if (error) throw error;
       return (data ?? []) as unknown as Linha[];
     },
+  });
+
+  const { data: wa } = useQuery({
+    queryKey: ["clinica-wa-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("wa_config").select("estado").maybeSingle();
+      if (error) throw error;
+      return data as { estado: string } | null;
+    },
+  });
+  const waConectada = wa?.estado === "conectada";
+
+  const enfileirar = useMutation({
+    mutationFn: async (l: Linha) => {
+      const { error } = await supabase.rpc("clinica_wa_enfileirar", {
+        p_tipo: "reforco_vacina",
+        p_referencia: `${l.pet_id}:${l.referencia}`,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      toast.success("Lembrete na fila", {
+        description: "O sistema envia pelo WhatsApp da empresa em instantes.",
+      }),
+    onError: (e: Error) => toast.error("Não foi possível enfileirar", { description: e.message }),
   });
 
   const registrar = useMutation({
@@ -229,6 +254,19 @@ function Reforcos() {
                     </span>
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      title={
+                        waConectada
+                          ? "O sistema envia pelo WhatsApp da empresa"
+                          : "Conecte o WhatsApp da empresa em Clínica > WhatsApp da clínica"
+                      }
+                      disabled={!waConectada || enfileirar.isPending}
+                      onClick={() => enfileirar.mutate(l)}
+                    >
+                      <Send className="size-4" /> Enviar pelo sistema
+                    </Button>
                     <Button
                       size="sm"
                       disabled={!telefoneWhatsApp(l.telefone) || registrar.isPending}

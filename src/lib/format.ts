@@ -34,6 +34,15 @@ export const dateTimeBR = (value: string | null | undefined) =>
       })
     : "—";
 
+export const timeBR = (value: string | null | undefined) =>
+  value
+    ? new Date(value).toLocaleTimeString("pt-BR", {
+        timeZone: FUSO_HORARIO,
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "\u2014";
+
 export const initials = (name: string | null | undefined) =>
   (name ?? "")
     .split(" ")

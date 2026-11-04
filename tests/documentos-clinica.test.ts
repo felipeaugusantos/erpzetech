@@ -3,6 +3,10 @@ import { test } from "node:test";
 
 import {
   MODELOS_INICIAIS,
+  itensDoModeloReceita,
+  modelosReceitaDaResposta,
+  textoReceitaWhatsApp,
+  type DocumentoClinico,
   dataPorExtenso,
   faltaParaEmitir,
   marcadoresPendentes,
@@ -89,4 +93,62 @@ test("há modelos de atestado de vacinação e de trânsito", () => {
   const titulos = MODELOS_INICIAIS.filter((m) => m.tipo === "atestado").map((m) => m.titulo);
   assert.ok(titulos.includes("Atestado de vacinação"));
   assert.ok(titulos.includes("Atestado de saúde para trânsito"));
+});
+
+test("modelo de receita: ignora item sem medicamento ou posologia e limpa campos vazios", () => {
+  const itens = itensDoModeloReceita([
+    { medicamento: " Dipirona ", posologia: " 1 ml a cada 8h ", via: "", duracao: "3 dias" },
+    { medicamento: "Sem posologia", posologia: "" },
+    { posologia: "Sem medicamento" },
+    "lixo",
+    null,
+  ]);
+  assert.deepEqual(itens, [
+    { medicamento: "Dipirona", posologia: "1 ml a cada 8h", duracao: "3 dias" },
+  ]);
+  assert.deepEqual(itensDoModeloReceita("não é lista"), []);
+});
+
+test("modelos da resposta do banco: só entradas com id e título", () => {
+  const modelos = modelosReceitaDaResposta([
+    {
+      id: "m1",
+      titulo: "Pós-cirúrgico",
+      itens: [{ medicamento: "Melox", posologia: "1 cp/dia" }],
+      orientacoes: "Repouso",
+    },
+    { titulo: "sem id" },
+    null,
+  ]);
+  assert.equal(modelos.length, 1);
+  assert.equal(modelos[0]!.titulo, "Pós-cirúrgico");
+  assert.equal(modelos[0]!.orientacoes, "Repouso");
+  assert.equal(modelos[0]!.itens[0]!.medicamento, "Melox");
+});
+
+test("texto da receita para o WhatsApp traz itens, orientações e veterinário", () => {
+  const d = {
+    tipo: "receita",
+    numero: 3,
+    ano: 2026,
+    pet: { nome: "Thor" },
+    tutor: { nome: "Ana" },
+    veterinario: { nome: "Dra. Maria", crmv: "12345", crmv_uf: "SP" },
+    clinica: { nome: "Clínica Bicho Bom" },
+    itens: [
+      { medicamento: "Dipirona", posologia: "1 ml a cada 8h", quantidade: "1 frasco", via: "oral" },
+      { medicamento: "Melox", posologia: "1 cp ao dia" },
+    ],
+    corpo: "Manter em repouso.",
+  } as unknown as DocumentoClinico;
+  const t = textoReceitaWhatsApp(d);
+  assert.ok(t.includes("0003/2026"));
+  assert.ok(t.includes("Thor"));
+  assert.ok(t.includes("1. Dipirona — 1 frasco"));
+  assert.ok(t.includes("1 ml a cada 8h"));
+  assert.ok(t.includes("Via oral"));
+  assert.ok(t.includes("2. Melox"));
+  assert.ok(t.includes("Orientações: Manter em repouso."));
+  assert.ok(t.includes("Dra. Maria · CRMV 12345/SP · Clínica Bicho Bom"));
+  assert.ok(t.includes("sem assinatura digital"));
 });
