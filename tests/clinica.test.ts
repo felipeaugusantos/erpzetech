@@ -92,9 +92,9 @@ test("histórico de sinais vitais: só consultas fechadas com algum sinal, mais 
     },
   ]);
   assert.equal(r.length, 2);
-  assert.equal(r[0].em, "2026-11-01T10:00:00-03:00");
-  assert.equal(r[0].temperatura_c, 39.1);
-  assert.equal(r[0].peso_kg, null);
-  assert.equal(r[1].peso_kg, 12.5);
-  assert.equal(r[1].freq_respiratoria, 30);
+  assert.equal(r[0]!.em, "2026-11-01T10:00:00-03:00");
+  assert.equal(r[0]!.temperatura_c, 39.1);
+  assert.equal(r[0]!.peso_kg, null);
+  assert.equal(r[1]!.peso_kg, 12.5);
+  assert.equal(r[1]!.freq_respiratoria, 30);
 });

@@ -67,13 +67,16 @@ function textoClinica(item: ItemReservado & { tipo: TipoAvisoClinica }) {
     item.tipo === "reforco_vacina" ? MENSAGEM_PADRAO.reforco : MENSAGEM_PADRAO.retorno_clinica;
   const base = item.modelo && item.modelo.trim() ? item.modelo : padrao;
   const data = texto("data");
+  const tutor = texto("cliente");
+  const pet = texto("pet");
+  const itens = texto("itens");
   return (
     montarMensagem(base, {
-      ...(texto("cliente") ? { tutor: texto("cliente") } : {}),
-      ...(texto("pet") ? { pet: texto("pet") } : {}),
+      ...(tutor ? { tutor } : {}),
+      ...(pet ? { pet } : {}),
       ...(item.loja ? { loja: item.loja } : {}),
       ...(data ? { data: dateBR(data) } : {}),
-      ...(texto("itens") ? { itens: texto("itens") } : {}),
+      ...(itens ? { itens } : {}),
     }).trim() + RODAPE_SAIR
   );
 }

@@ -121,9 +121,9 @@ test("modelos da resposta do banco: só entradas com id e título", () => {
     null,
   ]);
   assert.equal(modelos.length, 1);
-  assert.equal(modelos[0].titulo, "Pós-cirúrgico");
-  assert.equal(modelos[0].orientacoes, "Repouso");
-  assert.equal(modelos[0].itens[0].medicamento, "Melox");
+  assert.equal(modelos[0]!.titulo, "Pós-cirúrgico");
+  assert.equal(modelos[0]!.orientacoes, "Repouso");
+  assert.equal(modelos[0]!.itens[0]!.medicamento, "Melox");
 });
 
 test("texto da receita para o WhatsApp traz itens, orientações e veterinário", () => {

@@ -1156,6 +1156,89 @@ export type Database = {
           },
         ]
       }
+      clinica_fila: {
+        Row: {
+          agendamento_id: string | null
+          chamado_em: string | null
+          chegada_em: string
+          created_at: string
+          encerrado_em: string | null
+          gravidade: string
+          id: string
+          observacoes: string | null
+          pet_id: string
+          profissional_id: string | null
+          queixa: string | null
+          registrado_por: string | null
+          situacao: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          agendamento_id?: string | null
+          chamado_em?: string | null
+          chegada_em?: string
+          created_at?: string
+          encerrado_em?: string | null
+          gravidade?: string
+          id?: string
+          observacoes?: string | null
+          pet_id: string
+          profissional_id?: string | null
+          queixa?: string | null
+          registrado_por?: string | null
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          agendamento_id?:  string | null
+          chamado_em?:  string | null
+          chegada_em?:  string
+          created_at?:  string
+          encerrado_em?:  string | null
+          gravidade?:  string
+          id?:  string
+          observacoes?:  string | null
+          pet_id?:  string
+          profissional_id?:  string | null
+          queixa?:  string | null
+          registrado_por?:  string | null
+          situacao?:  string
+          tenant_id?:  string
+          updated_at?:  string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_fila_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "pet_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_fila_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_fila_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_fila_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      },
       clinica_operacoes_offline: {
         Row: {
           chave: string
@@ -11751,6 +11834,47 @@ export type Database = {
           },
         ]
       }
+      pet_receita_modelos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          itens: Json
+          orientacoes: string | null
+          tenant_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          itens: Json
+          orientacoes?: string | null
+          tenant_id?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?:  string
+          created_by?:  string | null
+          id?:  string
+          itens?:  Json
+          orientacoes?:  string | null
+          tenant_id?:  string
+          titulo?:  string
+          updated_at?:  string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_receita_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      },
       pet_servico_precos: {
         Row: {
           created_at: string
@@ -14457,6 +14581,8 @@ export type Database = {
           auto_desde: string | null
           auto_plano: boolean
           auto_pronto: boolean
+          auto_reforco: boolean
+          auto_retorno: boolean
           conectada_em: string | null
           estado: string
           instancia: string
@@ -14468,6 +14594,8 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
+          auto_reforco?: boolean
+          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia: string
@@ -14479,6 +14607,8 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
+          auto_reforco?: boolean
+          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia?: string
@@ -14507,6 +14637,7 @@ export type Database = {
           jid: string | null
           numero: string
           origem: string
+          pet_id: string | null
           proxima_tentativa: string
           referencia: string
           situacao: string
@@ -14515,7 +14646,7 @@ export type Database = {
           tipo: string
           updated_at: string
           variaveis: Json
-          veiculo_id: string
+          veiculo_id: string | null
         }
         Insert: {
           cliente_id: string
@@ -14528,6 +14659,7 @@ export type Database = {
           jid?: string | null
           numero: string
           origem?: string
+          pet_id?: string | null
           proxima_tentativa?: string
           referencia: string
           situacao?: string
@@ -14536,7 +14668,7 @@ export type Database = {
           tipo: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id: string
+          veiculo_id?: string | null
         }
         Update: {
           cliente_id?: string
@@ -14549,6 +14681,7 @@ export type Database = {
           jid?: string | null
           numero?: string
           origem?: string
+          pet_id?: string | null
           proxima_tentativa?: string
           referencia?: string
           situacao?: string
@@ -14557,7 +14690,7 @@ export type Database = {
           tipo?: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id?: string
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -14565,6 +14698,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
             referencedColumns: ["id"]
           },
           {
@@ -14726,6 +14866,9 @@ export type Database = {
       }
       _clinica_exige_leitura: { Args: never; Returns: undefined }
       _clinica_exige_modelos: { Args: never; Returns: undefined }
+      _clinica_fila_acesso: { Args: never; Returns: undefined }
+      _clinica_fila_exige_equipe: { Args: never; Returns: undefined }
+      _clinica_fila_json: { Args: { p_id: string }; Returns: Json }
       _clinica_movimentar_dose: {
         Args: {
           p_deposito_id: string
@@ -14748,6 +14891,7 @@ export type Database = {
         Args: { p_catalogo_id: string; p_pet_id: string }
         Returns: Json
       }
+      _clinica_receita_modelo_itens: { Args: { p_itens: Json }; Returns: Json }
       _clinica_vet: { Args: never; Returns: string }
       _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
       _fone_normalizado: { Args: { p_fone: string }; Returns: string }
@@ -15013,6 +15157,7 @@ export type Database = {
         Args: { p_lote: string; p_medicamento_id: string }
         Returns: boolean
       }
+      _wa_clinica_liberada: { Args: { p_tenant: string }; Returns: boolean }
       _wa_enfileirar: {
         Args: {
           p_origem: string
@@ -15286,6 +15431,11 @@ export type Database = {
         Returns: undefined
       }
       clinica_execucoes_mapa: { Args: { p_horas?: number }; Returns: Json }
+      clinica_fila_buscar_paciente: { Args: { p_busca: string }; Returns: Json }
+      clinica_fila_entrada: { Args: { p_dados: Json }; Returns: Json }
+      clinica_fila_gravidade: { Args: { p_gravidade: string; p_id: string }; Returns: Json }
+      clinica_fila_listar: { Args: { p_data?: string | null }; Returns: Json }
+      clinica_fila_situacao: { Args: { p_id: string; p_para: string }; Returns: Json }
       clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
       clinica_internacao_admitir: {
         Args: { p_dados: Json; p_pet_id: string }
@@ -15352,6 +15502,9 @@ export type Database = {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
       }
+      clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
+      clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
+      clinica_receita_modelos: { Args: never; Returns: Json }
       clinica_reforcos_pendentes: {
         Args: { p_atraso?: number; p_janela?: number }
         Returns: Json
@@ -15383,6 +15536,10 @@ export type Database = {
         Args: { p_chave: string; p_dados: Json }
         Returns: Json
       }
+      clinica_wa_automatico_salvar: { Args: { p_reforco: boolean; p_retorno: boolean }; Returns: undefined }
+      clinica_wa_enfileirar: { Args: { p_referencia: string; p_tipo: string }; Returns: string }
+      clinica_wa_mensagem_cancelar: { Args: { p_id: string }; Returns: undefined }
+      clinica_wa_mensagem_reenviar: { Args: { p_id: string }; Returns: undefined }
       cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }
       cobranca_config_gerar_token: { Args: never; Returns: string }
       cobranca_config_obter: {
