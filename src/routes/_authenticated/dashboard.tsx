@@ -9,6 +9,11 @@ import {
   Truck,
   Wallet,
   TrendingDown,
+  PackagePlus,
+  ShoppingBag,
+  PackageCheck,
+  Receipt,
+  ArrowRight,
 } from "lucide-react";
 import {
   Bar,
@@ -310,6 +315,13 @@ function Dashboard() {
     (l) => l.fisico - l.reservado > 0 && l.fisico - l.reservado < Number(l.prod.estoque_minimo),
   );
 
+  const vendasHoje = data.pedidos.filter(
+    (p) =>
+      String(p.created_at).slice(0, 10) === hoje &&
+      p.situacao !== "cancelado" &&
+      p.situacao !== "rascunho",
+  );
+
   // Gráficos
   const etapas = emAndamento.map((s) => ({
     nome: s.replace(/_/g, " "),
@@ -382,6 +394,22 @@ function Dashboard() {
             </Button>
           </div>
         }
+      />
+
+      <PainelDoDia
+        vendasHoje={vendasHoje.length}
+        totalVendasHoje={vendasHoje.reduce((s, p) => s + Number(p.total), 0)}
+        pedidosAndamento={pedidosAndamento.length}
+        receberHoje={abertoReceber
+          .filter((c) => c.vencimento === hoje)
+          .reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0)}
+        pagarHoje={abertoPagar
+          .filter((c) => c.vencimento === hoje)
+          .reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0)}
+        vencidas={receberVencidas.length + pagarVencidas.length}
+        semEstoque={semEstoque.length}
+        baixoEstoque={baixoEstoque.length}
+        totalProdutos={data.totalProdutos}
       />
 
       <div className="panel mb-4 p-4">
@@ -834,5 +862,153 @@ function Dashboard() {
         </div>
       </div>
     </>
+  );
+}
+
+type AcaoCartao = { label: string; to: string };
+
+function CartaoIndicador({
+  titulo,
+  icon: Icon,
+  tom,
+  principal,
+  legenda,
+  linhas,
+  acoes,
+}: {
+  titulo: string;
+  icon: typeof Wallet;
+  tom: "jade" | "petroleo" | "menta";
+  principal: string;
+  legenda: string;
+  linhas: Array<{ label: string; valor: string }>;
+  acoes: AcaoCartao[];
+}) {
+  const cores = {
+    jade: "bg-jade text-jade-foreground",
+    petroleo: "bg-petroleo text-petroleo-foreground",
+    menta: "bg-menta text-menta-foreground border border-border",
+  }[tom];
+  const botao =
+    tom === "petroleo"
+      ? "bg-petroleo-foreground/10 text-petroleo-foreground hover:bg-petroleo-foreground/20"
+      : "bg-jade-foreground/10 text-jade-foreground hover:bg-jade-foreground/15";
+  return (
+    <section className={`flex flex-col rounded-2xl p-5 shadow-panel ${cores}`}>
+      <div className="flex items-center gap-2">
+        <span className="grid size-9 place-items-center rounded-full bg-current/10">
+          <Icon className="size-4" />
+        </span>
+        <h2 className="font-display text-base font-semibold">{titulo}</h2>
+        <span className="ml-auto text-[11px] font-medium uppercase tracking-wider opacity-70">
+          Hoje
+        </span>
+      </div>
+      <p className="mt-4 font-display text-3xl font-bold tabular-nums">{principal}</p>
+      <p className="text-sm opacity-80">{legenda}</p>
+      <dl className="mt-4 space-y-1.5 text-sm">
+        {linhas.map((l) => (
+          <div key={l.label} className="flex justify-between gap-3 border-t border-current/15 pt-1.5">
+            <dt className="opacity-80">{l.label}</dt>
+            <dd className="font-semibold tabular-nums">{l.valor}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-auto flex flex-wrap gap-2 pt-4">
+        {acoes.map((a) => (
+          <Link
+            key={a.to}
+            to={a.to}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${botao}`}
+          >
+            {a.label} <ArrowRight className="size-3" />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PainelDoDia(p: {
+  vendasHoje: number;
+  totalVendasHoje: number;
+  pedidosAndamento: number;
+  receberHoje: number;
+  pagarHoje: number;
+  vencidas: number;
+  semEstoque: number;
+  baixoEstoque: number;
+  totalProdutos: number;
+}) {
+  const rapidas = [
+    { label: "Adicionar produto", to: "/produtos", icon: PackagePlus },
+    { label: "Realizar venda", to: "/pdv", icon: ShoppingBag },
+    { label: "Repor estoque", to: "/sugestao-compra", icon: PackageCheck },
+    { label: "Pagar conta", to: "/contas-pagar", icon: Receipt },
+  ];
+  return (
+    <div className="mb-6 space-y-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {rapidas.map((a) => (
+          <Link
+            key={a.to}
+            to={a.to}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-3 text-sm font-semibold shadow-panel transition-colors hover:border-primary hover:bg-menta"
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-jade text-jade-foreground">
+              <a.icon className="size-4" />
+            </span>
+            {a.label}
+          </Link>
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <CartaoIndicador
+          titulo="Vendas"
+          icon={ShoppingBag}
+          tom="jade"
+          principal={brl(p.totalVendasHoje)}
+          legenda={`${p.vendasHoje} ${p.vendasHoje === 1 ? "pedido" : "pedidos"} hoje`}
+          linhas={[{ label: "Pedidos em andamento", valor: num(p.pedidosAndamento, 0) }]}
+          acoes={[
+            { label: "Pedidos", to: "/pedidos" },
+            { label: "Orçamentos", to: "/orcamentos" },
+          ]}
+        />
+        <CartaoIndicador
+          titulo="Financeiro"
+          icon={Wallet}
+          tom="petroleo"
+          principal={brl(p.receberHoje - p.pagarHoje)}
+          legenda="Saldo previsto para hoje"
+          linhas={[
+            { label: "A receber hoje", valor: brl(p.receberHoje) },
+            { label: "A pagar hoje", valor: brl(p.pagarHoje) },
+            { label: "Contas vencidas", valor: num(p.vencidas, 0) },
+          ]}
+          acoes={[
+            { label: "Fluxo de caixa", to: "/fluxo-caixa" },
+            { label: "A receber", to: "/contas-receber" },
+            { label: "A pagar", to: "/contas-pagar" },
+          ]}
+        />
+        <CartaoIndicador
+          titulo="Estoque"
+          icon={Boxes}
+          tom="menta"
+          principal={num(p.semEstoque + p.baixoEstoque, 0)}
+          legenda="Produtos pedindo reposição"
+          linhas={[
+            { label: "Sem saldo", valor: num(p.semEstoque, 0) },
+            { label: "Abaixo do mínimo", valor: num(p.baixoEstoque, 0) },
+            { label: "Produtos cadastrados", valor: num(p.totalProdutos, 0) },
+          ]}
+          acoes={[
+            { label: "Estoque", to: "/estoque" },
+            { label: "Sugestão de reposição", to: "/sugestao-compra" },
+          ]}
+        />
+      </div>
+    </div>
   );
 }

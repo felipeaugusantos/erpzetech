@@ -1,10 +1,3 @@
--- Clínica: internação (fase 1). Admissão com box, pesagens, relato médico, ocorrências, alta e óbito.
--- Mesmo modelo do prontuário: as tabelas não têm leitura nem escrita direta para ninguém; tudo passa por funções.
--- O texto clínico (motivo, relatos, resumo de alta/óbito) é só do veterinário. O auxiliar (perfil Profissional ligado a um cadastro
--- de função "auxiliar") vê o mapa, o box, as alergias, as ocorrências e as pesagens, e registra ocorrências e pesagens.
--- Relato e ocorrência não se alteram nem se apagam; internação encerrada é imutável.
-
--- ============ boxes ============
 CREATE TABLE IF NOT EXISTS public.pet_boxes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -15,7 +8,6 @@ CREATE TABLE IF NOT EXISTS public.pet_boxes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS pet_boxes_nome_idx ON public.pet_boxes (tenant_id, lower(btrim(nome)));
 
--- ============ internações ============
 CREATE TABLE IF NOT EXISTS public.pet_internacoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
@@ -23,7 +15,6 @@ CREATE TABLE IF NOT EXISTS public.pet_internacoes (
   cliente_id uuid NOT NULL REFERENCES public.clientes(id),
   box_id uuid NOT NULL REFERENCES public.pet_boxes(id),
   veterinario_id uuid NOT NULL REFERENCES public.pet_profissionais(id),
-  -- o CRMV vale como estava na admissão, mesmo que o cadastro mude depois
   crmv text NOT NULL,
   crmv_uf text NOT NULL,
   situacao text NOT NULL DEFAULT 'internado' CHECK (situacao IN ('internado', 'alta', 'obito')),
@@ -38,7 +29,6 @@ CREATE TABLE IF NOT EXISTS public.pet_internacoes (
   CHECK ((situacao = 'internado') = (encerrado_em IS NULL)),
   CHECK ((situacao = 'internado') OR (encerrado_por IS NOT NULL AND length(btrim(coalesce(encerramento_texto, ''))) > 0))
 );
--- um animal por vez e um animal por box
 CREATE UNIQUE INDEX IF NOT EXISTS pet_internacoes_pet_ativa_idx ON public.pet_internacoes (pet_id) WHERE situacao = 'internado';
 CREATE UNIQUE INDEX IF NOT EXISTS pet_internacoes_box_ativa_idx ON public.pet_internacoes (box_id) WHERE situacao = 'internado';
 CREATE INDEX IF NOT EXISTS pet_internacoes_pet_idx ON public.pet_internacoes (tenant_id, pet_id, admitido_em DESC);
@@ -66,17 +56,13 @@ CREATE TABLE IF NOT EXISTS public.pet_internacao_ocorrencias (
 );
 CREATE INDEX IF NOT EXISTS pet_internacao_ocorrencias_idx ON public.pet_internacao_ocorrencias (internacao_id, created_at);
 
--- pesagem feita na internação entra no mesmo histórico de pesagens do pet
 ALTER TABLE public.pet_pesagens ADD COLUMN IF NOT EXISTS internacao_id uuid REFERENCES public.pet_internacoes(id);
--- duas pesagens na mesma transação não empatam na ordem do histórico
 ALTER TABLE public.pet_pesagens ALTER COLUMN created_at SET DEFAULT clock_timestamp();
 ALTER TABLE public.pets ADD COLUMN IF NOT EXISTS obito_em date;
--- a lista é a da última migration que mexeu nesta restrição (20261116) mais 'internacao'
 ALTER TABLE public.clinica_acessos DROP CONSTRAINT IF EXISTS clinica_acessos_acao_check;
 ALTER TABLE public.clinica_acessos ADD CONSTRAINT clinica_acessos_acao_check CHECK (
   acao IN ('historico', 'atendimento', 'alergias', 'vacinacao', 'exame', 'anexo', 'visita', 'documento', 'internacao'));
 
--- ============ imutabilidade ============
 CREATE OR REPLACE FUNCTION public._internacao_guarda()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -113,7 +99,6 @@ CREATE TRIGGER trg_internacao_ocorrencia_guarda BEFORE UPDATE OR DELETE ON publi
 DROP TRIGGER IF EXISTS trg_pet_boxes_updated ON public.pet_boxes;
 CREATE TRIGGER trg_pet_boxes_updated BEFORE UPDATE ON public.pet_boxes FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
--- ============ acesso: nenhuma leitura nem escrita direta ============
 DO $$
 DECLARE t text;
 BEGIN
@@ -126,8 +111,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- ============ apoio ============
--- Quem age na internação: veterinário (tudo) ou auxiliar (ocorrência e pesagem), com a clínica liberada e o cadastro ativo ligado à conta.
 CREATE OR REPLACE FUNCTION public._internacao_ator(p_so_veterinario boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -151,7 +134,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._internacao_ator(boolean) FROM PUBLIC, anon, authenticated;
 
--- Internação aberta do tenant, travada para a escrita.
 CREATE OR REPLACE FUNCTION public._internacao_aberta(p_id uuid)
 RETURNS public.pet_internacoes
 LANGUAGE plpgsql
@@ -167,7 +149,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._internacao_aberta(uuid) FROM PUBLIC, anon, authenticated;
 
--- ============ boxes ============
 CREATE OR REPLACE FUNCTION public.pet_box_salvar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -199,7 +180,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_box_salvar(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_box_salvar(jsonb) TO authenticated;
 
--- Lista os boxes (só nome, se está em uso e se está ativo; quem está dentro não aparece aqui).
 CREATE OR REPLACE FUNCTION public.clinica_boxes()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -219,7 +199,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_boxes() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_boxes() TO authenticated;
 
--- ============ admissão ============
 CREATE OR REPLACE FUNCTION public.clinica_internacao_admitir(p_pet_id uuid, p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -263,7 +242,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_admitir(uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_admitir(uuid, jsonb) TO authenticated;
 
--- ============ mapa e ficha ============
 CREATE OR REPLACE FUNCTION public.clinica_internacoes(p_situacao text DEFAULT 'internado', p_pet_id uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -299,7 +277,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacoes(text, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacoes(text, uuid) TO authenticated;
 
--- Ficha da internação. Motivo, relatos e resumo de encerramento só vão para o veterinário.
 CREATE OR REPLACE FUNCTION public.clinica_internacao_obter(p_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -344,7 +321,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_obter(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_obter(uuid) TO authenticated;
 
--- ============ registros ============
 CREATE OR REPLACE FUNCTION public.clinica_internacao_pesagem(p_id uuid, p_peso_kg numeric)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -397,7 +373,6 @@ DECLARE
   i public.pet_internacoes;
   v_id uuid;
 BEGIN
-  -- "transferencia" é registrada pelo sistema ao trocar de box
   IF p_tipo NOT IN ('intercorrencia', 'alimentacao', 'higiene', 'medicacao', 'outro') THEN RAISE EXCEPTION 'Tipo de ocorrência inválido'; END IF;
   IF btrim(coalesce(p_texto, '')) = '' OR length(btrim(p_texto)) > 1000 THEN RAISE EXCEPTION 'Descreva a ocorrência (até 1000 letras)'; END IF;
   i := public._internacao_aberta(p_id);
@@ -434,8 +409,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_box_trocar(uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_box_trocar(uuid, uuid) TO authenticated;
 
--- ============ alta e óbito ============
--- O texto é obrigatório (resumo da alta; causa e circunstâncias do óbito). Óbito inativa o cadastro do pet e guarda a data.
 CREATE OR REPLACE FUNCTION public.clinica_internacao_encerrar(p_id uuid, p_tipo text, p_texto text, p_quando timestamptz DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql

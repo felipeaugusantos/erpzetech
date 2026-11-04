@@ -59,6 +59,10 @@ import {
   Droplets,
   Link2,
   Gift,
+  Home,
+  BarChart3,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -376,10 +380,91 @@ const groups: Group[] = [
   },
 ];
 
+type Area = { label: string; icon: typeof Gauge; items: Item[] };
+
+/** Áreas principais do trilho lateral; os grupos de ramo (restaurante, pet shop…) viram áreas próprias. */
+const AREAS_PRINCIPAIS: Array<{ label: string; icon: typeof Gauge }> = [
+  { label: "Início", icon: Home },
+  { label: "Catálogo", icon: Tag },
+  { label: "Vendas", icon: ShoppingCart },
+  { label: "Estoque", icon: Boxes },
+  { label: "Notas Fiscais", icon: FileText },
+  { label: "Financeiro", icon: Wallet },
+  { label: "Relatórios", icon: BarChart3 },
+  { label: "Ajustes", icon: Settings },
+];
+const AREA_DO_GRUPO: Record<string, string> = {
+  "Visão geral": "Início",
+  Comercial: "Vendas",
+  Logística: "Vendas",
+  Estoque: "Estoque",
+  Compras: "Estoque",
+  Financeiro: "Financeiro",
+  Relatórios: "Relatórios",
+  Administração: "Ajustes",
+};
+const AREA_DA_TELA: Record<string, string> = {
+  "/produtos": "Catálogo",
+  "/precos": "Catálogo",
+  "/categorias": "Catálogo",
+  "/clientes": "Catálogo",
+  "/fornecedores": "Catálogo",
+  "/vendedores": "Catálogo",
+  "/nfe": "Notas Fiscais",
+  "/pendencias-fiscais": "Notas Fiscais",
+  "/nfce-config": "Notas Fiscais",
+  "/fiscal": "Notas Fiscais",
+  "/impostos-filial": "Notas Fiscais",
+  "/impostos-nota": "Notas Fiscais",
+  "/prefeitura": "Notas Fiscais",
+  "/nfe-simulacao": "Notas Fiscais",
+  "/fluxo-caixa": "Financeiro",
+};
+
+/** Reorganiza os grupos já filtrados por permissão/módulo nas áreas do trilho, sem criar telas. */
+function montarAreas(grupos: Group[]): Area[] {
+  const mapa = new Map<string, Area>();
+  const ordem: string[] = [];
+  const garantir = (label: string, icon: typeof Gauge) => {
+    if (!mapa.has(label)) {
+      mapa.set(label, { label, icon, items: [] });
+      ordem.push(label);
+    }
+    return mapa.get(label)!;
+  };
+  for (const g of grupos) {
+    for (const item of g.items) {
+      const destino = (item.to && AREA_DA_TELA[item.to]) || AREA_DO_GRUPO[g.label] || g.label;
+      const base = AREAS_PRINCIPAIS.find((a) => a.label === destino);
+      const area = garantir(destino, base?.icon ?? g.icon);
+      const secao =
+        destino === "Financeiro" && item.to === "/fluxo-caixa"
+          ? undefined
+          : item.secao ?? (AREA_DO_GRUPO[g.label] && g.label !== destino && g.label !== "Comercial" && g.label !== "Visão geral" ? g.label : undefined);
+      const { secao: _antiga, ...resto } = item;
+      area.items.push(secao ? { ...resto, secao } : resto);
+    }
+  }
+  const fin = mapa.get("Financeiro");
+  if (fin) fin.items.sort((a, b) => Number(a.to !== "/fluxo-caixa") - Number(b.to !== "/fluxo-caixa"));
+  for (const a of mapa.values()) {
+    // itens sem seção primeiro, depois agrupados pela seção
+    const semSecao = a.items.filter((i) => !i.secao);
+    const secoes = [...new Set(a.items.filter((i) => i.secao).map((i) => i.secao!))];
+    a.items = [...semSecao, ...secoes.flatMap((sec) => a.items.filter((i) => i.secao === sec))];
+  }
+  const principais = AREAS_PRINCIPAIS.map((a) => a.label);
+  return [
+    ...principais.filter((l) => mapa.has(l)).map((l) => mapa.get(l)!),
+    ...ordem.filter((l) => !principais.includes(l)).map((l) => mapa.get(l)!),
+  ];
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  /** Módulos recolhidos, guardados no navegador do usuário. */
-  const [fechados, setFechados] = useState<string[]>([]);
+  /** Área escolhida no trilho (null = a da tela atual) e painel de submenus visível. */
+  const [areaEscolhida, setAreaEscolhida] = useState<string | null>(null);
+  const [painelAberto, setPainelAberto] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useSessionData();
   // Aplica a cor da marca da loja assim que o sistema abre.
@@ -395,23 +480,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const salvo = localStorage.getItem("zeobra:menu-fechados");
-      if (salvo) setFechados(JSON.parse(salvo) as string[]);
+      if (localStorage.getItem("ezra:painel-menu") === "fechado") setPainelAberto(false);
     } catch {
-      /* preferência ausente ou inválida: mantém tudo aberto */
+      /* sem preferência salva */
     }
   }, []);
 
-  function alternarGrupo(label: string) {
-    setFechados((atual) => {
-      const proximo = atual.includes(label) ? atual.filter((l) => l !== label) : [...atual, label];
-      try {
-        localStorage.setItem("zeobra:menu-fechados", JSON.stringify(proximo));
-      } catch {
-        /* sem armazenamento: só não guarda a preferência */
-      }
-      return proximo;
-    });
+  function alternarPainel(aberto: boolean) {
+    setPainelAberto(aberto);
+    try {
+      localStorage.setItem("ezra:painel-menu", aberto ? "aberto" : "fechado");
+    } catch {
+      /* sem armazenamento: só não guarda a preferência */
+    }
   }
 
   useEffect(() => {
@@ -724,6 +805,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [somenteSalao, itensSalao, pathname, navigate]);
 
+  const areas = useMemo(() => montarAreas(menu), [menu]);
+  const areaAtual =
+    areas.find((a) => a.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(i.to + "/"))))
+      ?.label ?? areas[0]?.label;
+  useEffect(() => {
+    setAreaEscolhida(null);
+  }, [pathname]);
+  const areaAberta = areas.find((a) => a.label === (areaEscolhida ?? areaAtual)) ?? areas[0];
+  const mostrarPainel = painelAberto && (areaAberta?.items.length ?? 0) > 1;
+
+  function clicarArea(area: Area) {
+    const unica = area.items.length === 1 && area.items[0]?.to;
+    if (unica) {
+      setAreaEscolhida(area.label);
+      navigate({ to: unica as "/dashboard" });
+      return;
+    }
+    if (area.label === areaAberta?.label && painelAberto) {
+      alternarPainel(false);
+      return;
+    }
+    setAreaEscolhida(area.label);
+    alternarPainel(true);
+  }
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -734,7 +840,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === "/frente-caixa") return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
+    <div className="min-h-screen bg-background lg:flex">
       {mobileOpen && (
         <button
           aria-label="Fechar menu"
@@ -745,84 +851,106 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <LogoEmpresa />
-          <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold tracking-wide">
-              {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "EZRA ERP")
-                .toUpperCase()
-                .slice(0, 22)}
-            </p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">Desenvolvido por EZRA</p>
+        {/* trilho com as áreas */}
+        <nav
+          aria-label="Áreas do sistema"
+          className="flex w-[5.25rem] flex-col items-center gap-1 overflow-y-auto bg-rail py-3 text-rail-foreground"
+        >
+          <div className="mb-2 grid size-11 place-items-center">
+            <LogoEmpresa />
           </div>
-          <button
-            className="ml-auto lg:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Fechar"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
-          {menu.map((group) => {
-            const aberto = !fechados.includes(group.label);
+          {areas.map((area) => {
+            const ativa = area.label === areaAtual;
+            const aberta = area.label === areaAberta?.label && mostrarPainel;
             return (
-              <div key={group.label}>
-                <button
-                  onClick={() => alternarGrupo(group.label)}
-                  aria-expanded={aberto}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                >
-                  <group.icon className="size-3.5 shrink-0" />
-                  <span className="flex-1 text-left">{group.label}</span>
-                  <ChevronDown
-                    className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")}
-                  />
-                </button>
-                <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
-                  {group.items.map((item, i) => (
-                    <li key={`${item.secao ?? ""}-${item.label}`}>
-                      {item.secao && item.secao !== group.items[i - 1]?.secao ? (
-                        <p className="px-2 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
-                          {item.secao}
-                        </p>
-                      ) : null}
-                      {item.to && !item.soon ? (
-                        <Link
-                          to={item.to}
-                          className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                          activeProps={{
-                            className:
-                              "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[inset_3px_0_0_0_var(--sidebar-primary)]",
-                          }}
-                        >
-                          <item.icon className="size-4 shrink-0" />
-                          {item.label}
-                        </Link>
-                      ) : (
-                        <span className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/35">
-                          <item.icon className="size-4 shrink-0" />
-                          {item.label}
-                          <span className="ml-auto text-[9px] uppercase tracking-wider">
-                            fase 2
-                          </span>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <button
+                key={area.label}
+                onClick={() => clicarArea(area)}
+                aria-current={ativa ? "page" : undefined}
+                aria-expanded={area.items.length > 1 ? aberta : undefined}
+                title={area.label}
+                className={cn(
+                  "flex w-[4.5rem] flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10.5px] font-medium leading-tight transition-colors",
+                  ativa
+                    ? "bg-rail-active text-rail-active-foreground font-semibold"
+                    : aberta
+                      ? "bg-rail-foreground/10 text-rail-foreground"
+                      : "text-rail-foreground/75 hover:bg-rail-foreground/10 hover:text-rail-foreground",
+                )}
+              >
+                <area.icon className="size-5" />
+                <span className="w-full break-words text-center">{area.label}</span>
+              </button>
             );
           })}
+          <button
+            onClick={() => alternarPainel(!painelAberto)}
+            className="mt-auto hidden rounded-lg p-2 text-rail-foreground/60 hover:bg-rail-foreground/10 hover:text-rail-foreground lg:block"
+            aria-label={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
+            title={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
+          >
+            {painelAberto ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+          </button>
         </nav>
+
+        {/* painel de submenus da área */}
+        {areaAberta && (mostrarPainel || mobileOpen) && (
+          <div className="flex w-60 flex-col border-r border-border bg-card text-card-foreground">
+            <div className="flex h-16 items-center gap-2 border-b border-border px-4">
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-bold">{areaAberta.label}</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "EZRA ERP").slice(0, 28)}
+                </p>
+              </div>
+              <button
+                className="ml-auto lg:hidden"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Fechar"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <ul className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+              {areaAberta.items.map((item, i) => (
+                <li key={`${item.secao ?? ""}-${item.to ?? item.label}`}>
+                  {item.secao && item.secao !== areaAberta.items[i - 1]?.secao ? (
+                    <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {item.secao}
+                    </p>
+                  ) : null}
+                  {item.to && !item.soon ? (
+                    <Link
+                      to={item.to}
+                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/80 transition-colors hover:bg-menta hover:text-foreground"
+                      activeProps={{
+                        className: "bg-jade text-jade-foreground font-semibold hover:bg-jade",
+                      }}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground">
+                      <item.icon className="size-4 shrink-0" />
+                      {item.label}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
+              Desenvolvido por EZRA
+            </p>
+          </div>
+        )}
       </aside>
 
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card/90 px-4 backdrop-blur">
           <Button
             variant="ghost"

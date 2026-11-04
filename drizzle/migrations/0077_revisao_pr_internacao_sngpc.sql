@@ -1,8 +1,3 @@
--- Correções da revisão do PR: (1) a prescrição gera toda dose que cabe na duração (teto, não piso);
--- (2) o arquivo do SNGPC só vale para o livro como estava quando foi montado: enquanto há arquivo gerado ou transmitido
---     cobrindo uma data, o livro dessa data não muda, e o envio confere uma assinatura do livro;
--- (3) lançar e cancelar no livro passam por um único cadeado por empresa, para duas saídas do mesmo lote não furarem o saldo.
-
 CREATE OR REPLACE FUNCTION public._sngpc_exige_periodo_livre(p_data date)
 RETURNS void
 LANGUAGE plpgsql
@@ -22,7 +17,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._sngpc_exige_periodo_livre(date) FROM PUBLIC, anon, authenticated;
 
--- Impressão digital do que vai no arquivo de movimentação: os lançamentos do período e se estão cancelados.
 CREATE OR REPLACE FUNCTION public._sngpc_assinatura(p_inicio date, p_fim date)
 RETURNS text
 LANGUAGE sql
@@ -313,7 +307,6 @@ BEGIN
   ELSE
     IF v_ini <> v_fim OR v_fim < current_date - 7 THEN RAISE EXCEPTION 'A data do inventário vai de 7 dias atrás até hoje'; END IF;
   END IF;
-  -- o arquivo tem de refletir o livro de agora: se algo mudou desde que a tela montou o XML, monta de novo
   v_esperada := CASE WHEN v_tipo = 'movimentacao' THEN public._sngpc_assinatura(v_ini, v_fim) ELSE md5(public.sngpc_saldo(v_fim)::text) END;
   IF v_assinatura <> v_esperada THEN
     RAISE EXCEPTION 'O livro mudou depois que o arquivo foi montado: monte o arquivo de novo';

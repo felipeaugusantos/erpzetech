@@ -1,14 +1,9 @@
--- Pet: ordem de serviço com os dados do animal. Reaproveita as tabelas da assistência (os_ordens, os_itens): a numeração,
--- o total e a baixa de estoque das peças continuam as de sempre. A OS do pet nasce e muda só por funções; a assistência
--- técnica comum não lista estas ordens.
-
 ALTER TABLE public.os_ordens
   ADD COLUMN IF NOT EXISTS pet_id uuid REFERENCES public.pets(id),
   ADD COLUMN IF NOT EXISTS pet_resumo jsonb,
   ADD COLUMN IF NOT EXISTS pet_profissional_id uuid REFERENCES public.pet_profissionais(id);
 CREATE INDEX IF NOT EXISTS os_ordens_pet_idx ON public.os_ordens (tenant_id, pet_id) WHERE pet_id IS NOT NULL;
 
--- o cliente não escreve o vínculo com o animal direto na tabela: só as funções
 CREATE OR REPLACE FUNCTION public.os_ordens_protege_pet()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -27,7 +22,6 @@ DROP TRIGGER IF EXISTS os_ordens_protege_pet_trg ON public.os_ordens;
 CREATE TRIGGER os_ordens_protege_pet_trg BEFORE INSERT OR UPDATE ON public.os_ordens
   FOR EACH ROW EXECUTE FUNCTION public.os_ordens_protege_pet();
 
--- Retrato do animal (e do tutor) que a OS guarda: o que vale no atendimento, mesmo que o cadastro mude depois.
 CREATE OR REPLACE FUNCTION public._pet_os_resumo(p_pet_id uuid)
 RETURNS jsonb
 LANGUAGE sql
@@ -44,8 +38,16 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public._pet_os_resumo(uuid) FROM PUBLIC, anon, authenticated;
 
--- Abre (sem id) ou atualiza (com id) a OS do pet. O animal não muda depois de aberta; o retrato é refeito enquanto
--- a OS está aberta ou em orçamento e congela a partir da aprovação.
+CREATE OR REPLACE FUNCTION public._pet_os_total(p_os_id uuid)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  UPDATE public.os_ordens o SET valor_total = greatest(o.valor_pecas + o.valor_servicos - coalesce(o.desconto, 0), 0) WHERE o.id = p_os_id;
+$$;
+REVOKE ALL ON FUNCTION public._pet_os_total(uuid) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.pet_os_salvar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -100,7 +102,6 @@ BEGIN
            tecnico_nome = v_prof_nome, pet_profissional_id = v_prof,
            pet_resumo = CASE WHEN o.situacao IN ('aberta', 'em_analise', 'orcamento') THEN public._pet_os_resumo(o.pet_id) ELSE o.pet_resumo END
      WHERE id = v_id;
-    -- o desconto muda o total, que é recalculado junto dos itens
     PERFORM public._pet_os_total(v_id);
   END IF;
   RETURN v_id;
@@ -108,17 +109,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_os_salvar(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_os_salvar(jsonb) TO authenticated;
 
-CREATE OR REPLACE FUNCTION public._pet_os_total(p_os_id uuid)
-RETURNS void
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  UPDATE public.os_ordens o SET valor_total = greatest(o.valor_pecas + o.valor_servicos - coalesce(o.desconto, 0), 0) WHERE o.id = p_os_id;
-$$;
-REVOKE ALL ON FUNCTION public._pet_os_total(uuid) FROM PUBLIC, anon, authenticated;
-
--- Item da OS: produto (sai do estoque quando a ordem é aprovada) ou serviço (produto sem controle de estoque ou texto livre).
 CREATE OR REPLACE FUNCTION public.pet_os_item_adicionar(p_os_id uuid, p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -184,8 +174,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_os_item_remover(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_os_item_remover(uuid) TO authenticated;
 
--- Andamento: aberta → orçamento → aprovada (peças saem do estoque) → em atendimento → pronta → entregue; cancela até a entrega.
--- Entregue e cancelada encerram a OS. Voltar de aprovada para antes devolve as peças ao estoque (regra da assistência).
 CREATE OR REPLACE FUNCTION public.pet_os_situacao(p_os_id uuid, p_situacao text, p_deposito_id uuid DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql

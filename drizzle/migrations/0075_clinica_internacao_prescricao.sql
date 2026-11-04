@@ -1,8 +1,3 @@
--- Clínica: internação (fase 2). Prescrição médica, mapa de execuções (doses programadas), itens da internação (produtos e serviços
--- com baixa de estoque) e a ficha completa para o histórico. Mesmo modelo da fase 1: tabelas sem acesso direto, só funções;
--- prescrever, suspender e cancelar item são do veterinário; o auxiliar executa as doses e lança itens. Registros não se apagam.
-
--- ============ tabelas ============
 CREATE TABLE IF NOT EXISTS public.pet_internacao_prescricoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
@@ -13,7 +8,6 @@ CREATE TABLE IF NOT EXISTS public.pet_internacao_prescricoes (
   medicamento text NOT NULL CHECK (length(btrim(medicamento)) BETWEEN 1 AND 120),
   dose text NOT NULL CHECK (length(btrim(dose)) BETWEEN 1 AND 80),
   via text CHECK (via IS NULL OR length(btrim(via)) BETWEEN 1 AND 40),
-  -- dose única: frequência e dias vazios; senão uma dose a cada N horas durante N dias
   frequencia_horas integer CHECK (frequencia_horas BETWEEN 1 AND 48),
   dias integer CHECK (dias BETWEEN 1 AND 14),
   inicio timestamptz NOT NULL,
@@ -55,7 +49,6 @@ CREATE TABLE IF NOT EXISTS public.pet_internacao_itens (
   preco_unitario numeric(14,2) NOT NULL CHECK (preco_unitario >= 0),
   total numeric(14,2) NOT NULL CHECK (total >= 0),
   lancado_por uuid NOT NULL REFERENCES public.pet_profissionais(id),
-  -- o que saiu do estoque; volta ao estoque quando o item é cancelado
   baixa_deposito_id uuid REFERENCES public.depositos(id),
   baixa_quantidade numeric(14,3),
   cancelado_em timestamptz,
@@ -67,7 +60,6 @@ CREATE TABLE IF NOT EXISTS public.pet_internacao_itens (
 );
 CREATE INDEX IF NOT EXISTS pet_int_itens_idx ON public.pet_internacao_itens (internacao_id, created_at);
 
--- ============ imutabilidade ============
 CREATE OR REPLACE FUNCTION public._int_prescricao_guarda()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -125,7 +117,6 @@ DROP TRIGGER IF EXISTS trg_int_item_guarda ON public.pet_internacao_itens;
 CREATE TRIGGER trg_int_item_guarda BEFORE UPDATE OR DELETE ON public.pet_internacao_itens
   FOR EACH ROW EXECUTE FUNCTION public._int_item_guarda();
 
--- ============ acesso: nenhuma leitura nem escrita direta ============
 DO $$
 DECLARE t text;
 BEGIN
@@ -138,9 +129,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- ============ estoque ============
--- Mesmo cuidado da dose de vacina: o veterinário e o auxiliar são perfis restritos e o movimento recusa perfil restrito;
--- aqui a função da clínica, que já conferiu perfil, clínica liberada e internação aberta, liga um aviso só desta transação.
 CREATE OR REPLACE FUNCTION public._internacao_movimentar(p_produto_id uuid, p_deposito_id uuid, p_tipo public.mov_tipo, p_quantidade numeric, p_motivo text, p_documento text)
 RETURNS void
 LANGUAGE plpgsql
@@ -154,8 +142,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._internacao_movimentar(uuid, uuid, public.mov_tipo, numeric, text, text) FROM PUBLIC, anon, authenticated;
 
--- ============ prescrição ============
--- Gera as doses programadas: uma a cada N horas durante N dias a partir do início (ou uma só, se for dose única).
 CREATE OR REPLACE FUNCTION public.clinica_internacao_prescrever(p_id uuid, p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -200,7 +186,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_prescrever(uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_prescrever(uuid, jsonb) TO authenticated;
 
--- Suspende a prescrição: as doses que ainda não foram resolvidas ficam canceladas.
 CREATE OR REPLACE FUNCTION public.clinica_prescricao_suspender(p_prescricao_id uuid, p_motivo text)
 RETURNS void
 LANGUAGE plpgsql
@@ -223,8 +208,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_prescricao_suspender(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_prescricao_suspender(uuid, text) TO authenticated;
 
--- ============ execução das doses ============
--- Veterinário e auxiliar marcam a dose como feita ou não feita (com o motivo). Não dá para adiantar mais de 2 horas.
 CREATE OR REPLACE FUNCTION public.clinica_execucao_registrar(p_id uuid, p_situacao text, p_obs text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -252,7 +235,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_execucao_registrar(uuid, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_execucao_registrar(uuid, text, text) TO authenticated;
 
--- Mapa de execuções de todos os internados: doses pendentes até p_horas à frente (e as atrasadas, de qualquer idade) e as resolvidas nas últimas 4 horas.
 CREATE OR REPLACE FUNCTION public.clinica_execucoes_mapa(p_horas integer DEFAULT 12)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -288,7 +270,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_execucoes_mapa(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_execucoes_mapa(integer) TO authenticated;
 
--- ============ itens (produtos e serviços) ============
 CREATE OR REPLACE FUNCTION public.clinica_internacao_catalogo(p_busca text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -309,7 +290,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_catalogo(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_catalogo(text) TO authenticated;
 
--- Produto com controle de estoque sai do estoque na hora; serviço (produto sem estoque ou item livre) não mexe no estoque.
 CREATE OR REPLACE FUNCTION public.clinica_internacao_item_lancar(p_id uuid, p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -358,7 +338,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_item_lancar(uuid, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_item_lancar(uuid, jsonb) TO authenticated;
 
--- Cancela o item (fica registrado) e devolve ao estoque o que tinha saído.
 CREATE OR REPLACE FUNCTION public.clinica_internacao_item_cancelar(p_item_id uuid, p_motivo text)
 RETURNS void
 LANGUAGE plpgsql
@@ -384,7 +363,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_item_cancelar(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_item_cancelar(uuid, text) TO authenticated;
 
--- ============ alta e óbito: as doses que faltam ficam canceladas ============
 CREATE OR REPLACE FUNCTION public.clinica_internacao_encerrar(p_id uuid, p_tipo text, p_texto text, p_quando timestamptz DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -413,8 +391,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_encerrar(uuid, text, text, timestamptz) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_encerrar(uuid, text, text, timestamptz) TO authenticated;
 
--- ============ ficha completa (histórico) ============
--- Igual à da fase 1, com prescrições (e suas doses) e itens. Motivo, relatos e resumo de encerramento só para o veterinário.
 CREATE OR REPLACE FUNCTION public.clinica_internacao_obter(p_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql

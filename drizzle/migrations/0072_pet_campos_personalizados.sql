@@ -1,6 +1,3 @@
--- Pet: campos personalizados do animal e do tutor. A clínica define os campos (nome, tipo, lista de opções, obrigatório)
--- e cada pet ou tutor guarda os valores. Escrita só por funções; leitura pela política da empresa e trava do salão.
-
 CREATE TABLE IF NOT EXISTS public.pet_campos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -16,7 +13,6 @@ CREATE TABLE IF NOT EXISTS public.pet_campos (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS pet_campos_nome_idx ON public.pet_campos (tenant_id, entidade, lower(btrim(nome)));
 
--- registro_id é o pet ou o tutor (cliente), conforme a entidade do campo; não há chave estrangeira porque aponta para duas tabelas.
 CREATE TABLE IF NOT EXISTS public.pet_campos_valores (
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
   campo_id uuid NOT NULL REFERENCES public.pet_campos(id) ON DELETE CASCADE,
@@ -26,6 +22,11 @@ CREATE TABLE IF NOT EXISTS public.pet_campos_valores (
   PRIMARY KEY (campo_id, registro_id)
 );
 CREATE INDEX IF NOT EXISTS pet_campos_valores_registro_idx ON public.pet_campos_valores (tenant_id, registro_id);
+
+GRANT SELECT ON public.pet_campos TO authenticated;
+GRANT ALL ON public.pet_campos TO service_role;
+GRANT SELECT ON public.pet_campos_valores TO authenticated;
+GRANT ALL ON public.pet_campos_valores TO service_role;
 
 DO $$
 DECLARE t text;
@@ -44,7 +45,6 @@ END $$;
 DROP TRIGGER IF EXISTS trg_pet_campos_updated ON public.pet_campos;
 CREATE TRIGGER trg_pet_campos_updated BEFORE UPDATE ON public.pet_campos FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
--- ============ definição dos campos (administrador e gestor) ============
 CREATE OR REPLACE FUNCTION public.pet_campo_salvar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -91,11 +91,9 @@ BEGIN
   ELSE
     SELECT * INTO v_atual FROM public.pet_campos WHERE id = v_id AND tenant_id = v_tenant FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Campo não encontrado'; END IF;
-    -- o tipo não muda com valores já guardados (o texto antigo poderia deixar de caber no novo tipo)
     IF v_tipo <> v_atual.tipo AND EXISTS (SELECT 1 FROM public.pet_campos_valores WHERE campo_id = v_id) THEN
       RAISE EXCEPTION 'Este campo já tem valores guardados: crie outro campo em vez de mudar o tipo';
     END IF;
-    -- opção retirada da lista que ainda está em uso fica de fora: mantém os valores válidos
     IF v_tipo = 'lista' AND EXISTS (SELECT 1 FROM public.pet_campos_valores v WHERE v.campo_id = v_id AND NOT (v_opcoes ? v.valor)) THEN
       RAISE EXCEPTION 'Há cadastros usando uma opção que você retirou da lista: mantenha a opção ou desative o campo';
     END IF;
@@ -108,9 +106,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_campo_salvar(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_campo_salvar(jsonb) TO authenticated;
 
--- ============ valores de um pet ou tutor ============
--- p_valores: {"<id do campo>": "valor"}. Valor vazio apaga. Campo obrigatório ativo sem valor recusa o salvamento.
--- Os valores dos campos que não vêm no pacote ficam como estão (campo desativado mantém o que já tinha).
 CREATE OR REPLACE FUNCTION public.pet_campos_valores_salvar(p_entidade text, p_registro_id uuid, p_valores jsonb)
 RETURNS void
 LANGUAGE plpgsql
@@ -160,7 +155,6 @@ BEGIN
     ON CONFLICT (campo_id, registro_id) DO UPDATE SET valor = EXCLUDED.valor, updated_at = now();
   END LOOP;
 
-  -- obrigatório ativo que nem veio no pacote e ainda não tem valor
   FOR c IN SELECT * FROM public.pet_campos
             WHERE tenant_id = v_tenant AND entidade = p_entidade AND ativo AND obrigatorio AND NOT (p_valores ? id::text)
               AND NOT EXISTS (SELECT 1 FROM public.pet_campos_valores v WHERE v.campo_id = id AND v.registro_id = p_registro_id) LOOP

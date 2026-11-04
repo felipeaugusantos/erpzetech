@@ -1,9 +1,3 @@
--- Clínica: SNGPC para medicamentos controlados de uso veterinário (docs/sngpc.md).
--- Livro próprio (saldo por medicamento e lote), lançamentos de saldo inicial, entrada, dispensação e perda, e o registro dos
--- arquivos gerados para o SNGPC. Tabelas sem leitura nem escrita direta: tudo por funções (perfil, clínica liberada, quem lançou).
--- Lançamento e item não se alteram nem se apagam (cancela-se com motivo, fora de período já transmitido); nenhum lote fica com saldo negativo.
-
--- ============ CPF do farmacêutico (vai no cabeçalho do XML) ============
 ALTER TABLE public.pet_profissionais ADD COLUMN IF NOT EXISTS cpf text;
 ALTER TABLE public.pet_profissionais DROP CONSTRAINT IF EXISTS pet_profissionais_cpf_chk;
 ALTER TABLE public.pet_profissionais ADD CONSTRAINT pet_profissionais_cpf_chk CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$');
@@ -26,7 +20,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._cpf_valido(text) FROM PUBLIC, anon, authenticated;
 
--- pet_profissional_salvar: farmacêutico passa a exigir o CPF (as demais regras são as de antes)
 CREATE OR REPLACE FUNCTION public.pet_profissional_salvar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -66,7 +59,6 @@ BEGIN
   IF v_funcao = 'farmaceutico' THEN
     IF v_crf !~ '^[0-9A-Z]{3,12}$' THEN RAISE EXCEPTION 'Informe o CRF do farmacêutico'; END IF;
     IF v_crf_uf !~ v_ufs THEN RAISE EXCEPTION 'Informe a UF do CRF'; END IF;
-    -- o XML do SNGPC leva o CPF de quem transmite
     IF NOT public._cpf_valido(v_cpf) THEN RAISE EXCEPTION 'Informe o CPF do farmacêutico (11 números, válido)'; END IF;
   ELSE
     v_crf := NULL; v_crf_uf := NULL; v_cpf := NULL;
@@ -92,14 +84,12 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_profissional_salvar(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_profissional_salvar(jsonb) TO authenticated;
 
--- ============ cadastro de medicamento controlado ============
 CREATE TABLE IF NOT EXISTS public.sngpc_medicamentos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
   produto_id uuid NOT NULL REFERENCES public.produtos(id),
   registro_ms text NOT NULL CHECK (registro_ms ~ '^[0-9]{13}$'),
   lista text NOT NULL CHECK (lista IN ('A1', 'A2', 'A3', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4', 'C5')),
-  -- 1 = caixas, 2 = frascos (st_UnidadeMedidaMedicamento do guia da Anvisa)
   unidade_medida smallint NOT NULL CHECK (unidade_medida IN (1, 2)),
   ativo boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -108,17 +98,14 @@ CREATE TABLE IF NOT EXISTS public.sngpc_medicamentos (
 CREATE UNIQUE INDEX IF NOT EXISTS sngpc_medicamentos_produto_idx ON public.sngpc_medicamentos (produto_id);
 CREATE UNIQUE INDEX IF NOT EXISTS sngpc_medicamentos_registro_idx ON public.sngpc_medicamentos (tenant_id, registro_ms);
 
--- ============ lançamentos ============
 CREATE TABLE IF NOT EXISTS public.sngpc_documentos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
   tipo text NOT NULL CHECK (tipo IN ('saldo_inicial', 'entrada', 'venda', 'perda')),
   data date NOT NULL CHECK (data <= current_date + 1),
-  -- entrada: nota fiscal de compra
   nf_numero bigint,
   nf_data date,
   cnpj_origem text,
-  -- venda: dispensação por receita ou notificação (uso veterinário: prescritor sempre CRMV)
   tipo_receituario smallint,
   numero_notificacao text,
   data_prescricao date,
@@ -135,7 +122,6 @@ CREATE TABLE IF NOT EXISTS public.sngpc_documentos (
   paciente_idade integer,
   paciente_unidade_idade smallint,
   paciente_sexo smallint,
-  -- perda
   motivo_perda smallint,
   observacao text CHECK (observacao IS NULL OR length(observacao) <= 300),
   registrado_por uuid DEFAULT auth.uid(),
@@ -146,7 +132,6 @@ CREATE TABLE IF NOT EXISTS public.sngpc_documentos (
   cancelado_motivo text,
   CHECK ((cancelado_em IS NULL) = (cancelado_por_nome IS NULL)),
   CHECK (cancelado_em IS NULL OR length(btrim(coalesce(cancelado_motivo, ''))) > 0),
-  -- coalesce: campo que falta deixa a conta nula, e CHECK nulo passaria
   CHECK (coalesce(CASE tipo
     WHEN 'saldo_inicial' THEN true
     WHEN 'entrada' THEN nf_numero > 0 AND nf_data IS NOT NULL AND nf_data <= data AND cnpj_origem ~ '^[0-9]{14}$'
@@ -171,7 +156,6 @@ CREATE TABLE IF NOT EXISTS public.sngpc_itens (
   medicamento_id uuid NOT NULL REFERENCES public.sngpc_medicamentos(id),
   lote text NOT NULL CHECK (lote ~ '^[A-Z0-9._/-]{1,20}$'),
   validade date,
-  -- a Anvisa limita a quantidade de venda a 3 dígitos
   quantidade integer NOT NULL CHECK (quantidade BETWEEN 1 AND 999),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
@@ -200,7 +184,6 @@ CREATE TABLE IF NOT EXISTS public.sngpc_envios (
 );
 CREATE INDEX IF NOT EXISTS sngpc_envios_idx ON public.sngpc_envios (tenant_id, tipo, fim DESC);
 
--- ============ imutabilidade ============
 CREATE OR REPLACE FUNCTION public._sngpc_documento_guarda()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -229,7 +212,6 @@ DROP TRIGGER IF EXISTS trg_sngpc_item_guarda ON public.sngpc_itens;
 CREATE TRIGGER trg_sngpc_item_guarda BEFORE UPDATE OR DELETE ON public.sngpc_itens
   FOR EACH ROW EXECUTE FUNCTION public._sngpc_item_guarda();
 
--- o envio guarda o arquivo como foi gerado: só a situação (transmitido, cancelado) muda
 CREATE OR REPLACE FUNCTION public._sngpc_envio_guarda()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -249,7 +231,6 @@ CREATE TRIGGER trg_sngpc_envio_guarda BEFORE UPDATE OR DELETE ON public.sngpc_en
 DROP TRIGGER IF EXISTS trg_sngpc_medicamentos_updated ON public.sngpc_medicamentos;
 CREATE TRIGGER trg_sngpc_medicamentos_updated BEFORE UPDATE ON public.sngpc_medicamentos FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
--- ============ acesso: nenhuma leitura nem escrita direta ============
 DO $$
 DECLARE t text;
 BEGIN
@@ -262,8 +243,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- ============ apoio ============
--- Quem opera o SNGPC: administrador, gestor ou veterinário, com a clínica liberada. Devolve o nome de quem opera (fica no registro).
 CREATE OR REPLACE FUNCTION public._sngpc_ator()
 RETURNS text
 LANGUAGE plpgsql
@@ -280,7 +259,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._sngpc_ator() FROM PUBLIC, anon, authenticated;
 
--- Último dia já coberto por um envio transmitido: nada dessa data para trás se altera.
 CREATE OR REPLACE FUNCTION public._sngpc_fechado_ate()
 RETURNS date
 LANGUAGE sql
@@ -292,7 +270,6 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public._sngpc_fechado_ate() FROM PUBLIC, anon, authenticated;
 
--- O saldo do lote nunca fica negativo, em nenhuma data (no mesmo dia, entra antes de sair).
 CREATE OR REPLACE FUNCTION public._sngpc_lote_ok(p_medicamento_id uuid, p_lote text)
 RETURNS boolean
 LANGUAGE sql
@@ -309,7 +286,6 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public._sngpc_lote_ok(uuid, text) FROM PUBLIC, anon, authenticated;
 
--- ============ medicamentos controlados ============
 CREATE OR REPLACE FUNCTION public.sngpc_medicamento_salvar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -334,7 +310,6 @@ BEGIN
     INSERT INTO public.sngpc_medicamentos (tenant_id, produto_id, registro_ms, lista, unidade_medida, ativo) VALUES (v_tenant, v_prod, v_reg, v_lista, v_un, v_ativo)
     RETURNING id INTO v_id;
   ELSE
-    -- depois de ter movimento, a unidade e o registro não mudam (o livro e os arquivos já enviados dependem deles)
     IF EXISTS (SELECT 1 FROM public.sngpc_itens WHERE medicamento_id = v_id)
        AND EXISTS (SELECT 1 FROM public.sngpc_medicamentos m WHERE m.id = v_id AND (m.registro_ms <> v_reg OR m.unidade_medida <> v_un)) THEN
       RAISE EXCEPTION 'Este medicamento já tem movimento: o registro e a unidade não mudam';
@@ -365,8 +340,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_medicamentos() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_medicamentos() TO authenticated;
 
--- ============ lançar ============
--- p_tipo: saldo_inicial | entrada | venda | perda. p_dados: data, itens [{medicamento_id, lote, quantidade, validade}] e os campos do tipo.
 CREATE OR REPLACE FUNCTION public.sngpc_registrar(p_tipo text, p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -479,8 +452,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_cancelar(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_cancelar(uuid, text) TO authenticated;
 
--- ============ saldo e livro ============
--- Saldo por medicamento e lote até a data (hoje se vazia); só os lotes com saldo.
 CREATE OR REPLACE FUNCTION public.sngpc_saldo(p_data date DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -511,7 +482,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_saldo(date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_saldo(date) TO authenticated;
 
--- Lançamentos com itens, do mais novo ao mais antigo (inclui os cancelados, marcados).
 CREATE OR REPLACE FUNCTION public.sngpc_livro(p_inicio date DEFAULT NULL, p_fim date DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -542,7 +512,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_livro(date, date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_livro(date, date) TO authenticated;
 
--- ============ envio: dados para o XML ============
 CREATE OR REPLACE FUNCTION public.sngpc_responsaveis()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -574,7 +543,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._sngpc_cnpj() FROM PUBLIC, anon, authenticated;
 
--- Movimentação do período (sem o saldo inicial, que vai no inventário): lançamentos não cancelados com os itens e o registro de cada medicamento.
 CREATE OR REPLACE FUNCTION public.sngpc_periodo(p_inicio date, p_fim date)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -608,7 +576,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_periodo(date, date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_periodo(date, date) TO authenticated;
 
--- Inventário na data: o saldo de cada lote (a data pode ser até 7 dias antes da transmissão, conforme o guia).
 CREATE OR REPLACE FUNCTION public.sngpc_inventario(p_data date)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -627,8 +594,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.sngpc_inventario(date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sngpc_inventario(date) TO authenticated;
 
--- ============ envios ============
--- Guarda o arquivo gerado (a tela monta o XML a partir de sngpc_periodo / sngpc_inventario). Período de movimentação não se sobrepõe a outro envio.
 CREATE OR REPLACE FUNCTION public.sngpc_envio_registrar(p_dados jsonb)
 RETURNS uuid
 LANGUAGE plpgsql

@@ -1,12 +1,3 @@
--- Pet: cobrança no caixa da ordem de serviço do pet e da internação (docs/sngpc.md não envolve; ver roadmap).
--- Mesmo molde do banho e tosa e do lava rápido: o operador faz a venda na frente de caixa de sempre e, depois, a função de vínculo
--- confere que a venda traz cada item pelo valor combinado, liga as duas pontas e entrega/encerra a cobrança.
--- Cuidado próprio: OS e internação já baixaram o estoque dos produtos, e a venda do caixa baixaria de novo. No vínculo, a baixa
--- da OS/internação é devolvida (a venda fica com a única baixa); se a venda for cancelada, a baixa é refeita e a cobrança volta a estar aberta.
--- Esta etapa NÃO emite NFS-e nem calcula comissão: o tratamento fiscal e de comissão de serviço clínico espera o contador (roadmap, PR 5).
-
--- ============ apoio ============
--- Serviço avulso (item digitado na OS ou na internação, sem produto) precisa de um produto para entrar numa venda do caixa.
 CREATE OR REPLACE FUNCTION public._pet_produto_avulso()
 RETURNS uuid
 LANGUAGE plpgsql
@@ -27,7 +18,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._pet_produto_avulso() FROM PUBLIC, anon, authenticated;
 
--- A venda do caixa: do tenant, da filial do operador, do PDV e não cancelada. Devolve o pedido (pelo id ou pela chave de repetição).
 CREATE OR REPLACE FUNCTION public._pet_venda_valida(p_pedido_id uuid, p_chave uuid)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -51,7 +41,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._pet_venda_valida(uuid, uuid) FROM PUBLIC, anon, authenticated;
 
--- O caixa tem uma linha por produto: o mesmo produto com dois valores na mesma ordem/internação não dá para cobrar de uma vez.
 CREATE OR REPLACE FUNCTION public._pet_linhas_unicas(p_linhas jsonb)
 RETURNS void
 LANGUAGE plpgsql
@@ -64,7 +53,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._pet_linhas_unicas(jsonb) FROM PUBLIC, anon, authenticated;
 
--- A venda precisa trazer cada item (produto, valor unitário e quantidade) combinado. p_exigidos: [{produto_id, preco, quantidade, descricao}].
 CREATE OR REPLACE FUNCTION public._pet_venda_confere(p_pedido_id uuid, p_exigidos jsonb)
 RETURNS void
 LANGUAGE plpgsql
@@ -85,11 +73,9 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public._pet_venda_confere(uuid, jsonb) FROM PUBLIC, anon, authenticated;
 
--- ============ ordem de serviço do pet ============
 ALTER TABLE public.os_ordens ADD COLUMN IF NOT EXISTS venda_id uuid REFERENCES public.pedidos(id);
 CREATE UNIQUE INDEX IF NOT EXISTS os_ordens_venda_idx ON public.os_ordens (venda_id) WHERE venda_id IS NOT NULL;
 
--- o cliente não escreve o vínculo com a venda pela tabela: só a função de cobrança
 CREATE OR REPLACE FUNCTION public.os_ordens_protege_pet()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -100,7 +86,6 @@ BEGIN
       NEW.pet_id := NULL; NEW.pet_resumo := NULL; NEW.pet_profissional_id := NULL; NEW.venda_id := NULL;
     ELSE
       NEW.pet_id := OLD.pet_id; NEW.pet_resumo := OLD.pet_resumo; NEW.pet_profissional_id := OLD.pet_profissional_id; NEW.venda_id := OLD.venda_id;
-      -- ordem do pet só anda pelas funções (a cobrança no caixa não pode ser contornada marcando a ordem como entregue)
       IF OLD.pet_id IS NOT NULL THEN
         NEW.situacao := OLD.situacao; NEW.controla_estoque := OLD.controla_estoque; NEW.desconto := OLD.desconto;
         NEW.deposito_id := OLD.deposito_id; NEW.entregue_em := OLD.entregue_em;
@@ -110,7 +95,6 @@ BEGIN
   RETURN NEW;
 END $$;
 
--- os itens da ordem do pet também só mudam pelas funções (senão a ordem cobrada ganharia item que a venda não tem)
 CREATE OR REPLACE FUNCTION public.os_itens_protege_pet()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -128,7 +112,6 @@ DROP TRIGGER IF EXISTS os_itens_protege_pet_trg ON public.os_itens;
 CREATE TRIGGER os_itens_protege_pet_trg BEFORE INSERT OR UPDATE OR DELETE ON public.os_itens
   FOR EACH ROW EXECUTE FUNCTION public.os_itens_protege_pet();
 
--- Itens da ordem para o caixa: um por linha de venda (mesmo produto e mesmo valor somam), com o serviço avulso no produto de apoio.
 CREATE OR REPLACE FUNCTION public._pet_os_linhas(p_os_id uuid)
 RETURNS jsonb
 LANGUAGE sql
@@ -145,7 +128,6 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public._pet_os_linhas(uuid) FROM PUBLIC, anon, authenticated;
 
--- O que o caixa precisa para cobrar a ordem pronta: tutor, linhas e o desconto combinado.
 CREATE OR REPLACE FUNCTION public.pet_os_cobranca(p_os_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -171,7 +153,21 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_os_cobranca(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_os_cobranca(uuid) TO authenticated;
 
--- Vínculo: a venda do caixa cobra a ordem pronta. A ordem passa a entregue e a baixa de estoque dela é devolvida (a venda baixa).
+CREATE TABLE IF NOT EXISTS public.pet_internacao_cobrancas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
+  internacao_id uuid NOT NULL UNIQUE REFERENCES public.pet_internacoes(id),
+  pedido_id uuid NOT NULL UNIQUE REFERENCES public.pedidos(id),
+  devolvido jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(devolvido) = 'array'),
+  criado_por uuid DEFAULT auth.uid(),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+REVOKE ALL ON public.pet_internacao_cobrancas FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.pet_internacao_cobrancas TO service_role;
+ALTER TABLE public.pet_internacao_cobrancas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS salao_restrito ON public.pet_internacao_cobrancas;
+CREATE POLICY salao_restrito ON public.pet_internacao_cobrancas AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
+
 CREATE OR REPLACE FUNCTION public.pet_os_cobrar(p_os_id uuid, p_pedido_id uuid DEFAULT NULL, p_chave uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -189,7 +185,6 @@ BEGIN
   SELECT * INTO o FROM public.os_ordens WHERE id = p_os_id AND tenant_id = v_tenant AND pet_id IS NOT NULL FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ordem de serviço não encontrada'; END IF;
   IF o.situacao = 'entregue' AND o.venda_id IS NOT NULL AND (o.venda_id = p_pedido_id OR p_pedido_id IS NULL) THEN
-    -- repetir a chamada (resposta perdida) devolve o mesmo resultado
     RETURN jsonb_build_object('pedido_id', o.venda_id, 'repetido', true);
   END IF;
   IF o.situacao <> 'pronta' THEN RAISE EXCEPTION 'Só dá para cobrar ordem pronta (situação atual: %)', o.situacao; END IF;
@@ -206,7 +201,6 @@ BEGIN
   END IF;
   PERFORM public._pet_venda_confere(v_pedido, v_exigidos);
 
-  -- a ordem deixa de baixar estoque (devolve o que baixou): quem baixa agora é a venda
   UPDATE public.os_ordens SET situacao = 'entregue', venda_id = v_pedido, entregue_em = now(), controla_estoque = false WHERE id = o.id;
   RETURN jsonb_build_object('pedido_id', v_pedido, 'repetido', false);
 END $$;
@@ -234,7 +228,6 @@ BEGIN
   IF o.situacao IN ('entregue', 'cancelada') THEN RAISE EXCEPTION 'Ordem já encerrada'; END IF;
   IF p_situacao = o.situacao::text THEN RETURN; END IF;
   IF p_situacao = 'entregue' AND o.situacao <> 'pronta' THEN RAISE EXCEPTION 'Só a ordem pronta pode ser entregue'; END IF;
-  -- ordem com valor só sai pela cobrança no caixa (pet_os_cobrar); sem valor (ou zerada por desconto), entrega direto
   IF p_situacao = 'entregue' AND o.venda_id IS NULL AND o.valor_total > 0 THEN
     RAISE EXCEPTION 'Esta ordem tem valor a cobrar: use "Cobrar no caixa" (ou zere o valor com desconto)';
   END IF;
@@ -249,25 +242,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_os_situacao(uuid, text, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_os_situacao(uuid, text, uuid) TO authenticated;
 
--- ============ internação ============
--- Uma linha por internação cobrada. Sem acesso direto: só as funções leem e gravam. `devolvido` guarda a baixa de estoque que foi
--- devolvida no vínculo, para refazê-la se a venda for cancelada.
-CREATE TABLE IF NOT EXISTS public.pet_internacao_cobrancas (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL DEFAULT public.current_tenant_id() REFERENCES public.tenants(id),
-  internacao_id uuid NOT NULL UNIQUE REFERENCES public.pet_internacoes(id),
-  pedido_id uuid NOT NULL UNIQUE REFERENCES public.pedidos(id),
-  devolvido jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(devolvido) = 'array'),
-  criado_por uuid DEFAULT auth.uid(),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.pet_internacao_cobrancas ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.pet_internacao_cobrancas FROM PUBLIC, anon, authenticated;
-GRANT ALL ON public.pet_internacao_cobrancas TO service_role;
-DROP POLICY IF EXISTS salao_restrito ON public.pet_internacao_cobrancas;
-CREATE POLICY salao_restrito ON public.pet_internacao_cobrancas AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
-
--- Quem cobra: recepção e gestão (o veterinário e o auxiliar não passam pelo caixa). Só os itens e o total saem daqui, nunca o texto clínico.
 CREATE OR REPLACE FUNCTION public._internacao_exige_cobranca()
 RETURNS void
 LANGUAGE plpgsql
@@ -299,7 +273,6 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public._internacao_linhas(uuid) FROM PUBLIC, anon, authenticated;
 
--- Internações encerradas (alta ou óbito) com itens e ainda sem cobrança: a lista da recepção.
 CREATE OR REPLACE FUNCTION public.clinica_internacoes_a_cobrar()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -351,7 +324,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_cobranca(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_cobranca(uuid) TO authenticated;
 
--- Vínculo: a venda do caixa cobra a internação encerrada. A baixa de estoque da internação é devolvida (a venda baixa).
 CREATE OR REPLACE FUNCTION public.clinica_internacao_cobrar(p_id uuid, p_pedido_id uuid DEFAULT NULL, p_chave uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -373,7 +345,6 @@ BEGIN
   SELECT * INTO b FROM public.pet_internacao_cobrancas WHERE internacao_id = i.id;
   IF FOUND THEN
     IF p_pedido_id IS NULL OR b.pedido_id = p_pedido_id THEN
-      -- repetir a chamada (resposta perdida) devolve o mesmo resultado
       RETURN jsonb_build_object('pedido_id', b.pedido_id, 'repetido', true);
     END IF;
     RAISE EXCEPTION 'Esta internação já foi cobrada por outra venda';
@@ -400,9 +371,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.clinica_internacao_cobrar(uuid, uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_internacao_cobrar(uuid, uuid, uuid) TO authenticated;
 
--- ============ venda cancelada no caixa ============
--- A ordem volta a "pronta" (e baixa o estoque de novo, como antes da cobrança); a internação volta a ficar por cobrar
--- (a baixa devolvida no vínculo é refeita).
 CREATE OR REPLACE FUNCTION public.pet_cobranca_venda_cancelada()
 RETURNS trigger
 LANGUAGE plpgsql
