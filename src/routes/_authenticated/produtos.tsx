@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Barcode, Pencil, Plus, Ruler, ScanSearch, Search, Wand2 } from "lucide-react";
@@ -67,6 +67,14 @@ export const Route = createFileRoute("/_authenticated/produtos")({
       { property: "og:description", content: "Catálogo de materiais de construção da loja." },
     ],
   }),
+  // vindo do bulário veterinário: abre o cadastro com nome e fabricante preenchidos (a pessoa revisa e salva)
+  validateSearch: (s: Record<string, unknown>): { novo?: string; fab?: string } => {
+    const texto = (v: unknown) =>
+      typeof v === "string" && v.trim() ? v.trim().slice(0, 200) : null;
+    const novo = texto(s["novo"]);
+    const fab = texto(s["fab"]);
+    return { ...(novo ? { novo } : {}), ...(fab ? { fab } : {}) };
+  },
   component: Produtos,
 });
 
@@ -160,6 +168,20 @@ function Produtos() {
   // o módulo da empresa define os campos próprios do cadastro (sem ramo definido vale construção, como no resto do sistema)
   const ramo = session?.empresa?.ramo_atividade ?? "construcao";
   const novoForm = (): Form => ({ ...vazio, dados_modulo: dadosVazios(ramo) });
+  const { novo: novoDoBulario, fab: fabDoBulario } = Route.useSearch();
+  const navigate = useNavigate({ from: "/produtos" });
+  useEffect(() => {
+    if (!novoDoBulario || !session) return;
+    setForm({
+      ...vazio,
+      dados_modulo: dadosVazios(ramo),
+      descricao: novoDoBulario,
+      fabricante: fabDoBulario ?? "",
+    });
+    setOpen(true);
+    void navigate({ search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novoDoBulario, fabDoBulario, session]);
   // Texto da margem enquanto o usuário digita; null = mostrar a margem calculada.
   const [margemTxt, setMargemTxt] = useState<string | null>(null);
 

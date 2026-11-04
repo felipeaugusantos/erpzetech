@@ -45,6 +45,7 @@ done
 
 # provas comportamentais da clínica (fila do dia, modelos de receita, lembretes de WhatsApp)
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/clinica-lembretes-receita-fila.sql
+PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/bulario.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/smoke.sql
 # concorrência de verdade (duas sessões ao mesmo tempo) da agenda do lava rápido
 bash ci/lava-agenda-concorrencia.sh
