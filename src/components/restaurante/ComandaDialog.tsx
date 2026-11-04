@@ -4,11 +4,14 @@ import {
   ArrowRightLeft,
   Check,
   ChefHat,
+  GitMerge,
   HandCoins,
+  Wallet,
   MoreHorizontal,
   Printer,
   Receipt,
   Send,
+  Ticket,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,12 +36,18 @@ import {
 } from "@/components/ui/select";
 import { BaixaParcialDialog } from "@/components/restaurante/BaixaParcialDialog";
 import { DeliveryPainel } from "@/components/restaurante/DeliveryPainel";
+import { CreditoDialog } from "@/components/restaurante/CreditoDialog";
+import { DevolverCreditoDialog } from "@/components/restaurante/DevolverCreditoDialog";
+import { JuntarContasDialog } from "@/components/restaurante/JuntarContasDialog";
 import { FecharContaDialog } from "@/components/restaurante/FecharContaDialog";
 import { MotivoDialog } from "@/components/restaurante/MotivoDialog";
 import { useCardapio } from "@/hooks/useCardapio";
+import { urlFotoCardapio } from "@/lib/cardapio-foto";
+import { cardapioSugerido, itensDoCardapio, precoNoCardapio } from "@/lib/cardapios";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
+import { htmlTicketSenha } from "@/lib/ticket-senha";
 import { htmlEtiquetaComanda } from "@/lib/etiqueta-comanda";
 import { brl } from "@/lib/format";
 import {
@@ -77,11 +86,15 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   const [categoria, setCategoria] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [escolhendo, setEscolhendo] = useState<CardapioItem | null>(null);
+  const [cardapioSel, setCardapioSel] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<ComandaItem | "comanda" | null>(null);
   const [transferindo, setTransferindo] = useState(false);
   const [destino, setDestino] = useState("");
   const [fechando, setFechando] = useState(false);
   const [baixando, setBaixando] = useState(false);
+  const [creditando, setCreditando] = useState(false);
+  const [juntando, setJuntando] = useState(false);
+  const [devolvendo, setDevolvendo] = useState(false);
 
   const { data: cardapio } = useCardapio();
 
@@ -140,17 +153,34 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
   });
 
   const atualizar = () => void qc.invalidateQueries({ queryKey: [CHAVE_REST] });
+
+  // cardápios em uso nesta comanda (salão ou delivery); o sugerido segue o horário, e dá para trocar
+  const menusUso = (cardapio?.cardapios ?? []).filter(
+    (m) => m.ativo && (comanda?.tipo === "delivery" ? m.uso_delivery : m.uso_salao),
+  );
+  const menuAtual =
+    menusUso.find((m) => m.id === cardapioSel) ?? cardapioSugerido(menusUso, agora) ?? null;
   const erro = (e: Error) => toast.error(e.message);
 
   const lancar = useMutation({
     mutationFn: (p: { item: string; qtd: number; opcoes: string[]; obs: string }) =>
-      rpcRestaurante("restaurante_lancar_item", {
-        p_comanda_id: comandaId,
-        p_cardapio_item_id: p.item,
-        p_quantidade: p.qtd,
-        p_opcoes: p.opcoes,
-        p_observacao: p.obs || null,
-      }),
+      // com um cardápio em uso, o banco cobra o preço daquele cardápio
+      menuAtual
+        ? rpcRestaurante("restaurante_lancar_item_no_cardapio", {
+            p_comanda_id: comandaId,
+            p_cardapio_item_id: p.item,
+            p_quantidade: p.qtd,
+            p_cardapio_id: menuAtual.id,
+            p_opcoes: p.opcoes,
+            p_observacao: p.obs || null,
+          })
+        : rpcRestaurante("restaurante_lancar_item", {
+            p_comanda_id: comandaId,
+            p_cardapio_item_id: p.item,
+            p_quantidade: p.qtd,
+            p_opcoes: p.opcoes,
+            p_observacao: p.obs || null,
+          }),
     onSuccess: atualizar,
     onError: erro,
   });
@@ -228,14 +258,24 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
       })
     : null;
 
+  // sobra: recebido acima do total atual da conta (com serviço e couvert), a devolver ao cliente
+  const sobraCredito = conta ? Math.round((jaPago - (conta.total ?? 0)) * 100) / 100 : 0;
+  const rotuloConta = mesa ? `mesa ${mesa.numero}` : `comanda ${comanda?.numero ?? ""}`;
+
   const itensFiltrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return (cardapio?.itens ?? []).filter(
-      (i) =>
-        (categoria === "todas" || i.categoria_id === categoria) &&
-        (!t || i.nome.toLowerCase().includes(t)),
-    );
-  }, [cardapio, categoria, busca]);
+    // item por peso só entra pela Balança (o banco recusa o lançamento comum)
+    const base = menuAtual
+      ? itensDoCardapio(cardapio?.itens ?? [], cardapio?.vinculos ?? [], menuAtual.id)
+      : (cardapio?.itens ?? []);
+    return base
+      .filter((i) => !i.venda_por_peso)
+      .filter(
+        (i) =>
+          (categoria === "todas" || i.categoria_id === categoria) &&
+          (!t || i.nome.toLowerCase().includes(t)),
+      );
+  }, [cardapio, categoria, busca, menuAtual]);
 
   function tocar(item: CardapioItem) {
     const grupos = (cardapio?.grupos ?? []).filter((g) => g.item_id === item.id);
@@ -262,6 +302,52 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
     janela.document.close();
     janela.focus();
     setTimeout(() => janela.print(), 300);
+  }
+
+  /** Senha do pedido de balcão: envia o pedido à produção e imprime o ticket. */
+  const emitirSenha = useMutation({
+    mutationFn: async (janela: Window | null) => {
+      if (!comanda) throw new Error("Comanda não carregada");
+      const r = await rpcRestaurante<{ senha: number; enviados: number; nova: boolean }>(
+        "restaurante_emitir_senha",
+        { p_comanda_id: comanda.id },
+      );
+      return { r, janela };
+    },
+    onSuccess: ({ r, janela }) => {
+      toast.success(
+        r.nova ? `Senha ${r.senha} emitida e pedido enviado` : `Senha ${r.senha} (reimpressa)`,
+      );
+      if (janela && comanda) {
+        janela.document.write(
+          htmlTicketSenha({
+            loja: sessao?.empresa?.nome_fantasia || sessao?.empresa?.razao_social || null,
+            senha: r.senha,
+            comanda: comanda.numero,
+            itens: validos.map((i) => ({
+              nome: i.nome,
+              quantidade: Number(i.quantidade),
+              observacao: i.observacao,
+            })),
+            emitidoEm: new Date().toLocaleString("pt-BR"),
+          }),
+        );
+        janela.document.close();
+        janela.focus();
+        setTimeout(() => janela.print(), 300);
+      }
+      atualizar();
+    },
+    onError: (e: Error, janela) => {
+      janela?.close();
+      toast.error(e.message);
+    },
+  });
+
+  function pedirSenha() {
+    // a janela de impressão abre no clique, antes de chamar o banco
+    const janela = window.open("", "_blank", "width=420,height=640");
+    emitirSenha.mutate(janela);
   }
 
   /** Conta para conferência na mesa: o cliente vê o total com e sem o serviço opcional. */
@@ -323,6 +409,19 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       onChange={(e) => setBusca(e.target.value)}
                       aria-label="Buscar no cardápio"
                     />
+                    {menusUso.length > 1 && (
+                      <div className="flex flex-wrap gap-1" role="group" aria-label="Cardápio">
+                        {menusUso.map((m) => (
+                          <Chip
+                            key={m.id}
+                            ativo={menuAtual?.id === m.id}
+                            onClick={() => setCardapioSel(m.id)}
+                          >
+                            {m.nome}
+                          </Chip>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-1">
                       <Chip ativo={categoria === "todas"} onClick={() => setCategoria("todas")}>
                         Todas
@@ -347,9 +446,19 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                           disabled={lancar.isPending}
                           className="h-full w-full rounded-lg border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary disabled:opacity-60"
                         >
+                          {urlFotoCardapio(i.foto_path) && (
+                            <img
+                              src={urlFotoCardapio(i.foto_path)!}
+                              alt=""
+                              loading="lazy"
+                              className="mb-2 h-20 w-full rounded object-cover"
+                            />
+                          )}
                           <span className="block pr-6 font-medium leading-tight">{i.nome}</span>
                           <span className="mt-1 block text-sm text-muted-foreground">
-                            {brl(i.preco)}
+                            {brl(
+                              precoNoCardapio(i, cardapio?.vinculos ?? [], menuAtual?.id ?? null),
+                            )}
                           </span>
                         </button>
                         <button
@@ -527,6 +636,42 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
                       </Button>
                     )}
                   </div>
+                  {comanda?.tipo === "salao" && !comanda.mesa_id && validos.length > 0 && (
+                    <Button variant="outline" onClick={pedirSenha} disabled={emitirSenha.isPending}>
+                      <Ticket className="mr-2 size-4" />
+                      {comanda.senha
+                        ? `Reimprimir senha ${comanda.senha}`
+                        : "Emitir senha e enviar à produção"}
+                    </Button>
+                  )}
+                  {comanda?.tipo !== "delivery" && (
+                    <Button variant="outline" onClick={() => setJuntando(true)}>
+                      <GitMerge className="mr-2 size-4" /> Juntar contas
+                    </Button>
+                  )}
+                  {recebeConta(roles) && (
+                    <Button variant="outline" onClick={() => setCreditando(true)}>
+                      <Wallet className="mr-2 size-4" /> Adicionar crédito
+                    </Button>
+                  )}
+                  {conta?.pagoExcede && (
+                    <p className="rounded border border-amber-300 bg-amber-50 p-2 text-sm">
+                      O recebido passa do total da conta em {brl(sobraCredito)}. Devolva a sobra
+                      para poder fechar.
+                      {gestao ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-2"
+                          onClick={() => setDevolvendo(true)}
+                        >
+                          Devolver sobra
+                        </Button>
+                      ) : (
+                        " A devolução é feita pela gestão."
+                      )}
+                    </p>
+                  )}
                   {recebeConta(roles) && (
                     <Button
                       variant="outline"
@@ -565,7 +710,10 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
 
       {escolhendo && cardapio && (
         <EscolherItemDialog
-          item={escolhendo}
+          item={{
+            ...escolhendo,
+            preco: precoNoCardapio(escolhendo, cardapio.vinculos, menuAtual?.id ?? null),
+          }}
           grupos={cardapio.grupos.filter((g) => g.item_id === escolhendo.id)}
           opcoes={cardapio.opcoes}
           carregando={lancar.isPending}
@@ -636,6 +784,32 @@ export function ComandaDialog({ comandaId, roles, mesas, mesasLivres, onFechar }
             setFechando(false);
             onFechar();
           }}
+        />
+      )}
+
+      {creditando && comanda && (
+        <CreditoDialog
+          comanda={comanda}
+          rotulo={rotuloConta}
+          onFechar={() => setCreditando(false)}
+        />
+      )}
+
+      {juntando && comanda && (
+        <JuntarContasDialog
+          comanda={comanda}
+          rotulo={rotuloConta}
+          mesas={mesas}
+          gestao={gestao}
+          onFechar={() => setJuntando(false)}
+        />
+      )}
+
+      {devolvendo && comanda && sobraCredito > 0 && (
+        <DevolverCreditoDialog
+          comanda={comanda}
+          sobra={sobraCredito}
+          onFechar={() => setDevolvendo(false)}
         />
       )}
 

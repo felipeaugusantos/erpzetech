@@ -8,6 +8,8 @@ export type Mesa = {
   numero: string;
   capacidade: number | null;
   ativa: boolean;
+  bloqueada: boolean;
+  bloqueio_motivo: string | null;
   filial_id: string | null;
 };
 
@@ -33,6 +35,9 @@ export type Comanda = {
   tipo: "salao" | "delivery";
   canal: "proprio" | "ifood";
   codigo_externo: string | null;
+  unida_em_id: string | null;
+  senha: number | null;
+  senha_data: string | null;
   entrega_telefone: string | null;
   entrega_endereco: string | null;
   entrega_bairro: string | null;
@@ -45,6 +50,38 @@ export type Comanda = {
   entregue_cliente_em: string | null;
 };
 
+export type MesaReserva = {
+  id: string;
+  mesa_id: string;
+  nome: string;
+  telefone: string | null;
+  pessoas: number | null;
+  reservada_para: string;
+  observacao: string | null;
+  situacao: "ativa" | "atendida" | "cancelada";
+};
+
+/** Pedido de canal externo na caixa de entrada (o conteúdo está em `pedido`). */
+export type PedidoExternoRegistro = {
+  id: string;
+  canal: "ifood";
+  codigo_externo: string;
+  numero_exibicao: string | null;
+  pedido: import("@/lib/pedido-externo").PedidoExterno;
+  situacao: "recebido" | "aceito" | "recusado";
+  comanda_id: string | null;
+  motivo: string | null;
+  recebido_em: string;
+};
+
+export type { CardapioCadastro as Cardapio, VinculoCardapio } from "@/lib/cardapios";
+
+/** Tara (prato, vasilhame) descontada na pesagem. */
+export type Tara = { id: string; nome: string; peso_g: number; ativo: boolean };
+
+/** Praça de produção cadastrada pela gestão (além de cozinha e bar, que são fixas). */
+export type Praca = { id: string; codigo: string; nome: string; ativo: boolean };
+
 export type ZonaEntrega = { id: string; nome: string; taxa: number; ativo: boolean };
 
 export type ComandaItem = {
@@ -52,13 +89,17 @@ export type ComandaItem = {
   comanda_id: string;
   cardapio_item_id: string;
   nome: string;
-  estacao: "cozinha" | "bar" | "nenhuma";
+  estacao: string;
   opcoes: { nome: string; preco_adicional: number }[];
   quantidade: number;
   preco_unitario: number;
   total: number;
   observacao: string | null;
   situacao: "pendente" | "enviado" | "preparando" | "pronto" | "entregue" | "cancelado";
+  peso_bruto_g: number | null;
+  tara_g: number | null;
+  peso_liquido_g: number | null;
+  teto_buffet: boolean;
   pago_em: string | null;
   pagante: string | null;
   enviado_em: string | null;
@@ -73,6 +114,8 @@ export type PagamentoComanda = {
   valor: number;
   pagante: string | null;
   parcial: boolean;
+  credito: boolean;
+  observacao: string | null;
   created_at: string;
 };
 
@@ -89,6 +132,9 @@ export type RestauranteConfig = {
   tenant_id: string;
   baixa_estoque: boolean;
   deposito_id: string | null;
+  cardapio_online: boolean;
+  buffet_livre_ativo: boolean;
+  buffet_livre_preco: number | null;
 };
 
 export type CardapioCategoria = { id: string; nome: string; ordem: number; ativo: boolean };
@@ -101,9 +147,15 @@ export type CardapioItem = {
   nome: string;
   descricao: string | null;
   preco: number;
-  estacao: "cozinha" | "bar" | "nenhuma";
+  estacao: string;
   tempo_preparo_min: number | null;
   ordem: number;
+  foto_path: string | null;
+  /** preço é por KG; o item só entra na comanda pela pesagem */
+  venda_por_peso: boolean;
+  tara_id: string | null;
+  codigo_externo: string | null;
+  preco_ifood: number | null;
   ativo: boolean;
 };
 

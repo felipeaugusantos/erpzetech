@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { CardapioCadastro, VinculoCardapio } from "@/lib/cardapios";
 import {
   CHAVE_REST,
   tabela,
@@ -13,13 +14,16 @@ export function useCardapio(incluirInativos = false) {
   return useQuery({
     queryKey: [CHAVE_REST, "cardapio", incluirInativos],
     queryFn: async () => {
-      const [cat, itens, grupos, opcoes] = await Promise.all([
+      const [cat, itens, grupos, opcoes, menus, vinc] = await Promise.all([
         tabela("cardapio_categorias").select("*").order("ordem").order("nome"),
         tabela("cardapio_itens").select("*").order("ordem").order("nome"),
         tabela("cardapio_grupos").select("*").order("nome"),
         tabela("cardapio_opcoes").select("*").order("nome"),
+        tabela("cardapios").select("*").order("ordem").order("nome"),
+        tabela("cardapio_cardapio_itens").select("cardapio_id, item_id, preco, ordem"),
       ]);
-      for (const r of [cat, itens, grupos, opcoes]) if (r.error) throw new Error(r.error.message);
+      for (const r of [cat, itens, grupos, opcoes, menus, vinc])
+        if (r.error) throw new Error(r.error.message);
       const ativos = <T extends { ativo: boolean }>(l: T[]) =>
         incluirInativos ? l : l.filter((x) => x.ativo);
       const categorias = ativos((cat.data ?? []) as unknown as CardapioCategoria[]);
@@ -34,6 +38,8 @@ export function useCardapio(incluirInativos = false) {
           .filter(doCardapio),
         grupos: (grupos.data ?? []) as unknown as CardapioGrupo[],
         opcoes: ativos((opcoes.data ?? []) as unknown as CardapioOpcao[]),
+        cardapios: (menus.data ?? []) as unknown as CardapioCadastro[],
+        vinculos: (vinc.data ?? []) as unknown as VinculoCardapio[],
       };
     },
   });

@@ -21,6 +21,7 @@ import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedBalancaRouteImport } from './routes/_authenticated/balanca'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
@@ -127,6 +128,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
 import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
+import { Route as AuthenticatedPainelSenhasRouteImport } from './routes/_authenticated/painel-senhas'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
@@ -178,6 +180,7 @@ import { Route as AuthenticatedZeTechRelatorioFiscalRouteImport } from './routes
 import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
 import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
+import { Route as MenuEmpresaRouteImport } from './routes/menu.$empresa'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -185,6 +188,7 @@ import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authenticated/hotel-estadia.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
@@ -249,6 +253,11 @@ const AuthenticatedAssistenciaLojasRoute =
 const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBalancaRoute = AuthenticatedBalancaRouteImport.update({
+  id: '/balanca',
+  path: '/balanca',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBalancoFiscalRoute =
@@ -852,6 +861,12 @@ const AuthenticatedPainelLocacaoRoute =
     path: '/painel-locacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPainelSenhasRoute =
+  AuthenticatedPainelSenhasRouteImport.update({
+    id: '/painel-senhas',
+    path: '/painel-senhas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
@@ -1136,6 +1151,11 @@ const AuthenticatedZeTechTempoRealRoute =
     path: '/ze-tech-tempo-real',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const MenuEmpresaRoute = MenuEmpresaRouteImport.update({
+  id: '/menu/$empresa',
+  path: '/menu/$empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedComprasIndexRoute =
   AuthenticatedComprasIndexRouteImport.update({
     id: '/compras/',
@@ -1176,6 +1196,11 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
+  id: '/chamar/$empresa/$mesa',
+  path: '/chamar/$empresa/$mesa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
@@ -1207,6 +1232,7 @@ export interface FileRoutesByFullPath {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -1313,6 +1339,7 @@ export interface FileRoutesByFullPath {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1364,10 +1391,12 @@ export interface FileRoutesByFullPath {
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1387,6 +1416,7 @@ export interface FileRoutesByTo {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
@@ -1493,6 +1523,7 @@ export interface FileRoutesByTo {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1544,10 +1575,12 @@ export interface FileRoutesByTo {
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
@@ -1569,6 +1602,7 @@ export interface FileRoutesById {
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/balanca': typeof AuthenticatedBalancaRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
@@ -1675,6 +1709,7 @@ export interface FileRoutesById {
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/_authenticated/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1726,10 +1761,12 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
   '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1751,6 +1788,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -1857,6 +1895,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -1908,10 +1947,12 @@ export interface FileRouteTypes {
     | '/ze-tech-relatorios'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
@@ -1931,6 +1972,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
@@ -2037,6 +2079,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -2088,10 +2131,12 @@ export interface FileRouteTypes {
     | '/ze-tech-relatorios'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/compras'
     | '/depositos'
     | '/pedidos'
@@ -2112,6 +2157,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/auditoria'
+    | '/_authenticated/balanca'
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
@@ -2218,6 +2264,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel-filial'
     | '/_authenticated/painel-fiscal'
     | '/_authenticated/painel-locacao'
+    | '/_authenticated/painel-senhas'
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
@@ -2269,10 +2316,12 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-relatorios'
     | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
+    | '/menu/$empresa'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
@@ -2290,6 +2339,8 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  MenuEmpresaRoute: typeof MenuEmpresaRoute
+  ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -2379,6 +2430,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/balanca': {
+      id: '/_authenticated/balanca'
+      path: '/balanca'
+      fullPath: '/balanca'
+      preLoaderRoute: typeof AuthenticatedBalancaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/balanco-fiscal': {
@@ -3123,6 +3181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelLocacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel-senhas': {
+      id: '/_authenticated/painel-senhas'
+      path: '/painel-senhas'
+      fullPath: '/painel-senhas'
+      preLoaderRoute: typeof AuthenticatedPainelSenhasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pdv': {
       id: '/_authenticated/pdv'
       path: '/pdv'
@@ -3480,6 +3545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechTempoRealRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/menu/$empresa': {
+      id: '/menu/$empresa'
+      path: '/menu/$empresa'
+      fullPath: '/menu/$empresa'
+      preLoaderRoute: typeof MenuEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/compras/': {
       id: '/_authenticated/compras/'
       path: '/compras'
@@ -3529,6 +3601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/chamar/$empresa/$mesa': {
+      id: '/chamar/$empresa/$mesa'
+      path: '/chamar/$empresa/$mesa'
+      fullPath: '/chamar/$empresa/$mesa'
+      preLoaderRoute: typeof ChamarEmpresaMesaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/whatsapp-despachar': {
       id: '/api/public/hooks/whatsapp-despachar'
       path: '/api/public/hooks/whatsapp-despachar'
@@ -3558,6 +3637,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedBalancaRoute: typeof AuthenticatedBalancaRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
@@ -3664,6 +3744,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
   AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
+  AuthenticatedPainelSenhasRoute: typeof AuthenticatedPainelSenhasRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
@@ -3729,6 +3810,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedBalancaRoute: AuthenticatedBalancaRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
@@ -3838,6 +3920,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,
   AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
+  AuthenticatedPainelSenhasRoute: AuthenticatedPainelSenhasRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
@@ -3913,6 +3996,8 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  MenuEmpresaRoute: MenuEmpresaRoute,
+  ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,

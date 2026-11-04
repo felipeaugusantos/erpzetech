@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { imprimirContaComanda, itensDaConta } from "@/components/restaurante/imprimirConta";
 import { useSessionData } from "@/hooks/useSessionData";
+import { DevolverCreditoDialog } from "@/components/restaurante/DevolverCreditoDialog";
 import { PagamentosForm } from "@/components/restaurante/PagamentosForm";
 import {
   linhaInicial,
@@ -60,6 +61,7 @@ export function FecharContaDialog({
   const [desconto, setDesconto] = useState("0");
   const [caixaId, setCaixaId] = useState("");
   const [linhas, setLinhas] = useState<LinhaPagamento[]>([linhaInicial()]);
+  const [devolvendo, setDevolvendo] = useState(false);
 
   const conta = useMemo(
     () =>
@@ -74,6 +76,9 @@ export function FecharContaDialog({
       }),
     [subtotalItens, comanda, cobrarServico, desconto, gestao, jaPago],
   );
+
+  // sobra que o banco aceita devolver: recebido acima da conta sem desconto, com a escolha do serviço
+  const sobraDevolver = Math.round((conta.jaPago - conta.bruto) * 100) / 100;
 
   function imprimir() {
     imprimirContaComanda({
@@ -122,83 +127,104 @@ export function FecharContaDialog({
   });
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onFechar()}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Fechar a comanda {comanda.numero}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open onOpenChange={(o) => !o && onFechar()}>
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Fechar a comanda {comanda.numero}</DialogTitle>
+          </DialogHeader>
 
-        <div className="rounded border p-3 text-sm">
-          <Resumo rotulo="Consumo" valor={conta.subtotal} />
-          {conta.couvert > 0 && <Resumo rotulo="Couvert" valor={conta.couvert} />}
-          <div className="flex items-center justify-between py-0.5">
-            <span className="flex items-center gap-2">
-              <Switch checked={cobrarServico} onCheckedChange={setCobrarServico} id="servico" />
-              <Label htmlFor="servico">
-                Serviço ({comanda.taxa_servico_percentual}%) — opcional, o cliente decide
-              </Label>
-            </span>
-            <span>{brl(conta.servico)}</span>
-          </div>
-          {gestao && (
+          <div className="rounded border p-3 text-sm">
+            <Resumo rotulo="Consumo" valor={conta.subtotal} />
+            {conta.couvert > 0 && <Resumo rotulo="Couvert" valor={conta.couvert} />}
             <div className="flex items-center justify-between py-0.5">
-              <Label htmlFor="desconto">Desconto (R$)</Label>
-              <Input
-                id="desconto"
-                className="h-8 w-28 text-right"
-                inputMode="decimal"
-                value={desconto}
-                onChange={(e) => setDesconto(e.target.value)}
-              />
+              <span className="flex items-center gap-2">
+                <Switch checked={cobrarServico} onCheckedChange={setCobrarServico} id="servico" />
+                <Label htmlFor="servico">
+                  Serviço ({comanda.taxa_servico_percentual}%) — opcional, o cliente decide
+                </Label>
+              </span>
+              <span>{brl(conta.servico)}</span>
             </div>
-          )}
-          {conta.descontoExcede && (
-            <p className="text-right text-xs text-destructive">
-              O desconto passa do total da conta ({brl(conta.bruto)}).
-            </p>
-          )}
-          <div className="mt-2 flex items-center justify-between border-t pt-2 font-semibold">
-            <span>Total da conta</span>
-            <span>{brl(conta.total)}</span>
+            {gestao && (
+              <div className="flex items-center justify-between py-0.5">
+                <Label htmlFor="desconto">Desconto (R$)</Label>
+                <Input
+                  id="desconto"
+                  className="h-8 w-28 text-right"
+                  inputMode="decimal"
+                  value={desconto}
+                  onChange={(e) => setDesconto(e.target.value)}
+                />
+              </div>
+            )}
+            {conta.descontoExcede && (
+              <p className="text-right text-xs text-destructive">
+                O desconto passa do total da conta ({brl(conta.bruto)}).
+              </p>
+            )}
+            <div className="mt-2 flex items-center justify-between border-t pt-2 font-semibold">
+              <span>Total da conta</span>
+              <span>{brl(conta.total)}</span>
+            </div>
+            {conta.jaPago > 0 && (
+              <Resumo rotulo="Já recebido em baixas parciais" valor={-conta.jaPago} />
+            )}
+            {conta.pagoExcede && (
+              <div className="text-right text-xs text-destructive">
+                <p>O já recebido passa do total da conta. Reduza o desconto ou ative o serviço.</p>
+                {sobraDevolver > 0 && (
+                  <p className="mt-1">
+                    {gestao ? (
+                      <Button size="sm" variant="outline" onClick={() => setDevolvendo(true)}>
+                        Devolver {brl(sobraDevolver)} ao cliente
+                      </Button>
+                    ) : (
+                      `Há ${brl(sobraDevolver)} a devolver: a devolução é feita pela gestão.`
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="mt-1 flex items-center justify-between font-display text-lg font-bold">
+              <span>{conta.jaPago > 0 ? "Falta receber" : "A receber"}</span>
+              <span>{brl(conta.restante)}</span>
+            </div>
           </div>
-          {conta.jaPago > 0 && (
-            <Resumo rotulo="Já recebido em baixas parciais" valor={-conta.jaPago} />
-          )}
-          {conta.pagoExcede && (
-            <p className="text-right text-xs text-destructive">
-              O já recebido passa do total da conta. Reduza o desconto ou ative o serviço.
-            </p>
-          )}
-          <div className="mt-1 flex items-center justify-between font-display text-lg font-bold">
-            <span>{conta.jaPago > 0 ? "Falta receber" : "A receber"}</span>
-            <span>{brl(conta.restante)}</span>
-          </div>
-        </div>
 
-        {conta.restante > 0 && (
-          <PagamentosForm
-            alvo={conta.restante}
-            linhas={linhas}
-            onLinhas={setLinhas}
-            caixaId={caixaId}
-            onCaixa={setCaixaId}
-            filialId={comanda.filial_id}
-          />
-        )}
+          {conta.restante > 0 && (
+            <PagamentosForm
+              alvo={conta.restante}
+              linhas={linhas}
+              onLinhas={setLinhas}
+              caixaId={caixaId}
+              onCaixa={setCaixaId}
+              filialId={comanda.filial_id}
+            />
+          )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={imprimir}>
-            <Printer className="mr-1 size-4" /> Imprimir conta
-          </Button>
-          <Button variant="outline" onClick={onFechar}>
-            Voltar
-          </Button>
-          <Button onClick={() => fechar.mutate()} disabled={fechar.isPending}>
-            Receber e fechar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={imprimir}>
+              <Printer className="mr-1 size-4" /> Imprimir conta
+            </Button>
+            <Button variant="outline" onClick={onFechar}>
+              Voltar
+            </Button>
+            <Button onClick={() => fechar.mutate()} disabled={fechar.isPending}>
+              Receber e fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {devolvendo && sobraDevolver > 0 && (
+        <DevolverCreditoDialog
+          comanda={comanda}
+          sobra={sobraDevolver}
+          cobrarServico={cobrarServico}
+          onFechar={() => setDevolvendo(false)}
+        />
+      )}
+    </>
   );
 }
 
