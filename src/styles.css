@@ -226,6 +226,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* O menu continua rolável por mouse, toque e teclado, sem barras permanentes. */
+@utility menu-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Impressão do cupom de venda: só o cupom vai para o papel (80 mm). */
 @media print {
   body:has(#cupom-impresso) * {
