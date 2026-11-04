@@ -9864,6 +9864,95 @@ export type Database = {
           },
         ]
       }
+      pet_campos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          entidade: string
+          id: string
+          nome: string
+          obrigatorio: boolean
+          opcoes: Json
+          ordem: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          entidade: string
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          entidade?: string
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_campos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_campos_valores: {
+        Row: {
+          campo_id: string
+          registro_id: string
+          tenant_id: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          campo_id: string
+          registro_id: string
+          tenant_id?: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          campo_id?: string
+          registro_id?: string
+          tenant_id?: string
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_campos_valores_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "pet_campos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_campos_valores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_comissoes: {
         Row: {
           agendamento_id: string
@@ -15418,6 +15507,11 @@ export type Database = {
         Returns: undefined
       }
       pet_agendar: { Args: { p_dados: Json }; Returns: string }
+      pet_campo_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_campos_valores_salvar: {
+        Args: { p_entidade: string; p_registro_id: string; p_valores: Json }
+        Returns: undefined
+      }
       pet_comissao_aprovar: { Args: { p_id: string }; Returns: undefined }
       pet_comissao_pagar: {
         Args: { p_forma?: string; p_id: string }
