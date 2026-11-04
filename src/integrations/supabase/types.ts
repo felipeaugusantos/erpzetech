@@ -8929,6 +8929,9 @@ export type Database = {
           numero: number
           numero_serie: string | null
           observacoes: string | null
+          pet_id: string | null
+          pet_profissional_id: string | null
+          pet_resumo: Json | null
           previsao: string | null
           prioridade: string
           situacao: Database["public"]["Enums"]["os_situacao"]
@@ -8963,6 +8966,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -8997,6 +9003,9 @@ export type Database = {
           numero?: number
           numero_serie?: string | null
           observacoes?: string | null
+          pet_id?: string | null
+          pet_profissional_id?: string | null
+          pet_resumo?: Json | null
           previsao?: string | null
           prioridade?: string
           situacao?: Database["public"]["Enums"]["os_situacao"]
@@ -9021,6 +9030,20 @@ export type Database = {
             columns: ["deposito_id"]
             isOneToOne: false
             referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_pet_profissional_id_fkey"
+            columns: ["pet_profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
             referencedColumns: ["id"]
           },
         ]
@@ -14044,6 +14067,8 @@ export type Database = {
         }
         Returns: string
       }
+      _pet_os_resumo: { Args: { p_pet_id: string }; Returns: Json }
+      _pet_os_total: { Args: { p_os_id: string }; Returns: undefined }
       _pet_pacote_restam: { Args: { p_pacote_id: string }; Returns: number }
       _pet_peso_atual: { Args: { p_pet_id: string }; Returns: undefined }
       _produto_dados_modulo_erro: {
@@ -15542,6 +15567,16 @@ export type Database = {
       pet_minha_agenda: { Args: { p_ate: string; p_de: string }; Returns: Json }
       pet_minha_situacao: {
         Args: { p_id: string; p_para: string }
+        Returns: undefined
+      }
+      pet_os_item_adicionar: {
+        Args: { p_dados: Json; p_os_id: string }
+        Returns: string
+      }
+      pet_os_item_remover: { Args: { p_item_id: string }; Returns: undefined }
+      pet_os_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_os_situacao: {
+        Args: { p_deposito_id?: string; p_os_id: string; p_situacao: string }
         Returns: undefined
       }
       pet_pacote_cancelar: {
