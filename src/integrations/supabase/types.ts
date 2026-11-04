@@ -14923,8 +14923,16 @@ export type Database = {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
       }
+      _sngpc_assinatura: {
+        Args: { p_fim: string; p_inicio: string }
+        Returns: string
+      }
       _sngpc_ator: { Args: never; Returns: string }
       _sngpc_cnpj: { Args: never; Returns: string }
+      _sngpc_exige_periodo_livre: {
+        Args: { p_data: string }
+        Returns: undefined
+      }
       _sngpc_fechado_ate: { Args: never; Returns: string }
       _sngpc_lote_ok: {
         Args: { p_lote: string; p_medicamento_id: string }
