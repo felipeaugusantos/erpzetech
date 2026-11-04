@@ -1,4 +1,5 @@
 // Regras do envio automático de WhatsApp, sem banco nem rede: texto final, espera entre tentativas e ritmo de envio.
+import { MENSAGEM_PADRAO, montarMensagem } from "./contato-pet.ts";
 import { dateBR } from "./format.ts";
 import {
   MENSAGEM_LAVA_PADRAO,
@@ -7,6 +8,17 @@ import {
   type TipoAviso,
 } from "./lava-rapido.ts";
 import { ErroEvolution } from "./whatsapp-evolution.ts";
+
+/** Avisos da clínica que também saem pela fila do WhatsApp (lembrete de vacina e de retorno de consulta). */
+export type TipoAvisoClinica = "reforco_vacina" | "retorno_consulta";
+
+export const ROTULO_AVISO_CLINICA: Record<TipoAvisoClinica, string> = {
+  reforco_vacina: "Vacina ou vermífugo",
+  retorno_consulta: "Retorno de consulta",
+};
+
+const ehAvisoClinica = (tipo: string): tipo is TipoAvisoClinica =>
+  tipo === "reforco_vacina" || tipo === "retorno_consulta";
 
 export const RODAPE_SAIR = "\n\nPara não receber mais avisos, responda SAIR.";
 
@@ -40,12 +52,31 @@ export type ItemReservado = {
   tenant_id: string;
   instancia: string;
   numero: string;
-  tipo: TipoAviso;
+  tipo: TipoAviso | TipoAvisoClinica;
   tentativas: number;
   modelo: string | null;
   loja: string | null;
   variaveis: Record<string, unknown>;
 };
+
+/** Texto final de um aviso da clínica: modelo da empresa (reforco / retorno_clinica) ou o padrão do sistema. */
+function textoClinica(item: ItemReservado & { tipo: TipoAvisoClinica }) {
+  const v = item.variaveis;
+  const texto = (k: string) => (typeof v[k] === "string" ? (v[k] as string) : undefined);
+  const padrao =
+    item.tipo === "reforco_vacina" ? MENSAGEM_PADRAO.reforco : MENSAGEM_PADRAO.retorno_clinica;
+  const base = item.modelo && item.modelo.trim() ? item.modelo : padrao;
+  const data = texto("data");
+  return (
+    montarMensagem(base, {
+      ...(texto("cliente") ? { tutor: texto("cliente") } : {}),
+      ...(texto("pet") ? { pet: texto("pet") } : {}),
+      ...(item.loja ? { loja: item.loja } : {}),
+      ...(data ? { data: dateBR(data) } : {}),
+      ...(texto("itens") ? { itens: texto("itens") } : {}),
+    }).trim() + RODAPE_SAIR
+  );
+}
 
 /** Texto final de um item reservado: modelo da empresa (ou padrão) com os dados guardados na fila. */
 export function textoDoItem(item: ItemReservado) {
@@ -58,6 +89,7 @@ export function textoDoItem(item: ItemReservado) {
   const restam = numero("restam");
   const dias = numero("dias");
   const cliente = texto("cliente");
+  if (ehAvisoClinica(item.tipo)) return textoClinica({ ...item, tipo: item.tipo });
   return textoDoAviso(
     item.tipo,
     {
