@@ -15506,7 +15506,9 @@ export type Database = {
         Args: { p_busca?: string | null; p_fabricante?: string | null; p_letra?: string | null; p_limite?: number; p_pagina?: number }
         Returns: Json
       }
+      bulario_ficha: { Args: { p_id: string }; Returns: Json }
       bulario_importar: { Args: { p_itens: Json }; Returns: number }
+      bulario_nota_salvar: { Args: { p_dados: Json; p_id: string }; Returns: undefined }
       bulario_resumo: { Args: never; Returns: Json }
       bulario_total: { Args: never; Returns: number }
       clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
