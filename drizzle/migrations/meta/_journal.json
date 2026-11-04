@@ -519,6 +519,13 @@
       "when": 1793794344218,
       "tag": "0073_pet_os",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793794520040,
+      "tag": "0074_clinica_internacao",
+      "breakpoints": true
     }
   ]
 }
