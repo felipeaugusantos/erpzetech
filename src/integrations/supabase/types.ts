@@ -15511,6 +15511,11 @@ export type Database = {
       bulario_nota_salvar: { Args: { p_dados: Json; p_id: string }; Returns: undefined }
       bulario_resumo: { Args: never; Returns: Json }
       bulario_total: { Args: never; Returns: number }
+      clinica_sinais_internacao: { Args: { p_internacao_id: string }; Returns: Json }
+      clinica_sinais_parametro_salvar: { Args: { p_dados: Json }; Returns: string }
+      clinica_sinais_parametros: { Args: { p_todos?: boolean }; Returns: Json }
+      clinica_sinal_corrigir: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_sinal_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
       clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
       clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
       clinica_receita_modelos: { Args: never; Returns: Json }
