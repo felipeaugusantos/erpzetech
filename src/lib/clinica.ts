@@ -116,3 +116,41 @@ export function evolucaoDoPeso(
     .map((a) => ({ em: a.aberto_em, peso: Number(a.peso_kg) }))
     .sort((x, y) => x.em.localeCompare(y.em));
 }
+
+/** Os sinais vitais anotados em uma consulta (qualquer campo preenchido já vale uma linha). */
+export type SinaisEmConsulta = {
+  em: string;
+  peso_kg: number | null;
+  temperatura_c: number | null;
+  freq_cardiaca: number | null;
+  freq_respiratoria: number | null;
+};
+
+type ComSinais = Pick<
+  AtendimentoClinico,
+  "aberto_em" | "situacao" | "peso_kg" | "temperatura_c" | "freq_cardiaca" | "freq_respiratoria"
+>;
+
+/**
+ * Histórico dos sinais vitais, do mais novo para o mais antigo (a recepção e o veterinário leem o
+ * último primeiro). Só consultas fechadas e com algum sinal anotado.
+ */
+export function evolucaoDosSinais(atendimentos: readonly ComSinais[]): SinaisEmConsulta[] {
+  const numero = (v: number | null) => (v === null || v === undefined ? null : Number(v));
+  return atendimentos
+    .filter(
+      (a) =>
+        a.situacao === "fechado" &&
+        [a.peso_kg, a.temperatura_c, a.freq_cardiaca, a.freq_respiratoria].some(
+          (v) => v !== null && v !== undefined,
+        ),
+    )
+    .map((a) => ({
+      em: a.aberto_em,
+      peso_kg: numero(a.peso_kg),
+      temperatura_c: numero(a.temperatura_c),
+      freq_cardiaca: numero(a.freq_cardiaca),
+      freq_respiratoria: numero(a.freq_respiratoria),
+    }))
+    .sort((x, y) => y.em.localeCompare(x.em));
+}
