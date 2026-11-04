@@ -15502,6 +15502,13 @@ export type Database = {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
       }
+      bulario_buscar: {
+        Args: { p_busca?: string | null; p_fabricante?: string | null; p_letra?: string | null; p_limite?: number; p_pagina?: number }
+        Returns: Json
+      }
+      bulario_importar: { Args: { p_itens: Json }; Returns: number }
+      bulario_resumo: { Args: never; Returns: Json }
+      bulario_total: { Args: never; Returns: number }
       clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
       clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
       clinica_receita_modelos: { Args: never; Returns: Json }

@@ -33,6 +33,7 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
 import { Route as AuthenticatedClinicaBoxesRouteImport } from './routes/_authenticated/clinica-boxes'
+import { Route as AuthenticatedClinicaBularioRouteImport } from './routes/_authenticated/clinica-bulario'
 import { Route as AuthenticatedClinicaCartaoRouteImport } from './routes/_authenticated/clinica-cartao'
 import { Route as AuthenticatedClinicaCatalogoRouteImport } from './routes/_authenticated/clinica-catalogo'
 import { Route as AuthenticatedClinicaCobrancasRouteImport } from './routes/_authenticated/clinica-cobrancas'
@@ -172,6 +173,7 @@ import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
 import { Route as AuthenticatedZeTechRouteImport } from './routes/_authenticated/ze-tech'
 import { Route as AuthenticatedZeTechAssistenciaRouteImport } from './routes/_authenticated/ze-tech-assistencia'
+import { Route as AuthenticatedZeTechBularioRouteImport } from './routes/_authenticated/ze-tech-bulario'
 import { Route as AuthenticatedZeTechClientesRouteImport } from './routes/_authenticated/ze-tech-clientes'
 import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
@@ -323,6 +325,12 @@ const AuthenticatedClinicaBoxesRoute =
   AuthenticatedClinicaBoxesRouteImport.update({
     id: '/clinica-boxes',
     path: '/clinica-boxes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaBularioRoute =
+  AuthenticatedClinicaBularioRouteImport.update({
+    id: '/clinica-bulario',
+    path: '/clinica-bulario',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaCartaoRoute =
@@ -1105,6 +1113,12 @@ const AuthenticatedZeTechAssistenciaRoute =
     path: '/ze-tech-assistencia',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechBularioRoute =
+  AuthenticatedZeTechBularioRouteImport.update({
+    id: '/ze-tech-bulario',
+    path: '/ze-tech-bulario',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechClientesRoute =
   AuthenticatedZeTechClientesRouteImport.update({
     id: '/ze-tech-clientes',
@@ -1270,6 +1284,7 @@ export interface FileRoutesByFullPath {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
+  '/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1409,6 +1424,7 @@ export interface FileRoutesByFullPath {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
@@ -1458,6 +1474,7 @@ export interface FileRoutesByTo {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
+  '/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1597,6 +1614,7 @@ export interface FileRoutesByTo {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
@@ -1648,6 +1666,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/_authenticated/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
+  '/_authenticated/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/_authenticated/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/_authenticated/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/_authenticated/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1787,6 +1806,7 @@ export interface FileRoutesById {
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
   '/_authenticated/ze-tech': typeof AuthenticatedZeTechRoute
   '/_authenticated/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/_authenticated/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/_authenticated/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
@@ -1838,6 +1858,7 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/clinica-atendimento'
     | '/clinica-boxes'
+    | '/clinica-bulario'
     | '/clinica-cartao'
     | '/clinica-catalogo'
     | '/clinica-cobrancas'
@@ -1977,6 +1998,7 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
@@ -2026,6 +2048,7 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/clinica-atendimento'
     | '/clinica-boxes'
+    | '/clinica-bulario'
     | '/clinica-cartao'
     | '/clinica-catalogo'
     | '/clinica-cobrancas'
@@ -2165,6 +2188,7 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
@@ -2215,6 +2239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes-obras'
     | '/_authenticated/clinica-atendimento'
     | '/_authenticated/clinica-boxes'
+    | '/_authenticated/clinica-bulario'
     | '/_authenticated/clinica-cartao'
     | '/_authenticated/clinica-catalogo'
     | '/_authenticated/clinica-cobrancas'
@@ -2354,6 +2379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendedores'
     | '/_authenticated/ze-tech'
     | '/_authenticated/ze-tech-assistencia'
+    | '/_authenticated/ze-tech-bulario'
     | '/_authenticated/ze-tech-clientes'
     | '/_authenticated/ze-tech-cobranca'
     | '/_authenticated/ze-tech-contas-pagar'
@@ -2564,6 +2590,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-boxes'
       fullPath: '/clinica-boxes'
       preLoaderRoute: typeof AuthenticatedClinicaBoxesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-bulario': {
+      id: '/_authenticated/clinica-bulario'
+      path: '/clinica-bulario'
+      fullPath: '/clinica-bulario'
+      preLoaderRoute: typeof AuthenticatedClinicaBularioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-cartao': {
@@ -3539,6 +3572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechAssistenciaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-bulario': {
+      id: '/_authenticated/ze-tech-bulario'
+      path: '/ze-tech-bulario'
+      fullPath: '/ze-tech-bulario'
+      preLoaderRoute: typeof AuthenticatedZeTechBularioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-clientes': {
       id: '/_authenticated/ze-tech-clientes'
       path: '/ze-tech-clientes'
@@ -3727,6 +3767,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
   AuthenticatedClinicaBoxesRoute: typeof AuthenticatedClinicaBoxesRoute
+  AuthenticatedClinicaBularioRoute: typeof AuthenticatedClinicaBularioRoute
   AuthenticatedClinicaCartaoRoute: typeof AuthenticatedClinicaCartaoRoute
   AuthenticatedClinicaCatalogoRoute: typeof AuthenticatedClinicaCatalogoRoute
   AuthenticatedClinicaCobrancasRoute: typeof AuthenticatedClinicaCobrancasRoute
@@ -3866,6 +3907,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
   AuthenticatedZeTechRoute: typeof AuthenticatedZeTechRoute
   AuthenticatedZeTechAssistenciaRoute: typeof AuthenticatedZeTechAssistenciaRoute
+  AuthenticatedZeTechBularioRoute: typeof AuthenticatedZeTechBularioRoute
   AuthenticatedZeTechClientesRoute: typeof AuthenticatedZeTechClientesRoute
   AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
@@ -3904,6 +3946,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
   AuthenticatedClinicaBoxesRoute: AuthenticatedClinicaBoxesRoute,
+  AuthenticatedClinicaBularioRoute: AuthenticatedClinicaBularioRoute,
   AuthenticatedClinicaCartaoRoute: AuthenticatedClinicaCartaoRoute,
   AuthenticatedClinicaCatalogoRoute: AuthenticatedClinicaCatalogoRoute,
   AuthenticatedClinicaCobrancasRoute: AuthenticatedClinicaCobrancasRoute,
@@ -4048,6 +4091,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
   AuthenticatedZeTechRoute: AuthenticatedZeTechRoute,
   AuthenticatedZeTechAssistenciaRoute: AuthenticatedZeTechAssistenciaRoute,
+  AuthenticatedZeTechBularioRoute: AuthenticatedZeTechBularioRoute,
   AuthenticatedZeTechClientesRoute: AuthenticatedZeTechClientesRoute,
   AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,

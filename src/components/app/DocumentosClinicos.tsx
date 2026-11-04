@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilePlus2, Plus, Printer, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
+import { CampoMedicamento } from "@/components/app/CampoMedicamento";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -475,13 +476,11 @@ function EmitirDocumento({
                     <div className="grid gap-2 sm:grid-cols-2">
                       <div>
                         <Label>Medicamento *</Label>
-                        <Input
+                        <CampoMedicamento
                           value={i.medicamento}
-                          onChange={(e) =>
+                          onChange={(v) =>
                             setReceita(
-                              receita.map((x, k) =>
-                                k === idx ? { ...x, medicamento: e.target.value } : x,
-                              ),
+                              receita.map((x, k) => (k === idx ? { ...x, medicamento: v } : x)),
                             )
                           }
                         />

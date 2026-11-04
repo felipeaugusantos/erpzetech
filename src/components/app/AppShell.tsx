@@ -45,6 +45,7 @@ import {
   PawPrint,
   Stethoscope,
   Syringe,
+  BookOpen,
   Scissors,
   Tag,
   TrendingUp,
@@ -273,6 +274,7 @@ const groups: Group[] = [
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+      { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
@@ -651,7 +653,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario;
               if (i.to === "/clinica-boxes" || i.to === "/sngpc")
                 return souVeterinario || souGestao;
-              if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
+              if (i.to === "/clinica-catalogo" || i.to === "/clinica-bulario")
+                return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
               if (
@@ -734,6 +737,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
       { label: "Lava rápido", to: "/ze-tech-lava-rapido", icon: Droplets },
+      { label: "Bulário veterinário", to: "/ze-tech-bulario", icon: BookOpen },
       { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
@@ -764,6 +768,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+                  { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
                   { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
                 ]
               : []),
@@ -798,6 +803,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-prontuario",
       "/clinica-atendimento",
       "/clinica-catalogo",
+      "/clinica-bulario",
       "/clinica-exames-modelos",
       "/clinica-exames",
       "/clinica-offline",
