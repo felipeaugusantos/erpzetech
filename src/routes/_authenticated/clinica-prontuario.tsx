@@ -16,7 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
-import { evolucaoDoPeso, type AtendimentoClinico, type PetClinico } from "@/lib/clinica";
+import {
+  evolucaoDoPeso,
+  evolucaoDosSinais,
+  type AtendimentoClinico,
+  type PetClinico,
+} from "@/lib/clinica";
 import { dateBR, dateTimeBR, num } from "@/lib/format";
 import { atendimentoAbertoDoPaciente } from "@/lib/iniciar-atendimento";
 import { ESPECIES, PELAGENS, PORTES, idadeDoPet, rotulo } from "@/lib/pet";
@@ -224,6 +229,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   const p = data.pet;
   const evolucao = evolucaoDoPeso(data.atendimentos);
+  const sinais = evolucaoDosSinais(data.atendimentos);
   // continuar só vale para o atendimento aberto por este veterinário; o de outro não abre nem edita por aqui
   const aberto = atendimentoAbertoDoPaciente(
     data.atendimentos.filter(
@@ -333,6 +339,44 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           </p>
         )}
       </div>
+
+      {sinais.length > 0 && (
+        <div className="panel overflow-x-auto p-4">
+          <h3 className="mb-2 font-display text-sm font-semibold">
+            Sinais vitais nas consultas (mais recente primeiro)
+          </h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-1 pr-3 font-medium">Consulta</th>
+                <th className="py-1 pr-3 font-medium">Peso</th>
+                <th className="py-1 pr-3 font-medium">Temperatura</th>
+                <th className="py-1 pr-3 font-medium">Freq. cardíaca</th>
+                <th className="py-1 font-medium">Freq. respiratória</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sinais.map((v) => (
+                <tr key={v.em} className="border-t border-border">
+                  <td className="py-1 pr-3">{dateTimeBR(v.em)}</td>
+                  <td className="py-1 pr-3">
+                    {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
+                  </td>
+                  <td className="py-1 pr-3">
+                    {v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}
+                  </td>
+                  <td className="py-1 pr-3">
+                    {v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}
+                  </td>
+                  <td className="py-1">
+                    {v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <DocumentosClinicos
         petId={petId}
