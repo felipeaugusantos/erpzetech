@@ -14,12 +14,17 @@ ordem=$(python3 - <<'PY'
 import glob, os
 sup = sorted(glob.glob("migrations/*.sql"))
 suf = {os.path.basename(f).split("_", 1)[1]: f for f in sup}
+ds = sorted(glob.glob("../drizzle/migrations/*.sql"))
+ultimo_par = max((i for i, d in enumerate(ds) if os.path.basename(d).split("_", 1)[1] in suf), default=-1)
 depois = {}
 anterior = None
-for d in sorted(glob.glob("../drizzle/migrations/*.sql")):
+final = []
+for i, d in enumerate(ds):
     nome = os.path.basename(d).split("_", 1)[1]
     if nome in suf:
         anterior = suf[nome]
+    elif i > ultimo_par:
+        final.append(d)
     else:
         depois.setdefault(anterior, []).append(d)
 for f in sup:
@@ -27,6 +32,8 @@ for f in sup:
     for d in depois.get(f, []):
         print(d)
 for d in depois.get(None, []):
+    print(d)
+for d in final:
     print(d)
 PY
 )
