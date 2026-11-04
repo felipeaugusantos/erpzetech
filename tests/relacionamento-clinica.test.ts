@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  estadoDoAviso,
   percentual,
   resumirMensagens,
   rotuloEvidencia,
@@ -97,7 +98,7 @@ describe("relacionamento da clínica: contatos", () => {
     canal: "whatsapp",
     ...p,
   });
-  it("contato gravado pelo envio aceito é do sistema; link aberto e telefone são da recepção", () => {
+  it("contato gravado pelo envio do sistema é do sistema; WhatsApp declarado e telefone são da recepção", () => {
     const mensagens = [msg({ situacao: "enviada", referencia: `${PET.toUpperCase()}:2026-11-10` })];
     const r = separarContatos(
       [
@@ -108,13 +109,13 @@ describe("relacionamento da clínica: contatos", () => {
       ],
       mensagens,
     );
-    assert.deepEqual(r, { viaSistema: 1, abriuWhatsApp: 1, declaradoPelaRecepcao: 2 });
+    assert.deepEqual(r, { viaSistema: 1, whatsappDaRecepcao: 1, declaradoPelaRecepcao: 2 });
   });
   it("mensagem que não foi aceita (fila, falha, cancelada) não explica o contato", () => {
     for (const situacao of ["na_fila", "falhou", "cancelada", "enviando"]) {
       const r = separarContatos([c({})], [msg({ situacao })]);
       assert.equal(r.viaSistema, 0, situacao);
-      assert.equal(r.abriuWhatsApp, 1, situacao);
+      assert.equal(r.whatsappDaRecepcao, 1, situacao);
     }
   });
   it("retorno de consulta não entra na conta de reforço", () => {
@@ -128,5 +129,42 @@ describe("percentual", () => {
     assert.equal(percentual(0, 0), null);
     assert.equal(percentual(1, 3), 33);
     assert.equal(percentual(3, 3), 100);
+  });
+});
+
+describe("estado do aviso na lista de reforços", () => {
+  const enviadaHa = (h: number) => new Date(AGORA.getTime() - h * 3_600_000).toISOString();
+  it("na fila e em tentativa bloqueiam novo envio", () => {
+    for (const s of ["na_fila", "enviando"]) {
+      const e = estadoDoAviso(s, null, null, AGORA);
+      assert.equal(e.bloqueiaNovoEnvio, true, s);
+      assert.equal(e.rotulo, "Na fila do sistema");
+    }
+  });
+  it("serviço aceitou aguarda entrega e bloqueia; passadas 24 h libera e alerta", () => {
+    const novo = estadoDoAviso("enviada", enviadaHa(2), null, AGORA);
+    assert.equal(novo.bloqueiaNovoEnvio, true);
+    assert.match(novo.rotulo ?? "", /aguardando confirmação de entrega/);
+    const velho = estadoDoAviso("enviada", enviadaHa(25), null, AGORA);
+    assert.equal(velho.bloqueiaNovoEnvio, false);
+    assert.equal(velho.tom, "alerta");
+    assert.match(velho.rotulo ?? "", /Sem confirmação de entrega há mais de 24 h/);
+  });
+  it("entrega confirmada e leitura bloqueiam; falha libera e mostra o motivo", () => {
+    assert.equal(estadoDoAviso("entregue", enviadaHa(1), null, AGORA).bloqueiaNovoEnvio, true);
+    assert.equal(estadoDoAviso("lida", enviadaHa(1), null, AGORA).rotulo, "Entrega confirmada");
+    const f = estadoDoAviso("falhou", null, "Número sem WhatsApp", AGORA);
+    assert.equal(f.bloqueiaNovoEnvio, false);
+    assert.equal(f.rotulo, "Falhou: Número sem WhatsApp");
+    assert.equal(estadoDoAviso("falhou", null, null, AGORA).rotulo, "Falhou");
+  });
+  it("cancelada, desconhecida ou sem aviso: nada a mostrar e nada bloqueado", () => {
+    for (const s of ["cancelada", undefined, "algo_novo"]) {
+      const e = estadoDoAviso(s, null, null, AGORA);
+      assert.deepEqual(e, { rotulo: null, bloqueiaNovoEnvio: false, tom: "neutro" });
+    }
+  });
+  it("enviada sem data de envio não é tratada como antiga", () => {
+    assert.equal(estadoDoAviso("enviada", null, null, AGORA).bloqueiaNovoEnvio, true);
   });
 });
