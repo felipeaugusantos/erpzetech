@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { empresaDoChamado, chamadoInput } from "../src/lib/chamados.ts";
+import { empresaDoChamado, chamadoInput } from "../src/lib/help-chamados.ts";
 
 test("chamados só usam a empresa do tenant autenticado", () => {
   const perfil = { tenant_id: "a", ativo: true };

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { chamadoInput, empresaDoChamado, type Chamado, type ListaChamados } from "./chamados";
+import { chamadoInput, empresaDoChamado, type Chamado, type ListaChamados } from "./help-chamados";
 
 const endpoint = "https://helpzetech.lovable.app/api/public/erp/tickets";
 const mensagens: Record<string, string> = {
