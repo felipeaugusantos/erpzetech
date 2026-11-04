@@ -440,7 +440,7 @@ function montarAreas(grupos: Group[]): Area[] {
       const secao =
         destino === "Financeiro" && item.to === "/fluxo-caixa"
           ? undefined
-          : item.secao ?? (AREA_DO_GRUPO[g.label] && g.label !== destino && g.label !== "Comercial" ? g.label : undefined);
+          : item.secao ?? (AREA_DO_GRUPO[g.label] && g.label !== destino && g.label !== "Comercial" && g.label !== "Visão geral" ? g.label : undefined);
       const { secao: _antiga, ...resto } = item;
       area.items.push(secao ? { ...resto, secao } : resto);
     }
