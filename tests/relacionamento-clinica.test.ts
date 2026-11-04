@@ -97,29 +97,44 @@ describe("relacionamento da clínica: contatos", () => {
     canal: "whatsapp",
     ...p,
   });
-  it("contato gravado pelo envio aceito é do sistema; link aberto e telefone são da recepção", () => {
-    const mensagens = [msg({ situacao: "enviada", referencia: `${PET.toUpperCase()}:2026-11-10` })];
+  const aceita = (p: Partial<LinhaMensagem> = {}) =>
+    msg({ situacao: "enviada", referencia: `${PET}:2026-11-10`, ...p });
+
+  it("WhatsApp que coincide com aviso aceito tem origem indeterminada; sem aviso é link aberto", () => {
+    const r = separarContatos(
+      [c({}), c({ pet_id: "22222222-2222-4222-8222-222222222222" })],
+      [aceita({ referencia: `${PET.toUpperCase()}:2026-11-10` })],
+    );
+    assert.deepEqual(r, { abriuWhatsApp: 1, declaradoPelaRecepcao: 0, coincideComAviso: 1 });
+  });
+  it("telefone e outro canal são sempre da recepção, mesmo com aviso aceito na mesma ocasião", () => {
     const r = separarContatos(
       [
-        c({}),
-        c({ pet_id: "22222222-2222-4222-8222-222222222222" }),
-        c({ pet_id: "33333333-3333-4333-8333-333333333333", canal: "telefone" }),
-        c({ pet_id: "44444444-4444-4444-8444-444444444444", canal: "outro" }),
+        c({ canal: "telefone" }),
+        c({ canal: "outro", pet_id: "33333333-3333-4333-8333-333333333333" }),
       ],
-      mensagens,
+      [aceita(), aceita({ referencia: "33333333-3333-4333-8333-333333333333:2026-11-10" })],
     );
-    assert.deepEqual(r, { viaSistema: 1, abriuWhatsApp: 1, declaradoPelaRecepcao: 2 });
+    assert.deepEqual(r, { abriuWhatsApp: 0, declaradoPelaRecepcao: 2, coincideComAviso: 0 });
   });
   it("mensagem que não foi aceita (fila, falha, cancelada) não explica o contato", () => {
     for (const situacao of ["na_fila", "falhou", "cancelada", "enviando"]) {
-      const r = separarContatos([c({})], [msg({ situacao })]);
-      assert.equal(r.viaSistema, 0, situacao);
+      const r = separarContatos([c({})], [aceita({ situacao })]);
+      assert.equal(r.coincideComAviso, 0, situacao);
       assert.equal(r.abriuWhatsApp, 1, situacao);
     }
   });
   it("retorno de consulta não entra na conta de reforço", () => {
-    const r = separarContatos([c({})], [msg({ tipo: "retorno_consulta", situacao: "lida" })]);
-    assert.equal(r.viaSistema, 0);
+    const r = separarContatos([c({})], [aceita({ tipo: "retorno_consulta", situacao: "lida" })]);
+    assert.equal(r.coincideComAviso, 0);
+  });
+  it("origem vem de lista própria: aviso criado antes do período e aceito nele explica o contato", () => {
+    // o painel busca as mensagens de origem por updated_at, não pelo created_at do funil; aqui a lista de
+    // origem tem um aviso criado fora da janela do funil e o contato cai dentro do período
+    const origem = [aceita({ updated_at: "2026-11-05T01:00:00Z" })];
+    const funil = resumirMensagens([], AGORA);
+    assert.equal(funil.total, 0);
+    assert.equal(separarContatos([c({})], origem).coincideComAviso, 1);
   });
 });
 
