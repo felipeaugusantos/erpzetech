@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   erroDosSinais,
   evolucaoDoPeso,
+  evolucaoDosSinais,
   faltaParaFechar,
   formDoAtendimento,
   type AtendimentoClinico,
@@ -53,4 +54,47 @@ test("evolução do peso ignora atendimento sem peso e ordena do mais antigo", (
     r.map((x) => x.peso),
     [10, 11],
   );
+});
+
+test("histórico de sinais vitais: só consultas fechadas com algum sinal, mais nova primeiro", () => {
+  const r = evolucaoDosSinais([
+    {
+      aberto_em: "2026-10-01T10:00:00-03:00",
+      situacao: "fechado",
+      peso_kg: 12.5,
+      temperatura_c: 38.7,
+      freq_cardiaca: 110,
+      freq_respiratoria: 30,
+    },
+    {
+      aberto_em: "2026-11-01T10:00:00-03:00",
+      situacao: "fechado",
+      peso_kg: null,
+      temperatura_c: 39.1,
+      freq_cardiaca: null,
+      freq_respiratoria: null,
+    },
+    {
+      aberto_em: "2026-11-02T10:00:00-03:00",
+      situacao: "aberto",
+      peso_kg: 13,
+      temperatura_c: null,
+      freq_cardiaca: null,
+      freq_respiratoria: null,
+    },
+    {
+      aberto_em: "2026-11-03T10:00:00-03:00",
+      situacao: "fechado",
+      peso_kg: null,
+      temperatura_c: null,
+      freq_cardiaca: null,
+      freq_respiratoria: null,
+    },
+  ]);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].em, "2026-11-01T10:00:00-03:00");
+  assert.equal(r[0].temperatura_c, 39.1);
+  assert.equal(r[0].peso_kg, null);
+  assert.equal(r[1].peso_kg, 12.5);
+  assert.equal(r[1].freq_respiratoria, 30);
 });
