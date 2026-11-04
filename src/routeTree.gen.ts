@@ -41,12 +41,14 @@ import { Route as AuthenticatedClinicaExamesRouteImport } from './routes/_authen
 import { Route as AuthenticatedClinicaExamesModelosRouteImport } from './routes/_authenticated/clinica-exames-modelos'
 import { Route as AuthenticatedClinicaExecucoesRouteImport } from './routes/_authenticated/clinica-execucoes'
 import { Route as AuthenticatedClinicaFichaRouteImport } from './routes/_authenticated/clinica-ficha'
+import { Route as AuthenticatedClinicaFilaRouteImport } from './routes/_authenticated/clinica-fila'
 import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
 import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
 import { Route as AuthenticatedClinicaVacinasRouteImport } from './routes/_authenticated/clinica-vacinas'
+import { Route as AuthenticatedClinicaWhatsappRouteImport } from './routes/_authenticated/clinica-whatsapp'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -371,6 +373,12 @@ const AuthenticatedClinicaFichaRoute =
     path: '/clinica-ficha',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaFilaRoute =
+  AuthenticatedClinicaFilaRouteImport.update({
+    id: '/clinica-fila',
+    path: '/clinica-fila',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClinicaInternacaoRoute =
   AuthenticatedClinicaInternacaoRouteImport.update({
     id: '/clinica-internacao',
@@ -405,6 +413,12 @@ const AuthenticatedClinicaVacinasRoute =
   AuthenticatedClinicaVacinasRouteImport.update({
     id: '/clinica-vacinas',
     path: '/clinica-vacinas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaWhatsappRoute =
+  AuthenticatedClinicaWhatsappRouteImport.update({
+    id: '/clinica-whatsapp',
+    path: '/clinica-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
@@ -1264,12 +1278,14 @@ export interface FileRoutesByFullPath {
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1450,12 +1466,14 @@ export interface FileRoutesByTo {
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1638,12 +1656,14 @@ export interface FileRoutesById {
   '/_authenticated/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/_authenticated/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/_authenticated/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/_authenticated/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/_authenticated/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/_authenticated/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1826,12 +1846,14 @@ export interface FileRouteTypes {
     | '/clinica-exames-modelos'
     | '/clinica-execucoes'
     | '/clinica-ficha'
+    | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -2012,12 +2034,14 @@ export interface FileRouteTypes {
     | '/clinica-exames-modelos'
     | '/clinica-execucoes'
     | '/clinica-ficha'
+    | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -2199,12 +2223,14 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-exames-modelos'
     | '/_authenticated/clinica-execucoes'
     | '/_authenticated/clinica-ficha'
+    | '/_authenticated/clinica-fila'
     | '/_authenticated/clinica-internacao'
     | '/_authenticated/clinica-internacao-historico'
     | '/_authenticated/clinica-offline'
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
     | '/_authenticated/clinica-vacinas'
+    | '/_authenticated/clinica-whatsapp'
     | '/_authenticated/comissoes'
     | '/_authenticated/conferencia-offline'
     | '/_authenticated/configuracoes'
@@ -2596,6 +2622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClinicaFichaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinica-fila': {
+      id: '/_authenticated/clinica-fila'
+      path: '/clinica-fila'
+      fullPath: '/clinica-fila'
+      preLoaderRoute: typeof AuthenticatedClinicaFilaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clinica-internacao': {
       id: '/_authenticated/clinica-internacao'
       path: '/clinica-internacao'
@@ -2636,6 +2669,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-vacinas'
       fullPath: '/clinica-vacinas'
       preLoaderRoute: typeof AuthenticatedClinicaVacinasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-whatsapp': {
+      id: '/_authenticated/clinica-whatsapp'
+      path: '/clinica-whatsapp'
+      fullPath: '/clinica-whatsapp'
+      preLoaderRoute: typeof AuthenticatedClinicaWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/comissoes': {
@@ -3695,12 +3735,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaExamesModelosRoute: typeof AuthenticatedClinicaExamesModelosRoute
   AuthenticatedClinicaExecucoesRoute: typeof AuthenticatedClinicaExecucoesRoute
   AuthenticatedClinicaFichaRoute: typeof AuthenticatedClinicaFichaRoute
+  AuthenticatedClinicaFilaRoute: typeof AuthenticatedClinicaFilaRoute
   AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
   AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
   AuthenticatedClinicaVacinasRoute: typeof AuthenticatedClinicaVacinasRoute
+  AuthenticatedClinicaWhatsappRoute: typeof AuthenticatedClinicaWhatsappRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -3871,6 +3913,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedClinicaExamesModelosRoute,
   AuthenticatedClinicaExecucoesRoute: AuthenticatedClinicaExecucoesRoute,
   AuthenticatedClinicaFichaRoute: AuthenticatedClinicaFichaRoute,
+  AuthenticatedClinicaFilaRoute: AuthenticatedClinicaFilaRoute,
   AuthenticatedClinicaInternacaoRoute: AuthenticatedClinicaInternacaoRoute,
   AuthenticatedClinicaInternacaoHistoricoRoute:
     AuthenticatedClinicaInternacaoHistoricoRoute,
@@ -3878,6 +3921,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
   AuthenticatedClinicaVacinasRoute: AuthenticatedClinicaVacinasRoute,
+  AuthenticatedClinicaWhatsappRoute: AuthenticatedClinicaWhatsappRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
