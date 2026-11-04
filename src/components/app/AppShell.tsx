@@ -38,6 +38,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  ListOrdered,
   MessageCircle,
   Package,
   PackageOpen,
@@ -273,7 +274,9 @@ const groups: Group[] = [
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
+      { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
+      { label: "WhatsApp da clínica", to: "/clinica-whatsapp", icon: MessageCircle },
       { label: "Internações a cobrar", to: "/clinica-cobrancas", icon: BedDouble },
     ],
   },
@@ -441,13 +444,20 @@ function montarAreas(grupos: Group[]): Area[] {
       const secao =
         destino === "Financeiro" && item.to === "/fluxo-caixa"
           ? undefined
-          : item.secao ?? (AREA_DO_GRUPO[g.label] && g.label !== destino && g.label !== "Comercial" && g.label !== "Visão geral" ? g.label : undefined);
+          : (item.secao ??
+            (AREA_DO_GRUPO[g.label] &&
+            g.label !== destino &&
+            g.label !== "Comercial" &&
+            g.label !== "Visão geral"
+              ? g.label
+              : undefined));
       const { secao: _antiga, ...resto } = item;
       area.items.push(secao ? { ...resto, secao } : resto);
     }
   }
   const fin = mapa.get("Financeiro");
-  if (fin) fin.items.sort((a, b) => Number(a.to !== "/fluxo-caixa") - Number(b.to !== "/fluxo-caixa"));
+  if (fin)
+    fin.items.sort((a, b) => Number(a.to !== "/fluxo-caixa") - Number(b.to !== "/fluxo-caixa"));
   for (const a of mapa.values()) {
     // itens sem seção primeiro, depois agrupados pela seção
     const semSecao = a.items.filter((i) => !i.secao);
@@ -644,8 +654,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
-              if (i.to === "/clinica-reforcos" || i.to === "/clinica-cobrancas")
+              if (
+                i.to === "/clinica-reforcos" ||
+                i.to === "/clinica-cobrancas" ||
+                i.to === "/clinica-whatsapp"
+              )
                 return souGestao || souRecepcao;
+              // a recepção registra a fila e o veterinário acompanha e chama o próximo
+              if (i.to === "/clinica-fila") return souGestao || souRecepcao || souVeterinario;
               if (
                 i.to === "/personalizacao" ||
                 i.to === "/custo-par" ||
@@ -735,6 +751,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
             ...(modulos.clinica
               ? [
+                  { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
                   { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
                   { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
                 ]
@@ -792,6 +809,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-internacao-historico",
       "/clinica-execucoes",
       "/clinica-boxes",
+      "/clinica-fila",
       "/sngpc",
     ];
     if (somenteProfissional && !permitidas.includes(pathname)) {
@@ -808,8 +826,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const areas = useMemo(() => montarAreas(menu), [menu]);
   const areaAtual =
-    areas.find((a) => a.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(i.to + "/"))))
-      ?.label ?? areas[0]?.label;
+    areas.find((a) =>
+      a.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(i.to + "/"))),
+    )?.label ?? areas[0]?.label;
   useEffect(() => {
     setAreaEscolhida(null);
   }, [pathname]);
@@ -894,7 +913,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
             title={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
           >
-            {painelAberto ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+            {painelAberto ? (
+              <PanelLeftClose className="size-4" />
+            ) : (
+              <PanelLeftOpen className="size-4" />
+            )}
           </button>
         </nav>
 
@@ -905,7 +928,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="min-w-0">
                 <p className="truncate font-display text-base font-bold">{areaAberta.label}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "EZRA ERP").slice(0, 28)}
+                  {(
+                    data?.empresa?.nome_fantasia ||
+                    data?.empresa?.razao_social ||
+                    "EZRA ERP"
+                  ).slice(0, 28)}
                 </p>
               </div>
               <button
