@@ -1,16 +1,21 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Printer } from "lucide-react";
+import { useState } from "react";
+import { Download, MessageCircle, Printer } from "lucide-react";
+import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
+import { linkWhatsApp } from "@/lib/contato-pet";
+import { baixarPdfDocumento } from "@/lib/documento-pdf";
 import {
   TIPOS_DOCUMENTO,
   dataPorExtenso,
   numeroDoDocumento,
+  textoReceitaWhatsApp,
   type DocumentoClinico,
 } from "@/lib/documentos-clinica";
 import { dateBR } from "@/lib/format";
@@ -47,6 +52,7 @@ const SEXOS: Record<string, string> = { macho: "Macho", femea: "Fêmea" };
 
 function Documento() {
   const { id } = Route.useSearch();
+  const [gerandoPdf, setGerandoPdf] = useState(false);
   const {
     data: d,
     isLoading,
@@ -104,9 +110,40 @@ function Documento() {
         title={`${TIPOS_DOCUMENTO[d.tipo].rotulo} nº ${numeroDoDocumento(d)}`}
         description={`${d.pet.nome} · tutor(a) ${d.tutor.nome}`}
         actions={
-          <Button onClick={() => window.print()}>
-            <Printer className="size-4" /> Imprimir
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {d.tipo === "receita" && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const link = linkWhatsApp(d.tutor.telefone, textoReceitaWhatsApp(d));
+                  if (!link) {
+                    toast.error("Este tutor não tem um telefone válido para o WhatsApp.");
+                    return;
+                  }
+                  window.open(link, "_blank", "noopener");
+                }}
+              >
+                <MessageCircle className="size-4" /> Enviar no WhatsApp
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              disabled={gerandoPdf}
+              onClick={() => {
+                setGerandoPdf(true);
+                baixarPdfDocumento(d)
+                  .catch((e: Error) =>
+                    toast.error("Não foi possível gerar o PDF", { description: e.message }),
+                  )
+                  .finally(() => setGerandoPdf(false));
+              }}
+            >
+              <Download className="size-4" /> {gerandoPdf ? "Gerando..." : "Baixar PDF"}
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="size-4" /> Imprimir
+            </Button>
+          </div>
         }
       />
 
@@ -232,8 +269,8 @@ function Documento() {
         </div>
 
         <p className="mt-8 text-[11px] text-muted-foreground">
-          Emitido em {dateBR(d.emitido_em)} pelo EZRA ERP, sem assinatura digital: vale com a
-          assinatura do veterinário.
+          Emitido em {dateBR(d.emitido_em)} pelo EZRA ERP. Documento sem assinatura digital. Campo
+          para assinatura do médico-veterinário.
           {cancelado ? ` CANCELADO em ${dateBR(d.cancelado_em)}: ${d.cancelado_motivo ?? ""}.` : ""}
         </p>
       </div>
