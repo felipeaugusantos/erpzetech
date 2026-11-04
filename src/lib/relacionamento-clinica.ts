@@ -1,7 +1,7 @@
 // Relacionamento com o tutor (clínica): transforma o que a fila de WhatsApp e os contatos registrados provam em contagens
 // que não afirmam mais do que a evidência. Regras:
 // - "serviço aceitou" (enviada) NÃO é entrega: entrega só existe com a confirmação do WhatsApp (entregue) e leitura com lida;
-// - abrir o link do WhatsApp (contato assistido) NÃO é mensagem enviada: o sistema não sabe se a recepção escreveu;
+// - contato assistido é declarado pela recepção ("Já falei"): o sistema não vê a mensagem; abrir o link não grava mais contato;
 // - nada aqui liga lembrete a retorno: isso exige uma regra de atribuição aprovada pela gestão.
 // Só lê; não muda fila, despachante nem contato.
 
@@ -132,8 +132,8 @@ export function resumirMensagens(
 }
 
 export type ResumoContatos = {
-  /** WhatsApp sem aviso aceito pelo sistema para a mesma ocasião: a recepção abriu o link e o envio não é confirmado */
-  abriuWhatsApp: number;
+  /** "Já falei" pelo WhatsApp, declarado pela recepção e sem aviso aceito pelo sistema na mesma ocasião (até a mudança de 11/2026, abrir o link já gravava este contato: registros antigos podem ser só link aberto) */
+  whatsappDaRecepcao: number;
   /** "Já falei" por telefone ou outro canal: sempre da recepção (o sistema só grava contato pelo WhatsApp) */
   declaradoPelaRecepcao: number;
   /**
@@ -149,7 +149,7 @@ export type MensagemDeOrigem = Pick<LinhaMensagem, "tipo" | "situacao" | "refere
 /**
  * Separa os contatos de reforço registrados sem afirmar quem os gravou quando isso não dá para saber. Telefone e
  * outro canal são da recepção, sempre. Contato pelo WhatsApp é "coincide com aviso" se houver mensagem aceita para a
- * mesma ocasião, e "abriu o WhatsApp" se não houver. As mensagens de origem devem ser buscadas à parte, sem depender
+ * mesma ocasião, e "WhatsApp da recepção" se não houver. As mensagens de origem devem ser buscadas à parte, sem depender
  * da janela do funil: um lembrete criado antes do período e aceito dentro dele grava o contato dentro do período.
  */
 export function separarContatos(
@@ -163,11 +163,15 @@ export function separarContatos(
       )
       .map((m) => m.referencia.toLowerCase()),
   );
-  const r: ResumoContatos = { abriuWhatsApp: 0, declaradoPelaRecepcao: 0, coincideComAviso: 0 };
+  const r: ResumoContatos = {
+    whatsappDaRecepcao: 0,
+    declaradoPelaRecepcao: 0,
+    coincideComAviso: 0,
+  };
   for (const c of contatos) {
     if (c.canal !== "whatsapp") r.declaradoPelaRecepcao++;
     else if (aceitas.has(`${c.pet_id}:${c.referencia}`.toLowerCase())) r.coincideComAviso++;
-    else r.abriuWhatsApp++;
+    else r.whatsappDaRecepcao++;
   }
   return r;
 }
@@ -175,4 +179,58 @@ export function separarContatos(
 /** Percentual inteiro; sem base devolve null para a tela mostrar "—" em vez de 0%. */
 export function percentual(parte: number, base: number): number | null {
   return base > 0 ? Math.round((parte / base) * 100) : null;
+}
+
+/** Quanto tempo uma mensagem só "aceita" pelo serviço segura um novo envio antes de a recepção poder agir de novo. */
+export const HORAS_SEM_CONFIRMACAO = 24;
+
+export type EstadoDoAviso = {
+  /** texto curto para a linha da lista; null = nada a mostrar */
+  rotulo: string | null;
+  /** já existe aviso do sistema em andamento ou entregue: enviar de novo duplicaria a mensagem ao tutor */
+  bloqueiaNovoEnvio: boolean;
+  tom: "neutro" | "alerta";
+};
+
+/**
+ * O que a lista de reforços mostra para um pet que já tem aviso do sistema. Aceitação do serviço não é entrega: o pet
+ * continua na lista até a entrega ser confirmada ou a recepção marcar "Já falei". Passadas HORAS_SEM_CONFIRMACAO sem
+ * confirmação, a recepção volta a poder agir (o aviso fica como "sem confirmação").
+ */
+export function estadoDoAviso(
+  situacao: string | undefined,
+  enviadaEm: string | null | undefined,
+  erro: string | null | undefined,
+  agora: Date = new Date(),
+): EstadoDoAviso {
+  switch (situacao) {
+    case "na_fila":
+    case "enviando":
+      return { rotulo: "Na fila do sistema", bloqueiaNovoEnvio: true, tom: "neutro" };
+    case "enviada": {
+      const horas = enviadaEm ? (agora.getTime() - new Date(enviadaEm).getTime()) / 3_600_000 : 0;
+      return horas >= HORAS_SEM_CONFIRMACAO
+        ? {
+            rotulo: `Sem confirmação de entrega há mais de ${HORAS_SEM_CONFIRMACAO} h`,
+            bloqueiaNovoEnvio: false,
+            tom: "alerta",
+          }
+        : {
+            rotulo: "Serviço aceitou: aguardando confirmação de entrega",
+            bloqueiaNovoEnvio: true,
+            tom: "neutro",
+          };
+    }
+    case "entregue":
+    case "lida":
+      return { rotulo: "Entrega confirmada", bloqueiaNovoEnvio: true, tom: "neutro" };
+    case "falhou":
+      return {
+        rotulo: erro ? `Falhou: ${erro}` : "Falhou",
+        bloqueiaNovoEnvio: false,
+        tom: "alerta",
+      };
+    default:
+      return { rotulo: null, bloqueiaNovoEnvio: false, tom: "neutro" };
+  }
 }

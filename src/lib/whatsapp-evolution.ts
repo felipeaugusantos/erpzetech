@@ -266,18 +266,30 @@ export type EventoWhatsApp =
       tipo: "status";
       instancia: string;
       idMensagem: string;
-      status: "enviada" | "entregue" | "lida";
+      status: StatusMensagem;
     }
   | { tipo: "entrada"; instancia: string; jid: string; numero: string | null; texto: string }
   | { tipo: "ignorar" };
 
-function statusDaMensagem(bruto: unknown): "enviada" | "entregue" | "lida" | null {
+/** "erro": o WhatsApp informou falha na mensagem (vale só enquanto ela estiver apenas aceita, nunca depois de entregue). */
+export type StatusMensagem = "erro" | "enviada" | "entregue" | "lida";
+
+function statusDaMensagem(bruto: unknown): StatusMensagem | null {
   if (typeof bruto === "number")
-    return bruto >= 4 ? "lida" : bruto === 3 ? "entregue" : bruto === 2 ? "enviada" : null;
+    return bruto >= 4
+      ? "lida"
+      : bruto === 3
+        ? "entregue"
+        : bruto === 2
+          ? "enviada"
+          : bruto === 0
+            ? "erro"
+            : null;
   const s = String(bruto ?? "").toUpperCase();
   if (s === "READ" || s === "PLAYED" || s === "READ_ACK") return "lida";
   if (s === "DELIVERY_ACK" || s === "DELIVERED") return "entregue";
   if (s === "SERVER_ACK" || s === "SENT") return "enviada";
+  if (s === "ERROR" || s === "FAILED") return "erro";
   return null;
 }
 

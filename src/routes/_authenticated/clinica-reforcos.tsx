@@ -37,6 +37,7 @@ import {
   telefoneWhatsApp,
 } from "@/lib/contato-pet";
 import { dateBR } from "@/lib/format";
+import { estadoDoAviso } from "@/lib/relacionamento-clinica";
 
 export const Route = createFileRoute("/_authenticated/clinica-reforcos")({
   head: () => ({
@@ -77,8 +78,8 @@ function Reforcos() {
   const [janela, setJanela] = useState("15");
   const [atraso, setAtraso] = useState("180");
   const [modelo, setModelo] = useState(MENSAGEM_REFORCO);
-  /** Canal gravado pelo botão "Já falei" (o botão do WhatsApp sempre grava "whatsapp"). */
-  const [canalJaFalei, setCanalJaFalei] = useState<"telefone" | "outro">("telefone");
+  /** Canal gravado pelo botão "Já falei". Abrir o WhatsApp não grava contato: só "Já falei" (ou a entrega confirmada) tira o pet da lista. */
+  const [canalJaFalei, setCanalJaFalei] = useState<"telefone" | "whatsapp" | "outro">("telefone");
 
   const janelaN = Number(janela);
   const atrasoN = Number(atraso);
@@ -113,6 +114,37 @@ function Reforcos() {
   });
   const waConectada = wa?.estado === "conectada";
 
+  // aviso do sistema já existente por ocasião (pet + data): evita novo envio em duplicidade e mostra em que pé está
+  const { data: avisos } = useQuery({
+    queryKey: ["clinica-reforcos-avisos"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const desde = new Date(Date.now() - 90 * 86_400_000).toISOString();
+      const { data, error } = await supabase
+        .from("wa_mensagens")
+        .select("referencia, situacao, erro, enviada_em")
+        .eq("tipo", "reforco_vacina")
+        .gte("created_at", desde)
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      const mapa = new Map<
+        string,
+        { situacao: string; erro: string | null; enviada_em: string | null }
+      >();
+      for (const m of (data ?? []) as {
+        referencia: string;
+        situacao: string;
+        erro: string | null;
+        enviada_em: string | null;
+      }[]) {
+        const chave = m.referencia.toLowerCase();
+        if (!mapa.has(chave)) mapa.set(chave, m);
+      }
+      return mapa;
+    },
+  });
+
   const enfileirar = useMutation({
     mutationFn: async (l: Linha) => {
       const { error } = await supabase.rpc("clinica_wa_enfileirar", {
@@ -121,10 +153,12 @@ function Reforcos() {
       });
       if (error) throw error;
     },
-    onSuccess: () =>
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["clinica-reforcos-avisos"] });
       toast.success("Lembrete na fila", {
         description: "O sistema envia pelo WhatsApp da empresa em instantes.",
-      }),
+      });
+    },
     onError: (e: Error) => toast.error("Não foi possível enfileirar", { description: e.message }),
   });
 
@@ -158,7 +192,9 @@ function Reforcos() {
       return;
     }
     window.open(link, "_blank", "noopener");
-    registrar.mutate({ l, canal: "whatsapp" });
+    toast.info("WhatsApp aberto", {
+      description: "Depois de enviar a mensagem, clique em “Já falei” para tirar o pet da lista.",
+    });
   }
 
   const lista = data ?? [];
@@ -167,7 +203,7 @@ function Reforcos() {
     <div>
       <PageHeader
         title="Reforços de vacina e vermífugo"
-        description="Pets com dose para tomar nos próximos dias ou já atrasada. O contato é feito pela recepção (sem envio automático); quem já foi chamado sai da lista. Mostra só o nome da vacina e a data."
+        description="Pets com dose para tomar nos próximos dias ou já atrasada. O pet sai da lista quando a recepção marca “Já falei” ou quando o WhatsApp confirma a entrega do aviso enviado pelo sistema. Abrir o WhatsApp não conta como contato. Mostra só o nome da vacina e a data."
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -200,6 +236,7 @@ function Reforcos() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="telefone">Telefone</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp (enviei a mensagem)</SelectItem>
               <SelectItem value="outro">Pessoalmente / outro</SelectItem>
             </SelectContent>
           </Select>
@@ -231,60 +268,84 @@ function Reforcos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lista.map((l) => (
-                <TableRow key={`${l.pet_id}-${l.referencia}`}>
-                  <TableCell className="font-medium">{l.pet}</TableCell>
-                  <TableCell>
-                    {l.tutor}
-                    <span className="block text-xs text-muted-foreground">
-                      {l.telefone ?? "sem telefone"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {l.itens.map((i) => i.nome).join(", ")}
-                    <span className="block text-xs text-muted-foreground">
-                      {dateBR(l.referencia)}{" "}
-                      {l.dias < 0 ? (
-                        <Badge variant="destructive">atrasada há {-l.dias} dia(s)</Badge>
-                      ) : l.dias === 0 ? (
-                        <Badge variant="secondary">hoje</Badge>
-                      ) : (
-                        `(em ${l.dias} dia(s))`
+              {lista.map((l) => {
+                const a = avisos?.get(`${l.pet_id}:${l.referencia}`.toLowerCase());
+                const aviso = estadoDoAviso(a?.situacao, a?.enviada_em, a?.erro);
+                return (
+                  <TableRow key={`${l.pet_id}-${l.referencia}`}>
+                    <TableCell className="font-medium">{l.pet}</TableCell>
+                    <TableCell>
+                      {l.tutor}
+                      <span className="block text-xs text-muted-foreground">
+                        {l.telefone ?? "sem telefone"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {l.itens.map((i) => i.nome).join(", ")}
+                      <span className="block text-xs text-muted-foreground">
+                        {dateBR(l.referencia)}{" "}
+                        {l.dias < 0 ? (
+                          <Badge variant="destructive">atrasada há {-l.dias} dia(s)</Badge>
+                        ) : l.dias === 0 ? (
+                          <Badge variant="secondary">hoje</Badge>
+                        ) : (
+                          `(em ${l.dias} dia(s))`
+                        )}
+                      </span>
+                      {aviso.rotulo && (
+                        <span
+                          className={
+                            aviso.tom === "alerta"
+                              ? "mt-1 block text-xs text-destructive"
+                              : "mt-1 block text-xs text-muted-foreground"
+                          }
+                        >
+                          {aviso.rotulo}
+                        </span>
                       )}
-                    </span>
-                  </TableCell>
-                  <TableCell className="space-x-2 text-right">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      title={
-                        waConectada
-                          ? "O sistema envia pelo WhatsApp da empresa"
-                          : "Conecte o WhatsApp da empresa em Clínica > WhatsApp da clínica"
-                      }
-                      disabled={!waConectada || enfileirar.isPending}
-                      onClick={() => enfileirar.mutate(l)}
-                    >
-                      <Send className="size-4" /> Enviar pelo sistema
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={!telefoneWhatsApp(l.telefone) || registrar.isPending}
-                      onClick={() => chamar(l)}
-                    >
-                      <MessageCircle className="size-4" /> WhatsApp
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={registrar.isPending}
-                      onClick={() => registrar.mutate({ l, canal: canalJaFalei })}
-                    >
-                      <Phone className="size-4" /> Já falei
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          aria-label="Enviar pelo sistema"
+                          title={
+                            waConectada
+                              ? "O sistema envia pelo WhatsApp da empresa"
+                              : "Conecte o WhatsApp da empresa em Clínica > WhatsApp da clínica"
+                          }
+                          disabled={!waConectada || enfileirar.isPending || aviso.bloqueiaNovoEnvio}
+                          onClick={() => enfileirar.mutate(l)}
+                        >
+                          <Send className="size-4" />
+                          <span className="hidden sm:inline">Enviar pelo sistema</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          aria-label="Abrir WhatsApp"
+                          title="Abre o WhatsApp com a mensagem pronta; não registra contato"
+                          disabled={!telefoneWhatsApp(l.telefone) || aviso.bloqueiaNovoEnvio}
+                          onClick={() => chamar(l)}
+                        >
+                          <MessageCircle className="size-4" />
+                          <span className="hidden sm:inline">Abrir WhatsApp</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Já falei"
+                          disabled={registrar.isPending}
+                          onClick={() => registrar.mutate({ l, canal: canalJaFalei })}
+                        >
+                          <Phone className="size-4" />
+                          <span className="hidden sm:inline">Já falei</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

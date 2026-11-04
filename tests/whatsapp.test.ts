@@ -153,6 +153,26 @@ describe("avisos do servidor", () => {
     );
   });
 
+  it("falha informada pelo WhatsApp vira status erro; pendente e desconhecido são ignorados", () => {
+    const ev = (status: unknown) =>
+      interpretarEvento({
+        event: "MESSAGES_UPDATE",
+        instance: "zt-1",
+        data: { keyId: "A3", status },
+      });
+    for (const falha of ["ERROR", "failed", 0]) {
+      assert.deepEqual(ev(falha), {
+        tipo: "status",
+        instancia: "zt-1",
+        idMensagem: "A3",
+        status: "erro",
+      });
+    }
+    for (const sem of ["PENDING", 1, "ALGO_NOVO", null]) {
+      assert.deepEqual(ev(sem), { tipo: "ignorar" });
+    }
+  });
+
   it("mensagem recebida; ignora as próprias, grupos e sem texto", () => {
     const base = { event: "messages.upsert", instance: "zt-1" };
     contem(

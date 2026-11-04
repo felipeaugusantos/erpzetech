@@ -161,20 +161,22 @@ export function PainelRelacionamentoClinica() {
             <div className="panel space-y-1 p-3 text-sm">
               <h3 className="font-medium">Contatos feitos pela recepção (vacina e vermífugo)</h3>
               <p>
-                Abriu o WhatsApp: <strong>{c.abriuWhatsApp}</strong>
+                Pelo WhatsApp (“Já falei”): <strong>{c.whatsappDaRecepcao}</strong>
                 <span className="block text-xs text-muted-foreground">
-                  O sistema não sabe se a mensagem foi escrita e enviada.
+                  Declarado pela recepção. Registros antigos podem ser só o link aberto.
                 </span>
               </p>
               <p>
-                Ligou ou outro canal (“Já falei”): <strong>{c.declaradoPelaRecepcao}</strong>
+                Telefone ou outro canal (“Já falei”): <strong>{c.declaradoPelaRecepcao}</strong>
                 <span className="block text-xs text-muted-foreground">
                   Declarado pela recepção.
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
                 Coincidem com um aviso aceito pelo sistema: {c.coincideComAviso}. Não dá para saber
-                se foram gravados pelo sistema ou pela recepção antes dele.
+                se foram gravados pelo sistema (o envio do sistema só grava contato quando o
+                WhatsApp confirma a entrega; os registros antigos, na aceitação) ou pela recepção
+                antes dele.
               </p>
             </div>
             <div className="panel space-y-1 p-3 text-sm">
