@@ -17,6 +17,7 @@ import {
   separarContatos,
   type LinhaContato,
   type LinhaMensagem,
+  type MensagemDeOrigem,
 } from "@/lib/relacionamento-clinica";
 import { cn } from "@/lib/utils";
 
@@ -58,13 +59,23 @@ export function PainelRelacionamentoClinica() {
     refetchInterval: 60_000,
     queryFn: async () => {
       const desde = new Date(Date.now() - Number(dias) * 86_400_000).toISOString();
-      const [msgs, contatos] = await Promise.all([
+      const [msgs, origem, contatos] = await Promise.all([
+        // funil: lembretes criados no período
         supabase
           .from("wa_mensagens")
           .select("tipo, situacao, origem, erro, tentativas, referencia, updated_at")
           .in("tipo", ["reforco_vacina", "retorno_consulta"])
           .gte("created_at", desde)
           .order("created_at", { ascending: false })
+          .limit(LIMITE_LINHAS_PAINEL),
+        // origem dos contatos: avisos aceitos ou confirmados no período, mesmo os criados antes dele
+        supabase
+          .from("wa_mensagens")
+          .select("tipo, situacao, referencia")
+          .eq("tipo", "reforco_vacina")
+          .in("situacao", ["enviada", "entregue", "lida"])
+          .gte("updated_at", desde)
+          .order("updated_at", { ascending: false })
           .limit(LIMITE_LINHAS_PAINEL),
         supabase
           .from("pet_contatos")
@@ -74,19 +85,23 @@ export function PainelRelacionamentoClinica() {
           .limit(LIMITE_LINHAS_PAINEL),
       ]);
       if (msgs.error) throw msgs.error;
+      if (origem.error) throw origem.error;
       if (contatos.error) throw contatos.error;
       return {
         mensagens: (msgs.data ?? []) as unknown as LinhaMensagem[],
+        origem: (origem.data ?? []) as unknown as MensagemDeOrigem[],
         contatos: (contatos.data ?? []) as unknown as LinhaContato[],
       };
     },
   });
 
   const r = data ? resumirMensagens(data.mensagens) : null;
-  const c = data ? separarContatos(data.contatos, data.mensagens) : null;
+  const c = data ? separarContatos(data.contatos, data.origem) : null;
   const cortado =
     !!data &&
-    (data.mensagens.length >= LIMITE_LINHAS_PAINEL || data.contatos.length >= LIMITE_LINHAS_PAINEL);
+    (data.mensagens.length >= LIMITE_LINHAS_PAINEL ||
+      data.origem.length >= LIMITE_LINHAS_PAINEL ||
+      data.contatos.length >= LIMITE_LINHAS_PAINEL);
   const pctEntrega = r ? percentual(r.entregues, r.aceitas) : null;
 
   return (
@@ -158,8 +173,10 @@ export function PainelRelacionamentoClinica() {
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
-                Contatos gravados pelo envio do sistema: {c.viaSistema}. O envio do sistema só grava
-                contato quando o WhatsApp confirma a entrega.
+                Coincidem com um aviso aceito pelo sistema: {c.coincideComAviso}. Não dá para saber
+                se foram gravados pelo sistema (o envio do sistema só grava contato quando o
+                WhatsApp confirma a entrega; os registros antigos, na aceitação) ou pela recepção
+                antes dele.
               </p>
             </div>
             <div className="panel space-y-1 p-3 text-sm">

@@ -132,34 +132,46 @@ export function resumirMensagens(
 }
 
 export type ResumoContatos = {
-  /** gravados pelo envio do sistema (entrega confirmada; os antigos, na aceitação): já contam na fila, não são manuais */
-  viaSistema: number;
-  /** "Já falei" pelo WhatsApp, declarado pela recepção (até a mudança de 11/2026, abrir o link já gravava este contato: registros antigos podem ser só link aberto) */
+  /** "Já falei" pelo WhatsApp, declarado pela recepção e sem aviso aceito pelo sistema na mesma ocasião (até a mudança de 11/2026, abrir o link já gravava este contato: registros antigos podem ser só link aberto) */
   whatsappDaRecepcao: number;
-  /** "Já falei" por telefone ou outro canal: declarado pela recepção */
+  /** "Já falei" por telefone ou outro canal: sempre da recepção (o sistema só grava contato pelo WhatsApp) */
   declaradoPelaRecepcao: number;
+  /**
+   * contato pelo WhatsApp que coincide com um aviso aceito pelo sistema na mesma ocasião (pet + data): pode ter sido
+   * gravado pelo sistema ou pela recepção antes dele (o banco mantém o primeiro), então a origem é indeterminada
+   */
+  coincideComAviso: number;
 };
 
+/** Mensagem que ajuda a explicar um contato: só a ocasião e se o serviço a aceitou. */
+export type MensagemDeOrigem = Pick<LinhaMensagem, "tipo" | "situacao" | "referencia">;
+
 /**
- * Separa os contatos de reforço registrados: os que nasceram de uma mensagem aceita pelo serviço (mesma ocasião
- * pet+data com situação enviada, entregue ou lida) vêm do sistema; os demais foram feitos pela recepção.
+ * Separa os contatos de reforço registrados sem afirmar quem os gravou quando isso não dá para saber. Telefone e
+ * outro canal são da recepção, sempre. Contato pelo WhatsApp é "coincide com aviso" se houver mensagem aceita para a
+ * mesma ocasião, e "WhatsApp da recepção" se não houver. As mensagens de origem devem ser buscadas à parte, sem depender
+ * da janela do funil: um lembrete criado antes do período e aceito dentro dele grava o contato dentro do período.
  */
 export function separarContatos(
   contatos: LinhaContato[],
-  mensagens: LinhaMensagem[],
+  mensagensDeOrigem: MensagemDeOrigem[],
 ): ResumoContatos {
   const aceitas = new Set(
-    mensagens
+    mensagensDeOrigem
       .filter(
         (m) => m.tipo === "reforco_vacina" && ["enviada", "entregue", "lida"].includes(m.situacao),
       )
       .map((m) => m.referencia.toLowerCase()),
   );
-  const r: ResumoContatos = { viaSistema: 0, whatsappDaRecepcao: 0, declaradoPelaRecepcao: 0 };
+  const r: ResumoContatos = {
+    whatsappDaRecepcao: 0,
+    declaradoPelaRecepcao: 0,
+    coincideComAviso: 0,
+  };
   for (const c of contatos) {
-    if (aceitas.has(`${c.pet_id}:${c.referencia}`.toLowerCase())) r.viaSistema++;
-    else if (c.canal === "whatsapp") r.whatsappDaRecepcao++;
-    else r.declaradoPelaRecepcao++;
+    if (c.canal !== "whatsapp") r.declaradoPelaRecepcao++;
+    else if (aceitas.has(`${c.pet_id}:${c.referencia}`.toLowerCase())) r.coincideComAviso++;
+    else r.whatsappDaRecepcao++;
   }
   return r;
 }
