@@ -28,6 +28,7 @@ import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCardapioRouteImport } from './routes/_authenticated/cardapio'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
 import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
+import { Route as AuthenticatedChamadosRouteImport } from './routes/_authenticated/chamados'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
@@ -294,6 +295,11 @@ const AuthenticatedCertificadoNfseRoute =
     path: '/certificado-nfse',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedChamadosRoute = AuthenticatedChamadosRouteImport.update({
+  id: '/chamados',
+  path: '/chamados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -1245,6 +1251,7 @@ export interface FileRoutesByFullPath {
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/chamados': typeof AuthenticatedChamadosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1430,6 +1437,7 @@ export interface FileRoutesByTo {
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/chamados': typeof AuthenticatedChamadosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1617,6 +1625,7 @@ export interface FileRoutesById {
   '/_authenticated/cardapio': typeof AuthenticatedCardapioRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/_authenticated/chamados': typeof AuthenticatedChamadosRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1804,6 +1813,7 @@ export interface FileRouteTypes {
     | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
+    | '/chamados'
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
@@ -1989,6 +1999,7 @@ export interface FileRouteTypes {
     | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
+    | '/chamados'
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
@@ -2175,6 +2186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cardapio'
     | '/_authenticated/categorias'
     | '/_authenticated/certificado-nfse'
+    | '/_authenticated/chamados'
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/clinica-atendimento'
@@ -2491,6 +2503,13 @@ declare module '@tanstack/react-router' {
       path: '/certificado-nfse'
       fullPath: '/certificado-nfse'
       preLoaderRoute: typeof AuthenticatedCertificadoNfseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chamados': {
+      id: '/_authenticated/chamados'
+      path: '/chamados'
+      fullPath: '/chamados'
+      preLoaderRoute: typeof AuthenticatedChamadosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
@@ -3663,6 +3682,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCardapioRoute: typeof AuthenticatedCardapioRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
+  AuthenticatedChamadosRoute: typeof AuthenticatedChamadosRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
@@ -3837,6 +3857,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCardapioRoute: AuthenticatedCardapioRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
+  AuthenticatedChamadosRoute: AuthenticatedChamadosRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,

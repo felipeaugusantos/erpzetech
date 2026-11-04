@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Imported purchase notes
+- Help Ze Tech calls run only in authenticated server functions; derive company identity from the active profile and RLS reads, and retain the same request ID on retry to prevent duplicate tickets.
 - Username login remains tenant-scoped; the general login accepts the stable tenant UUID as an alternative company code, preserving password verification and avoiding global username discovery when no personalized link exists.
 - Optional module availability is resolved centrally by moduloLiberadoEmpresa; manual selections apply only without a 14-digit CNPJ, and clinical database gates mirror this rule without changing user roles.
 - Explicit company module releases are stored in empresa_modulos_liberados with tenant-scoped reads and service-only writes; availability resolvers and clinical database gates honor them without altering fiscal activities, business segment, or user permissions.
