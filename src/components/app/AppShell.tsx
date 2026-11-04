@@ -441,7 +441,8 @@ function montarAreas(grupos: Group[]): Area[] {
         destino === "Financeiro" && item.to === "/fluxo-caixa"
           ? undefined
           : item.secao ?? (AREA_DO_GRUPO[g.label] && g.label !== destino && g.label !== "Comercial" ? g.label : undefined);
-      area.items.push({ ...item, secao });
+      const { secao: _antiga, ...resto } = item;
+      area.items.push(secao ? { ...resto, secao } : resto);
     }
   }
   const fin = mapa.get("Financeiro");
