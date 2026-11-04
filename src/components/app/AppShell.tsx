@@ -818,7 +818,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-fila",
       "/sngpc",
     ];
-    if (somenteProfissional && !permitidas.includes(pathname)) {
+    if (
+      somenteProfissional &&
+      !permitidas.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    ) {
       navigate({ to: "/pet-minha-agenda", replace: true });
     }
   }, [somenteProfissional, pathname, navigate]);

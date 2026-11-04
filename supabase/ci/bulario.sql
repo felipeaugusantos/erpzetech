@@ -38,12 +38,19 @@ DECLARE
   vend constant uuid := 'c0000000-0000-0000-0000-000000000002';
   vetl constant uuid := 'c0000000-0000-0000-0000-000000000003';
   op constant uuid := 'c0000000-0000-0000-0000-000000000004';
-  r jsonb; n integer;
+  r jsonb; n integer; id1 uuid;
+  tw constant uuid := 'c3333333-3333-3333-3333-333333333333';
+  vetw constant uuid := 'c0000000-0000-0000-0000-000000000005';
 BEGIN
   INSERT INTO tenants (id, nome) VALUES (tv, 'Clínica'), (tl, 'Loja');
   INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tv, 'Clínica LTDA', 'clinica'), (tl, 'Loja LTDA', 'varejo');
   INSERT INTO auth.users (id, email) VALUES (vet, 'v@c.ci'), (vend, 'r@c.ci'), (vetl, 'l@c.ci'), (op, 'o@c.ci');
   INSERT INTO saas_operadores (user_id, nome) VALUES (op, 'operador');
+  INSERT INTO tenants (id, nome) VALUES (tw, 'Clínica W');
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (tw, 'Clínica W LTDA', 'clinica');
+  INSERT INTO auth.users (id, email) VALUES (vetw, 'w@c.ci');
+  UPDATE profiles SET tenant_id = tw, nome = 'vetw' WHERE id = vetw;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vetw, tw, 'veterinario');
   UPDATE profiles SET tenant_id = tv, nome = 'vet' WHERE id = vet;
   UPDATE profiles SET tenant_id = tv, nome = 'vend' WHERE id = vend;
   UPDATE profiles SET tenant_id = tl, nome = 'vetl' WHERE id = vetl;
@@ -88,6 +95,30 @@ BEGIN
   PERFORM ci.entrar(op); n := public.bulario_total(); PERFORM ci.sair();
   PERFORM ci.exige(n = 3, 'operador vê o total sem precisar de clínica');
   PERFORM ci.deve_falhar(vet, 'SELECT public.bulario_total()', 'empresa não vê o total da carga');
+
+  -- ficha e notas da clínica (isoladas por empresa)
+  SELECT id INTO id1 FROM bulario_medicamentos WHERE registro = '100';
+  PERFORM ci.entrar(vet); r := public.bulario_ficha(id1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'medicamento' ->> 'nome' = 'ADAPTIL Difusor' AND r -> 'nota' = 'null'::jsonb, 'ficha sem nota ainda');
+  PERFORM ci.entrar(vet);
+  PERFORM public.bulario_nota_salvar(id1, '{"doses":"  1 a cada 12h  ","indicacoes":"Ansiedade"}'::jsonb);
+  r := public.bulario_ficha(id1);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'nota' ->> 'doses' = '1 a cada 12h' AND r -> 'nota' ->> 'apresentacoes' IS NULL, 'nota salva e aparada');
+  PERFORM ci.entrar(vetw); r := public.bulario_ficha(id1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'nota' = 'null'::jsonb, 'outra empresa não vê a nota');
+  PERFORM ci.entrar(vetw); PERFORM public.bulario_nota_salvar(id1, '{"doses":"da W"}'::jsonb); PERFORM ci.sair();
+  PERFORM ci.entrar(vet); r := public.bulario_ficha(id1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'nota' ->> 'doses' = '1 a cada 12h', 'nota de uma empresa não sobrescreve a da outra');
+  PERFORM ci.entrar(vet); PERFORM public.bulario_nota_salvar(id1, '{"doses":"  ","indicacoes":""}'::jsonb); r := public.bulario_ficha(id1); PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'nota' = 'null'::jsonb, 'tudo em branco apaga a nota');
+  PERFORM ci.exige((SELECT count(*) FROM bulario_notas) = 1, 'só a nota da outra empresa ficou');
+  PERFORM ci.deve_falhar(vet, format($q$SELECT public.bulario_nota_salvar(%L, jsonb_build_object('doses', repeat('x', 6001)))$q$, id1), 'campo acima de 6000 caracteres');
+  PERFORM ci.deve_falhar(vet, $q$SELECT public.bulario_nota_salvar(gen_random_uuid(), '{"doses":"x"}'::jsonb)$q$, 'nota de medicamento inexistente');
+  PERFORM ci.deve_falhar(vet, $q$SELECT public.bulario_ficha(gen_random_uuid())$q$, 'ficha de medicamento inexistente');
+  PERFORM ci.deve_falhar(vend, format($q$SELECT public.bulario_nota_salvar(%L, '{"doses":"x"}'::jsonb)$q$, id1), 'vendedor não escreve nota');
+  PERFORM ci.deve_falhar(vetl, format($q$SELECT public.bulario_ficha(%L)$q$, id1), 'empresa sem clínica não abre a ficha');
+  PERFORM ci.deve_falhar(vet, 'SELECT count(*) FROM public.bulario_notas', 'leitura direta das notas');
 
   -- quem não pode
   PERFORM ci.deve_falhar(vend, 'SELECT public.bulario_buscar()', 'vendedor não consulta');

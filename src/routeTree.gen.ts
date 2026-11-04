@@ -33,7 +33,6 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
 import { Route as AuthenticatedClinicaBoxesRouteImport } from './routes/_authenticated/clinica-boxes'
-import { Route as AuthenticatedClinicaBularioRouteImport } from './routes/_authenticated/clinica-bulario'
 import { Route as AuthenticatedClinicaCartaoRouteImport } from './routes/_authenticated/clinica-cartao'
 import { Route as AuthenticatedClinicaCatalogoRouteImport } from './routes/_authenticated/clinica-catalogo'
 import { Route as AuthenticatedClinicaCobrancasRouteImport } from './routes/_authenticated/clinica-cobrancas'
@@ -187,6 +186,8 @@ import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_aut
 import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
 import { Route as MenuEmpresaRouteImport } from './routes/menu.$empresa'
+import { Route as AuthenticatedClinicaBularioIndexRouteImport } from './routes/_authenticated/clinica-bulario.index'
+import { Route as AuthenticatedClinicaBularioIdRouteImport } from './routes/_authenticated/clinica-bulario.$id'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -325,12 +326,6 @@ const AuthenticatedClinicaBoxesRoute =
   AuthenticatedClinicaBoxesRouteImport.update({
     id: '/clinica-boxes',
     path: '/clinica-boxes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedClinicaBularioRoute =
-  AuthenticatedClinicaBularioRouteImport.update({
-    id: '/clinica-bulario',
-    path: '/clinica-bulario',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaCartaoRoute =
@@ -1196,6 +1191,18 @@ const MenuEmpresaRoute = MenuEmpresaRouteImport.update({
   path: '/menu/$empresa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedClinicaBularioIndexRoute =
+  AuthenticatedClinicaBularioIndexRouteImport.update({
+    id: '/clinica-bulario/',
+    path: '/clinica-bulario/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaBularioIdRoute =
+  AuthenticatedClinicaBularioIdRouteImport.update({
+    id: '/clinica-bulario/$id',
+    path: '/clinica-bulario/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedComprasIndexRoute =
   AuthenticatedComprasIndexRouteImport.update({
     id: '/compras/',
@@ -1284,7 +1291,6 @@ export interface FileRoutesByFullPath {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
-  '/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1438,11 +1444,13 @@ export interface FileRoutesByFullPath {
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1474,7 +1482,6 @@ export interface FileRoutesByTo {
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
-  '/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1628,11 +1635,13 @@ export interface FileRoutesByTo {
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/clinica-bulario': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
@@ -1666,7 +1675,6 @@ export interface FileRoutesById {
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
   '/_authenticated/clinica-boxes': typeof AuthenticatedClinicaBoxesRoute
-  '/_authenticated/clinica-bulario': typeof AuthenticatedClinicaBularioRoute
   '/_authenticated/clinica-cartao': typeof AuthenticatedClinicaCartaoRoute
   '/_authenticated/clinica-catalogo': typeof AuthenticatedClinicaCatalogoRoute
   '/_authenticated/clinica-cobrancas': typeof AuthenticatedClinicaCobrancasRoute
@@ -1820,11 +1828,13 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/_authenticated/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/_authenticated/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -1858,7 +1868,6 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/clinica-atendimento'
     | '/clinica-boxes'
-    | '/clinica-bulario'
     | '/clinica-cartao'
     | '/clinica-catalogo'
     | '/clinica-cobrancas'
@@ -2012,11 +2021,13 @@ export interface FileRouteTypes {
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/clinica-bulario/'
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
@@ -2048,7 +2059,6 @@ export interface FileRouteTypes {
     | '/clientes-obras'
     | '/clinica-atendimento'
     | '/clinica-boxes'
-    | '/clinica-bulario'
     | '/clinica-cartao'
     | '/clinica-catalogo'
     | '/clinica-cobrancas'
@@ -2202,11 +2212,13 @@ export interface FileRouteTypes {
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/clinica-bulario'
     | '/compras'
     | '/depositos'
     | '/pedidos'
@@ -2239,7 +2251,6 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes-obras'
     | '/_authenticated/clinica-atendimento'
     | '/_authenticated/clinica-boxes'
-    | '/_authenticated/clinica-bulario'
     | '/_authenticated/clinica-cartao'
     | '/_authenticated/clinica-catalogo'
     | '/_authenticated/clinica-cobrancas'
@@ -2393,11 +2404,13 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/_authenticated/clinica-bulario/$id'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/_authenticated/clinica-bulario/'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
@@ -2590,13 +2603,6 @@ declare module '@tanstack/react-router' {
       path: '/clinica-boxes'
       fullPath: '/clinica-boxes'
       preLoaderRoute: typeof AuthenticatedClinicaBoxesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clinica-bulario': {
-      id: '/_authenticated/clinica-bulario'
-      path: '/clinica-bulario'
-      fullPath: '/clinica-bulario'
-      preLoaderRoute: typeof AuthenticatedClinicaBularioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-cartao': {
@@ -3670,6 +3676,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuEmpresaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/clinica-bulario/': {
+      id: '/_authenticated/clinica-bulario/'
+      path: '/clinica-bulario'
+      fullPath: '/clinica-bulario/'
+      preLoaderRoute: typeof AuthenticatedClinicaBularioIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-bulario/$id': {
+      id: '/_authenticated/clinica-bulario/$id'
+      path: '/clinica-bulario/$id'
+      fullPath: '/clinica-bulario/$id'
+      preLoaderRoute: typeof AuthenticatedClinicaBularioIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/compras/': {
       id: '/_authenticated/compras/'
       path: '/compras'
@@ -3767,7 +3787,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
   AuthenticatedClinicaBoxesRoute: typeof AuthenticatedClinicaBoxesRoute
-  AuthenticatedClinicaBularioRoute: typeof AuthenticatedClinicaBularioRoute
   AuthenticatedClinicaCartaoRoute: typeof AuthenticatedClinicaCartaoRoute
   AuthenticatedClinicaCatalogoRoute: typeof AuthenticatedClinicaCatalogoRoute
   AuthenticatedClinicaCobrancasRoute: typeof AuthenticatedClinicaCobrancasRoute
@@ -3920,10 +3939,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechRelatoriosRoute: typeof AuthenticatedZeTechRelatoriosRoute
   AuthenticatedZeTechTecnicosRoute: typeof AuthenticatedZeTechTecnicosRoute
   AuthenticatedZeTechTempoRealRoute: typeof AuthenticatedZeTechTempoRealRoute
+  AuthenticatedClinicaBularioIdRoute: typeof AuthenticatedClinicaBularioIdRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
   AuthenticatedHotelEstadiaIdRoute: typeof AuthenticatedHotelEstadiaIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
+  AuthenticatedClinicaBularioIndexRoute: typeof AuthenticatedClinicaBularioIndexRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedDepositosIndexRoute: typeof AuthenticatedDepositosIndexRoute
   AuthenticatedPedidosIndexRoute: typeof AuthenticatedPedidosIndexRoute
@@ -3946,7 +3967,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
   AuthenticatedClinicaBoxesRoute: AuthenticatedClinicaBoxesRoute,
-  AuthenticatedClinicaBularioRoute: AuthenticatedClinicaBularioRoute,
   AuthenticatedClinicaCartaoRoute: AuthenticatedClinicaCartaoRoute,
   AuthenticatedClinicaCatalogoRoute: AuthenticatedClinicaCatalogoRoute,
   AuthenticatedClinicaCobrancasRoute: AuthenticatedClinicaCobrancasRoute,
@@ -4105,10 +4125,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechRelatoriosRoute: AuthenticatedZeTechRelatoriosRoute,
   AuthenticatedZeTechTecnicosRoute: AuthenticatedZeTechTecnicosRoute,
   AuthenticatedZeTechTempoRealRoute: AuthenticatedZeTechTempoRealRoute,
+  AuthenticatedClinicaBularioIdRoute: AuthenticatedClinicaBularioIdRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
   AuthenticatedHotelEstadiaIdRoute: AuthenticatedHotelEstadiaIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
+  AuthenticatedClinicaBularioIndexRoute: AuthenticatedClinicaBularioIndexRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedDepositosIndexRoute: AuthenticatedDepositosIndexRoute,
   AuthenticatedPedidosIndexRoute: AuthenticatedPedidosIndexRoute,

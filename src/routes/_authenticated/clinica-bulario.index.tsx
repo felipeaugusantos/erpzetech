@@ -7,7 +7,6 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,12 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { FONTE_MAPA, registroInativo, type MedicamentoBulario } from "@/lib/bulario";
 import { useModulosCnae } from "@/lib/cnae";
 
-export const Route = createFileRoute("/_authenticated/clinica-bulario")({
+export const Route = createFileRoute("/_authenticated/clinica-bulario/")({
   head: () => ({
     meta: [
       { title: "Bulário veterinário — EZRA ERP" },
@@ -58,14 +56,11 @@ function useDebounce<T>(valor: T, ms = 300): T {
 }
 
 function Bulario() {
-  const { data: sessao } = useSessionData();
-  const podeCadastrar = (sessao?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
   const [texto, setTexto] = useState("");
   const busca = useDebounce(texto);
   const [letra, setLetra] = useState<string | null>(null);
   const [fab, setFab] = useState("todos");
   const [pagina, setPagina] = useState(0);
-  const [aberto, setAberto] = useState<MedicamentoBulario | null>(null);
 
   useEffect(() => setPagina(0), [busca, letra, fab]);
 
@@ -177,9 +172,9 @@ function Bulario() {
             <ul className="space-y-2">
               {itens.map((m) => (
                 <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => setAberto(m)}
+                  <Link
+                    to="/clinica-bulario/$id"
+                    params={{ id: m.id }}
                     className="flex w-full items-center justify-between gap-3 rounded-md border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-accent"
                   >
                     <span className="min-w-0 truncate">
@@ -193,7 +188,7 @@ function Bulario() {
                     <span className="shrink-0 text-xs font-semibold uppercase text-muted-foreground">
                       {m.fabricante}
                     </span>
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -232,89 +227,6 @@ function Bulario() {
           </div>
         </>
       )}
-
-      <Ficha item={aberto} podeCadastrar={podeCadastrar} onClose={() => setAberto(null)} />
     </div>
-  );
-}
-
-function Ficha({
-  item,
-  podeCadastrar,
-  onClose,
-}: {
-  item: MedicamentoBulario | null;
-  podeCadastrar: boolean;
-  onClose: () => void;
-}) {
-  // produtos da própria empresa com nome parecido (RLS); evita cadastrar em duplicidade
-  const { data: parecidos = [] } = useQuery({
-    queryKey: ["bulario-parecidos", item?.id],
-    enabled: !!item && podeCadastrar,
-    queryFn: async () => {
-      const termo = (item?.nome ?? "").replace(/[%_,()]/g, " ").trim();
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("id, descricao, codigo_interno")
-        .ilike("descricao", `%${termo}%`)
-        .limit(5);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const linhas: [string, string | null | undefined][] = item
-    ? [
-        ["Fabricante", item.fabricante],
-        ["Registro no MAPA", item.registro],
-        ["Princípio ativo", item.principio_ativo],
-        ["Espécies", item.especies],
-        ["Classificação", item.classificacao],
-        ["Situação do registro", item.situacao],
-        ...Object.entries(item.extras ?? {}),
-      ]
-    : [];
-
-  return (
-    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{item?.nome}</DialogTitle>
-        </DialogHeader>
-        <dl className="space-y-2 text-sm">
-          {linhas
-            .filter(([, v]) => v)
-            .map(([k, v]) => (
-              <div key={k} className="grid grid-cols-3 gap-2">
-                <dt className="text-muted-foreground">{k}</dt>
-                <dd className="col-span-2">{v}</dd>
-              </div>
-            ))}
-        </dl>
-        {item && registroInativo(item.situacao) && (
-          <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
-            O registro deste produto consta como {item.situacao?.toLowerCase()} no MAPA.
-          </p>
-        )}
-        {podeCadastrar && item && (
-          <div className="space-y-2 border-t pt-3">
-            {parecidos.length > 0 && (
-              <p className="text-sm">
-                Já no seu cadastro: {parecidos.map((p) => p.descricao).join("; ")}.
-              </p>
-            )}
-            <Button asChild variant="outline">
-              <Link
-                to="/produtos"
-                search={{ novo: item.nome, ...(item.fabricante ? { fab: item.fabricante } : {}) }}
-              >
-                Cadastrar no estoque
-              </Link>
-            </Button>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">Fonte: {FONTE_MAPA}</p>
-      </DialogContent>
-    </Dialog>
   );
 }

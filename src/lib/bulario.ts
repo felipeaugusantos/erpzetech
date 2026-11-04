@@ -178,3 +178,83 @@ export function registroInativo(situacao: string | null): boolean {
   if (!situacao) return false;
   return /suspens|cancel|inativ|vencid/.test(normalizar(situacao));
 }
+
+export type NotaBulario = {
+  apresentacoes: string | null;
+  indicacoes: string | null;
+  doses: string | null;
+  interacoes: string | null;
+  observacoes: string | null;
+  updated_at?: string;
+};
+export type CampoNota = keyof Omit<NotaBulario, "updated_at">;
+export type FichaBulario = { medicamento: MedicamentoBulario; nota: NotaBulario | null };
+
+/** Seções escritas pela própria clínica (o MAPA não traz esse conteúdo). */
+export const SECOES_CLINICA: { campo: CampoNota; titulo: string; dica: string }[] = [
+  {
+    campo: "apresentacoes",
+    titulo: "Apresentações e concentrações",
+    dica: "Ex.: frasco 15 mL; comprimidos de 5 mg, 10 mg e 20 mg.",
+  },
+  {
+    campo: "indicacoes",
+    titulo: "Indicações e contraindicações",
+    dica: "O que a clínica adota: quando usar e quando evitar.",
+  },
+  {
+    campo: "doses",
+    titulo: "Administração e doses",
+    dica: "Via, dose por espécie ou peso, frequência e duração conforme a bula e o protocolo da clínica.",
+  },
+  {
+    campo: "interacoes",
+    titulo: "Interações medicamentosas",
+    dica: "Associações a evitar ou monitorar.",
+  },
+  {
+    campo: "observacoes",
+    titulo: "Observações da clínica",
+    dica: "Qualquer anotação interna sobre este medicamento.",
+  },
+];
+
+export type ExtrasAgrupados = {
+  composicao: string | null;
+  armazenamento: string | null;
+  carencia: string | null;
+  responsavel: string | null;
+  outros: [string, string][];
+};
+
+/**
+ * Coloca nas seções da ficha os campos extras do CSV do MAPA que têm nome conhecido (composição, armazenamento,
+ * carência, responsável técnico); o que não reconhece vai em "outros", sem perder informação.
+ */
+export function agruparExtras(extras: Record<string, string> | null | undefined): ExtrasAgrupados {
+  const g: ExtrasAgrupados = {
+    composicao: null,
+    armazenamento: null,
+    carencia: null,
+    responsavel: null,
+    outros: [],
+  };
+  const junta = (atual: string | null, v: string) => (atual ? `${atual}\n${v}` : v);
+  for (const [chave, valor] of Object.entries(extras ?? {})) {
+    const n = normalizar(chave);
+    if (/^(composicao|formula)/.test(n)) g.composicao = junta(g.composicao, valor);
+    else if (/armazen|conserv/.test(n)) g.armazenamento = junta(g.armazenamento, valor);
+    else if (/carencia/.test(n)) g.carencia = junta(g.carencia, valor);
+    else if (/responsavel|^rt$/.test(n)) g.responsavel = junta(g.responsavel, valor);
+    else g.outros.push([chave, valor]);
+  }
+  return g;
+}
+
+/** Quebra "A; B | C" em itens (vírgula não separa: aparece dentro de concentrações como 1,4 g). */
+export function dividirLista(texto: string | null | undefined): string[] {
+  return (texto ?? "")
+    .split(/\s*(?:;|\||\n)\s*/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
