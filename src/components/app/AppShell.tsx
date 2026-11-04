@@ -852,16 +852,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex min-h-0 shrink-0 transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* trilho com as áreas */}
         <nav
           aria-label="Áreas do sistema"
-          className="flex w-[5.25rem] flex-col items-center gap-1 overflow-y-auto bg-rail py-3 text-rail-foreground"
+          className="menu-scroll flex min-h-0 w-[5.25rem] shrink-0 flex-col items-center gap-1 bg-rail px-1.5 py-3 text-rail-foreground"
         >
-          <div className="mb-2 grid size-11 place-items-center">
+          <div className="mb-2 grid size-11 shrink-0 place-items-center">
             <LogoEmpresa />
           </div>
           {areas.map((area) => {
@@ -875,7 +875,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-expanded={area.items.length > 1 ? aberta : undefined}
                 title={area.label}
                 className={cn(
-                  "flex w-[4.5rem] flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10.5px] font-medium leading-tight transition-colors",
+                  "flex w-full min-w-0 shrink-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10.5px] font-medium leading-tight transition-colors",
                   ativa
                     ? "bg-rail-active text-rail-active-foreground font-semibold"
                     : aberta
@@ -883,14 +883,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       : "text-rail-foreground/75 hover:bg-rail-foreground/10 hover:text-rail-foreground",
                 )}
               >
-                <area.icon className="size-5" />
+                <area.icon className="size-5 shrink-0" />
                 <span className="w-full break-words text-center">{area.label}</span>
               </button>
             );
           })}
           <button
             onClick={() => alternarPainel(!painelAberto)}
-            className="mt-auto hidden rounded-lg p-2 text-rail-foreground/60 hover:bg-rail-foreground/10 hover:text-rail-foreground lg:block"
+            className="mt-auto hidden shrink-0 rounded-lg p-2 text-rail-foreground/60 hover:bg-rail-foreground/10 hover:text-rail-foreground lg:block"
             aria-label={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
             title={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
           >
@@ -900,8 +900,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* painel de submenus da área */}
         {areaAberta && (mostrarPainel || mobileOpen) && (
-          <div className="flex w-60 flex-col border-r border-border bg-card text-card-foreground">
-            <div className="flex h-16 items-center gap-2 border-b border-border px-4">
+          <div className="flex min-h-0 w-60 min-w-0 flex-col border-r border-border bg-card text-card-foreground">
+            <div className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
               <div className="min-w-0">
                 <p className="truncate font-display text-base font-bold">{areaAberta.label}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
@@ -916,7 +916,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="size-4" />
               </button>
             </div>
-            <ul className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+            <ul className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3">
               {areaAberta.items.map((item, i) => (
                 <li key={`${item.secao ?? ""}-${item.to ?? item.label}`}>
                   {item.secao && item.secao !== areaAberta.items[i - 1]?.secao ? (
