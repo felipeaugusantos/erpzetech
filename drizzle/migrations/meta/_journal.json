@@ -526,6 +526,13 @@
       "when": 1793794520040,
       "tag": "0074_clinica_internacao",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793794693073,
+      "tag": "0075_clinica_internacao_prescricao",
+      "breakpoints": true
     }
   ]
 }
