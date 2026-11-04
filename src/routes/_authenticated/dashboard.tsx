@@ -908,7 +908,10 @@ function CartaoIndicador({
       <p className="text-sm opacity-80">{legenda}</p>
       <dl className="mt-4 space-y-1.5 text-sm">
         {linhas.map((l) => (
-          <div key={l.label} className="flex justify-between gap-3 border-t border-current/15 pt-1.5">
+          <div
+            key={l.label}
+            className="flex justify-between gap-3 border-t border-current/15 pt-1.5"
+          >
             <dt className="opacity-80">{l.label}</dt>
             <dd className="font-semibold tabular-nums">{l.valor}</dd>
           </div>
