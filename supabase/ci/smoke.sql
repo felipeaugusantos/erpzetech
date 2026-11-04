@@ -12003,6 +12003,7 @@ DECLARE
   cli uuid; cli_b uuid; v1 uuid; v2 uuid; v3 uuid; v_b uuid; l1 uuid; l2 uuid; l_b uuid; s1 uuid; s2 uuid; s_sem uuid; s_b uuid; s_prod uuid;
   dep uuid; ped uuid;
   a1 uuid; a2 uuid; a3 uuid; a4 uuid; a5 uuid; a6 uuid; a_b uuid; o uuid; o2 uuid; r jsonb; n int; n0 int; i1 uuid;
+  pl uuid; ass uuid; a7 uuid; a8 uuid; a9 uuid; o3 uuid; ped2 uuid; cli_p uuid; v_p uuid; v_q uuid; cli_f uuid; v_f uuid; v_g uuid;
   ini timestamptz := '2030-03-15 09:00:00-03';
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
@@ -12237,9 +12238,9 @@ BEGIN
   PERFORM ci.exige((SELECT situacao = 'aguardando' AND veiculo_id = v1 AND cliente_id = cli AND lavador_id = l1 AND box = 'Box 1' AND observacoes = 'Cliente pede cuidado com o banco' AND checklist_em IS NULL
                       FROM lr_ordens WHERE id = o), 'a ordem nasce em aguardando, com cliente, veículo, lavador, box e observações, sem checklist');
   PERFORM ci.exige((SELECT situacao = 'concluido' AND ordem_id = o AND chegada_em IS NOT NULL FROM lr_agendamentos WHERE id = a1), 'o agendamento guarda o ordem_id e fica concluído');
-  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o AND cobertura IS NULL AND assinatura_id IS NULL), 'os serviços previstos entram como itens comuns, sem plano nem brinde');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o AND cobertura IS NULL AND assinatura_id IS NULL), 'sem plano nem brinde, os serviços previstos entram como itens comuns');
   PERFORM ci.exige((SELECT preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s1) AND (SELECT preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s2), 'preço da ordem: o do cadastro, por tipo de veículo');
-  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o), 'a chegada não usa plano nem fidelidade');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o), 'sem plano nem brinde no cadastro, a chegada não aplica cobertura');
   PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_insumo_baixas b WHERE b.ordem_id = o) AND NOT EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o) AND (SELECT venda_id IS NULL FROM lr_ordens WHERE id = o), 'a chegada não cobra, não baixa insumo e não gera comissão');
   -- repetir a chegada devolve a mesma ordem
   PERFORM ci.entrar(vend);
@@ -12277,6 +12278,109 @@ BEGIN
   r := lr_agenda_chegada(a1);
   PERFORM ci.sair();
   PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'depois de entregue, a chegada repetida ainda devolve a mesma ordem');
+
+  -- ===== plano e fidelidade: a chegada aplica a mesma cobertura da ordem aberta no pátio =====
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano Agenda CI', '11144477735') RETURNING id INTO cli_p;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel Agenda CI', '39053344705') RETURNING id INTO cli_f;
+  PERFORM ci.entrar(vend);
+  v_p := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP1A11', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
+  v_q := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP2B22', 'fabricante', 'Fiat', 'modelo', 'Palio'));
+  v_f := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_f, 'tipo', 'carro', 'identificacao', 'AGF1C33', 'fabricante', 'VW', 'modelo', 'Fox'));
+  v_g := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_f, 'tipo', 'carro', 'identificacao', 'AGF2D44', 'fabricante', 'VW', 'modelo', 'Up'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  pl := lr_plano_salvar(jsonb_build_object('nome', 'Plano agenda CI', 'servico_id', s1, 'lavagens', 2, 'preco', 60, 'validade_dias', 30, 'tipo', 'carro'));
+  PERFORM ci.sair();
+  -- assinatura ativa do veículo v_p para o serviço s1 (a venda do plano é testada na seção do pátio)
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, pl, v_p, cli_p, s1, 2, 60, current_date, current_date + 30) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  a7 := lr_agendar(jsonb_build_object('veiculo_id', v_p, 'lavador_id', l2, 'inicio', ini + interval '3 days', 'servicos', jsonb_build_array(s1, s2)));
+  r := lr_agenda_chegada(a7);
+  PERFORM ci.sair();
+  o3 := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND assinatura_id = ass FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s1), 'o serviço do plano ativo do veículo sai coberto pela assinatura');
+  PERFORM ci.exige((SELECT cobertura IS NULL AND assinatura_id IS NULL AND preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s2), 'o serviço fora do plano segue cobrado, com o preço do cadastro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o3 AND u.assinatura_id = ass AND NOT u.desfeito)
+                   AND _lr_assinatura_restam(ass) = 1, 'a lavagem do plano é gasta uma vez');
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND venda_id IS NULL FROM lr_ordens WHERE id = o3), 'a ordem com plano nasce em aguardando, sem venda');
+  -- repetir a chegada não gasta outra lavagem
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a7);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o3 AND (r ->> 'repetido')::boolean AND _lr_assinatura_restam(ass) = 1, 'clique repetido não gasta outra lavagem do plano');
+  -- cancelar a ordem devolve a lavagem (regra do pátio)
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 2, 'cancelar a ordem da agenda devolve a lavagem do plano');
+  -- plano de outro veículo do mesmo cliente não vale
+  PERFORM ci.entrar(vend);
+  a8 := lr_agendar(jsonb_build_object('veiculo_id', v_q, 'lavador_id', l2, 'inicio', ini + interval '3 days 2 hours', 'servicos', jsonb_build_array(s1)));
+  r := lr_agenda_chegada(a8);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'a assinatura de um veículo não cobre outro veículo');
+  -- plano vencido não cobre
+  UPDATE lr_assinaturas SET vence_em = current_date - 1 WHERE id = ass;
+  PERFORM ci.entrar(vend);
+  a9 := lr_agendar(jsonb_build_object('veiculo_id', v_p, 'lavador_id', l1, 'inicio', ini + interval '4 days', 'servicos', jsonb_build_array(s1)));
+  r := lr_agenda_chegada(a9);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid) AND _lr_assinatura_restam(ass) = 2, 'plano vencido não cobre a ordem da agenda');
+  -- outra empresa não enxerga nem usa essa assinatura
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_assinaturas') = 0, 'a assinatura não aparece para outra empresa');
+
+  -- fidelidade: a cada 2 lavagens entregues, a próxima do serviço-brinde (s2) é grátis
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(true, 2, s2);
+  PERFORM ci.sair();
+  FOR n IN 1..2 LOOP
+    PERFORM ci.entrar(vend);
+    o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v_f, 'lavador_id', l2, 'servicos', jsonb_build_array(s1)));
+    PERFORM lr_checklist_concluir(o3, true);
+    PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+    ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', s_prod, 'quantidade', 1, 'preco_unitario', 55)), 'crediario', cli_f, 0, 1, current_date + 30);
+    PERFORM lr_ordem_retirar(o3, ped2);
+    PERFORM ci.sair();
+  END LOOP;
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 1, 'duas lavagens entregues dão um brinde');
+  PERFORM ci.entrar(vend);
+  a7 := lr_agendar(jsonb_build_object('veiculo_id', v_f, 'lavador_id', l2, 'inicio', ini + interval '5 days', 'servicos', jsonb_build_array(s1, s2)));
+  a8 := lr_agendar(jsonb_build_object('veiculo_id', v_g, 'lavador_id', l1, 'inicio', ini + interval '5 days', 'servicos', jsonb_build_array(s2)));
+  r := lr_agenda_chegada(a7);
+  o3 := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'fidelidade' AND assinatura_id IS NULL FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s2), 'o serviço-brinde sai de graça na chegada');
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s1), 'os outros serviços seguem cobrados');
+  -- o brinde é do cliente: a chegada do outro veículo dele, com o brinde já usado, cobra normalmente
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a8);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'brinde já usado: a segunda ordem do cliente é cobrada');
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 0, 'o brinde usado na agenda não fica disponível de novo');
+  -- cancelar a ordem devolve o brinde
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 1, 'cancelar a ordem da agenda devolve o brinde');
+  -- serviço coberto não exige preço cadastrado (o cobrado exige, como testado acima)
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao((SELECT ordem_id FROM lr_agendamentos WHERE id = a8), 'cancelada', 'teste');
+  PERFORM ci.sair();
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, pl, v_g, cli_f, s_sem, 2, 20, current_date, current_date + 30) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  a9 := lr_agendar(jsonb_build_object('veiculo_id', v_g, 'lavador_id', l1, 'inicio', ini + interval '6 days', 'servicos', jsonb_build_array(s_sem)));
+  r := lr_agenda_chegada(a9);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND preco_aplicado = 0 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'serviço coberto pelo plano entra sem exigir preço cadastrado');
+  -- fidelidade desligada
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(false, 2, s2);
+  PERFORM ci.sair();
 
   -- limpeza
   DELETE FROM lr_agenda_config WHERE tenant_id = demo;
