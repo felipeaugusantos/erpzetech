@@ -547,6 +547,13 @@
       "when": 1793795020865,
       "tag": "0077_revisao_pr_internacao_sngpc",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793795116098,
+      "tag": "0078_pet_cobranca_os_internacao",
+      "breakpoints": true
     }
   ]
 }

@@ -8942,6 +8942,7 @@ export type Database = {
           valor_pecas: number
           valor_servicos: number
           valor_total: number
+          venda_id: string | null
         }
         Insert: {
           abertura?: string
@@ -8979,6 +8980,7 @@ export type Database = {
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
+          venda_id?: string | null
         }
         Update: {
           abertura?: string
@@ -9016,6 +9018,7 @@ export type Database = {
           valor_pecas?: number
           valor_servicos?: number
           valor_total?: number
+          venda_id?: string | null
         }
         Relationships: [
           {
@@ -9044,6 +9047,13 @@ export type Database = {
             columns: ["pet_profissional_id"]
             isOneToOne: false
             referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_ordens_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]
@@ -10826,6 +10836,58 @@ export type Database = {
             columns: ["veterinario_id"]
             isOneToOne: false
             referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_internacao_cobrancas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          devolvido: Json
+          id: string
+          internacao_id: string
+          pedido_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          devolvido?: Json
+          id?: string
+          internacao_id: string
+          pedido_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          devolvido?: Json
+          id?: string
+          internacao_id?: string
+          pedido_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_cobrancas_internacao_id_fkey"
+            columns: ["internacao_id"]
+            isOneToOne: true
+            referencedRelation: "pet_internacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_cobrancas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_cobrancas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -14806,6 +14868,8 @@ export type Database = {
         }
       }
       _internacao_ator: { Args: { p_so_veterinario: boolean }; Returns: Json }
+      _internacao_exige_cobranca: { Args: never; Returns: undefined }
+      _internacao_linhas: { Args: { p_id: string }; Returns: Json }
       _internacao_movimentar: {
         Args: {
           p_deposito_id: string
@@ -14904,6 +14968,7 @@ export type Database = {
         Returns: boolean
       }
       _pet_exige_clinica_se_vet: { Args: never; Returns: undefined }
+      _pet_linhas_unicas: { Args: { p_linhas: Json }; Returns: undefined }
       _pet_meu_profissional: { Args: never; Returns: string }
       _pet_nfse_criar: {
         Args: {
@@ -14915,10 +14980,20 @@ export type Database = {
         }
         Returns: string
       }
+      _pet_os_linhas: { Args: { p_os_id: string }; Returns: Json }
       _pet_os_resumo: { Args: { p_pet_id: string }; Returns: Json }
       _pet_os_total: { Args: { p_os_id: string }; Returns: undefined }
       _pet_pacote_restam: { Args: { p_pacote_id: string }; Returns: number }
       _pet_peso_atual: { Args: { p_pet_id: string }; Returns: undefined }
+      _pet_produto_avulso: { Args: never; Returns: string }
+      _pet_venda_confere: {
+        Args: { p_exigidos: Json; p_pedido_id: string }
+        Returns: undefined
+      }
+      _pet_venda_valida: {
+        Args: { p_chave: string; p_pedido_id: string }
+        Returns: string
+      }
       _produto_dados_modulo_erro: {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
@@ -15221,6 +15296,11 @@ export type Database = {
         Returns: undefined
       }
       clinica_internacao_catalogo: { Args: { p_busca: string }; Returns: Json }
+      clinica_internacao_cobranca: { Args: { p_id: string }; Returns: Json }
+      clinica_internacao_cobrar: {
+        Args: { p_chave?: string; p_id: string; p_pedido_id?: string }
+        Returns: Json
+      }
       clinica_internacao_encerrar: {
         Args: {
           p_id: string
@@ -15259,6 +15339,7 @@ export type Database = {
         Args: { p_pet_id?: string; p_situacao?: string }
         Returns: Json
       }
+      clinica_internacoes_a_cobrar: { Args: never; Returns: Json }
       clinica_liberada: { Args: never; Returns: boolean }
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
       clinica_meu_veterinario: { Args: never; Returns: string }
@@ -16489,6 +16570,11 @@ export type Database = {
       pet_minha_situacao: {
         Args: { p_id: string; p_para: string }
         Returns: undefined
+      }
+      pet_os_cobranca: { Args: { p_os_id: string }; Returns: Json }
+      pet_os_cobrar: {
+        Args: { p_chave?: string; p_os_id: string; p_pedido_id?: string }
+        Returns: Json
       }
       pet_os_item_adicionar: {
         Args: { p_dados: Json; p_os_id: string }
