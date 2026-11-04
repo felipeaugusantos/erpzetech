@@ -533,6 +533,13 @@
       "when": 1793794693073,
       "tag": "0075_clinica_internacao_prescricao",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793794906454,
+      "tag": "0076_sngpc",
+      "breakpoints": true
     }
   ]
 }

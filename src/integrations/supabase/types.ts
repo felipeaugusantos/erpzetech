@@ -11617,6 +11617,7 @@ export type Database = {
         Row: {
           ativo: boolean
           comissao_percentual: number
+          cpf: string | null
           created_at: string
           crf: string | null
           crf_uf: string | null
@@ -11633,6 +11634,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           comissao_percentual?: number
+          cpf?: string | null
           created_at?: string
           crf?: string | null
           crf_uf?: string | null
@@ -11649,6 +11651,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           comissao_percentual?: number
+          cpf?: string | null
           created_at?: string
           crf?: string | null
           crf_uf?: string | null
@@ -13459,6 +13462,295 @@ export type Database = {
         }
         Relationships: []
       }
+      sngpc_documentos: {
+        Row: {
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          cancelado_por_nome: string | null
+          cnpj_origem: string | null
+          comprador_documento: string | null
+          comprador_nome: string | null
+          comprador_orgao: string | null
+          comprador_tipo_documento: number | null
+          comprador_uf: string | null
+          created_at: string
+          data: string
+          data_prescricao: string | null
+          id: string
+          motivo_perda: number | null
+          nf_data: string | null
+          nf_numero: number | null
+          numero_notificacao: string | null
+          observacao: string | null
+          paciente_idade: number | null
+          paciente_nome: string | null
+          paciente_sexo: number | null
+          paciente_unidade_idade: number | null
+          pet_id: string | null
+          prescritor_nome: string | null
+          prescritor_registro: string | null
+          prescritor_uf: string | null
+          registrado_nome: string
+          registrado_por: string | null
+          tenant_id: string
+          tipo: string
+          tipo_receituario: number | null
+        }
+        Insert: {
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por_nome?: string | null
+          cnpj_origem?: string | null
+          comprador_documento?: string | null
+          comprador_nome?: string | null
+          comprador_orgao?: string | null
+          comprador_tipo_documento?: number | null
+          comprador_uf?: string | null
+          created_at?: string
+          data: string
+          data_prescricao?: string | null
+          id?: string
+          motivo_perda?: number | null
+          nf_data?: string | null
+          nf_numero?: number | null
+          numero_notificacao?: string | null
+          observacao?: string | null
+          paciente_idade?: number | null
+          paciente_nome?: string | null
+          paciente_sexo?: number | null
+          paciente_unidade_idade?: number | null
+          pet_id?: string | null
+          prescritor_nome?: string | null
+          prescritor_registro?: string | null
+          prescritor_uf?: string | null
+          registrado_nome: string
+          registrado_por?: string | null
+          tenant_id?: string
+          tipo: string
+          tipo_receituario?: number | null
+        }
+        Update: {
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cancelado_por_nome?: string | null
+          cnpj_origem?: string | null
+          comprador_documento?: string | null
+          comprador_nome?: string | null
+          comprador_orgao?: string | null
+          comprador_tipo_documento?: number | null
+          comprador_uf?: string | null
+          created_at?: string
+          data?: string
+          data_prescricao?: string | null
+          id?: string
+          motivo_perda?: number | null
+          nf_data?: string | null
+          nf_numero?: number | null
+          numero_notificacao?: string | null
+          observacao?: string | null
+          paciente_idade?: number | null
+          paciente_nome?: string | null
+          paciente_sexo?: number | null
+          paciente_unidade_idade?: number | null
+          pet_id?: string | null
+          prescritor_nome?: string | null
+          prescritor_registro?: string | null
+          prescritor_uf?: string | null
+          registrado_nome?: string
+          registrado_por?: string | null
+          tenant_id?: string
+          tipo?: string
+          tipo_receituario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sngpc_documentos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sngpc_documentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sngpc_envios: {
+        Row: {
+          cancelado_motivo: string | null
+          created_at: string
+          farmaceutico_id: string
+          fim: string
+          gerado_por_nome: string
+          id: string
+          inicio: string
+          protocolo: string | null
+          sha256: string
+          situacao: string
+          tenant_id: string
+          tipo: string
+          transmitido_em: string | null
+          xml: string
+        }
+        Insert: {
+          cancelado_motivo?: string | null
+          created_at?: string
+          farmaceutico_id: string
+          fim: string
+          gerado_por_nome: string
+          id?: string
+          inicio: string
+          protocolo?: string | null
+          sha256: string
+          situacao?: string
+          tenant_id?: string
+          tipo: string
+          transmitido_em?: string | null
+          xml: string
+        }
+        Update: {
+          cancelado_motivo?: string | null
+          created_at?: string
+          farmaceutico_id?: string
+          fim?: string
+          gerado_por_nome?: string
+          id?: string
+          inicio?: string
+          protocolo?: string | null
+          sha256?: string
+          situacao?: string
+          tenant_id?: string
+          tipo?: string
+          transmitido_em?: string | null
+          xml?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sngpc_envios_farmaceutico_id_fkey"
+            columns: ["farmaceutico_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sngpc_envios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sngpc_itens: {
+        Row: {
+          created_at: string
+          documento_id: string
+          id: string
+          lote: string
+          medicamento_id: string
+          quantidade: number
+          tenant_id: string
+          validade: string | null
+        }
+        Insert: {
+          created_at?: string
+          documento_id: string
+          id?: string
+          lote: string
+          medicamento_id: string
+          quantidade: number
+          tenant_id?: string
+          validade?: string | null
+        }
+        Update: {
+          created_at?: string
+          documento_id?: string
+          id?: string
+          lote?: string
+          medicamento_id?: string
+          quantidade?: number
+          tenant_id?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sngpc_itens_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "sngpc_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sngpc_itens_medicamento_id_fkey"
+            columns: ["medicamento_id"]
+            isOneToOne: false
+            referencedRelation: "sngpc_medicamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sngpc_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sngpc_medicamentos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          lista: string
+          produto_id: string
+          registro_ms: string
+          tenant_id: string
+          unidade_medida: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lista: string
+          produto_id: string
+          registro_ms: string
+          tenant_id?: string
+          unidade_medida: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          lista?: string
+          produto_id?: string
+          registro_ms?: string
+          tenant_id?: string
+          unidade_medida?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sngpc_medicamentos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sngpc_medicamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tabela_preco_itens: {
         Row: {
           created_at: string
@@ -14395,6 +14687,7 @@ export type Database = {
         Returns: Json
       }
       _clinica_vet: { Args: never; Returns: string }
+      _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
       _fone_normalizado: { Args: { p_fone: string }; Returns: string }
       _hs_auditar: {
         Args: {
@@ -14629,6 +14922,13 @@ export type Database = {
       _produto_dados_modulo_erro: {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
+      }
+      _sngpc_ator: { Args: never; Returns: string }
+      _sngpc_cnpj: { Args: never; Returns: string }
+      _sngpc_fechado_ate: { Args: never; Returns: string }
+      _sngpc_lote_ok: {
+        Args: { p_lote: string; p_medicamento_id: string }
+        Returns: boolean
       }
       _wa_enfileirar: {
         Args: {
@@ -16730,6 +17030,38 @@ export type Database = {
         Args: { p_itens: Json; p_pedido_id: string }
         Returns: number
       }
+      sngpc_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      sngpc_envio_cancelar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      sngpc_envio_registrar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_envio_transmitir: {
+        Args: { p_id: string; p_protocolo: string }
+        Returns: undefined
+      }
+      sngpc_envio_xml: { Args: { p_id: string }; Returns: string }
+      sngpc_envios: { Args: never; Returns: Json }
+      sngpc_inventario: { Args: { p_data: string }; Returns: Json }
+      sngpc_livro: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: Json
+      }
+      sngpc_medicamento_salvar: { Args: { p_dados: Json }; Returns: string }
+      sngpc_medicamentos: { Args: never; Returns: Json }
+      sngpc_periodo: {
+        Args: { p_fim: string; p_inicio: string }
+        Returns: Json
+      }
+      sngpc_registrar: {
+        Args: { p_dados: Json; p_tipo: string }
+        Returns: string
+      }
+      sngpc_responsaveis: { Args: never; Returns: Json }
+      sngpc_saldo: { Args: { p_data?: string }; Returns: Json }
       solicitar_autorizacao_credito: {
         Args: {
           p_cliente_id: string
