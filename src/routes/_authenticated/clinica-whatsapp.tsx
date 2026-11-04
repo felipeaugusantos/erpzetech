@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { ModeloMensagem } from "@/components/app/ModeloMensagem";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { PainelRelacionamentoClinica } from "@/components/app/PainelRelacionamentoClinica";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,8 @@ import {
   whatsappDesconectar,
   type ResultadoConexao,
 } from "@/lib/whatsapp.functions";
-import { ROTULO_AVISO_CLINICA, rotuloSituacao } from "@/lib/whatsapp-despacho";
+import { rotuloEvidencia } from "@/lib/relacionamento-clinica";
+import { ROTULO_AVISO_CLINICA } from "@/lib/whatsapp-despacho";
 
 export const Route = createFileRoute("/_authenticated/clinica-whatsapp")({
   head: () => ({
@@ -298,6 +300,8 @@ function WhatsAppClinica() {
         />
       </div>
 
+      <PainelRelacionamentoClinica />
+
       <h2 className="mb-2 text-sm font-semibold">Últimos lembretes</h2>
       {mensagens.length === 0 ? (
         <EmptyState
@@ -331,7 +335,7 @@ function WhatsAppClinica() {
                     {m.origem === "automatico" ? " · automático" : ""}
                   </TableCell>
                   <TableCell>
-                    {rotuloSituacao(m.situacao)}
+                    {rotuloEvidencia(m.situacao)}
                     {m.erro ? <div className="text-xs text-destructive">{m.erro}</div> : null}
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
