@@ -31,7 +31,7 @@ app do Lovable tem. O app da VPS não consegue (erro "Missing Supabase environme
 
 ## Proteções propostas (ordem de execução)
 
-### A. Trava no código: lista de empresas liberadas (PR pequeno, depende de aprovação)
+### A. Trava no código: lista de empresas liberadas (implementada, aguarda publicação)
 
 Nova variável `WHATSAPP_EMPRESAS_LIBERADAS` (lista de ids de empresa separada por vírgula). Se estiver vazia, **ninguém**
 conecta. `whatsappConectar` recusa empresa fora da lista, e a rodada de envio só considera empresas da lista. Assim, ligar
