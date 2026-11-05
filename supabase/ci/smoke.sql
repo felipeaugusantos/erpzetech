@@ -588,7 +588,9 @@ DECLARE
     'sngpc_responsaveis', 'sngpc_periodo', 'sngpc_inventario', 'sngpc_envio_registrar', 'sngpc_envio_transmitir', 'sngpc_envio_cancelar',
     'sngpc_envios', 'sngpc_envio_xml',
     -- cobrança no caixa da ordem de serviço do pet e da internação: confere perfil de recepção/gestão e, na internação, a clínica liberada
-    'clinica_internacoes_a_cobrar', 'clinica_internacao_cobranca', 'clinica_internacao_cobrar'];
+    'clinica_internacoes_a_cobrar', 'clinica_internacao_cobranca', 'clinica_internacao_cobrar',
+    -- sinais vitais da internação: registrar, corrigir e ler são do veterinário e do auxiliar (confere a internação aberta e o cadastro ligado à conta); o catálogo é lido por eles e mantido por gestão e veterinário; todas conferem a clínica liberada
+    'clinica_sinais_parametros', 'clinica_sinais_parametro_salvar', 'clinica_sinal_registrar', 'clinica_sinal_corrigir', 'clinica_sinais_internacao'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI

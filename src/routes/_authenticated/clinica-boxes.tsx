@@ -5,6 +5,7 @@ import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { ParametrosSinaisDialog } from "@/components/app/ParametrosSinaisDialog";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ type Form = { id?: string; nome: string; ativo: boolean };
 function Boxes() {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
+  const [parametros, setParametros] = useState(false);
   const [form, setForm] = useState<Form>({ nome: "", ativo: true });
 
   const { data: boxes = [], isLoading } = useQuery({
@@ -85,14 +87,19 @@ function Boxes() {
         title="Boxes de internação"
         description="Cada box recebe um animal por vez. Box desativado não aceita novas internações."
         actions={
-          <Button
-            onClick={() => {
-              setForm({ nome: "", ativo: true });
-              setAberto(true);
-            }}
-          >
-            <Plus className="size-4" /> Novo box
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setParametros(true)}>
+              Parâmetros de sinais vitais
+            </Button>
+            <Button
+              onClick={() => {
+                setForm({ nome: "", ativo: true });
+                setAberto(true);
+              }}
+            >
+              <Plus className="size-4" /> Novo box
+            </Button>
+          </div>
         }
       />
 
@@ -181,6 +188,7 @@ function Boxes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {parametros && <ParametrosSinaisDialog aoFechar={() => setParametros(false)} />}
     </div>
   );
 }
