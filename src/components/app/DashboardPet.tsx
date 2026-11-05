@@ -61,7 +61,14 @@ const hora = (inicio: string) =>
  * Dashboard da clínica veterinária e do pet shop: o dia da agenda, o faturamento dos atendimentos, faltas, retorno dos clientes, reforços de
  * vacina e as contas a receber e a pagar. Sem pedidos, orçamentos, entregas, estoque nem notas fiscais, que ficam nas próprias telas.
  */
-export function DashboardPet({ clinica }: { clinica: boolean }) {
+export function DashboardPet({
+  clinica,
+  petshop = true,
+}: {
+  clinica: boolean;
+  /** Pet shop contratado: sem ele (só clínica) a agenda é bloqueada e os atalhos para ela somem. */
+  petshop?: boolean;
+}) {
   const hoje = isoBrasilia();
   const { periodo, setDe, setAte } = usePeriodo();
   // 12 meses para o retorno dos clientes, e mais para trás se o período escolhido começar antes disso
@@ -161,9 +168,11 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
         description="A agenda do dia, o faturamento dos atendimentos, as faltas, o retorno dos clientes e as contas a receber e a pagar."
         actions={
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/pet-agenda">Agenda</Link>
-            </Button>
+            {petshop && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pet-agenda">Agenda</Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link to="/fluxo-caixa">Fluxo de caixa</Link>
             </Button>
@@ -292,9 +301,11 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
       <div className="panel mt-4 p-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-display text-sm font-semibold">Agenda de hoje</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/pet-agenda">Abrir a agenda</Link>
-          </Button>
+          {petshop && (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/pet-agenda">Abrir a agenda</Link>
+            </Button>
+          )}
         </div>
         {agendaHoje.length === 0 ? (
           <EmptyState className="mt-4 border-0 shadow-none" title="Nada marcado para hoje." />
