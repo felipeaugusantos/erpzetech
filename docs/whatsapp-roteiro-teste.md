@@ -50,6 +50,7 @@ EVOLUTION_API_URL=...            # endereço do seu Evolution
 EVOLUTION_API_KEY=...            # chave dele
 WHATSAPP_WEBHOOK_SECRET=...      # gere: openssl rand -hex 24   (mínimo 16 caracteres)
 WHATSAPP_APP_URL=https://ezraerp.zeregistra.com.br
+WHATSAPP_EMPRESAS_LIBERADAS=...  # id da empresa de teste (sem ele, a conexão é recusada)
 LOVABLE_CRON_SECRET=...          # valor inventado por você SÓ para a VPS: openssl rand -hex 24
 ```
 

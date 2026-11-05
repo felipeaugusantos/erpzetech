@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,9 +8,11 @@
 >
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
+
 <!-- LOVABLE:END -->
 
 ## Imported purchase notes
+
 - Ze Tech team management uses authenticated server functions and the existing operator registry; only the pinned owner's stable user ID can grant or revoke team access, and that owner cannot be removed, preventing operator privilege escalation or owner rebinding.
 - Help Ze Tech calls run only in authenticated server functions; derive company identity from the active profile and RLS reads, and retain the same request ID on retry to prevent duplicate tickets.
 - Username login remains tenant-scoped; the general login accepts the stable tenant UUID as an alternative company code, preserving password verification and avoiding global username discovery when no personalized link exists.
@@ -26,8 +29,10 @@
 - Portal do tutor (/portal, fora do AppShell): conta própria do tutor vinculada ao cadastro (clientes) por convite gerado pela recepção; no banco fica só o hash do código (7 dias, uso único, até 10 erros por hora). Toda leitura é função que descobre o tutor pela sessão e exige vínculo ATIVO ao cadastro do animal (animal alheio responde "não encontrado"); sem acesso direto às tabelas portal_*. O veterinário libera exames fechados e receitas emitidas; a liberação vale só para o cadastro para o qual foi feita (animal que muda de tutor exige nova liberação). Consultas do portal TÊM que usar chavePortal(user.id, …) (prefixo "clinica-" + id do usuário; o __root limpa as de outro usuário ao trocar de sessão), senão o cache do navegador guardaria dado clínico em texto simples. Código do convite vai no fragmento do link (#c=), nunca em ?consulta. Não enviar convite pelo sistema nem interpretar resultado (sem "alto/baixo").
 
 ## Trabalho sem internet
+
 - Salão e Delivery mostram a fila local também online; reenvios preservam a chave idempotente e os pagamentos, e a sincronização concilia a fila atual para não apagar operações concorrentes.
 - Telas que funcionam sem internet (frente de caixa, salão, delivery, conferência) guardam as operações no navegador e as enviam por uma rotina idempotente do banco ao reconectar; operação recusada pelo banco fica guardada com o erro, nunca é descartada sozinha — porque o dinheiro já foi recebido no balcão.
 - O cache de consultas é persistido no navegador e o `onlineManager` começa pelo `navigator.onLine`; mutações usam `networkMode: "always"` — para as telas reabrirem sem conexão sem apagar os dados nem travar botões.
 - Hospedagem fora do Lovable: `npm run build:node` gera o servidor Node (`.output/server/index.mjs`); guia em docs/hospedagem-vps.md. Login com Google, IA (`LOVABLE_API_KEY`) e a rotina do WhatsApp (`LOVABLE_CRON_SECRET`) dependem do Lovable e exigem decisão própria fora dele.
+- WhatsApp por empresa: só empresas listadas em `WHATSAPP_EMPRESAS_LIBERADAS` (ids, vazia = ninguém) conectam o número (conectar e atualizar) e entram na rodada de envio; lista vazia faz a rodada nem tocar no banco. Desconectar é sempre permitido. Regras em `src/lib/whatsapp-liberacao.ts`.
 - Side menu: AppShell filters groups by permission/module first, then montarAreas() regroups them into rail areas (Início…Ajustes + vertical modules); add new screens to the groups, never to the areas directly, so permission filtering stays in one place.

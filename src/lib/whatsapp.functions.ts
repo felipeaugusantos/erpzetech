@@ -28,6 +28,7 @@ export const whatsappConectar = createServerFn({ method: "POST" })
     const tenantId = await empresaDoGestor(context.supabase);
     const ev = await import("./whatsapp-evolution");
     const srv = await import("./whatsapp.server");
+    srv.exigirEmpresaLiberada(tenantId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const cfg = srv.configEvolution();
     const instancia = ev.nomeDaInstancia(tenantId);
@@ -60,6 +61,7 @@ export const whatsappAtualizar = createServerFn({ method: "POST" })
     const tenantId = await empresaDoGestor(context.supabase);
     const ev = await import("./whatsapp-evolution");
     const srv = await import("./whatsapp.server");
+    srv.exigirEmpresaLiberada(tenantId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const cfg = srv.configEvolution();
     const instancia = ev.nomeDaInstancia(tenantId);
