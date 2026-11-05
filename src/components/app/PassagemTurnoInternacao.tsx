@@ -200,7 +200,14 @@ export function PassagemTurnoInternacao({ internacaoId, aberta, prescricoes }: P
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-md border border-border p-3">
               <h5 className="text-sm font-medium">Últimas medidas</h5>
-              {medidas.length === 0 ? (
+              {sinais.isLoading ? (
+                <p className="mt-1 text-sm text-muted-foreground">Carregando as medidas…</p>
+              ) : sinais.isError ? (
+                <p className="mt-1 text-sm text-destructive" role="alert">
+                  Não foi possível carregar as medidas. Isso não significa que não haja medidas
+                  registradas.
+                </p>
+              ) : medidas.length === 0 ? (
                 <p className="mt-1 text-sm text-muted-foreground">Nenhuma medida registrada.</p>
               ) : (
                 <ul className="mt-1 text-sm" aria-label="Últimas medidas">
@@ -304,6 +311,7 @@ function FormularioPassagem({
         className="mt-1"
         maxLength={LIMITE_RESUMO}
         placeholder="Como o animal está, o que mudou, o que o próximo turno precisa saber."
+        disabled={registrar.isPending}
         value={resumo}
         onChange={(e) => setResumo(e.target.value)}
       />
@@ -314,6 +322,7 @@ function FormularioPassagem({
             <Input
               aria-label={`Pendência ${i + 1}`}
               maxLength={LIMITE_TEXTO_PENDENCIA}
+              disabled={registrar.isPending}
               value={t}
               onChange={(e) =>
                 setPendencias(pendencias.map((x, k) => (k === i ? e.target.value : x)))
@@ -324,6 +333,7 @@ function FormularioPassagem({
               size="icon"
               variant="ghost"
               aria-label={`Remover pendência ${i + 1}`}
+              disabled={registrar.isPending}
               onClick={() => setPendencias(pendencias.filter((_, k) => k !== i))}
             >
               <X className="size-4" />
@@ -335,6 +345,7 @@ function FormularioPassagem({
             type="button"
             size="sm"
             variant="outline"
+            disabled={registrar.isPending}
             onClick={() => setPendencias([...pendencias, ""])}
           >
             <Plus className="size-4" /> Adicionar pendência

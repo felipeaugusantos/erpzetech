@@ -243,7 +243,7 @@ function FormularioRegistro({
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor={`${id}-par`}>Parâmetro</Label>
-          <Select value={parametroId} onValueChange={setParametroId}>
+          <Select value={parametroId} onValueChange={setParametroId} disabled={registrar.isPending}>
             <SelectTrigger id={`${id}-par`}>
               <SelectValue placeholder="Escolha" />
             </SelectTrigger>
@@ -261,7 +261,7 @@ function FormularioRegistro({
           <Input
             id={`${id}-val`}
             inputMode="decimal"
-            disabled={naoMedido}
+            disabled={naoMedido || registrar.isPending}
             value={valorTexto}
             onChange={(e) => setValorTexto(e.target.value)}
           />
@@ -272,6 +272,7 @@ function FormularioRegistro({
             id={`${id}-quando`}
             type="datetime-local"
             value={medidoEm}
+            disabled={registrar.isPending}
             onChange={(e) => setMedidoEmEditado(e.target.value || null)}
           />
         </div>
@@ -280,6 +281,7 @@ function FormularioRegistro({
             <input
               type="checkbox"
               checked={naoMedido}
+              disabled={registrar.isPending}
               onChange={(e) => setNaoMedido(e.target.checked)}
             />
             Não foi possível medir
@@ -293,6 +295,7 @@ function FormularioRegistro({
               rows={2}
               maxLength={LIMITE_OBSERVACAO}
               value={observacao}
+              disabled={registrar.isPending}
               onChange={(e) => setObservacao(e.target.value)}
             />
           </div>
