@@ -36,4 +36,12 @@ O efeito aparece no próximo carregamento do app da empresa.
 
 O pet shop é controlado **na tela** (menu e aviso nas páginas), como já era. O banco não tem uma trava própria para ele. Quem quiser bloquear também no banco precisa de um PR à parte.
 
-Uma tela da equipe para marcar o contrato por empresa é o próximo PR.
+## Tela da equipe
+
+**Painel EZRA → Contrato da clínica** (`/ze-tech-contratos`): lista as empresas com clínica e mostra o contrato de cada uma. O botão **Marcar só clínica** grava o marcador e **Voltar a incluir o pet shop** o remove, sempre com confirmação.
+
+- Só operadores da equipe Ze Tech veem a tela e usam as funções (conferência no servidor por `eh_saas_operador`).
+- A gravação usa o serviço, porque a tabela de liberações não aceita escrita do app.
+- Recusa empresa sem clínica e empresa com pet shop liberado de forma explícita (retire essa liberação antes).
+- Se a migração 0081 ainda não foi aplicada, a gravação avisa para aplicá-la.
+- Marcar o contrato muda o menu do cliente no próximo carregamento: combine com o cliente antes.
