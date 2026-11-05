@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Criar Equipe Ze Tech: listar integrantes, cadastrar conta com confirmação por e-mail ou liberar conta existente, remover acesso; gestão exclusiva do administrador já cadastrado e proteção contra sua remoção.
+
 - [x] Integrar central Help Ze Tech: chave compartilhada salva; tela /chamados em Ajustes, abertura/listagem com empresa derivada do acesso e reenvio com a mesma chave idempotente. Consulta real autenticada retornou lista vazia; formulário conferido sem enviar chamado, 25 testes passaram e build OK. Não publicado. A central exige CNPJ; empresas sem CNPJ precisam de alteração no Help antes de abrir chamados. Envio real e recebimento de e-mail ainda não exercitados.
 
 - [x] Hotelaria, Fase 1, telas: Recepção (painel do dia, check-in com ficha, check-out com prévia, fechar o dia, liberar limpeza), Mapa de ocupação, Reservas, Reserva e conta do hóspede (ações de estadia, lançamentos, sinal e pagamentos, estorno, transferência, nota), Hóspedes, Acomodações, Tarifas com simulador e Configurações, mais o grupo Hotelaria no menu. Inclui a migration 20261222 (`hs_checkout_previa`) com a seção 94 do smoke. CI do banco, 648 testes, lint, typecheck e build passaram. **As telas não foram abertas no navegador**: as migrations 20261217 a 20261222 ainda não estão no banco do app, então só compilaram e passaram nos testes de lógica. Pendente: aplicar as migrations no banco do app, gerar de novo os tipos do Supabase, exercitar cada tela com sessão real e ajustar o que aparecer.
