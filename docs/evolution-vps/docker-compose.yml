@@ -1,0 +1,65 @@
+# Evolution API v2 para o WhatsApp do EZRA, isolado de qualquer outro sistema da VPS.
+# Baseado no docker-compose oficial do projeto (EvolutionAPI/evolution-api), sem o painel web, sem rede externa e
+# sem publicar Postgres/Redis. A API só escuta em 127.0.0.1:8085 (o EZRA, na mesma VPS, fala com ela por aí).
+name: ezra-evolution
+
+services:
+  api:
+    image: evoapicloud/evolution-api:latest # depois do 1º teste, trave numa versão (ver o guia)
+    restart: unless-stopped
+    depends_on:
+      evolution-postgres:
+        condition: service_healthy
+      evolution-redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+    env_file:
+      - .env
+    networks:
+      - evolution-net
+    mem_limit: 1536m
+
+  evolution-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--port", "6379", "--appendonly", "yes"]
+    volumes:
+      - evolution_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - evolution-net
+    mem_limit: 256m
+
+  evolution-postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - evolution_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - evolution-net
+    mem_limit: 512m
+
+volumes:
+  evolution_instances:
+  evolution_redis:
+  evolution_postgres:
+
+networks:
+  evolution-net:
+    driver: bridge
