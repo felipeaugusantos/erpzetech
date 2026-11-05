@@ -16025,6 +16025,9 @@ export type Database = {
       }
       bulario_resumo: { Args: never; Returns: Json }
       bulario_total: { Args: never; Returns: number }
+      menu_personalizado_obter: { Args: never; Returns: Json }
+      menu_personalizado_restaurar: { Args: never; Returns: undefined }
+      menu_personalizado_salvar: { Args: { p_config: Json }; Returns: string }
       caixa_lancar: {
         Args: {
           p_caixa_id: string

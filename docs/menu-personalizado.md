@@ -37,10 +37,20 @@ Exemplo para uma clínica que quer ver só a área Clínica: mover `/pets` e `/p
 ## Plano em PRs pequenos
 
 1. **PR 1 (este):** a lógica pura `src/lib/menu-personalizado.ts` e a leitura segura da configuração, com testes. **Não muda o app**: nada a usa ainda.
-2. **PR 2:** a tabela `menu_personalizado` (uma linha por empresa, JSON com limite de tamanho), leitura para as pessoas da empresa
+2. **PR 2 (feito):** a tabela `menu_personalizado` (uma linha por empresa, JSON com limite de tamanho), leitura para as pessoas da empresa
    e gravação só por função para administrador ou gestor. Migração em `drizzle/migrations`, que você aplica.
 3. **PR 3:** a tela **Ajustes → Menu** (setas para mover, sem depender de arrastar), "Restaurar o padrão", e o uso no `AppShell`:
    `aplicarMenuPersonalizado(montarAreas(menu), config, criarArea)`.
+
+## Banco (PR 2)
+
+Migração `drizzle/migrations/0082_menu_personalizado.sql` (o usuário aplica):
+
+- Tabela `menu_personalizado` (uma linha por empresa, `config` em JSON até 20 mil caracteres), **sem acesso direto**: nem o app lê ou grava a tabela.
+- `menu_personalizado_obter()`: qualquer pessoa da empresa (inclusive o perfil do salão, porque o menu vale para todos). `null` = menu padrão.
+- `menu_personalizado_salvar(p_config)`: só administrador ou gestor. O banco confere o objeto, a `versao` 1, as chaves conhecidas, os tipos gerais e o tamanho; o conteúdo fino (caminhos, nomes, limites) é conferido no app por `lerConfigMenu`.
+- `menu_personalizado_restaurar()`: só administrador ou gestor; apaga a configuração e volta ao padrão.
+- Teste de banco `supabase/ci/menu-personalizado.sql`: papéis, isolamento entre empresas, acesso direto recusado, formato e tamanho, restaurar.
 
 ## Pontos que ainda dependem do uso real
 
