@@ -730,6 +730,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     icon: LayoutGrid,
     items: [
       { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+      { label: "Equipe Ze Tech", to: "/ze-tech-equipe", icon: Users },
       { label: "Tempo real das lojas", to: "/ze-tech-tempo-real", icon: Gauge },
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
