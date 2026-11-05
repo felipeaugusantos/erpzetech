@@ -1,12 +1,3 @@
--- WhatsApp automático da clínica: lembrete de vacina/vermífugo (reforco_vacina) e de retorno de consulta
--- (retorno_consulta) na mesma fila e conexão Evolution que o lava rápido já usa (wa_config/wa_mensagens/wa_saidas).
--- O sistema só enfileira: quem envia é a rotina do servidor (cron a cada minuto), dentro do horário comercial,
--- com pausa entre mensagens. Mesmas garantias: tutor que não aceita mensagens ou pediu SAIR não recebe, o número
--- vem sempre do cadastro do tutor (nunca livre), cada ocasião gera uma única mensagem e o texto sai do modelo da
--- empresa (pet_mensagem_modelos, tipos "reforco" e o novo "retorno_clinica") ou do padrão do sistema.
--- O aviso de reforço enviado também registra o contato (pet_contatos): o pet some da lista manual da recepção.
-
--- ============ tabelas ============
 ALTER TABLE public.wa_config ADD COLUMN IF NOT EXISTS auto_reforco boolean NOT NULL DEFAULT false;
 ALTER TABLE public.wa_config ADD COLUMN IF NOT EXISTS auto_retorno boolean NOT NULL DEFAULT false;
 
@@ -19,7 +10,6 @@ ALTER TABLE public.wa_mensagens DROP CONSTRAINT IF EXISTS wa_mensagens_destino_c
 ALTER TABLE public.wa_mensagens ADD CONSTRAINT wa_mensagens_destino_check
   CHECK (veiculo_id IS NOT NULL OR pet_id IS NOT NULL);
 
--- Modelo de mensagem novo: retorno de consulta da clínica (o "retorno" antigo é de banho do pet shop).
 ALTER TABLE public.pet_mensagem_modelos DROP CONSTRAINT IF EXISTS pet_mensagem_modelos_tipo_check;
 ALTER TABLE public.pet_mensagem_modelos ADD CONSTRAINT pet_mensagem_modelos_tipo_check
   CHECK (tipo IN ('aniversario', 'retorno', 'reforco', 'confirmacao', 'pronto', 'exame', 'retorno_clinica'));
@@ -47,8 +37,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.pet_mensagem_modelo_salvar(text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.pet_mensagem_modelo_salvar(text, text) TO authenticated;
 
--- A clínica está liberada para este tenant? Mesma regra de clinica_liberada(), mas para a rotina do servidor,
--- que roda sem empresa na sessão e precisa informar o tenant.
 CREATE OR REPLACE FUNCTION public._wa_clinica_liberada(p_tenant uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -65,10 +53,6 @@ $fn$;
 REVOKE ALL ON FUNCTION public._wa_clinica_liberada(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public._wa_clinica_liberada(uuid) TO service_role;
 
--- ============ dados da ocasião ============
--- p_ref: lava rápido = uuid da ordem ou da assinatura; reforco_vacina = '<uuid do pet>:<AAAA-MM-DD da próxima dose>';
--- retorno_consulta = uuid do atendimento. Devolve NULL quando não vale enviar (não encontrado, fora da empresa,
--- tutor que não aceita mensagens, sem telefone válido, pediu SAIR ou a ocasião já não existe).
 DROP FUNCTION IF EXISTS public._wa_variaveis(uuid, text, uuid);
 CREATE OR REPLACE FUNCTION public._wa_variaveis(p_tenant uuid, p_tipo text, p_ref text)
 RETURNS jsonb
@@ -115,7 +99,6 @@ BEGIN
       FROM public.pets p JOIN public.clientes c ON c.id = p.cliente_id
      WHERE p.id = v_pet AND p.tenant_id = p_tenant AND p.ativo;
     IF v_cliente IS NULL THEN RETURN NULL; END IF;
-    -- os itens que vencem nessa data (a aplicação mais recente de cada produto do catálogo)
     SELECT string_agg(x.nome, ' e ' ORDER BY x.nome) INTO v_itens
       FROM (
         SELECT DISTINCT ON (v.catalogo_id) v.nome, v.proxima_dose_em
@@ -149,8 +132,6 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public._wa_variaveis(uuid, text, text) FROM PUBLIC, anon, authenticated;
 
--- Coloca na fila. Devolve o id, ou NULL quando a ocasião não vale (ver _wa_variaveis) ou já tem mensagem.
--- p_reabrir: mensagem que falhou ou foi cancelada volta para a fila (só no pedido manual da recepção).
 DROP FUNCTION IF EXISTS public._wa_enfileirar(uuid, text, uuid, text, uuid, boolean);
 CREATE OR REPLACE FUNCTION public._wa_enfileirar(p_tenant uuid, p_tipo text, p_ref text, p_origem text, p_usuario uuid, p_reabrir boolean)
 RETURNS uuid
@@ -180,7 +161,6 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public._wa_enfileirar(uuid, text, text, text, uuid, boolean) FROM PUBLIC, anon, authenticated;
 
--- Pedido da recepção (lava rápido), sem mudança de comportamento: referência sempre uuid.
 CREATE OR REPLACE FUNCTION public.wa_enfileirar(p_tipo text, p_referencia text)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -210,8 +190,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.wa_enfileirar(text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.wa_enfileirar(text, text) TO authenticated;
 
--- Pedido da recepção da clínica: mandar este lembrete pelo sistema.
--- p_referencia: reforco_vacina = '<uuid do pet>:<AAAA-MM-DD>' (a linha da lista de reforços); retorno_consulta = uuid do atendimento.
 CREATE OR REPLACE FUNCTION public.clinica_wa_enfileirar(p_tipo text, p_referencia text)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -242,7 +220,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.clinica_wa_enfileirar(text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_wa_enfileirar(text, text) TO authenticated;
 
--- Automático da clínica: liga ou desliga o lembrete de vacina e o de retorno de consulta.
 CREATE OR REPLACE FUNCTION public.clinica_wa_automatico_salvar(p_reforco boolean, p_retorno boolean)
 RETURNS void
 LANGUAGE plpgsql
@@ -308,8 +285,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.clinica_wa_mensagem_reenviar(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_wa_mensagem_reenviar(uuid) TO authenticated;
 
--- ============ rotina do servidor ============
--- Reenvio manual do lava rápido: a referência agora segue como texto (uuid continua chegando igual).
 CREATE OR REPLACE FUNCTION public.wa_mensagem_reenviar(p_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -337,8 +312,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.wa_mensagem_reenviar(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.wa_mensagem_reenviar(uuid) TO authenticated;
 
--- Varredura do automático: além do lava rápido, enfileira vacina/vermífugo a vencer em até 3 dias (ou atrasada
--- em até 7) e retorno de consulta de hoje até 2 dias à frente, das empresas com a clínica liberada e a chave ligada.
 CREATE OR REPLACE FUNCTION public.wa_auto_varrer()
 RETURNS integer
 LANGUAGE plpgsql
@@ -414,8 +387,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.wa_auto_varrer() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.wa_auto_varrer() TO service_role;
 
--- Reserva o que está na hora: reconfere cada mensagem (também as da clínica), cancela o automático de chave
--- desligada e envia o modelo de texto certo para cada tipo (lava rápido, reforço ou retorno da clínica).
 CREATE OR REPLACE FUNCTION public.wa_reservar(p_total integer, p_por_empresa integer, p_dentro_horario boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -426,14 +397,11 @@ DECLARE v_itens jsonb;
 BEGIN
   UPDATE public.wa_mensagens SET situacao = 'falhou', erro = 'Envio interrompido: confira no WhatsApp antes de reenviar'
    WHERE situacao = 'enviando' AND updated_at < now() - interval '5 minutes';
-  -- automático com a chave desligada (ou desconectado) não sai mais: cancela o que ficou na fila, o manual segue
   UPDATE public.wa_mensagens m SET situacao = 'cancelada', erro = 'Envio automático desligado'
    WHERE m.situacao = 'na_fila' AND m.origem = 'automatico'
      AND NOT EXISTS (SELECT 1 FROM public.wa_config c WHERE c.tenant_id = m.tenant_id AND c.estado = 'conectada'
                        AND ((m.tipo = 'pronto' AND c.auto_pronto) OR (m.tipo = 'plano_vencendo' AND c.auto_plano)
                          OR (m.tipo = 'reforco_vacina' AND c.auto_reforco) OR (m.tipo = 'retorno_consulta' AND c.auto_retorno)));
-  -- reconfere cada mensagem na hora de enviar: cliente que deixou de aceitar mensagens, pediu SAIR, ficou sem telefone válido
-  -- ou ocasião que já não vale são cancelados. Quem segue valendo é enviado ao telefone e com os dados de agora.
   UPDATE public.wa_mensagens m
      SET situacao = CASE WHEN x.v IS NULL THEN 'cancelada' ELSE m.situacao END,
          erro = CASE WHEN x.v IS NULL THEN 'O cliente não pode mais receber esta mensagem' ELSE m.erro END,
@@ -471,8 +439,6 @@ END $fn$;
 REVOKE ALL ON FUNCTION public.wa_reservar(integer, integer, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.wa_reservar(integer, integer, boolean) TO service_role;
 
--- Resultado do envio. Enviada: sai da lista de chamadas (lava rápido: lr_contatos; vacina da clínica: pet_contatos,
--- que tira o pet da lista manual de reforços da recepção). Falha com p_proxima: volta para a fila nesse horário.
 CREATE OR REPLACE FUNCTION public.wa_resultado(p_id uuid, p_ok boolean, p_id_externo text, p_jid text, p_erro text, p_proxima timestamptz)
 RETURNS void
 LANGUAGE plpgsql

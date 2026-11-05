@@ -79,9 +79,9 @@ function Bulario() {
     placeholderData: (anterior) => anterior,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("bulario_buscar", {
-        p_busca: busca.trim() || null,
-        p_letra: letra,
-        p_fabricante: fab === "todos" ? null : fab,
+        p_busca: busca.trim() || (null as unknown as string),
+        p_letra: letra ?? (null as unknown as string),
+        p_fabricante: fab === "todos" ? (null as unknown as string) : fab,
         p_limite: POR_PAGINA,
         p_pagina: pagina,
       });

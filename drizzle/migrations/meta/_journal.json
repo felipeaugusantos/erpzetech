@@ -554,6 +554,20 @@
       "when": 1793795116098,
       "tag": "0078_pet_cobranca_os_internacao",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1793897118997,
+      "tag": "0079_whatsapp_clinica",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1793897248277,
+      "tag": "0080_clinica_receita_fila_bulario_contato",
+      "breakpoints": true
     }
   ]
 }
