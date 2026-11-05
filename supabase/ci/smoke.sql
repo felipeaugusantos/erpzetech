@@ -592,7 +592,12 @@ DECLARE
     -- sinais vitais da internação: registrar, corrigir e ler são do veterinário e do auxiliar (confere a internação aberta e o cadastro ligado à conta); o catálogo é lido por eles e mantido por gestão e veterinário; todas conferem a clínica liberada
     'clinica_sinais_parametros', 'clinica_sinais_parametro_salvar', 'clinica_sinal_registrar', 'clinica_sinal_corrigir', 'clinica_sinais_internacao',
     -- passagem de turno da internação: escrever, dar ciente, resolver pendência, ler e ver o plantão são do veterinário e do auxiliar (confere a internação aberta e o cadastro ligado à conta); todas conferem a clínica liberada
-    'clinica_turno_registrar', 'clinica_turno_ciente', 'clinica_pendencia_baixar', 'clinica_turnos_internacao', 'clinica_plantao'];
+    'clinica_turno_registrar', 'clinica_turno_ciente', 'clinica_pendencia_baixar', 'clinica_turnos_internacao', 'clinica_plantao',
+    -- portal do tutor, lado da clínica: convites e acessos são da recepção e da gestão (conferem o perfil e a clínica liberada); liberar, retirar e listar itens do animal são do veterinário (conferem o cadastro com CRMV)
+    'clinica_portal_convite_criar', 'clinica_portal_convite_revogar', 'clinica_portal_acessos', 'clinica_portal_vinculo_revogar',
+    'clinica_portal_itens_do_pet', 'clinica_portal_liberar', 'clinica_portal_retirar',
+    -- portal do tutor, lado do tutor: não usa papel nem empresa; a identidade vem da sessão e só vale com vínculo ATIVO ao cadastro do animal (animal de outro tutor responde "não encontrado")
+    'portal_resgatar_convite', 'portal_meus_pets', 'portal_pet_itens', 'portal_exame_obter', 'portal_receita_obter'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI

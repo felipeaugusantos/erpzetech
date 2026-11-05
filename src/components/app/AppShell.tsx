@@ -46,6 +46,7 @@ import {
   Stethoscope,
   Syringe,
   BookOpen,
+  Smartphone,
   Scissors,
   Tag,
   TrendingUp,
@@ -275,6 +276,7 @@ const groups: Group[] = [
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
+      { label: "Portal do tutor", to: "/clinica-portal", icon: Smartphone },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
@@ -655,6 +657,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo" || i.to === "/clinica-bulario")
                 return souVeterinario || souGestao;
+              // portal do tutor: o veterinário libera exames e receitas; recepção e gestão gerenciam os acessos
+              if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
               if (
@@ -769,6 +773,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
                   { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
+                  { label: "Portal do tutor", to: "/clinica-portal", icon: Smartphone },
                   { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
                 ]
               : []),
@@ -804,6 +809,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-atendimento",
       "/clinica-catalogo",
       "/clinica-bulario",
+      "/clinica-portal",
       "/clinica-exames-modelos",
       "/clinica-exames",
       "/clinica-offline",

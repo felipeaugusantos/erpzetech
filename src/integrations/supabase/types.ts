@@ -15521,6 +15521,18 @@ export type Database = {
       clinica_turno_ciente: { Args: { p_turno_id: string }; Returns: undefined }
       clinica_turno_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
       clinica_turnos_internacao: { Args: { p_internacao_id: string }; Returns: Json }
+      clinica_portal_acessos: { Args: { p_cliente_id?: string | null }; Returns: Json }
+      clinica_portal_convite_criar: { Args: { p_cliente_id: string }; Returns: Json }
+      clinica_portal_convite_revogar: { Args: { p_id: string }; Returns: undefined }
+      clinica_portal_itens_do_pet: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_portal_liberar: { Args: { p_ref_id: string; p_tipo: string }; Returns: string }
+      clinica_portal_retirar: { Args: { p_ref_id: string; p_tipo: string }; Returns: undefined }
+      clinica_portal_vinculo_revogar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      portal_exame_obter: { Args: { p_id: string }; Returns: Json }
+      portal_meus_pets: { Args: never; Returns: Json }
+      portal_pet_itens: { Args: { p_pet_id: string }; Returns: Json }
+      portal_receita_obter: { Args: { p_id: string }; Returns: Json }
+      portal_resgatar_convite: { Args: { p_codigo: string }; Returns: Json }
       clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
       clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
       clinica_receita_modelos: { Args: never; Returns: Json }

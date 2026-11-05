@@ -45,6 +45,7 @@ import { Route as AuthenticatedClinicaFilaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
 import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
+import { Route as AuthenticatedClinicaPortalRouteImport } from './routes/_authenticated/clinica-portal'
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
 import { Route as AuthenticatedClinicaVacinasRouteImport } from './routes/_authenticated/clinica-vacinas'
@@ -186,6 +187,8 @@ import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_aut
 import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
 import { Route as MenuEmpresaRouteImport } from './routes/menu.$empresa'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as PortalEntrarRouteImport } from './routes/portal.entrar'
 import { Route as AuthenticatedClinicaBularioIndexRouteImport } from './routes/_authenticated/clinica-bulario.index'
 import { Route as AuthenticatedClinicaBularioIdRouteImport } from './routes/_authenticated/clinica-bulario.$id'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
@@ -196,6 +199,9 @@ import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
+import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
+import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
+import { Route as PortalReceitaIdRouteImport } from './routes/portal.receita.$id'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
@@ -398,6 +404,12 @@ const AuthenticatedClinicaOfflineRoute =
   AuthenticatedClinicaOfflineRouteImport.update({
     id: '/clinica-offline',
     path: '/clinica-offline',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaPortalRoute =
+  AuthenticatedClinicaPortalRouteImport.update({
+    id: '/clinica-portal',
+    path: '/clinica-portal',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaProntuarioRoute =
@@ -1191,6 +1203,16 @@ const MenuEmpresaRoute = MenuEmpresaRouteImport.update({
   path: '/menu/$empresa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/portal/',
+  path: '/portal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalEntrarRoute = PortalEntrarRouteImport.update({
+  id: '/portal/entrar',
+  path: '/portal/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedClinicaBularioIndexRoute =
   AuthenticatedClinicaBularioIndexRouteImport.update({
     id: '/clinica-bulario/',
@@ -1248,6 +1270,21 @@ const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
   path: '/chamar/$empresa/$mesa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalAnimalIdRoute = PortalAnimalIdRouteImport.update({
+  id: '/portal/animal/$id',
+  path: '/portal/animal/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalExameIdRoute = PortalExameIdRouteImport.update({
+  id: '/portal/exame/$id',
+  path: '/portal/exame/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalReceitaIdRoute = PortalReceitaIdRouteImport.update({
+  id: '/portal/receita/$id',
+  path: '/portal/receita/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
@@ -1303,6 +1340,7 @@ export interface FileRoutesByFullPath {
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
@@ -1444,12 +1482,17 @@ export interface FileRoutesByFullPath {
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal/': typeof PortalIndexRoute
   '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
   '/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -1494,6 +1537,7 @@ export interface FileRoutesByTo {
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
@@ -1635,12 +1679,17 @@ export interface FileRoutesByTo {
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal': typeof PortalIndexRoute
   '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
   '/clinica-bulario': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
@@ -1687,6 +1736,7 @@ export interface FileRoutesById {
   '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/_authenticated/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/_authenticated/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
@@ -1828,12 +1878,17 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
   '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal/': typeof PortalIndexRoute
   '/_authenticated/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
   '/_authenticated/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
@@ -1880,6 +1935,7 @@ export interface FileRouteTypes {
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
@@ -2021,12 +2077,17 @@ export interface FileRouteTypes {
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal/'
     | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
     | '/clinica-bulario/'
     | '/compras/'
     | '/depositos/'
@@ -2071,6 +2132,7 @@ export interface FileRouteTypes {
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
@@ -2212,12 +2274,17 @@ export interface FileRouteTypes {
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal'
     | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
     | '/clinica-bulario'
     | '/compras'
     | '/depositos'
@@ -2263,6 +2330,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-internacao'
     | '/_authenticated/clinica-internacao-historico'
     | '/_authenticated/clinica-offline'
+    | '/_authenticated/clinica-portal'
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
     | '/_authenticated/clinica-vacinas'
@@ -2404,12 +2472,17 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
     | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal/'
     | '/_authenticated/clinica-bulario/$id'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
     | '/_authenticated/clinica-bulario/'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
@@ -2429,7 +2502,12 @@ export interface RootRouteChildren {
   FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
   MenuEmpresaRoute: typeof MenuEmpresaRoute
+  PortalEntrarRoute: typeof PortalEntrarRoute
+  PortalIndexRoute: typeof PortalIndexRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
+  PortalAnimalIdRoute: typeof PortalAnimalIdRoute
+  PortalExameIdRoute: typeof PortalExameIdRoute
+  PortalReceitaIdRoute: typeof PortalReceitaIdRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -2687,6 +2765,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-offline'
       fullPath: '/clinica-offline'
       preLoaderRoute: typeof AuthenticatedClinicaOfflineRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-portal': {
+      id: '/_authenticated/clinica-portal'
+      path: '/clinica-portal'
+      fullPath: '/clinica-portal'
+      preLoaderRoute: typeof AuthenticatedClinicaPortalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-prontuario': {
@@ -3676,6 +3761,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuEmpresaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/portal'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/entrar': {
+      id: '/portal/entrar'
+      path: '/portal/entrar'
+      fullPath: '/portal/entrar'
+      preLoaderRoute: typeof PortalEntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/clinica-bulario/': {
       id: '/_authenticated/clinica-bulario/'
       path: '/clinica-bulario'
@@ -3746,6 +3845,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChamarEmpresaMesaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/animal/$id': {
+      id: '/portal/animal/$id'
+      path: '/portal/animal/$id'
+      fullPath: '/portal/animal/$id'
+      preLoaderRoute: typeof PortalAnimalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/exame/$id': {
+      id: '/portal/exame/$id'
+      path: '/portal/exame/$id'
+      fullPath: '/portal/exame/$id'
+      preLoaderRoute: typeof PortalExameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/receita/$id': {
+      id: '/portal/receita/$id'
+      path: '/portal/receita/$id'
+      fullPath: '/portal/receita/$id'
+      preLoaderRoute: typeof PortalReceitaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/whatsapp-despachar': {
       id: '/api/public/hooks/whatsapp-despachar'
       path: '/api/public/hooks/whatsapp-despachar'
@@ -3799,6 +3919,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
   AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
+  AuthenticatedClinicaPortalRoute: typeof AuthenticatedClinicaPortalRoute
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
   AuthenticatedClinicaVacinasRoute: typeof AuthenticatedClinicaVacinasRoute
@@ -3981,6 +4102,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaInternacaoHistoricoRoute:
     AuthenticatedClinicaInternacaoHistoricoRoute,
   AuthenticatedClinicaOfflineRoute: AuthenticatedClinicaOfflineRoute,
+  AuthenticatedClinicaPortalRoute: AuthenticatedClinicaPortalRoute,
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
   AuthenticatedClinicaVacinasRoute: AuthenticatedClinicaVacinasRoute,
@@ -4149,7 +4271,12 @@ const rootRouteChildren: RootRouteChildren = {
   FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
   MenuEmpresaRoute: MenuEmpresaRoute,
+  PortalEntrarRoute: PortalEntrarRoute,
+  PortalIndexRoute: PortalIndexRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
+  PortalAnimalIdRoute: PortalAnimalIdRoute,
+  PortalExameIdRoute: PortalExameIdRoute,
+  PortalReceitaIdRoute: PortalReceitaIdRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
