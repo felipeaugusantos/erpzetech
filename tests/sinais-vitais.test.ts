@@ -124,6 +124,24 @@ describe("sinais vitais: séries", () => {
       ["x"],
     );
   });
+  it("trocar a unidade do parâmetro não mistura medidas: 38 °C e 100,4 °F são séries separadas", () => {
+    const series = agruparSeries([
+      reg({ id: "c1", medido_em: "2026-11-05T08:00:00Z", valor: 38, unidade: "°C" }),
+      reg({ id: "c2", medido_em: "2026-11-05T09:00:00Z", valor: 38.4, unidade: "°C" }),
+      reg({ id: "f1", medido_em: "2026-11-05T10:00:00Z", valor: 100.4, unidade: "°F" }),
+    ]);
+    assert.deepEqual(
+      series.map((s) => [s.nome, s.unidade, s.correntes.length]),
+      [
+        ["Temperatura", "°C", 2],
+        ["Temperatura", "°F", 1],
+      ],
+    );
+    assert.notEqual(series[0]!.chave, series[1]!.chave);
+    const grafico = pontosGrafico(series[1]!.correntes, 300, 80);
+    assert.equal(grafico.min, 100.4);
+    assert.equal(grafico.max, 100.4);
+  });
   it("sem registros não há série (ausência de medida não vira zero)", () => {
     assert.deepEqual(agruparSeries([]), []);
   });

@@ -64,6 +64,8 @@ export function descreverRegistro(r: RegistroSinal): string {
 }
 
 export type Serie = {
+  /** parâmetro + unidade: medidas em unidades diferentes nunca se misturam na mesma série */
+  chave: string;
   parametroId: string;
   nome: string;
   unidade: string;
@@ -80,23 +82,28 @@ const porHorario = (a: RegistroSinal, b: RegistroSinal) =>
   a.registrado_em.localeCompare(b.registrado_em) ||
   a.id.localeCompare(b.id);
 
-/** Uma série por parâmetro que tenha registro, em ordem alfabética. Parâmetro sem registro não aparece. */
+/**
+ * Uma série por parâmetro E unidade registrada, em ordem alfabética. Se a clínica trocou a unidade de um parâmetro, as
+ * medidas antigas e as novas ficam em séries separadas (cada registro guarda a unidade do momento): 38 °C e 100,4 °F
+ * nunca viram uma linha só. Parâmetro sem registro não aparece.
+ */
 export function agruparSeries(registros: RegistroSinal[]): Serie[] {
   const mapa = new Map<string, RegistroSinal[]>();
   for (const r of registros) {
-    const lista = mapa.get(r.parametro_id);
+    const chave = `${r.parametro_id}|${r.unidade}`;
+    const lista = mapa.get(chave);
     if (lista) lista.push(r);
-    else mapa.set(r.parametro_id, [r]);
+    else mapa.set(chave, [r]);
   }
   const series: Serie[] = [];
-  for (const [parametroId, lista] of mapa) {
+  for (const [chave, lista] of mapa) {
     const historico = [...lista].sort(porHorario);
     const correntes = historico.filter((r) => r.corrente);
     const comValor = correntes.filter((r) => r.valor !== null);
-    // nome e unidade do registro mais recente: o catálogo pode ter mudado, mas cada registro guarda o seu
     const ref = historico[historico.length - 1] as RegistroSinal;
     series.push({
-      parametroId,
+      chave,
+      parametroId: ref.parametro_id,
       nome: ref.parametro,
       unidade: ref.unidade,
       correntes,
@@ -104,7 +111,9 @@ export function agruparSeries(registros: RegistroSinal[]): Serie[] {
       ultimo: comValor.length ? (comValor[comValor.length - 1] as RegistroSinal) : null,
     });
   }
-  return series.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return series.sort(
+    (a, b) => a.nome.localeCompare(b.nome, "pt-BR") || a.unidade.localeCompare(b.unidade, "pt-BR"),
+  );
 }
 
 /** Do registro original até a correção mais recente, passando por todas as versões (para "ver correções"). */

@@ -121,7 +121,7 @@ export function SinaisVitaisInternacao({ internacaoId, aberta, admitidoEm, souVe
         <div className="space-y-3">
           {series.map((s) => (
             <SerieCard
-              key={s.parametroId}
+              key={s.chave}
               serie={s}
               todos={historico.data?.registros ?? []}
               souVet={historico.data?.sou_veterinario ?? false}
@@ -171,7 +171,9 @@ function FormularioRegistro({
   const [naoMedido, setNaoMedido] = useState(false);
   const [observacao, setObservacao] = useState("");
   const [mostrarObs, setMostrarObs] = useState(false);
-  const [medidoEm, setMedidoEm] = useState(() => datetimeLocalAgora());
+  // enquanto a pessoa não mexe no horário, vale "agora" (o banco usa o relógio dele); só o horário editado é enviado
+  const [medidoEmEditado, setMedidoEmEditado] = useState<string | null>(null);
+  const medidoEm = medidoEmEditado ?? datetimeLocalAgora();
   const [chave, setChave] = useState(() => novaChaveEnvio());
   const parametro = catalogo.find((p) => p.id === parametroId);
 
@@ -180,7 +182,7 @@ function FormularioRegistro({
         parametroId,
         valorTexto: naoMedido ? "" : valorTexto,
         observacao: naoMedido || observacao.trim() ? observacao : "",
-        medidoEmLocal: medidoEm,
+        medidoEmLocal: medidoEmEditado ?? "",
         admitidoEm,
       })
     : null;
@@ -199,7 +201,9 @@ function FormularioRegistro({
           parametro_id: parametroId,
           ...(valor.valor !== null ? { valor: String(valor.valor) } : {}),
           ...(observacao.trim() ? { observacao: observacao.trim() } : {}),
-          medido_em: isoDeDatetimeLocal(medidoEm) ?? undefined,
+          ...(medidoEmEditado
+            ? { medido_em: isoDeDatetimeLocal(medidoEmEditado) ?? undefined }
+            : {}),
           chave,
         },
       });
@@ -211,7 +215,7 @@ function FormularioRegistro({
       setObservacao("");
       setMostrarObs(false);
       setNaoMedido(false);
-      setMedidoEm(datetimeLocalAgora());
+      setMedidoEmEditado(null);
       setChave(novaChaveEnvio());
       aoSalvar();
     },
@@ -275,7 +279,7 @@ function FormularioRegistro({
             id={`${id}-quando`}
             type="datetime-local"
             value={medidoEm}
-            onChange={(e) => setMedidoEm(e.target.value)}
+            onChange={(e) => setMedidoEmEditado(e.target.value || null)}
           />
         </div>
         <div className="flex items-end">
@@ -473,9 +477,8 @@ function CorrigirDialog({
   const [valorTexto, setValorTexto] = useState(
     registro.valor !== null ? String(registro.valor).replace(".", ",") : "",
   );
-  const [observacao, setObservacao] = useState(
-    registro.valor === null ? (registro.observacao ?? "") : "",
-  );
+  // a observação do registro acompanha a correção: a pessoa pode editar ou apagar, mas nada some sem ela escolher
+  const [observacao, setObservacao] = useState(registro.observacao ?? "");
   const [anular, setAnular] = useState(false);
   const [motivo, setMotivo] = useState("");
 
@@ -542,18 +545,20 @@ function CorrigirDialog({
                   onChange={(e) => setValorTexto(e.target.value)}
                 />
               </div>
-              {(valor.ok && valor.valor === null) || observacao ? (
-                <div>
-                  <Label htmlFor="cs-obs">Por que não foi possível medir</Label>
-                  <Textarea
-                    id="cs-obs"
-                    rows={2}
-                    maxLength={LIMITE_OBSERVACAO}
-                    value={observacao}
-                    onChange={(e) => setObservacao(e.target.value)}
-                  />
-                </div>
-              ) : null}
+              <div>
+                <Label htmlFor="cs-obs">
+                  {valor.ok && valor.valor === null
+                    ? "Por que não foi possível medir"
+                    : "Observação (opcional)"}
+                </Label>
+                <Textarea
+                  id="cs-obs"
+                  rows={2}
+                  maxLength={LIMITE_OBSERVACAO}
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                />
+              </div>
             </>
           )}
           <div>
