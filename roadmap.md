@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Criar Equipe Ze Tech: listar integrantes, cadastrar conta com confirmação por e-mail ou liberar conta existente, remover acesso; gestão exclusiva do administrador já cadastrado e proteção contra sua remoção.
+- [x] Equipe Ze Tech criada com listagem, nova conta com confirmação por e-mail, liberação de conta existente e remoção de acesso; gestão exclusiva do administrador original, que não pode ser removido. Nove testes passaram; listagem autenticada e recusa real de conta inexistente conferidas. Nenhuma conta real criada/removida; recebimento do e-mail e entrada de novo integrante ainda não verificados. Não publicado.
 
 - [x] Integrar central Help Ze Tech: chave compartilhada salva; tela /chamados em Ajustes, abertura/listagem com empresa derivada do acesso e reenvio com a mesma chave idempotente. Consulta real autenticada retornou lista vazia; formulário conferido sem enviar chamado, 25 testes passaram e build OK. Não publicado. A central exige CNPJ; empresas sem CNPJ precisam de alteração no Help antes de abrir chamados. Envio real e recebimento de e-mail ainda não exercitados.
 
