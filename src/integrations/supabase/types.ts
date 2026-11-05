@@ -310,6 +310,51 @@ export type Database = {
           },
         ]
       }
+      bulario_medicamentos: {
+        Row: {
+          atualizado_em: string
+          busca: string | null
+          chave: string
+          classificacao: string | null
+          especies: string | null
+          extras: Json
+          fabricante: string | null
+          id: string
+          nome: string
+          principio_ativo: string | null
+          registro: string | null
+          situacao: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          busca?: string | null
+          chave: string
+          classificacao?: string | null
+          especies?: string | null
+          extras?: Json
+          fabricante?: string | null
+          id?: string
+          nome: string
+          principio_ativo?: string | null
+          registro?: string | null
+          situacao?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          busca?: string | null
+          chave?: string
+          classificacao?: string | null
+          especies?: string | null
+          extras?: Json
+          fabricante?: string | null
+          id?: string
+          nome?: string
+          principio_ativo?: string | null
+          registro?: string | null
+          situacao?: string | null
+        }
+        Relationships: []
+      }
       caixa_movimentos: {
         Row: {
           caixa_id: string
@@ -1156,89 +1201,6 @@ export type Database = {
           },
         ]
       }
-      clinica_fila: {
-        Row: {
-          agendamento_id: string | null
-          chamado_em: string | null
-          chegada_em: string
-          created_at: string
-          encerrado_em: string | null
-          gravidade: string
-          id: string
-          observacoes: string | null
-          pet_id: string
-          profissional_id: string | null
-          queixa: string | null
-          registrado_por: string | null
-          situacao: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          agendamento_id?: string | null
-          chamado_em?: string | null
-          chegada_em?: string
-          created_at?: string
-          encerrado_em?: string | null
-          gravidade?: string
-          id?: string
-          observacoes?: string | null
-          pet_id: string
-          profissional_id?: string | null
-          queixa?: string | null
-          registrado_por?: string | null
-          situacao?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          agendamento_id?:  string | null
-          chamado_em?:  string | null
-          chegada_em?:  string
-          created_at?:  string
-          encerrado_em?:  string | null
-          gravidade?:  string
-          id?:  string
-          observacoes?:  string | null
-          pet_id?:  string
-          profissional_id?:  string | null
-          queixa?:  string | null
-          registrado_por?:  string | null
-          situacao?:  string
-          tenant_id?:  string
-          updated_at?:  string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinica_fila_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "pet_agendamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinica_fila_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinica_fila_profissional_id_fkey"
-            columns: ["profissional_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profissionais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinica_fila_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      },
       clinica_operacoes_offline: {
         Row: {
           chave: string
@@ -11192,6 +11154,110 @@ export type Database = {
           },
         ]
       }
+      pet_internacao_pendencia_baixas: {
+        Row: {
+          created_at: string
+          id: string
+          observacao: string | null
+          pendencia_id: string
+          profissional_id: string
+          situacao: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pendencia_id: string
+          profissional_id: string
+          situacao: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          pendencia_id?: string
+          profissional_id?: string
+          situacao?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_pendencia_baixas_pendencia_id_fkey"
+            columns: ["pendencia_id"]
+            isOneToOne: true
+            referencedRelation: "pet_internacao_pendencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_pendencia_baixas_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_pendencia_baixas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_internacao_pendencias: {
+        Row: {
+          created_at: string
+          id: string
+          internacao_id: string
+          ordem: number
+          tenant_id: string
+          texto: string
+          turno_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          internacao_id: string
+          ordem?: number
+          tenant_id?: string
+          texto: string
+          turno_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          internacao_id?: string
+          ordem?: number
+          tenant_id?: string
+          texto?: string
+          turno_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_pendencias_internacao_id_fkey"
+            columns: ["internacao_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_pendencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_pendencias_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacao_turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_internacao_prescricoes: {
         Row: {
           created_at: string
@@ -11335,6 +11401,194 @@ export type Database = {
             columns: ["veterinario_id"]
             isOneToOne: false
             referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_internacao_sinais: {
+        Row: {
+          anulado: boolean
+          chave: string | null
+          corrige_id: string | null
+          id: string
+          internacao_id: string
+          medido_em: string
+          motivo_correcao: string | null
+          observacao: string | null
+          parametro_id: string
+          parametro_nome: string
+          profissional_id: string
+          registrado_em: string
+          tenant_id: string
+          unidade: string
+          valor: number | null
+        }
+        Insert: {
+          anulado?: boolean
+          chave?: string | null
+          corrige_id?: string | null
+          id?: string
+          internacao_id: string
+          medido_em: string
+          motivo_correcao?: string | null
+          observacao?: string | null
+          parametro_id: string
+          parametro_nome: string
+          profissional_id: string
+          registrado_em?: string
+          tenant_id?: string
+          unidade: string
+          valor?: number | null
+        }
+        Update: {
+          anulado?: boolean
+          chave?: string | null
+          corrige_id?: string | null
+          id?: string
+          internacao_id?: string
+          medido_em?: string
+          motivo_correcao?: string | null
+          observacao?: string | null
+          parametro_id?: string
+          parametro_nome?: string
+          profissional_id?: string
+          registrado_em?: string
+          tenant_id?: string
+          unidade?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_sinais_corrige_id_fkey"
+            columns: ["corrige_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacao_sinais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_sinais_internacao_id_fkey"
+            columns: ["internacao_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_sinais_parametro_id_fkey"
+            columns: ["parametro_id"]
+            isOneToOne: false
+            referencedRelation: "pet_sinais_parametros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_sinais_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_sinais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_internacao_turno_ciencias: {
+        Row: {
+          created_at: string
+          id: string
+          profissional_id: string
+          tenant_id: string
+          turno_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profissional_id: string
+          tenant_id?: string
+          turno_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profissional_id?: string
+          tenant_id?: string
+          turno_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_turno_ciencias_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_turno_ciencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_turno_ciencias_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacao_turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_internacao_turnos: {
+        Row: {
+          chave: string | null
+          created_at: string
+          id: string
+          internacao_id: string
+          profissional_id: string
+          resumo: string
+          tenant_id: string
+        }
+        Insert: {
+          chave?: string | null
+          created_at?: string
+          id?: string
+          internacao_id: string
+          profissional_id: string
+          resumo: string
+          tenant_id?: string
+        }
+        Update: {
+          chave?: string | null
+          created_at?: string
+          id?: string
+          internacao_id?: string
+          profissional_id?: string
+          resumo?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_internacao_turnos_internacao_id_fkey"
+            columns: ["internacao_id"]
+            isOneToOne: false
+            referencedRelation: "pet_internacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_turnos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_internacao_turnos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -11834,47 +12088,6 @@ export type Database = {
           },
         ]
       }
-      pet_receita_modelos: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          itens: Json
-          orientacoes: string | null
-          tenant_id: string
-          titulo: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          itens: Json
-          orientacoes?: string | null
-          tenant_id?: string
-          titulo: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?:  string
-          created_by?:  string | null
-          id?:  string
-          itens?:  Json
-          orientacoes?:  string | null
-          tenant_id?:  string
-          titulo?:  string
-          updated_at?:  string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pet_receita_modelos_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      },
       pet_servico_precos: {
         Row: {
           created_at: string
@@ -11970,6 +12183,44 @@ export type Database = {
           },
           {
             foreignKeyName: "pet_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_sinais_parametros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_sinais_parametros_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -12264,6 +12515,269 @@ export type Database = {
           },
           {
             foreignKeyName: "pets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_acessos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          pet_id: string
+          ref_id: string
+          tenant_id: string
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          pet_id: string
+          ref_id: string
+          tenant_id: string
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          pet_id?: string
+          ref_id?: string
+          tenant_id?: string
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_acessos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_acessos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_acessos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_convites: {
+        Row: {
+          cliente_id: string
+          codigo_hash: string
+          created_at: string
+          criado_por: string
+          expira_em: string
+          id: string
+          revogado_em: string | null
+          revogado_por: string | null
+          tenant_id: string
+          usado_em: string | null
+          usado_por: string | null
+        }
+        Insert: {
+          cliente_id: string
+          codigo_hash: string
+          created_at?: string
+          criado_por?: string
+          expira_em: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tenant_id?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          codigo_hash?: string
+          created_at?: string
+          criado_por?: string
+          expira_em?: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tenant_id?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_convites_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_convites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_liberacoes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          liberado_por: string
+          pet_id: string
+          ref_id: string
+          retirado_em: string | null
+          retirado_por: string | null
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          liberado_por: string
+          pet_id: string
+          ref_id: string
+          retirado_em?: string | null
+          retirado_por?: string | null
+          tenant_id?: string
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          liberado_por?: string
+          pet_id?: string
+          ref_id?: string
+          retirado_em?: string | null
+          retirado_por?: string | null
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_liberacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_liberacoes_liberado_por_fkey"
+            columns: ["liberado_por"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_liberacoes_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_liberacoes_retirado_por_fkey"
+            columns: ["retirado_por"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_liberacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_tentativas: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portal_vinculos: {
+        Row: {
+          cliente_id: string
+          convite_id: string | null
+          created_at: string
+          id: string
+          revogado_em: string | null
+          revogado_motivo: string | null
+          revogado_por: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          convite_id?: string | null
+          created_at?: string
+          id?: string
+          revogado_em?: string | null
+          revogado_motivo?: string | null
+          revogado_por?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          convite_id?: string | null
+          created_at?: string
+          id?: string
+          revogado_em?: string | null
+          revogado_motivo?: string | null
+          revogado_por?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_vinculos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_vinculos_convite_id_fkey"
+            columns: ["convite_id"]
+            isOneToOne: false
+            referencedRelation: "portal_convites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_vinculos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -14581,8 +15095,6 @@ export type Database = {
           auto_desde: string | null
           auto_plano: boolean
           auto_pronto: boolean
-          auto_reforco: boolean
-          auto_retorno: boolean
           conectada_em: string | null
           estado: string
           instancia: string
@@ -14594,8 +15106,6 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
-          auto_reforco?: boolean
-          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia: string
@@ -14607,8 +15117,6 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
-          auto_reforco?: boolean
-          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia?: string
@@ -14637,7 +15145,6 @@ export type Database = {
           jid: string | null
           numero: string
           origem: string
-          pet_id: string | null
           proxima_tentativa: string
           referencia: string
           situacao: string
@@ -14646,7 +15153,7 @@ export type Database = {
           tipo: string
           updated_at: string
           variaveis: Json
-          veiculo_id: string | null
+          veiculo_id: string
         }
         Insert: {
           cliente_id: string
@@ -14659,7 +15166,6 @@ export type Database = {
           jid?: string | null
           numero: string
           origem?: string
-          pet_id?: string | null
           proxima_tentativa?: string
           referencia: string
           situacao?: string
@@ -14668,7 +15174,7 @@ export type Database = {
           tipo: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id?: string | null
+          veiculo_id: string
         }
         Update: {
           cliente_id?: string
@@ -14681,7 +15187,6 @@ export type Database = {
           jid?: string | null
           numero?: string
           origem?: string
-          pet_id?: string | null
           proxima_tentativa?: string
           referencia?: string
           situacao?: string
@@ -14690,7 +15195,7 @@ export type Database = {
           tipo?: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id?: string | null
+          veiculo_id?: string
         }
         Relationships: [
           {
@@ -14698,13 +15203,6 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wa_mensagens_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pets"
             referencedColumns: ["id"]
           },
           {
@@ -14866,9 +15364,6 @@ export type Database = {
       }
       _clinica_exige_leitura: { Args: never; Returns: undefined }
       _clinica_exige_modelos: { Args: never; Returns: undefined }
-      _clinica_fila_acesso: { Args: never; Returns: undefined }
-      _clinica_fila_exige_equipe: { Args: never; Returns: undefined }
-      _clinica_fila_json: { Args: { p_id: string }; Returns: Json }
       _clinica_movimentar_dose: {
         Args: {
           p_deposito_id: string
@@ -14891,7 +15386,6 @@ export type Database = {
         Args: { p_catalogo_id: string; p_pet_id: string }
         Returns: Json
       }
-      _clinica_receita_modelo_itens: { Args: { p_itens: Json }; Returns: Json }
       _clinica_vet: { Args: never; Returns: string }
       _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
       _fone_normalizado: { Args: { p_fone: string }; Returns: string }
@@ -15138,10 +15632,20 @@ export type Database = {
         Args: { p_chave: string; p_pedido_id: string }
         Returns: string
       }
+      _portal_codigo_hash: { Args: { p_codigo: string }; Returns: string }
+      _portal_exige_recepcao: { Args: never; Returns: undefined }
+      _portal_pet_do_tutor: {
+        Args: { p_pet_id: string }
+        Returns: {
+          cliente_id: string
+          tenant_id: string
+        }[]
+      }
       _produto_dados_modulo_erro: {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
       }
+      _sinal_valor: { Args: { p_texto: string }; Returns: number }
       _sngpc_assinatura: {
         Args: { p_fim: string; p_inicio: string }
         Returns: string
@@ -15157,7 +15661,6 @@ export type Database = {
         Args: { p_lote: string; p_medicamento_id: string }
         Returns: boolean
       }
-      _wa_clinica_liberada: { Args: { p_tenant: string }; Returns: boolean }
       _wa_enfileirar: {
         Args: {
           p_origem: string
@@ -15302,6 +15805,19 @@ export type Database = {
         }
         Returns: string
       }
+      bulario_buscar: {
+        Args: {
+          p_busca?: string
+          p_fabricante?: string
+          p_letra?: string
+          p_limite?: number
+          p_pagina?: number
+        }
+        Returns: Json
+      }
+      bulario_importar: { Args: { p_itens: Json }; Returns: number }
+      bulario_resumo: { Args: never; Returns: Json }
+      bulario_total: { Args: never; Returns: number }
       caixa_lancar: {
         Args: {
           p_caixa_id: string
@@ -15431,11 +15947,6 @@ export type Database = {
         Returns: undefined
       }
       clinica_execucoes_mapa: { Args: { p_horas?: number }; Returns: Json }
-      clinica_fila_buscar_paciente: { Args: { p_busca: string }; Returns: Json }
-      clinica_fila_entrada: { Args: { p_dados: Json }; Returns: Json }
-      clinica_fila_gravidade: { Args: { p_gravidade: string; p_id: string }; Returns: Json }
-      clinica_fila_listar: { Args: { p_data?: string | null }; Returns: Json }
-      clinica_fila_situacao: { Args: { p_id: string; p_para: string }; Returns: Json }
       clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
       clinica_internacao_admitir: {
         Args: { p_dados: Json; p_pet_id: string }
@@ -15494,53 +16005,72 @@ export type Database = {
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
       clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
+      clinica_pendencia_baixar: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: string
+      }
       clinica_pet_alergias: {
         Args: { p_alergias: string; p_pet_id: string }
+        Returns: undefined
+      }
+      clinica_plantao: { Args: never; Returns: Json }
+      clinica_portal_acessos: { Args: { p_cliente_id?: string }; Returns: Json }
+      clinica_portal_convite_criar: {
+        Args: { p_cliente_id: string }
+        Returns: Json
+      }
+      clinica_portal_convite_revogar: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      clinica_portal_itens_do_pet: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_portal_liberar: {
+        Args: { p_ref_id: string; p_tipo: string }
+        Returns: string
+      }
+      clinica_portal_retirar: {
+        Args: { p_ref_id: string; p_tipo: string }
+        Returns: undefined
+      }
+      clinica_portal_vinculo_revogar: {
+        Args: { p_id: string; p_motivo: string }
         Returns: undefined
       }
       clinica_prescricao_suspender: {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
       }
-      bulario_buscar: {
-        Args: { p_busca?: string | null; p_fabricante?: string | null; p_letra?: string | null; p_limite?: number; p_pagina?: number }
-        Returns: Json
-      }
-      bulario_ficha: { Args: { p_id: string }; Returns: Json }
-      bulario_importar: { Args: { p_itens: Json }; Returns: number }
-      bulario_nota_salvar: { Args: { p_dados: Json; p_id: string }; Returns: undefined }
-      bulario_resumo: { Args: never; Returns: Json }
-      bulario_total: { Args: never; Returns: number }
-      clinica_sinais_internacao: { Args: { p_internacao_id: string }; Returns: Json }
-      clinica_sinais_parametro_salvar: { Args: { p_dados: Json }; Returns: string }
-      clinica_sinais_parametros: { Args: { p_todos?: boolean }; Returns: Json }
-      clinica_sinal_corrigir: { Args: { p_dados: Json; p_id: string }; Returns: string }
-      clinica_sinal_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
-      clinica_pendencia_baixar: { Args: { p_dados: Json; p_id: string }; Returns: string }
-      clinica_plantao: { Args: never; Returns: Json }
-      clinica_turno_ciente: { Args: { p_turno_id: string }; Returns: undefined }
-      clinica_turno_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
-      clinica_turnos_internacao: { Args: { p_internacao_id: string }; Returns: Json }
-      clinica_portal_acessos: { Args: { p_cliente_id?: string | null }; Returns: Json }
-      clinica_portal_convite_criar: { Args: { p_cliente_id: string }; Returns: Json }
-      clinica_portal_convite_revogar: { Args: { p_id: string }; Returns: undefined }
-      clinica_portal_itens_do_pet: { Args: { p_pet_id: string }; Returns: Json }
-      clinica_portal_liberar: { Args: { p_ref_id: string; p_tipo: string }; Returns: string }
-      clinica_portal_retirar: { Args: { p_ref_id: string; p_tipo: string }; Returns: undefined }
-      clinica_portal_vinculo_revogar: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
-      portal_exame_obter: { Args: { p_id: string }; Returns: Json }
-      portal_meus_pets: { Args: never; Returns: Json }
-      portal_pet_itens: { Args: { p_pet_id: string }; Returns: Json }
-      portal_receita_obter: { Args: { p_id: string }; Returns: Json }
-      portal_resgatar_convite: { Args: { p_codigo: string }; Returns: Json }
-      clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
-      clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
-      clinica_receita_modelos: { Args: never; Returns: Json }
       clinica_reforcos_pendentes: {
         Args: { p_atraso?: number; p_janela?: number }
         Returns: Json
       }
       clinica_servicos_consulta: { Args: never; Returns: Json }
+      clinica_sinais_internacao: {
+        Args: { p_internacao_id: string }
+        Returns: Json
+      }
+      clinica_sinais_parametro_salvar: {
+        Args: { p_dados: Json }
+        Returns: string
+      }
+      clinica_sinais_parametros: { Args: { p_todos?: boolean }; Returns: Json }
+      clinica_sinal_corrigir: {
+        Args: { p_dados: Json; p_id: string }
+        Returns: string
+      }
+      clinica_sinal_registrar: {
+        Args: { p_dados: Json; p_internacao_id: string }
+        Returns: string
+      }
+      clinica_turno_ciente: { Args: { p_turno_id: string }; Returns: undefined }
+      clinica_turno_registrar: {
+        Args: { p_dados: Json; p_internacao_id: string }
+        Returns: string
+      }
+      clinica_turnos_internacao: {
+        Args: { p_internacao_id: string }
+        Returns: Json
+      }
       clinica_vacina_aplicar: {
         Args: { p_agendamento_id: string; p_dados: Json }
         Returns: Json
@@ -15567,10 +16097,6 @@ export type Database = {
         Args: { p_chave: string; p_dados: Json }
         Returns: Json
       }
-      clinica_wa_automatico_salvar: { Args: { p_reforco: boolean; p_retorno: boolean }; Returns: undefined }
-      clinica_wa_enfileirar: { Args: { p_referencia: string; p_tipo: string }; Returns: string }
-      clinica_wa_mensagem_cancelar: { Args: { p_id: string }; Returns: undefined }
-      clinica_wa_mensagem_reenviar: { Args: { p_id: string }; Returns: undefined }
       cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }
       cobranca_config_gerar_token: { Args: never; Returns: string }
       cobranca_config_obter: {
@@ -16842,6 +17368,11 @@ export type Database = {
         Returns: string
       }
       pode_filial: { Args: { p_filial_id: string }; Returns: boolean }
+      portal_exame_obter: { Args: { p_id: string }; Returns: Json }
+      portal_meus_pets: { Args: never; Returns: Json }
+      portal_pet_itens: { Args: { p_pet_id: string }; Returns: Json }
+      portal_receita_obter: { Args: { p_id: string }; Returns: Json }
+      portal_resgatar_convite: { Args: { p_codigo: string }; Returns: Json }
       premiacao_abater_conta: {
         Args: {
           p_conta_id: string
