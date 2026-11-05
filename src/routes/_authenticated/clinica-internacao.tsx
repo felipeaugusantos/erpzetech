@@ -5,6 +5,7 @@ import { BedDouble, Plus, Printer, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { SinaisVitaisInternacao } from "@/components/app/SinaisVitaisInternacao";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -664,6 +665,13 @@ function FichaDialog({
                 )}
               </div>
             )}
+
+            <SinaisVitaisInternacao
+              internacaoId={id}
+              aberta={aberta}
+              admitidoEm={f.internacao.admitido_em}
+              souVet={souVet}
+            />
 
             <PrescricaoSecao
               f={f}
