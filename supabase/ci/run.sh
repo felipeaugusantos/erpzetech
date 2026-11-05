@@ -50,6 +50,7 @@ PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/whats
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/internacao-sinais.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/internacao-turno.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/portal-tutor.sql
+PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/clinica-sem-petshop.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/smoke.sql
 # concorrência de verdade (duas sessões ao mesmo tempo) da agenda do lava rápido
 bash ci/lava-agenda-concorrencia.sh

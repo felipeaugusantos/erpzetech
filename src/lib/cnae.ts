@@ -15,6 +15,9 @@ export function useModulosCnae() {
     locacao: moduloLiberadoEmpresa(empresa, "locacao"),
     restaurante: moduloLiberadoEmpresa(empresa, "restaurante"),
     petshop: moduloLiberadoEmpresa(empresa, "petshop"),
+    /** Pets e tutores e Contatos: do pet shop e também da clínica, mesmo sem o pet shop contratado. */
+    petsETutores:
+      moduloLiberadoEmpresa(empresa, "petshop") || moduloLiberadoEmpresa(empresa, "clinica"),
     clinica: moduloLiberadoEmpresa(empresa, "clinica"),
     lavarapido: moduloLiberadoEmpresa(empresa, "lavarapido"),
     hotelaria: moduloLiberadoEmpresa(empresa, "hotelaria"),

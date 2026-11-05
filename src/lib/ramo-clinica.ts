@@ -1,6 +1,23 @@
 // Empresa que é só clínica veterinária: o menu esconde o que é de outros ramos (obras, frota própria, vendedor comissionado).
 // Estoque e compras ficam: vacinas e medicamentos entram por lote no estoque, e a clínica compra os insumos.
-import { cnaesDaEmpresa, semCnpj, type EmpresaModulos } from "./cnae-regras.ts";
+import {
+  MARCADOR_SEM_PETSHOP,
+  cnaesDaEmpresa,
+  semCnpj,
+  type EmpresaModulos,
+} from "./cnae-regras.ts";
+
+/** Liberação que é de outro ramo (a clínica, o pet shop e o marcador "sem pet shop" não contam). */
+const ehOutroModulo = (m: string) =>
+  m !== "clinica" && m !== "petshop" && m !== MARCADOR_SEM_PETSHOP;
+
+/** Itens da área Pet shop que a clínica sem pet shop mantém: o cadastro de pets e tutores e os contatos. */
+export const ITENS_PET_DA_CLINICA = ["/pets", "/pet-contatos"] as const;
+
+/** Item da área Pet shop aparece? Com o pet shop contratado, todos; sem ele (só clínica), apenas os da clínica. */
+export function itemPetVisivel(to: string | undefined, petshopLiberado: boolean): boolean {
+  return petshopLiberado || (ITENS_PET_DA_CLINICA as readonly (string | undefined)[]).includes(to);
+}
 
 /**
  * Liberação explícita de outro módulo desfaz o "só clínica". A empresa é só clínica quando o ramo é clínica, o CNAE principal é de atividades veterinárias (7500) ou, sem CNPJ, a clínica foi
@@ -9,8 +26,7 @@ import { cnaesDaEmpresa, semCnpj, type EmpresaModulos } from "./cnae-regras.ts";
 export function ehEmpresaSoClinica(empresa?: EmpresaModulos | null): boolean {
   if (!empresa) return false;
   // liberação explícita da Ze Tech de outro módulo (obras, assistência, locação…) vale mais que o ramo: a empresa não é só clínica
-  if ((empresa.modulos_liberados ?? []).some((m) => m !== "clinica" && m !== "petshop"))
-    return false;
+  if ((empresa.modulos_liberados ?? []).some(ehOutroModulo)) return false;
   if (empresa.ramo_atividade === "clinica") return true;
   if (cnaesDaEmpresa({ cnae: empresa.cnae ?? null })[0]?.startsWith("7500")) return true;
   const escolhidos = empresa.modulos_sem_cnpj ?? [];
@@ -69,7 +85,7 @@ export function ehEmpresaPet(empresa?: EmpresaModulos | null): boolean {
   if (!empresa) return false;
   if (ehEmpresaSoClinica(empresa)) return true;
   const liberados = empresa.modulos_liberados ?? [];
-  if (liberados.some((m) => m !== "clinica" && m !== "petshop")) return false;
+  if (liberados.some(ehOutroModulo)) return false;
   if (liberados.includes("petshop") || liberados.includes("clinica")) return true;
   const escolhidos = semCnpj(empresa) ? (empresa.modulos_sem_cnpj ?? []) : [];
   if (

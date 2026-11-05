@@ -124,7 +124,7 @@ const vazio: Form = {
 function PetsModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
-  if (!modulos.petshop) return <ModuloBloqueado modulo="petshop" />;
+  if (!modulos.petsETutores) return <ModuloBloqueado modulo="petshop" />;
   return <Pets />;
 }
 
