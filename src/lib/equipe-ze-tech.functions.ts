@@ -31,12 +31,14 @@ export const cadastrarEquipeZeTech = createServerFn({ method: "POST" })
     if (acesso.error) throw acesso.error;
     exigirAdminEquipe(context.userId, acesso.data);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Exact lookup only; never enumerate every Auth user across the customer tenants.
+    const perfil = await supabaseAdmin.from("profiles").select("id").ilike("email", data.email.replace(/[\\%_]/g, "\\$&")).maybeSingle();
+    if (perfil.error) throw new Error("Não foi possível verificar a conta.");
     let existente: { id: string; email_confirmed_at?: string } | undefined;
-    for (let page = 1; ; page++) {
-      const contas = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-      if (contas.error) throw new Error("Não foi possível verificar a conta.");
-      existente = contas.data.users.find((u) => u.email?.toLowerCase() === data.email);
-      if (existente || contas.data.users.length < 1000) break;
+    if (perfil.data) {
+      const conta = await supabaseAdmin.auth.admin.getUserById(perfil.data.id);
+      if (conta.error || conta.data.user?.email?.toLowerCase() !== data.email) throw new Error("Não foi possível verificar a conta.");
+      existente = conta.data.user;
     }
     if (data.modo === "novo" && existente) throw new Error("Este e-mail já tem uma conta. Escolha Conta existente; a senha atual será mantida.");
     if (data.modo === "existente" && !existente) throw new Error("Não existe uma conta com esse e-mail.");
