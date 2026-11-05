@@ -32,7 +32,21 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs nginx certbot python3-certbot-nginx git
 ```
 
-Se a VPS já roda outro site, **não substitua** a configuração do nginx: o passo 5 cria um arquivo novo, só para o domínio do EZRA.
+### Se a VPS já roda outro sistema (conferir antes de instalar)
+
+Foi o caso do primeiro teste real (a VPS já tinha containers Docker e um site no nginx). Antes do passo 5, só leia, sem mudar nada:
+
+```bash
+docker ps
+ss -tlnp | grep -E ':(80|443|3100)\b'
+ls -l /etc/nginx/sites-enabled /etc/nginx/conf.d
+grep -R -E "server_name|listen" /etc/nginx/sites-available
+```
+
+- Use `grep -R` (maiúsculo): o `-r` não segue os links de `sites-enabled` e parece que não há `server_name`.
+- Escolha uma porta livre para o EZRA (o guia usa **3100**) e nunca pare nem reinicie os containers do outro sistema.
+- O nginx já escutando na 80 e na 443 é normal: o EZRA entra como **site adicional**, separado pelo `server_name`.
+- **Limite de requisições herdado:** um `limit_req` solto no nível geral do nginx (por exemplo num arquivo de `sites-enabled`) vale para todos os sites, e uma clínica atrás de um único IP pode receber erro 429. O passo 5 dá ao EZRA um limite próprio.
 
 ## 2. Baixar e compilar
 
@@ -52,12 +66,20 @@ Crie `/home/ezra/app.env` (fora do repositório, permissão `chmod 600`). Use os
 
 ```
 HOST=127.0.0.1
-PORT=3000
+PORT=3100
 SUPABASE_URL=...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 # Só se for usar: EVOLUTION_API_URL, EVOLUTION_API_KEY, WHATSAPP_WEBHOOK_SECRET, WHATSAPP_APP_URL,
 # COSMOS_TOKEN, LOVABLE_API_KEY, LOVABLE_CRON_SECRET, ERP_ZETECH_API_KEY
+```
+
+Para um primeiro teste, só `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` bastam (são públicas, já estão no `.env` do repositório): as telas e o login por e-mail e senha funcionam. As funções administrativas só funcionam com `SUPABASE_SERVICE_ROLE_KEY`; sem ela falham com erro de configuração, sem danos. No Lovable Cloud essa chave pode não ser exibida: confira a tela **Secrets** antes de planejar a mudança.
+
+Crie o arquivo como root, com dono e permissão certos:
+
+```bash
+install -m 600 -o ezra -g ezra /dev/null /home/ezra/app.env
 ```
 
 As variáveis `VITE_*` entram no build (arquivo `.env` do repositório já as traz); as de servidor acima são lidas na hora de rodar.
@@ -91,15 +113,34 @@ systemctl status ezra
 
 ## 5. nginx e HTTPS
 
-Aponte o DNS do domínio (registro A) para o IPv4 da VPS. Depois crie `/etc/nginx/sites-available/ezra`
-(troque `teste.seudominio.com.br`):
+### DNS
+
+Crie um registro **A** do subdomínio para o IPv4 da VPS, **na zona do seu domínio**.
+
+- Descubra onde o DNS do domínio é gerenciado: `dig +short NS seudominio.com.br`.
+- No cPanel (HostGator), use **Zone Editor** e clique em **Gerenciar** na linha do seu domínio. O título deve dizer `Zone Records for "seudominio.com.br"`. Zonas provisórias `...meusitehostgator.com.br` são outra coisa: um registro criado nelas ganha o endereço provisório no final e nunca responde no seu domínio.
+- Não use "Create A New Domain" (isso cria um site hospedado, não o apontamento para a VPS).
+- Confira a publicação direto no servidor de nomes: `dig +short A ezra.seudominio.com.br @ns1.exemplo.com.br`. O `getent hosts` da própria VPS pode ficar vazio por um tempo (cache de "não existe"); isso não afeta quem acessa de fora.
+
+### Site no nginx
+
+Crie primeiro o limite próprio do EZRA (arquivo novo, não altera os existentes):
+
+```bash
+cat > /etc/nginx/conf.d/ezra-limit-req.conf <<'EOF'
+limit_req_zone $binary_remote_addr zone=ezra_geral:10m rate=3000r/m;
+EOF
+```
+
+Depois crie `/etc/nginx/sites-available/ezra` (troque `teste.seudominio.com.br`):
 
 ```nginx
 server {
   listen 80;
   server_name teste.seudominio.com.br;
   location / {
-    proxy_pass http://127.0.0.1:3000;
+    limit_req zone=ezra_geral burst=1000 nodelay;
+    proxy_pass http://127.0.0.1:3100;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -116,6 +157,7 @@ certbot --nginx -d teste.seudominio.com.br
 
 ## 6. Conferir
 
+- Se o `curl` na própria VPS disser `Could not resolve host`, force o endereço: `curl -sS -I --resolve teste.seudominio.com.br:443:127.0.0.1 https://teste.seudominio.com.br/portal/entrar`.
 - Abra `https://teste.seudominio.com.br/portal/entrar` e a tela de login do app.
 - Entre com um usuário de teste e abra uma tela que leia dados.
 - No Supabase Auth, confirme que o domínio está em Site URL / Redirect URLs.
