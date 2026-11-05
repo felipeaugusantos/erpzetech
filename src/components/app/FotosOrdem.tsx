@@ -60,15 +60,19 @@ export function FotosOrdem({
 
   const { data: fotos = [], isLoading } = useQuery({
     queryKey: ["lava-fotos", ordemId],
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: 50_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("lr_fotos_da_ordem", { p_ordem_id: ordemId });
       if (error) throw error;
       const lista = (data ?? []) as unknown as Foto[];
       if (lista.length === 0) return [];
-      // links temporários de 5 minutos: a lista é recarregada ao abrir a tela
+      // links de 60 s (não revogáveis): a lista é renovada antes de expirar,
+      // então uma foto cancelada deixa de abrir em no máximo um minuto
       const { data: links } = await supabase.storage.from(BUCKET).createSignedUrls(
         lista.map((f) => f.caminho),
-        300,
+        60,
       );
       return lista.map((f) => ({
         ...f,
