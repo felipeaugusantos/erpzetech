@@ -132,7 +132,7 @@ function AcessosTutores({ clinica }: { clinica: string }) {
     queryKey: ["clinica-portal-acessos", tutor?.id ?? "todos"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("clinica_portal_acessos", {
-        p_cliente_id: tutor?.id ?? null,
+        p_cliente_id: tutor?.id ?? undefined,
       });
       if (error) throw error;
       return data as unknown as Acessos;

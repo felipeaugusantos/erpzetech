@@ -364,7 +364,7 @@ function EmitirDocumento({
       const { error } = await supabase.rpc("clinica_receita_modelo_salvar", {
         p_titulo: titulo,
         p_itens: itens,
-        p_orientacoes: texto.trim() || null,
+        p_orientacoes: texto.trim() || undefined,
       });
       if (error) throw error;
     },
