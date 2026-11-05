@@ -15095,6 +15095,8 @@ export type Database = {
           auto_desde: string | null
           auto_plano: boolean
           auto_pronto: boolean
+          auto_reforco: boolean
+          auto_retorno: boolean
           conectada_em: string | null
           estado: string
           instancia: string
@@ -15106,6 +15108,8 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
+          auto_reforco?: boolean
+          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia: string
@@ -15117,6 +15121,8 @@ export type Database = {
           auto_desde?: string | null
           auto_plano?: boolean
           auto_pronto?: boolean
+          auto_reforco?: boolean
+          auto_retorno?: boolean
           conectada_em?: string | null
           estado?: string
           instancia?: string
@@ -15145,6 +15151,7 @@ export type Database = {
           jid: string | null
           numero: string
           origem: string
+          pet_id: string | null
           proxima_tentativa: string
           referencia: string
           situacao: string
@@ -15153,7 +15160,7 @@ export type Database = {
           tipo: string
           updated_at: string
           variaveis: Json
-          veiculo_id: string
+          veiculo_id: string | null
         }
         Insert: {
           cliente_id: string
@@ -15166,6 +15173,7 @@ export type Database = {
           jid?: string | null
           numero: string
           origem?: string
+          pet_id?: string | null
           proxima_tentativa?: string
           referencia: string
           situacao?: string
@@ -15174,7 +15182,7 @@ export type Database = {
           tipo: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id: string
+          veiculo_id?: string | null
         }
         Update: {
           cliente_id?: string
@@ -15187,6 +15195,7 @@ export type Database = {
           jid?: string | null
           numero?: string
           origem?: string
+          pet_id?: string | null
           proxima_tentativa?: string
           referencia?: string
           situacao?: string
@@ -15195,7 +15204,7 @@ export type Database = {
           tipo?: string
           updated_at?: string
           variaveis?: Json
-          veiculo_id?: string
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -15203,6 +15212,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_mensagens_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
             referencedColumns: ["id"]
           },
           {
@@ -15661,6 +15677,7 @@ export type Database = {
         Args: { p_lote: string; p_medicamento_id: string }
         Returns: boolean
       }
+      _wa_clinica_liberada: { Args: { p_tenant: string }; Returns: boolean }
       _wa_enfileirar: {
         Args: {
           p_origem: string
@@ -16096,6 +16113,22 @@ export type Database = {
       clinica_visita_registrar: {
         Args: { p_chave: string; p_dados: Json }
         Returns: Json
+      }
+      clinica_wa_automatico_salvar: {
+        Args: { p_reforco: boolean; p_retorno: boolean }
+        Returns: undefined
+      }
+      clinica_wa_enfileirar: {
+        Args: { p_referencia: string; p_tipo: string }
+        Returns: string
+      }
+      clinica_wa_mensagem_cancelar: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      clinica_wa_mensagem_reenviar: {
+        Args: { p_id: string }
+        Returns: undefined
       }
       cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }
       cobranca_config_gerar_token: { Args: never; Returns: string }
