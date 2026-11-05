@@ -298,7 +298,7 @@ BEGIN
                'ultima_consulta', (SELECT max(a.created_at) FROM public.portal_acessos a WHERE a.tipo = 'exame' AND a.ref_id = e.id)
              ) ORDER BY e.data_coleta DESC, e.id)
         FROM public.pet_exames e
-        LEFT JOIN public.portal_liberacoes l ON l.tipo = 'exame' AND l.ref_id = e.id AND l.retirado_em IS NULL
+        LEFT JOIN public.portal_liberacoes l ON l.tipo = 'exame' AND l.ref_id = e.id AND l.cliente_id = v_cli AND l.retirado_em IS NULL
        WHERE e.pet_id = p_pet_id AND e.tenant_id = v_tenant AND e.situacao = 'fechado'
     ), '[]'::jsonb),
     'receitas', coalesce((
@@ -308,14 +308,15 @@ BEGIN
                'ultima_consulta', (SELECT max(a.created_at) FROM public.portal_acessos a WHERE a.tipo = 'documento' AND a.ref_id = d.id)
              ) ORDER BY d.emitido_em DESC, d.id)
         FROM public.pet_documentos d
-        LEFT JOIN public.portal_liberacoes l ON l.tipo = 'documento' AND l.ref_id = d.id AND l.retirado_em IS NULL
+        LEFT JOIN public.portal_liberacoes l ON l.tipo = 'documento' AND l.ref_id = d.id AND l.cliente_id = v_cli AND l.retirado_em IS NULL
        WHERE d.pet_id = p_pet_id AND d.tenant_id = v_tenant AND d.tipo = 'receita'
     ), '[]'::jsonb));
 END $$;
 REVOKE ALL ON FUNCTION public.clinica_portal_itens_do_pet(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.clinica_portal_itens_do_pet(uuid) TO authenticated;
 
--- Libera um item ao tutor. Exame só fechado; receita só emitida (não cancelada). Repetir devolve a liberação que já existe.
+-- Libera um item ao tutor. Exame só fechado; receita só emitida (não cancelada). Repetir ao mesmo tutor devolve a liberação que já existe;
+-- se o animal mudou de tutor, a liberação do tutor anterior é encerrada (fica no histórico) e nasce a do tutor atual.
 CREATE OR REPLACE FUNCTION public.clinica_portal_liberar(p_tipo text, p_ref_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -328,6 +329,7 @@ DECLARE
   v_pet uuid;
   v_cli uuid;
   v_id uuid;
+  v_ant uuid;
 BEGIN
   IF p_tipo = 'exame' THEN
     SELECT e.pet_id INTO v_pet FROM public.pet_exames e WHERE e.id = p_ref_id AND e.tenant_id = v_tenant AND e.situacao = 'fechado';
@@ -343,8 +345,12 @@ BEGIN
   IF p_tipo = 'documento' AND NOT EXISTS (SELECT 1 FROM public.pet_documentos d WHERE d.id = p_ref_id AND d.cliente_id = v_cli) THEN
     RAISE EXCEPTION 'A receita foi emitida para outro tutor: não pode ser liberada neste cadastro';
   END IF;
-  SELECT id INTO v_id FROM public.portal_liberacoes WHERE tipo = p_tipo AND ref_id = p_ref_id AND retirado_em IS NULL;
-  IF v_id IS NOT NULL THEN RETURN v_id; END IF;
+  SELECT id, cliente_id INTO v_id, v_ant FROM public.portal_liberacoes WHERE tipo = p_tipo AND ref_id = p_ref_id AND retirado_em IS NULL;
+  IF v_id IS NOT NULL THEN
+    IF v_ant = v_cli THEN RETURN v_id; END IF;
+    -- liberação feita ao tutor anterior (o animal mudou de cadastro): encerra, sem apagar, e libera de novo para o atual
+    UPDATE public.portal_liberacoes SET retirado_em = now(), retirado_por = v_vet WHERE id = v_id;
+  END IF;
   INSERT INTO public.portal_liberacoes (tenant_id, tipo, ref_id, pet_id, cliente_id, liberado_por)
   VALUES (v_tenant, p_tipo, p_ref_id, v_pet, v_cli, v_vet) RETURNING id INTO v_id;
   RETURN v_id;

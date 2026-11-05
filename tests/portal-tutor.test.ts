@@ -7,6 +7,7 @@ import {
   agruparResultados,
   avisoDoEstado,
   chavePortal,
+  consultaDoPortalDeOutroUsuario,
   codigoCompleto,
   codigoDoFragmento,
   formatarCodigo,
@@ -23,13 +24,22 @@ describe("portal: privacidade do cache do navegador", () => {
   it("nenhuma consulta do portal pode ir para o cache em texto simples", () => {
     assert.equal(CHAVE_PORTAL.startsWith("clinica-"), true);
     for (const chave of [
-      chavePortal("pets"),
-      chavePortal("exame", "id-1"),
-      chavePortal("receita", "id-2"),
-      chavePortal("sessao"),
+      chavePortal("u1", "pets"),
+      chavePortal("u1", "exame", "id-1"),
+      chavePortal("u1", "receita", "id-2"),
+      chavePortal("u1", "sessao"),
     ]) {
       assert.equal(consultaPersistivel(chave), false, JSON.stringify(chave));
     }
+  });
+});
+
+describe("portal: troca de usuário no mesmo aparelho", () => {
+  it("descarta consultas do portal de outro usuário e de sessão encerrada, e só elas", () => {
+    assert.equal(consultaDoPortalDeOutroUsuario(chavePortal("u1", "pets"), "u2"), true);
+    assert.equal(consultaDoPortalDeOutroUsuario(chavePortal("u1", "pets"), null), true);
+    assert.equal(consultaDoPortalDeOutroUsuario(chavePortal("u1", "pets"), "u1"), false);
+    assert.equal(consultaDoPortalDeOutroUsuario(["clientes", "u1"], "u2"), false);
   });
 });
 

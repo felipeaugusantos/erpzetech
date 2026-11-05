@@ -40,8 +40,9 @@ type Exame = {
 
 function Exame() {
   const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
   const exame = useQuery({
-    queryKey: chavePortal("exame", id),
+    queryKey: chavePortal(user.id, "exame", id),
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,

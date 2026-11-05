@@ -40,8 +40,9 @@ const data = (v: string) =>
 
 function Animal() {
   const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
   const itens = useQuery({
-    queryKey: chavePortal("animal", id),
+    queryKey: chavePortal(user.id, "animal", id),
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,

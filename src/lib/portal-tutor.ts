@@ -6,8 +6,20 @@
 
 export const CHAVE_PORTAL = "clinica-portal";
 
-/** Chave de consulta do portal (sempre com o prefixo que impede o cache em texto simples). */
-export const chavePortal = (...partes: unknown[]) => [CHAVE_PORTAL, ...partes] as const;
+/**
+ * Chave de consulta do portal: prefixo que impede o cache em texto simples + id do usuário logado, para que o cache em
+ * memória nunca entregue a um tutor o dado de outro que usou o mesmo aparelho.
+ */
+export const chavePortal = (uid: string, ...partes: unknown[]) =>
+  [CHAVE_PORTAL, uid, ...partes] as const;
+
+/** Consulta do portal que pertence a outro usuário (ou a ninguém): deve ser descartada ao trocar de sessão. */
+export function consultaDoPortalDeOutroUsuario(
+  chave: readonly unknown[],
+  uid: string | null | undefined,
+): boolean {
+  return chave[0] === CHAVE_PORTAL && (!uid || chave[1] !== uid);
+}
 
 const TAMANHO_CODIGO = 16;
 

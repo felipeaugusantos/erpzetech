@@ -67,7 +67,7 @@ DECLARE
   ex1 uuid; ex2 uuid; ex3 uuid; exb uuid; exc uuid;
   d1 uuid; d2 uuid; d3 uuid; d4 uuid; d5 uuid; d6 uuid; db uuid;
   cv1 uuid; cv2 uuid; cvr uuid; cod1 text; cod2 text; codr text; codb text;
-  r jsonb; n bigint; lib uuid; vin1 uuid; vin_b uuid; k int;
+  r jsonb; n bigint; lib uuid; lib2 uuid; vin1 uuid; vin_b uuid; k int;
 BEGIN
   INSERT INTO tenants (id, nome) VALUES (ta, 'Clínica A'), (tb, 'Clínica B'), (tc, 'Loja C');
   INSERT INTO empresas (tenant_id, razao_social, nome_fantasia, ramo_atividade) VALUES (ta, 'A LTDA', 'Clínica Alfa', 'clinica'), (tb, 'B LTDA', 'Clínica Beta', 'clinica'), (tc, 'C LTDA', 'Loja C', 'varejo');
@@ -340,7 +340,23 @@ BEGIN
   PERFORM ci.deve_falhar(tu2, format('SELECT portal_receita_obter(%L)', d1), 'novo tutor abre receita emitida ao antigo');
   r := ci.como(tu2, format('SELECT portal_pet_itens(%L)', pet1));
   PERFORM ci.exige(jsonb_array_length(r -> 'exames') = 0 AND jsonb_array_length(r -> 'receitas') = 0, 'a lista do novo tutor vem vazia até nova liberação');
+  -- liberar de novo depois da transferência: a liberação do tutor antigo é encerrada e nasce a do atual
+  r := ci.como(vet, format('SELECT clinica_portal_itens_do_pet(%L)', pet1));
+  PERFORM ci.exige(NOT (SELECT (x ->> 'liberado')::boolean FROM jsonb_array_elements(r -> 'exames') x WHERE (x ->> 'id')::uuid = ex1), 'a lista do veterinário não mostra como liberado o exame liberado ao tutor anterior');
+  PERFORM ci.deve_falhar(vet, format($q$SELECT clinica_portal_liberar('documento', %L)$q$, d1), 'receita emitida ao tutor antigo continua sem poder ser liberada ao novo');
+  lib2 := (ci.como(vet, format($q$SELECT to_jsonb(clinica_portal_liberar('exame', %L))$q$, ex1)) #>> '{}')::uuid;
+  PERFORM ci.exige(lib2 IS NOT NULL AND lib2 <> (SELECT id FROM portal_liberacoes WHERE ref_id = ex1 AND cliente_id = cli1 AND retirado_em IS NOT NULL ORDER BY created_at DESC LIMIT 1)
+                   AND (SELECT cliente_id FROM portal_liberacoes WHERE id = lib2) = cli2, 'liberar depois da transferência cria a liberação do tutor atual (não devolve a antiga)');
+  PERFORM ci.exige((SELECT count(*) FROM portal_liberacoes WHERE ref_id = ex1 AND retirado_em IS NULL) = 1, 'sobra uma só liberação ativa por exame');
+  PERFORM ci.exige((SELECT retirado_por FROM portal_liberacoes WHERE ref_id = ex1 AND cliente_id = cli1 AND retirado_em IS NOT NULL ORDER BY created_at DESC LIMIT 1) = pv, 'a liberação do tutor antigo foi encerrada pelo veterinário, e o histórico fica');
+  PERFORM ci.exige((ci.como(tu2, format('SELECT portal_exame_obter(%L)', ex1)) ->> 'estado') = 'disponivel', 'o novo tutor passa a ver o exame depois da nova liberação');
+  PERFORM ci.exige((ci.como(vet, format($q$SELECT to_jsonb(clinica_portal_liberar('exame', %L))$q$, ex1)) #>> '{}')::uuid = lib2, 'repetir a liberação ao mesmo tutor devolve a mesma');
   UPDATE pets SET cliente_id = cli1 WHERE id IN (pet1, pet2);
+  -- o animal volta ao tutor original: a liberação do tutor novo fica obsoleta e é encerrada ao liberar de novo
+  r := ci.como(tu1, format('SELECT portal_pet_itens(%L)', pet1));
+  PERFORM ci.exige(jsonb_array_length(r -> 'exames') = 0, 'devolvido o animal, o tutor original não vê a liberação feita ao tutor novo');
+  PERFORM ci.como(vet, format($q$SELECT to_jsonb(clinica_portal_liberar('exame', %L))$q$, ex1));
+  PERFORM ci.exige((ci.como(tu1, format('SELECT portal_exame_obter(%L)', ex1)) ->> 'estado') = 'disponivel' AND (SELECT count(*) FROM portal_liberacoes WHERE ref_id = ex1 AND retirado_em IS NULL) = 1, 'liberar de novo ao tutor original devolve o acesso e mantém uma só ativa');
 
   -- ===== revogar o acesso do tutor =====
   r := ci.como(rec, format('SELECT clinica_portal_acessos(%L)', cli1));

@@ -33,9 +33,10 @@ export const Route = createFileRoute("/portal/")({
 });
 
 function Inicio() {
+  const { user } = Route.useRouteContext();
   const [outroCodigo, setOutroCodigo] = useState(false);
   const pets = useQuery({
-    queryKey: chavePortal("pets"),
+    queryKey: chavePortal(user.id, "pets"),
     staleTime: 0,
     refetchOnWindowFocus: false,
     queryFn: async () => {
@@ -144,6 +145,7 @@ function Inicio() {
 }
 
 function VincularCodigo() {
+  const { user } = Route.useRouteContext();
   const qc = useQueryClient();
   const [codigo, setCodigo] = useState(() => formatarCodigo(lerCodigoGuardado()));
   const [erro, setErro] = useState<string | null>(null);
@@ -167,7 +169,7 @@ function VincularCodigo() {
       toast.success("Acesso liberado", {
         description: r.clinica ? `Vinculado a ${r.clinica}.` : undefined,
       });
-      void qc.invalidateQueries({ queryKey: chavePortal("pets") });
+      void qc.invalidateQueries({ queryKey: chavePortal(user.id, "pets") });
     },
     onError: (e: Error) => setErro(e.message),
   });

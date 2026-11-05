@@ -46,8 +46,9 @@ const data = (v: string) => new Date(v).toLocaleDateString("pt-BR");
 
 function Receita() {
   const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
   const receita = useQuery({
-    queryKey: chavePortal("receita", id),
+    queryKey: chavePortal(user.id, "receita", id),
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,
