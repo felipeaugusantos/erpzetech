@@ -15516,6 +15516,11 @@ export type Database = {
       clinica_sinais_parametros: { Args: { p_todos?: boolean }; Returns: Json }
       clinica_sinal_corrigir: { Args: { p_dados: Json; p_id: string }; Returns: string }
       clinica_sinal_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
+      clinica_pendencia_baixar: { Args: { p_dados: Json; p_id: string }; Returns: string }
+      clinica_plantao: { Args: never; Returns: Json }
+      clinica_turno_ciente: { Args: { p_turno_id: string }; Returns: undefined }
+      clinica_turno_registrar: { Args: { p_dados: Json; p_internacao_id: string }; Returns: string }
+      clinica_turnos_internacao: { Args: { p_internacao_id: string }; Returns: Json }
       clinica_receita_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
       clinica_receita_modelo_salvar: { Args: { p_itens: Json; p_orientacoes?: string | null; p_titulo: string }; Returns: string }
       clinica_receita_modelos: { Args: never; Returns: Json }
