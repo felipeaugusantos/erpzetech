@@ -67,7 +67,7 @@ function EquipeZeTech() {
     {equipe.isPending ? <p className="text-sm text-muted-foreground">Carregando equipe…</p> : equipe.isError ? <div role="alert" className="text-destructive">{equipe.error.message}</div> : <>
       <div className="mb-5 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4" />{equipe.data.membros.length} integrantes</div>
       <div className="overflow-x-auto rounded-md border bg-card">
-        <Table><TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>E-mail</TableHead><TableHead>Acesso</TableHead><TableHead>Conta</TableHead><TableHead className="w-16"><span className="sr-only">Ações</span></TableHead></TableRow></TableHeader>
+        <Table className="min-w-[640px]"><TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>E-mail</TableHead><TableHead>Acesso</TableHead><TableHead>Conta</TableHead><TableHead className="w-16"><span className="sr-only">Ações</span></TableHead></TableRow></TableHeader>
           <TableBody>{equipe.data.membros.map((m) => <TableRow key={m.user_id}>
             <TableCell className="font-medium">{m.nome || "—"}</TableCell>
             <TableCell className="break-all">{m.email}</TableCell>
