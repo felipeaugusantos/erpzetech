@@ -32,7 +32,9 @@ const SEP = ";";
 const numeroBR = (v: number) => v.toFixed(2).replace(".", ",");
 
 const escapar = (v: string) => {
-  const texto = String(v ?? "");
+  let texto = String(v ?? "");
+  // Neutraliza fórmulas de planilha (=, +, -, @, tab, CR) no início do campo.
+  if (/^[=+\-@\t\r]/.test(texto)) texto = `'${texto}`;
   return /[;"\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
 };
 
