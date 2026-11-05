@@ -118,10 +118,22 @@ export type EmpresaModulos = {
 
 export const semCnpj = (empresa?: EmpresaModulos | null) => !temCnpj(empresa?.cnpj);
 
+/**
+ * Marcador de contrato "clínica sem pet shop" (guardado junto das liberações, só a equipe grava). Não é um módulo: só desfaz a regra
+ * de que a clínica libera também o pet shop. Quem não tem o marcador não muda em nada.
+ */
+export const MARCADOR_SEM_PETSHOP = "sem_petshop";
+
+export const contratoSemPetshop = (empresa?: EmpresaModulos | null) =>
+  empresa?.modulos_liberados?.includes(MARCADOR_SEM_PETSHOP) === true;
+
 export function moduloLiberadoEmpresa(
   empresa: EmpresaModulos | null | undefined,
   modulo: ModuloCnae,
 ): boolean {
+  // contrato sem pet shop: só vale a liberação explícita do próprio pet shop (nem a clínica, nem o ramo, nem o CNAE liberam)
+  if (modulo === "petshop" && contratoSemPetshop(empresa))
+    return empresa?.modulos_liberados?.includes("petshop") === true;
   if (empresa?.modulos_liberados?.includes(modulo)) return true;
   if (semCnpj(empresa) && empresa?.modulos_sem_cnpj?.includes(modulo)) return true;
   if (modulo === "petshop" && moduloLiberadoEmpresa(empresa, "clinica")) return true;

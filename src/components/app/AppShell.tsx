@@ -107,6 +107,7 @@ import {
   ROTULO_LOTES_CLINICA,
   TELAS_FORA_DA_CLINICA,
   ehEmpresaSoClinica,
+  itemPetVisivel,
 } from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
@@ -585,7 +586,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
-          if (g.label === "Pet shop") return modulos.petshop;
+          if (g.label === "Pet shop") return modulos.petsETutores;
           if (g.label === "Lava rápido") return modulos.lavarapido;
           if (g.label === "Hotelaria") return modulos.hotelaria;
           if (g.label === "Manufatura")
@@ -610,6 +611,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               soClinica && i.to === "/estoque-lotes" ? { ...i, label: ROTULO_LOTES_CLINICA } : i,
             )
             .filter((i) => {
+              // clínica sem pet shop contratado: da área Pet shop ficam só Pets e tutores e Contatos
+              if (g.label === "Pet shop" && !itemPetVisivel(i.to, modulos.petshop)) return false;
               if (
                 soAlimentacao &&
                 (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
@@ -685,6 +688,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.locacao,
       modulos.restaurante,
       modulos.petshop,
+      modulos.petsETutores,
       modulos.lavarapido,
       modulos.hotelaria,
       modulos.clinica,
