@@ -5,7 +5,7 @@ import { z } from "zod";
 import { MARCADOR_SEM_PETSHOP, moduloLiberadoEmpresa, type EmpresaModulos } from "./cnae-regras.ts";
 
 export const definirContratoClinica = z.object({
-  empresaId: z.string().uuid("Empresa inválida."),
+  empresaId: z.guid("Empresa inválida."),
   semPetshop: z.boolean(),
 });
 

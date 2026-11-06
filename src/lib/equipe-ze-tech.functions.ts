@@ -123,9 +123,7 @@ export const cadastrarEquipeZeTech = createServerFn({ method: "POST" })
 
 export const removerEquipeZeTech = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userId: string }) =>
-    z.object({ userId: z.string().uuid() }).parse(input),
-  )
+  .inputValidator((input: { userId: string }) => z.object({ userId: z.guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const acesso = await context.supabase.rpc("eh_saas_operador");
     if (acesso.error) throw acesso.error;

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const chamadoInput = z
   .object({
-    requestId: z.string().uuid(),
+    requestId: z.guid(),
     subject: z.string().trim().min(3).max(200),
     description: z.string().trim().min(3).max(20000),
     priority: z.enum(["baixa", "normal", "alta", "critica"]),
