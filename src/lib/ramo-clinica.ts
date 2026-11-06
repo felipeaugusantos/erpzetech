@@ -25,6 +25,15 @@ export const ITENS_PET_DA_CLINICA = [
   "/pet-campos",
 ] as const;
 
+/**
+ * Nome da única área do menu do veterinário e do profissional: "Clínica" quando a empresa tem a clínica e não o pet shop
+ * (contrato só clínica); nas demais, "Pet shop", como sempre foi.
+ */
+export const rotuloAreaProfissional = (
+  clinica: boolean,
+  petshop: boolean,
+): "Clínica" | "Pet shop" => (clinica && !petshop ? "Clínica" : "Pet shop");
+
 /** Item da área Pet shop aparece? Com o pet shop contratado, todos; sem ele (só clínica), apenas os que a clínica usa. */
 export function itemPetVisivel(to: string | undefined, petshopLiberado: boolean): boolean {
   return petshopLiberado || (ITENS_PET_DA_CLINICA as readonly (string | undefined)[]).includes(to);
