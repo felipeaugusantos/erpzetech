@@ -2870,6 +2870,38 @@ export type Database = {
           },
         ]
       }
+      dashboard_personalizado: {
+        Row: {
+          config: Json
+          painel: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config: Json
+          painel: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          painel?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_personalizado_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       depositos: {
         Row: {
           ativo: boolean
@@ -7503,6 +7535,35 @@ export type Database = {
             foreignKeyName: "lr_veiculos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_personalizado: {
+        Row: {
+          config: Json
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_personalizado_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -16025,12 +16086,6 @@ export type Database = {
       }
       bulario_resumo: { Args: never; Returns: Json }
       bulario_total: { Args: never; Returns: number }
-      dashboard_personalizado_obter: { Args: { p_painel: string }; Returns: Json }
-      dashboard_personalizado_restaurar: { Args: { p_painel: string }; Returns: undefined }
-      dashboard_personalizado_salvar: { Args: { p_painel: string; p_config: Json }; Returns: string }
-      menu_personalizado_obter: { Args: never; Returns: Json }
-      menu_personalizado_restaurar: { Args: never; Returns: undefined }
-      menu_personalizado_salvar: { Args: { p_config: Json }; Returns: string }
       caixa_lancar: {
         Args: {
           p_caixa_id: string
@@ -16473,6 +16528,18 @@ export type Database = {
       }
       current_motorista_id: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      dashboard_personalizado_obter: {
+        Args: { p_painel: string }
+        Returns: Json
+      }
+      dashboard_personalizado_restaurar: {
+        Args: { p_painel: string }
+        Returns: undefined
+      }
+      dashboard_personalizado_salvar: {
+        Args: { p_config: Json; p_painel: string }
+        Returns: string
+      }
       decidir_autorizacao_credito: {
         Args: { p_aprovar: boolean; p_id: string; p_observacao?: string }
         Returns: undefined
@@ -17121,6 +17188,9 @@ export type Database = {
       lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       manufatura_liberada: { Args: never; Returns: boolean }
+      menu_personalizado_obter: { Args: never; Returns: Json }
+      menu_personalizado_restaurar: { Args: never; Returns: undefined }
+      menu_personalizado_salvar: { Args: { p_config: Json }; Returns: string }
       mf_bom_ativar: { Args: { p_id: string }; Returns: undefined }
       mf_bom_explodir: {
         Args: { p_bom_id: string; p_qtd?: number }
