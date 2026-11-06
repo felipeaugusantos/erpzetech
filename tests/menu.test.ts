@@ -150,8 +150,8 @@ test("relatórios de módulo opcional respeitam a liberação do módulo", () =>
   );
 });
 
-test("o grupo Pet shop só aparece com o pet shop ou a clínica liberados (sem pet shop, só Pets e tutores e Contatos) e traz as telas do cadastro", () => {
-  assert.ok(/g\.label === "Pet shop"\) return modulos\.petsETutores/.test(fonte));
+test("o grupo Pet shop só aparece com o pet shop ou a clínica liberados (sem pet shop, só o que a clínica usa) e traz as telas do cadastro", () => {
+  assert.ok(/g\.label === "Pet shop"\) return modulos\.petShopOuClinica/.test(fonte));
   assert.ok(/g\.label === "Pet shop" && !itemPetVisivel\(i\.to, modulos\.petshop\)/.test(fonte));
   const pet = grupos().find((g) => g.label === "Pet shop");
   assert.deepEqual(

@@ -97,8 +97,7 @@ function DashboardRota() {
     | null
     | undefined;
   if (!sessao || modulos.carregando) return <div className="panel h-40 animate-pulse" />;
-  if (ehEmpresaPet(empresa))
-    return <DashboardPet clinica={modulos.clinica} petshop={modulos.petshop} />;
+  if (ehEmpresaPet(empresa)) return <DashboardPet clinica={modulos.clinica} />;
   return <Dashboard />;
 }
 

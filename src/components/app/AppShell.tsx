@@ -590,7 +590,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
-          if (g.label === "Pet shop") return modulos.petsETutores;
+          if (g.label === "Pet shop") return modulos.petShopOuClinica;
           if (g.label === "Lava rápido") return modulos.lavarapido;
           if (g.label === "Hotelaria") return modulos.hotelaria;
           if (g.label === "Manufatura")
@@ -694,7 +694,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.locacao,
       modulos.restaurante,
       modulos.petshop,
-      modulos.petsETutores,
+      modulos.petShopOuClinica,
       modulos.lavarapido,
       modulos.hotelaria,
       modulos.clinica,

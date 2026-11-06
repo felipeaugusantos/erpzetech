@@ -117,8 +117,9 @@ function ContratosClinica() {
       />
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
         Por padrão a clínica inclui o pet shop. Marcando “só clínica”, a área Pet shop da empresa
-        mostra apenas Pets e tutores e Contatos, e as telas de serviços do pet shop ficam
-        bloqueadas. Nenhum dado é apagado e a mudança pode ser desfeita.
+        mantém o que a clínica usa (Pets e tutores, Contatos, Serviços e preços, Profissionais,
+        Agenda e Campos personalizados) e bloqueia Ordens de serviço, Pacotes e Comissões, que são
+        de banho e tosa. Nenhum dado é apagado e a mudança pode ser desfeita.
       </p>
       <div className="mb-4 max-w-sm">
         <Input
@@ -197,7 +198,7 @@ function ContratosClinica() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {alvo?.semPetshop
-                ? `${alvo.linha.nome} passa a ver, na área Pet shop, só Pets e tutores e Contatos. Agenda, Ordens de serviço, Serviços e preços, Profissionais, Campos e Pacotes ficam bloqueados. Nenhum dado é apagado.`
+                ? `${alvo.linha.nome} passa a ver, na área Pet shop, só o que a clínica usa: Pets e tutores, Contatos, Serviços e preços, Profissionais, Agenda e Campos personalizados. Ordens de serviço, Pacotes e Comissões ficam bloqueados. Nenhum dado é apagado.`
                 : `${alvo?.linha.nome} volta a ver a área Pet shop completa.`}{" "}
               Confirme que isso está de acordo com o contrato do cliente.
             </AlertDialogDescription>
