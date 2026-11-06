@@ -3,11 +3,12 @@
 // que o sistema já calcula e que a pessoa já pode ver (as indisponíveis nem entram na lista recebida).
 import { z } from "zod";
 
-export type SecaoDashboard = "indicadores" | "paineis";
+export type SecaoDashboard = "resumo" | "indicadores" | "paineis";
 export type PecaDashboard = { id: string; rotulo: string; secao: SecaoDashboard };
 
-/** Painel do dashboard que a empresa personaliza (hoje só o da clínica e do pet shop). */
+/** Painéis do dashboard que a empresa personaliza: o da clínica e do pet shop e o de vendas (demais empresas). */
 export const PAINEL_PET = "pet";
+export const PAINEL_VENDAS = "vendas";
 
 /** Catálogo do dashboard da clínica e do pet shop, na ordem padrão do sistema. */
 export const PECAS_DASHBOARD_PET: readonly PecaDashboard[] = [
@@ -23,6 +24,35 @@ export const PECAS_DASHBOARD_PET: readonly PecaDashboard[] = [
   { id: "servicos-top", rotulo: "Serviços que mais faturaram", secao: "paineis" },
   { id: "agenda-hoje", rotulo: "Agenda de hoje", secao: "paineis" },
 ];
+
+/** Catálogo do dashboard de vendas (empresas que não são clínica nem pet shop), na ordem padrão do sistema. */
+export const PECAS_DASHBOARD_VENDAS: readonly PecaDashboard[] = [
+  { id: "painel-do-dia", rotulo: "Painel do dia (atalhos e resumo)", secao: "resumo" },
+  { id: "pedidos-andamento", rotulo: "Pedidos em andamento", secao: "indicadores" },
+  { id: "orcamentos-expirados", rotulo: "Orçamentos expirados", secao: "indicadores" },
+  { id: "a-receber", rotulo: "A receber em aberto", secao: "indicadores" },
+  { id: "a-pagar", rotulo: "A pagar em aberto", secao: "indicadores" },
+  { id: "vence-hoje", rotulo: "Vence hoje", secao: "indicadores" },
+  { id: "vence-7-dias", rotulo: "Vence em 7 dias", secao: "indicadores" },
+  { id: "entregas-em-rota", rotulo: "Entregas em rota", secao: "indicadores" },
+  { id: "valor-estoque", rotulo: "Valor do estoque (custo)", secao: "indicadores" },
+  {
+    id: "fechamento-clientes",
+    rotulo: "Fechamento de clientes (compras marcadas)",
+    secao: "paineis",
+  },
+  { id: "caixa-projetado", rotulo: "Caixa projetado", secao: "paineis" },
+  { id: "orcamentos-situacao", rotulo: "Orçamentos por situação", secao: "paineis" },
+  { id: "pedidos-etapa", rotulo: "Pedidos por etapa", secao: "paineis" },
+  { id: "alertas-vencimento", rotulo: "Alertas de vencimento", secao: "paineis" },
+  { id: "pendencias-fiscais", rotulo: "Pendências fiscais", secao: "paineis" },
+  { id: "orcamentos-vencidos", rotulo: "Orçamentos vencidos sem resposta", secao: "paineis" },
+  { id: "atencao-estoque", rotulo: "Atenção no estoque", secao: "paineis" },
+];
+
+/** Catálogo de cada painel (a leitura da configuração descarta ids que o catálogo do painel não conhece). */
+export const catalogoDoPainel = (painel: string): readonly PecaDashboard[] =>
+  painel === PAINEL_VENDAS ? PECAS_DASHBOARD_VENDAS : PECAS_DASHBOARD_PET;
 
 export const configDashboardSchema = z.object({
   versao: z.literal(1),

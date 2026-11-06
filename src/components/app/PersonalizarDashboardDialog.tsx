@@ -36,6 +36,7 @@ import {
 import { useRestaurarDashboard, useSalvarDashboard } from "@/lib/dashboard-personalizado-dados";
 
 const TITULO_SECAO: Record<PecaDashboard["secao"], string> = {
+  resumo: "Resumo",
   indicadores: "Cartões",
   paineis: "Painéis",
 };
@@ -92,7 +93,7 @@ export function PersonalizarDashboardDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {(["indicadores", "paineis"] as const).map((secao) => {
+          {(["resumo", "indicadores", "paineis"] as const).map((secao) => {
             const daSecao = linhas.filter((l) => l.secao === secao);
             if (daSecao.length === 0) return null;
             return (

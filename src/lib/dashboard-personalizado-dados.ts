@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { lerConfigDashboard, type ConfigDashboard } from "./dashboard-personalizado";
+import {
+  catalogoDoPainel,
+  lerConfigDashboard,
+  type ConfigDashboard,
+} from "./dashboard-personalizado";
 
 export const chaveDashboardPersonalizado = (painel: string) =>
   ["dashboard-personalizado", painel] as const;
@@ -19,7 +23,7 @@ export function useDashboardPersonalizado(painel: string) {
         p_painel: painel,
       });
       if (error) return null;
-      return lerConfigDashboard(data);
+      return lerConfigDashboard(data, catalogoDoPainel(painel));
     },
     staleTime: 5 * 60_000,
     retry: false,

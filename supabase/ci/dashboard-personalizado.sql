@@ -61,6 +61,7 @@ BEGIN
 
   -- quem não é da administração não grava nem restaura
   PERFORM ci.deve_falhar(vend, format($c$SELECT public.dashboard_personalizado_salvar('pet', %L::jsonb)$c$, cfg), 'vendedor grava o dashboard');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT public.dashboard_personalizado_salvar('vendas', %L::jsonb)$c$, cfg), 'vendedor grava o painel de vendas');
   PERFORM ci.deve_falhar(gar, format($c$SELECT public.dashboard_personalizado_salvar('pet', %L::jsonb)$c$, cfg), 'perfil do salão grava o dashboard');
   PERFORM ci.deve_falhar(NULL, format($c$SELECT public.dashboard_personalizado_salvar('pet', %L::jsonb)$c$, cfg), 'anônimo grava o dashboard');
   PERFORM ci.deve_falhar(vend, $c$SELECT public.dashboard_personalizado_restaurar('pet')$c$, 'vendedor restaura o dashboard');
@@ -92,7 +93,24 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO public.dashboard_personalizado (tenant_id, painel, config) VALUES (%L, 'pet', '{}')$c$, tb), 'gravação direta na tabela');
 
   -- formato e tamanho
-  PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar('vendas', '{"versao":1}'::jsonb)$c$, 'painel desconhecido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar('outro', '{"versao":1}'::jsonb)$c$, 'painel desconhecido');
+  PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar(NULL, '{"versao":1}'::jsonb)$c$, 'painel nulo');
+  PERFORM ci.entrar(adm);
+  quando := public.dashboard_personalizado_salvar('vendas', '{"versao":1,"ocultos":["vence-hoje"]}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.exige(quando IS NOT NULL, 'administrador grava o painel de vendas');
+  PERFORM ci.entrar(vend);
+  r := public.dashboard_personalizado_obter('vendas');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r = '{"versao":1,"ocultos":["vence-hoje"]}'::jsonb, 'vendedor lê o painel de vendas da empresa');
+  PERFORM ci.entrar(vend);
+  r := public.dashboard_personalizado_obter('pet');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r = '{"versao":1,"ocultos":["a-pagar"]}'::jsonb, 'cada painel guarda a própria configuração');
+  PERFORM ci.entrar(admb);
+  r := public.dashboard_personalizado_obter('vendas');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'outra empresa não vê o painel de vendas alheio');
   PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar('pet', '[]'::jsonb)$c$, 'lista no lugar de objeto');
   PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar('pet', NULL)$c$, 'configuração nula');
   PERFORM ci.deve_falhar(adm, $c$SELECT public.dashboard_personalizado_salvar('pet', '{}'::jsonb)$c$, 'sem versão');
@@ -111,8 +129,13 @@ BEGIN
   PERFORM ci.entrar(adm);
   PERFORM public.dashboard_personalizado_restaurar('pet');
   PERFORM ci.sair();
-  SELECT count(*) INTO n FROM public.dashboard_personalizado WHERE tenant_id = ta;
-  PERFORM ci.exige(n = 0, 'restaurar apaga a configuração da empresa');
+  SELECT count(*) INTO n FROM public.dashboard_personalizado WHERE tenant_id = ta AND painel = 'pet';
+  PERFORM ci.exige(n = 0, 'restaurar apaga a configuração do painel');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM public.dashboard_personalizado WHERE tenant_id = ta AND painel = 'vendas'), 'restaurar um painel não mexe no outro');
+  PERFORM ci.entrar(adm);
+  PERFORM public.dashboard_personalizado_restaurar('vendas');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 0 FROM public.dashboard_personalizado WHERE tenant_id = ta), 'restaurar o painel de vendas apaga a configuração');
   PERFORM ci.exige((SELECT count(*) = 1 FROM public.dashboard_personalizado WHERE tenant_id = tb), 'restaurar não mexe na outra empresa');
 END $$;
 ROLLBACK;
