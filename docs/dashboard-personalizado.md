@@ -36,9 +36,15 @@ Painéis: Atendimentos concluídos por dia, Serviços que mais faturaram, Agenda
 
 ## Plano em PRs pequenos
 
-1. **PR A (este):** lógica pura (`src/lib/dashboard-personalizado.ts`), migração, teste de banco e tipos. **Não muda o app.**
-2. **PR B:** botão "Personalizar" no dashboard (só administrador e gestor) com a lista de peças (liga/desliga e setas), "Restaurar o padrão"
+1. **PR A (feito):** lógica pura (`src/lib/dashboard-personalizado.ts`), migração, teste de banco e tipos. **Não muda o app.**
+2. **PR B (feito):** botão "Personalizar" no dashboard (só administrador e gestor) com a lista de peças (liga/desliga e setas), "Restaurar o padrão"
    e o uso no `DashboardPet`.
+
+## Tela (PR B)
+
+No dashboard da clínica e do pet shop, **administrador e gestor** veem o botão **Personalizar**. A janela lista as peças em duas seções
+(cartões e painéis), cada uma com um interruptor e setas para subir e descer, **Salvar**, **Descartar** e **Restaurar o padrão** (com confirmação).
+Quem não é da administração vê o dashboard da empresa, sem o botão. Se tudo for desligado, a tela avisa e, para a administração, indica o botão.
 
 ## Fora desta versão
 
