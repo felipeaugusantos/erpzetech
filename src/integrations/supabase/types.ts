@@ -16025,6 +16025,9 @@ export type Database = {
       }
       bulario_resumo: { Args: never; Returns: Json }
       bulario_total: { Args: never; Returns: number }
+      dashboard_personalizado_obter: { Args: { p_painel: string }; Returns: Json }
+      dashboard_personalizado_restaurar: { Args: { p_painel: string }; Returns: undefined }
+      dashboard_personalizado_salvar: { Args: { p_painel: string; p_config: Json }; Returns: string }
       menu_personalizado_obter: { Args: never; Returns: Json }
       menu_personalizado_restaurar: { Args: never; Returns: undefined }
       menu_personalizado_salvar: { Args: { p_config: Json }; Returns: string }
