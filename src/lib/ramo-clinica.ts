@@ -11,10 +11,21 @@ import {
 const ehOutroModulo = (m: string) =>
   m !== "clinica" && m !== "petshop" && m !== MARCADOR_SEM_PETSHOP;
 
-/** Itens da área Pet shop que a clínica sem pet shop mantém: o cadastro de pets e tutores e os contatos. */
-export const ITENS_PET_DA_CLINICA = ["/pets", "/pet-contatos"] as const;
+/**
+ * Itens da área Pet shop que a clínica sem pet shop mantém, porque a clínica depende deles: cadastro de pets e tutores, contatos,
+ * serviços e preços (consulta, vacina e exame), profissionais (veterinário com CRMV), agenda e campos personalizados do pet.
+ * Ficam bloqueados só os de banho e tosa: Ordens de serviço, Pacotes e Comissões. As páginas usam o mesmo critério (petShopOuClinica).
+ */
+export const ITENS_PET_DA_CLINICA = [
+  "/pets",
+  "/pet-contatos",
+  "/pet-servicos",
+  "/pet-profissionais",
+  "/pet-agenda",
+  "/pet-campos",
+] as const;
 
-/** Item da área Pet shop aparece? Com o pet shop contratado, todos; sem ele (só clínica), apenas os da clínica. */
+/** Item da área Pet shop aparece? Com o pet shop contratado, todos; sem ele (só clínica), apenas os que a clínica usa. */
 export function itemPetVisivel(to: string | undefined, petshopLiberado: boolean): boolean {
   return petshopLiberado || (ITENS_PET_DA_CLINICA as readonly (string | undefined)[]).includes(to);
 }

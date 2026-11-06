@@ -1,10 +1,10 @@
 # Contrato: clínica com ou sem pet shop
 
-| Contrato                     | Como fica                                                              | O que a equipe grava em `empresa_modulos_liberados` |
-| ---------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
-| **Só pet shop**              | Área Pet shop completa, sem a Clínica                                  | `petshop` (ou ramo/CNAE de pet shop)                |
-| **Pet shop + Clínica**       | As duas áreas completas                                                | `clinica` (a clínica já libera o pet shop)          |
-| **Só clínica, sem pet shop** | Clínica completa e, na área Pet shop, **só Pets e tutores e Contatos** | `clinica` **e** `sem_petshop`                       |
+| Contrato                     | Como fica                                                                           | O que a equipe grava em `empresa_modulos_liberados` |
+| ---------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Só pet shop**              | Área Pet shop completa, sem a Clínica                                               | `petshop` (ou ramo/CNAE de pet shop)                |
+| **Pet shop + Clínica**       | As duas áreas completas                                                             | `clinica` (a clínica já libera o pet shop)          |
+| **Só clínica, sem pet shop** | Clínica completa e, na área Pet shop, **só o que a clínica usa** (sem banho e tosa) | `clinica` **e** `sem_petshop`                       |
 
 **Padrão:** sem o marcador `sem_petshop`, ninguém muda. Toda empresa de clínica existente continua com a área Pet shop inteira.
 
@@ -28,8 +28,9 @@ O efeito aparece no próximo carregamento do app da empresa.
 ## O que o marcador faz
 
 - O pet shop deixa de ser liberado pela clínica, pelo ramo ou pelo CNAE. Só vale se `petshop` for liberado de forma explícita.
-- As telas de serviços do pet shop (Agenda, Ordens de serviço, Serviços e preços, Profissionais, Campos personalizados, Pacotes e Comissões) mostram o aviso de módulo bloqueado.
-- **Pets e tutores** e **Contatos** continuam abertos, porque a clínica usa o cadastro.
+- **Continuam abertos**, porque a clínica depende deles: Pets e tutores, Contatos, **Serviços e preços** (consulta, vacina e exame), **Profissionais** (cadastro do veterinário com CRMV), **Agenda** e **Campos personalizados**.
+- **Ficam bloqueados** (mostram o aviso de módulo bloqueado): Ordens de serviço, Pacotes e Comissões, que são de banho e tosa.
+- O menu e a página de cada tela usam a mesma lista (`ITENS_PET_DA_CLINICA`); um teste confere que as duas concordam.
 - O marcador não faz a empresa deixar de ser "só clínica".
 
 ## Limite conhecido

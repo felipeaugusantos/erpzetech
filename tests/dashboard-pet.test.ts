@@ -167,22 +167,12 @@ test("dashboard pet: clínica, ramo pet shop e CNAE de pet shop; liberação de 
   assert.equal(ehEmpresaPet(null), false);
 });
 
-test("dashboard da clínica sem pet shop não leva para a agenda bloqueada", async () => {
+test("dashboard da clínica: os atalhos da agenda valem para a clínica também (a agenda não é bloqueada sem o pet shop)", async () => {
   const { readFileSync } = await import("node:fs");
   const fonte = readFileSync(
     new URL("../src/components/app/DashboardPet.tsx", import.meta.url),
     "utf8",
   );
-  const rota = readFileSync(
-    new URL("../src/routes/_authenticated/dashboard.tsx", import.meta.url),
-    "utf8",
-  );
-  assert.ok(/petshop = true/.test(fonte), "sem a informação, o padrão continua mostrando a agenda");
   assert.equal((fonte.match(/to="\/pet-agenda"/g) ?? []).length, 2);
-  assert.equal(
-    (fonte.match(/\{petshop && \(/g) ?? []).length,
-    2,
-    "os dois atalhos dependem do pet shop",
-  );
-  assert.ok(/petshop=\{modulos\.petshop\}/.test(rota));
+  assert.equal(/petshop &&/.test(fonte), false, "os atalhos não dependem do pet shop");
 });

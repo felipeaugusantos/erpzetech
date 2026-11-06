@@ -82,7 +82,7 @@ const vazio: FormServico = {
 function ServicosModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
-  if (!modulos.petshop) return <ModuloBloqueado modulo="petshop" />;
+  if (!modulos.petShopOuClinica) return <ModuloBloqueado modulo="petshop" />;
   return <Servicos />;
 }
 

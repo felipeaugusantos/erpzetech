@@ -75,7 +75,7 @@ describe("contrato: clínica sem pet shop", () => {
     assert.equal(moduloLiberadoEmpresa(e, "clinica"), false);
   });
 
-  it("menu: com o pet shop todos os itens aparecem; sem ele, só Pets e tutores e Contatos", () => {
+  it("menu: com o pet shop todos os itens aparecem; sem ele, só os que a clínica usa", () => {
     const itens = [
       "/pet-agenda",
       "/pets",
@@ -85,11 +85,19 @@ describe("contrato: clínica sem pet shop", () => {
       "/pet-campos",
       "/pet-contatos",
       "/pet-pacotes",
+      "/pet-comissoes",
     ];
     for (const i of itens) assert.equal(itemPetVisivel(i, true), true, i);
     assert.deepEqual(
       itens.filter((i) => itemPetVisivel(i, false)),
-      ["/pets", "/pet-contatos"],
+      [
+        "/pet-agenda",
+        "/pets",
+        "/pet-servicos",
+        "/pet-profissionais",
+        "/pet-campos",
+        "/pet-contatos",
+      ],
     );
     assert.equal(itemPetVisivel(undefined, false), false);
     assert.equal(itemPetVisivel("/clinica-prontuario", false), false);
