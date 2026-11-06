@@ -536,6 +536,8 @@ DECLARE
     'bulario_buscar', 'bulario_resumo', 'bulario_ficha', 'bulario_nota_salvar', 'bulario_total',
     -- menu personalizado: devolve só a disposição do menu da própria empresa (sem dado sensível), para qualquer pessoa dela; gravar e restaurar exigem administrador ou gestor
     'menu_personalizado_obter',
+    -- dashboard personalizado: devolve só a disposição do dashboard da própria empresa (sem dado sensível); gravar e restaurar exigem administrador ou gestor
+    'dashboard_personalizado_obter',
     -- só responde se a empresa tem o lava rápido liberado
     'lava_rapido_liberado',
     -- fotos do lava rápido: respondem só verdadeiro com perfil do pátio, módulo liberado e foto reservada ou ativa
