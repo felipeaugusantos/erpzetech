@@ -402,7 +402,7 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
       {paineisVisiveis.length > 0 && (
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {paineisVisiveis.map((p) => (
-            <div key={p.id} className={paineis[p.id]?.largura}>
+            <div key={p.id} className={`${paineis[p.id]?.largura ?? ""} [&>.panel]:h-full`}>
               {paineis[p.id]?.conteudo}
             </div>
           ))}

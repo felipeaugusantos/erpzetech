@@ -46,6 +46,18 @@ No dashboard da clínica e do pet shop, **administrador e gestor** veem o botão
 (cartões e painéis), cada uma com um interruptor e setas para subir e descer, **Salvar**, **Descartar** e **Restaurar o padrão** (com confirmação).
 Quem não é da administração vê o dashboard da empresa, sem o botão. Se tudo for desligado, a tela avisa e, para a administração, indica o botão.
 
+## Dashboard de vendas (painel `vendas`)
+
+O dashboard das empresas que **não** são clínica nem pet shop passa a ter o mesmo botão **Personalizar**, com catálogo próprio (`PECAS_DASHBOARD_VENDAS`):
+
+- **Resumo:** Painel do dia (atalhos e resumo de vendas, financeiro e estoque).
+- **Cartões:** Pedidos em andamento, Orçamentos expirados, A receber, A pagar, Vence hoje, Vence em 7 dias, Entregas em rota, Valor do estoque.
+- **Painéis:** Fechamento de clientes, Caixa projetado, Orçamentos por situação, Pedidos por etapa, Alertas de vencimento, Pendências fiscais, Orçamentos vencidos sem resposta, Atenção no estoque.
+
+As mesmas regras valem: só administrador e gestor configuram, só liga/desliga e reordena, resumo, cartões e painéis não trocam de lugar entre si, e o padrão continua sem configuração.
+A migração `drizzle/migrations/0084_dashboard_vendas.sql` (o usuário aplica) amplia a lista de painéis da tabela e da função de gravação de `pet` para `pet` e `vendas`.
+Os painéis ficam numa grade de 6 colunas (larguras 2, 3, 4 e 6), que reproduz as linhas de antes, e as duas peças de uma linha têm a mesma altura.
+
 ## Fora desta versão
 
-Cartões novos (por exemplo fila do dia), o dashboard de vendas (`Dashboard`, não o da clínica e do pet shop) e configuração por pessoa.
+Cartões novos (por exemplo fila do dia) e configuração por pessoa.

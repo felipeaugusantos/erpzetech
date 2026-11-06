@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +15,7 @@ import {
   PackageCheck,
   Receipt,
   ArrowRight,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Bar,
@@ -39,6 +41,13 @@ import { ehEmpresaPet } from "@/lib/ramo-clinica";
 import { useModulosCnae } from "@/lib/cnae";
 import { useSessionData } from "@/hooks/useSessionData";
 import { DashboardPet } from "@/components/app/DashboardPet";
+import { PersonalizarDashboardDialog } from "@/components/app/PersonalizarDashboardDialog";
+import {
+  PAINEL_VENDAS,
+  PECAS_DASHBOARD_VENDAS,
+  aplicarDashboard,
+} from "@/lib/dashboard-personalizado";
+import { useDashboardPersonalizado } from "@/lib/dashboard-personalizado-dados";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader, StatCard, EmptyState } from "@/components/app/PageHeader";
@@ -180,6 +189,14 @@ function Dashboard() {
       };
     },
   });
+
+  // personalização da empresa: administrador e gestor escolhem o que o dashboard mostra (o padrão vale sem configuração)
+  const { data: sessaoDashboard } = useSessionData();
+  const gestao = (sessaoDashboard?.roles ?? []).some(
+    (r) => r === "administrador" || r === "gestor",
+  );
+  const { data: configDashboard } = useDashboardPersonalizado(PAINEL_VENDAS);
+  const [personalizando, setPersonalizando] = useState(false);
 
   if (isLoading || !data) {
     return (
@@ -379,23 +396,9 @@ function Dashboard() {
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento))
     .slice(0, 10);
 
-  return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        description="Pedidos em andamento, orçamentos, contas a receber e a pagar, alertas de vencimento e saúde do estoque."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/pedidos">Pedidos</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/fluxo-caixa">Fluxo de caixa</Link>
-            </Button>
-          </div>
-        }
-      />
-
+  const visiveis = aplicarDashboard(PECAS_DASHBOARD_VENDAS, configDashboard);
+  const resumo: Record<string, ReactNode> = {
+    "painel-do-dia": (
       <PainelDoDia
         vendasHoje={vendasHoje.length}
         totalVendasHoje={vendasHoje.reduce((s, p) => s + Number(p.total), 0)}
@@ -411,197 +414,198 @@ function Dashboard() {
         baixoEstoque={baixoEstoque.length}
         totalProdutos={data.totalProdutos}
       />
+    ),
+  };
+  const cartoes: Record<string, ReactNode> = {
+    "pedidos-andamento": (
+      <StatCard
+        label="Pedidos em andamento"
+        value={num(pedidosAndamento.length, 0)}
+        icon={ClipboardList}
+        tone="accent"
+        hint={`${brl(valorAndamento)} em carteira`}
+      />
+    ),
+    "orcamentos-expirados": (
+      <StatCard
+        label="Orçamentos expirados"
+        value={num(orcamentosExpirados.length, 0)}
+        icon={CalendarClock}
+        tone={orcamentosExpirados.length > 0 ? "warning" : "default"}
+        hint={`${orcamentosAbertos.length} em negociação`}
+      />
+    ),
+    "a-receber": (
+      <StatCard
+        label="A receber em aberto"
+        value={brl(saldoReceber)}
+        icon={Wallet}
+        tone="success"
+        hint={`${receberVencidas.length} vencidas`}
+      />
+    ),
+    "a-pagar": (
+      <StatCard
+        label="A pagar em aberto"
+        value={brl(saldoPagar)}
+        icon={Wallet}
+        tone="danger"
+        hint={`${pagarVencidas.length} vencidas`}
+      />
+    ),
+    "vence-hoje": (
+      <StatCard
+        label="Vence hoje"
+        value={num(venceHoje.length, 0)}
+        icon={AlertTriangle}
+        tone={venceHoje.length > 0 ? "warning" : "default"}
+        hint="Contas a receber e a pagar"
+      />
+    ),
+    "vence-7-dias": (
+      <StatCard
+        label="Vence em 7 dias"
+        value={num(prox7.length, 0)}
+        icon={CalendarClock}
+        hint="Planeje o caixa da semana"
+      />
+    ),
+    "entregas-em-rota": (
+      <StatCard
+        label="Entregas em rota"
+        value={num(data.entregas.filter((e) => e.situacao === "em_rota").length, 0)}
+        icon={Truck}
+        hint={`${data.entregas.filter((e) => e.situacao === "planejada").length} planejadas`}
+      />
+    ),
+    "valor-estoque": (
+      <StatCard
+        label="Valor do estoque (custo)"
+        value={brl(valorCusto)}
+        icon={Boxes}
+        hint={`${data.totalProdutos} produtos cadastrados`}
+      />
+    ),
+  };
+  const paineis: Record<string, { largura: string; conteudo: ReactNode }> = {
+    "fechamento-clientes": {
+      largura: "lg:col-span-6",
+      conteudo: (
+        <div className="panel p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-display text-sm font-semibold">
+                Fechamento de clientes (compras marcadas)
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Vendas no crediário que ainda não foram acertadas, somadas por cliente.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/extrato-receber">Ver extrato completo</Link>
+            </Button>
+          </div>
 
-      <div className="panel mb-4 p-4">
-        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <div>
-            <Label>De</Label>
-            <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="Total a acertar"
+              value={brl(totalCrediario)}
+              icon={Wallet}
+              tone="accent"
+              hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
+            />
+            <StatCard
+              label="Já recebido"
+              value={brl(recebidoCrediario)}
+              icon={Wallet}
+              tone="success"
+              hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
+            />
+            <StatCard
+              label="Já vencido"
+              value={brl(vencidoCrediario)}
+              icon={AlertTriangle}
+              tone={vencidoCrediario > 0 ? "danger" : "default"}
+              hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
+            />
+            <StatCard
+              label="A vencer"
+              value={brl(totalCrediario - vencidoCrediario)}
+              icon={CalendarClock}
+              tone="success"
+              hint="Próximos fechamentos"
+            />
           </div>
-          <div>
-            <Label>Até</Label>
-            <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
-            custo {brl(custoPeriodo)} · lucro{" "}
-            <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
-              {brl(lucroPeriodo)}
-            </strong>{" "}
-            ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
-          </p>
+
+          {fechamentoClientes.length === 0 ? (
+            <EmptyState
+              className="mt-4 border-0 shadow-none"
+              title="Nenhum cliente com compras marcadas em aberto."
+            />
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2 pr-2">Cliente</th>
+                    <th className="py-2 pr-2 text-right">Compras</th>
+                    <th className="py-2 pr-2">Próximo fechamento</th>
+                    <th className="py-2 pr-2 text-right">Faturado</th>
+                    <th className="py-2 pr-2 text-right">Já recebido</th>
+                    <th className="py-2 pr-2 text-right">Vencido</th>
+                    <th className="py-2 pr-2 text-right">Total a acertar</th>
+                    <th className="py-2">Limite</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {fechamentoClientes.slice(0, 10).map((l) => {
+                    const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
+                    return (
+                      <tr key={l.nome}>
+                        <td className="py-2 pr-2 font-medium">{l.nome}</td>
+                        <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
+                        <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
+                        <td className="py-2 pr-2 text-right text-numeric">{brl(l.faturado)}</td>
+                        <td className="py-2 pr-2 text-right text-numeric text-success">
+                          {l.recebido ? brl(l.recebido) : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-right text-numeric text-destructive">
+                          {l.vencido ? brl(l.vencido) : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-right text-numeric font-semibold">
+                          {brl(l.saldo)}
+                        </td>
+                        <td className="py-2">
+                          {l.limite <= 0 ? (
+                            <span className="text-xs text-muted-foreground">Sem limite</span>
+                          ) : uso >= 100 ? (
+                            <Badge className="bg-destructive/15 text-destructive">
+                              Acima do limite
+                            </Badge>
+                          ) : uso >= 80 ? (
+                            <Badge className="bg-warning/15 text-warning">
+                              {num(uso, 0)}% do limite
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {num(uso, 0)}% de {brl(l.limite)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Pedidos em andamento"
-          value={num(pedidosAndamento.length, 0)}
-          icon={ClipboardList}
-          tone="accent"
-          hint={`${brl(valorAndamento)} em carteira`}
-        />
-        <StatCard
-          label="Orçamentos expirados"
-          value={num(orcamentosExpirados.length, 0)}
-          icon={CalendarClock}
-          tone={orcamentosExpirados.length > 0 ? "warning" : "default"}
-          hint={`${orcamentosAbertos.length} em negociação`}
-        />
-        <StatCard
-          label="A receber em aberto"
-          value={brl(saldoReceber)}
-          icon={Wallet}
-          tone="success"
-          hint={`${receberVencidas.length} vencidas`}
-        />
-        <StatCard
-          label="A pagar em aberto"
-          value={brl(saldoPagar)}
-          icon={Wallet}
-          tone="danger"
-          hint={`${pagarVencidas.length} vencidas`}
-        />
-        <StatCard
-          label="Vence hoje"
-          value={num(venceHoje.length, 0)}
-          icon={AlertTriangle}
-          tone={venceHoje.length > 0 ? "warning" : "default"}
-          hint="Contas a receber e a pagar"
-        />
-        <StatCard
-          label="Vence em 7 dias"
-          value={num(prox7.length, 0)}
-          icon={CalendarClock}
-          hint="Planeje o caixa da semana"
-        />
-        <StatCard
-          label="Entregas em rota"
-          value={num(data.entregas.filter((e) => e.situacao === "em_rota").length, 0)}
-          icon={Truck}
-          hint={`${data.entregas.filter((e) => e.situacao === "planejada").length} planejadas`}
-        />
-        <StatCard
-          label="Valor do estoque (custo)"
-          value={brl(valorCusto)}
-          icon={Boxes}
-          hint={`${data.totalProdutos} produtos cadastrados`}
-        />
-      </div>
-
-      <div className="panel mt-6 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-sm font-semibold">
-              Fechamento de clientes (compras marcadas)
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Vendas no crediário que ainda não foram acertadas, somadas por cliente.
-            </p>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/extrato-receber">Ver extrato completo</Link>
-          </Button>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Total a acertar"
-            value={brl(totalCrediario)}
-            icon={Wallet}
-            tone="accent"
-            hint={`Faturado ${brl(faturadoCrediario)} − recebido ${brl(recebidoCrediario)}`}
-          />
-          <StatCard
-            label="Já recebido"
-            value={brl(recebidoCrediario)}
-            icon={Wallet}
-            tone="success"
-            hint={`${fechamentoClientes.length} cliente(s) com faturas abertas`}
-          />
-          <StatCard
-            label="Já vencido"
-            value={brl(vencidoCrediario)}
-            icon={AlertTriangle}
-            tone={vencidoCrediario > 0 ? "danger" : "default"}
-            hint={`${clientesVencidos} cliente(s) em atraso${vencidoRecebidoCrediario ? ` · ${brl(vencidoRecebidoCrediario)} já pago` : ""}`}
-          />
-          <StatCard
-            label="A vencer"
-            value={brl(totalCrediario - vencidoCrediario)}
-            icon={CalendarClock}
-            tone="success"
-            hint="Próximos fechamentos"
-          />
-        </div>
-
-        {fechamentoClientes.length === 0 ? (
-          <EmptyState
-            className="mt-4 border-0 shadow-none"
-            title="Nenhum cliente com compras marcadas em aberto."
-          />
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr className="border-b border-border">
-                  <th className="py-2 pr-2">Cliente</th>
-                  <th className="py-2 pr-2 text-right">Compras</th>
-                  <th className="py-2 pr-2">Próximo fechamento</th>
-                  <th className="py-2 pr-2 text-right">Faturado</th>
-                  <th className="py-2 pr-2 text-right">Já recebido</th>
-                  <th className="py-2 pr-2 text-right">Vencido</th>
-                  <th className="py-2 pr-2 text-right">Total a acertar</th>
-                  <th className="py-2">Limite</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {fechamentoClientes.slice(0, 10).map((l) => {
-                  const uso = l.limite > 0 ? (l.saldo / l.limite) * 100 : 0;
-                  return (
-                    <tr key={l.nome}>
-                      <td className="py-2 pr-2 font-medium">{l.nome}</td>
-                      <td className="py-2 pr-2 text-right text-numeric">{l.contas}</td>
-                      <td className="py-2 pr-2">{l.proximo ? dateBR(l.proximo) : "—"}</td>
-                      <td className="py-2 pr-2 text-right text-numeric">{brl(l.faturado)}</td>
-                      <td className="py-2 pr-2 text-right text-numeric text-success">
-                        {l.recebido ? brl(l.recebido) : "—"}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-numeric text-destructive">
-                        {l.vencido ? brl(l.vencido) : "—"}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-numeric font-semibold">
-                        {brl(l.saldo)}
-                      </td>
-                      <td className="py-2">
-                        {l.limite <= 0 ? (
-                          <span className="text-xs text-muted-foreground">Sem limite</span>
-                        ) : uso >= 100 ? (
-                          <Badge className="bg-destructive/15 text-destructive">
-                            Acima do limite
-                          </Badge>
-                        ) : uso >= 80 ? (
-                          <Badge className="bg-warning/15 text-warning">
-                            {num(uso, 0)}% do limite
-                          </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {num(uso, 0)}% de {brl(l.limite)}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="panel p-4 lg:col-span-2">
+      ),
+    },
+    "caixa-projetado": {
+      largura: "lg:col-span-4",
+      conteudo: (
+        <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">
             Caixa projetado (7 dias para trás e 7 para frente)
           </h2>
@@ -631,7 +635,11 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-
+      ),
+    },
+    "orcamentos-situacao": {
+      largura: "lg:col-span-2",
+      conteudo: (
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Orçamentos por situação</h2>
           <div className="mt-4 h-72">
@@ -658,9 +666,11 @@ function Dashboard() {
             )}
           </div>
         </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      ),
+    },
+    "pedidos-etapa": {
+      largura: "lg:col-span-2",
+      conteudo: (
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Pedidos por etapa</h2>
           <div className="mt-4 h-64">
@@ -675,8 +685,12 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="panel p-4 lg:col-span-2">
+      ),
+    },
+    "alertas-vencimento": {
+      largura: "lg:col-span-4",
+      conteudo: (
+        <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Alertas de vencimento</h2>
           {alertas.length === 0 ? (
             <EmptyState
@@ -697,114 +711,120 @@ function Dashboard() {
             </ul>
           )}
         </div>
-      </div>
-
-      <div className="panel mt-4 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="font-display text-sm font-semibold">Pendências fiscais</h2>
-            <p className="text-xs text-muted-foreground">
-              Notas emitidas com data de envio e situação, e pedidos que ainda não geraram nota.
-            </p>
+      ),
+    },
+    "pendencias-fiscais": {
+      largura: "lg:col-span-6",
+      conteudo: (
+        <div className="panel p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-display text-sm font-semibold">Pendências fiscais</h2>
+              <p className="text-xs text-muted-foreground">
+                Notas emitidas com data de envio e situação, e pedidos que ainda não geraram nota.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/nfe">Notas fiscais</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/balanco-fiscal">Balanço fiscal</Link>
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/nfe">Notas fiscais</Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/balanco-fiscal">Balanço fiscal</Link>
-            </Button>
-          </div>
-        </div>
 
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-              Notas emitidas
-            </h3>
-            {(fiscal?.notas ?? []).length === 0 ? (
-              <EmptyState
-                className="mt-3 border-0 shadow-none"
-                title="Nenhuma nota gerada."
-                description="Gere a nota a partir do pedido."
-              />
-            ) : (
-              <ul className="mt-2 divide-y divide-border">
-                {(fiscal?.notas ?? []).slice(0, 8).map((n) => {
-                  const pend = (n.pendencias ?? []).length;
-                  const envio = n.autorizada_em ?? n.transmitida_em;
-                  return (
-                    <li key={n.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                      <Badge
-                        className={
-                          n.situacao === "autorizada"
-                            ? "bg-success/15 text-success"
-                            : n.situacao === "rejeitada" || n.situacao === "cancelada"
-                              ? "bg-destructive/15 text-destructive"
-                              : pend > 0
-                                ? "bg-warning/15 text-warning"
-                                : "bg-primary/15 text-primary"
-                        }
+          <div className="mt-3 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                Notas emitidas
+              </h3>
+              {(fiscal?.notas ?? []).length === 0 ? (
+                <EmptyState
+                  className="mt-3 border-0 shadow-none"
+                  title="Nenhuma nota gerada."
+                  description="Gere a nota a partir do pedido."
+                />
+              ) : (
+                <ul className="mt-2 divide-y divide-border">
+                  {(fiscal?.notas ?? []).slice(0, 8).map((n) => {
+                    const pend = (n.pendencias ?? []).length;
+                    const envio = n.autorizada_em ?? n.transmitida_em;
+                    return (
+                      <li key={n.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                        <Badge
+                          className={
+                            n.situacao === "autorizada"
+                              ? "bg-success/15 text-success"
+                              : n.situacao === "rejeitada" || n.situacao === "cancelada"
+                                ? "bg-destructive/15 text-destructive"
+                                : pend > 0
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-primary/15 text-primary"
+                          }
+                        >
+                          {n.situacao}
+                        </Badge>
+                        <span className="min-w-0 flex-1 truncate">
+                          {n.numero ? `nº ${String(n.numero).padStart(4, "0")}` : "sem número"} ·{" "}
+                          {nomeCliente(n.clientes)}
+                          {pend > 0 && (
+                            <span className="block text-xs text-warning">
+                              {pend} pendência(s): {(n.pendencias ?? []).slice(0, 2).join(" · ")}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {envio ? `enviada ${dateBR(String(envio).slice(0, 10))}` : "não enviada"}
+                        </span>
+                        <span className="text-numeric font-semibold">
+                          {brl(Number(n.valor_total))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                Pedidos sem nota fiscal
+              </h3>
+              {(fiscal?.semNota ?? []).length === 0 ? (
+                <EmptyState
+                  className="mt-3 border-0 shadow-none"
+                  title="Todos os pedidos têm nota."
+                  description="Nenhuma pendência por pedido."
+                />
+              ) : (
+                <ul className="mt-2 divide-y divide-border">
+                  {(fiscal?.semNota ?? []).slice(0, 8).map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                      <Badge className="bg-warning/15 text-warning">sem nota</Badge>
+                      <Link
+                        to="/pedidos/$id"
+                        params={{ id: p.id }}
+                        className="min-w-0 flex-1 truncate hover:underline"
                       >
-                        {n.situacao}
-                      </Badge>
-                      <span className="min-w-0 flex-1 truncate">
-                        {n.numero ? `nº ${String(n.numero).padStart(4, "0")}` : "sem número"} ·{" "}
-                        {nomeCliente(n.clientes)}
-                        {pend > 0 && (
-                          <span className="block text-xs text-warning">
-                            {pend} pendência(s): {(n.pendencias ?? []).slice(0, 2).join(" · ")}
-                          </span>
-                        )}
-                      </span>
+                        Pedido nº {String(p.numero).padStart(4, "0")} · {nomeCliente(p.clientes)}
+                      </Link>
                       <span className="text-xs text-muted-foreground">
-                        {envio ? `enviada ${dateBR(String(envio).slice(0, 10))}` : "não enviada"}
+                        {dateBR(String(p.created_at).slice(0, 10))}
                       </span>
-                      <span className="text-numeric font-semibold">
-                        {brl(Number(n.valor_total))}
-                      </span>
+                      <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-              Pedidos sem nota fiscal
-            </h3>
-            {(fiscal?.semNota ?? []).length === 0 ? (
-              <EmptyState
-                className="mt-3 border-0 shadow-none"
-                title="Todos os pedidos têm nota."
-                description="Nenhuma pendência por pedido."
-              />
-            ) : (
-              <ul className="mt-2 divide-y divide-border">
-                {(fiscal?.semNota ?? []).slice(0, 8).map((p) => (
-                  <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                    <Badge className="bg-warning/15 text-warning">sem nota</Badge>
-                    <Link
-                      to="/pedidos/$id"
-                      params={{ id: p.id }}
-                      className="min-w-0 flex-1 truncate hover:underline"
-                    >
-                      Pedido nº {String(p.numero).padStart(4, "0")} · {nomeCliente(p.clientes)}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {dateBR(String(p.created_at).slice(0, 10))}
-                    </span>
-                    <span className="text-numeric font-semibold">{brl(Number(p.total))}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      ),
+    },
+    "orcamentos-vencidos": {
+      largura: "lg:col-span-3",
+      conteudo: (
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Orçamentos vencidos sem resposta</h2>
           {orcamentosExpirados.length === 0 ? (
@@ -830,7 +850,11 @@ function Dashboard() {
             </ul>
           )}
         </div>
-
+      ),
+    },
+    "atencao-estoque": {
+      largura: "lg:col-span-3",
+      conteudo: (
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Atenção no estoque</h2>
           <div className="mt-2 flex gap-2">
@@ -860,7 +884,101 @@ function Dashboard() {
             </ul>
           )}
         </div>
+      ),
+    },
+  };
+  const resumoVisiveis = visiveis.filter((p) => p.secao === "resumo" && resumo[p.id]);
+  const cartoesVisiveis = visiveis.filter((p) => p.secao === "indicadores" && cartoes[p.id]);
+  const paineisVisiveis = visiveis.filter((p) => p.secao === "paineis" && paineis[p.id]);
+
+  return (
+    <>
+      <PageHeader
+        title="Dashboard"
+        description="Pedidos em andamento, orçamentos, contas a receber e a pagar, alertas de vencimento e saúde do estoque."
+        actions={
+          <div className="flex gap-2">
+            {gestao && (
+              <Button variant="outline" size="sm" onClick={() => setPersonalizando(true)}>
+                <SlidersHorizontal className="size-4" /> Personalizar
+              </Button>
+            )}
+            <Button asChild variant="outline" size="sm">
+              <Link to="/pedidos">Pedidos</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/fluxo-caixa">Fluxo de caixa</Link>
+            </Button>
+          </div>
+        }
+      />
+
+      {resumoVisiveis.map((p) => (
+        <div key={p.id}>{resumo[p.id]}</div>
+      ))}
+
+      <div className="panel mb-4 p-4">
+        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <div>
+            <Label>De</Label>
+            <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+          </div>
+          <div>
+            <Label>Até</Label>
+            <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
+            custo {brl(custoPeriodo)} · lucro{" "}
+            <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
+              {brl(lucroPeriodo)}
+            </strong>{" "}
+            ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
+          </p>
+        </div>
       </div>
+
+      {resumoVisiveis.length + cartoesVisiveis.length + paineisVisiveis.length === 0 && (
+        <EmptyState
+          title="Nenhum cartão ou painel ligado"
+          description={
+            gestao
+              ? "Use o botão Personalizar para escolher o que o dashboard mostra."
+              : "A administração da empresa escolheu não mostrar nada aqui."
+          }
+        />
+      )}
+
+      {cartoesVisiveis.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {cartoesVisiveis.map((p) => (
+            <div key={p.id} className="contents">
+              {cartoes[p.id]}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {paineisVisiveis.length > 0 && (
+        <div className="mt-6 grid gap-4 lg:grid-cols-6">
+          {paineisVisiveis.map((p) => (
+            <div key={p.id} className={`${paineis[p.id]?.largura ?? ""} [&>.panel]:h-full`}>
+              {paineis[p.id]?.conteudo}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {gestao && (
+        <PersonalizarDashboardDialog
+          aberto={personalizando}
+          aoMudar={setPersonalizando}
+          disponiveis={PECAS_DASHBOARD_VENDAS}
+          config={configDashboard ?? null}
+          painel={PAINEL_VENDAS}
+        />
+      )}
     </>
   );
 }

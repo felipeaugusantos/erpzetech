@@ -113,3 +113,49 @@ describe("dashboard personalizado", () => {
     assert.equal(assinaturaDashboard(volta, todas), assinaturaDashboard(base, todas));
   });
 });
+
+describe("dashboard de vendas (catálogo próprio)", () => {
+  it("o catálogo de vendas tem ids únicos, na ordem do sistema, e cada painel usa o seu", async () => {
+    const { PECAS_DASHBOARD_VENDAS, catalogoDoPainel, PAINEL_VENDAS, PAINEL_PET } =
+      await import("../src/lib/dashboard-personalizado.ts");
+    const idsVendas = PECAS_DASHBOARD_VENDAS.map((p) => p.id);
+    assert.equal(new Set(idsVendas).size, idsVendas.length);
+    assert.equal(PECAS_DASHBOARD_VENDAS.filter((p) => p.secao === "resumo").length, 1);
+    assert.equal(PECAS_DASHBOARD_VENDAS.filter((p) => p.secao === "indicadores").length, 8);
+    assert.equal(PECAS_DASHBOARD_VENDAS.filter((p) => p.secao === "paineis").length, 8);
+    assert.equal(catalogoDoPainel(PAINEL_VENDAS), PECAS_DASHBOARD_VENDAS);
+    assert.equal(catalogoDoPainel(PAINEL_PET), PECAS_DASHBOARD_PET);
+    assert.equal(catalogoDoPainel("qualquer"), PECAS_DASHBOARD_PET);
+  });
+
+  it("a leitura usa o catálogo do próprio painel: ids de outro painel são descartados", async () => {
+    const { PECAS_DASHBOARD_VENDAS } = await import("../src/lib/dashboard-personalizado.ts");
+    const bruto = {
+      versao: 1,
+      ordem: ["vence-hoje", "agenda-hoje"],
+      ocultos: ["faltas", "pendencias-fiscais"],
+    };
+    assert.deepEqual(lerConfigDashboard(bruto, PECAS_DASHBOARD_VENDAS), {
+      versao: 1,
+      ordem: ["vence-hoje"],
+      ocultos: ["pendencias-fiscais"],
+    });
+    assert.deepEqual(lerConfigDashboard(bruto), {
+      versao: 1,
+      ordem: ["agenda-hoje"],
+      ocultos: ["faltas"],
+    });
+  });
+
+  it("o resumo do dia não troca de lugar com cartões nem painéis", async () => {
+    const { PECAS_DASHBOARD_VENDAS } = await import("../src/lib/dashboard-personalizado.ts");
+    const linhas = montarLinhasDashboard(PECAS_DASHBOARD_VENDAS, null);
+    assert.deepEqual(ids(moverPecaDashboard(linhas, "painel-do-dia", 1)), ids(linhas));
+    assert.deepEqual(ids(moverPecaDashboard(linhas, "pedidos-andamento", -1)), ids(linhas));
+    assert.deepEqual(ids(moverPecaDashboard(linhas, "fechamento-clientes", -1)), ids(linhas));
+    assert.deepEqual(ids(moverPecaDashboard(linhas, "caixa-projetado", -1)).slice(9, 11), [
+      "caixa-projetado",
+      "fechamento-clientes",
+    ]);
+  });
+});
