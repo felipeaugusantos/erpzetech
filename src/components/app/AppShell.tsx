@@ -110,6 +110,9 @@ import {
   itemPetVisivel,
 } from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
+import { MenuBaseContext } from "@/components/app/menu-base-context";
+import { aplicarMenuPersonalizado } from "@/lib/menu-personalizado";
+import { useMenuPersonalizado } from "@/lib/menu-personalizado-dados";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
 type Item = { label: string; to?: string; icon: typeof Gauge; soon?: boolean; secao?: string };
@@ -376,6 +379,7 @@ const groups: Group[] = [
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Menu da empresa", to: "/menu-personalizado", icon: LayoutGrid },
       { label: "Importação por planilha", to: "/importacao", icon: FileText },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
@@ -662,6 +666,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario || souGestao;
               // portal do tutor: o veterinário libera exames e receitas; recepção e gestão gerenciam os acessos
               if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
+              // o menu da empresa é organizado pela administração
+              if (i.to === "/menu-personalizado") return souGestao;
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
               if (
@@ -845,7 +851,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [somenteSalao, itensSalao, pathname, navigate]);
 
-  const areas = useMemo(() => montarAreas(menu), [menu]);
+  const areasBase = useMemo(() => montarAreas(menu), [menu]);
+  // A personalização da empresa só vale no menu completo (não no do motorista, do salão, do profissional, da produção nem da equipe Ze Tech).
+  const { data: configMenu } = useMenuPersonalizado();
+  const menuPersonalizavel =
+    !somenteMotorista && !somenteSalao && !somenteProfissional && !somenteProducao && !naAreaZeTech;
+  const areas = useMemo(
+    () =>
+      menuPersonalizavel
+        ? aplicarMenuPersonalizado<Item, Area>(areasBase, configMenu, (nome) => ({
+            label: nome,
+            icon: LayoutGrid,
+            items: [],
+          }))
+        : areasBase,
+    [areasBase, configMenu, menuPersonalizavel],
+  );
   const areaAtual =
     areas.find((a) =>
       a.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(i.to + "/"))),
@@ -1078,7 +1099,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <MenuBaseContext.Provider value={areasBase}>{children}</MenuBaseContext.Provider>
+        </main>
       </div>
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />

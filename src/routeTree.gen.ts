@@ -117,6 +117,7 @@ import { Route as AuthenticatedManufaturaEtapasRouteImport } from './routes/_aut
 import { Route as AuthenticatedManufaturaMargemRouteImport } from './routes/_authenticated/manufatura-margem'
 import { Route as AuthenticatedManufaturaNecessidadeRouteImport } from './routes/_authenticated/manufatura-necessidade'
 import { Route as AuthenticatedManufaturaOrdensRouteImport } from './routes/_authenticated/manufatura-ordens'
+import { Route as AuthenticatedMenuPersonalizadoRouteImport } from './routes/_authenticated/menu-personalizado'
 import { Route as AuthenticatedModulosSemCnpjRouteImport } from './routes/_authenticated/modulos-sem-cnpj'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -816,6 +817,12 @@ const AuthenticatedManufaturaOrdensRoute =
     path: '/manufatura-ordens',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMenuPersonalizadoRoute =
+  AuthenticatedMenuPersonalizadoRouteImport.update({
+    id: '/menu-personalizado',
+    path: '/menu-personalizado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModulosSemCnpjRoute =
   AuthenticatedModulosSemCnpjRouteImport.update({
     id: '/modulos-sem-cnpj',
@@ -1426,6 +1433,7 @@ export interface FileRoutesByFullPath {
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1625,6 +1633,7 @@ export interface FileRoutesByTo {
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1826,6 +1835,7 @@ export interface FileRoutesById {
   '/_authenticated/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/_authenticated/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/_authenticated/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/_authenticated/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/_authenticated/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -2027,6 +2037,7 @@ export interface FileRouteTypes {
     | '/manufatura-margem'
     | '/manufatura-necessidade'
     | '/manufatura-ordens'
+    | '/menu-personalizado'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -2226,6 +2237,7 @@ export interface FileRouteTypes {
     | '/manufatura-margem'
     | '/manufatura-necessidade'
     | '/manufatura-ordens'
+    | '/menu-personalizado'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -2426,6 +2438,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manufatura-margem'
     | '/_authenticated/manufatura-necessidade'
     | '/_authenticated/manufatura-ordens'
+    | '/_authenticated/menu-personalizado'
     | '/_authenticated/modulos-sem-cnpj'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -3297,6 +3310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManufaturaOrdensRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/menu-personalizado': {
+      id: '/_authenticated/menu-personalizado'
+      path: '/menu-personalizado'
+      fullPath: '/menu-personalizado'
+      preLoaderRoute: typeof AuthenticatedMenuPersonalizadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/modulos-sem-cnpj': {
       id: '/_authenticated/modulos-sem-cnpj'
       path: '/modulos-sem-cnpj'
@@ -4031,6 +4051,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedManufaturaMargemRoute: typeof AuthenticatedManufaturaMargemRoute
   AuthenticatedManufaturaNecessidadeRoute: typeof AuthenticatedManufaturaNecessidadeRoute
   AuthenticatedManufaturaOrdensRoute: typeof AuthenticatedManufaturaOrdensRoute
+  AuthenticatedMenuPersonalizadoRoute: typeof AuthenticatedMenuPersonalizadoRoute
   AuthenticatedModulosSemCnpjRoute: typeof AuthenticatedModulosSemCnpjRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -4217,6 +4238,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedManufaturaNecessidadeRoute:
     AuthenticatedManufaturaNecessidadeRoute,
   AuthenticatedManufaturaOrdensRoute: AuthenticatedManufaturaOrdensRoute,
+  AuthenticatedMenuPersonalizadoRoute: AuthenticatedMenuPersonalizadoRoute,
   AuthenticatedModulosSemCnpjRoute: AuthenticatedModulosSemCnpjRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,

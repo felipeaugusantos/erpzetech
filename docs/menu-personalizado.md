@@ -9,7 +9,7 @@ mover e criar áreas).
 - **É só visual.** A personalização entra depois do filtro por permissão e módulo e depois do agrupamento em áreas do trilho
   (`montarAreas`, no `AppShell`). Ela só reorganiza o que a pessoa já pode ver e **nunca libera uma tela**. Esconder uma tela
   não bloqueia a rota.
-- **Telas essenciais não saem**: `/configuracoes`, `/usuarios` e `/menu-personalizado` (a tela do editor, que virá no PR 3),
+- **Telas essenciais não saem**: `/configuracoes`, `/usuarios` e `/menu-personalizado` (a tela do editor),
   para a empresa sempre conseguir desfazer.
 - **Telas novas aparecem sozinhas.** O que a configuração não cita fica no fim da área, na ordem do sistema.
 - **Configuração inválida é ignorada** (formato, versão ou tamanho fora do limite) e o menu volta ao padrão.
@@ -39,7 +39,7 @@ Exemplo para uma clínica que quer ver só a área Clínica: mover `/pets` e `/p
 1. **PR 1 (este):** a lógica pura `src/lib/menu-personalizado.ts` e a leitura segura da configuração, com testes. **Não muda o app**: nada a usa ainda.
 2. **PR 2 (feito):** a tabela `menu_personalizado` (uma linha por empresa, JSON com limite de tamanho), leitura para as pessoas da empresa
    e gravação só por função para administrador ou gestor. Migração em `drizzle/migrations`, que você aplica.
-3. **PR 3:** a tela **Ajustes → Menu** (setas para mover, sem depender de arrastar), "Restaurar o padrão", e o uso no `AppShell`:
+3. **PR 3 (feito):** a tela **Ajustes → Menu** (setas para mover, sem depender de arrastar), "Restaurar o padrão", e o uso no `AppShell`:
    `aplicarMenuPersonalizado(montarAreas(menu), config, criarArea)`.
 
 ## Banco (PR 2)
@@ -54,6 +54,6 @@ Migração `drizzle/migrations/0082_menu_personalizado.sql` (o usuário aplica):
 
 ## Pontos que ainda dependem do uso real
 
-- A busca (Ctrl K) continua achando as telas escondidas; confirmar se o cliente quer isso.
+- A busca (Ctrl K) procura clientes, produtos e obras, não telas: uma tela escondida só abre pelo endereço ou por atalhos dentro de outras telas.
 - O menu do celular e o do trilho devem usar as mesmas áreas personalizadas.
 - Personalização por usuário fica para uma segunda rodada.
