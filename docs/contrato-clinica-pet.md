@@ -30,6 +30,7 @@ O efeito aparece no próximo carregamento do app da empresa.
 - O pet shop deixa de ser liberado pela clínica, pelo ramo ou pelo CNAE. Só vale se `petshop` for liberado de forma explícita.
 - **Continuam abertos**, porque a clínica depende deles: Pets e tutores, Contatos, **Serviços e preços** (consulta, vacina e exame), **Profissionais** (cadastro do veterinário com CRMV), **Agenda** e **Campos personalizados**.
 - **Ficam bloqueados** (mostram o aviso de módulo bloqueado): Ordens de serviço, Pacotes e Comissões, que são de banho e tosa.
+- No menu do **veterinário** e do profissional (que tem uma única área), essa área se chama **Clínica** na clínica sem pet shop e **Pet shop** nas demais (`rotuloAreaProfissional`). Só muda o nome do grupo, não as telas.
 - O menu e a página de cada tela usam a mesma lista (`ITENS_PET_DA_CLINICA`); um teste confere que as duas concordam.
 - O marcador não faz a empresa deixar de ser "só clínica".
 

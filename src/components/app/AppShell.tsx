@@ -108,6 +108,7 @@ import {
   TELAS_FORA_DA_CLINICA,
   ehEmpresaSoClinica,
   itemPetVisivel,
+  rotuloAreaProfissional,
 } from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { MenuBaseContext } from "@/components/app/menu-base-context";
@@ -765,8 +766,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const menu: Group[] = somenteProfissional
     ? [
         {
-          label: "Pet shop",
-          icon: PawPrint,
+          label: rotuloAreaProfissional(modulos.clinica, modulos.petshop),
+          icon: modulos.clinica && !modulos.petshop ? Stethoscope : PawPrint,
           items: [
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
             ...(modulos.clinica

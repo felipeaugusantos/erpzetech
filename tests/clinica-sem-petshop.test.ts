@@ -103,3 +103,22 @@ describe("contrato: clínica sem pet shop", () => {
     assert.equal(itemPetVisivel("/clinica-prontuario", false), false);
   });
 });
+
+describe("menu do veterinário e do profissional", () => {
+  it("a única área se chama Clínica quando a empresa tem a clínica e não o pet shop", async () => {
+    const { rotuloAreaProfissional } = await import("../src/lib/ramo-clinica.ts");
+    assert.equal(rotuloAreaProfissional(true, false), "Clínica");
+    assert.equal(rotuloAreaProfissional(true, true), "Pet shop");
+    assert.equal(rotuloAreaProfissional(false, true), "Pet shop");
+    assert.equal(rotuloAreaProfissional(false, false), "Pet shop");
+  });
+
+  it("o AppShell usa esse nome na área do menu restrito do profissional", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fonte = readFileSync(
+      new URL("../src/components/app/AppShell.tsx", import.meta.url),
+      "utf8",
+    );
+    assert.ok(/label: rotuloAreaProfissional\(modulos\.clinica, modulos\.petshop\)/.test(fonte));
+  });
+});
