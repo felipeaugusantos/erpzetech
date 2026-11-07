@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { aplicarMenuPersonalizado } from "../src/lib/menu-personalizado.ts";
+import { aplicarMenuPersonalizado, essenciaisDoMenu } from "../src/lib/menu-personalizado.ts";
 import {
   MAX_AREAS_PROPRIAS,
   adicionarAreaPropria,
@@ -220,5 +220,60 @@ describe("editor do menu: operações", () => {
       aplicarMenuPersonalizado<Item, Area>(base, config, criar).some((a) => a.label === "Vazia"),
       false,
     );
+  });
+});
+
+describe("editor do menu: telas da clínica", () => {
+  const clinica = essenciaisDoMenu(true);
+  const baseClinica: Area[] = [
+    {
+      label: "Pet shop",
+      items: [
+        item("/pets"),
+        item("/pet-servicos"),
+        item("/pet-profissionais"),
+        item("/pet-agenda"),
+      ],
+    },
+    { label: "Clínica", items: [item("/clinica-fila")] },
+  ];
+
+  it("com clínica, Serviços e Profissionais não se escondem no editor; sem clínica, sim", () => {
+    const com = alternarOculto(
+      alternarOculto(montarLayout(baseClinica, null, clinica), "/pet-servicos", clinica),
+      "/pet-profissionais",
+      clinica,
+    );
+    assert.equal(
+      com.flatMap((a) => a.itens).some((i) => i.oculto),
+      false,
+    );
+    const sem = alternarOculto(montarLayout(baseClinica, null), "/pet-servicos");
+    assert.equal(sem.flatMap((a) => a.itens).find((i) => i.to === "/pet-servicos")?.oculto, true);
+    // a tela que não é da clínica esconde normalmente
+    assert.equal(
+      alternarOculto(montarLayout(baseClinica, null, clinica), "/pet-agenda", clinica)
+        .flatMap((a) => a.itens)
+        .find((i) => i.to === "/pet-agenda")?.oculto,
+      true,
+    );
+  });
+
+  it("uma configuração antiga que escondia essas telas abre no editor com elas visíveis, e salvar deixa de escondê-las", () => {
+    const antiga = {
+      versao: 1 as const,
+      ocultos: ["/pet-servicos", "/pet-profissionais", "/pet-agenda"],
+      areas: [],
+      ordemAreas: [],
+      itens: {},
+      ordemItens: {},
+    };
+    const layout = montarLayout(baseClinica, antiga, clinica);
+    const ocultas = layout
+      .flatMap((a) => a.itens)
+      .filter((i) => i.oculto)
+      .map((i) => i.to);
+    assert.deepEqual(ocultas, ["/pet-agenda"]);
+    assert.deepEqual(layoutParaConfig(layout, baseClinica, clinica).ocultos, ["/pet-agenda"]);
   });
 });

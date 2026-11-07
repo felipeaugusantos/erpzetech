@@ -36,6 +36,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSessionData } from "@/hooks/useSessionData";
+import { useModulosCnae } from "@/lib/cnae";
+import {
+  ESSENCIAIS_DA_CLINICA,
+  essenciaisDoMenu,
+  essenciaisEscondidosPelaConfig,
+} from "@/lib/menu-personalizado";
 import {
   useMenuPersonalizado,
   useRestaurarMenu,
@@ -74,6 +80,7 @@ export const Route = createFileRoute("/_authenticated/menu-personalizado")({
 function MenuDaEmpresa() {
   const { data: sessao, isLoading: sessaoCarregando } = useSessionData();
   const base = useMenuBase();
+  const { clinica } = useModulosCnae();
   const gestao = (sessao?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
   if (sessaoCarregando) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (!gestao)
@@ -84,10 +91,16 @@ function MenuDaEmpresa() {
       />
     );
   if (!base) return <p className="text-sm text-muted-foreground">Carregando o menu…</p>;
-  return <Editor base={base} />;
+  return <Editor base={base} essenciais={essenciaisDoMenu(clinica)} />;
 }
 
-function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> }) {
+function Editor({
+  base,
+  essenciais,
+}: {
+  base: NonNullable<ReturnType<typeof useMenuBase>>;
+  essenciais: readonly string[];
+}) {
   const consulta = useMenuPersonalizado();
   const salvar = useSalvarMenu();
   const restaurar = useRestaurarMenu();
@@ -98,13 +111,23 @@ function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> })
   const [confirmaRestaurar, setConfirmaRestaurar] = useState(false);
 
   // o desenho parte do que está salvo; depois de salvar ou restaurar, recomeça dele
-  const desenhoSalvo = useMemo(() => montarLayout(base, salva), [base, salva]);
+  const desenhoSalvo = useMemo(
+    () => montarLayout(base, salva, essenciais),
+    [base, salva, essenciais],
+  );
   useEffect(() => {
     if (!consulta.isLoading) setLayout(desenhoSalvo);
   }, [consulta.isLoading, desenhoSalvo]);
 
   if (!layout) return <p className="text-sm text-muted-foreground">Carregando…</p>;
-  const alterado = assinatura(layout, base) !== assinatura(desenhoSalvo, base);
+  const rotuloPorTela = new Map(
+    base.flatMap((a) => a.items.filter((i) => i.to).map((i) => [i.to as string, i.label] as const)),
+  );
+  const avisoClinica = essenciaisEscondidosPelaConfig(salva, essenciais)
+    .filter((c) => (ESSENCIAIS_DA_CLINICA as readonly string[]).includes(c))
+    .map((c) => rotuloPorTela.get(c) ?? c);
+  const alterado =
+    assinatura(layout, base, essenciais) !== assinatura(desenhoSalvo, base, essenciais);
   const ocupado = salvar.isPending || restaurar.isPending;
   const mudar = (novo: LayoutEditor) => setLayout(novo);
 
@@ -118,7 +141,7 @@ function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> })
   }
 
   function gravar() {
-    const config = conferirConfig(layoutParaConfig(layout!, base));
+    const config = conferirConfig(layoutParaConfig(layout!, base, essenciais));
     if (!config) {
       toast.error("O menu ficou grande demais ou fora do formato. Simplifique e tente de novo.");
       return;
@@ -150,6 +173,18 @@ function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> })
           </>
         }
       />
+
+      {avisoClinica.length > 0 && (
+        <div
+          role="alert"
+          className="mb-4 max-w-3xl rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
+        >
+          <strong>A clínica precisa de {avisoClinica.join(" e ")} para operar.</strong> Essas telas
+          cadastram o veterinário com CRMV e os serviços de consulta, vacina e exame. Por isso elas
+          aparecem no menu mesmo que a organização salva as esconda. Ao salvar de novo, a
+          configuração deixa de escondê-las.
+        </div>
+      )}
 
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
         Isto só muda como o menu aparece. Cada pessoa continua vendo apenas as telas que o perfil
@@ -243,6 +278,10 @@ function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> })
                       {item.label}
                     </span>
                     {item.oculto && <Badge variant="outline">Escondida</Badge>}
+                    {(ESSENCIAIS_DA_CLINICA as readonly string[]).includes(item.to) &&
+                      essenciais.includes(item.to) && (
+                        <Badge variant="secondary">Necessária para a clínica</Badge>
+                      )}
                     <div className="ml-auto flex flex-wrap items-center gap-1">
                       <Button
                         variant="ghost"
@@ -289,14 +328,16 @@ function Editor({ base }: { base: NonNullable<ReturnType<typeof useMenuBase>> })
                         size="icon"
                         aria-label={`${item.oculto ? "Mostrar" : "Esconder"} ${item.label}`}
                         title={
-                          ehEssencial(item.to)
-                            ? "Esta tela não pode ser escondida, para você sempre conseguir desfazer."
+                          ehEssencial(item.to, essenciais)
+                            ? (ESSENCIAIS_DA_CLINICA as readonly string[]).includes(item.to)
+                              ? "A clínica precisa desta tela para cadastrar veterinários (CRMV) e serviços, então ela não pode ser escondida."
+                              : "Esta tela não pode ser escondida, para você sempre conseguir desfazer."
                             : item.oculto
                               ? "Mostrar no menu"
                               : "Esconder do menu"
                         }
-                        disabled={ehEssencial(item.to) || ocupado}
-                        onClick={() => mudar(alternarOculto(layout, item.to))}
+                        disabled={ehEssencial(item.to, essenciais) || ocupado}
+                        onClick={() => mudar(alternarOculto(layout, item.to, essenciais))}
                       >
                         {item.oculto ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </Button>

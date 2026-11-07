@@ -10,7 +10,9 @@ mover e criar áreas).
   (`montarAreas`, no `AppShell`). Ela só reorganiza o que a pessoa já pode ver e **nunca libera uma tela**. Esconder uma tela
   não bloqueia a rota.
 - **Telas essenciais não saem**: `/configuracoes`, `/usuarios` e `/menu-personalizado` (a tela do editor),
-  para a empresa sempre conseguir desfazer.
+  para a empresa sempre conseguir desfazer. **Numa empresa com clínica**, também não saem `/pet-servicos` (serviços de consulta, vacina e exame) e
+  `/pet-profissionais` (veterinário com CRMV), de que a clínica depende para operar (`essenciaisDoMenu`). O bloqueio vale na aplicação do menu e no
+  editor; se uma configuração antiga as escondia, elas voltam ao menu e o editor mostra um aviso.
 - **Telas novas aparecem sozinhas.** O que a configuração não cita fica no fim da área, na ordem do sistema.
 - **Configuração inválida é ignorada** (formato, versão ou tamanho fora do limite) e o menu volta ao padrão.
 - **Área vazia some** do trilho. Uma área própria não pode ter o nome de uma área do sistema.

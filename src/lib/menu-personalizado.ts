@@ -6,6 +6,22 @@ import { z } from "zod";
 /** Telas que nunca saem do menu, para a empresa sempre conseguir desfazer a personalização. */
 export const ESSENCIAIS_MENU = ["/configuracoes", "/usuarios", "/menu-personalizado"] as const;
 
+/**
+ * Telas de que a clínica depende para operar: o cadastro do veterinário com CRMV (sem ele não há prontuário) e os serviços de consulta,
+ * vacina e exame (a visita avulsa usa esses serviços). Numa empresa com clínica elas não saem do menu, como as essenciais acima.
+ */
+export const ESSENCIAIS_DA_CLINICA = ["/pet-profissionais", "/pet-servicos"] as const;
+
+/** Telas que não podem ser escondidas na empresa: as essenciais e, com a clínica, as de que ela depende. */
+export const essenciaisDoMenu = (clinica: boolean): readonly string[] =>
+  clinica ? [...ESSENCIAIS_MENU, ...ESSENCIAIS_DA_CLINICA] : ESSENCIAIS_MENU;
+
+/** Telas da clínica que a configuração salva esconde (não valem: continuam no menu). Serve para avisar a administração. */
+export const essenciaisEscondidosPelaConfig = (
+  config: { ocultos: readonly string[] } | null | undefined,
+  essenciais: readonly string[],
+): string[] => (config?.ocultos ?? []).filter((c) => essenciais.includes(c));
+
 const CAMINHO = z
   .string()
   .max(120)

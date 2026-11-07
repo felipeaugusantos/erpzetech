@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  ESSENCIAIS_DA_CLINICA,
   ESSENCIAIS_MENU,
   aplicarMenuPersonalizado,
+  essenciaisDoMenu,
+  essenciaisEscondidosPelaConfig,
   lerConfigMenu,
   type ConfigMenu,
 } from "../src/lib/menu-personalizado.ts";
@@ -204,5 +207,69 @@ describe("leitura da configuração", () => {
       itens: {},
       ordemItens: {},
     });
+  });
+});
+
+describe("telas de que a clínica depende", () => {
+  const baseClinica = (): Area[] => [
+    { label: "Início", icon: "i", items: [item("/dashboard")] },
+    {
+      label: "Pet shop",
+      icon: "p",
+      items: [
+        item("/pets"),
+        item("/pet-agenda"),
+        item("/pet-servicos"),
+        item("/pet-profissionais"),
+        item("/pet-contatos"),
+      ],
+    },
+    { label: "Clínica", icon: "c", items: [item("/clinica-fila"), item("/clinica-reforcos")] },
+    { label: "Ajustes", icon: "a", items: [item("/configuracoes"), item("/usuarios")] },
+  ];
+  // configuração parecida com a que uma clínica real salvou: escondeu serviços e profissionais em vez de movê-los
+  const escondeu = (): ConfigMenu =>
+    config({
+      ocultos: ["/pet-agenda", "/pet-profissionais", "/pet-servicos", "/pet-contatos"],
+      itens: { "/pets": { area: "Clínica" } },
+    });
+
+  it("a lista de essenciais só cresce numa empresa com clínica", () => {
+    assert.deepEqual(essenciaisDoMenu(false), [...ESSENCIAIS_MENU]);
+    for (const t of ["/pet-servicos", "/pet-profissionais"]) {
+      assert.equal(essenciaisDoMenu(true).includes(t), true, t);
+      assert.equal(essenciaisDoMenu(false).includes(t), false, t);
+    }
+    assert.deepEqual([...ESSENCIAIS_DA_CLINICA].sort(), ["/pet-profissionais", "/pet-servicos"]);
+  });
+
+  it("com clínica, Serviços e preços e Profissionais não saem do menu, mesmo escondidos na configuração", () => {
+    const r = aplicarMenuPersonalizado(baseClinica(), escondeu(), criar, essenciaisDoMenu(true));
+    const todas = r.flatMap((a) => caminhos(a));
+    assert.equal(todas.includes("/pet-servicos"), true);
+    assert.equal(todas.includes("/pet-profissionais"), true);
+    // o que a pessoa escondeu e a clínica não exige continua escondido
+    assert.equal(todas.includes("/pet-agenda"), false);
+    assert.equal(todas.includes("/pet-contatos"), false);
+    // o que ela moveu continua movido
+    assert.ok(caminhos(area(r, "Clínica"))?.includes("/pets"));
+    // as duas telas ficam onde estavam (área Pet shop)
+    assert.deepEqual(caminhos(area(r, "Pet shop")), ["/pet-servicos", "/pet-profissionais"]);
+  });
+
+  it("sem clínica (pet shop sozinho) as mesmas telas podem ser escondidas", () => {
+    const r = aplicarMenuPersonalizado(baseClinica(), escondeu(), criar, essenciaisDoMenu(false));
+    const todas = r.flatMap((a) => caminhos(a));
+    assert.equal(todas.includes("/pet-servicos"), false);
+    assert.equal(todas.includes("/pet-profissionais"), false);
+  });
+
+  it("avisa quais telas da clínica a configuração salva escondia", () => {
+    assert.deepEqual(essenciaisEscondidosPelaConfig(escondeu(), essenciaisDoMenu(true)), [
+      "/pet-profissionais",
+      "/pet-servicos",
+    ]);
+    assert.deepEqual(essenciaisEscondidosPelaConfig(escondeu(), essenciaisDoMenu(false)), []);
+    assert.deepEqual(essenciaisEscondidosPelaConfig(null, essenciaisDoMenu(true)), []);
   });
 });
