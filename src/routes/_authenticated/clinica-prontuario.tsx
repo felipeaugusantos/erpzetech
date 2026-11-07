@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
+import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
   evolucaoDoPeso,
   evolucaoDosSinais,
@@ -383,6 +384,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
         tutor={data.tutor}
       />
+
+      <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
 
       <h3 className="font-display text-base font-semibold">Atendimentos</h3>
       {data.atendimentos.length === 0 ? (
