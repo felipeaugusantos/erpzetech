@@ -12,6 +12,7 @@ Antes de enviar, conferir nos termos do Lovable e do provedor de IA como os dado
 Um botão na ficha do paciente que, a pedido do veterinário, gera um resumo de leitura do histórico do animal. O resumo é só para consulta. Ele não é gravado no prontuário e não substitui a leitura do prontuário nem o julgamento do veterinário.
 
 **O que a IA faz e não faz**
+
 - Resume apenas o que já está escrito, com a data de cada fato.
 - Não faz diagnóstico.
 - Não sugere tratamento, medicamento, dose nem exame.
@@ -20,6 +21,7 @@ Um botão na ficha do paciente que, a pedido do veterinário, gera um resumo de 
 
 **Que dados saem do sistema**
 Para gerar o resumo, o texto clínico do animal é enviado a um serviço de IA, contratado por meio da plataforma Lovable.
+
 - **Enviados:** espécie, raça, porte, sexo, pelagem, nascimento, peso, alergias e observações da ficha, e os dados dos atendimentos (até os 30 mais recentes): queixa, anamnese, sinais vitais, exame físico, diagnóstico, conduta, retorno, observações e adendos.
 - **Não enviados:** nome do tutor, nome do animal, microchip, foto, telefone, nome e CRMV do veterinário.
 - **Atenção:** se o veterinário escrever nomes, telefones ou outros dados pessoais no texto livre do prontuário, esse texto é enviado como está.
