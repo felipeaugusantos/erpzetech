@@ -11,4 +11,4 @@ O acesso passa a ser pelo **usuário** da pessoa dentro da empresa, e não mais 
 - **Quem troca o usuário:** só o administrador da empresa (ou a equipe Ze Tech). A pessoa não troca o próprio usuário pelo perfil (trava no banco).
 - **Esqueceu a senha:** o administrador define uma nova em Usuários e perfis. Não há recuperação por e-mail: o sistema não tem serviço de envio de e-mail e o e-mail de contato pode ser repetido.
 - Também seguem esse login: criação de usuário em Usuários e perfis, login do motorista (Motoristas) e troca de operador no caixa (usuário ou e-mail, na empresa de quem já está logado).
-- Fora desta mudança: a conta de equipe Ze Tech (`/ze-tech-login`) e o acesso com Google continuam por e-mail.
+- Fora desta mudança: a conta de equipe Ze Tech (`/ze-tech-login`) continua por e-mail. O botão "Continuar com Google" foi retirado das telas de login (a integração em `src/integrations/lovable` fica no projeto, sem uso nas telas).

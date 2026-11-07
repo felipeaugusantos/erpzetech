@@ -6,7 +6,6 @@ import { Loader2, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { entrarComUsuarioOuEmail } from "@/lib/login-cliente";
 import { pareceEmail } from "@/lib/usuario-login";
-import { lovable } from "@/integrations/lovable/index";
 import { ZeLogo } from "@/components/app/ZeLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,20 +81,6 @@ function AuthPage() {
       });
       return;
     }
-    navigate({ to: "/dashboard" });
-  }
-
-  async function google() {
-    setLoading("google");
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setLoading(null);
-      toast.error("Falha no acesso com Google");
-      return;
-    }
-    if (result.redirected) return;
     navigate({ to: "/dashboard" });
   }
 
@@ -224,23 +209,9 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={google}
-            disabled={loading === "google"}
-          >
-            {loading === "google" && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Continuar com Google
-          </Button>
-
           <Link
             to="/ze-tech-login"
-            className="mt-3 flex w-full items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="mt-5 flex w-full items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Entrar no Painel EZRA (equipe)
           </Link>
