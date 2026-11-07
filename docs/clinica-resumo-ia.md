@@ -19,4 +19,6 @@ Resumir só o que está escrito, com a data de cada fato; não diagnosticar, nã
 1. Em Secrets, criar `CLINICA_IA_EMPRESAS_LIBERADAS` com o id da empresa e publicar.
 2. Combinar antes com a clínica (LGPD: dado clínico do animal vai ao serviço de IA do Lovable). Cada resumo gasta crédito de IA.
 
+Aviso para a clínica aprovar antes de liberar: `docs/clinica-resumo-ia-aviso.md`.
+
 Arquivos: `src/lib/resumo-ia-clinica.ts` (texto, esquema, instrução), `src/lib/clinica-resumo-ia.functions.ts`, `src/components/app/ResumoIaClinica.tsx`. Testes: `tests/resumo-ia-clinica.test.ts` (modelo simulado, sem rede).
