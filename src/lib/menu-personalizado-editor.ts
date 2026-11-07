@@ -21,7 +21,8 @@ export const NOME_AREA_MAX = 30;
 
 export type Resultado = { ok: true; layout: LayoutEditor } | { ok: false; erro: string };
 
-export const ehEssencial = (to: string) => (ESSENCIAIS_MENU as readonly string[]).includes(to);
+export const ehEssencial = (to: string, essenciais: readonly string[] = ESSENCIAIS_MENU) =>
+  essenciais.includes(to);
 
 const criarAreaVazia = (nome: string): AreaBase => ({ label: nome, items: [] });
 const caminhos = (a: AreaEditor) => a.itens.map((i) => i.to);
@@ -37,11 +38,12 @@ function origemDasTelas(base: readonly AreaBase[]): Map<string, string> {
 export function montarLayout(
   base: readonly AreaBase[],
   config: ConfigMenu | null | undefined,
+  essenciais: readonly string[] = ESSENCIAIS_MENU,
 ): LayoutEditor {
   const nomes = new Map<string, string>(); // rótulo exibido → chave
   for (const a of base) nomes.set(a.label, a.label);
   for (const p of config?.areas ?? []) nomes.set(p.nome, p.id);
-  const ocultos = new Set((config?.ocultos ?? []).filter((c) => !ehEssencial(c)));
+  const ocultos = new Set((config?.ocultos ?? []).filter((c) => !ehEssencial(c, essenciais)));
   const rotulos = new Map<string, string>(); // chave → nome exibido
   for (const a of base) rotulos.set(a.label, a.label);
   for (const p of config?.areas ?? []) rotulos.set(p.id, p.nome);
@@ -82,7 +84,11 @@ export function montarLayout(
 }
 
 /** Configuração mínima que reproduz o desenho: só o que difere do menu padrão entra. */
-export function layoutParaConfig(layout: LayoutEditor, base: readonly AreaBase[]): ConfigMenu {
+export function layoutParaConfig(
+  layout: LayoutEditor,
+  base: readonly AreaBase[],
+  essenciais: readonly string[] = ESSENCIAIS_MENU,
+): ConfigMenu {
   const padrao = montarLayout(base, null);
   const origem = origemDasTelas(base);
   const ordemPadraoAreas = padrao.map((a) => a.chave);
@@ -98,7 +104,7 @@ export function layoutParaConfig(layout: LayoutEditor, base: readonly AreaBase[]
     const original = padrao.find((p) => p.chave === a.chave);
     let recebeuDeFora = false;
     for (const i of a.itens) {
-      if (i.oculto && !ehEssencial(i.to)) config.ocultos.push(i.to);
+      if (i.oculto && !ehEssencial(i.to, essenciais)) config.ocultos.push(i.to);
       if (origem.get(i.to) !== a.chave) {
         config.itens[i.to] = { area: a.chave };
         recebeuDeFora = true;
@@ -148,8 +154,12 @@ export function moverItemParaArea(layout: LayoutEditor, to: string, destino: str
   );
 }
 
-export function alternarOculto(layout: LayoutEditor, to: string): LayoutEditor {
-  if (ehEssencial(to)) return layout;
+export function alternarOculto(
+  layout: LayoutEditor,
+  to: string,
+  essenciais: readonly string[] = ESSENCIAIS_MENU,
+): LayoutEditor {
+  if (ehEssencial(to, essenciais)) return layout;
   return layout.map((a) => ({
     ...a,
     itens: a.itens.map((i) => (i.to === to ? { ...i, oculto: !i.oculto } : i)),
@@ -215,5 +225,8 @@ export function excluirAreaPropria(
 }
 
 /** Chave estável da configuração, para saber se há alteração a salvar. */
-export const assinatura = (layout: LayoutEditor, base: readonly AreaBase[]) =>
-  JSON.stringify(layoutParaConfig(layout, base));
+export const assinatura = (
+  layout: LayoutEditor,
+  base: readonly AreaBase[],
+  essenciais: readonly string[] = ESSENCIAIS_MENU,
+) => JSON.stringify(layoutParaConfig(layout, base, essenciais));

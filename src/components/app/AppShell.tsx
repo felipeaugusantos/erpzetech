@@ -112,7 +112,7 @@ import {
 } from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { MenuBaseContext } from "@/components/app/menu-base-context";
-import { aplicarMenuPersonalizado } from "@/lib/menu-personalizado";
+import { aplicarMenuPersonalizado, essenciaisDoMenu } from "@/lib/menu-personalizado";
 import { useMenuPersonalizado } from "@/lib/menu-personalizado-dados";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
@@ -860,13 +860,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const areas = useMemo(
     () =>
       menuPersonalizavel
-        ? aplicarMenuPersonalizado<Item, Area>(areasBase, configMenu, (nome) => ({
-            label: nome,
-            icon: LayoutGrid,
-            items: [],
-          }))
+        ? aplicarMenuPersonalizado<Item, Area>(
+            areasBase,
+            configMenu,
+            (nome) => ({ label: nome, icon: LayoutGrid, items: [] }),
+            // na empresa com clínica, Serviços e preços e Profissionais não saem do menu (a clínica depende deles)
+            essenciaisDoMenu(modulos.clinica),
+          )
         : areasBase,
-    [areasBase, configMenu, menuPersonalizavel],
+    [areasBase, configMenu, menuPersonalizavel, modulos.clinica],
   );
   const areaAtual =
     areas.find((a) =>

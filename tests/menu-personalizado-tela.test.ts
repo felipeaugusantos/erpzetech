@@ -14,7 +14,7 @@ test("o menu da empresa só é personalizado no menu completo e depois de filtra
     ),
     "motorista, salão, profissional, produção e equipe Ze Tech ficam fora",
   );
-  assert.ok(/aplicarMenuPersonalizado<Item, Area>\(areasBase, configMenu/.test(shell));
+  assert.ok(/aplicarMenuPersonalizado<Item, Area>\(\s*areasBase,\s*configMenu/.test(shell));
 });
 
 test("o editor recebe o menu base (antes da personalização) pelo contexto do AppShell", () => {
@@ -30,4 +30,17 @@ test("o item do menu e a tela são da administração (administrador e gestor)",
 test("a tela não promete o que o sistema não faz", () => {
   assert.equal(/Ctrl K/.test(tela), false, "a busca do sistema não procura telas");
   assert.ok(/Esconder não bloqueia a tela/.test(tela));
+});
+
+test("o menu da empresa protege as telas da clínica no editor e na aplicação, e avisa a administração", () => {
+  assert.ok(
+    /essenciaisDoMenu\(modulos\.clinica\)/.test(shell),
+    "o AppShell aplica com os essenciais da clínica",
+  );
+  assert.ok(
+    /essenciais=\{essenciaisDoMenu\(clinica\)\}/.test(tela),
+    "o editor recebe os mesmos essenciais",
+  );
+  assert.ok(/Necessária para a clínica/.test(tela));
+  assert.ok(/A clínica precisa de \{avisoClinica\.join\(" e "\)\} para operar/.test(tela));
 });
