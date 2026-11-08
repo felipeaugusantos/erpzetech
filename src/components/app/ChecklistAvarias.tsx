@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CroquiVeiculo } from "@/components/app/CroquiVeiculo";
 import { dateTimeBR } from "@/lib/format";
 import {
   TIPOS_AVARIA,
@@ -160,6 +161,12 @@ export function ChecklistAvarias({
           <p className="text-sm font-medium">
             {concluido ? "Avaria achada depois" : "Registrar avaria"}
           </p>
+          <CroquiVeiculo
+            tipo={veiculo.tipo}
+            selecionado={lugar}
+            onEscolher={setLugar}
+            avarias={avarias}
+          />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="av-lugar">Local</Label>
