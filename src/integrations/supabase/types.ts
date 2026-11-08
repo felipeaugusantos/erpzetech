@@ -17124,6 +17124,7 @@ export type Database = {
       lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
       lr_foto_preparar: {
         Args: {
+          p_avaria_id?: string
           p_mime: string
           p_momento: string
           p_nome_arquivo: string

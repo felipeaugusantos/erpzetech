@@ -15,26 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { dateTimeBR } from "@/lib/format";
-import {
-  FOTOS_POR_MOMENTO,
-  MOMENTOS_FOTO,
-  erroDaFoto,
-  nomeDaFotoReduzida,
-  reduzirFoto,
-  type MomentoFoto,
-} from "@/lib/lava-fotos";
+import { FOTOS_POR_MOMENTO, MOMENTOS_FOTO, type MomentoFoto } from "@/lib/lava-fotos";
+import { enviarFotoDaOrdem, listarFotosDaOrdem, type FotoDaOrdem } from "@/lib/lava-fotos-envio";
 import { formatarIdentificacao } from "@/lib/lava-rapido";
 
-const BUCKET = "lava-fotos";
-
-type Foto = {
-  id: string;
-  momento: MomentoFoto;
-  nome_arquivo: string;
-  caminho: string;
-  created_at: string;
-  pode_cancelar: boolean;
-};
+type Foto = FotoDaOrdem;
 
 /**
  * Fotos de antes e depois da lavagem. O banco reserva o caminho antes do envio e confere o arquivo depois;
@@ -63,22 +48,8 @@ export function FotosOrdem({
     staleTime: 0,
     gcTime: 0,
     refetchInterval: 50_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("lr_fotos_da_ordem", { p_ordem_id: ordemId });
-      if (error) throw error;
-      const lista = (data ?? []) as unknown as Foto[];
-      if (lista.length === 0) return [];
-      // links de 60 s (não revogáveis): a lista é renovada antes de expirar,
-      // então uma foto cancelada deixa de abrir em no máximo um minuto
-      const { data: links } = await supabase.storage.from(BUCKET).createSignedUrls(
-        lista.map((f) => f.caminho),
-        60,
-      );
-      return lista.map((f) => ({
-        ...f,
-        url: links?.find((l) => l.path === f.caminho)?.signedUrl ?? null,
-      }));
-    },
+    // fotos de avaria ficam no checklist, não nesta lista
+    queryFn: async () => (await listarFotosDaOrdem(ordemId)).filter((f) => f.avaria_id === null),
   });
 
   const atualizar = () => {
@@ -90,32 +61,7 @@ export function FotosOrdem({
     if (!arquivos || arquivos.length === 0) return;
     setEnviando(momento);
     try {
-      for (const arquivo of Array.from(arquivos)) {
-        const erro = erroDaFoto(arquivo);
-        if (erro) throw new Error(`${arquivo.name}: ${erro}`);
-        let blob: Blob;
-        try {
-          blob = await reduzirFoto(arquivo);
-        } catch {
-          throw new Error(`${arquivo.name}: não foi possível ler a foto neste aparelho`);
-        }
-        const nome = nomeDaFotoReduzida(arquivo.name);
-        const { data: reserva, error: e1 } = await supabase.rpc("lr_foto_preparar", {
-          p_ordem_id: ordemId,
-          p_momento: momento,
-          p_nome_arquivo: nome,
-          p_mime: "image/jpeg",
-          p_tamanho: blob.size,
-        });
-        if (e1) throw e1;
-        const { id, caminho } = reserva as unknown as { id: string; caminho: string };
-        const up = await supabase.storage
-          .from(BUCKET)
-          .upload(caminho, blob, { contentType: "image/jpeg", upsert: false });
-        if (up.error) throw up.error;
-        const { error: e3 } = await supabase.rpc("lr_foto_confirmar", { p_id: id });
-        if (e3) throw e3;
-      }
+      for (const arquivo of Array.from(arquivos)) await enviarFotoDaOrdem(ordemId, momento, arquivo);
       toast.success(arquivos.length === 1 ? "Foto enviada." : "Fotos enviadas.");
     } catch (e) {
       toast.error((e as Error).message);

@@ -7810,6 +7810,78 @@ BEGIN
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;
 
+-- 72b. Lava rápido (foto de avaria): ligada à avaria da própria ordem, só "antes", até 3 por avaria, fora do limite e da contagem das fotos da lavagem, avaria com foto não se remove
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  cli uuid; v1 uuid; v2 uuid; serv uuid; lav uuid; o1 uuid; o2 uuid; av uuid; av2 uuid; av_o2 uuid; r jsonb; l jsonb; f1 uuid; c1 text; n int;
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Foto Avaria CI', '52998224725') RETURNING id INTO cli;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'FAV1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'FAV2B22', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  serv := lr_servico_salvar('{"nome":"Lavagem foto avaria","preco_base":40}'::jsonb);
+  lav := lr_lavador_salvar('{"nome":"Lavador Foto Avaria CI","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  o1 := lr_ordem_criar(jsonb_build_object('veiculo_id', v1, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  o2 := lr_ordem_criar(jsonb_build_object('veiculo_id', v2, 'lavador_id', lav, 'servicos', jsonb_build_array(serv)));
+  av := lr_avaria_registrar(o1, 'Capô', 'risco');
+  av2 := lr_avaria_registrar(o1, 'Teto', 'amassado');
+  av_o2 := lr_avaria_registrar(o2, 'Capô', 'risco');
+  PERFORM ci.sair();
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_foto_preparar(%L, 'antes', 'a.jpg', 'image/jpeg', 2048, %L)$c$, o1, av), 'garçom reserva foto de avaria');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'depois', 'a.jpg', 'image/jpeg', 2048, %L)$c$, o1, av), 'foto de avaria só é de antes');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'a.jpg', 'image/jpeg', 2048, %L)$c$, o1, av_o2), 'avaria de outra ordem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'a.jpg', 'image/jpeg', 2048, %L)$c$, o1, gen_random_uuid()), 'avaria que não existe');
+
+  PERFORM ci.entrar(vend);
+  r := lr_foto_preparar(o1, 'antes', 'risco.jpg', 'image/jpeg', 2048, av);
+  f1 := (r ->> 'id')::uuid; c1 := r ->> 'caminho';
+  EXECUTE format($c$INSERT INTO storage.objects (bucket_id, name, owner, metadata) VALUES ('lava-fotos', %L, %L, '{"size":2048,"mimetype":"image/jpeg"}')$c$, c1, vend);
+  PERFORM lr_foto_confirmar(f1);
+  r := lr_fotos_da_ordem(o1);
+  l := lr_fotos_contagem(ARRAY[o1]);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (l ? o1::text), 'a foto da avaria não entra na contagem do pátio');
+  PERFORM ci.exige((SELECT avaria_id = av AND momento = 'antes' AND situacao = 'ativa' FROM lr_fotos WHERE id = f1), 'a foto fica ligada à avaria');
+  PERFORM ci.exige(jsonb_array_length(r) = 1 AND (r -> 0 ->> 'avaria_id')::uuid = av, 'a lista da ordem traz a avaria da foto');
+  PERFORM ci.deve_falhar('a0000000-0000-0000-0000-000000000001'::uuid, format($c$UPDATE lr_fotos SET avaria_id = %L WHERE id = %L$c$, av2, f1), 'trocar a avaria da foto direto');
+
+  -- avaria com foto ativa não se remove; depois de cancelar a foto, sim
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_avaria_remover(%L)$c$, av), 'remover avaria com foto ativa');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_foto_cancelar(f1, 'foto de outro carro');
+  PERFORM lr_avaria_remover(av);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_avarias WHERE id = av), 'sem foto ativa a avaria sai');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM lr_fotos WHERE id = f1), 'a foto cancelada continua no registro');
+
+  -- até 3 por avaria, e fora do limite de 12 das fotos da lavagem
+  PERFORM ci.entrar(vend);
+  FOR n IN 1..3 LOOP
+    PERFORM lr_foto_preparar(o1, 'antes', 'p' || n || '.jpg', 'image/jpeg', 1000 + n, av2);
+  END LOOP;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'p4.jpg', 'image/jpeg', 1004, %L)$c$, o1, av2), 'passar de 3 fotos por avaria');
+  PERFORM ci.entrar(vend);
+  FOR n IN 1..12 LOOP
+    PERFORM lr_foto_preparar(o1, 'antes', 'g' || n || '.jpg', 'image/jpeg', 2000 + n);
+  END LOOP;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_foto_preparar(%L, 'antes', 'g13.jpg', 'image/jpeg', 2013)$c$, o1), 'a 13ª foto de antes da lavagem segue recusada');
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
 -- 73. Lava rápido (painel Ze Tech): só a equipe Ze Tech, só lojas com o módulo liberado, números do período
 DO $$
 DECLARE
