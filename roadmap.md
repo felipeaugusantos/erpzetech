@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Conferir e corrigir isolamento do resumo de IA ao trocar de paciente, incluindo ficha em cache e resposta atrasada.
+- [x] Isolamento do resumo de IA: ficha remontada por paciente; 3 testes de troca em cache, resposta atrasada e rascunho de alergia, mais 10 testes existentes, passaram. Prontuário aberto com sessão real sem erros; geração real de IA não exercitada (testada com resposta simulada). Não publicado.
 
 - [x] Equipe Ze Tech criada com listagem, nova conta com confirmação por e-mail, liberação de conta existente e remoção de acesso; gestão exclusiva do administrador original, que não pode ser removido. Nove testes passaram; listagem autenticada e recusa real de conta inexistente conferidas. Nenhuma conta real criada/removida; recebimento do e-mail e entrada de novo integrante ainda não verificados. Não publicado.
 
