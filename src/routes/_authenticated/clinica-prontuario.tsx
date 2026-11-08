@@ -38,6 +38,10 @@ export const Route = createFileRoute("/_authenticated/clinica-prontuario")({
         name: "description",
         content: "Ficha do paciente e histórico de atendimentos da clínica.",
       },
+      { property: "og:title", content: "Prontuário veterinário — ERP Ze Tech" },
+      { property: "og:description", content: "Ficha do paciente e histórico de atendimentos da clínica." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ProntuarioModulo,
@@ -145,7 +149,7 @@ function Prontuario() {
       )}
 
       {pet ? (
-        <FichaDoPaciente petId={pet} />
+        <FichaDoPaciente key={pet} petId={pet} />
       ) : (
         !termo && (
           <EmptyState
