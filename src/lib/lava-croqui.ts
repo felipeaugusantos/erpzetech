@@ -1,6 +1,6 @@
 import { locaisDeAvaria } from "./lava-rapido.ts";
 
-/** Partes desenhadas no croqui, por tipo de veículo (carro, caminhonete e moto; aeronaves ainda não). */
+/** Partes desenhadas no croqui, por tipo de veículo (todos os tipos de veículo). */
 export function zonasDoCroqui(tipo: string): string[] {
   switch (tipo) {
     case "carro":
@@ -29,6 +29,25 @@ export function zonasDoCroqui(tipo: string): string[] {
       ];
     case "moto":
       return ["Rodas", "Farol", "Carenagem", "Retrovisores", "Tanque", "Banco", "Escapamento"];
+    case "aviao":
+      return [
+        "Hélice ou motor",
+        "Para-brisa ou cabine",
+        "Fuselagem",
+        "Asa esquerda",
+        "Asa direita",
+        "Cauda",
+        "Trem de pouso",
+      ];
+    case "helicoptero":
+      return [
+        "Rotor principal",
+        "Para-brisa",
+        "Cabine",
+        "Fuselagem",
+        "Rotor de cauda",
+        "Esquis ou trem de pouso",
+      ];
     default:
       return [];
   }

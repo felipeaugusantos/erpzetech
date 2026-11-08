@@ -5,23 +5,24 @@ import { contagemPorLocal, locaisForaDoCroqui, zonasDoCroqui } from "../src/lib/
 import { locaisDeAvaria } from "../src/lib/lava-rapido.ts";
 
 test("toda parte do croqui é um local sugerido do mesmo veículo", () => {
-  for (const tipo of ["carro", "caminhonete", "moto"]) {
+  for (const tipo of ["carro", "caminhonete", "moto", "aviao", "helicoptero"]) {
     const sugeridos = new Set(locaisDeAvaria(tipo));
     for (const z of zonasDoCroqui(tipo)) assert.ok(sugeridos.has(z), `${tipo}: ${z}`);
   }
 });
 
 test("o que o desenho não cobre vira botão, e nada se perde", () => {
-  for (const tipo of ["carro", "caminhonete", "moto"]) {
+  for (const tipo of ["carro", "caminhonete", "moto", "aviao", "helicoptero"]) {
     const todos = new Set([...zonasDoCroqui(tipo), ...locaisForaDoCroqui(tipo)]);
     assert.deepEqual(todos, new Set(locaisDeAvaria(tipo)));
   }
   assert.ok(locaisForaDoCroqui("carro").includes("Interior"));
   assert.deepEqual(locaisForaDoCroqui("moto"), []);
+  assert.deepEqual(locaisForaDoCroqui("aviao"), ["Interior"]);
 });
 
-test("aeronaves seguem só com o campo de texto", () => {
-  for (const tipo of ["aviao", "helicoptero"]) assert.deepEqual(zonasDoCroqui(tipo), []);
+test("tipo desconhecido segue só com o campo de texto", () => {
+  assert.deepEqual(zonasDoCroqui("barco"), []);
 });
 
 test("conta avarias por local ignorando caixa e espaços", () => {

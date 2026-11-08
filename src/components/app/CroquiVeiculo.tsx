@@ -68,6 +68,87 @@ const ROTULO_MOTO: Record<string, [number, number]> = {
 /** Peças só de enfeite (não clicáveis), para o desenho parecer o veículo. */
 const ENFEITE_MOTO: Forma[] = [{ t: "rect", x: 56, y: 96, w: 88, h: 6, r: 3 }];
 
+const FORMAS_AVIAO: Record<string, Forma[]> = {
+  "Hélice ou motor": [
+    { t: "rect", x: 112, y: 12, w: 76, h: 8, r: 4 },
+    { t: "rect", x: 134, y: 22, w: 32, h: 28, r: 9 },
+  ],
+  "Para-brisa ou cabine": [{ t: "path", d: "M134 54 H166 L172 92 H128 Z" }],
+  Fuselagem: [
+    { t: "path", d: "M128 96 H172 L162 214 H138 Z" },
+    { t: "path", d: "M138 214 H162 L156 268 H144 Z" },
+  ],
+  "Asa esquerda": [{ t: "path", d: "M128 100 L18 124 V154 H128 Z" }],
+  "Asa direita": [{ t: "path", d: "M172 100 L282 124 V154 H172 Z" }],
+  Cauda: [{ t: "path", d: "M146 246 L96 262 V278 H204 V262 L154 246 Z" }],
+  "Trem de pouso": [
+    { t: "rect", x: 104, y: 158, w: 12, h: 26, r: 4 },
+    { t: "rect", x: 184, y: 158, w: 12, h: 26, r: 4 },
+    { t: "rect", x: 144, y: 186, w: 12, h: 16, r: 4 },
+  ],
+};
+
+const ROTULO_AVIAO: Record<string, [number, number]> = {
+  "Hélice ou motor": [150, 37],
+  "Para-brisa ou cabine": [150, 74],
+  Fuselagem: [150, 150],
+  "Asa esquerda": [70, 138],
+  "Asa direita": [230, 138],
+  Cauda: [150, 270],
+  "Trem de pouso": [110, 171],
+};
+
+const FORMAS_HELI: Record<string, Forma[]> = {
+  "Rotor principal": [
+    { t: "path", d: "M52 46 L60 40 L252 194 L244 200 Z" },
+    { t: "path", d: "M248 46 L240 40 L48 194 L56 200 Z" },
+    { t: "circle", cx: 150, cy: 120, r: 9 },
+  ],
+  "Para-brisa": [{ t: "path", d: "M128 90 Q128 56 150 52 Q172 56 172 90 Z" }],
+  Cabine: [{ t: "rect", x: 126, y: 94, w: 48, h: 58, r: 10 }],
+  Fuselagem: [
+    { t: "rect", x: 128, y: 156, w: 44, h: 38, r: 6 },
+    { t: "rect", x: 144, y: 196, w: 12, h: 66, r: 4 },
+  ],
+  "Rotor de cauda": [{ t: "circle", cx: 150, cy: 276, r: 14 }],
+  "Esquis ou trem de pouso": [
+    { t: "rect", x: 106, y: 70, w: 8, h: 110, r: 4 },
+    { t: "rect", x: 186, y: 70, w: 8, h: 110, r: 4 },
+  ],
+};
+
+const ROTULO_HELI: Record<string, [number, number]> = {
+  "Rotor principal": [80, 68],
+  "Para-brisa": [150, 78],
+  Cabine: [150, 124],
+  Fuselagem: [150, 226],
+  "Rotor de cauda": [150, 276],
+  "Esquis ou trem de pouso": [110, 125],
+};
+
+/** Peças que desenham roda ou esqui: ficam escuras. */
+const ESCURAS = new Set(["Rodas", "Trem de pouso", "Esquis ou trem de pouso"]);
+
+type Desenho = {
+  formas: Record<string, Forma[]>;
+  rotulos: Record<string, [number, number]>;
+  viewBox: string;
+  enfeite: Forma[];
+};
+
+function desenhoDe(tipo: string): Desenho {
+  switch (tipo) {
+    case "moto":
+      return { formas: FORMAS_MOTO, rotulos: ROTULO_MOTO, viewBox: "0 0 200 356", enfeite: ENFEITE_MOTO };
+    case "aviao":
+      return { formas: FORMAS_AVIAO, rotulos: ROTULO_AVIAO, viewBox: "0 0 300 300", enfeite: [] };
+    case "helicoptero":
+      return { formas: FORMAS_HELI, rotulos: ROTULO_HELI, viewBox: "0 0 300 300", enfeite: [] };
+    default:
+      return { formas: FORMAS_CARRO, rotulos: ROTULO_CARRO, viewBox: "0 0 200 356", enfeite: [] };
+  }
+}
+
 function Forma({ f }: { f: Forma }) {
   if (f.t === "rect")
     return <rect x={f.x} y={f.y} width={f.w} height={f.h} rx={f.r ?? 0} />;
@@ -93,9 +174,7 @@ export function CroquiVeiculo({
   desabilitado?: boolean;
 }) {
   const zonas = zonasDoCroqui(tipo);
-  const moto = tipo === "moto";
-  const FORMAS = moto ? FORMAS_MOTO : FORMAS_CARRO;
-  const ROTULO = moto ? ROTULO_MOTO : ROTULO_CARRO;
+  const { formas: FORMAS, rotulos: ROTULO, viewBox, enfeite } = desenhoDe(tipo);
   if (zonas.length === 0) return null;
   const contagem = contagemPorLocal(avarias);
   const alvo = selecionado.trim().toLowerCase();
@@ -107,14 +186,14 @@ export function CroquiVeiculo({
         Toque na parte do veículo onde está a avaria (frente para cima).
       </p>
       <svg
-        viewBox="0 0 200 356"
+        viewBox={viewBox}
         role="group"
         aria-label="Croqui do veículo visto de cima"
         className="mx-auto h-64 w-auto"
       >
-        {moto && (
+        {enfeite.length > 0 && (
           <g className="pointer-events-none fill-foreground/30">
-            {ENFEITE_MOTO.map((f, i) => (
+            {enfeite.map((f, i) => (
               <Forma key={i} f={f} />
             ))}
           </g>
@@ -139,9 +218,9 @@ export function CroquiVeiculo({
               }}
               className={cn(
                 "cursor-pointer outline-none [&>*]:transition-colors [&>*]:stroke-foreground/40 [&>*]:stroke-1",
-                z === "Rodas" ? "[&>*]:fill-foreground/70" : "[&>*]:fill-muted",
+                ESCURAS.has(z) ? "[&>*]:fill-foreground/70" : "[&>*]:fill-muted",
                 !desabilitado && "hover:[&>*]:fill-primary/30 focus-visible:[&>*]:stroke-primary",
-                n > 0 && z !== "Rodas" && "[&>*]:fill-destructive/20",
+                n > 0 && !ESCURAS.has(z) && "[&>*]:fill-destructive/20",
                 ativo && "[&>*]:fill-primary/40 [&>*]:stroke-primary [&>*]:stroke-2",
                 desabilitado && "cursor-default",
               )}
