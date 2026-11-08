@@ -7,7 +7,7 @@ type Forma =
   | { t: "circle"; cx: number; cy: number; r: number };
 
 /** Formas de cada local, vistas de cima, com a frente do carro para cima. Os nomes são os mesmos de locaisDeAvaria. */
-const FORMAS: Record<string, Forma[]> = {
+const FORMAS_CARRO: Record<string, Forma[]> = {
   Frente: [{ t: "rect", x: 52, y: 12, w: 96, h: 30, r: 14 }],
   Capô: [{ t: "path", d: "M52 46 H148 L142 112 H58 Z" }],
   "Para-brisa": [{ t: "path", d: "M58 116 H142 L134 146 H66 Z" }],
@@ -26,7 +26,7 @@ const FORMAS: Record<string, Forma[]> = {
 };
 
 /** Ponto onde fica o número de avarias de cada local. */
-const ROTULO: Record<string, [number, number]> = {
+const ROTULO_CARRO: Record<string, [number, number]> = {
   Frente: [100, 32],
   Capô: [100, 84],
   "Para-brisa": [100, 136],
@@ -38,6 +38,35 @@ const ROTULO: Record<string, [number, number]> = {
   "Lateral direita": [164, 190],
   Rodas: [28, 270],
 };
+
+const FORMAS_MOTO: Record<string, Forma[]> = {
+  Rodas: [
+    { t: "rect", x: 92, y: 14, w: 16, h: 50, r: 8 },
+    { t: "rect", x: 90, y: 290, w: 20, h: 56, r: 9 },
+  ],
+  Farol: [{ t: "rect", x: 87, y: 68, w: 26, h: 16, r: 7 }],
+  Carenagem: [{ t: "path", d: "M82 88 H118 L126 122 H74 Z" }],
+  Retrovisores: [
+    { t: "circle", cx: 52, cy: 100, r: 10 },
+    { t: "circle", cx: 148, cy: 100, r: 10 },
+  ],
+  Tanque: [{ t: "path", d: "M80 128 H120 L124 182 H76 Z" }],
+  Banco: [{ t: "rect", x: 78, y: 188, w: 44, h: 76, r: 16 }],
+  Escapamento: [{ t: "rect", x: 126, y: 226, w: 14, h: 84, r: 7 }],
+};
+
+const ROTULO_MOTO: Record<string, [number, number]> = {
+  Rodas: [100, 40],
+  Farol: [100, 80],
+  Carenagem: [100, 110],
+  Retrovisores: [52, 100],
+  Tanque: [100, 158],
+  Banco: [100, 232],
+  Escapamento: [133, 270],
+};
+
+/** Peças só de enfeite (não clicáveis), para o desenho parecer o veículo. */
+const ENFEITE_MOTO: Forma[] = [{ t: "rect", x: 56, y: 96, w: 88, h: 6, r: 3 }];
 
 function Forma({ f }: { f: Forma }) {
   if (f.t === "rect")
@@ -64,6 +93,9 @@ export function CroquiVeiculo({
   desabilitado?: boolean;
 }) {
   const zonas = zonasDoCroqui(tipo);
+  const moto = tipo === "moto";
+  const FORMAS = moto ? FORMAS_MOTO : FORMAS_CARRO;
+  const ROTULO = moto ? ROTULO_MOTO : ROTULO_CARRO;
   if (zonas.length === 0) return null;
   const contagem = contagemPorLocal(avarias);
   const alvo = selecionado.trim().toLowerCase();
@@ -80,6 +112,13 @@ export function CroquiVeiculo({
         aria-label="Croqui do veículo visto de cima"
         className="mx-auto h-64 w-auto"
       >
+        {moto && (
+          <g className="pointer-events-none fill-foreground/30">
+            {ENFEITE_MOTO.map((f, i) => (
+              <Forma key={i} f={f} />
+            ))}
+          </g>
+        )}
         {zonas.map((z) => {
           const ativo = alvo === z.toLowerCase();
           const n = contagem.get(z.toLowerCase()) ?? 0;
