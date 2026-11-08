@@ -6848,6 +6848,7 @@ export type Database = {
       }
       lr_fotos: {
         Row: {
+          avaria_id: string | null
           caminho: string
           cancelada_em: string | null
           cancelada_motivo: string | null
@@ -6865,6 +6866,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          avaria_id?: string | null
           caminho: string
           cancelada_em?: string | null
           cancelada_motivo?: string | null
@@ -6882,6 +6884,7 @@ export type Database = {
           tenant_id?: string
         }
         Update: {
+          avaria_id?: string | null
           caminho?: string
           cancelada_em?: string | null
           cancelada_motivo?: string | null
@@ -17124,6 +17127,7 @@ export type Database = {
       lr_foto_confirmar: { Args: { p_id: string }; Returns: undefined }
       lr_foto_preparar: {
         Args: {
+          p_avaria_id?: string
           p_mime: string
           p_momento: string
           p_nome_arquivo: string
