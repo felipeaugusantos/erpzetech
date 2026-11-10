@@ -152,6 +152,16 @@ describe("montarDadosRegra com perfil existente", () => {
     assert.equal(r.erros.length, 3);
     assert.ok(r.erros.some((e) => /Escolha o perfil/.test(e)));
   });
+  it("NCM que não consta na Tabela NCM vigente é recusado, nos dois modos de perfil", () => {
+    const a = montarDadosRegra(form({ ncm: "23091001" }));
+    assert.equal(a.dados, null);
+    assert.ok(a.erros.some((e) => /não consta na Tabela NCM/.test(e)));
+    const b = montarDadosRegra(
+      form({ ncm: "99999999", perfilModo: "novo", perfilId: "", perfilNome: "P", cfop: "5102" }),
+    );
+    assert.equal(b.dados, null);
+    assert.ok(b.erros.some((e) => /não consta na Tabela NCM/.test(e)));
+  });
   it("fim anterior ao início e observação longa", () => {
     const r = montarDadosRegra(form({ vigenciaFim: "2027-03-09", observacao: "x".repeat(501) }));
     assert.equal(r.dados, null);

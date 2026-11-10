@@ -185,6 +185,16 @@ describe("linha inválida", () => {
     assert.match(primeiro({ ncm: "2" }), /ímpar/);
     assert.match(primeiro({ ncm: "ab" }), /NCM deve ter/);
   });
+  it("NCM com formato certo que não consta na Tabela NCM vigente", () => {
+    assert.match(primeiro({ ncm: "23091001" }), /NCM 23091001 não consta na Tabela NCM vigente/);
+    assert.match(primeiro({ ncm: "99999999" }), /não consta na Tabela NCM/);
+    assert.match(primeiro({ ncm: "2399" }), /não consta na Tabela NCM/);
+    assert.equal(validarLinhaFiscal({ ...base, ncm: "23091001" }, 2).envio, null);
+    // o que existe continua passando, em qualquer dos 4 tamanhos
+    for (const ncm of ["23", "2309", "230910", "23091000"]) {
+      assert.deepEqual(erros({ ncm }), [], ncm);
+    }
+  });
   it("campos de critério", () => {
     assert.match(primeiro({ cest: "123" }), /CEST/);
     assert.match(primeiro({ operacao: "Venda 1" }), /Operação/);

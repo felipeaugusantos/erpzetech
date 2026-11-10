@@ -155,7 +155,12 @@ Banco (`supabase/ci/fiscal-regras.sql`):
      CST 10, 20, 30, 70, 90 e CSOSN 201, 202… viram aviso e não são aplicados. Regra que só traz o código do outro regime também vira aviso.
    - **O que a base define mas não é aplicado aqui:** PIS, COFINS, redução da base e MVA, que a nota calcula pela configuração de Impostos da empresa (não por produto), e IBS/CBS, que se aplica no cadastro do produto (PR 4).
    - **Limites desta versão:** a consulta usa a operação "venda", a data de hoje e nenhuma UF de destino (regras com UF não casam). Recálculo automático quando uma regra muda continua fora: é sempre uma consulta e uma aplicação explícitas.
-7. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
+7. **PR 7 (feito): Tabela NCM oficial como referência.** `scripts/gerar-tabela-ncm.py <Tabela_NCM_Vigente.xlsx>` gera `src/lib/ncm-tabela.ts` com os 10.516 NCMs de 8 dígitos vigentes (tabela de 10/11/2026, Resolução Gecex nº 926/2026), e `src/lib/ncm.ts` consulta (`ncmNaTabela`, aceita 2, 4, 6 ou 8 dígitos).
+   - **Onde vale:** a leitura da planilha de carga e o formulário de regra da empresa recusam NCM que não consta na tabela (`validarCriteriosFiscais`); o servidor da carga confere de novo antes de chamar o banco; o cadastro de produto **avisa** (não impede salvar) quando o NCM de 8 dígitos não consta.
+   - **Existir na tabela não diz nada sobre a tributação.** Só protege contra dígito trocado ou código inventado.
+   - **Manutenção:** a tabela muda por resolução da Gecex. Baixe a planilha nova e rode o script; ele avisa se a tabela tiver mais de 180 dias. A tabela vai num pacote separado (cerca de 21 KB gzip), carregado só quando há NCM completo para conferir.
+   - O banco **não** tem a tabela: ele só confere o formato; a conferência de existência é do aplicativo.
+8. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
 
 ## Pontos em aberto
 

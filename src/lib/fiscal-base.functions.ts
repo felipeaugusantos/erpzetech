@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { CampoFiscal } from "./fiscal-regras.ts";
+import { mensagemNcmInexistente, ncmNaTabela } from "./ncm.ts";
 import { LIMITE_LINHAS_FISCAL, type ResultadoCargaFiscal } from "./fiscal-importacao.ts";
 
 // Base fiscal global (plano em docs/parametrizacao-fiscal.md, PR 3): só a equipe Ze Tech lê e grava. As funções de banco são só de
@@ -42,6 +43,15 @@ async function rodarCarga(
   supabase: Parameters<typeof exigirOperador>[0],
 ): Promise<ResultadoCargaFiscal> {
   await exigirOperador(supabase);
+  // o navegador já conferiu, mas esta é a conferência que vale: NCM que não existe na Tabela NCM vigente não entra na base
+  const inexistentes = [
+    ...new Set(input.linhas.map((l) => String(l["ncm"] ?? "")).filter((n) => !ncmNaTabela(n))),
+  ];
+  if (inexistentes.length > 0) {
+    throw new Error(
+      `${mensagemNcmInexistente(inexistentes[0] ?? "")}${inexistentes.length > 1 ? ` (e mais ${inexistentes.length - 1})` : ""}.`,
+    );
+  }
   const rpc = await servico();
   const { data, error } = await rpc("fiscal_base_publicar", {
     p_linhas: input.linhas,

@@ -10,6 +10,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
 import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
+import { AvisoNcm } from "@/components/app/AvisoNcm";
 import { SugestaoFiscal } from "@/components/app/SugestaoFiscal";
 import { consultarGtin } from "@/lib/gtin.functions";
 import { gtinValido } from "@/lib/gtin";
@@ -707,6 +708,7 @@ function Produtos() {
                   value={form.ncm}
                   onChange={(e) => setForm({ ...form, ncm: e.target.value })}
                 />
+                <AvisoNcm ncm={form.ncm} />
               </div>
             </div>
 

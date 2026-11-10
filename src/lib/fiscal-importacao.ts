@@ -2,6 +2,7 @@
 // global. Lógica pura, sem tela nem banco. Roda no navegador para a pessoa corrigir a planilha antes de enviar; o banco confere tudo
 // de novo (fiscal_base_publicar), então esta leitura nunca é a única proteção.
 import { lerCsvNumerado, normalizar, type ErroImportacao } from "./importacao.ts";
+import { mensagemNcmInexistente, ncmNaTabela } from "./ncm.ts";
 
 export const LIMITE_LINHAS_FISCAL = 2000;
 
@@ -190,6 +191,10 @@ export function validarCriteriosFiscais(celulas: Partial<Record<ColunaFiscal, st
         ? "NCM com quantidade ímpar de dígitos: a planilha provavelmente tirou o zero à esquerda (ex.: 01012100). Formate a coluna como texto"
         : "NCM deve ter 2, 4, 6 ou 8 dígitos",
     );
+    ncm = "";
+  } else if (!ncmNaTabela(ncm)) {
+    // existe no formato, mas não na Tabela NCM vigente: dígito trocado ou código inventado
+    erros.push(mensagemNcmInexistente(ncm));
     ncm = "";
   }
 
