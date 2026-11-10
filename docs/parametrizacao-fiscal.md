@@ -143,7 +143,18 @@ Banco (`supabase/ci/fiscal-regras.sql`):
    - Encerrar só antecipa o fim e só vale para regra da própria empresa. Ocultar vale só para a empresa e some da sugestão dela; "Voltar a usar" desfaz.
    - Depois de qualquer mudança a sugestão do cadastro de produtos é recarregada (mesma chave por empresa). A tela valida o formulário no navegador com a mesma leitura da planilha de carga (`validarCriteriosFiscais`).
    - Continua valendo: **a emissão ainda não usa a base** (PR 6).
-6. **PR 6:** gravação da regra aplicada na nota e, depois, recálculo em massa.
+6. **PR 6 (feito, com o desenho mudado):** a base chega à nota **pelo produto**, na tela Fiscal (`/fiscal`), e a emissão não foi tocada.
+   - **Por que mudou:** a nota é gerada em funções SQL (`gerar_nfe_agrupada`, `nfe_calcular_impostos`) que leem CFOP, CST/CSOSN, alíquota e origem **do produto** e calculam os valores de imposto; a transmissão só formata
+     esses valores já calculados. Trocar CST ou CFOP na transmissão geraria nota inconsistente. Por isso a regra não é aplicada direto na emissão, e a nota **não** guarda o id da regra: o produto carrega o resultado
+     e as mudanças nele já são auditadas pelo gatilho de auditoria dos produtos.
+   - **O que existe:** painel "Sugestão da base fiscal" na tela Fiscal (`src/components/app/SugestaoBaseFiscal.tsx`, lógica em `src/lib/fiscal-lote.ts`) e a função `fiscal_sugerir_lote` (migração
+     `supabase/migrations/20270106000000_fiscal_sugerir_lote.sql`, a aplicar; teste `supabase/ci/fiscal-lote.sql`). Consulta os NCMs (e CEST) dos produtos da lista, até 300 por chamada, pela mesma precedência de `fiscal_sugerir`.
+   - **Nada é gravado pela consulta.** "Aplicar na lista" (todos) ou "Usar a sugestão" (um produto) só criam **edições em rascunho**, o mesmo caminho do "Aplicar padrão da loja"; quem grava é o botão Salvar que já existia.
+     Dois modos: "só preencher o que falta" (padrão) e "também trocar o que já está preenchido e é diferente".
+   - **O que a base aplica no produto:** CFOP, CST do ICMS (regime normal) ou CSOSN (Simples e MEI), alíquota de ICMS e origem. Só entram valores no formato certo **e que a emissão sabe formatar** (`icmsDoItem`: CST 00, 40, 41, 50, 51, 60; CSOSN 101, 102, 103, 300, 400, 500, 900);
+     CST 10, 20, 30, 70, 90 e CSOSN 201, 202… viram aviso e não são aplicados. Regra que só traz o código do outro regime também vira aviso.
+   - **O que a base define mas não é aplicado aqui:** PIS, COFINS, redução da base e MVA, que a nota calcula pela configuração de Impostos da empresa (não por produto), e IBS/CBS, que se aplica no cadastro do produto (PR 4).
+   - **Limites desta versão:** a consulta usa a operação "venda", a data de hoje e nenhuma UF de destino (regras com UF não casam). Recálculo automático quando uma regra muda continua fora: é sempre uma consulta e uma aplicação explícitas.
 7. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
 
 ## Pontos em aberto

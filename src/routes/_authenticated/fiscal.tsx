@@ -6,6 +6,17 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { num } from "@/lib/format";
+import { LinhaSugestaoBase, PainelSugestaoBase } from "@/components/app/SugestaoBaseFiscal";
+import {
+  consultasDosProdutos,
+  edicoesDoLote,
+  sugestaoDoProduto,
+  type LoteSugestoes,
+  type ModoAplicar,
+  type ProdutoParaSugestao,
+  type RegimeLote,
+} from "@/lib/fiscal-lote";
+import { consultarLoteFiscal } from "@/lib/fiscal-lote-dados";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,6 +109,12 @@ function Fiscal() {
   const [padraoCfop, setPadraoCfop] = useState("5102");
   const [padraoCst, setPadraoCst] = useState("102");
   const [padraoIcms, setPadraoIcms] = useState("0");
+
+  // sugestão da base fiscal: só consulta e prepara edições em rascunho; quem grava é o botão Salvar
+  const [lote, setLote] = useState<LoteSugestoes | null>(null);
+  const [modoBase, setModoBase] = useState<ModoAplicar>("faltantes");
+  const [consultandoBase, setConsultandoBase] = useState(false);
+  const [erroBase, setErroBase] = useState<string | null>(null);
 
   const { data: config } = useQuery({
     queryKey: ["fiscal-config"],
@@ -218,6 +235,42 @@ function Fiscal() {
   };
 
   const simples = (config?.regime_tributario ?? "simples").startsWith("simples");
+  const regimeBase: RegimeLote =
+    lote?.regime ??
+    (config?.regime_tributario === "mei"
+      ? "mei"
+      : (config?.regime_tributario ?? "simples").startsWith("simples")
+        ? "simples"
+        : "normal");
+  const ncmsNaLista = useMemo(() => consultasDosProdutos(lista).length, [lista]);
+  const previaBase = useMemo(
+    () => (lote ? edicoesDoLote(lista as ProdutoParaSugestao[], lote, modoBase) : null),
+    [lote, lista, modoBase],
+  );
+
+  async function consultarBase() {
+    setConsultandoBase(true);
+    setErroBase(null);
+    try {
+      setLote(await consultarLoteFiscal(lista));
+    } catch (e) {
+      setLote(null);
+      setErroBase((e as Error).message);
+    } finally {
+      setConsultandoBase(false);
+    }
+  }
+
+  const aplicarBase = () => {
+    const edicoesBase = previaBase?.edicoes;
+    if (!edicoesBase || Object.keys(edicoesBase).length === 0) return;
+    setEdicoes((atual) => {
+      const novo = { ...atual };
+      for (const [id, e] of Object.entries(edicoesBase)) novo[id] = { ...(novo[id] ?? {}), ...e };
+      return novo;
+    });
+    toast.info("Sugestões da base aplicadas na lista — confira e salve.");
+  };
   const opcoesTributacao = simples ? CSOSN : CST;
   const pendentesNota = (notas ?? []).filter((n) => (n.pendencias ?? []).length > 0).length;
 
@@ -321,6 +374,18 @@ function Fiscal() {
         </div>
       </div>
 
+      <PainelSugestaoBase
+        regime={regimeBase}
+        ncmsNaLista={ncmsNaLista}
+        modo={modoBase}
+        onModo={setModoBase}
+        consultando={consultandoBase}
+        erro={erroBase}
+        resumo={previaBase?.resumo ?? null}
+        onConsultar={() => void consultarBase()}
+        onAplicar={aplicarBase}
+      />
+
       <div className="panel mt-4 p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
@@ -378,6 +443,17 @@ function Fiscal() {
                         </Badge>
                       )}
                     </div>
+                    <LinhaSugestaoBase
+                      sugestao={sugestaoDoProduto(p, lote)}
+                      regime={regimeBase}
+                      produto={p}
+                      onUsar={(e) =>
+                        setEdicoes((atual) => ({
+                          ...atual,
+                          [p.id]: { ...(atual[p.id] ?? {}), ...e },
+                        }))
+                      }
+                    />
                   </TableCell>
                   <TableCell>
                     <Input
