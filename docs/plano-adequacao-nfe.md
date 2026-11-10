@@ -43,6 +43,8 @@ Complementa `docs/reforma-tributaria.md` (fases 1 a 7 de IBS/CBS); aqui entram t
 
 - Item 6 (CRT): `crtDoRegime` agora distingue Simples (1), Simples com excesso de sublimite (2), regime normal (3) e MEI (4); a emissão usava só 1 ou 3 (excesso e MEI saíam como 3). O ICMS do item passa a ser conferido contra o CRT: CSOSN de 3 dígitos no Simples e MEI, CST de 2 dígitos no CRT 2 e 3, com mensagem citando o produto (antes a Sefaz rejeitava). A tela de configuração fiscal em Notas fiscais passou a oferecer excesso de sublimite e MEI. Pendente: confirmar com o contador a regra do DIFAL e do IBS/CBS para o CRT 2.
 
+- Item 8 (valor aproximado dos tributos, Lei 12.741): feito (`src/lib/tributos-aprox.ts`, tabela `tributos_aprox_ncm`, tela Tributos (IBPT) em Notas fiscais). A empresa importa o CSV da IBPT da UF dela; o sistema não traz alíquotas. Na venda a consumidor final de finalidade normal, cada item leva `vTotTrib`, o total sai em `ICMSTot.vTotTrib` e o texto (valor, percentual, esferas e fonte) vai em `infCpl`. Só informa quando todos os itens têm alíquota vigente; senão envia sem a informação e avisa. Pendente: serviços (NBS/LC 116), NFC-e e conferir o texto com o contador.
+
 ## Rotina contínua
 - Acompanhar a página de Notas Técnicas e o Informe Técnico a cada publicação; abrir tarefa por mudança de layout/schema.
 - Cada item novo entra com teste (padrão de `tests/`) e, para tabela nova com RLS ou função chamável por `authenticated`, seguir as regras de migração do `AGENTS.md`.

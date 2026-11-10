@@ -234,6 +234,7 @@ const TABELAS_COM_TENANT = [
   "tef_transacoes",
   "transferencia_itens",
   "transferencias",
+  "tributos_aprox_ncm",
   "user_roles",
   "veiculos",
   "vendedor_comissao_regras",

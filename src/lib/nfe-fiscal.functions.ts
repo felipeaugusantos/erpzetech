@@ -12,6 +12,14 @@ import {
   totaisIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
+import {
+  regraVigente,
+  somarTributos,
+  textoTributos,
+  tributosDoItem,
+  type RegraTributos,
+  type TributosItem,
+} from "./tributos-aprox.ts";
 import { erroIcmsCrt } from "./crt.ts";
 import { calcularDifal, exigeDifal, type RegraUf, type ResultadoDifal } from "./difal.ts";
 import { grupoPisCofins } from "./pis-cofins.ts";
@@ -428,6 +436,51 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           metodo: regra.metodo,
         };
     }
+    // Valor aproximado dos tributos (Lei 12.741): só em venda a consumidor final de finalidade normal e só quando
+    // TODOS os itens têm alíquota vigente na tabela da IBPT importada pela empresa; informação parcial seria um total
+    // errado, então nesse caso nada é enviado e a emissão segue com um aviso.
+    let tributosAtivos = false;
+    let avisoTributos: string | null = null;
+    const regrasTrib = new Map<string, RegraTributos>();
+    const itensTrib: { valor: number; t: TributosItem }[] = [];
+    if (indFinal === 1 && finalidadeNota === 1) {
+      const ncmsDaNota: string[] = [
+        ...new Set<string>(
+          itens
+            .map((i: any) => String(so(i.ncm ?? i.produtos?.ncm)))
+            .filter((n: string) => n.length === 8),
+        ),
+      ];
+      if (ncmsDaNota.length > 0) {
+        const hojeIso = agora.toISOString().slice(0, 10);
+        const { data: regras, error: erroTrib } = await (supabase as any)
+          .from("tributos_aprox_ncm")
+          .select(
+            "ncm, aliq_nacional_federal, aliq_importado_federal, aliq_estadual, aliq_municipal, vigencia_fim, versao, fonte",
+          )
+          .eq("tenant_id", nota.tenant_id)
+          .in("ncm", ncmsDaNota);
+        if (erroTrib) throw erroTrib;
+        for (const r of (regras ?? []) as any[]) {
+          const regra: RegraTributos = {
+            ncm: r.ncm,
+            aliq_nacional_federal: Number(r.aliq_nacional_federal),
+            aliq_importado_federal: Number(r.aliq_importado_federal),
+            aliq_estadual: Number(r.aliq_estadual),
+            aliq_municipal: Number(r.aliq_municipal),
+            vigencia_fim: r.vigencia_fim,
+            versao: r.versao,
+            fonte: r.fonte,
+          };
+          if (regraVigente(regra, hojeIso)) regrasTrib.set(r.ncm, regra);
+        }
+        const semRegra = ncmsDaNota.filter((n: string) => !regrasTrib.has(n));
+        tributosAtivos = semRegra.length === 0;
+        if (!tributosAtivos) {
+          avisoTributos = `Valor aproximado dos tributos não informado: sem alíquota vigente da IBPT para o NCM ${semRegra.slice(0, 5).join(", ")}${semRegra.length > 5 ? "…" : ""}. Importe a tabela em Notas fiscais > Tributos (IBPT).`;
+        }
+      }
+    }
     let totalDifal = 0;
     let totalFcpDest = 0;
     let totalPis = 0;
@@ -504,6 +557,11 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       if (ncm.length !== 8) {
         throw new Error(`NCM inválido no produto ${item.descricao}. Corrija o NCM no cadastro.`);
       }
+      let tributosItem: TributosItem | null = null;
+      if (tributosAtivos) {
+        tributosItem = tributosDoItem(totalItem, origem, regrasTrib.get(ncm)!);
+        itensTrib.push({ valor: totalItem, t: tributosItem });
+      }
       const cfop = devolucao
         ? cfopDevolucaoVenda(item.cfop, interestadual)
         : devolucaoCompra
@@ -561,6 +619,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         imposto: {
           ICMS: icms,
           ...(difal ? { ICMSUFDest: difal.grupo } : {}),
+          ...(tributosItem ? { vTotTrib: tributosItem.total } : {}),
           PIS: pis.grupo,
           COFINS: cofins.grupo,
           ...(ibsCbs ? { IBSCBS: ibsCbs } : {}),
@@ -579,6 +638,18 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       .maybeSingle();
     if (erroContingencia) throw erroContingencia;
     const emissao = identEmissao(contingenciaAberta ?? null, ufEmit);
+
+    const totaisTrib = somarTributos(itensTrib);
+    const regraDeReferencia = [...regrasTrib.values()][0];
+    const textoTrib = tributosAtivos
+      ? textoTributos(totaisTrib, regraDeReferencia?.fonte || "IBPT", regraDeReferencia?.versao)
+      : null;
+    const infCpl = [
+      cfg.informacoes_complementares ? String(cfg.informacoes_complementares).slice(0, 500) : null,
+      textoTrib,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     const { data: pedidosDaNota } = await supabase
       .from("nfe_pedidos")
@@ -654,6 +725,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             vFCPUFDest: num(totalFcpDest),
             vICMSUFDest: num(totalDifal),
             vICMSUFRemet: 0,
+            ...(tributosAtivos ? { vTotTrib: totaisTrib.total } : {}),
             vProd: valorProdutos,
             vFrete: valorFrete,
             vSeg: 0,
@@ -690,9 +762,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
               },
             }
           : {}),
-        ...(cfg.informacoes_complementares
-          ? { infAdic: { infCpl: String(cfg.informacoes_complementares).slice(0, 500) } }
-          : {}),
+        ...(infCpl ? { infAdic: { infCpl: infCpl.slice(0, 2000) } } : {}),
       },
     };
 
@@ -724,6 +794,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         status: status || "pendente",
         chave: retorno?.chave ?? null,
         mensagem: erroGravar ? `${mensagem ?? ""}${AVISO_SEM_GRAVAR}` : mensagem,
+        aviso: avisoTributos,
       };
     } catch (erro) {
       const mensagem = erro instanceof Error ? erro.message : "Falha ao transmitir a nota";

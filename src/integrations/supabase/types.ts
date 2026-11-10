@@ -15590,6 +15590,48 @@ export type Database = {
           },
         ]
       }
+      tributos_aprox_ncm: {
+        Row: {
+          aliq_estadual: number
+          aliq_importado_federal: number
+          aliq_municipal: number
+          aliq_nacional_federal: number
+          atualizado_em: string
+          fonte: string | null
+          id: string
+          ncm: string
+          tenant_id: string
+          versao: string | null
+          vigencia_fim: string | null
+        }
+        Insert: {
+          aliq_estadual: number
+          aliq_importado_federal: number
+          aliq_municipal: number
+          aliq_nacional_federal: number
+          atualizado_em?: string
+          fonte?: string | null
+          id?: string
+          ncm: string
+          tenant_id: string
+          versao?: string | null
+          vigencia_fim?: string | null
+        }
+        Update: {
+          aliq_estadual?: number
+          aliq_importado_federal?: number
+          aliq_municipal?: number
+          aliq_nacional_federal?: number
+          atualizado_em?: string
+          fonte?: string | null
+          id?: string
+          ncm?: string
+          tenant_id?: string
+          versao?: string | null
+          vigencia_fim?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -17809,6 +17851,10 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
+      }
+      tributos_aprox_importar: {
+        Args: { p_linhas: Json }
+        Returns: number
       }
       icms_uf_destino_salvar: {
         Args: { p_aliquota_interna: number; p_fcp: number; p_metodo: string; p_uf: string }

@@ -155,12 +155,16 @@ function PedidoDetalhe() {
 
   const enviarSefaz = useMutation({
     mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
-    onSuccess: async (r: { status: string; mensagem: string | null }, nfeId) => {
+    onSuccess: async (
+      r: { status: string; mensagem: string | null; aviso?: string | null },
+      nfeId,
+    ) => {
       if (r.status === "autorizado" || r.status === "autorizada") {
         toast.success("Nota autorizada pela Receita");
       } else {
         toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
       }
+      if (r.aviso) toast.warning(r.aviso);
       await recarregarNota(nfeId);
     },
     onError: (e: Error) => toast.error(e.message),

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
 import { AliquotasDifal } from "@/components/app/AliquotasDifal";
 import { ContingenciaNfe } from "@/components/app/ContingenciaNfe";
+import { TributosAprox } from "@/components/app/TributosAprox";
 import { NotaComplementar } from "@/components/app/NotaComplementar";
 import { InutilizarNumeracao } from "@/components/app/InutilizarNumeracao";
 import {
@@ -137,12 +138,13 @@ function Nfe() {
 
   const enviarSefaz = useMutation({
     mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
-    onSuccess: (r: { status: string; mensagem: string | null }) => {
+    onSuccess: (r: { status: string; mensagem: string | null; aviso?: string | null }) => {
       if (r.status === "autorizado" || r.status === "autorizada") {
         toast.success("Nota autorizada pela Receita");
       } else {
         toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
       }
+      if (r.aviso) toast.warning(r.aviso);
       qc.invalidateQueries({ queryKey: ["nfe"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -396,6 +398,7 @@ function Nfe() {
           <div className="flex flex-wrap gap-2">
             <ContingenciaNfe />
             <AliquotasDifal />
+            <TributosAprox />
             <InutilizarNumeracao />
             <Button variant="outline" size="sm" onClick={() => setAbrirConfig(true)}>
               <Settings2 className="mr-2 size-4" />
