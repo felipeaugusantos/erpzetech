@@ -95,6 +95,7 @@ const TABELAS_COM_TENANT = [
   "hs_tarifas",
   "hs_tipos_uh",
   "hs_uhs",
+  "icms_uf_destino",
   "importacoes",
   "inventario_itens",
   "inventarios",

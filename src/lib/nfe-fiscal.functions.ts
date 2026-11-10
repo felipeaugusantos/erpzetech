@@ -12,6 +12,7 @@ import {
   totaisIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
+import { calcularDifal, exigeDifal, type RegraUf, type ResultadoDifal } from "./difal.ts";
 import { grupoPisCofins } from "./pis-cofins.ts";
 import { chaveDaOrigemAjuste, ideAjuste } from "./nfe-ajuste.ts";
 import {
@@ -394,6 +395,40 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       }
     }
 
+    // DIFAL/FCP: venda interestadual a consumidor final não contribuinte, regime normal, ICMS integral. A alíquota
+    // interna, o FCP e o método vêm do cadastro da empresa (icms_uf_destino); sem ele a emissão é recusada.
+    const crtNota = cfg.regime_tributario === "simples" ? 1 : 3;
+    const indFinal = pj ? 0 : 1;
+    const ieDest = String(cliente.inscricao_estadual ?? "")
+      .trim()
+      .toUpperCase();
+    const indIEDest = pj && so(ieDest) ? 1 : pj && ieDest === "ISENTO" ? 2 : 9;
+    const finalidadeNota =
+      devolucao || devolucaoCompra ? 4 : chaveComplementada ? 2 : chaveAjustada ? 3 : 1;
+    let regraUf: RegraUf | null = null;
+    if (
+      interestadual &&
+      indFinal === 1 &&
+      indIEDest === 9 &&
+      finalidadeNota === 1 &&
+      crtNota === 3
+    ) {
+      const { data: regra, error: erroRegra } = await (supabase as any)
+        .from("icms_uf_destino")
+        .select("aliquota_interna, fcp, metodo")
+        .eq("tenant_id", nota.tenant_id)
+        .eq("uf", ufDest)
+        .maybeSingle();
+      if (erroRegra) throw erroRegra;
+      if (regra)
+        regraUf = {
+          aliquota_interna: Number(regra.aliquota_interna),
+          fcp: Number(regra.fcp),
+          metodo: regra.metodo,
+        };
+    }
+    let totalDifal = 0;
+    let totalFcpDest = 0;
     let totalPis = 0;
     let totalCofins = 0;
     const det = itens.map((item: any, indice: number) => {
@@ -428,6 +463,39 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       totalPis += pis.valor;
       totalCofins += cofins.valor;
       const origem = Number(item.produtos?.origem_mercadoria ?? 0) || 0;
+      const icms = icmsDoItem(
+        item.cst_csosn,
+        origem,
+        num(quantidade * unitario),
+        num(item.aliquota_icms ?? item.produtos?.aliquota_icms ?? 0),
+        {
+          vBC: num(item.base_icms),
+          vICMS: num(item.valor_icms),
+          vBCST: num(item.base_icms_st),
+          vST: num(item.valor_icms_st),
+        },
+      );
+      let difal: ResultadoDifal | null = null;
+      if (
+        exigeDifal({
+          interestadual,
+          indFinal,
+          indIEDest,
+          finalidade: finalidadeNota,
+          crt: crtNota,
+          grupoIcms: Object.keys(icms)[0] ?? "",
+        })
+      ) {
+        if (!regraUf) {
+          throw new Error(
+            `Venda interestadual a consumidor final exige DIFAL: cadastre a alíquota interna, o FCP e o método da UF ${ufDest} em Notas fiscais > DIFAL / FCP.`,
+          );
+        }
+        const c = (icms as any)["ICMS00"];
+        difal = calcularDifal({ base: Number(c.vBC), aliqInter: Number(c.pICMS), regra: regraUf });
+        totalDifal += difal.vICMSUFDest;
+        totalFcpDest += difal.vFCPUFDest;
+      }
       const ncm = so(item.ncm ?? item.produtos?.ncm);
       if (ncm.length !== 8) {
         throw new Error(`NCM inválido no produto ${item.descricao}. Corrija o NCM no cadastro.`);
@@ -487,18 +555,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           indTot: 1,
         },
         imposto: {
-          ICMS: icmsDoItem(
-            item.cst_csosn,
-            origem,
-            num(quantidade * unitario),
-            num(item.aliquota_icms ?? item.produtos?.aliquota_icms ?? 0),
-            {
-              vBC: num(item.base_icms),
-              vICMS: num(item.valor_icms),
-              vBCST: num(item.base_icms_st),
-              vST: num(item.valor_icms_st),
-            },
-          ),
+          ICMS: icms,
+          ...(difal ? { ICMSUFDest: difal.grupo } : {}),
           PIS: pis.grupo,
           COFINS: cofins.grupo,
           ...(ibsCbs ? { IBSCBS: ibsCbs } : {}),
@@ -542,7 +600,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           ...emissao,
           tpAmb: ambiente === "producao" ? 1 : 2,
           finNFe: 1,
-          indFinal: pj ? 0 : 1,
+          indFinal,
           indPres: 1,
           procEmi: 0,
           verProc: "ERP Ze Tech 1.0",
@@ -555,7 +613,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           CNPJ: cnpjEmitente,
           xNome: String(empresa.razao_social ?? "").slice(0, 60),
           IE: so(empresa.inscricao_estadual),
-          CRT: cfg.regime_tributario === "simples" ? 1 : 3,
+          CRT: crtNota,
         },
         dest: {
           ...(pj ? { CNPJ: docCliente } : { CPF: docCliente }),
@@ -574,15 +632,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             ...(so(cliente.cep).length === 8 ? { CEP: so(cliente.cep) } : {}),
             ...(so(cliente.telefone) ? { fone: so(cliente.telefone).slice(0, 14) } : {}),
           },
-          indIEDest:
-            pj && so(cliente.inscricao_estadual)
-              ? 1
-              : pj &&
-                  String(cliente.inscricao_estadual ?? "")
-                    .trim()
-                    .toUpperCase() === "ISENTO"
-                ? 2
-                : 9,
+          indIEDest,
           ...(pj && so(cliente.inscricao_estadual) ? { IE: so(cliente.inscricao_estadual) } : {}),
           ...(cliente.email ? { email: String(cliente.email).slice(0, 60) } : {}),
         },
@@ -597,6 +647,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             vST: num(nota.valor_icms_st),
             vFCPST: 0,
             vFCPSTRet: 0,
+            vFCPUFDest: num(totalFcpDest),
+            vICMSUFDest: num(totalDifal),
+            vICMSUFRemet: 0,
             vProd: valorProdutos,
             vFrete: valorFrete,
             vSeg: 0,

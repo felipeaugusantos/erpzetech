@@ -5754,6 +5754,39 @@ export type Database = {
           },
         ]
       }
+      icms_uf_destino: {
+        Row: {
+          aliquota_interna: number
+          atualizado_em: string
+          atualizado_por: string | null
+          fcp: number
+          id: string
+          metodo: string
+          tenant_id: string
+          uf: string
+        }
+        Insert: {
+          aliquota_interna: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          fcp?: number
+          id?: string
+          metodo: string
+          tenant_id: string
+          uf: string
+        }
+        Update: {
+          aliquota_interna?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          fcp?: number
+          id?: string
+          metodo?: string
+          tenant_id?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       importacoes: {
         Row: {
           arquivo: string | null
@@ -17776,6 +17809,10 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
+      }
+      icms_uf_destino_salvar: {
+        Args: { p_aliquota_interna: number; p_fcp: number; p_metodo: string; p_uf: string }
+        Returns: undefined
       }
       nfe_ajuste_gerar: {
         Args: { p_itens: Json; p_motivo: string; p_nfe_id: string }

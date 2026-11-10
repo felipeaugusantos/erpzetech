@@ -16,6 +16,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
+import { AliquotasDifal } from "@/components/app/AliquotasDifal";
 import { ContingenciaNfe } from "@/components/app/ContingenciaNfe";
 import { NotaComplementar } from "@/components/app/NotaComplementar";
 import { InutilizarNumeracao } from "@/components/app/InutilizarNumeracao";
@@ -394,6 +395,7 @@ function Nfe() {
         actions={
           <div className="flex flex-wrap gap-2">
             <ContingenciaNfe />
+            <AliquotasDifal />
             <InutilizarNumeracao />
             <Button variant="outline" size="sm" onClick={() => setAbrirConfig(true)}>
               <Settings2 className="mr-2 size-4" />

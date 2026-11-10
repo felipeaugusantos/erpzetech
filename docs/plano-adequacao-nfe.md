@@ -39,6 +39,8 @@ Complementa `docs/reforma-tributaria.md` (fases 1 a 7 de IBS/CBS); aqui entram t
 
 - Item 4 (PIS/COFINS): o grupo do XML agora segue o CST (`src/lib/pis-cofins.ts`): 01/02 em `PISAliq`/`COFINSAliq`, 04 a 09 em `PISNT`/`COFINSNT` (valor 0), 49, 50 a 56, 60 a 67, 70 a 75, 98 e 99 em `PISOutr`/`COFINSOutr`. CST inválido ou 03 (alíquota por unidade) é recusado com o motivo. Os totais `vPIS`/`vCOFINS` da nota somam o que cada item leva. Continua dependendo do contador: qual CST e alíquota cada regime usa, e se a base exclui o ICMS (hoje a base é o total do item).
 
+- Item 7 (DIFAL/FCP): feito para regime normal, venda interestadual a consumidor final não contribuinte, item com ICMS integral (`src/lib/difal.ts`, tabela `icms_uf_destino`, tela DIFAL / FCP em Notas fiscais). Alíquota interna, FCP e método (base única ou dupla) são cadastrados pela empresa por UF de destino: não há valor pronto no sistema, e sem o cadastro a emissão é recusada. Grupo `ICMSUFDest` por item e `vFCPUFDest`/`vICMSUFDest`/`vICMSUFRemet` nos totais, partilha 100% para o destino. Pendente: Simples Nacional, ICMS com ST ou outros CSTs, e validar as fórmulas com o contador e a SEFAZ.
+
 ## Rotina contínua
 - Acompanhar a página de Notas Técnicas e o Informe Técnico a cada publicação; abrir tarefa por mudança de layout/schema.
 - Cada item novo entra com teste (padrão de `tests/`) e, para tabela nova com RLS ou função chamável por `authenticated`, seguir as regras de migração do `AGENTS.md`.
