@@ -13,6 +13,14 @@ import {
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
+import {
+  MAX_CARTAS_POR_NOTA,
+  anoDaInutilizacao,
+  notasQueImpedemInutilizacao,
+  situacaoDoEvento,
+  validarCorrecao,
+  validarInutilizacao,
+} from "./nfe-eventos.ts";
 
 /**
  * Emissão real de NF-e: monta o pedido de emissão, transmite à Sefaz pelo emissor
@@ -654,4 +662,294 @@ export const statusEmissor = createServerFn({ method: "POST" })
         certificados: [] as { nome: string; validade: string }[],
       };
     }
+  });
+
+// ============ EVENTOS: carta de correção e inutilização ============
+
+async function exigirPapel(supabase: any, userId: string, papeis: string[], mensagem: string) {
+  const respostas = await Promise.all(
+    papeis.map((r) => supabase.rpc("has_role", { _user_id: userId, _role: r })),
+  );
+  if (!respostas.some((r: any) => r.data === true)) throw new Error(mensagem);
+}
+
+async function gravarEvento(id: string, tenantId: string, patch: Record<string, unknown>) {
+  const supabaseAdmin: any = (await import("@/integrations/supabase/client.server")).supabaseAdmin; // nfe_eventos ainda não está nos tipos gerados
+  const { error } = await supabaseAdmin
+    .from("nfe_eventos")
+    .update(patch as never)
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  return error ? error.message : null;
+}
+
+/** Campos que o sistema guarda do retorno do emissor para um evento. */
+function retornoDoEvento(retorno: any) {
+  return {
+    situacao: situacaoDoEvento(retorno?.status),
+    provider_id: retorno?.id ? String(retorno.id) : null,
+    protocolo: retorno?.numero_protocolo ?? null,
+    mensagem: retorno?.motivo_status ?? retorno?.mensagem ?? null,
+    retorno,
+  };
+}
+
+/**
+ * Carta de correção (CC-e) de nota autorizada. Não corrige valores, impostos, destinatário nem data de
+ * emissão: isso a Sefaz não aceita e o sistema só conta o texto, quem conhece a regra é a tela e o contador.
+ */
+export const corrigirNfeSefaz = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { nfeId: string; correcao: string }) => {
+    if (!input?.nfeId) throw new Error("Nota fiscal não informada");
+    return { nfeId: input.nfeId, correcao: validarCorrecao(input.correcao) };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    const { acbr } = await import("./acbr.server");
+    const supabaseAdmin: any = (await import("@/integrations/supabase/client.server"))
+      .supabaseAdmin; // nfe_eventos ainda não está nos tipos gerados
+
+    await exigirPapel(
+      supabase,
+      userId,
+      ["administrador", "gestor", "financeiro"],
+      "Somente administrador, gestor ou financeiro pode enviar carta de correção.",
+    );
+    const nota = await carregarNota(supabase, data.nfeId, userId);
+    if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada à Receita.");
+    if (nota.situacao !== "autorizada")
+      throw new Error("Só nota autorizada aceita carta de correção.");
+    const ambiente = ambienteDe(nota.ambiente);
+
+    const { data: existentes, error: erroLista } = await supabaseAdmin
+      .from("nfe_eventos")
+      .select("sequencia, situacao")
+      .eq("tenant_id", nota.tenant_id)
+      .eq("nfe_id", nota.id)
+      .eq("tipo", "carta_correcao")
+      .in("situacao", ["pendente", "registrado"]);
+    if (erroLista) throw erroLista;
+    const lista = (existentes ?? []) as { sequencia: number; situacao: string }[];
+    if (lista.some((e) => e.situacao === "pendente"))
+      throw new Error(
+        "Há uma carta de correção em andamento nesta nota. Atualize a situação antes de enviar outra.",
+      );
+    const sequencia = Math.max(0, ...lista.map((e) => e.sequencia)) + 1;
+    if (sequencia > MAX_CARTAS_POR_NOTA)
+      throw new Error(
+        `A Sefaz aceita no máximo ${MAX_CARTAS_POR_NOTA} cartas de correção por nota.`,
+      );
+
+    // reserva a vaga antes de chamar a Sefaz: o índice único impede duas cartas ao mesmo tempo
+    const { data: criado, error: erroCriar } = await supabaseAdmin
+      .from("nfe_eventos")
+      .insert({
+        tenant_id: nota.tenant_id,
+        empresa_id: nota.empresa_id,
+        tipo: "carta_correcao",
+        nfe_id: nota.id,
+        sequencia,
+        texto: data.correcao,
+        ambiente,
+        usuario_id: userId,
+      } as never)
+      .select("id")
+      .single();
+    if (erroCriar || !criado)
+      throw new Error("Não foi possível registrar a carta de correção. Tente de novo.");
+    const eventoId = (criado as { id: string }).id;
+
+    try {
+      const retorno = await acbr<any>(ambiente, `/nfe/${nota.provider_id}/carta-correcao`, {
+        method: "POST",
+        body: { correcao: data.correcao },
+      });
+      const campos = retornoDoEvento(retorno);
+      const erroGravar = await gravarEvento(eventoId, nota.tenant_id, campos);
+      return {
+        ok: campos.situacao === "registrado",
+        situacao: campos.situacao,
+        mensagem: erroGravar ? `${campos.mensagem ?? ""}${AVISO_SEM_GRAVAR}` : campos.mensagem,
+      };
+    } catch (erro) {
+      const mensagem = erro instanceof Error ? erro.message : "Falha ao enviar a carta de correção";
+      const detalhe = (erro as Error & { detalhe?: unknown }).detalhe ?? null;
+      await gravarEvento(eventoId, nota.tenant_id, {
+        situacao: "erro",
+        mensagem,
+        ...(detalhe ? { retorno: detalhe } : {}),
+      });
+      throw new Error(mensagem);
+    }
+  });
+
+/** Inutilização de uma faixa de numeração que nunca foi usada em nota. Só administrador ou gestor. */
+export const inutilizarNumeracaoNfe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { serie: number; numeroInicial: number; numeroFinal: number; justificativa: string }) =>
+      validarInutilizacao(input ?? ({} as never)),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    const { acbr } = await import("./acbr.server");
+    const supabaseAdmin: any = (await import("@/integrations/supabase/client.server"))
+      .supabaseAdmin; // nfe_eventos ainda não está nos tipos gerados
+
+    await exigirPapel(
+      supabase,
+      userId,
+      ["administrador", "gestor"],
+      "Somente administrador ou gestor pode inutilizar numeração.",
+    );
+    const { tenantId, empresaId } = await exigirPapelFiscal(supabase, userId);
+    if (!empresaId) throw new Error("Seu perfil não está vinculado a uma empresa emitente.");
+
+    const [{ data: empresa }, { data: cfgs }] = await Promise.all([
+      supabase.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle(),
+      supabase.from("fiscal_config").select("*").eq("tenant_id", tenantId),
+    ]);
+    const cnpj = limparDocumento(String(empresa?.cnpj ?? ""));
+    if (!cnpjAlfaValido(cnpj)) throw new Error("CNPJ da empresa emitente inválido ou ausente.");
+    const cfg = (cfgs ?? []).find((c: any) => c.empresa_id === empresaId) ?? (cfgs ?? [])[0];
+    if (!cfg)
+      throw new Error("Configuração fiscal não encontrada. Preencha a configuração fiscal.");
+    const ambiente = ambienteDe(cfg.ambiente);
+
+    // número que já virou nota na Sefaz não se inutiliza: o caminho é o cancelamento
+    const { data: notas, error: erroNotas } = await supabase
+      .from("nfe")
+      .select("numero, situacao")
+      .eq("tenant_id", tenantId)
+      .eq("empresa_id", empresaId)
+      .eq("serie", data.serie)
+      .eq("ambiente", ambiente)
+      .gte("numero", data.numeroInicial)
+      .lte("numero", data.numeroFinal);
+    if (erroNotas) throw erroNotas;
+    const impedem = notasQueImpedemInutilizacao(
+      (notas ?? []) as { numero: number | null; situacao: string }[],
+      data.numeroInicial,
+      data.numeroFinal,
+    );
+    if (impedem.length > 0) {
+      throw new Error(
+        `Já existe nota com estes números (${impedem
+          .slice(0, 5)
+          .map((n) => n.numero)
+          .join(
+            ", ",
+          )}${impedem.length > 5 ? "…" : ""}). Número de nota emitida não se inutiliza; cancele a nota.`,
+      );
+    }
+
+    // faixa que já foi inutilizada (ou está sendo) na mesma série
+    const { data: anteriores, error: erroAnteriores } = await supabaseAdmin
+      .from("nfe_eventos")
+      .select("numero_inicial, numero_final")
+      .eq("tenant_id", tenantId)
+      .eq("empresa_id", empresaId)
+      .eq("tipo", "inutilizacao")
+      .eq("serie", data.serie)
+      .eq("ambiente", ambiente)
+      .in("situacao", ["pendente", "registrado"]);
+    if (erroAnteriores) throw erroAnteriores;
+    const sobrepoe = (
+      (anteriores ?? []) as { numero_inicial: number; numero_final: number }[]
+    ).some((a) => a.numero_inicial <= data.numeroFinal && a.numero_final >= data.numeroInicial);
+    if (sobrepoe) throw new Error("Parte desta faixa já foi inutilizada ou está em andamento.");
+
+    const ano = anoDaInutilizacao();
+    const { data: criado, error: erroCriar } = await supabaseAdmin
+      .from("nfe_eventos")
+      .insert({
+        tenant_id: tenantId,
+        empresa_id: empresaId,
+        tipo: "inutilizacao",
+        texto: data.justificativa,
+        serie: data.serie,
+        numero_inicial: data.numeroInicial,
+        numero_final: data.numeroFinal,
+        ano,
+        ambiente,
+        usuario_id: userId,
+      } as never)
+      .select("id")
+      .single();
+    if (erroCriar || !criado)
+      throw new Error("Não foi possível registrar a inutilização. Tente de novo.");
+    const eventoId = (criado as { id: string }).id;
+
+    try {
+      const retorno = await acbr<any>(ambiente, "/nfe/inutilizacoes", {
+        method: "POST",
+        body: {
+          ambiente,
+          cnpj,
+          ano,
+          serie: data.serie,
+          numero_inicial: data.numeroInicial,
+          numero_final: data.numeroFinal,
+          justificativa: data.justificativa,
+        },
+      });
+      const campos = retornoDoEvento(retorno);
+      const erroGravar = await gravarEvento(eventoId, tenantId, campos);
+      return {
+        ok: campos.situacao === "registrado",
+        situacao: campos.situacao,
+        mensagem: erroGravar ? `${campos.mensagem ?? ""}${AVISO_SEM_GRAVAR}` : campos.mensagem,
+      };
+    } catch (erro) {
+      const mensagem = erro instanceof Error ? erro.message : "Falha ao inutilizar a numeração";
+      const detalhe = (erro as Error & { detalhe?: unknown }).detalhe ?? null;
+      await gravarEvento(eventoId, tenantId, {
+        situacao: "erro",
+        mensagem,
+        ...(detalhe ? { retorno: detalhe } : {}),
+      });
+      throw new Error(mensagem);
+    }
+  });
+
+/** Atualiza um evento que ficou pendente (carta de correção ou inutilização) com o que a Sefaz já registrou. */
+export const consultarEventoNfe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { eventoId: string }) => {
+    if (!input?.eventoId) throw new Error("Evento não informado");
+    return { eventoId: input.eventoId };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    const { acbr } = await import("./acbr.server");
+    const { tenantId } = await exigirPapelFiscal(supabase, userId);
+
+    const { data: evento, error } = await (supabase as any)
+      .from("nfe_eventos")
+      .select("id, tenant_id, tipo, nfe_id, situacao, provider_id, ambiente")
+      .eq("id", data.eventoId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!evento || evento.tenant_id !== tenantId) throw new Error("Evento não encontrado");
+    if (evento.situacao !== "pendente") return { ok: true, situacao: evento.situacao as string };
+    const ambiente = ambienteDe(evento.ambiente);
+
+    let caminho: string;
+    if (evento.tipo === "carta_correcao") {
+      const nota = await carregarNota(supabase, evento.nfe_id, userId);
+      if (!nota.provider_id) throw new Error("Esta nota ainda não foi enviada à Receita.");
+      caminho = `/nfe/${nota.provider_id}/carta-correcao`;
+    } else {
+      if (!evento.provider_id) throw new Error("A inutilização ainda não tem número no emissor.");
+      caminho = `/nfe/inutilizacoes/${evento.provider_id}`;
+    }
+    const retorno = await acbr<any>(ambiente, caminho);
+    const campos = retornoDoEvento(retorno);
+    const erroGravar = await gravarEvento(evento.id, tenantId, {
+      ...campos,
+      provider_id: campos.provider_id ?? evento.provider_id,
+    });
+    if (erroGravar) throw new Error(`Não foi possível gravar o retorno do evento: ${erroGravar}.`);
+    return { ok: true, situacao: campos.situacao as string };
   });

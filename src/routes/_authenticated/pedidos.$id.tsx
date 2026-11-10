@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   arquivosNfe,
   cancelarNfeSefaz,
+  corrigirNfeSefaz,
   consultarNfe,
   transmitirNfe,
 } from "@/lib/nfe-fiscal.functions";
@@ -117,6 +118,9 @@ function PedidoDetalhe() {
   const transmitir = useServerFn(transmitirNfe);
   const consultar = useServerFn(consultarNfe);
   const cancelarSefaz = useServerFn(cancelarNfeSefaz);
+  const corrigirSefaz = useServerFn(corrigirNfeSefaz);
+  const [cartaOpen, setCartaOpen] = useState(false);
+  const [correcao, setCorrecao] = useState("");
   const pegarArquivos = useServerFn(arquivosNfe);
 
   const { data: notaDoPedido } = useQuery({
@@ -176,6 +180,23 @@ function PedidoDetalhe() {
       toast.success("Nota cancelada na Receita");
       setJustificativa("");
       await recarregarNota(nfeId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const enviarCarta = useMutation({
+    mutationFn: async (nfeId: string) => corrigirSefaz({ data: { nfeId, correcao } }),
+    onSuccess: (r: { ok: boolean; situacao: string; mensagem: string | null }) => {
+      if (r.ok) {
+        toast.success("Carta de correção registrada na Receita");
+        setCorrecao("");
+        setCartaOpen(false);
+      } else if (r.situacao === "pendente") {
+        toast.info("Carta enviada; a Receita ainda está processando.");
+        setCartaOpen(false);
+      } else {
+        toast.error(r.mensagem || "A Receita recusou a carta de correção.");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1241,6 +1262,9 @@ function PedidoDetalhe() {
                 >
                   <FileText className="mr-2 size-4" /> DANFE e XML
                 </Button>
+                <Button variant="secondary" onClick={() => setCartaOpen(true)}>
+                  Carta de correção
+                </Button>
                 <Button
                   variant="destructive"
                   disabled={cancelarNota.isPending || justificativa.trim().length < 15}
@@ -1250,6 +1274,44 @@ function PedidoDetalhe() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cartaOpen} onOpenChange={setCartaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Carta de correção da nota</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              A carta corrige só dados informativos (endereço, transportadora, observações…). Ela
+              NÃO corrige valores, impostos, quantidades, destinatário nem data de emissão: nesses
+              casos cancele a nota e emita outra. Cada nota aceita até 20 cartas.
+            </p>
+            <Label htmlFor="nfe-carta">Correção (15 a 1000 caracteres)</Label>
+            <Textarea
+              id="nfe-carta"
+              value={correcao}
+              maxLength={1000}
+              onChange={(e) => setCorrecao(e.target.value)}
+              placeholder="Ex.: Onde se lê 'Rua A, 10', leia-se 'Rua B, 20'"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCartaOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              disabled={
+                enviarCarta.isPending ||
+                !notaGerada ||
+                correcao.replace(/\s+/g, " ").trim().length < 15
+              }
+              onClick={() => notaGerada && enviarCarta.mutate(notaGerada.id)}
+            >
+              Enviar carta à Receita
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
