@@ -21,6 +21,7 @@ import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedBackupNuvemRouteImport } from './routes/_authenticated/backup-nuvem'
 import { Route as AuthenticatedBalancaRouteImport } from './routes/_authenticated/balanca'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
@@ -211,6 +212,7 @@ import { Route as ApiPublicHooksBackupClientesRouteImport } from './routes/api.p
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
+import { Route as ApiPublicOauthBackupDriveReturnRouteImport } from './routes/api.public.oauth.backup-drive.return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -274,6 +276,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBackupNuvemRoute =
+  AuthenticatedBackupNuvemRouteImport.update({
+    id: '/backup-nuvem',
+    path: '/backup-nuvem',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBalancaRoute = AuthenticatedBalancaRouteImport.update({
   id: '/balanca',
   path: '/balanca',
@@ -1345,6 +1353,12 @@ const ApiPublicWhatsappEventosRoute =
     path: '/api/public/whatsapp/eventos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOauthBackupDriveReturnRoute =
+  ApiPublicOauthBackupDriveReturnRouteImport.update({
+    id: '/api/public/oauth/backup-drive/return',
+    path: '/api/public/oauth/backup-drive/return',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1358,6 +1372,7 @@ export interface FileRoutesByFullPath {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
@@ -1548,6 +1563,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1561,6 +1577,7 @@ export interface FileRoutesByTo {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
@@ -1751,6 +1768,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1766,6 +1784,7 @@ export interface FileRoutesById {
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/_authenticated/balanca': typeof AuthenticatedBalancaRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
@@ -1956,6 +1975,7 @@ export interface FileRoutesById {
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1971,6 +1991,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-nuvem'
     | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
@@ -2161,6 +2182,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -2174,6 +2196,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-nuvem'
     | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
@@ -2364,6 +2387,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   id:
     | '__root__'
     | '/'
@@ -2378,6 +2402,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/auditoria'
+    | '/_authenticated/backup-nuvem'
     | '/_authenticated/balanca'
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
@@ -2568,6 +2593,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2590,6 +2616,7 @@ export interface RootRouteChildren {
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
+  ApiPublicOauthBackupDriveReturnRoute: typeof ApiPublicOauthBackupDriveReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2676,6 +2703,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/backup-nuvem': {
+      id: '/_authenticated/backup-nuvem'
+      path: '/backup-nuvem'
+      fullPath: '/backup-nuvem'
+      preLoaderRoute: typeof AuthenticatedBackupNuvemRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/balanca': {
@@ -4008,6 +4042,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappEventosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oauth/backup-drive/return': {
+      id: '/api/public/oauth/backup-drive/return'
+      path: '/api/public/oauth/backup-drive/return'
+      fullPath: '/api/public/oauth/backup-drive/return'
+      preLoaderRoute: typeof ApiPublicOauthBackupDriveReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -4016,6 +4057,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedBackupNuvemRoute: typeof AuthenticatedBackupNuvemRoute
   AuthenticatedBalancaRoute: typeof AuthenticatedBalancaRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
@@ -4202,6 +4244,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedBackupNuvemRoute: AuthenticatedBackupNuvemRoute,
   AuthenticatedBalancaRoute: AuthenticatedBalancaRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
@@ -4412,6 +4455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
+  ApiPublicOauthBackupDriveReturnRoute: ApiPublicOauthBackupDriveReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -390,6 +390,7 @@ const groups: Group[] = [
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
+      { label: "Backup na nuvem", to: "/backup-nuvem", icon: DatabaseBackup },
       { label: "Chamados de suporte", to: "/chamados", icon: MessageCircle },
     ],
   },
@@ -670,6 +671,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
               // o menu da empresa é organizado pela administração
               if (i.to === "/menu-personalizado") return souGestao;
+              if (i.to === "/backup-nuvem") return (data?.roles ?? []).includes("administrador");
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
               if (

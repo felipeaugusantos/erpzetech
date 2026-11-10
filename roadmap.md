@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Backup automático no Google Drive: conexão por administrador, envio noturno isolado por cliente, retenção das cópias e verificação.
+- [x] Backup no Google Drive: tela, conexão por administrador, envio noturno e retenção implementados; 35 testes passaram, tela autenticada e cron sem autenticação recusado conferidos. Não publicado.
+- [ ] Verificar envio real e retenção no Google Drive: depende de consentimento do administrador no botão Conectar Google Drive; autorização de acesso durante desenvolvimento foi recusada. Publicação necessária para o job usar a versão nova.
 
 - [x] Isolamento do resumo de IA: ficha remontada por paciente; 3 testes de troca em cache, resposta atrasada e rascunho de alergia, mais 10 testes existentes, passaram. Prontuário aberto com sessão real sem erros; geração real de IA não exercitada (testada com resposta simulada). Não publicado.
 

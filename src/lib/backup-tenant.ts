@@ -254,6 +254,8 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
   assinaturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   assinatura_faturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   backup_execucoes: "controle interno da rotina de backup, não é dado do cliente",
+  backup_drive_config: "credencial cifrada e autorização do Drive: nunca exportar",
+  backup_drive_execucoes: "controle interno das cópias no Drive, não é dado restaurável",
   webhook_eventos:
     "corpo bruto de avisos de provedores externos; pode trazer segredos e é reenviável",
 };
