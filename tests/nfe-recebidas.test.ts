@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  atualizacaoDePendente,
   cnpjParaDistribuicao,
+  cnpjsNormalizados,
   configRecebidasValida,
   exigirCnpjPermitido,
   validarManifestacao,
@@ -71,4 +73,25 @@ test("busca automática: intervalo de 1 a 24 horas; ciência automática é opt-
   );
   assert.throws(() => configRecebidasValida({ distribuicao_intervalo_horas: 0 }), /1 a 24/);
   assert.throws(() => configRecebidasValida({ distribuicao_intervalo_horas: 25 }), /1 a 24/);
+});
+
+test("o histórico filtra pelos CNPJs da pessoa, sem máscara e sem repetir", () => {
+  assert.deepEqual(cnpjsNormalizados(["00.564.267/0002-92", "00564267000292", "", "123"]), [
+    "00564267000292",
+  ]);
+  assert.deepEqual(cnpjsNormalizados([]), []);
+});
+
+test("evento pendente só muda quando o emissor devolve a situação final", () => {
+  assert.equal(atualizacaoDePendente("pendente", { status: "pendente" }), null);
+  assert.equal(atualizacaoDePendente("pendente", null), null);
+  assert.equal(atualizacaoDePendente("registrado", { status: "rejeitado" }), null);
+  assert.deepEqual(
+    atualizacaoDePendente("pendente", { status: "registrado", numero_protocolo: "891" }),
+    { status: "registrado", protocolo: "891", mensagem: null },
+  );
+  assert.deepEqual(
+    atualizacaoDePendente("pendente", { status: "rejeitado", motivo_status: "Rejeição 573" }),
+    { status: "rejeitado", protocolo: null, mensagem: "Rejeição 573" },
+  );
 });

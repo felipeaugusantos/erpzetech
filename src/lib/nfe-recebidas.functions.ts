@@ -5,7 +5,9 @@ import { exigirPapelFiscal } from "./nfe-escopo.ts";
 import {
   PAPEIS_CONFIG_RECEBIDAS,
   PAPEIS_MANIFESTACAO,
+  atualizacaoDePendente,
   cnpjParaDistribuicao,
+  cnpjsNormalizados,
   configRecebidasValida,
   exigirCnpjPermitido,
   validarManifestacao,
@@ -252,6 +254,7 @@ export const manifestarNota = createServerFn({ method: "POST" })
       status: String(retorno?.status ?? "pendente"),
       protocolo: retorno?.numero_protocolo ?? null,
       mensagem: retorno?.motivo_status ?? null,
+      provider_id: retorno?.id ?? null,
       emitente: data.emitente,
       valor: data.valor,
       autor_id: userId,
@@ -264,23 +267,57 @@ export const manifestarNota = createServerFn({ method: "POST" })
     };
   });
 
-/** Histórico de manifestações da empresa (quem, quando, qual evento). */
+/**
+ * Histórico de manifestações das empresas da pessoa (quem, quando, qual evento). Uma pessoa presa a uma
+ * empresa só vê as dela; quem não está presa a nenhuma vê as da conta. Eventos ainda pendentes são
+ * conferidos no emissor fiscal, para o histórico não ficar para sempre em "pendente".
+ */
 export const historicoManifestacoes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as unknown as Ctx;
-    const { tenantId } = await empresasDaPessoa(supabase, userId);
+    const { acbr } = await import("./acbr.server");
+    const { tenantId, empresas } = await empresasDaPessoa(supabase, userId);
+    const cnpjs = cnpjsNormalizados(empresas.map((e) => String(e.cnpj)));
+    if (cnpjs.length === 0) return [];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("nfe_manifestacoes" as never)
       .select(
-        "id, cnpj, chave_acesso, tipo_evento, justificativa, status, protocolo, mensagem, emitente, valor, autor_id, created_at",
+        "id, cnpj, ambiente, chave_acesso, tipo_evento, justificativa, status, protocolo, mensagem, provider_id, emitente, valor, autor_id, created_at",
       )
       .eq("tenant_id", tenantId)
+      .in("cnpj", cnpjs)
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
     const linhas = (data ?? []) as any[];
+
+    // Reconcilia os pendentes (no máximo 10 por consulta); falha do emissor não derruba o histórico.
+    await Promise.all(
+      linhas
+        .filter((l) => l.status === "pendente" && l.provider_id)
+        .slice(0, 10)
+        .map(async (l) => {
+          try {
+            const r = await acbr<any>(
+              ambienteDe(l.ambiente),
+              `/distribuicao/nfe/manifestacoes/${encodeURIComponent(String(l.provider_id))}`,
+            );
+            const patch = atualizacaoDePendente(l.status, r);
+            if (!patch) return;
+            const { error: erroAtualizar } = await supabaseAdmin
+              .from("nfe_manifestacoes" as never)
+              .update(patch as never)
+              .eq("id", l.id)
+              .eq("tenant_id", tenantId);
+            if (!erroAtualizar) Object.assign(l, patch);
+          } catch {
+            // segue pendente até a próxima consulta
+          }
+        }),
+    );
+
     const ids = [...new Set(linhas.map((l) => l.autor_id).filter(Boolean))];
     const nomes = new Map<string, string>();
     if (ids.length) {
@@ -290,5 +327,8 @@ export const historicoManifestacoes = createServerFn({ method: "POST" })
         .in("id", ids as string[]);
       for (const p of (perfis ?? []) as any[]) nomes.set(p.id, p.nome);
     }
-    return linhas.map((l) => ({ ...l, autor: nomes.get(l.autor_id) ?? null }));
+    return linhas.map(({ provider_id: _p, ...l }) => ({
+      ...l,
+      autor: nomes.get(l.autor_id) ?? null,
+    }));
   });

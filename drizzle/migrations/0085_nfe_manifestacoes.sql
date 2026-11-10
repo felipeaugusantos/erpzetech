@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.nfe_manifestacoes (
   justificativa text CHECK (justificativa IS NULL OR length(justificativa) BETWEEN 15 AND 255),
   status text NOT NULL,
   protocolo text,
+  provider_id text,
   mensagem text,
   emitente text,
   valor numeric,

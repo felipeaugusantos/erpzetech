@@ -87,3 +87,33 @@ export function configRecebidasValida(c: Partial<ConfigRecebidas>): ConfigRecebi
     ciencia_automatica: c.ciencia_automatica === true,
   };
 }
+
+/** CNPJs sem máscara, como ficam gravados no histórico (maiúsculas, só letras e números). */
+export function cnpjsNormalizados(lista: string[]): string[] {
+  const unicos = new Set<string>();
+  for (const c of lista) {
+    const limpo = String(c ?? "")
+      .toUpperCase()
+      .replace(/[^0-9A-Z]/g, "");
+    if (limpo.length === 14) unicos.add(limpo);
+  }
+  return [...unicos];
+}
+
+/**
+ * Atualização de um evento que estava pendente, a partir do que o emissor devolve ao consultá-lo.
+ * Devolve null enquanto continuar pendente (ou se a resposta não trouxer situação).
+ */
+export function atualizacaoDePendente(
+  statusAtual: string,
+  retorno: { status?: unknown; numero_protocolo?: unknown; motivo_status?: unknown } | null,
+): { status: string; protocolo: string | null; mensagem: string | null } | null {
+  if (statusAtual !== "pendente") return null;
+  const status = typeof retorno?.status === "string" ? retorno.status : "";
+  if (!["registrado", "rejeitado", "erro"].includes(status)) return null;
+  return {
+    status,
+    protocolo: typeof retorno?.numero_protocolo === "string" ? retorno.numero_protocolo : null,
+    mensagem: typeof retorno?.motivo_status === "string" ? retorno.motivo_status : null,
+  };
+}
