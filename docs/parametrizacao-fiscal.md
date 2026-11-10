@@ -133,7 +133,16 @@ Banco (`supabase/ci/fiscal-regras.sql`):
    - A chave da consulta inclui a empresa (as sobrescritas são dela e o cache do navegador é persistido).
    - Migração `supabase/migrations/20270104000000_fiscal_sugerir_nome.sql` (a aplicar): `fiscal_sugerir` passa a devolver `ncmPrefixo` e `perfilNome` na regra escolhida. A tela lê também a resposta antiga.
    - **A emissão ainda não usa a base**: continua com item, produto e padrão da empresa. Decisão para o PR 6: levar CFOP, CEST e origem ao cadastro como exceção do produto (a emissão já lê essas colunas de `produtos`).
-5. **PR 5:** sobrescritas e ocultação pela empresa.
+5. **PR 5 (feito):** sobrescritas e ocultação pela empresa, em `/fiscal-regras` (menu Administração → Regras fiscais por NCM; só administrador e gestor).
+   - Migração `supabase/migrations/20270105000000_fiscal_empresa_funcoes.sql` (a aplicar), todas as funções com a trava do salão e `exige_papel(administrador, gestor)`:
+     `fiscal_empresa_perfis`, `fiscal_empresa_minhas`, `fiscal_empresa_globais` (leitura da base com a marca de ocultas), `fiscal_empresa_regra_salvar`, `fiscal_empresa_regra_encerrar`,
+     `fiscal_empresa_ocultar` (motivo obrigatório) e `fiscal_empresa_reexibir`. Teste de banco `supabase/ci/fiscal-empresa.sql`.
+   - A empresa só vê e altera o que é dela (regras, ocultações e perfis próprios); a base global é só leitura. Perfil de outra empresa nunca vale. Limites: 2000 regras e 200 perfis por empresa.
+   - Salvar usa as mesmas regras de versão da carga global: mesma chave (NCM + CEST + operação + regime + UF) com versão vigente gera **nova versão** (a anterior termina no dia anterior); repetir o mesmo conteúdo não muda nada.
+     A regra pode usar um perfil existente (da base ou da empresa) ou criar um perfil próprio (nome já existente só vale com os mesmos valores).
+   - Encerrar só antecipa o fim e só vale para regra da própria empresa. Ocultar vale só para a empresa e some da sugestão dela; "Voltar a usar" desfaz.
+   - Depois de qualquer mudança a sugestão do cadastro de produtos é recarregada (mesma chave por empresa). A tela valida o formulário no navegador com a mesma leitura da planilha de carga (`validarCriteriosFiscais`).
+   - Continua valendo: **a emissão ainda não usa a base** (PR 6).
 6. **PR 6:** gravação da regra aplicada na nota e, depois, recálculo em massa.
 7. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
 

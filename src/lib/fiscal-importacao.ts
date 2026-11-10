@@ -60,10 +60,11 @@ const ALIAS: Record<ColunaFiscal, string[]> = {
   observacao: ["observacao", "obs", "observacoes"],
 };
 
-const UFS = new Set([
+export const UFS_BRASIL = [
   "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR",
   "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
-]); // prettier-ignore
+]; // prettier-ignore
+const UFS = new Set<string>(UFS_BRASIL);
 
 /** Linha pronta para o banco (chaves em snake_case, como fiscal_base_publicar lê). */
 export type EnvioFiscal = {
@@ -164,18 +165,24 @@ const REGIMES: Record<string, string> = {
   mei: "mei",
 };
 
-/** Valida uma linha (já separada por coluna) e devolve o envio ou os erros. */
-export function validarLinhaFiscal(
-  celulas: Partial<Record<ColunaFiscal, string>>,
-  linha: number,
-): LinhaFiscal {
+/** Critérios de uma regra (a que NCM, CEST, operação, regime e UF ela vale e quando). Vazio nos opcionais = vale para todos. */
+export type CriteriosFiscais = {
+  ncm: string;
+  cest: string | null;
+  operacao: string | null;
+  regime: string | null;
+  uf_destino: string | null;
+  vigencia_inicio: string;
+  vigencia_fim: string | null;
+};
+
+/** Valida só os critérios da regra (usado pela planilha e pelo formulário da empresa). `criterios` é nulo se houver erro. */
+export function validarCriteriosFiscais(celulas: Partial<Record<ColunaFiscal, string>>): {
+  erros: string[];
+  criterios: CriteriosFiscais | null;
+} {
   const erros: string[] = [];
   const c = (k: ColunaFiscal) => (celulas[k] ?? "").trim();
-  const exige = <T>(p: Parte<T>): T => {
-    if (p.erro) erros.push(p.erro);
-    return p.valor;
-  };
-
   let ncm = soDigitos(c("ncm"));
   if (!/^(\d{2}|\d{4}|\d{6}|\d{8})$/.test(ncm)) {
     erros.push(
@@ -228,6 +235,35 @@ export function validarLinhaFiscal(
     else if (inicio !== null && fim < inicio)
       erros.push("O fim da vigência não pode ser anterior ao início");
   }
+  if (erros.length > 0 || inicio === null) return { erros, criterios: null };
+  return {
+    erros,
+    criterios: {
+      ncm,
+      cest,
+      operacao,
+      regime,
+      uf_destino: uf,
+      vigencia_inicio: inicio,
+      vigencia_fim: fim,
+    },
+  };
+}
+
+/** Valida uma linha (já separada por coluna) e devolve o envio ou os erros. */
+export function validarLinhaFiscal(
+  celulas: Partial<Record<ColunaFiscal, string>>,
+  linha: number,
+): LinhaFiscal {
+  const erros: string[] = [];
+  const c = (k: ColunaFiscal) => (celulas[k] ?? "").trim();
+  const exige = <T>(p: Parte<T>): T => {
+    if (p.erro) erros.push(p.erro);
+    return p.valor;
+  };
+
+  const crit = validarCriteriosFiscais(celulas);
+  erros.push(...crit.erros);
 
   const perfil = c("perfil").replace(/\s+/g, " ");
   if (perfil.length < 1 || perfil.length > 120)
@@ -293,19 +329,13 @@ export function validarLinhaFiscal(
   ).some((k) => c(k) !== "");
   if (!temTributo && !algumTextoTributo) erros.push("Informe ao menos um campo de tributação");
 
-  if (erros.length > 0 || inicio === null) return { linha, envio: null, erros };
+  if (erros.length > 0 || crit.criterios === null) return { linha, envio: null, erros };
   return {
     linha,
     erros,
     envio: {
       linha,
-      ncm,
-      cest,
-      operacao,
-      regime,
-      uf_destino: uf,
-      vigencia_inicio: inicio,
-      vigencia_fim: fim,
+      ...crit.criterios,
       perfil,
       cst_icms: cstIcms,
       csosn,

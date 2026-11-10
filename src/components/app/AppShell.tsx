@@ -379,6 +379,7 @@ const groups: Group[] = [
       { label: "Cadastro da empresa", to: "/empresa", icon: Building2 },
       { label: "Módulos sem CNPJ", to: "/modulos-sem-cnpj", icon: Settings },
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
+      { label: "Regras fiscais por NCM", to: "/fiscal-regras", icon: Scale },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Menu da empresa", to: "/menu-personalizado", icon: LayoutGrid },
@@ -671,6 +672,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
               // o menu da empresa é organizado pela administração
               if (i.to === "/menu-personalizado") return souGestao;
+              // as regras fiscais da empresa são da administração
+              if (i.to === "/fiscal-regras") return souGestao;
               if (i.to === "/backup-nuvem") return (data?.roles ?? []).includes("administrador");
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)

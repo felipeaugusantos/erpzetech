@@ -75,6 +75,7 @@ import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authe
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
+import { Route as AuthenticatedFiscalRegrasRouteImport } from './routes/_authenticated/fiscal-regras'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedFrenteCaixaRouteImport } from './routes/_authenticated/frente-caixa'
@@ -584,6 +585,12 @@ const AuthenticatedFiscalRoute = AuthenticatedFiscalRouteImport.update({
   path: '/fiscal',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFiscalRegrasRoute =
+  AuthenticatedFiscalRegrasRouteImport.update({
+    id: '/fiscal-regras',
+    path: '/fiscal-regras',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFluxoCaixaRoute = AuthenticatedFluxoCaixaRouteImport.update({
   id: '/fluxo-caixa',
   path: '/fluxo-caixa',
@@ -1440,6 +1447,7 @@ export interface FileRoutesByFullPath {
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
+  '/fiscal-regras': typeof AuthenticatedFiscalRegrasRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
@@ -1647,6 +1655,7 @@ export interface FileRoutesByTo {
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
+  '/fiscal-regras': typeof AuthenticatedFiscalRegrasRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
@@ -1856,6 +1865,7 @@ export interface FileRoutesById {
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
+  '/_authenticated/fiscal-regras': typeof AuthenticatedFiscalRegrasRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/frente-caixa': typeof AuthenticatedFrenteCaixaRoute
@@ -2065,6 +2075,7 @@ export interface FileRouteTypes {
     | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
+    | '/fiscal-regras'
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
@@ -2272,6 +2283,7 @@ export interface FileRouteTypes {
     | '/fechamento-operador'
     | '/filial-extra'
     | '/fiscal'
+    | '/fiscal-regras'
     | '/fluxo-caixa'
     | '/fornecedores'
     | '/frente-caixa'
@@ -2480,6 +2492,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fechamento-operador'
     | '/_authenticated/filial-extra'
     | '/_authenticated/fiscal'
+    | '/_authenticated/fiscal-regras'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
     | '/_authenticated/frente-caixa'
@@ -3107,6 +3120,13 @@ declare module '@tanstack/react-router' {
       path: '/fiscal'
       fullPath: '/fiscal'
       preLoaderRoute: typeof AuthenticatedFiscalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fiscal-regras': {
+      id: '/_authenticated/fiscal-regras'
+      path: '/fiscal-regras'
+      fullPath: '/fiscal-regras'
+      preLoaderRoute: typeof AuthenticatedFiscalRegrasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fluxo-caixa': {
@@ -4151,6 +4171,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
+  AuthenticatedFiscalRegrasRoute: typeof AuthenticatedFiscalRegrasRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedFrenteCaixaRoute: typeof AuthenticatedFrenteCaixaRoute
@@ -4342,6 +4363,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,
+  AuthenticatedFiscalRegrasRoute: AuthenticatedFiscalRegrasRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedFrenteCaixaRoute: AuthenticatedFrenteCaixaRoute,
