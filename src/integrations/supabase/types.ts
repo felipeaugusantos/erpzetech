@@ -165,6 +165,62 @@ export type Database = {
           },
         ]
       }
+      backup_execucoes: {
+        Row: {
+          caminho: string | null
+          concluido_em: string | null
+          dia: string
+          erro: string | null
+          expirado_em: string | null
+          id: string
+          iniciado_em: string
+          linhas: number | null
+          situacao: string
+          tabelas: number | null
+          tamanho: number | null
+          tenant_id: string
+          tipos: string[]
+        }
+        Insert: {
+          caminho?: string | null
+          concluido_em?: string | null
+          dia: string
+          erro?: string | null
+          expirado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          linhas?: number | null
+          situacao?: string
+          tabelas?: number | null
+          tamanho?: number | null
+          tenant_id: string
+          tipos?: string[]
+        }
+        Update: {
+          caminho?: string | null
+          concluido_em?: string | null
+          dia?: string
+          erro?: string | null
+          expirado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          linhas?: number | null
+          situacao?: string
+          tabelas?: number | null
+          tamanho?: number | null
+          tenant_id?: string
+          tipos?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_execucoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banco_extrato_linhas: {
         Row: {
           arquivo: string | null

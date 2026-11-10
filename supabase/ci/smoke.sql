@@ -521,7 +521,9 @@ DECLARE
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
     'empresa_modulos_liberados',
     -- bulário veterinário (base global do MAPA): sem empresa dona e sem nenhum grant para authenticated; só as funções bulario_* leem, e elas exigem papel e clínica liberada
-    'bulario_medicamentos'];
+    'bulario_medicamentos',
+    -- backup por cliente (rotina noturna da equipe): controle interno, só o serviço lê e grava; nenhum grant para authenticated
+    'backup_execucoes'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
