@@ -17,6 +17,7 @@ import {
   hojeISO,
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { DevolucaoCompra } from "@/components/app/DevolucaoCompra";
 import { NotaEntrada, type NotaEntradaDados } from "@/components/app/NotaEntrada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -442,6 +443,9 @@ function CompraDetalhe() {
                 {labelCompra(s)}
               </Button>
             ))}
+            {["recebido", "parcialmente_recebido"].includes(compra.situacao) && (
+              <DevolucaoCompra compraId={id} itens={itens as never} temChave={!!compra.nfe_chave} />
+            )}
             {podeReceber(compra.situacao) && (
               <Button variant="outline" onClick={abrirRecebimento}>
                 <PackageCheck className="size-4" /> Registrar recebimento
