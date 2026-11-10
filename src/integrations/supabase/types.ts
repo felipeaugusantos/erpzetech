@@ -8644,6 +8644,7 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
+          complementa_nfe_id: string | null
           compra_id: string | null
           codigo_servico: string | null
           comanda_id: string | null
@@ -8703,6 +8704,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          complementa_nfe_id?: string | null
           compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
@@ -8762,6 +8764,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          complementa_nfe_id?: string | null
           compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
@@ -17770,6 +17773,10 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
+      }
+      nfe_complementar_gerar: {
+        Args: { p_itens: Json; p_motivo?: string; p_nfe_id: string }
+        Returns: string
       }
       nfe_entrada_completar_impostos: {
         Args: { p_compra_id: string; p_itens: Json; p_nota: Json }

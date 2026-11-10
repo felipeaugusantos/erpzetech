@@ -46,7 +46,7 @@ export async function carregarNota(supabase: any, nfeId: string, userId: string)
   const { data: nota, error } = await supabase
     .from("nfe")
     .select(
-      "id, tenant_id, empresa_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_produtos, valor_desconto, valor_frete, valor_total, valor_icms, valor_icms_st, valor_pis, valor_cofins, valor_iss, base_icms, base_icms_st, cliente_id, fornecedor_id, pendencias, provider_id, provider_status, chave, protocolo, mensagem",
+      "id, tenant_id, empresa_id, numero, serie, situacao, ambiente, natureza_operacao, cfop, valor_produtos, valor_desconto, valor_frete, valor_total, valor_icms, valor_icms_st, valor_pis, valor_cofins, valor_iss, base_icms, base_icms_st, cliente_id, fornecedor_id, complementa_nfe_id, pendencias, provider_id, provider_status, chave, protocolo, mensagem",
     )
     .eq("id", nfeId)
     .maybeSingle();

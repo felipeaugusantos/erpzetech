@@ -17,6 +17,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
 import { ContingenciaNfe } from "@/components/app/ContingenciaNfe";
+import { NotaComplementar } from "@/components/app/NotaComplementar";
 import { InutilizarNumeracao } from "@/components/app/InutilizarNumeracao";
 import {
   arquivosNfe,
@@ -191,7 +192,7 @@ function Nfe() {
       const { data, error } = await supabase
         .from("nfe")
         .select(
-          "id, numero, serie, situacao, ambiente, natureza_operacao, cfop, modelo, codigo_servico, municipio_prestacao, iss_retido, valor_total, valor_produtos, valor_frete, valor_desconto, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, pdf_url, xml_url, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
+          "id, numero, serie, situacao, ambiente, natureza_operacao, cfop, modelo, codigo_servico, municipio_prestacao, iss_retido, valor_total, valor_produtos, valor_frete, valor_desconto, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, pdf_url, xml_url, provider_id, provider_status, complementa_nfe_id, pedidos(numero), clientes(nome), depositos(nome)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -788,6 +789,9 @@ function Nfe() {
               >
                 <RefreshCw className="mr-2 size-4" /> Atualizar dados do cliente
               </Button>
+            )}
+            {nota && nota.situacao === "autorizada" && !nota.complementa_nfe_id && (
+              <NotaComplementar nfeId={nota.id} />
             )}
             {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
               <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>

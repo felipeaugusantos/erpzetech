@@ -38,6 +38,7 @@ import {
 import { useSessionData } from "@/hooks/useSessionData";
 import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
 import { AlterarPedidoDialog } from "@/components/app/AlterarPedidoDialog";
+import { NotaComplementar } from "@/components/app/NotaComplementar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1262,6 +1263,7 @@ function PedidoDetalhe() {
                 >
                   <FileText className="mr-2 size-4" /> DANFE e XML
                 </Button>
+                <NotaComplementar nfeId={notaGerada.id} />
                 <Button variant="secondary" onClick={() => setCartaOpen(true)}>
                   Carta de correção
                 </Button>
