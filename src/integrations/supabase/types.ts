@@ -165,6 +165,109 @@ export type Database = {
           },
         ]
       }
+      backup_drive_config: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          connection_key_ciphertext: string | null
+          erro: string | null
+          lease_expira: string | null
+          lease_id: string | null
+          nonce_expira: string | null
+          nonce_hash: string | null
+          pasta_id: string | null
+          reconectar: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          connection_key_ciphertext?: string | null
+          erro?: string | null
+          lease_expira?: string | null
+          lease_id?: string | null
+          nonce_expira?: string | null
+          nonce_hash?: string | null
+          pasta_id?: string | null
+          reconectar?: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          connection_key_ciphertext?: string | null
+          erro?: string | null
+          lease_expira?: string | null
+          lease_id?: string | null
+          nonce_expira?: string | null
+          nonce_hash?: string | null
+          pasta_id?: string | null
+          reconectar?: boolean
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_drive_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backup_drive_execucoes: {
+        Row: {
+          arquivo_id: string | null
+          concluido_em: string | null
+          dia: string
+          erro: string | null
+          id: string
+          md5: string | null
+          situacao: string
+          tamanho: number | null
+          tenant_id: string
+          tentativas: number
+          tipos: string[]
+        }
+        Insert: {
+          arquivo_id?: string | null
+          concluido_em?: string | null
+          dia: string
+          erro?: string | null
+          id?: string
+          md5?: string | null
+          situacao?: string
+          tamanho?: number | null
+          tenant_id: string
+          tentativas?: number
+          tipos: string[]
+        }
+        Update: {
+          arquivo_id?: string | null
+          concluido_em?: string | null
+          dia?: string
+          erro?: string | null
+          id?: string
+          md5?: string | null
+          situacao?: string
+          tamanho?: number | null
+          tenant_id?: string
+          tentativas?: number
+          tipos?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_drive_execucoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_execucoes: {
         Row: {
           caminho: string | null
@@ -16063,6 +16166,10 @@ export type Database = {
           p_qtd_entrada: number
         }
         Returns: number
+      }
+      backup_drive_reservar: {
+        Args: { p_dia: string; p_tenant: string; p_tipos: string[] }
+        Returns: string
       }
       backup_restaurar_tabela: {
         Args: {
