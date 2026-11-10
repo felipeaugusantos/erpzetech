@@ -14,6 +14,7 @@
 ## Imported purchase notes
 
 - Google Drive backups use encrypted per-user connector handles in service-only tenant configuration; administrator checks precede access, OAuth nonces bind completion, and the existing nightly callback uploads verified tenant exports with database leases and tracked-file-only retention.
+- The dedicated Drive history screen reuses the administrator-scoped backup state function and displays concluded timestamps in America/Sao_Paulo; this keeps history tenant-isolated and distinct from the backup's reference day.
 
 - Ze Tech team management uses authenticated server functions and the existing operator registry; only the pinned owner's stable user ID can grant or revoke team access, and that owner cannot be removed, preventing operator privilege escalation or owner rebinding.
 - Help Ze Tech calls run only in authenticated server functions; derive company identity from the active profile and RLS reads, and retain the same request ID on retry to prevent duplicate tickets.
