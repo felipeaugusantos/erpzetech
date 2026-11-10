@@ -160,7 +160,10 @@ Banco (`supabase/ci/fiscal-regras.sql`):
    - **Existir na tabela não diz nada sobre a tributação.** Só protege contra dígito trocado ou código inventado.
    - **Manutenção:** a tabela muda por resolução da Gecex. Baixe a planilha nova e rode o script; ele avisa se a tabela tiver mais de 180 dias. A tabela vai num pacote separado (cerca de 21 KB gzip), carregado só quando há NCM completo para conferir.
    - O banco **não** tem a tabela: ele só confere o formato; a conferência de existência é do aplicativo.
-8. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
+8. **Carga inicial (guia, sem código novo no app):** `docs/carga-fiscal-inicial.md` reúne o processo por segmento, os dois prompts (gerar e auditar) e as ferramentas: `docs/sql/ncms-usados-por-ramo.sql`
+   (consulta de leitura: NCMs usados por segmento e regime, com o CST/CSOSN e o CFOP mais comuns e a concordância entre empresas; só NCMs de 2 ou mais empresas) e `scripts/ncm-descricoes.py`
+   (lista de NCMs com a descrição completa da Tabela NCM, juntando a cadeia hierárquica).
+9. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
 
 ## Pontos em aberto
 
