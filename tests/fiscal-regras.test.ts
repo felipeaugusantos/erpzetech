@@ -20,7 +20,9 @@ const ctx = (parcial: Partial<ContextoFiscal> = {}): ContextoFiscal => ({
 });
 
 let seq = 0;
-const regra = (parcial: Partial<RegraFiscal> & { perfil?: RegraFiscal["perfil"] } = {}): RegraFiscal => ({
+const regra = (
+  parcial: Partial<RegraFiscal> & { perfil?: RegraFiscal["perfil"] } = {},
+): RegraFiscal => ({
   id: `r${++seq}`,
   ncmPrefixo: "2309",
   vigenciaInicio: "2027-01-01",
@@ -32,7 +34,10 @@ const regra = (parcial: Partial<RegraFiscal> & { perfil?: RegraFiscal["perfil"] 
 
 describe("validarRegra", () => {
   it("aceita uma regra bem formada", () => {
-    assert.deepEqual(validarRegra(regra({ cest: "1700100", ufDestino: "SP", vigenciaFim: "2027-12-31" })), []);
+    assert.deepEqual(
+      validarRegra(regra({ cest: "1700100", ufDestino: "SP", vigenciaFim: "2027-12-31" })),
+      [],
+    );
   });
   it("recusa prefixo, CEST, UF, datas e versão fora do formato", () => {
     assert.equal(validarRegra(regra({ ncmPrefixo: "2" })).length, 1);
@@ -48,7 +53,8 @@ describe("validarRegra", () => {
 
 describe("regraCasa", () => {
   it("casa por prefixo do NCM, de 2 a 8 dígitos", () => {
-    for (const p of ["23", "2309", "230910", "23091000"]) assert.equal(regraCasa(regra({ ncmPrefixo: p }), ctx()), true, p);
+    for (const p of ["23", "2309", "230910", "23091000"])
+      assert.equal(regraCasa(regra({ ncmPrefixo: p }), ctx()), true, p);
     assert.equal(regraCasa(regra({ ncmPrefixo: "2310" }), ctx()), false);
   });
   it("aceita NCM com pontuação no contexto", () => {
@@ -76,7 +82,9 @@ describe("regraCasa", () => {
 
 describe("especificidade e melhoresRegras", () => {
   it("NCM de 8 dígitos vence 6, 4 e 2", () => {
-    const [r2, r4, r6, r8] = ["23", "2309", "230910", "23091000"].map((p) => regra({ ncmPrefixo: p }));
+    const [r2, r4, r6, r8] = ["23", "2309", "230910", "23091000"].map((p) =>
+      regra({ ncmPrefixo: p }),
+    ) as [RegraFiscal, RegraFiscal, RegraFiscal, RegraFiscal];
     assert.deepEqual(melhoresRegras([r2, r4, r6, r8], ctx()), [r8]);
     assert.deepEqual(melhoresRegras([r2, r4, r6], ctx()), [r6]);
     assert.deepEqual(melhoresRegras([r2, r4], ctx()), [r4]);
@@ -89,7 +97,12 @@ describe("especificidade e melhoresRegras", () => {
   });
   it("mais dígitos de NCM vence mesmo contra regra com CEST e operação", () => {
     const longa = regra({ ncmPrefixo: "230910" });
-    const curtaCompleta = regra({ ncmPrefixo: "2309", cest: "1700100", operacao: "venda", regime: "normal" });
+    const curtaCompleta = regra({
+      ncmPrefixo: "2309",
+      cest: "1700100",
+      operacao: "venda",
+      regime: "normal",
+    });
     assert.deepEqual(melhoresRegras([curtaCompleta, longa], ctx({ cest: "1700100" })), [longa]);
   });
   it("operação e regime casando vencem 'qualquer'; UF vem por último", () => {
@@ -124,7 +137,11 @@ describe("resolverTributacao", () => {
 
   it("regra global vence o padrão e informa id e versão", () => {
     const g = regra({ versao: 3, perfil: { cfop: "5405", cstIcms: "60" } });
-    const r = resolverTributacao({ contexto: ctx(), regrasGlobais: [g], padrao: { cfop: "5102", cstPis: "99" } });
+    const r = resolverTributacao({
+      contexto: ctx(),
+      regrasGlobais: [g],
+      padrao: { cfop: "5102", cstPis: "99" },
+    });
     assert.equal(r.status, "regra");
     assert.deepEqual(r.regra, { id: g.id, versao: 3, origem: "global" });
     assert.deepEqual(r.campos.cfop, { valor: "5405", origem: "global" });
@@ -135,7 +152,11 @@ describe("resolverTributacao", () => {
   it("regra da empresa vence a global, mesmo sendo menos específica", () => {
     const global = regra({ ncmPrefixo: "23091000", perfil: { cfop: "5405" } });
     const empresa = regra({ ncmPrefixo: "23", perfil: { cfop: "5102" } });
-    const r = resolverTributacao({ contexto: ctx(), regrasGlobais: [global], regrasEmpresa: [empresa] });
+    const r = resolverTributacao({
+      contexto: ctx(),
+      regrasGlobais: [global],
+      regrasEmpresa: [empresa],
+    });
     assert.deepEqual(r.regra, { id: empresa.id, versao: 1, origem: "empresa" });
     assert.deepEqual(r.campos.cfop, { valor: "5102", origem: "empresa" });
   });
@@ -155,11 +176,19 @@ describe("resolverTributacao", () => {
   it("empate devolve as candidatas, não escolhe e não aplica o padrão", () => {
     const a = regra();
     const b = regra({ perfil: { cfop: "5405" } });
-    const r = resolverTributacao({ contexto: ctx(), regrasGlobais: [a, b], padrao: { cfop: "5102" }, produto: { origem: "0" } });
+    const r = resolverTributacao({
+      contexto: ctx(),
+      regrasGlobais: [a, b],
+      padrao: { cfop: "5102" },
+      produto: { origem: "0" },
+    });
     assert.equal(r.status, "empate");
     assert.equal(r.regra, null);
-    assert.deepEqual(r.candidatas.map((c) => c.regra.id), [a.id, b.id]);
-    assert.equal(r.candidatas[0].origem, "global");
+    assert.deepEqual(
+      r.candidatas.map((c) => c.regra.id),
+      [a.id, b.id],
+    );
+    assert.equal(r.candidatas[0]?.origem, "global");
     assert.equal(r.campos.cfop, undefined);
     assert.deepEqual(r.campos.origem, { valor: "0", origem: "produto" });
   });
@@ -170,7 +199,10 @@ describe("resolverTributacao", () => {
     const e2 = regra();
     const r = resolverTributacao({ contexto: ctx(), regrasGlobais: [g], regrasEmpresa: [e1, e2] });
     assert.equal(r.status, "empate");
-    assert.equal(r.candidatas.every((c) => c.origem === "empresa"), true);
+    assert.equal(
+      r.candidatas.every((c) => c.origem === "empresa"),
+      true,
+    );
   });
 
   it("exceção do produto vence a regra e o valor do item vence tudo, campo a campo", () => {
@@ -203,18 +235,32 @@ describe("resolverTributacao", () => {
   it("NCM sem 8 dígitos não consulta regra nem aplica o padrão", () => {
     const g = regra({ ncmPrefixo: "23" });
     for (const ncm of ["", "2309", "230910000"]) {
-      const r = resolverTributacao({ contexto: ctx({ ncm }), regrasGlobais: [g], padrao: { cfop: "5102" }, item: { cfop: "5101" } });
+      const r = resolverTributacao({
+        contexto: ctx({ ncm }),
+        regrasGlobais: [g],
+        padrao: { cfop: "5102" },
+        item: { cfop: "5101" },
+      });
       assert.equal(r.status, "ncm_invalido", ncm);
       assert.equal(r.regra, null);
       assert.deepEqual(r.campos.cfop, { valor: "5101", origem: "item" });
     }
-    assert.equal(resolverTributacao({ contexto: ctx({ ncm: "" }), padrao: { cfop: "5102" } }).campos.cfop, undefined);
+    assert.equal(
+      resolverTributacao({ contexto: ctx({ ncm: "" }), padrao: { cfop: "5102" } }).campos.cfop,
+      undefined,
+    );
   });
 
   it("regra fora da vigência cai no padrão; a antiga continua valendo na data antiga", () => {
-    const v1 = regra({ versao: 1, vigenciaInicio: "2027-01-01", vigenciaFim: "2027-06-30", perfil: { cfop: "5102" } });
+    const v1 = regra({
+      versao: 1,
+      vigenciaInicio: "2027-01-01",
+      vigenciaFim: "2027-06-30",
+      perfil: { cfop: "5102" },
+    });
     const v2 = regra({ versao: 2, vigenciaInicio: "2027-07-01", perfil: { cfop: "5405" } });
-    const em = (data: string) => resolverTributacao({ contexto: ctx({ data }), regrasGlobais: [v1, v2] });
+    const em = (data: string) =>
+      resolverTributacao({ contexto: ctx({ data }), regrasGlobais: [v1, v2] });
     assert.equal(em("2027-06-30").regra?.versao, 1);
     assert.equal(em("2027-07-01").regra?.versao, 2);
     assert.equal(em("2026-12-31").status, "sem_regra");

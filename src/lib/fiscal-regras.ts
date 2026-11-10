@@ -98,7 +98,8 @@ export function validarRegra(r: RegraFiscal): string[] {
   const erros: string[] = [];
   if (!/^\d{2,8}$/.test(r.ncmPrefixo)) erros.push("ncmPrefixo: use de 2 a 8 dígitos, só números");
   if (r.cest != null && !/^\d{7}$/.test(r.cest)) erros.push("cest: use 7 dígitos");
-  if (r.ufDestino != null && !/^[A-Z]{2}$/.test(r.ufDestino)) erros.push("ufDestino: use 2 letras maiúsculas");
+  if (r.ufDestino != null && !/^[A-Z]{2}$/.test(r.ufDestino))
+    erros.push("ufDestino: use 2 letras maiúsculas");
   if (!DATA_ISO.test(r.vigenciaInicio)) erros.push("vigenciaInicio: use AAAA-MM-DD");
   if (r.vigenciaFim != null) {
     if (!DATA_ISO.test(r.vigenciaFim)) erros.push("vigenciaFim: use AAAA-MM-DD");
@@ -106,14 +107,16 @@ export function validarRegra(r: RegraFiscal): string[] {
       erros.push("vigenciaFim: não pode ser anterior ao início");
     }
   }
-  if (!Number.isInteger(r.versao) || r.versao < 1) erros.push("versao: use um inteiro a partir de 1");
+  if (!Number.isInteger(r.versao) || r.versao < 1)
+    erros.push("versao: use um inteiro a partir de 1");
   return erros;
 }
 
 /** A regra vale para o contexto? (ativa, válida, vigente na data e com todos os critérios presentes casando.) */
 export function regraCasa(r: RegraFiscal, ctx: ContextoFiscal): boolean {
   if (!r.ativa || validarRegra(r).length > 0 || !DATA_ISO.test(ctx.data)) return false;
-  if (ctx.data < r.vigenciaInicio || (r.vigenciaFim != null && ctx.data > r.vigenciaFim)) return false;
+  if (ctx.data < r.vigenciaInicio || (r.vigenciaFim != null && ctx.data > r.vigenciaFim))
+    return false;
   if (!soDigitos(ctx.ncm).startsWith(r.ncmPrefixo)) return false;
   if (r.cest != null && r.cest !== soDigitos(ctx.cest)) return false;
   if (r.operacao != null && r.operacao !== ctx.operacao) return false;
@@ -133,7 +136,7 @@ export const especificidade = (r: RegraFiscal): [number, number, number, number]
 function compararEspecificidade(a: RegraFiscal, b: RegraFiscal): number {
   const ea = especificidade(a);
   const eb = especificidade(b);
-  for (let i = 0; i < ea.length; i++) if (ea[i] !== eb[i]) return ea[i] - eb[i];
+  for (let i = 0; i < ea.length; i++) if (ea[i] !== eb[i]) return (ea[i] ?? 0) - (eb[i] ?? 0);
   return 0;
 }
 
@@ -167,7 +170,10 @@ export function resolverTributacao(entrada: EntradaResolucao): Resolucao {
     }
     return res;
   };
-  camadas.push({ origem: "item", perfil: entrada.item }, { origem: "produto", perfil: entrada.produto });
+  camadas.push(
+    { origem: "item", perfil: entrada.item },
+    { origem: "produto", perfil: entrada.produto },
+  );
 
   if (soDigitos(contexto.ncm).length !== 8) return preencher(vazio("ncm_invalido"));
 
@@ -185,6 +191,7 @@ export function resolverTributacao(entrada: EntradaResolucao): Resolucao {
       return preencher(res);
     }
     const regra = melhores[0];
+    if (!regra) continue;
     camadas.push({ origem, perfil: regra.perfil });
     const res = vazio("regra");
     res.regra = { id: regra.id, versao: regra.versao, origem };

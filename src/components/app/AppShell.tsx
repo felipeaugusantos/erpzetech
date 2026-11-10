@@ -757,6 +757,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
+      { label: "Base fiscal (NCM)", to: "/ze-tech-fiscal", icon: Scale },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
       { label: "Lava rápido", to: "/ze-tech-lava-rapido", icon: Droplets },
       { label: "Bulário veterinário", to: "/ze-tech-bulario", icon: BookOpen },

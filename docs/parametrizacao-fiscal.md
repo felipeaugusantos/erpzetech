@@ -117,7 +117,14 @@ Banco (`supabase/ci/fiscal-regras.sql`):
      Ela espelha `src/lib/fiscal-regras.ts` e devolve `status`, `regra`, `candidatas` (no empate) e `perfil` (camelCase, sem nulos). A mistura com item, produto
      e padrão da empresa continua no app (PR 4). O regime vem da empresa (`simples` e `mei`; o resto é `normal`, como `crtDoRegime`) ou de `p_regime`.
    - As tabelas só recebem dados por `service_role` por enquanto: as funções de carga (PR 3) e de sobrescrita/ocultação (PR 5) ainda não existem.
-3. **PR 3:** tela da equipe para carga com prévia e versionamento; carga inicial pequena (50 a 100 NCMs).
+3. **PR 3 (feito):** tela da equipe `/ze-tech-fiscal` (menu Ze Tech → Base fiscal (NCM)) para carga por planilha CSV com prévia, publicação e encerramento. **Sem carga inicial**: a base nasce vazia e a planilha-modelo traz só o cabeçalho; as regras entram quando o contador as validar.
+   - Migração `supabase/migrations/20270103000000_fiscal_base_carga.sql` (a aplicar no banco): `fiscal_base_publicar` (prévia ou publicação), `fiscal_base_listar` e `fiscal_base_encerrar`,
+     todas só de `service_role`; a tela chama por função de servidor (`src/lib/fiscal-base.functions.ts`) depois de conferir que a pessoa é da equipe. Teste de banco `supabase/ci/fiscal-base-carga.sql`.
+   - Leitura e validação da planilha no navegador (`src/lib/fiscal-importacao.ts`, com `tests/fiscal-importacao.test.ts`); o banco confere tudo de novo.
+   - Regras da carga: **tudo ou nada** (com qualquer erro nada é gravado); a prévia roda o mesmo caminho de código da publicação e desfaz, então nunca diverge; reenviar a mesma planilha não muda nada;
+     perfil existente só é reaproveitado se os valores forem idênticos (para mudar a tributação, outro nome de perfil e início posterior); nova versão de uma chave
+     (NCM + CEST + operação + regime + UF) encerra a anterior no dia anterior ao início da nova; encerrar só antecipa o fim, nunca estende; uma carga por vez (trava no banco).
+   - NCM na planilha só com 2, 4, 6 ou 8 dígitos (quantidade ímpar quase sempre é zero à esquerda perdido pela planilha); CEST de 6 dígitos e CSTs curtos são completados com zeros.
 4. **PR 4:** sugestão no cadastro do produto.
 5. **PR 5:** sobrescritas e ocultação pela empresa.
 6. **PR 6:** gravação da regra aplicada na nota e, depois, recálculo em massa.
