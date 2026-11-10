@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Histórico Google Drive: tela própria com data e hora do envio em Brasília, tamanho e situação; conferir acesso e visualização no celular.
+
 - [x] Backup no Google Drive: tela, conexão por administrador, envio noturno e retenção implementados; 35 testes passaram, tela autenticada e cron sem autenticação recusado conferidos. Não publicado.
 - [ ] Verificar envio real e retenção no Google Drive: depende de consentimento do administrador no botão Conectar Google Drive; autorização de acesso durante desenvolvimento foi recusada. Publicação necessária para o job usar a versão nova.
 

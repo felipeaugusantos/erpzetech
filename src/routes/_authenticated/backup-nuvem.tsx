@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Cloud, RefreshCw, Pause, Play, Unplug, ExternalLink } from "lucide-react";
+import { Cloud, RefreshCw, Pause, Play, Unplug, ExternalLink, History } from "lucide-react";
 import { toast } from "sonner";
 import { estadoBackupDrive, iniciarBackupDrive, completarBackupDrive, alterarBackupDrive } from "@/lib/backup-drive.functions";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -74,10 +74,11 @@ function BackupNuvem() {
         {config?.pastaId && config.propria && <><Button variant="outline" disabled={busy || config.reconectar} onClick={() => alterar(config.ativo ? "pausar" : "ativar")}>{config.ativo ? <Pause /> : <Play />}{config.ativo ? "Pausar" : "Ativar"}</Button><Button variant="outline" disabled={busy} onClick={() => alterar("desconectar")}><Unplug />Desconectar</Button></>}
         {config?.pastaId && <Button variant="outline" asChild><a href={`https://drive.google.com/drive/folders/${encodeURIComponent(config.pastaId)}`} target="_blank" rel="noreferrer"><ExternalLink />Abrir pasta</a></Button>}
         <Button variant="ghost" disabled={busy} onClick={() => refetch()}><RefreshCw />Atualizar</Button>
+        <Button variant="outline" asChild><Link to="/backup-historico"><History />Histórico de backups</Link></Button>
       </div>
     </section>
     <section className="space-y-3"><h2 className="text-lg font-semibold">Histórico de cópias</h2>
-      <Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Situação</TableHead><TableHead>Tamanho</TableHead><TableHead>Ocorrência</TableHead></TableRow></TableHeader><TableBody>{data.execucoes.map(e => <TableRow key={e.dia}><TableCell>{e.dia.split("-").reverse().join("/")}</TableCell><TableCell>{({ pendente: "Em envio", concluido: "Enviado e conferido", erro: "Falha", expirado: "Expirado" } as Record<string, string>)[e.situacao]}</TableCell><TableCell>{e.tamanho === null ? "—" : `${(e.tamanho / 1024 / 1024).toFixed(2)} MB`}</TableCell><TableCell className="max-w-64 whitespace-normal">{e.erro ?? "—"}</TableCell></TableRow>)}{data.execucoes.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma cópia enviada ao Google Drive.</TableCell></TableRow>}</TableBody></Table>
+      <Table><TableHeader><TableRow><TableHead>Enviado em · Brasília</TableHead><TableHead>Situação</TableHead><TableHead>Tamanho</TableHead><TableHead>Ocorrência</TableHead></TableRow></TableHeader><TableBody>{data.execucoes.map(e => <TableRow key={e.dia}><TableCell>{e.concluido_em ? new Date(e.concluido_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</TableCell><TableCell>{({ pendente: "Em envio", concluido: "Enviado e conferido", erro: "Falha", expirado: "Expirado" } as Record<string, string>)[e.situacao]}</TableCell><TableCell>{e.tamanho === null ? "—" : `${(e.tamanho / 1024 / 1024).toFixed(2)} MB`}</TableCell><TableCell className="max-w-64 whitespace-normal">{e.erro ?? "—"}</TableCell></TableRow>)}{data.execucoes.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma cópia enviada ao Google Drive.</TableCell></TableRow>}</TableBody></Table>
     </section>
   </div>;
 }
