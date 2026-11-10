@@ -2278,6 +2278,96 @@ export type Database = {
           },
         ]
       }
+      compra_devolucao_itens: {
+        Row: {
+          compra_item_id: string
+          custo_unitario: number
+          devolucao_id: string
+          id: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total: number
+          unidade: string | null
+        }
+        Insert: {
+          compra_item_id: string
+          custo_unitario?: number
+          devolucao_id: string
+          id?: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          total?: number
+          unidade?: string | null
+        }
+        Update: {
+          compra_item_id?: string
+          custo_unitario?: number
+          devolucao_id?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+          unidade?: string | null
+        }
+        Relationships: []
+      }
+      compra_devolucoes: {
+        Row: {
+          compra_id: string
+          created_at: string
+          deposito_id: string
+          empresa_id: string | null
+          filial_id: string | null
+          fornecedor_id: string | null
+          id: string
+          modo: string
+          motivo: string | null
+          nfe_id: string | null
+          numero: number
+          tenant_id: string
+          usuario_id: string | null
+          valor_abatido: number
+          valor_total: number
+        }
+        Insert: {
+          compra_id: string
+          created_at?: string
+          deposito_id: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          modo?: string
+          motivo?: string | null
+          nfe_id?: string | null
+          numero: number
+          tenant_id: string
+          usuario_id?: string | null
+          valor_abatido?: number
+          valor_total?: number
+        }
+        Update: {
+          compra_id?: string
+          created_at?: string
+          deposito_id?: string
+          empresa_id?: string | null
+          filial_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          modo?: string
+          motivo?: string | null
+          nfe_id?: string | null
+          numero?: number
+          tenant_id?: string
+          usuario_id?: string | null
+          valor_abatido?: number
+          valor_total?: number
+        }
+        Relationships: []
+      }
       compra_itens: {
         Row: {
           cfop: string | null
@@ -4461,6 +4551,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           id: string
+          inscricao_estadual: string | null
           nome_fantasia: string | null
           numero: string | null
           prazo_entrega_dias: number | null
@@ -4483,6 +4574,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           prazo_entrega_dias?: number | null
@@ -4505,6 +4597,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           prazo_entrega_dias?: number | null
@@ -8551,6 +8644,7 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
+          compra_id: string | null
           codigo_servico: string | null
           comanda_id: string | null
           contingencia: boolean
@@ -8561,6 +8655,7 @@ export type Database = {
           emitida_em: string | null
           empresa_id: string | null
           filial_id: string | null
+          fornecedor_id: string | null
           id: string
           impostos_calculados_em: string | null
           iss_retido: boolean
@@ -8584,6 +8679,7 @@ export type Database = {
           situacao: string
           tenant_id: string
           tentativas: number
+          tp_emis: number
           transmitida_em: string | null
           updated_at: string
           valor_cofins: number
@@ -8607,6 +8703,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
           contingencia?: boolean
@@ -8617,6 +8714,7 @@ export type Database = {
           emitida_em?: string | null
           empresa_id?: string | null
           filial_id?: string | null
+          fornecedor_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
           iss_retido?: boolean
@@ -8640,6 +8738,7 @@ export type Database = {
           situacao?: string
           tenant_id?: string
           tentativas?: number
+          tp_emis?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -8663,6 +8762,7 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
+          compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
           contingencia?: boolean
@@ -8673,6 +8773,7 @@ export type Database = {
           emitida_em?: string | null
           empresa_id?: string | null
           filial_id?: string | null
+          fornecedor_id?: string | null
           id?: string
           impostos_calculados_em?: string | null
           iss_retido?: boolean
@@ -8696,6 +8797,7 @@ export type Database = {
           situacao?: string
           tenant_id?: string
           tentativas?: number
+          tp_emis?: number
           transmitida_em?: string | null
           updated_at?: string
           valor_cofins?: number
@@ -8762,6 +8864,45 @@ export type Database = {
           },
         ]
       }
+      nfe_contingencia: {
+        Row: {
+          autorizador: string
+          empresa_id: string
+          entrou_em: string
+          id: string
+          justificativa: string
+          saiu_em: string | null
+          tenant_id: string
+          tp_emis: number
+          usuario_entrada: string
+          usuario_saida: string | null
+        }
+        Insert: {
+          autorizador: string
+          empresa_id: string
+          entrou_em?: string
+          id?: string
+          justificativa: string
+          saiu_em?: string | null
+          tenant_id: string
+          tp_emis: number
+          usuario_entrada: string
+          usuario_saida?: string | null
+        }
+        Update: {
+          autorizador?: string
+          empresa_id?: string
+          entrou_em?: string
+          id?: string
+          justificativa?: string
+          saiu_em?: string | null
+          tenant_id?: string
+          tp_emis?: number
+          usuario_entrada?: string
+          usuario_saida?: string | null
+        }
+        Relationships: []
+      }
       nfe_entrada_produtos: {
         Row: {
           codigo_barras: string | null
@@ -8816,6 +8957,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      nfe_eventos: {
+        Row: {
+          ambiente: string
+          ano: number | null
+          atualizado_em: string
+          criado_em: string
+          empresa_id: string | null
+          id: string
+          mensagem: string | null
+          nfe_id: string | null
+          numero_final: number | null
+          numero_inicial: number | null
+          protocolo: string | null
+          provider_id: string | null
+          retorno: Json | null
+          sequencia: number | null
+          serie: number | null
+          situacao: string
+          tenant_id: string
+          texto: string
+          tipo: string
+          usuario_id: string
+        }
+        Insert: {
+          ambiente?: string
+          ano?: number | null
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id?: string | null
+          id?: string
+          mensagem?: string | null
+          nfe_id?: string | null
+          numero_final?: number | null
+          numero_inicial?: number | null
+          protocolo?: string | null
+          provider_id?: string | null
+          retorno?: Json | null
+          sequencia?: number | null
+          serie?: number | null
+          situacao?: string
+          tenant_id: string
+          texto: string
+          tipo: string
+          usuario_id: string
+        }
+        Update: {
+          ambiente?: string
+          ano?: number | null
+          atualizado_em?: string
+          criado_em?: string
+          empresa_id?: string | null
+          id?: string
+          mensagem?: string | null
+          nfe_id?: string | null
+          numero_final?: number | null
+          numero_inicial?: number | null
+          protocolo?: string | null
+          provider_id?: string | null
+          retorno?: Json | null
+          sequencia?: number | null
+          serie?: number | null
+          situacao?: string
+          tenant_id?: string
+          texto?: string
+          tipo?: string
+          usuario_id?: string
+        }
+        Relationships: []
       }
       nfe_itens: {
         Row: {
@@ -16720,6 +16930,16 @@ export type Database = {
         Returns: undefined
       }
       desconto_limite_itens: { Args: { p_itens: Json }; Returns: number }
+      compra_devolucao_registrar: {
+        Args: {
+          p_abater_pagar?: boolean
+          p_compra_id: string
+          p_itens: Json
+          p_modo?: string
+          p_motivo?: string
+        }
+        Returns: string
+      }
       devolucao_registrar: {
         Args: {
           p_abater_receber?: boolean

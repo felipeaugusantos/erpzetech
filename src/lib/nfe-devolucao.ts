@@ -35,6 +35,30 @@ export function cfopDevolucaoVenda(cfopOriginal: unknown, interestadual: boolean
   return `${prefixo}${st ? "411" : "202"}`;
 }
 
+/** CFOPs de entrada (da compra) com substituição tributária: a devolução ao fornecedor usa 5.411 / 6.411. */
+const CFOPS_COMPRA_ST = ["1401", "1403", "2401", "2403"];
+
+/**
+ * CFOP da devolução de compra (saída ao fornecedor): 5.202 (dentro do estado) ou 6.202 (outro estado); compra com
+ * ST devolve em 5.411 / 6.411. O CFOP do item é o da entrada original (ou o do rascunho): recalcula sempre.
+ */
+export function cfopDevolucaoCompra(cfopOriginal: unknown, interestadual: boolean): string {
+  const cfop = String(cfopOriginal ?? "").replace(/\D/g, "");
+  const st = CFOPS_COMPRA_ST.includes(cfop) || cfop === "5411" || cfop === "6411";
+  return `${interestadual ? "6" : "5"}${st ? "411" : "202"}`;
+}
+
+/** Chave da NF-e de entrada que a devolução de compra referencia; sem chave válida não há como referenciar. */
+export function chaveDaCompra(chave: unknown): string {
+  const c = String(chave ?? "").trim();
+  if (!chaveAcessoValida(c)) {
+    throw new Error(
+      "A compra não tem a chave de acesso da NF-e de entrada (ou ela é inválida): a nota de devolução precisa referenciá-la.",
+    );
+  }
+  return c;
+}
+
 export type NotaDeVenda = {
   id: string;
   chave: string | null;
@@ -78,11 +102,15 @@ export function nItemDaVenda(
   return i < 0 ? null : i + 1;
 }
 
-/** Campos do ide da nota de devolução. indPres 0 (não se aplica): a devolução não é uma venda presencial. */
-export function ideDevolucao(chaves: string[]) {
+/**
+ * Campos do ide da nota de devolução. indPres 0 (não se aplica): a devolução não é uma venda presencial.
+ * `entrada` true: devolução de venda (a empresa recebe a mercadoria, tpNF 0); false: devolução de compra
+ * (a empresa devolve ao fornecedor, tpNF 1).
+ */
+export function ideDevolucao(chaves: string[], entrada = true) {
   return {
     finNFe: 4,
-    tpNF: 0,
+    tpNF: entrada ? 0 : 1,
     indPres: 0,
     NFref: chaves.map((refNFe) => ({ refNFe })),
   } as const;

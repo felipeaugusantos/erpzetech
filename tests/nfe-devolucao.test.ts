@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  cfopDevolucaoCompra,
   cfopDevolucaoVenda,
+  chaveDaCompra,
   chaveAcessoValida,
   chavesDaVenda,
   dvChaveAcesso,
@@ -78,6 +80,34 @@ test("ideDevolucao: finalidade 4, entrada, indPres 0 e a(s) chave(s) referenciad
   assert.deepEqual(ideDevolucao([CHAVE]), {
     finNFe: 4,
     tpNF: 0,
+    indPres: 0,
+    NFref: [{ refNFe: CHAVE }],
+  });
+});
+
+test("cfopDevolucaoCompra: 5202/6202 e ST em 5411/6411, qualquer que seja o CFOP de origem", () => {
+  assert.equal(cfopDevolucaoCompra("1102", false), "5202");
+  assert.equal(cfopDevolucaoCompra("2102", true), "6202");
+  assert.equal(cfopDevolucaoCompra("1403", false), "5411");
+  assert.equal(cfopDevolucaoCompra("2403", true), "6411");
+  assert.equal(cfopDevolucaoCompra("5202", true), "6202");
+  assert.equal(cfopDevolucaoCompra(null, false), "5202");
+});
+
+test("chaveDaCompra exige chave de acesso válida da NF-e de entrada", () => {
+  assert.equal(chaveDaCompra(` ${CHAVE} `), CHAVE);
+  assert.throws(() => chaveDaCompra(null), /chave de acesso/);
+  assert.throws(() => chaveDaCompra("CHAVE-XML-CI"), /chave de acesso/);
+  assert.throws(
+    () => chaveDaCompra(CHAVE.slice(0, 43) + ((Number(CHAVE[43]) + 1) % 10)),
+    /chave de acesso/,
+  );
+});
+
+test("ideDevolucao de compra sai como saída (tpNF 1)", () => {
+  assert.deepEqual(ideDevolucao([CHAVE], false), {
+    finNFe: 4,
+    tpNF: 1,
     indPres: 0,
     NFref: [{ refNFe: CHAVE }],
   });

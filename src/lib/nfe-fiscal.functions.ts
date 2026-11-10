@@ -13,7 +13,14 @@ import {
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
-import { cfopDevolucaoVenda, chavesDaVenda, ideDevolucao, nItemDaVenda } from "./nfe-devolucao.ts";
+import {
+  cfopDevolucaoCompra,
+  cfopDevolucaoVenda,
+  chaveDaCompra,
+  chavesDaVenda,
+  ideDevolucao,
+  nItemDaVenda,
+} from "./nfe-devolucao.ts";
 import {
   identEmissao,
   servicoEmOperacao,
@@ -182,9 +189,11 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       );
     }
 
-    const [{ data: empresa }, { data: cliente }, { data: itens }] = await Promise.all([
+    const [{ data: empresa }, { data: destinatarioBruto }, { data: itens }] = await Promise.all([
       supabase.from("empresas").select("*").eq("id", nota.empresa_id).maybeSingle(),
-      supabase.from("clientes").select("*").eq("id", nota.cliente_id).maybeSingle(),
+      nota.fornecedor_id
+        ? supabase.from("fornecedores").select("*").eq("id", nota.fornecedor_id).maybeSingle()
+        : supabase.from("clientes").select("*").eq("id", nota.cliente_id).maybeSingle(),
       supabase
         .from("nfe_itens")
         .select(
@@ -194,7 +203,20 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         .order("created_at", { ascending: true }),
     ]);
     if (!empresa) throw new Error("Empresa emitente não encontrada");
-    if (!cliente) throw new Error("Cliente da nota não encontrado");
+    if (!destinatarioBruto)
+      throw new Error(
+        nota.fornecedor_id ? "Fornecedor da nota não encontrado" : "Cliente da nota não encontrado",
+      );
+    // fornecedor (devolução de compra) entra com o mesmo formato do cliente: só CNPJ, sem código de município
+    const cliente: any = nota.fornecedor_id
+      ? {
+          ...destinatarioBruto,
+          nome: destinatarioBruto.razao_social,
+          cpf: null,
+          codigo_municipio: null,
+          complemento: null,
+        }
+      : destinatarioBruto;
     if (!itens || itens.length === 0) throw new Error("A nota não tem itens");
 
     const cnpjEmitente = limparDocumento(String(empresa.cnpj ?? ""));
@@ -219,10 +241,11 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const achado = await codigoMunicipioPorCep(ambiente, cliente.cep ?? "");
       if (achado) {
         cMunDest = achado.codigo;
-        await supabase
-          .from("clientes")
-          .update({ codigo_municipio: achado.codigo })
-          .eq("id", cliente.id);
+        if (!nota.fornecedor_id)
+          await supabase
+            .from("clientes")
+            .update({ codigo_municipio: achado.codigo })
+            .eq("id", cliente.id);
       }
     }
     if (!cMunEmit)
@@ -268,6 +291,34 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       .maybeSingle();
     if (erroDevolucao) throw erroDevolucao;
     const interestadual = ufEmit !== ufDest;
+
+    // Nota de devolução de compra (nasce em compra_devolucao_registrar, modo "nota"): sai como saída ao
+    // fornecedor, finalidade 4, referenciando a NF-e de entrada da compra. O nItem do item na NF-e de entrada
+    // não é guardado (o XML original não é armazenado), por isso o grupo DFeReferenciado dos itens não é enviado.
+    const { data: devolucaoCompra, error: erroDevolucaoCompra } = await (supabase as any)
+      .from("compra_devolucoes")
+      .select("id, compra_id")
+      .eq("nfe_id", nota.id)
+      .maybeSingle();
+    if (erroDevolucaoCompra) throw erroDevolucaoCompra;
+    let chaveCompra: string | null = null;
+    if (devolucaoCompra) {
+      const { data: compra, error: erroCompra } = await supabase
+        .from("compras")
+        .select("nfe_chave")
+        .eq("id", devolucaoCompra.compra_id)
+        .maybeSingle();
+      if (erroCompra) throw erroCompra;
+      chaveCompra = chaveDaCompra(compra?.nfe_chave);
+      const ieForn = String(cliente.inscricao_estadual ?? "")
+        .trim()
+        .toUpperCase();
+      if (!so(ieForn) && ieForn !== "ISENTO") {
+        throw new Error(
+          "Cadastre a inscrição estadual do fornecedor (ou ISENTO) para emitir a nota de devolução.",
+        );
+      }
+    }
     let chavesVenda: string[] = [];
     const itensDasVendas: { chave: string; itens: { produto_id: string | null }[] }[] = [];
     if (devolucao) {
@@ -321,7 +372,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       }
       const cfop = devolucao
         ? cfopDevolucaoVenda(item.cfop, interestadual)
-        : so(item.cfop ?? cfg.cfop_padrao) || "5102";
+        : devolucaoCompra
+          ? cfopDevolucaoCompra(item.cfop, interestadual)
+          : so(item.cfop ?? cfg.cfop_padrao) || "5102";
       const ean = so(item.produtos?.codigo_barras);
       const unidade = String(item.unidade ?? "UN").slice(0, 6);
       let ibsCbs: ReturnType<typeof grupoIbsCbsDoItem> | null = null;
@@ -445,6 +498,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           procEmi: 0,
           verProc: "ERP Ze Tech 1.0",
           ...(devolucao ? ideDevolucao(chavesVenda) : {}),
+          ...(chaveCompra ? ideDevolucao([chaveCompra], false) : {}),
         },
         emit: {
           CNPJ: cnpjEmitente,
@@ -469,8 +523,16 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             ...(so(cliente.cep).length === 8 ? { CEP: so(cliente.cep) } : {}),
             ...(so(cliente.telefone) ? { fone: so(cliente.telefone).slice(0, 14) } : {}),
           },
-          indIEDest: pj && cliente.inscricao_estadual ? 1 : 9,
-          ...(pj && cliente.inscricao_estadual ? { IE: so(cliente.inscricao_estadual) } : {}),
+          indIEDest:
+            pj && so(cliente.inscricao_estadual)
+              ? 1
+              : pj &&
+                  String(cliente.inscricao_estadual ?? "")
+                    .trim()
+                    .toUpperCase() === "ISENTO"
+                ? 2
+                : 9,
+          ...(pj && so(cliente.inscricao_estadual) ? { IE: so(cliente.inscricao_estadual) } : {}),
           ...(cliente.email ? { email: String(cliente.email).slice(0, 60) } : {}),
         },
         det,

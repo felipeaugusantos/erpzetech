@@ -51,6 +51,7 @@ type Form = {
   razao_social: string;
   nome_fantasia: string;
   cnpj: string;
+  inscricao_estadual: string;
   contato: string;
   telefone: string;
   whatsapp: string;
@@ -66,6 +67,7 @@ const vazio: Form = {
   razao_social: "",
   nome_fantasia: "",
   cnpj: "",
+  inscricao_estadual: "",
   contato: "",
   telefone: "",
   whatsapp: "",
@@ -166,6 +168,7 @@ function Fornecedores() {
         razao_social: form.razao_social.trim(),
         nome_fantasia: form.nome_fantasia || null,
         cnpj: form.cnpj || null,
+        inscricao_estadual: form.inscricao_estadual.trim() || null,
         contato: form.contato || null,
         telefone: form.telefone || null,
         whatsapp: form.whatsapp || null,
@@ -319,6 +322,7 @@ function Fornecedores() {
                             razao_social: f.razao_social,
                             nome_fantasia: f.nome_fantasia ?? "",
                             cnpj: f.cnpj ?? "",
+                            inscricao_estadual: f.inscricao_estadual ?? "",
                             contato: f.contato ?? "",
                             telefone: f.telefone ?? "",
                             whatsapp: f.whatsapp ?? "",
@@ -369,6 +373,13 @@ function Fornecedores() {
                 mascara="cnpj"
                 value={form.cnpj}
                 onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Inscrição estadual (ou ISENTO)</Label>
+              <Input
+                value={form.inscricao_estadual}
+                onChange={(e) => setForm({ ...form, inscricao_estadual: e.target.value })}
               />
             </div>
             <div>
