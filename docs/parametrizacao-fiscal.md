@@ -110,7 +110,13 @@ Banco (`supabase/ci/fiscal-regras.sql`):
    Decisões implementadas: a precedência vale **campo a campo** (item, produto, regra, padrão); a regra é escolhida **como um todo**
    e qualquer regra da empresa que case vence a global, mesmo menos específica; empate devolve as candidatas e **não** aplica o padrão;
    NCM sem 8 dígitos não consulta regra nem aplica o padrão; regra inválida nunca casa (`validarRegra` serve para a prévia da importação).
-2. **PR 2:** migração (tabelas e funções de sugestão) + teste de banco. Ninguém usa ainda.
+2. **PR 2 (feito):** migração `supabase/migrations/20270102000000_fiscal_regras.sql` + teste `supabase/ci/fiscal-regras.sql` (ligado no `run.sh`). Ninguém usa ainda.
+   - Tabelas (sem acesso direto, com `salao_restrito`): `fiscal_perfis` (`tenant_id` nulo = global), `fiscal_regras`, `fiscal_empresa_regras`, `fiscal_empresa_ocultas`.
+     Gatilhos: regra global só usa perfil global; sobrescrita da empresa usa perfil global ou da própria empresa; o dono de um perfil não muda.
+   - Só a função `fiscal_sugerir(p_ncm, p_cest, p_operacao, p_data, p_uf_destino, p_regime)` está liberada, para qualquer pessoa da empresa exceto o perfil do salão.
+     Ela espelha `src/lib/fiscal-regras.ts` e devolve `status`, `regra`, `candidatas` (no empate) e `perfil` (camelCase, sem nulos). A mistura com item, produto
+     e padrão da empresa continua no app (PR 4). O regime vem da empresa (`simples` e `mei`; o resto é `normal`, como `crtDoRegime`) ou de `p_regime`.
+   - As tabelas só recebem dados por `service_role` por enquanto: as funções de carga (PR 3) e de sobrescrita/ocultação (PR 5) ainda não existem.
 3. **PR 3:** tela da equipe para carga com prévia e versionamento; carga inicial pequena (50 a 100 NCMs).
 4. **PR 4:** sugestão no cadastro do produto.
 5. **PR 5:** sobrescritas e ocultação pela empresa.
