@@ -5,6 +5,10 @@
 --   * cada item é da nota original, com valor maior que zero, sem repetir; sem frete;
 --   * a transmissão pelo fluxo normal referencia a original (NFref) e envia à Sefaz.
 
+-- colunas que esta migração usa e que as migrações 20270102 (fornecedor_id) e 20270103 (complementa_nfe_id) também
+-- criam: com IF NOT EXISTS ela roda em qualquer ordem sem erro de coluna inexistente
+ALTER TABLE public.nfe ADD COLUMN IF NOT EXISTS fornecedor_id uuid REFERENCES public.fornecedores(id);
+ALTER TABLE public.nfe ADD COLUMN IF NOT EXISTS complementa_nfe_id uuid REFERENCES public.nfe(id);
 ALTER TABLE public.nfe ADD COLUMN IF NOT EXISTS ajusta_nfe_id uuid REFERENCES public.nfe(id);
 ALTER TABLE public.nfe DROP CONSTRAINT IF EXISTS nfe_complementa_ou_ajusta;
 ALTER TABLE public.nfe ADD CONSTRAINT nfe_complementa_ou_ajusta CHECK (complementa_nfe_id IS NULL OR ajusta_nfe_id IS NULL);
