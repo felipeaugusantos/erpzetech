@@ -47,8 +47,10 @@ ALTER TABLE public.nfe_contingencia ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.nfe_contingencia FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.nfe_contingencia TO authenticated;
 GRANT ALL ON public.nfe_contingencia TO service_role;
+DROP POLICY IF EXISTS nfe_contingencia_leitura ON public.nfe_contingencia;
 CREATE POLICY nfe_contingencia_leitura ON public.nfe_contingencia FOR SELECT TO authenticated
   USING (tenant_id = public.current_tenant_id());
+DROP POLICY IF EXISTS salao_restrito ON public.nfe_contingencia;
 CREATE POLICY salao_restrito ON public.nfe_contingencia AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
 
 -- forma de emissão com que cada nota saiu (1 normal, 6 SVC-AN, 7 SVC-RS): vale para auditoria e para o DANFE

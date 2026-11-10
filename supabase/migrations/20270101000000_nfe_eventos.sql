@@ -65,6 +65,8 @@ ALTER TABLE public.nfe_eventos ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.nfe_eventos FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.nfe_eventos TO authenticated;
 GRANT ALL ON public.nfe_eventos TO service_role;
+DROP POLICY IF EXISTS nfe_eventos_leitura ON public.nfe_eventos;
 CREATE POLICY nfe_eventos_leitura ON public.nfe_eventos FOR SELECT TO authenticated
   USING (tenant_id = public.current_tenant_id());
+DROP POLICY IF EXISTS salao_restrito ON public.nfe_eventos;
 CREATE POLICY salao_restrito ON public.nfe_eventos AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT NOT public.eh_salao_restrito()));
