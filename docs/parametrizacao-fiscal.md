@@ -106,7 +106,10 @@ Banco (`supabase/ci/fiscal-regras.sql`):
 
 ## Plano em PRs pequenos
 
-1. **PR 1:** lógica pura `src/lib/fiscal-regras.ts` + testes. Não muda o app.
+1. **PR 1 (feito):** lógica pura `src/lib/fiscal-regras.ts` + `tests/fiscal-regras.test.ts`. Não muda o app: nada a usa ainda.
+   Decisões implementadas: a precedência vale **campo a campo** (item, produto, regra, padrão); a regra é escolhida **como um todo**
+   e qualquer regra da empresa que case vence a global, mesmo menos específica; empate devolve as candidatas e **não** aplica o padrão;
+   NCM sem 8 dígitos não consulta regra nem aplica o padrão; regra inválida nunca casa (`validarRegra` serve para a prévia da importação).
 2. **PR 2:** migração (tabelas e funções de sugestão) + teste de banco. Ninguém usa ainda.
 3. **PR 3:** tela da equipe para carga com prévia e versionamento; carga inicial pequena (50 a 100 NCMs).
 4. **PR 4:** sugestão no cadastro do produto.
