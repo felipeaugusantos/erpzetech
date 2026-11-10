@@ -22,6 +22,7 @@ import {
   caminhoDoBackup,
   diaDeBrasilia,
   loteDaRodada,
+  ordenarFila,
   politicaDoCliente,
   selecionarParaApagar,
   tiposDoDia,
@@ -316,7 +317,13 @@ export async function aplicarRetencao(tenantId: string, ramos: readonly string[]
   }
   const r = await db
     .from("backup_execucoes")
-    .update({ situacao: "expirado", expirado_em: new Date().toISOString() })
+    // a constraint de backup_execucoes só aceita concluido_em preenchido em "concluido": ao expirar, some junto com o caminho
+    .update({
+      situacao: "expirado",
+      expirado_em: new Date().toISOString(),
+      concluido_em: null,
+      caminho: null,
+    })
     .in("id", apagar);
   if (r.error) throw new Error("Não foi possível registrar a expiração.");
   return apagar.length;
@@ -361,7 +368,14 @@ export async function rodadaDeBackup(
       .filter((f) => f["situacao"] === "concluido" || f["situacao"] === "em_andamento")
       .map((f) => String(f["tenant_id"])),
   );
-  const fila = (tenants.data ?? []).map((t) => String(t["id"])).filter((id) => !cobertos.has(id));
+  const falhas = new Map<string, number>();
+  for (const f of feitos.data ?? [])
+    if (f["situacao"] === "erro")
+      falhas.set(String(f["tenant_id"]), (falhas.get(String(f["tenant_id"])) ?? 0) + 1);
+  const fila = ordenarFila(
+    (tenants.data ?? []).map((t) => String(t["id"])).filter((id) => !cobertos.has(id)),
+    falhas,
+  );
 
   const processados: ResultadoBackup[] = [];
   let expirados = 0;

@@ -7,7 +7,9 @@ import {
   POLITICA_PADRAO,
   caminhoDoBackup,
   diaDeBrasilia,
+  MAX_TENTATIVAS_POR_DIA,
   loteDaRodada,
+  ordenarFila,
   politicaDoCliente,
   selecionarParaApagar,
   tiposDoDia,
@@ -113,5 +115,21 @@ describe("rotina de backup: retenção", () => {
       { id: "y", dia: "2026-01-03", tipos: ["diario"], situacao: "concluido" },
     ];
     assert.deepEqual(selecionarParaApagar(um, { diarios: 1, semanais: 0, mensais: 0 }), ["x"]);
+  });
+});
+
+describe("rotina de backup: fila do dia", () => {
+  it("quem nunca foi tentado vem antes de quem já falhou, mantendo a ordem original", () => {
+    const falhas = new Map([
+      ["a", 1],
+      ["b", 2],
+    ]);
+    assert.deepEqual(ordenarFila(["a", "b", "c", "d"], falhas), ["c", "d", "a", "b"]);
+  });
+
+  it("cliente que falhou demais no dia sai da fila; os outros não são barrados por ele", () => {
+    const falhas = new Map([["a", MAX_TENTATIVAS_POR_DIA]]);
+    assert.deepEqual(ordenarFila(["a", "b"], falhas), ["b"]);
+    assert.deepEqual(ordenarFila([], new Map()), []);
   });
 });

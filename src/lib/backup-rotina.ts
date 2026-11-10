@@ -95,3 +95,21 @@ export function loteDaRodada(valor: string | null): number {
 
 /** execução "em andamento" há mais que isto é considerada interrompida e libera nova tentativa */
 export const LIMITE_EM_ANDAMENTO_MS = 2 * 60 * 60 * 1000;
+
+/** depois disso o cliente fica de fora do dia: o erro está registrado e retentar sem parar só gasta o lote */
+export const MAX_TENTATIVAS_POR_DIA = 3;
+
+/**
+ * Ordem da fila do dia: quem ainda não foi tentado vem primeiro, depois quem tem menos falhas; quem já falhou
+ * demais sai. Sem isso, os primeiros clientes que sempre falham ocupariam o lote de toda chamada.
+ */
+export function ordenarFila(
+  tenantIds: readonly string[],
+  falhasHoje: ReadonlyMap<string, number>,
+): string[] {
+  return tenantIds
+    .filter((id) => (falhasHoje.get(id) ?? 0) < MAX_TENTATIVAS_POR_DIA)
+    .map((id, ordem) => ({ id, ordem, falhas: falhasHoje.get(id) ?? 0 }))
+    .sort((a, b) => a.falhas - b.falhas || a.ordem - b.ordem)
+    .map((x) => x.id);
+}

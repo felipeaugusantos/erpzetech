@@ -50,9 +50,18 @@ BEGIN
   END;
   SET LOCAL ROLE service_role;
   UPDATE public.backup_execucoes SET situacao = 'concluido', concluido_em = now(), caminho = 'x/y.gz', tamanho = 10 WHERE tenant_id = t AND situacao = 'em_andamento';
+  -- expirar (retenção): o mesmo UPDATE que a rotina faz tem de passar pelas constraints
+  UPDATE public.backup_execucoes
+     SET situacao = 'expirado', expirado_em = now(), concluido_em = NULL, caminho = NULL
+   WHERE tenant_id = t AND situacao = 'concluido';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'FALHA: esperava expirar 1 backup, expirou %', n; END IF;
+  RAISE NOTICE 'ok: backup concluído expira sem violar as constraints';
+  -- e depois de expirado o dia fica livre para outro backup
+  INSERT INTO public.backup_execucoes (tenant_id, dia) VALUES (t, current_date);
   SELECT count(*) INTO n FROM public.backup_execucoes WHERE tenant_id = t;
   RESET ROLE;
-  IF n <> 2 THEN RAISE EXCEPTION 'FALHA: esperava 2 execuções, achou %', n; END IF;
+  IF n <> 3 THEN RAISE EXCEPTION 'FALHA: esperava 3 execuções, achou %', n; END IF;
 
   -- o bucket existe e é privado
   IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backups-clientes' AND public = false) THEN
