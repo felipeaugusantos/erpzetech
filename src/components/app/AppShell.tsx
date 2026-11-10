@@ -747,6 +747,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
       { label: "Contrato da clínica", to: "/ze-tech-contratos", icon: Stethoscope },
       { label: "Backup por cliente", to: "/ze-tech-backups", icon: DatabaseBackup },
+      { label: "Restauração de backup", to: "/ze-tech-restauracao", icon: DatabaseBackup },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
       { label: "Links de acesso", to: "/ze-tech-links", icon: Link2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },

@@ -1,4 +1,4 @@
-# Backup por cliente (fases 1 a 3)
+# Backup por cliente (fases 1 a 4)
 
 Cada cliente (tenant) tem os dados isolados por `tenant_id`. O backup nativo do Supabase é do banco inteiro; este
 recurso gera um arquivo só de UM cliente, para a equipe Ze Tech (tela `/ze-tech-backups`). O cliente não baixa.
@@ -50,6 +50,31 @@ guardadas só no navegador do cliente.
   que passe disso falha com o erro registrado em `backup_execucoes`; aí é preciso subir o limite ou exportar por pedaços.
 - O upload é feito por streaming sem tamanho prévio: valide com um cliente real antes de ligar o agendador.
 
-## Próxima fase
+## Restauração assistida (fase 4)
 
-Restauração assistida (validar o manifesto, restaurar por transação, sempre feita pela equipe).
+Tela `/ze-tech-restauracao`, só para a equipe Ze Tech. Fluxo: escolher o cliente, enviar o arquivo `.ndjson.gz`,
+**conferir** (não grava nada) e só então restaurar.
+
+- **Conferência do arquivo** (`src/lib/backup-restauracao.ts`): recusa backup de outro cliente, linha com `tenant_id`
+  de outro cliente, tabela fora do catálogo, coluna de segredo, JSON quebrado, versão mais nova, e arquivo cortado (a
+  última linha `fim` precisa existir e bater com a contagem). Qualquer problema bloqueia tudo.
+- **Plano:** compara os ids do arquivo com o que existe hoje e mostra, por tabela, quantas linhas faltam.
+- **Só insere o que falta** (`backup_restaurar_tabela`, migração `20261231000000`): linha que já existe não é alterada
+  (`ON CONFLICT DO NOTHING`) e nada é apagado. Repetir é seguro. Só o serviço executa; cada chamada vai para a auditoria
+  do cliente.
+- **Só cadastros** (`TABELAS_RESTAURAVEIS`: fornecedores, categorias, produtos, variações, tabelas de preço, clientes,
+  pets, serviços do pet e do lava rápido, veículos, obras). Ficam de fora vendas, estoque, financeiro, fiscal,
+  prontuário e principalmente acessos e permissões: restaurar um papel antigo devolveria acesso já revogado. A lista da
+  função do banco e a do código são conferidas por teste. Incluir outra tabela exige conferir antes se ela tem gatilho
+  com efeito colateral.
+- **Ponto de segurança obrigatório:** só restaura se houver backup do cliente concluído nas últimas 24 horas (a tela gera
+  um na hora, se faltar). A restauração só libera depois de digitar o nome do cliente.
+- **Atomicidade:** cada lote de até 300 linhas é uma transação; a restauração inteira NÃO é uma transação única (os lotes
+  vão por chamadas separadas, em ordem de dependência). Como só insere, parar no meio nunca destrói nada: o que entrou
+  fica, e dá para conferir e rodar de novo.
+- Os gatilhos de validação das tabelas continuam ligados. Linha que depende de um registro que também foi apagado e
+  não é restaurável (por exemplo um cliente ligado a um profissional apagado) falha com o erro da chave estrangeira.
+
+## Próximos passos possíveis
+
+Ampliar a lista de tabelas restauráveis (com revisão de cada gatilho) e restaurar por grupo (clínica, lava rápido).
