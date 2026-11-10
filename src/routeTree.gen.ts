@@ -174,6 +174,7 @@ import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
 import { Route as AuthenticatedZeTechRouteImport } from './routes/_authenticated/ze-tech'
 import { Route as AuthenticatedZeTechAssistenciaRouteImport } from './routes/_authenticated/ze-tech-assistencia'
+import { Route as AuthenticatedZeTechBackupsRouteImport } from './routes/_authenticated/ze-tech-backups'
 import { Route as AuthenticatedZeTechBularioRouteImport } from './routes/_authenticated/ze-tech-bulario'
 import { Route as AuthenticatedZeTechClientesRouteImport } from './routes/_authenticated/ze-tech-clientes'
 import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
@@ -1129,6 +1130,12 @@ const AuthenticatedZeTechAssistenciaRoute =
     path: '/ze-tech-assistencia',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechBackupsRoute =
+  AuthenticatedZeTechBackupsRouteImport.update({
+    id: '/ze-tech-backups',
+    path: '/ze-tech-backups',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechBularioRoute =
   AuthenticatedZeTechBularioRouteImport.update({
     id: '/ze-tech-bulario',
@@ -1490,6 +1497,7 @@ export interface FileRoutesByFullPath {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
   '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
@@ -1690,6 +1698,7 @@ export interface FileRoutesByTo {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
   '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
@@ -1892,6 +1901,7 @@ export interface FileRoutesById {
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
   '/_authenticated/ze-tech': typeof AuthenticatedZeTechRoute
   '/_authenticated/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/_authenticated/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
   '/_authenticated/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/_authenticated/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
@@ -2094,6 +2104,7 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-backups'
     | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
@@ -2294,6 +2305,7 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-backups'
     | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
@@ -2495,6 +2507,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendedores'
     | '/_authenticated/ze-tech'
     | '/_authenticated/ze-tech-assistencia'
+    | '/_authenticated/ze-tech-backups'
     | '/_authenticated/ze-tech-bulario'
     | '/_authenticated/ze-tech-clientes'
     | '/_authenticated/ze-tech-cobranca'
@@ -3709,6 +3722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechAssistenciaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-backups': {
+      id: '/_authenticated/ze-tech-backups'
+      path: '/ze-tech-backups'
+      fullPath: '/ze-tech-backups'
+      preLoaderRoute: typeof AuthenticatedZeTechBackupsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-bulario': {
       id: '/_authenticated/ze-tech-bulario'
       path: '/ze-tech-bulario'
@@ -4108,6 +4128,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
   AuthenticatedZeTechRoute: typeof AuthenticatedZeTechRoute
   AuthenticatedZeTechAssistenciaRoute: typeof AuthenticatedZeTechAssistenciaRoute
+  AuthenticatedZeTechBackupsRoute: typeof AuthenticatedZeTechBackupsRoute
   AuthenticatedZeTechBularioRoute: typeof AuthenticatedZeTechBularioRoute
   AuthenticatedZeTechClientesRoute: typeof AuthenticatedZeTechClientesRoute
   AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
@@ -4297,6 +4318,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
   AuthenticatedZeTechRoute: AuthenticatedZeTechRoute,
   AuthenticatedZeTechAssistenciaRoute: AuthenticatedZeTechAssistenciaRoute,
+  AuthenticatedZeTechBackupsRoute: AuthenticatedZeTechBackupsRoute,
   AuthenticatedZeTechBularioRoute: AuthenticatedZeTechBularioRoute,
   AuthenticatedZeTechClientesRoute: AuthenticatedZeTechClientesRoute,
   AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
