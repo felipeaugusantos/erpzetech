@@ -32,6 +32,11 @@ Complementa `docs/reforma-tributaria.md` (fases 1 a 7 de IBS/CBS); aqui entram t
 18. **Simples/MEI** quando a NT definir o grupo (vale a partir de 04/01/2027). Acompanhar a publicação.
 19. **`vNFTot` (W60)** e a base de cálculo do IBS/CBS (UB16) quando a SEFAZ ativar a validação.
 
+## Andamento
+- Itens 9 e 10 (inutilização e CC-e): feitos, falta validar em homologação (formato do ano da inutilização; sequência da CC-e).
+- Item 11 (contingência): feita só a SVC-AN/SVC-RS; EPEC e FS-DA não, porque o emissor não os expõe. Conferir a tabela UF → SVC no MOC vigente.
+- Item 12 (finalidades): feita a devolução de venda (nota de entrada, `finNFe` 4, `tpNF` 0, `NFref` com a chave da venda, CFOP 1.202/2.202 ou 1.411/2.411, `DFeReferenciado` por item no regime normal). Faltam a devolução de compra (saída, CFOP 5.202/6.202), a nota complementar (2) e a de ajuste (3).
+
 ## Rotina contínua
 - Acompanhar a página de Notas Técnicas e o Informe Técnico a cada publicação; abrir tarefa por mudança de layout/schema.
 - Cada item novo entra com teste (padrão de `tests/`) e, para tabela nova com RLS ou função chamável por `authenticated`, seguir as regras de migração do `AGENTS.md`.

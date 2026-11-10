@@ -13,6 +13,7 @@ import {
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
+import { cfopDevolucaoVenda, chavesDaVenda, ideDevolucao, nItemDaVenda } from "./nfe-devolucao.ts";
 import {
   identEmissao,
   servicoEmOperacao,
@@ -258,7 +259,58 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       "obrigatorio";
     const resultadosIbsCbs: ResultadoItemIbsCbs[] = [];
 
+    // Nota de devolução de venda (nasce em devolucao_registrar, modo "nota"): sai como entrada, finalidade 4,
+    // referenciando a NF-e de venda autorizada do pedido, com CFOP de devolução conforme o destino.
+    const { data: devolucao, error: erroDevolucao } = await (supabase as any)
+      .from("devolucoes")
+      .select("id, pedido_id")
+      .eq("nfe_id", nota.id)
+      .maybeSingle();
+    if (erroDevolucao) throw erroDevolucao;
+    const interestadual = ufEmit !== ufDest;
+    let chavesVenda: string[] = [];
+    const itensDasVendas: { chave: string; itens: { produto_id: string | null }[] }[] = [];
+    if (devolucao) {
+      const { data: vendas, error: erroVendas } = await supabase
+        .from("nfe_pedidos")
+        .select("nfe(id, chave, situacao, modelo)")
+        .eq("pedido_id", devolucao.pedido_id);
+      if (erroVendas) throw erroVendas;
+      const notasVenda = ((vendas ?? []) as any[]).map((v) => v.nfe).filter(Boolean);
+      chavesVenda = chavesDaVenda(notasVenda, nota.id);
+      if (informaIbsCbs) {
+        // regime normal: cada item referencia o item da venda (grupo DFeReferenciado)
+        for (const chave of chavesVenda) {
+          const original = notasVenda.find((n: any) => n.chave === chave);
+          const { data: itensVenda, error: erroItensVenda } = await supabase
+            .from("nfe_itens")
+            .select("produto_id")
+            .eq("nfe_id", original.id)
+            .order("created_at", { ascending: true });
+          if (erroItensVenda) throw erroItensVenda;
+          itensDasVendas.push({
+            chave,
+            itens: (itensVenda ?? []) as { produto_id: string | null }[],
+          });
+        }
+      }
+    }
+
     const det = itens.map((item: any, indice: number) => {
+      let dfeReferenciado: { chaveAcesso: string; nItem: number } | null = null;
+      if (devolucao && informaIbsCbs) {
+        for (const v of itensDasVendas) {
+          const nItem = nItemDaVenda(v.itens, item.produto_id ?? null);
+          if (nItem) {
+            dfeReferenciado = { chaveAcesso: v.chave, nItem };
+            break;
+          }
+        }
+        if (!dfeReferenciado)
+          throw new Error(
+            `O produto ${item.descricao} não consta na NF-e de venda referenciada. Confira a devolução.`,
+          );
+      }
       const quantidade = num(item.quantidade, 4);
       const unitario = num(item.preco_unitario, 4);
       const totalItem = num(item.total);
@@ -267,7 +319,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       if (ncm.length !== 8) {
         throw new Error(`NCM inválido no produto ${item.descricao}. Corrija o NCM no cadastro.`);
       }
-      const cfop = so(item.cfop ?? cfg.cfop_padrao) || "5102";
+      const cfop = devolucao
+        ? cfopDevolucaoVenda(item.cfop, interestadual)
+        : so(item.cfop ?? cfg.cfop_padrao) || "5102";
       const ean = so(item.produtos?.codigo_barras);
       const unidade = String(item.unidade ?? "UN").slice(0, 6);
       let ibsCbs: ReturnType<typeof grupoIbsCbsDoItem> | null = null;
@@ -297,6 +351,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       }
       return {
         nItem: indice + 1,
+        ...(dfeReferenciado ? { DFeReferenciado: dfeReferenciado } : {}),
         prod: {
           cProd: String(item.codigo ?? item.produto_id).slice(0, 60),
           cEAN: ean.length === 13 || ean.length === 14 || ean.length === 8 ? ean : "SEM GTIN",
@@ -379,7 +434,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           nNF: Number(nota.numero),
           dhEmi: agora.toISOString().replace("Z", "-00:00"),
           tpNF: 1,
-          idDest: ufEmit === ufDest ? 1 : 2,
+          idDest: interestadual ? 2 : 1,
           cMunFG: cMunEmit,
           tpImp: 1,
           ...emissao,
@@ -389,6 +444,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           indPres: 1,
           procEmi: 0,
           verProc: "ERP Ze Tech 1.0",
+          ...(devolucao ? ideDevolucao(chavesVenda) : {}),
         },
         emit: {
           CNPJ: cnpjEmitente,
