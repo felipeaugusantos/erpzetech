@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FilePlus2 } from "lucide-react";
+import { FilePlus2, FileWarning } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionData } from "@/hooks/useSessionData";
 import { brl } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/** Gera o rascunho da NF-e complementar (só de valor) de uma nota de venda autorizada. */
-export function NotaComplementar({ nfeId, aoGerar }: { nfeId: string; aoGerar?: () => void }) {
+/**
+ * Gera o rascunho da NF-e complementar (tipo "complementar") ou de ajuste (tipo "ajuste"), só de valor, de uma nota
+ * de venda autorizada. O ajuste é excepcional: só aparece para administrador e exige o motivo e o amparo legal.
+ */
+export function NotaComplementar({
+  nfeId,
+  aoGerar,
+  tipo = "complementar",
+}: {
+  nfeId: string;
+  aoGerar?: () => void;
+  tipo?: "complementar" | "ajuste";
+}) {
+  const ajuste = tipo === "ajuste";
+  const { data: sessao } = useSessionData();
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [valores, setValores] = useState<Record<string, string>>({});
@@ -52,15 +66,24 @@ export function NotaComplementar({ nfeId, aoGerar }: { nfeId: string; aoGerar?: 
 
   const gerar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("nfe_complementar_gerar", {
-        p_nfe_id: nfeId,
-        p_itens: escolhidos.map((x) => ({ nfe_item_id: x.id, valor: x.valor })),
-        ...(motivo.trim() ? { p_motivo: motivo.trim() } : {}),
-      });
+      const p_itens = escolhidos.map((x) => ({ nfe_item_id: x.id, valor: x.valor }));
+      const { error } = ajuste
+        ? await supabase.rpc("nfe_ajuste_gerar", {
+            p_nfe_id: nfeId,
+            p_itens,
+            p_motivo: motivo.trim(),
+          })
+        : await supabase.rpc("nfe_complementar_gerar", {
+            p_nfe_id: nfeId,
+            p_itens,
+            ...(motivo.trim() ? { p_motivo: motivo.trim() } : {}),
+          });
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Nota complementar criada em Notas fiscais, pronta para conferir e enviar.");
+      toast.success(
+        `${ajuste ? "Nota de ajuste" : "Nota complementar"} criada em Notas fiscais, pronta para conferir e enviar.`,
+      );
       setValores({});
       setMotivo("");
       setAberto(false);
@@ -70,22 +93,36 @@ export function NotaComplementar({ nfeId, aoGerar }: { nfeId: string; aoGerar?: 
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (ajuste && !sessao?.roles.includes("administrador")) return null;
+
   return (
     <>
       <Button variant="secondary" onClick={() => setAberto(true)}>
-        <FilePlus2 className="mr-2 size-4" /> Nota complementar
+        {ajuste ? <FileWarning className="mr-2 size-4" /> : <FilePlus2 className="mr-2 size-4" />}{" "}
+        {ajuste ? "Nota de ajuste" : "Nota complementar"}
       </Button>
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Nota complementar (só de valor)</DialogTitle>
+            <DialogTitle>
+              {ajuste ? "Nota de ajuste (só de valor)" : "Nota complementar (só de valor)"}
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Use para cobrar uma diferença de VALOR em itens desta nota (preço ou imposto que ficou a
-            menos). Ela NÃO corrige quantidade, destinatário nem dados cadastrais: nesses casos use
-            a carta de correção ou cancele e emita outra. Informe o valor adicional de cada item; os
-            impostos são calculados sobre esse valor. Confirme com o contador antes de enviar.
-          </p>
+          {ajuste ? (
+            <p className="text-sm text-muted-foreground">
+              A nota de ajuste é EXCEPCIONAL: só use onde a legislação do seu estado a prevê, com o
+              contador. Ela referencia esta nota, não tem frete e leva só valor por item. Informe o
+              motivo e o amparo legal (é obrigatório e fica na mensagem da nota).
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Use para cobrar uma diferença de VALOR em itens desta nota (preço ou imposto que ficou
+              a menos). Ela NÃO corrige quantidade, destinatário nem dados cadastrais: nesses casos
+              use a carta de correção ou cancele e emita outra. Informe o valor adicional de cada
+              item; os impostos são calculados sobre esse valor. Confirme com o contador antes de
+              enviar.
+            </p>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -112,13 +149,19 @@ export function NotaComplementar({ nfeId, aoGerar }: { nfeId: string; aoGerar?: 
             </TableBody>
           </Table>
           <div>
-            <Label htmlFor="compl-motivo">Motivo (vai na mensagem da nota)</Label>
+            <Label htmlFor="compl-motivo">
+              {ajuste ? "Motivo e amparo legal (obrigatório)" : "Motivo (vai na mensagem da nota)"}
+            </Label>
             <Textarea
               id="compl-motivo"
               value={motivo}
               maxLength={200}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Ex.: diferença de preço acordada após a emissão"
+              placeholder={
+                ajuste
+                  ? "Ex.: ajuste previsto no art. X do regulamento do ICMS do estado"
+                  : "Ex.: diferença de preço acordada após a emissão"
+              }
             />
           </div>
           <DialogFooter className="items-center">
@@ -129,10 +172,14 @@ export function NotaComplementar({ nfeId, aoGerar }: { nfeId: string; aoGerar?: 
               Fechar
             </Button>
             <Button
-              disabled={gerar.isPending || escolhidos.length === 0}
+              disabled={
+                gerar.isPending ||
+                escolhidos.length === 0 ||
+                (ajuste && motivo.replace(/\s+/g, " ").trim().length < 15)
+              }
               onClick={() => gerar.mutate()}
             >
-              Criar nota complementar
+              {ajuste ? "Criar nota de ajuste" : "Criar nota complementar"}
             </Button>
           </DialogFooter>
         </DialogContent>

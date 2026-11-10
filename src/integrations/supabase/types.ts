@@ -8636,6 +8636,7 @@ export type Database = {
       }
       nfe: {
         Row: {
+          ajusta_nfe_id: string | null
           ambiente: string
           autorizada_em: string | null
           base_icms: number
@@ -8696,6 +8697,7 @@ export type Database = {
           xml_url: string | null
         }
         Insert: {
+          ajusta_nfe_id?: string | null
           ambiente?: string
           autorizada_em?: string | null
           base_icms?: number
@@ -8756,6 +8758,7 @@ export type Database = {
           xml_url?: string | null
         }
         Update: {
+          ajusta_nfe_id?: string | null
           ambiente?: string
           autorizada_em?: string | null
           base_icms?: number
@@ -17773,6 +17776,10 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
+      }
+      nfe_ajuste_gerar: {
+        Args: { p_itens: Json; p_motivo: string; p_nfe_id: string }
+        Returns: string
       }
       nfe_complementar_gerar: {
         Args: { p_itens: Json; p_motivo?: string; p_nfe_id: string }

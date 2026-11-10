@@ -12,6 +12,7 @@ import {
   totaisIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
+import { chaveDaOrigemAjuste, ideAjuste } from "./nfe-ajuste.ts";
 import {
   chaveDaOrigemComplementar,
   ideComplementar,
@@ -300,6 +301,27 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     // Nota complementar (finNFe 2): complementa o valor de uma NF-e de venda autorizada. Referencia só essa nota
     // (a Sefaz recusa zero ou mais de uma), do mesmo emitente, e não pode referenciar outra complementar.
     let chaveComplementada: string | null = null;
+    // Nota de ajuste (finNFe 3): mesma estrutura da complementar (uma só nota referenciada, item só de valor),
+    // sem frete; uso excepcional, protegido na geração (só administrador, com motivo).
+    let chaveAjustada: string | null = null;
+    if (nota.ajusta_nfe_id) {
+      const { data: original, error: erroOriginal } = await supabase
+        .from("nfe")
+        .select("chave, situacao, modelo, ajusta_nfe_id, fornecedor_id, tenant_id, empresa_id")
+        .eq("id", nota.ajusta_nfe_id)
+        .maybeSingle();
+      if (erroOriginal) throw erroOriginal;
+      if (
+        !original ||
+        original.tenant_id !== nota.tenant_id ||
+        original.empresa_id !== nota.empresa_id
+      )
+        throw new Error("A nota original do ajuste não foi encontrada.");
+      chaveAjustada = chaveDaOrigemAjuste(original as any);
+      if (num(nota.valor_frete) > 0) {
+        throw new Error("Nota de ajuste não pode ter frete.");
+      }
+    }
     if (nota.complementa_nfe_id) {
       const { data: original, error: erroOriginal } = await supabase
         .from("nfe")
@@ -445,7 +467,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           qTrib: quantidade,
           vUnTrib: unitario,
           ...(num(item.desconto) > 0 ? { vDesc: num(item.desconto) } : {}),
-          ...(chaveComplementada ? itemComplementar(num(item.total)) : {}),
+          ...(chaveComplementada || chaveAjustada ? itemComplementar(num(item.total)) : {}),
           indTot: 1,
         },
         imposto: {
@@ -525,6 +547,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           ...(devolucao ? ideDevolucao(chavesVenda) : {}),
           ...(chaveCompra ? ideDevolucao([chaveCompra], false) : {}),
           ...(chaveComplementada ? ideComplementar(chaveComplementada) : {}),
+          ...(chaveAjustada ? ideAjuste(chaveAjustada) : {}),
         },
         emit: {
           CNPJ: cnpjEmitente,
