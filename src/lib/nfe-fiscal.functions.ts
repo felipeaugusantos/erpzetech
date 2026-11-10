@@ -14,6 +14,12 @@ import {
 } from "./ibs-cbs.ts";
 import { carregarNota, cnpjsDaEmpresa, exigirPapelFiscal, filtrarPorCnpj } from "./nfe-escopo.ts";
 import {
+  identEmissao,
+  servicoEmOperacao,
+  svcDaUf,
+  validarJustificativaContingencia,
+} from "./nfe-contingencia.ts";
+import {
   MAX_CARTAS_POR_NOTA,
   anoDaInutilizacao,
   notasQueImpedemInutilizacao,
@@ -344,6 +350,17 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       };
     });
 
+    // contingência SVC aberta para a empresa emitente: emite pela SVC-AN/SVC-RS da UF
+    const { data: contingenciaAberta, error: erroContingencia } = await (supabase as any)
+      .from("nfe_contingencia")
+      .select("justificativa, entrou_em")
+      .eq("tenant_id", nota.tenant_id)
+      .eq("empresa_id", nota.empresa_id)
+      .is("saiu_em", null)
+      .maybeSingle();
+    if (erroContingencia) throw erroContingencia;
+    const emissao = identEmissao(contingenciaAberta ?? null, ufEmit);
+
     const { data: pedidosDaNota } = await supabase
       .from("nfe_pedidos")
       .select("pedidos(numero, forma_pagamento, condicao_pagamento)")
@@ -365,7 +382,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           idDest: ufEmit === ufDest ? 1 : 2,
           cMunFG: cMunEmit,
           tpImp: 1,
-          tpEmis: 1,
+          ...emissao,
           tpAmb: ambiente === "producao" ? 1 : 2,
           finNFe: 1,
           indFinal: pj ? 0 : 1,
@@ -469,6 +486,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         protocolo: retorno?.autorizacao?.numero_protocolo ?? nota.protocolo,
         situacao: autorizada ? "autorizada" : rejeitada ? "rejeitada" : "transmitida",
         transmitida_em: new Date().toISOString(),
+        tp_emis: emissao.tpEmis,
         ...(autorizada ? { autorizada_em: new Date().toISOString() } : {}),
         mensagem,
         retorno,
@@ -952,4 +970,134 @@ export const consultarEventoNfe = createServerFn({ method: "POST" })
     });
     if (erroGravar) throw new Error(`Não foi possível gravar o retorno do evento: ${erroGravar}.`);
     return { ok: true, situacao: campos.situacao as string };
+  });
+
+// ============ CONTINGÊNCIA SVC ============
+
+async function empresaDoPerfil(supabase: any, userId: string) {
+  const { tenantId, empresaId } = await exigirPapelFiscal(supabase, userId);
+  if (!empresaId) throw new Error("Seu perfil não está vinculado a uma empresa emitente.");
+  const { data: empresa, error } = await supabase
+    .from("empresas")
+    .select("cnpj, estado")
+    .eq("id", empresaId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!empresa) throw new Error("Empresa emitente não encontrada");
+  return {
+    tenantId,
+    empresaId,
+    empresa: empresa as { cnpj: string | null; estado: string | null },
+  };
+}
+
+/** Situação da contingência da empresa e do serviço da Sefaz (normal e SVC), para decidir entrar ou sair. */
+export const situacaoContingenciaNfe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    const { acbr } = await import("./acbr.server");
+    const { tenantId, empresaId, empresa } = await empresaDoPerfil(supabase, userId);
+
+    const { data: aberta, error } = await (supabase as any)
+      .from("nfe_contingencia")
+      .select("id, autorizador, justificativa, entrou_em")
+      .eq("tenant_id", tenantId)
+      .eq("empresa_id", empresaId)
+      .is("saiu_em", null)
+      .maybeSingle();
+    if (error) throw error;
+
+    const svc = svcDaUf(empresa.estado);
+    const cnpj = limparDocumento(String(empresa.cnpj ?? ""));
+    const consultar = async (autorizador?: string) => {
+      try {
+        const r = await acbr<any>(
+          "producao",
+          `/nfe/sefaz/status?cpf_cnpj=${cnpj}${autorizador ? `&autorizador=${autorizador}` : ""}`,
+        );
+        return {
+          emOperacao: servicoEmOperacao(r),
+          motivo: (r?.motivo_status as string | undefined) ?? null,
+        };
+      } catch (e) {
+        return { emOperacao: false, motivo: (e as Error).message };
+      }
+    };
+    const [normal, contingencia] = await Promise.all([
+      cnpjAlfaValido(cnpj) ? consultar() : Promise.resolve(null),
+      cnpjAlfaValido(cnpj) && svc ? consultar(svc.autorizador) : Promise.resolve(null),
+    ]);
+    return {
+      contingencia: aberta
+        ? {
+            autorizador: aberta.autorizador as string,
+            justificativa: aberta.justificativa as string,
+            entrouEm: aberta.entrou_em as string,
+          }
+        : null,
+      svc: svc ? { nome: svc.nome, autorizador: svc.autorizador } : null,
+      normal,
+      servicoSvc: contingencia,
+    };
+  });
+
+export const entrarContingenciaNfe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { justificativa: string }) => ({
+    justificativa: validarJustificativaContingencia(input?.justificativa),
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    await exigirPapel(
+      supabase,
+      userId,
+      ["administrador", "gestor"],
+      "Somente administrador ou gestor pode entrar em contingência.",
+    );
+    const { tenantId, empresaId, empresa } = await empresaDoPerfil(supabase, userId);
+    const svc = svcDaUf(empresa.estado);
+    if (!svc)
+      throw new Error("UF da empresa emitente inválida ou ausente: não dá para escolher a SVC.");
+
+    const supabaseAdmin: any = (await import("@/integrations/supabase/client.server"))
+      .supabaseAdmin; // nfe_contingencia ainda não está nos tipos gerados
+    const { error } = await supabaseAdmin.from("nfe_contingencia").insert({
+      tenant_id: tenantId,
+      empresa_id: empresaId,
+      tp_emis: svc.tpEmis,
+      autorizador: svc.autorizador,
+      justificativa: data.justificativa,
+      usuario_entrada: userId,
+    });
+    if (error) {
+      if (String(error.code) === "23505") throw new Error("A empresa já está em contingência.");
+      throw new Error("Não foi possível registrar a contingência. Tente de novo.");
+    }
+    return { ok: true, autorizador: svc.nome };
+  });
+
+export const sairContingenciaNfe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as unknown as Ctx;
+    await exigirPapel(
+      supabase,
+      userId,
+      ["administrador", "gestor"],
+      "Somente administrador ou gestor pode sair da contingência.",
+    );
+    const { tenantId, empresaId } = await empresaDoPerfil(supabase, userId);
+    const supabaseAdmin: any = (await import("@/integrations/supabase/client.server"))
+      .supabaseAdmin; // nfe_contingencia ainda não está nos tipos gerados
+    const { data, error } = await supabaseAdmin
+      .from("nfe_contingencia")
+      .update({ saiu_em: new Date().toISOString(), usuario_saida: userId })
+      .eq("tenant_id", tenantId)
+      .eq("empresa_id", empresaId)
+      .is("saiu_em", null)
+      .select("id");
+    if (error) throw new Error("Não foi possível encerrar a contingência. Tente de novo.");
+    if (!data || data.length === 0) throw new Error("A empresa não está em contingência.");
+    return { ok: true };
   });
