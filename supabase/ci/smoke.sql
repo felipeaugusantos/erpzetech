@@ -524,7 +524,7 @@ DECLARE
     'bulario_medicamentos',
     -- backup por cliente (rotina noturna da equipe): controle interno, só o serviço lê e grava; nenhum grant para authenticated
     'backup_execucoes',
-    -- backup no Google Drive: tabelas só do service_role (nenhum grant para authenticated) com política RESTRICTIVE USING (false), que já nega tudo e é mais forte que eh_salao_restrito
+    -- backup no Google Drive por cliente: conector cifrado e execuções; só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
     'backup_drive_config', 'backup_drive_execucoes'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',

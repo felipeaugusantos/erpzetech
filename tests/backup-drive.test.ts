@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { janelaNoturnaDrive, exigirAdministradorBackup, nomeBackupDrive, completarDriveInput } from "../src/lib/backup-drive.ts";
+import {
+  janelaNoturnaDrive,
+  exigirAdministradorBackup,
+  nomeBackupDrive,
+  completarDriveInput,
+} from "../src/lib/backup-drive.ts";
 import { politicaDoCliente, selecionarParaApagar } from "../src/lib/backup-rotina.ts";
 
 test("envio noturno apenas entre 2h e 5h de Brasília", () => {
@@ -16,12 +21,21 @@ test("apenas administrador ativo configura o próprio cliente", () => {
   assert.throws(() => exigirAdministradorBackup(null, true));
 });
 test("retenção mantém sete diárias e não considera falhas", () => {
-  const lista = Array.from({ length: 9 }, (_, i) => ({ id: String(i), dia: `2026-11-${String(10+i).padStart(2,"0")}`, tipos: ["diario"], situacao: "concluido" }));
+  const lista = Array.from({ length: 9 }, (_, i) => ({
+    id: String(i),
+    dia: `2026-11-${String(10 + i).padStart(2, "0")}`,
+    tipos: ["diario"],
+    situacao: "concluido",
+  }));
   lista.push({ id: "erro", dia: "2026-12-01", tipos: ["diario"], situacao: "erro" });
   assert.deepEqual(selecionarParaApagar(lista, politicaDoCliente([])), ["1", "0"]);
 });
 test("nomes isolam tenant e callback exige nonce sem permitir tenant do navegador", () => {
   assert.notEqual(nomeBackupDrive("A", "2026-11-10"), nomeBackupDrive("B", "2026-11-10"));
   assert.equal(completarDriveInput.safeParse({ code: "code" }).success, false);
-  assert.equal(completarDriveInput.safeParse({ code: "code", nonce: "x".repeat(72), tenantId: "other" }).success, false);
+  assert.equal(
+    completarDriveInput.safeParse({ code: "code", nonce: "x".repeat(72), tenantId: "other" })
+      .success,
+    false,
+  );
 });
