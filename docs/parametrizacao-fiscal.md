@@ -125,7 +125,14 @@ Banco (`supabase/ci/fiscal-regras.sql`):
      perfil existente só é reaproveitado se os valores forem idênticos (para mudar a tributação, outro nome de perfil e início posterior); nova versão de uma chave
      (NCM + CEST + operação + regime + UF) encerra a anterior no dia anterior ao início da nova; encerrar só antecipa o fim, nunca estende; uma carga por vez (trava no banco).
    - NCM na planilha só com 2, 4, 6 ou 8 dígitos (quantidade ímpar quase sempre é zero à esquerda perdido pela planilha); CEST de 6 dígitos e CSTs curtos são completados com zeros.
-4. **PR 4:** sugestão no cadastro do produto.
+4. **PR 4 (feito):** sugestão no cadastro do produto (`src/components/app/SugestaoFiscal.tsx`, lógica em `src/lib/fiscal-sugestao.ts`).
+   - Ao informar os 8 dígitos do NCM, o cadastro chama `fiscal_sugerir` e mostra o selo da origem (regra global ou sobrescrita da empresa), o perfil, a versão e os valores. Nada é aplicado sozinho.
+   - **Hoje só a tributação IBS/CBS tem campo no cadastro**, então o botão "Usar sugestão (IBS/CBS)" é a única aplicação; CFOP, CST do ICMS, PIS/COFINS e alíquotas aparecem só para consulta.
+     Uma combinação IBS/CBS que a emissão recusaria (`motivoNaoSuportada`) nunca é aplicada e a tela mostra o motivo; tributação integral (000 / 000001) vira o padrão do cadastro (em branco).
+   - Empate lista as regras para a pessoa escolher ("Usar esta"); sem regra, NCM incompleto ou falha da consulta só avisam e o cadastro segue normal.
+   - A chave da consulta inclui a empresa (as sobrescritas são dela e o cache do navegador é persistido).
+   - Migração `supabase/migrations/20270104000000_fiscal_sugerir_nome.sql` (a aplicar): `fiscal_sugerir` passa a devolver `ncmPrefixo` e `perfilNome` na regra escolhida. A tela lê também a resposta antiga.
+   - **A emissão ainda não usa a base**: continua com item, produto e padrão da empresa. Decisão para o PR 6: levar CFOP, CEST e origem ao cadastro como exceção do produto (a emissão já lê essas colunas de `produtos`).
 5. **PR 5:** sobrescritas e ocultação pela empresa.
 6. **PR 6:** gravação da regra aplicada na nota e, depois, recálculo em massa.
 7. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.

@@ -123,6 +123,8 @@ BEGIN
   r := ci.sug(adm, '23091000');
   PERFORM ci.exige(r ->> 'status' = 'regra' AND r #>> '{regra,id}' = g_8::text AND r #>> '{regra,origem}' = 'global',
                    'NCM de 8 dígitos vence o de 4');
+  PERFORM ci.exige(r #>> '{regra,ncmPrefixo}' = '23091000' AND r #>> '{regra,perfilNome}' = 'Substituição tributária',
+                   'a regra escolhida traz o prefixo do NCM e o nome do perfil');
   PERFORM ci.exige(r -> 'perfil' = '{"cstIcms":"60","cfop":"5405","aliqIcms":0,"cstPis":"05"}'::jsonb,
                    'perfil devolvido em camelCase, sem nulos, com zero preservado');
   r := ci.sug(adm, '23099000');
