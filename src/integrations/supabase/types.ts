@@ -16064,6 +16064,15 @@ export type Database = {
         }
         Returns: number
       }
+      backup_restaurar_tabela: {
+        Args: {
+          p_linhas: Json
+          p_tabela: string
+          p_tenant: string
+          p_usuario?: string
+        }
+        Returns: Json
+      }
       baixar_conta: {
         Args: {
           p_caixa_id?: string
