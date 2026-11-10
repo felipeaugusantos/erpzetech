@@ -14,7 +14,10 @@ export const Route = createFileRoute("/api/public/hooks/backup-clientes")({
         try {
           const { rodadaDeBackup } = await import("@/lib/backup-tenant.server");
           const lote = new URL(request.url).searchParams.get("lote");
-          return Response.json(await rodadaDeBackup({ lote }));
+          const local = await rodadaDeBackup({ lote });
+          const { rodadaDrive } = await import("@/lib/backup-drive.server");
+          const drive = await rodadaDrive();
+          return Response.json({ ...local, drive });
         } catch (e) {
           console.error("[backup] falha na rodada", e);
           return Response.json({ erro: (e as Error).message }, { status: 500 });

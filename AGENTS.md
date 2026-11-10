@@ -13,6 +13,8 @@
 
 ## Imported purchase notes
 
+- Google Drive backups use encrypted per-user connector handles in service-only tenant configuration; administrator checks precede access, OAuth nonces bind completion, and the existing nightly callback uploads verified tenant exports with database leases and tracked-file-only retention.
+
 - Ze Tech team management uses authenticated server functions and the existing operator registry; only the pinned owner's stable user ID can grant or revoke team access, and that owner cannot be removed, preventing operator privilege escalation or owner rebinding.
 - Help Ze Tech calls run only in authenticated server functions; derive company identity from the active profile and RLS reads, and retain the same request ID on retry to prevent duplicate tickets.
 - Username login remains tenant-scoped; the general login accepts the stable tenant UUID as an alternative company code, preserving password verification and avoiding global username discovery when no personalized link exists.
