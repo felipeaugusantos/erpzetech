@@ -21,6 +21,7 @@ import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedBackupHistoricoRouteImport } from './routes/_authenticated/backup-historico'
 import { Route as AuthenticatedBackupNuvemRouteImport } from './routes/_authenticated/backup-nuvem'
 import { Route as AuthenticatedBalancaRouteImport } from './routes/_authenticated/balanca'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
@@ -276,6 +277,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBackupHistoricoRoute =
+  AuthenticatedBackupHistoricoRouteImport.update({
+    id: '/backup-historico',
+    path: '/backup-historico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBackupNuvemRoute =
   AuthenticatedBackupNuvemRouteImport.update({
     id: '/backup-nuvem',
@@ -1372,6 +1379,7 @@ export interface FileRoutesByFullPath {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -1577,6 +1585,7 @@ export interface FileRoutesByTo {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -1784,6 +1793,7 @@ export interface FileRoutesById {
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/_authenticated/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
   '/_authenticated/balanca': typeof AuthenticatedBalancaRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
@@ -1991,6 +2001,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-historico'
     | '/backup-nuvem'
     | '/balanca'
     | '/balanco-fiscal'
@@ -2196,6 +2207,7 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-historico'
     | '/backup-nuvem'
     | '/balanca'
     | '/balanco-fiscal'
@@ -2402,6 +2414,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/auditoria'
+    | '/_authenticated/backup-historico'
     | '/_authenticated/backup-nuvem'
     | '/_authenticated/balanca'
     | '/_authenticated/balanco-fiscal'
@@ -2703,6 +2716,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/backup-historico': {
+      id: '/_authenticated/backup-historico'
+      path: '/backup-historico'
+      fullPath: '/backup-historico'
+      preLoaderRoute: typeof AuthenticatedBackupHistoricoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/backup-nuvem': {
@@ -4057,6 +4077,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedBackupHistoricoRoute: typeof AuthenticatedBackupHistoricoRoute
   AuthenticatedBackupNuvemRoute: typeof AuthenticatedBackupNuvemRoute
   AuthenticatedBalancaRoute: typeof AuthenticatedBalancaRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
@@ -4244,6 +4265,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedBackupHistoricoRoute: AuthenticatedBackupHistoricoRoute,
   AuthenticatedBackupNuvemRoute: AuthenticatedBackupNuvemRoute,
   AuthenticatedBalancaRoute: AuthenticatedBalancaRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
