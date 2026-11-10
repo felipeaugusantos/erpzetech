@@ -12,6 +12,7 @@ import {
   totaisIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
+import { grupoPisCofins } from "./pis-cofins.ts";
 import { chaveDaOrigemAjuste, ideAjuste } from "./nfe-ajuste.ts";
 import {
   chaveDaOrigemComplementar,
@@ -393,6 +394,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       }
     }
 
+    let totalPis = 0;
+    let totalCofins = 0;
     const det = itens.map((item: any, indice: number) => {
       let dfeReferenciado: { chaveAcesso: string; nItem: number } | null = null;
       if (devolucao && informaIbsCbs) {
@@ -411,6 +414,19 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       const quantidade = num(item.quantidade, 4);
       const unitario = num(item.preco_unitario, 4);
       const totalItem = num(item.total);
+      // PIS e COFINS: o grupo do XML depende do CST (Aliq, NT ou Outr); os totais somam o que cada item leva
+      const pis = grupoPisCofins("PIS", {
+        cst: item.cst_pis ?? cfg.cst_pis ?? "99",
+        base: totalItem,
+        aliquota: num(item.aliquota_pis ?? cfg.aliquota_pis ?? 0),
+      });
+      const cofins = grupoPisCofins("COFINS", {
+        cst: item.cst_cofins ?? cfg.cst_cofins ?? "99",
+        base: totalItem,
+        aliquota: num(item.aliquota_cofins ?? cfg.aliquota_cofins ?? 0),
+      });
+      totalPis += pis.valor;
+      totalCofins += cofins.valor;
       const origem = Number(item.produtos?.origem_mercadoria ?? 0) || 0;
       const ncm = so(item.ncm ?? item.produtos?.ncm);
       if (ncm.length !== 8) {
@@ -483,22 +499,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
               vST: num(item.valor_icms_st),
             },
           ),
-          PIS: {
-            PISOutr: {
-              CST: String(item.cst_pis ?? cfg.cst_pis ?? "99"),
-              vBC: totalItem,
-              pPIS: num(item.aliquota_pis ?? cfg.aliquota_pis ?? 0),
-              vPIS: num(item.valor_pis),
-            },
-          },
-          COFINS: {
-            COFINSOutr: {
-              CST: String(item.cst_cofins ?? cfg.cst_cofins ?? "99"),
-              vBC: totalItem,
-              pCOFINS: num(item.aliquota_cofins ?? cfg.aliquota_cofins ?? 0),
-              vCOFINS: num(item.valor_cofins),
-            },
-          },
+          PIS: pis.grupo,
+          COFINS: cofins.grupo,
           ...(ibsCbs ? { IBSCBS: ibsCbs } : {}),
         },
         ...(totalItem ? {} : {}),
@@ -602,8 +604,8 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             vII: 0,
             vIPI: 0,
             vIPIDevol: 0,
-            vPIS: num(nota.valor_pis),
-            vCOFINS: num(nota.valor_cofins),
+            vPIS: num(totalPis),
+            vCOFINS: num(totalCofins),
             vOutro: 0,
             vNF: valorTotal,
           },
