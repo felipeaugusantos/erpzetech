@@ -23,5 +23,6 @@ CREATE INDEX IF NOT EXISTS nfe_manifestacoes_tenant_chave ON public.nfe_manifest
 ALTER TABLE public.nfe_manifestacoes ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.nfe_manifestacoes FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.nfe_manifestacoes TO service_role;
+DROP POLICY IF EXISTS salao_restrito ON public.nfe_manifestacoes;
 CREATE POLICY salao_restrito ON public.nfe_manifestacoes AS RESTRICTIVE FOR ALL TO authenticated
   USING ((SELECT NOT public.eh_salao_restrito()));
