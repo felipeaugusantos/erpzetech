@@ -41,6 +41,8 @@ Complementa `docs/reforma-tributaria.md` (fases 1 a 7 de IBS/CBS); aqui entram t
 
 - Item 7 (DIFAL/FCP): feito para regime normal, venda interestadual a consumidor final não contribuinte, item com ICMS integral (`src/lib/difal.ts`, tabela `icms_uf_destino`, tela DIFAL / FCP em Notas fiscais). Alíquota interna, FCP e método (base única ou dupla) são cadastrados pela empresa por UF de destino: não há valor pronto no sistema, e sem o cadastro a emissão é recusada. Grupo `ICMSUFDest` por item e `vFCPUFDest`/`vICMSUFDest`/`vICMSUFRemet` nos totais, partilha 100% para o destino. Pendente: Simples Nacional, ICMS com ST ou outros CSTs, e validar as fórmulas com o contador e a SEFAZ.
 
+- Item 6 (CRT): `crtDoRegime` agora distingue Simples (1), Simples com excesso de sublimite (2), regime normal (3) e MEI (4); a emissão usava só 1 ou 3 (excesso e MEI saíam como 3). O ICMS do item passa a ser conferido contra o CRT: CSOSN de 3 dígitos no Simples e MEI, CST de 2 dígitos no CRT 2 e 3, com mensagem citando o produto (antes a Sefaz rejeitava). A tela de configuração fiscal em Notas fiscais passou a oferecer excesso de sublimite e MEI. Pendente: confirmar com o contador a regra do DIFAL e do IBS/CBS para o CRT 2.
+
 ## Rotina contínua
 - Acompanhar a página de Notas Técnicas e o Informe Técnico a cada publicação; abrir tarefa por mudança de layout/schema.
 - Cada item novo entra com teste (padrão de `tests/`) e, para tabela nova com RLS ou função chamável por `authenticated`, seguir as regras de migração do `AGENTS.md`.

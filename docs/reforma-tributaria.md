@@ -26,4 +26,4 @@ Base: NT 2025.002-RTC v1.52 (setembro/2026) e Informe Técnico 2025.002 v1.70 (t
 - Base de cálculo (UB16): vProd − desconto − PIS − COFINS − ICMS. A SEFAZ ainda não valida a base ("implementação futura, aguardando orientação normativa"); revisar quando sair a orientação.
 - `vNFTot` (W60) é opcional por enquanto e não é enviado; entra quando a regra for ativada.
 - O emissor (ACBr) precisa estar na versão que aceita o grupo; confirmar em homologação antes de ligar em produção.
-- Regime `simples_excesso` está sendo enviado com CRT 3 (a lei manda CRT 2). Confirmar com o contador antes de mexer.
+- Regime `simples_excesso` agora sai com CRT 2 (e `mei` com CRT 4). A NT 2025.002 v1.40 coloca CRT 1, 2 e 4 no grupo IBS/CBS só em 04/01/2027; até lá o sistema não envia o grupo para eles. Quem em 2027 optar pelo regime regular do IBS/CBS ou ultrapassar o sublimite terá regra própria: acompanhar a NT.

@@ -12,6 +12,7 @@ import {
   totaisIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
+import { erroIcmsCrt } from "./crt.ts";
 import { calcularDifal, exigeDifal, type RegraUf, type ResultadoDifal } from "./difal.ts";
 import { grupoPisCofins } from "./pis-cofins.ts";
 import { chaveDaOrigemAjuste, ideAjuste } from "./nfe-ajuste.ts";
@@ -397,7 +398,7 @@ export const transmitirNfe = createServerFn({ method: "POST" })
 
     // DIFAL/FCP: venda interestadual a consumidor final não contribuinte, regime normal, ICMS integral. A alíquota
     // interna, o FCP e o método vêm do cadastro da empresa (icms_uf_destino); sem ele a emissão é recusada.
-    const crtNota = cfg.regime_tributario === "simples" ? 1 : 3;
+    const crtNota = crtDoRegime(cfg.regime_tributario);
     const indFinal = pj ? 0 : 1;
     const ieDest = String(cliente.inscricao_estadual ?? "")
       .trim()
@@ -463,6 +464,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
       totalPis += pis.valor;
       totalCofins += cofins.valor;
       const origem = Number(item.produtos?.origem_mercadoria ?? 0) || 0;
+      // o ICMS do item precisa combinar com o CRT (CSOSN no Simples e MEI, CST no regime normal e no excesso)
+      const erroCrt = erroIcmsCrt(crtNota, item.cst_csosn, String(item.descricao ?? ""));
+      if (erroCrt) throw new Error(erroCrt);
       const icms = icmsDoItem(
         item.cst_csosn,
         origem,

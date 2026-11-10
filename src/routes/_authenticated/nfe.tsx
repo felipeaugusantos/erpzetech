@@ -846,6 +846,10 @@ function Nfe() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="simples">Simples Nacional</SelectItem>
+                    <SelectItem value="simples_excesso">
+                      Simples Nacional — excesso de sublimite
+                    </SelectItem>
+                    <SelectItem value="mei">MEI</SelectItem>
                     <SelectItem value="presumido">Lucro presumido</SelectItem>
                     <SelectItem value="real">Lucro real</SelectItem>
                   </SelectContent>
