@@ -45,6 +45,7 @@ export async function rodadaDrive(agora = new Date()) {
     const token = reserva.data;
     try {
       const key = decifrarDrive(c.connection_key_ciphertext);
+      if ((local.data.tamanho ?? 0) > 50 * 1024 * 1024) throw new Error("Cópia acima de 50 MB: envio requer revisão da equipe Ze Tech.");
       const file = await db.storage.from("backups-clientes").download(local.data.caminho);
       if (file.error || !file.data) throw new Error("Não foi possível ler a cópia concluída do cliente.");
       if (file.data.size > 50 * 1024 * 1024) throw new Error("Cópia acima de 50 MB: envio requer revisão da equipe Ze Tech.");

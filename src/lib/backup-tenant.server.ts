@@ -94,9 +94,9 @@ export async function contarCliente(
 ): Promise<TabelaContada[]> {
   const tabelas: TabelaContada[] = [];
   // em lotes, para não abrir centenas de consultas ao mesmo tempo
-  for (let i = 0; i < TABELAS_BACKUP.length; i += 20) {
+  for (let i = 0; i < TABELAS_BACKUP.length; i += 6) {
     const contagens = await Promise.all(
-      TABELAS_BACKUP.slice(i, i + 20).map(async (tabela) => {
+      TABELAS_BACKUP.slice(i, i + 6).map(async (tabela) => {
         const r = await filtrarPorCliente(
           db.from(tabela).select("*", { count: "exact", head: true }),
           tabela,
