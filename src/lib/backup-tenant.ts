@@ -253,6 +253,7 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
     "cadastro comercial do cliente na Ze Tech (cobrança, plano), não é dado do cliente",
   assinaturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   assinatura_faturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
+  backup_execucoes: "controle interno da rotina de backup, não é dado do cliente",
   webhook_eventos:
     "corpo bruto de avisos de provedores externos; pode trazer segredos e é reenviável",
 };
@@ -396,6 +397,15 @@ export function montarManifesto(p: {
 /** uma linha do arquivo NDJSON: o manifesto abre o arquivo e cada registro leva o nome da tabela */
 export function linhaManifesto(m: ManifestoBackup): string {
   return JSON.stringify({ manifesto: m }) + "\n";
+}
+
+/** última linha do arquivo da rotina: o manifesto do início traz as contagens prévias, esta traz as reais */
+export function linhaFim(tabelas: { tabela: string; linhas: number }[]): string {
+  return (
+    JSON.stringify({
+      fim: { tabelas, total_linhas: tabelas.reduce((s, t) => s + t.linhas, 0) },
+    }) + "\n"
+  );
 }
 
 export function linhasDaTabela(tabela: string, registros: readonly unknown[]): string {

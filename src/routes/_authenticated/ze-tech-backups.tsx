@@ -8,8 +8,10 @@ import { toast } from "sonner";
 import {
   contarBackupClienteFn,
   lerPaginaBackupFn,
+  listarBackupsGuardadosFn,
   listarClientesBackup,
   registrarBackupClienteFn,
+  urlBackupGuardadoFn,
 } from "@/lib/backup-tenant.functions";
 import {
   ROTULO_GRUPO,
@@ -81,6 +83,8 @@ function BackupsPorCliente() {
   const contar = useServerFn(contarBackupClienteFn);
   const lerPagina = useServerFn(lerPaginaBackupFn);
   const registrar = useServerFn(registrarBackupClienteFn);
+  const listarGuardados = useServerFn(listarBackupsGuardadosFn);
+  const urlGuardado = useServerFn(urlBackupGuardadoFn);
   const [busca, setBusca] = useState("");
   const [alvo, setAlvo] = useState<Alvo | null>(null);
   const [desmarcados, setDesmarcados] = useState<Set<GrupoBackup>>(new Set());
@@ -103,6 +107,23 @@ function BackupsPorCliente() {
     staleTime: 0,
     gcTime: 0,
     retry: false,
+  });
+
+  const guardados = useQuery({
+    queryKey: ["ze-tech-backups-guardados", alvo?.tenantId],
+    queryFn: () => listarGuardados({ data: { tenantId: alvo!.tenantId } }),
+    enabled: operador === true && alvo !== null,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
+
+  const abrirGuardado = useMutation({
+    mutationFn: async (execucaoId: string) => {
+      const { url } = await urlGuardado({ data: { execucaoId } });
+      window.location.assign(url);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const grupos = useMemo(() => {
@@ -216,6 +237,7 @@ function BackupsPorCliente() {
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Segmento</TableHead>
+                <TableHead>Último backup da rotina</TableHead>
                 <TableHead className="w-44">
                   <span className="sr-only">Ação</span>
                 </TableHead>
@@ -234,6 +256,9 @@ function BackupsPorCliente() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {c.ramos.length > 0 ? c.ramos.map(labelRamo).join(", ") : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.ultimoBackup ? c.ultimoBackup.split("-").reverse().join("/") : "Nenhum"}
                   </TableCell>
                   <TableCell>
                     <Button
@@ -305,6 +330,40 @@ function BackupsPorCliente() {
             </ul>
           )}
           {progresso && <p className="text-xs text-muted-foreground">{progresso}</p>}
+          {(guardados.data?.backups ?? []).length > 0 && (
+            <div className="border-t pt-3">
+              <p className="mb-2 text-sm font-medium">Backups guardados pela rotina noturna</p>
+              <ul className="max-h-44 space-y-1 overflow-y-auto text-sm">
+                {(guardados.data?.backups ?? []).map((b) => (
+                  <li key={b.id} className="flex items-center gap-2">
+                    <span className="w-24">{b.dia.split("-").reverse().join("/")}</span>
+                    <span className="flex-1 text-xs text-muted-foreground">
+                      {b.situacao === "concluido"
+                        ? `${b.linhas ?? 0} linhas, ${((b.tamanho ?? 0) / 1048576).toFixed(1)} MB (${b.tipos.join(", ")})`
+                        : b.situacao === "erro"
+                          ? `Falhou: ${b.erro ?? "erro"}`
+                          : b.situacao === "expirado"
+                            ? "Expirado pela retenção"
+                            : "Em andamento"}
+                    </span>
+                    {b.situacao === "concluido" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={abrirGuardado.isPending}
+                        onClick={() => abrirGuardado.mutate(b.id)}
+                      >
+                        Baixar
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                O link de download vale 5 minutos e fica registrado na auditoria do cliente.
+              </p>
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="outline"

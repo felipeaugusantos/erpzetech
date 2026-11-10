@@ -206,6 +206,7 @@ import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
 import { Route as PortalReceitaIdRouteImport } from './routes/portal.receita.$id'
+import { Route as ApiPublicHooksBackupClientesRouteImport } from './routes/api.public.hooks.backup-clientes'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
@@ -1313,6 +1314,12 @@ const PortalReceitaIdRoute = PortalReceitaIdRouteImport.update({
   path: '/portal/receita/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBackupClientesRoute =
+  ApiPublicHooksBackupClientesRouteImport.update({
+    id: '/api/public/hooks/backup-clientes',
+    path: '/api/public/hooks/backup-clientes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
@@ -1529,6 +1536,7 @@ export interface FileRoutesByFullPath {
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -1730,6 +1738,7 @@ export interface FileRoutesByTo {
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -1933,6 +1942,7 @@ export interface FileRoutesById {
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -2136,6 +2146,7 @@ export interface FileRouteTypes {
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2337,6 +2348,7 @@ export interface FileRouteTypes {
     | '/compras'
     | '/depositos'
     | '/pedidos'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2539,6 +2551,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2560,6 +2573,7 @@ export interface RootRouteChildren {
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
   PortalReceitaIdRoute: typeof PortalReceitaIdRoute
+  ApiPublicHooksBackupClientesRoute: typeof ApiPublicHooksBackupClientesRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -3946,6 +3960,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalReceitaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/backup-clientes': {
+      id: '/api/public/hooks/backup-clientes'
+      path: '/api/public/hooks/backup-clientes'
+      fullPath: '/api/public/hooks/backup-clientes'
+      preLoaderRoute: typeof ApiPublicHooksBackupClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/whatsapp-despachar': {
       id: '/api/public/hooks/whatsapp-despachar'
       path: '/api/public/hooks/whatsapp-despachar'
@@ -4365,6 +4386,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
   PortalReceitaIdRoute: PortalReceitaIdRoute,
+  ApiPublicHooksBackupClientesRoute: ApiPublicHooksBackupClientesRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
