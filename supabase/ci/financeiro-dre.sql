@@ -45,8 +45,9 @@ DECLARE
   vend constant uuid := 'f7000000-0000-0000-0000-000000000002';
   coz constant uuid := 'f7000000-0000-0000-0000-000000000003';
   admb constant uuid := 'f7000000-0000-0000-0000-000000000004';
+  fil constant uuid := 'f7000000-0000-0000-0000-000000000005';
   cat_aluguel uuid; cat_rec uuid; cat_juros uuid; cat_est uuid; cat_b uuid; cat_imp uuid; cat_fin_rec uuid;
-  ped uuid; prod uuid; cli uuid; dep uuid; r jsonb; n int; ids uuid[];
+  ped uuid; prod uuid; cli uuid; dep uuid; emp uuid; fil_a uuid; fil_b uuid; r jsonb; n int; ids uuid[];
 BEGIN
   INSERT INTO tenants (id, nome) VALUES (ta, 'Dre A'), (tb, 'Dre B');
   INSERT INTO empresas (tenant_id, razao_social, ramo_atividade) VALUES (ta, 'Dre A LTDA', 'comercio'), (tb, 'Dre B LTDA', 'comercio');
@@ -167,5 +168,32 @@ BEGIN
   PERFORM ci.exige(ci.contar_como(admb, $c$SELECT count(*) FROM financeiro_dre('2027-03-01', '2027-03-31')$c$) = 0, 'outra empresa não vê o DRE da primeira (o dela é vazio)');
   PERFORM ci.deve_falhar(fin, $c$SELECT * FROM financeiro_dre('2027-03-31', '2027-03-01')$c$, 'período invertido');
   PERFORM ci.deve_falhar(fin, $c$SELECT * FROM financeiro_dre('2020-01-01', '2027-03-01')$c$, 'período de mais de 5 anos');
+
+  -- usuário preso a uma filial: a importação do texto antigo só mexe no que é da filial dele
+  -- (o gatilho de filial recusaria a troca em título de outra filial e desfaria tudo)
+  SELECT id INTO emp FROM empresas WHERE tenant_id = ta;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (ta, emp, 'Filial A') RETURNING id INTO fil_a;
+  INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (ta, emp, 'Filial B') RETURNING id INTO fil_b;
+  INSERT INTO auth.users (id, email) VALUES (fil, 'fil@d.ci');
+  UPDATE profiles SET tenant_id = ta, nome = 'fil', filial_id = fil_a WHERE id = fil;
+  DELETE FROM user_roles WHERE user_id = fil;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (fil, ta, 'financeiro');
+  INSERT INTO contas_pagar (tenant_id, filial_id, descricao, vencimento, valor, categoria) VALUES
+    (ta, fil_a, 'Da filial A', '2027-05-01', 10, 'Treinamento'),
+    (ta, fil_b, 'Da filial B', '2027-05-01', 20, 'Viagens');
+  PERFORM ci.entrar(fil);
+  r := financeiro_categorias_importar_texto();
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'categorias_criadas')::int = 1 AND (r ->> 'titulos_ligados')::int = 1,
+                   'filial A importa só o texto da própria filial: ' || r::text);
+  PERFORM ci.exige((SELECT categoria_id IS NOT NULL FROM contas_pagar WHERE descricao = 'Da filial A')
+                   AND (SELECT categoria_id IS NULL FROM contas_pagar WHERE descricao = 'Da filial B')
+                   AND NOT EXISTS (SELECT 1 FROM financeiro_categorias WHERE tenant_id = ta AND nome = 'Viagens'),
+                   'o título e a categoria da outra filial ficam intactos');
+  PERFORM ci.entrar(fin);
+  r := financeiro_categorias_importar_texto();
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'categorias_criadas')::int = 1 AND (r ->> 'titulos_ligados')::int = 1,
+                   'quem vê todas as filiais completa a importação: ' || r::text);
 END $$;
 ROLLBACK;

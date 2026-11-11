@@ -97,20 +97,20 @@ export function AlterarCategoriaTitulo({
       void queryClient.invalidateQueries({
         queryKey: [tipo === "receita" ? "contas-receber" : "contas-pagar"],
       });
-      setEscolhida(null);
-      onOpenChange(false);
+      fechar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // toda saída do diálogo (Voltar, fechar, Esc) descarta o rascunho: o componente continua montado
+  // nas telas de contas e a escolha de um título não pode aparecer no próximo
+  const fechar = () => {
+    setEscolhida(null);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog
-      open={Boolean(titulo)}
-      onOpenChange={(aberto) => {
-        if (!aberto) setEscolhida(null);
-        onOpenChange(aberto);
-      }}
-    >
+    <Dialog open={Boolean(titulo)} onOpenChange={(aberto) => !aberto && fechar()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Categoria do título nº {titulo?.numero}</DialogTitle>
@@ -121,7 +121,7 @@ export function AlterarCategoriaTitulo({
         </DialogHeader>
         <SeletorCategoria tipo={tipo} valor={atual} onChange={setEscolhida} />
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={fechar}>
             Voltar
           </Button>
           <Button disabled={salvar.isPending} onClick={() => salvar.mutate()}>
