@@ -30,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python (scripts de geração de tabelas)
+__pycache__/
+*.pyc

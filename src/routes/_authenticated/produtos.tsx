@@ -10,6 +10,8 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
 import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
+import { AvisoNcm } from "@/components/app/AvisoNcm";
+import { SugestaoFiscal } from "@/components/app/SugestaoFiscal";
 import { consultarGtin } from "@/lib/gtin.functions";
 import { gtinValido } from "@/lib/gtin";
 import { lerFatorGranel } from "@/lib/granel";
@@ -706,8 +708,19 @@ function Produtos() {
                   value={form.ncm}
                   onChange={(e) => setForm({ ...form, ncm: e.target.value })}
                 />
+                <AvisoNcm ncm={form.ncm} />
               </div>
             </div>
+
+            <SugestaoFiscal
+              ncm={form.ncm}
+              tenantId={session?.profile?.tenant_id ?? undefined}
+              cstAtual={form.cst_ibs_cbs}
+              cClassTribAtual={form.cclasstrib}
+              onAplicarIbsCbs={(cst, cclasstrib) =>
+                setForm((f) => ({ ...f, cst_ibs_cbs: cst, cclasstrib }))
+              }
+            />
 
             <ClassificacaoIbsCbs
               cst={form.cst_ibs_cbs}
