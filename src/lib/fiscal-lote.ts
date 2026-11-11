@@ -10,6 +10,7 @@ import {
   type PerfilSugerido,
   type SugestaoFiscal,
 } from "./fiscal-sugestao.ts";
+import { crtDoRegime } from "./ibs-cbs.ts";
 
 export const LIMITE_LOTE_FISCAL = 300;
 
@@ -76,6 +77,26 @@ export function juntarLotes(lotes: readonly LoteSugestoes[]): LoteSugestoes | nu
   const primeiro = lotes[0];
   if (!primeiro) return null;
   return { regime: primeiro.regime, uf: primeiro.uf, itens: lotes.flatMap((l) => l.itens) };
+}
+
+/**
+ * Regime da configuração fiscal da empresa → como o ICMS é informado, pelo MESMO critério da emissão (`crtDoRegime`): Simples Nacional (CRT 1) e
+ * MEI (CRT 4) usam CSOSN de 3 dígitos; regime normal (CRT 3) e Simples com excesso de sublimite (CRT 2) usam CST de 2 dígitos. A emissão recusa a mistura.
+ */
+export function regimeDaConfig(regime: string | null | undefined): RegimeLote {
+  const crt = crtDoRegime(regime);
+  return crt === 1 ? "simples" : crt === 4 ? "mei" : "normal";
+}
+
+/** O ICMS desta empresa é informado por CSOSN (Simples e MEI) em vez de CST? */
+export const usaCsosn = (regime: string | null | undefined): boolean =>
+  regimeDaConfig(regime) !== "normal";
+
+/** Rótulo do regime para as telas, com o tipo de código de ICMS. */
+export function rotuloRegimeIcms(regime: string | null | undefined): string {
+  if (regime === "simples_excesso") return "Simples com excesso de sublimite (CST)";
+  if (regime === "mei") return "MEI (CSOSN)";
+  return usaCsosn(regime) ? "Simples Nacional (CSOSN)" : "Regime normal (CST)";
 }
 
 /** Códigos de ICMS que a emissão (icmsDoItem) sabe formatar. Os demais são recusados na sugestão para não gerar nota errada. */

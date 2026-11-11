@@ -9,6 +9,9 @@ import {
   edicoesDoLote,
   emLotesFiscais,
   juntarLotes,
+  regimeDaConfig,
+  rotuloRegimeIcms,
+  usaCsosn,
   lerLoteSugestoes,
   sugestaoDoProduto,
   type LoteSugestoes,
@@ -293,5 +296,26 @@ describe("edicoesDoLote", () => {
     assert.equal(sugestaoDoProduto({ ncm: "2309.10.00", cest: null }, lote)?.status, "regra");
     assert.equal(sugestaoDoProduto({ ncm: "99999999", cest: null }, lote), undefined);
     assert.equal(sugestaoDoProduto({ ncm: "23091000", cest: null }, null), undefined);
+  });
+});
+
+describe("regime da configuração (mesmo critério da emissão)", () => {
+  it("Simples e MEI usam CSOSN; normal e Simples com excesso de sublimite usam CST", () => {
+    assert.equal(regimeDaConfig("simples"), "simples");
+    assert.equal(regimeDaConfig("mei"), "mei");
+    assert.equal(regimeDaConfig("simples_excesso"), "normal");
+    for (const r of ["normal", "lucro_presumido", "lucro_real", "", null, undefined]) {
+      assert.equal(regimeDaConfig(r), "normal", String(r));
+    }
+    assert.equal(usaCsosn("simples"), true);
+    assert.equal(usaCsosn("mei"), true);
+    assert.equal(usaCsosn("simples_excesso"), false);
+    assert.equal(usaCsosn("lucro_presumido"), false);
+  });
+  it("rótulos para as telas", () => {
+    assert.equal(rotuloRegimeIcms("simples"), "Simples Nacional (CSOSN)");
+    assert.equal(rotuloRegimeIcms("mei"), "MEI (CSOSN)");
+    assert.equal(rotuloRegimeIcms("simples_excesso"), "Simples com excesso de sublimite (CST)");
+    assert.equal(rotuloRegimeIcms("lucro_presumido"), "Regime normal (CST)");
   });
 });

@@ -10,11 +10,14 @@ import { LinhaSugestaoBase, PainelSugestaoBase } from "@/components/app/Sugestao
 import {
   consultasDosProdutos,
   edicoesDoLote,
+  regimeDaConfig,
+  rotuloRegimeIcms,
   sugestaoDoProduto,
   type LoteSugestoes,
   type ModoAplicar,
   type ProdutoParaSugestao,
   type RegimeLote,
+  usaCsosn,
 } from "@/lib/fiscal-lote";
 import { consultarLoteFiscal } from "@/lib/fiscal-lote-dados";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
@@ -234,14 +237,10 @@ function Fiscal() {
     toast.info("Padrão aplicado nos produtos da lista — confira e salve.");
   };
 
-  const simples = (config?.regime_tributario ?? "simples").startsWith("simples");
-  const regimeBase: RegimeLote =
-    lote?.regime ??
-    (config?.regime_tributario === "mei"
-      ? "mei"
-      : (config?.regime_tributario ?? "simples").startsWith("simples")
-        ? "simples"
-        : "normal");
+  // CSOSN ou CST pelo mesmo critério da emissão (crtDoRegime): Simples e MEI usam CSOSN; normal e Simples com excesso de sublimite usam CST
+  const regimeConfig = config?.regime_tributario ?? "simples";
+  const simples = usaCsosn(regimeConfig);
+  const regimeBase: RegimeLote = lote?.regime ?? regimeDaConfig(regimeConfig);
   const ncmsNaLista = useMemo(() => consultasDosProdutos(lista).length, [lista]);
   const previaBase = useMemo(
     () => (lote ? edicoesDoLote(lista as ProdutoParaSugestao[], lote, modoBase) : null),
@@ -325,7 +324,7 @@ function Fiscal() {
         <h2 className="font-display text-sm font-semibold">Padrão da loja</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Preenche de uma vez os produtos da lista que estão sem CFOP, tributação ou origem. Regime
-          atual: {simples ? "Simples Nacional (CSOSN)" : "Regime normal (CST)"}.
+          atual: {rotuloRegimeIcms(regimeConfig)}.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
           <div>
