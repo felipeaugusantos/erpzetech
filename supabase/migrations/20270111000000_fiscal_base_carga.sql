@@ -178,7 +178,7 @@ REVOKE ALL ON FUNCTION public.fiscal_base_publicar(jsonb, text, boolean, uuid) F
 GRANT EXECUTE ON FUNCTION public.fiscal_base_publicar(jsonb, text, boolean, uuid) TO service_role;
 
 -- Lista as regras globais (todas as versões) para a tela da equipe.
--- p_busca: só números (com ponto ou traço) = começo do NCM e também parte do nome; qualquer outro texto (ex.: "Revenda v2") = parte do nome do perfil. status: vigente, futura, encerrada ou inativa.
+-- p_busca: números = começo do NCM; texto = parte do nome do perfil. status: vigente, futura, encerrada ou inativa.
 CREATE OR REPLACE FUNCTION public.fiscal_base_listar(
   p_busca text DEFAULT NULL, p_apenas_vigentes boolean DEFAULT false, p_limite integer DEFAULT 100, p_pagina integer DEFAULT 0)
 RETURNS jsonb
@@ -192,7 +192,7 @@ DECLARE
   v_off integer := greatest(coalesce(p_pagina, 0), 0) * v_lim;
   v_hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
   v_busca text := nullif(btrim(coalesce(p_busca, '')), '');
-  v_digitos text := CASE WHEN btrim(coalesce(p_busca, '')) ~ '^[0-9. -]+$' THEN nullif(regexp_replace(coalesce(p_busca, ''), '[^0-9]', '', 'g'), '') END;
+  v_digitos text := nullif(regexp_replace(coalesce(p_busca, ''), '[^0-9]', '', 'g'), '');
   v_total integer;
   v_itens jsonb;
 BEGIN
@@ -206,7 +206,7 @@ BEGIN
       FROM public.fiscal_regras r JOIN public.fiscal_perfis p ON p.id = r.perfil_id
      WHERE (v_busca IS NULL
             OR (v_digitos IS NOT NULL AND left(r.ncm_prefixo, length(v_digitos)) = v_digitos)
-            OR position(lower(v_busca) IN lower(p.nome)) > 0)
+            OR (v_digitos IS NULL AND position(lower(v_busca) IN lower(p.nome)) > 0))
   ), g AS (
     SELECT * FROM f WHERE NOT p_apenas_vigentes OR status IN ('vigente', 'futura')
   ), pag AS (

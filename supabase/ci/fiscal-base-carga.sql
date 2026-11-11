@@ -172,6 +172,8 @@ BEGIN
                    'busca por nome de perfil que tem dígito ("Med A2") acha o perfil, não vira busca por NCM');
   PERFORM ci.exige((public.fiscal_base_listar('A2') ->> 'total')::int = 1, 'busca por parte do nome com dígito ("A2")');
   PERFORM ci.exige((public.fiscal_base_listar('3004') ->> 'total')::int = 2, 'busca só com números continua sendo por NCM');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(public.fiscal_base_listar('2') -> 'itens') e WHERE e ->> 'perfilNome' = 'Med A2'),
+                   'busca só numérica ("2") é só por NCM: não traz perfil cujo nome tem esse dígito');
   PERFORM ci.exige((public.fiscal_base_listar('30.04') ->> 'total')::int = 2, 'NCM com ponto continua sendo por NCM');
   r := public.fiscal_base_listar('300', true);
   PERFORM ci.exige((r ->> 'total')::int = 5, 'só vigentes e futuras: 3004 v1 e v2, 3005, 3006 v2 (2023, aberta) e 3007; a 3006 v1 encerrada fica de fora');

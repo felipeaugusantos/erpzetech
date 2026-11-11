@@ -242,5 +242,9 @@ BEGIN
   r := ci.como(adm, $c$SELECT public.fiscal_empresa_regra_salvar('{"ncm":"3009","vigencia_inicio":"2020-01-01","perfil":{"nome":"Perfil v2","cfop":"5102"}}'::jsonb)$c$);
   PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_minhas('Perfil v2')$c$) ->> 'total')::int = 1, 'minhas: nome com dígito ("Perfil v2") acha o perfil');
   PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_minhas('3009')$c$) ->> 'total')::int = 1, 'minhas: só números continua sendo por NCM');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(ci.como(adm, $c$SELECT public.fiscal_empresa_minhas('2')$c$) -> 'itens') e WHERE e ->> 'perfilNome' = 'Perfil v2'),
+                   'minhas: busca só numérica ("2") é só por NCM, sem trazer perfil cujo nome tem o dígito');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(ci.como(adm, $c$SELECT public.fiscal_empresa_globais('2')$c$) -> 'itens') e WHERE e ->> 'perfilNome' = 'Revenda v2'),
+                   'globais: busca só numérica ("2") é só por NCM, sem trazer perfil cujo nome tem o dígito');
 END $$;
 ROLLBACK;

@@ -50,7 +50,7 @@ Uma regra de UF num NCM mais curto perde para uma regra geral de NCM mais longo;
 
 ## Modelo de dados
 
-Migrações em `supabase/migrations` (versões `20270110` a `20270115`, depois das da adequação fiscal da NF-e). Nenhuma tabela é acessível direto pelo app.
+Migrações em `supabase/migrations` (versões `20270110` a `20270116`, depois das da adequação fiscal da NF-e). Nenhuma tabela é acessível direto pelo app.
 
 - `fiscal_perfis`: conjunto nomeado de valores (`cst_icms`, `csosn`, `cfop`, `aliq_icms`, `reducao_base_icms`, `mva_st`, `cst_pis`, `aliq_pis`, `cst_cofins`,
   `aliq_cofins`, `cst_ibs_cbs`, `cclasstrib`, `origem`). `tenant_id` nulo = perfil global; preenchido = perfil da empresa. Um perfil não muda de valores depois de criado.
@@ -147,7 +147,7 @@ Todas com a trava do salão (`exige_nao_salao`) onde são chamáveis por `authen
    (venda dentro do estado); a UF informada continua valendo; UF vazia ou que não é sigla de 2 letras é ignorada (só regras sem UF casam, como antes). O retorno ganha `ufDestino` e `fiscal_sugerir_lote` ganha `uf`.
    O cadastro de produto e a tela Fiscal mostram qual UF foi considerada e avisam quando a empresa não tem UF. A consulta `docs/sql/ncms-usados-por-ramo.sql` separa por UF, e o guia da carga manda uma linha por UF para ST.
    Não mudou: a ordem de desempate (NCM, CEST, operação e regime, UF por último) e o CFOP interestadual, que continua não coberto.
-10. **Merge com a principal:** a branch recebeu a principal (adequação fiscal da NF-e). As migrações desta entrega foram **renumeradas** (`20270110` a `20270115`) porque as versões
+10. **Merge com a principal:** a branch recebeu a principal (adequação fiscal da NF-e). As migrações desta entrega foram **renumeradas** (`20270110` a `20270115`; a `20270116` corrige a busca por nome de perfil com dígito) porque as versões
     `20270102` a `20270106` já existiam na principal com outros nomes. Todas são reaplicáveis (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`). A tela Fiscal passou a escolher
     CSOSN ou CST pelo mesmo critério da emissão (`crtDoRegime`): Simples e MEI usam CSOSN; normal e Simples com excesso de sublimite usam CST.
 
