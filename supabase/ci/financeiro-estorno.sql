@@ -71,7 +71,7 @@ BEGIN
 
   -- ===== título a receber: 100 = 60 em dinheiro no caixa + 40 em pix no banco =====
   PERFORM ci.entrar(fin);
-  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (ta, 'Venda', current_date, 100) RETURNING id INTO cr;
+  cr := (conta_receber_parcelar('Venda', 100, 1, current_date, 'boleto'))[1];
   b_din := baixar_conta('receber', cr, 60, 'dinheiro', current_date, null, cx1);
   b_pix := baixar_conta('receber', cr, 40, 'pix');
   PERFORM ci.sair();
@@ -123,7 +123,7 @@ BEGIN
 
   -- ===== a pagar: estorno devolve ao caixa =====
   PERFORM ci.entrar(fin);
-  INSERT INTO contas_pagar (tenant_id, descricao, vencimento, valor) VALUES (ta, 'Aluguel', current_date, 200) RETURNING id INTO cp;
+  cp := (conta_pagar_parcelar('Aluguel', 200, 1, current_date, 'boleto'))[1];
   bp := baixar_conta('pagar', cp, 200, 'dinheiro', current_date, null, cx2);
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'pago' FROM contas_pagar WHERE id = cp), 'conta a pagar quitada');
@@ -135,7 +135,7 @@ BEGIN
 
   -- ===== título: sem mexer em valor quitado nem situação direto =====
   PERFORM ci.entrar(fin);
-  INSERT INTO contas_receber (tenant_id, descricao, vencimento, valor) VALUES (ta, 'Outra', current_date, 50) RETURNING id INTO cr2;
+  cr2 := (conta_receber_parcelar('Outra', 50, 1, current_date, 'boleto'))[1];
   PERFORM baixar_conta('receber', cr2, 10, 'pix');
   PERFORM ci.sair();
   PERFORM ci.deve_falhar(fin, format($c$UPDATE contas_receber SET valor_recebido = 50 WHERE id = %L$c$, cr2), 'financeiro muda valor recebido direto');

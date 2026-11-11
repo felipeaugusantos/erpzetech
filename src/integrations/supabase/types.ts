@@ -16484,8 +16484,41 @@ export type Database = {
         }
         Returns: Json
       }
+      conta_pagar_parcelar: {
+        Args: {
+          p_categoria?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_fornecedor_id?: string
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
+      conta_receber_parcelar: {
+        Args: {
+          p_cliente_id?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
       baixa_estornar: {
         Args: { p_baixa_id: string; p_motivo: string }
+        Returns: string
+      }
+      valor_parcela: {
+        Args: { p_numero: number; p_parcelas: number; p_total: number }
+        Returns: number
+      }
+      vencimento_parcela: {
+        Args: { p_numero: number; p_primeiro: string }
         Returns: string
       }
       baixar_conta: {
