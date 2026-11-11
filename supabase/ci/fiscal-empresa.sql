@@ -232,5 +232,15 @@ BEGIN
   -- ===== a base global não muda por nada disto =====
   SELECT count(*) INTO n FROM fiscal_regras;
   PERFORM ci.exige(n = 2 AND (SELECT vigencia_fim IS NULL FROM fiscal_regras WHERE id = g_8), 'a base global continua intacta');
+
+  -- ===== busca por nome de perfil que tem dígito (ex.: "Revenda v2") =====
+  INSERT INTO fiscal_perfis (id, tenant_id, nome, cfop) VALUES ('a4000000-0000-0000-0000-0000000000a1', NULL, 'Revenda v2', '5102');
+  INSERT INTO fiscal_regras (perfil_id, ncm_prefixo, vigencia_inicio) VALUES ('a4000000-0000-0000-0000-0000000000a1', '5555', '2020-01-01');
+  PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_globais('Revenda v2')$c$) ->> 'total')::int = 1, 'globais: nome com dígito ("Revenda v2") acha o perfil');
+  PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_globais('v2')$c$) ->> 'total')::int = 1, 'globais: parte do nome com dígito');
+  PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_globais('5555')$c$) ->> 'total')::int = 1, 'globais: só números continua sendo por NCM');
+  r := ci.como(adm, $c$SELECT public.fiscal_empresa_regra_salvar('{"ncm":"3009","vigencia_inicio":"2020-01-01","perfil":{"nome":"Perfil v2","cfop":"5102"}}'::jsonb)$c$);
+  PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_minhas('Perfil v2')$c$) ->> 'total')::int = 1, 'minhas: nome com dígito ("Perfil v2") acha o perfil');
+  PERFORM ci.exige((ci.como(adm, $c$SELECT public.fiscal_empresa_minhas('3009')$c$) ->> 'total')::int = 1, 'minhas: só números continua sendo por NCM');
 END $$;
 ROLLBACK;

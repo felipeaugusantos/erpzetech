@@ -167,6 +167,12 @@ BEGIN
   PERFORM ci.exige(r #>> '{itens,0,perfilNome}' = 'Med A2' AND r #>> '{itens,0,perfil,cfop}' = '5405', 'perfil e nome na listagem');
   r := public.fiscal_base_listar('Med C');
   PERFORM ci.exige((r ->> 'total')::int = 1 AND r #>> '{itens,0,status}' = 'futura', 'busca pelo nome do perfil; início em 2099 é futura');
+  r := public.fiscal_base_listar('Med A2');
+  PERFORM ci.exige((r ->> 'total')::int = 1 AND r #>> '{itens,0,perfilNome}' = 'Med A2',
+                   'busca por nome de perfil que tem dígito ("Med A2") acha o perfil, não vira busca por NCM');
+  PERFORM ci.exige((public.fiscal_base_listar('A2') ->> 'total')::int = 1, 'busca por parte do nome com dígito ("A2")');
+  PERFORM ci.exige((public.fiscal_base_listar('3004') ->> 'total')::int = 2, 'busca só com números continua sendo por NCM');
+  PERFORM ci.exige((public.fiscal_base_listar('30.04') ->> 'total')::int = 2, 'NCM com ponto continua sendo por NCM');
   r := public.fiscal_base_listar('300', true);
   PERFORM ci.exige((r ->> 'total')::int = 5, 'só vigentes e futuras: 3004 v1 e v2, 3005, 3006 v2 (2023, aberta) e 3007; a 3006 v1 encerrada fica de fora');
   r := public.fiscal_base_listar(NULL, false, 2, 0);
