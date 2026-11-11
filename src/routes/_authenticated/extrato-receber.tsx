@@ -5,7 +5,14 @@ import { AlertTriangle, ArrowUpCircle, CalendarClock, Wallet } from "lucide-reac
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR } from "@/lib/format";
-import { corConta, estaVencida, hojeISO, labelConta, labelForma } from "@/lib/financeiro";
+import {
+  corConta,
+  estaVencida,
+  hojeISO,
+  labelConta,
+  labelForma,
+  valorLiquidoBaixa,
+} from "@/lib/financeiro";
 import { usePeriodo } from "@/lib/periodo";
 import { PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -75,7 +82,7 @@ function ExtratoReceber() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_baixas")
-        .select("id, valor, data_baixa, forma_pagamento, observacao, conta_receber_id")
+        .select("id, valor, data_baixa, forma_pagamento, observacao, conta_receber_id, estorno_de")
         .not("conta_receber_id", "is", null)
         .gte("data_baixa", periodo.de)
         .lte("data_baixa", periodo.ate)
@@ -95,7 +102,7 @@ function ExtratoReceber() {
   const vencidas = abertas.filter((c) => estaVencida(c.situacao, c.vencimento));
   const saldoVencido = vencidas.reduce((s, c) => s + saldoDe(c), 0);
   const aVencer = saldoTotal - saldoVencido;
-  const recebidoPeriodo = baixas.reduce((s, b) => s + Number(b.valor), 0);
+  const recebidoPeriodo = baixas.reduce((s, b) => s + valorLiquidoBaixa(b), 0);
 
   const porCliente = useMemo(() => {
     const mapa = new Map<
@@ -171,7 +178,7 @@ function ExtratoReceber() {
         <StatCard
           label="Recebido no período"
           value={brl(recebidoPeriodo)}
-          hint={`${baixas.length} recebimento(s)`}
+          hint={`${baixas.filter((b) => !b.estorno_de).length} recebimento(s)`}
           tone="success"
           icon={ArrowUpCircle}
         />
@@ -322,7 +329,7 @@ function ExtratoReceber() {
                           {b.observacao ?? "—"}
                         </TableCell>
                         <TableCell className="text-right text-numeric">
-                          {brl(Number(b.valor))}
+                          {brl(valorLiquidoBaixa(b))}
                         </TableCell>
                       </TableRow>
                     ))

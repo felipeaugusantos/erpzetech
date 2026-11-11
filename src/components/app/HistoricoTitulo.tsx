@@ -1,10 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
-import { History } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { History, Undo2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, dateTimeBR } from "@/lib/format";
-import { labelForma } from "@/lib/financeiro";
+import {
+  baixasEstornadas,
+  labelForma,
+  podeEstornarBaixa,
+  valorLiquidoBaixa,
+} from "@/lib/financeiro";
+import { useSessionData } from "@/hooks/useSessionData";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +50,10 @@ type Lancamento = {
   valor: number;
   forma: string;
   descricao: string;
-  tipo: "pagamento" | "credito";
+  tipo: "pagamento" | "credito" | "estorno";
+  /** Só nas baixas de verdade: id para estornar (e se já foi estornada). */
+  baixaId?: string | undefined;
+  estornada?: boolean;
 };
 
 /**
@@ -56,6 +69,43 @@ export function HistoricoTitulo({
   titulo: TituloHistorico | null;
   onOpenChange: (aberto: boolean) => void;
 }) {
+  const queryClient = useQueryClient();
+  const { data: sessao } = useSessionData();
+  const podeEstornar = podeEstornarBaixa(sessao?.roles ?? []);
+  const [alvo, setAlvo] = useState<Lancamento | null>(null);
+  const [motivo, setMotivo] = useState("");
+
+  const estornar = useMutation({
+    mutationFn: async () => {
+      if (!alvo?.baixaId) return;
+      const { error } = await supabase.rpc("baixa_estornar", {
+        p_baixa_id: alvo.baixaId,
+        p_motivo: motivo.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Baixa estornada: o saldo do título foi reaberto.");
+      setAlvo(null);
+      setMotivo("");
+      for (const chave of [
+        "historico-titulo",
+        "contas-pagar",
+        "contas-receber",
+        "caixa-movimentos",
+        "extrato-receber",
+        "extrato-receber-baixas",
+        "fluxo-baixas",
+        "fluxo-receber",
+        "fluxo-pagar",
+        "fluxo-caixa-movimentos",
+      ]) {
+        void queryClient.invalidateQueries({ queryKey: [chave] });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: lancamentos = [], isLoading } = useQuery({
     queryKey: ["historico-titulo", tipo, titulo?.id],
     enabled: Boolean(titulo),
@@ -63,21 +113,26 @@ export function HistoricoTitulo({
       const coluna = tipo === "receber" ? "conta_receber_id" : "conta_pagar_id";
       const { data: baixas, error } = await supabase
         .from("financeiro_baixas")
-        .select("id, valor, forma_pagamento, data_baixa, observacao, created_at, caixas(numero)")
+        .select(
+          "id, valor, forma_pagamento, data_baixa, observacao, created_at, estorno_de, motivo_estorno, caixas(numero)",
+        )
         .eq(coluna, titulo!.id)
         .order("created_at");
       if (error) throw error;
 
+      const estornadas = baixasEstornadas(baixas ?? []);
       const lista: Lancamento[] = (baixas ?? []).map((b) => {
         const caixa = (b.caixas as { numero: number } | null)?.numero;
         return {
           chave: `b-${b.id}`,
           data: b.data_baixa,
           quando: b.created_at,
-          valor: Number(b.valor),
+          valor: valorLiquidoBaixa(b),
           forma: labelForma(b.forma_pagamento),
           descricao: [b.observacao, caixa ? `caixa nº ${caixa}` : null].filter(Boolean).join(" · "),
-          tipo: "pagamento",
+          tipo: b.estorno_de ? "estorno" : "pagamento",
+          baixaId: b.estorno_de ? undefined : b.id,
+          estornada: estornadas.has(b.id),
         };
       });
 
@@ -170,6 +225,7 @@ export function HistoricoTitulo({
                   <TableHead>Observação</TableHead>
                   <TableHead className="w-28 text-right">Valor</TableHead>
                   <TableHead className="w-32 text-right">Saldo depois</TableHead>
+                  {podeEstornar && <TableHead className="w-28" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,17 +244,38 @@ export function HistoricoTitulo({
                         ) : (
                           l.forma
                         )}
+                        {l.tipo === "estorno" && (
+                          <Badge variant="destructive" className="ml-2">
+                            Estorno
+                          </Badge>
+                        )}
+                        {l.estornada && (
+                          <Badge variant="outline" className="ml-2">
+                            Estornada
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {l.descricao || "—"}
                       </TableCell>
-                      <TableCell className="text-right text-numeric text-success">
+                      <TableCell
+                        className={`text-right text-numeric ${l.valor < 0 ? "text-destructive" : "text-success"}`}
+                      >
                         {brl(l.valor)}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(restante > 0 ? restante : 0)}
                         {restante <= 0 && <p className="text-xs text-muted-foreground">quitado</p>}
                       </TableCell>
+                      {podeEstornar && (
+                        <TableCell className="text-right">
+                          {l.baixaId && !l.estornada && (
+                            <Button variant="ghost" size="sm" onClick={() => setAlvo(l)}>
+                              <Undo2 className="size-4" /> Estornar
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -209,8 +286,39 @@ export function HistoricoTitulo({
 
         <p className="text-xs text-muted-foreground">
           Os lançamentos do histórico nunca são apagados nem alterados — cada pagamento parcial fica
-          registrado com data, forma e quem recebeu.
+          registrado com data, forma e quem recebeu. Para corrigir um lançamento errado, use
+          “Estornar”: o estorno entra como novo lançamento, com motivo, e reabre o saldo.
         </p>
+
+        <Dialog open={Boolean(alvo)} onOpenChange={(aberto) => !aberto && setAlvo(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Estornar lançamento de {alvo ? brl(alvo.valor) : ""}</DialogTitle>
+              <DialogDescription>
+                O saldo do título é reaberto e, se o dinheiro passou pelo caixa ou pelo banco, o
+                lançamento inverso é feito. Não dá para desfazer um estorno.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Motivo do estorno (obrigatório)"
+              rows={3}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAlvo(null)}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={motivo.trim().length < 3 || estornar.isPending}
+                onClick={() => estornar.mutate()}
+              >
+                {estornar.isPending ? "Estornando…" : "Confirmar estorno"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

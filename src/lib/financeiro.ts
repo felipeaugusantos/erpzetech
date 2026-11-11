@@ -111,3 +111,15 @@ export const somaDias = (iso: string, dias: number) => {
   d.setUTCDate(d.getUTCDate() + dias);
   return d.toISOString().slice(0, 10);
 };
+
+/** Quem pode estornar uma baixa (espelha a regra aplicada em `baixa_estornar`). */
+export const podeEstornarBaixa = (papeis: readonly string[]) =>
+  papeis.some((p) => p === "administrador" || p === "gestor" || p === "financeiro");
+
+/** Valor da baixa com sinal: o estorno (ligado à baixa original) desfaz o que foi quitado. */
+export const valorLiquidoBaixa = (b: { valor: number | string; estorno_de?: string | null }) =>
+  b.estorno_de ? -Number(b.valor) : Number(b.valor);
+
+/** Ids das baixas que já têm estorno — não podem ser estornadas de novo. */
+export const baixasEstornadas = (baixas: ReadonlyArray<{ estorno_de?: string | null }>) =>
+  new Set(baixas.map((b) => b.estorno_de).filter((id): id is string => Boolean(id)));

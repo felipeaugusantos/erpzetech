@@ -76,3 +76,25 @@ test("labelForma devolve travessão para forma desconhecida", () => {
   assert.equal(labelForma(null), "—");
   assert.equal(labelForma("xyz"), "—");
 });
+
+import { baixasEstornadas, podeEstornarBaixa, valorLiquidoBaixa } from "../src/lib/financeiro.ts";
+
+test("estorno entra com sinal negativo e a soma das baixas é o que de fato foi quitado", () => {
+  const baixas = [
+    { id: "a", valor: 60, estorno_de: null },
+    { id: "b", valor: "40", estorno_de: null },
+    { id: "c", valor: 40, estorno_de: "b" },
+  ];
+  assert.equal(
+    baixas.reduce((s, x) => s + valorLiquidoBaixa(x), 0),
+    60,
+  );
+  assert.deepEqual([...baixasEstornadas(baixas)], ["b"]);
+});
+
+test("só administrador, gestor e financeiro estornam baixa", () => {
+  assert.equal(podeEstornarBaixa(["financeiro"]), true);
+  assert.equal(podeEstornarBaixa(["vendedor", "gestor"]), true);
+  assert.equal(podeEstornarBaixa(["caixa", "comprador"]), false);
+  assert.equal(podeEstornarBaixa([]), false);
+});

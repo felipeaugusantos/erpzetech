@@ -2799,7 +2799,8 @@ BEGIN
 
   -- alteração feita por um usuário: quem, o quê (antes e depois)
   PERFORM ci.entrar(fin);
-  UPDATE contas_receber SET valor_recebido = 100, situacao = 'pago' WHERE id = cr;
+  -- a baixa passa pela função (o cliente não muda mais valor recebido nem situação direto)
+  PERFORM baixar_conta('receber', cr, 100, 'pix');
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT usuario_id = fin AND valor_novo ->> 'situacao' = 'pago' AND valor_anterior ->> 'situacao' IS NOT NULL
                       FROM auditoria WHERE entidade = 'contas_receber' AND entidade_id = cr AND operacao = 'update'),
