@@ -87,8 +87,8 @@ export const OPERACOES = [
 ] as const;
 export const REGIMES = [
   { valor: "normal", rotulo: "Regime normal" },
-  { valor: "simples", rotulo: "Simples Nacional" },
-  { valor: "mei", rotulo: "MEI" },
+  { valor: "simples", rotulo: "Simples Nacional (vale também para MEI)" },
+  { valor: "mei", rotulo: "Só MEI (use quando difere do Simples)" },
 ] as const;
 
 /** "CEST 0100100 · venda · normal · UF SP"; sem critério nenhum, "todos". */

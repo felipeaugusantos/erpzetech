@@ -112,6 +112,15 @@ export function validarRegra(r: RegraFiscal): string[] {
   return erros;
 }
 
+/** O regime da regra serve para o regime da empresa? O MEI é Simples Nacional: regra de "simples" também vale para o MEI. */
+const regimeServe = (
+  regraRegime: string | null | undefined,
+  regimeEmpresa: string | null | undefined,
+) =>
+  regraRegime == null ||
+  regraRegime === regimeEmpresa ||
+  (regimeEmpresa === "mei" && regraRegime === "simples");
+
 /** A regra vale para o contexto? (ativa, válida, vigente na data e com todos os critérios presentes casando.) */
 export function regraCasa(r: RegraFiscal, ctx: ContextoFiscal): boolean {
   if (!r.ativa || validarRegra(r).length > 0 || !DATA_ISO.test(ctx.data)) return false;
@@ -120,22 +129,34 @@ export function regraCasa(r: RegraFiscal, ctx: ContextoFiscal): boolean {
   if (!soDigitos(ctx.ncm).startsWith(r.ncmPrefixo)) return false;
   if (r.cest != null && r.cest !== soDigitos(ctx.cest)) return false;
   if (r.operacao != null && r.operacao !== ctx.operacao) return false;
-  if (r.regime != null && r.regime !== ctx.regime) return false;
+  if (!regimeServe(r.regime, ctx.regime)) return false;
   if (r.ufDestino != null && r.ufDestino !== (ctx.ufDestino ?? "").toUpperCase()) return false;
   return true;
 }
 
-/** Quanto maior, mais específica: NCM (mais dígitos), CEST, operação e regime, UF. Comparação em ordem, não soma. */
-export const especificidade = (r: RegraFiscal): [number, number, number, number] => [
+/**
+ * Quanto maior, mais específica: NCM (mais dígitos), CEST, operação e regime, UF. Comparação em ordem, não soma.
+ * Operação vale 2 e o regime vale 2 quando é o da empresa, ou 1 quando é "simples" usado no lugar de "mei"; sem regime, 0.
+ * (Sem `regimeEmpresa`, qualquer regime preenchido vale 2.) Mesma pontuação de fiscal_sugerir no banco.
+ */
+export const especificidade = (
+  r: RegraFiscal,
+  regimeEmpresa?: string | null,
+): [number, number, number, number] => [
   r.ncmPrefixo.length,
   r.cest != null ? 1 : 0,
-  (r.operacao != null ? 1 : 0) + (r.regime != null ? 1 : 0),
+  (r.operacao != null ? 2 : 0) +
+    (r.regime == null ? 0 : regimeEmpresa === undefined || r.regime === regimeEmpresa ? 2 : 1),
   r.ufDestino != null ? 1 : 0,
 ];
 
-function compararEspecificidade(a: RegraFiscal, b: RegraFiscal): number {
-  const ea = especificidade(a);
-  const eb = especificidade(b);
+function compararEspecificidade(
+  a: RegraFiscal,
+  b: RegraFiscal,
+  regimeEmpresa: string | null | undefined,
+): number {
+  const ea = especificidade(a, regimeEmpresa);
+  const eb = especificidade(b, regimeEmpresa);
   for (let i = 0; i < ea.length; i++) if (ea[i] !== eb[i]) return (ea[i] ?? 0) - (eb[i] ?? 0);
   return 0;
 }
@@ -144,8 +165,8 @@ function compararEspecificidade(a: RegraFiscal, b: RegraFiscal): number {
 export function melhoresRegras(regras: readonly RegraFiscal[], ctx: ContextoFiscal): RegraFiscal[] {
   const casam = regras.filter((r) => regraCasa(r, ctx));
   if (casam.length === 0) return [];
-  const topo = casam.reduce((m, r) => (compararEspecificidade(r, m) > 0 ? r : m));
-  return casam.filter((r) => compararEspecificidade(r, topo) === 0);
+  const topo = casam.reduce((m, r) => (compararEspecificidade(r, m, ctx.regime) > 0 ? r : m));
+  return casam.filter((r) => compararEspecificidade(r, topo, ctx.regime) === 0);
 }
 
 /** Aplica a precedência campo a campo e devolve o valor com a origem de cada um. */

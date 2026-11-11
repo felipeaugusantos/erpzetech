@@ -219,6 +219,30 @@ BEGIN
   PERFORM ci.deve_falhar(adm, format($c$INSERT INTO public.fiscal_empresa_regras (tenant_id, perfil_id, ncm_prefixo, vigencia_inicio) VALUES (%L, %L, '23', '2027-01-01')$c$, ta, pg_rev), 'gravação direta de sobrescrita');
   PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM public.fiscal_regras', 'leitura anônima da base global');
 
+  -- ===== MEI usa as regras de Simples Nacional =====
+  INSERT INTO fiscal_regras (id, perfil_id, ncm_prefixo, regime, vigencia_inicio, versao, ativa) VALUES
+    ('b1000000-0000-0000-0000-0000000000a1', pg_sn, '7001', 'simples', '2020-01-01', 1, true),
+    ('b1000000-0000-0000-0000-0000000000a2', pg_dev, '7002', 'simples', '2020-01-01', 1, true),
+    ('b1000000-0000-0000-0000-0000000000a3', pg_rev, '7002', 'mei', '2020-01-01', 1, true),
+    ('b1000000-0000-0000-0000-0000000000a4', pg_st, '7003', 'mei', '2020-01-01', 1, true),
+    ('b1000000-0000-0000-0000-0000000000a5', pg_rev, '7004', NULL, '2020-01-01', 1, true),
+    ('b1000000-0000-0000-0000-0000000000a6', pg_sn, '7004', 'simples', '2020-01-01', 1, true);
+  PERFORM ci.exige(ci.sug(adm, '70011000', p_regime => 'mei') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a1',
+                   'MEI recebe a regra de regime simples');
+  PERFORM ci.exige(ci.sug(adm, '70011000', p_regime => 'simples') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a1',
+                   'Simples continua recebendo a regra de simples');
+  PERFORM ci.exige(ci.sug(adm, '70011000', p_regime => 'normal') ->> 'status' = 'sem_regra', 'regime normal não recebe a regra de simples');
+  PERFORM ci.exige(ci.sug(adm, '70021000', p_regime => 'mei') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a3',
+                   'para MEI a regra de mei vence a de simples do mesmo NCM');
+  PERFORM ci.exige(ci.sug(adm, '70021000', p_regime => 'simples') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a2',
+                   'para o Simples vale a regra de simples, nunca a de mei');
+  PERFORM ci.exige(ci.sug(adm, '70031000', p_regime => 'simples') ->> 'status' = 'sem_regra', 'a regra de mei não vale para o Simples');
+  PERFORM ci.exige(ci.sug(adm, '70031000', p_regime => 'mei') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a4', 'a regra de mei vale para MEI');
+  PERFORM ci.exige(ci.sug(adm, '70041000', p_regime => 'mei') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a6',
+                   'para MEI a regra de simples vence a sem regime do mesmo NCM');
+  PERFORM ci.exige(ci.sug(adm, '70041000', p_regime => 'normal') #>> '{regra,id}' = 'b1000000-0000-0000-0000-0000000000a5',
+                   'sem regime continua valendo para o regime normal');
+
   -- ===== formato e dono dos perfis (como dono do banco) =====
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO fiscal_regras (perfil_id, ncm_prefixo, vigencia_inicio) VALUES (%L, '2', '2027-01-01')$c$, pg_rev), 'prefixo de 1 dígito');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO fiscal_regras (perfil_id, ncm_prefixo, vigencia_inicio) VALUES (%L, '23.09', '2027-01-01')$c$, pg_rev), 'prefixo com pontuação');

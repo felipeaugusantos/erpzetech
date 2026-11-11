@@ -9,7 +9,7 @@ operação, do regime e da UF da empresa, no estilo de uma base de parametrizaç
 Decisões do produto:
 
 - A base é **global e mantida pela equipe Ze Tech**; a **empresa pode sobrescrever ou ocultar** regras só para si.
-- Cobre regime normal, Simples Nacional e MEI, por **NCM, CEST, operação e UF**. A consulta usa a UF da empresa como destino (venda dentro do estado).
+- Cobre regime normal, Simples Nacional e MEI, por **NCM, CEST, operação e UF**. A regra de `simples` vale também para empresa **MEI** (mesmo CSOSN); a de `mei` só para MEI e vence a de `simples` quando as duas existem. A consulta usa a UF da empresa como destino (venda dentro do estado).
 - É **sugestão**: nunca altera produto, nota ou imposto sozinha, e a validação final é do contador.
 - **A emissão da nota não foi alterada.** A nota lê CFOP, CST/CSOSN, alíquota e origem do **produto**, e as funções do banco calculam os valores; a base
   chega à nota pelo produto (tela Fiscal e cadastro de produto), com a pessoa revisando e salvando.
@@ -42,7 +42,7 @@ Entre regras do mesmo nível vence a mais específica, nesta ordem de comparaç�
 
 1. NCM com mais dígitos (8, depois 6, 4 e 2).
 2. Com CEST casando antes de sem CEST.
-3. Com operação e regime casando antes de "qualquer".
+3. Com operação e regime casando antes de "qualquer" (regime exato vale mais do que `simples` usado no lugar de `mei`).
 4. Com UF de destino antes de sem UF.
 
 Só vale regra **vigente na data da operação**. Empate real (mesma especificidade) **não é desempatado em silêncio**: a função devolve a lista e a tela pede a escolha.
@@ -50,7 +50,7 @@ Uma regra de UF num NCM mais curto perde para uma regra geral de NCM mais longo;
 
 ## Modelo de dados
 
-Migrações em `supabase/migrations` (versões `20270110` a `20270116`, depois das da adequação fiscal da NF-e). Nenhuma tabela é acessível direto pelo app.
+Migrações em `supabase/migrations` (versões `20270110` a `20270117`, depois das da adequação fiscal da NF-e). Nenhuma tabela é acessível direto pelo app.
 
 - `fiscal_perfis`: conjunto nomeado de valores (`cst_icms`, `csosn`, `cfop`, `aliq_icms`, `reducao_base_icms`, `mva_st`, `cst_pis`, `aliq_pis`, `cst_cofins`,
   `aliq_cofins`, `cst_ibs_cbs`, `cclasstrib`, `origem`). `tenant_id` nulo = perfil global; preenchido = perfil da empresa. Um perfil não muda de valores depois de criado.
@@ -150,6 +150,10 @@ Todas com a trava do salão (`exige_nao_salao`) onde são chamáveis por `authen
 10. **Merge com a principal:** a branch recebeu a principal (adequação fiscal da NF-e). As migrações desta entrega foram **renumeradas** (`20270110` a `20270115`; a `20270116` corrige a busca por nome de perfil com dígito) porque as versões
     `20270102` a `20270106` já existiam na principal com outros nomes. Todas são reaplicáveis (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`). A tela Fiscal passou a escolher
     CSOSN ou CST pelo mesmo critério da emissão (`crtDoRegime`): Simples e MEI usam CSOSN; normal e Simples com excesso de sublimite usam CST.
+
+11. **MEI usa as regras de Simples:** migração `supabase/migrations/20270117000000_fiscal_sugerir_mei.sql`. A consulta tratava `mei` como regime à parte, então uma regra de `simples` não chegava às empresas MEI
+    (a maioria dos clientes). Agora, para MEI, valem as regras de `mei`, as de `simples` e as sem regime; a de `mei` vence a de `simples`, e a de `simples` vence a sem regime. A pontuação de regime e de operação
+    foi multiplicada por 2 (exato 2, `simples` no lugar de `mei` 1, sem regime 0), o que mantém a ordem de desempate das demais empresas. A mesma regra está em `fiscal-regras.ts`.
 
 ## Fora do escopo desta entrega
 

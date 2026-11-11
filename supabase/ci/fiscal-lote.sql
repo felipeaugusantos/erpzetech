@@ -155,6 +155,23 @@ BEGIN
                    'sem UF da empresa, regras com UF não casam (comportamento de antes)');
   UPDATE empresas SET estado = 'SP' WHERE tenant_id = ta;
 
+  -- ===== empresa MEI recebe as regras de Simples =====
+  INSERT INTO fiscal_regras (id, perfil_id, ncm_prefixo, regime, vigencia_inicio) VALUES
+    ('b5000000-0000-0000-0000-0000000000f1', pg_st, '7101', 'simples', '2020-01-01'),
+    ('b5000000-0000-0000-0000-0000000000f2', pg_rev, '7102', 'simples', '2020-01-01'),
+    ('b5000000-0000-0000-0000-0000000000f3', pg_mg, '7102', 'mei', '2020-01-01');
+  UPDATE empresas SET regime_tributario = 'mei' WHERE tenant_id = tb;
+  r := ci.lote(admb, '[{"ncm":"71011000"},{"ncm":"71021000"}]');
+  PERFORM ci.exige(r ->> 'regime' = 'mei', 'o lote informa o regime MEI da empresa');
+  PERFORM ci.exige(r #>> '{itens,0,resultado,regra,id}' = 'b5000000-0000-0000-0000-0000000000f1', 'empresa MEI recebe a regra de simples no lote');
+  PERFORM ci.exige(r #>> '{itens,1,resultado,regra,id}' = 'b5000000-0000-0000-0000-0000000000f3', 'empresa MEI: a regra de mei vence a de simples');
+  UPDATE empresas SET regime_tributario = 'simples' WHERE tenant_id = tb;
+  r := ci.lote(admb, '[{"ncm":"71011000"},{"ncm":"71021000"}]');
+  PERFORM ci.exige(r #>> '{itens,0,resultado,regra,id}' = 'b5000000-0000-0000-0000-0000000000f1'
+                   AND r #>> '{itens,1,resultado,regra,id}' = 'b5000000-0000-0000-0000-0000000000f2', 'empresa do Simples recebe só as regras de simples');
+  UPDATE empresas SET regime_tributario = 'lucro_presumido' WHERE tenant_id = tb;
+  PERFORM ci.exige(ci.lote(admb, '[{"ncm":"71011000"}]') #>> '{itens,0,resultado,status}' = 'sem_regra', 'empresa de regime normal não recebe regra de simples');
+
   -- ===== entrada inválida =====
   PERFORM ci.deve_falhar(adm, $c$SELECT public.fiscal_sugerir_lote('{}'::jsonb)$c$, 'entrada que não é lista');
   PERFORM ci.deve_falhar(adm, $c$SELECT public.fiscal_sugerir_lote(NULL)$c$, 'entrada nula');
