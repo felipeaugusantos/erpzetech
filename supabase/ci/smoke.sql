@@ -528,6 +528,8 @@ DECLARE
     'backup_drive_config', 'backup_drive_execucoes'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
+    -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
+    'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
     'empresa_por_slug', 'filial_irrestrita', 'pode_filial', 'contato_enviar',
     -- só grava a posição do próprio motorista; quem não é motorista não tem linha para alterar
@@ -623,6 +625,27 @@ BEGIN
      AND p.proname NOT LIKE 'restaurante\_%' AND NOT (p.proname = ANY (sem_trava))
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_salao%';
   PERFORM ci.exige(faltando IS NULL, 'toda função chamável tem a trava do salão ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
+
+  -- contador: tabela ou função nova sem a proteção do contador reprova o CI
+  SELECT string_agg(c.relname, ', ') INTO faltando
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity
+     AND c.relname NOT IN ('profiles', 'user_roles', 'empresas', 'filiais', 'tenants', 'nfe', 'nfe_itens', 'tributos_aprox_ncm', 'tributos_aprox_ajuste')
+     AND NOT EXISTS (SELECT 1 FROM pg_policies pp WHERE pp.schemaname = 'public' AND pp.tablename = c.relname
+                        AND pp.permissive = 'RESTRICTIVE' AND pp.qual LIKE '%eh_contador_restrito%');
+  PERFORM ci.exige(faltando IS NULL, 'toda tabela com RLS tem política restritiva do contador (eh_contador_restrito) ou está na lista liberada ao contador' || coalesce(' (faltam: ' || faltando || ')', ''));
+
+  SELECT string_agg(p.proname, ', ') INTO faltando
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.prosecdef AND pg_get_function_result(p.oid) <> 'trigger'
+     AND has_function_privilege('authenticated', p.oid, 'execute')
+     AND p.proname NOT IN ('current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
+                           'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco', 'eh_contador_restrito',
+                           'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
+                           'filial_irrestrita', 'pode_filial', 'eh_profissional_restrito')
+     AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_contador%'
+     AND pg_get_functiondef(p.oid) NOT LIKE '%exige_contador_tributos%';
+  PERFORM ci.exige(faltando IS NULL, 'toda função chamável tem a trava do contador (exige_nao_contador ou exige_contador_tributos) ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
 
   -- comportamento
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM produtos') > 0, 'gestão enxerga os produtos');
