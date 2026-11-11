@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/tributos-aprox")({
       {
         name: "description",
         content:
-          "Alíquotas da IBPT por NCM usadas no valor aproximado dos tributos da nota, com os ajustes de cada empresa.",
+          "Alíquotas da IBPT por NCM usadas no valor aproximado dos tributos da nota, com os ajustes de cada conta.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -67,6 +67,9 @@ function TributosAproximados() {
   const pode = (sessao?.roles ?? []).some(
     (r) => r === "administrador" || r === "gestor" || r === "financeiro" || r === "contador",
   );
+  // importar a tabela da IBPT (CSV ou API) não é do contador: o botão nem aparece para ele
+  // (a trava real segue no banco e nas funções de servidor, que o recusam).
+  const contador = (sessao?.roles ?? []).includes("contador");
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (!pode) {
     return (
@@ -76,10 +79,10 @@ function TributosAproximados() {
       />
     );
   }
-  return <Painel />;
+  return <Painel contador={contador} />;
 }
 
-function Painel() {
+function Painel({ contador }: { contador: boolean }) {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Base | null>(null);
@@ -139,16 +142,18 @@ function Painel() {
         title="Tributos aproximados"
         description="Alíquotas por NCM do valor aproximado dos tributos informado na nota (Lei 12.741/2012). Não são os impostos devidos, que seguem as regras fiscais da empresa."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link to="/nfe">Importar tabela da IBPT</Link>
-          </Button>
+          contador ? undefined : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/nfe">Importar tabela da IBPT</Link>
+            </Button>
+          )
         }
       />
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
         A tabela da IBPT fica como veio. O ajuste do contador é guardado à parte, com validade e
-        motivo, vale só para esta empresa e não é apagado quando você importa uma tabela nova da
-        IBPT. Ajuste vencido deixa de valer e a nota volta a usar a IBPT. O texto da nota informa
-        quando uma alíquota foi ajustada.
+        motivo, vale só para esta conta e não é apagado quando você importa uma tabela nova da IBPT.
+        Ajuste vencido deixa de valer e a nota volta a usar a IBPT. O texto da nota informa quando
+        uma alíquota foi ajustada.
       </p>
 
       <div className="mb-4 max-w-sm">
@@ -167,7 +172,7 @@ function Painel() {
 
       {bases.length === 0 && !isFetching ? (
         <EmptyState
-          title="Nenhuma alíquota da IBPT nesta empresa"
+          title="Nenhuma alíquota da IBPT nesta conta"
           description="Importe a tabela da IBPT em Notas fiscais para poder consultar e ajustar por NCM."
         />
       ) : (
@@ -178,7 +183,7 @@ function Painel() {
                 <TableHead>NCM</TableHead>
                 <TableHead>IBPT (nacional / importado / estadual / municipal)</TableHead>
                 <TableHead>Versão e vigência</TableHead>
-                <TableHead>Ajuste da empresa</TableHead>
+                <TableHead>Ajuste da conta</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -367,8 +372,8 @@ function AjusteDialog({
           <DialogDescription>
             IBPT: {pct(base.aliq_nacional_federal)} / {pct(base.aliq_importado_federal)} /{" "}
             {pct(base.aliq_estadual)} / {pct(base.aliq_municipal)}
-            {base.versao ? ` (versão ${base.versao})` : ""}. O ajuste vale só para esta empresa e
-            não altera a tabela da IBPT.
+            {base.versao ? ` (versão ${base.versao})` : ""}. O ajuste vale só para esta conta e não
+            altera a tabela da IBPT.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
