@@ -48,6 +48,7 @@ DECLARE
   vend constant uuid := 'f0000000-0000-0000-0000-000000000004';
   admb constant uuid := 'f0000000-0000-0000-0000-000000000005';
   cx1 uuid; cx2 uuid; banco uuid;
+  prof uuid; cr3 uuid; b_prem uuid;
   cr uuid; cp uuid; cr2 uuid; b_din uuid; b_pix uuid; bp uuid; est uuid; n numeric;
 BEGIN
   INSERT INTO tenants (id, nome) VALUES (ta, 'Fin A'), (tb, 'Fin B');
@@ -152,6 +153,23 @@ BEGIN
   PERFORM ci.exige((SELECT descricao = 'Outra (editada)' FROM contas_receber WHERE id = cr2), 'descrição e vencimento seguem editáveis');
   PERFORM ci.deve_falhar(fin, format($c$SELECT baixar_conta('pagar', %L, 10, 'pix')$c$, cp), 'baixar conta cancelada');
   PERFORM ci.deve_falhar(fin, format($c$SELECT baixa_estornar(%L, 'em conta cancelada')$c$, bp), 'estornar (já estornada) conta cancelada');
+
+  -- baixa feita com crédito de premiação: o estorno devolve o crédito ao profissional
+  INSERT INTO profissionais (tenant_id, nome) VALUES (ta, 'Prof estorno') RETURNING id INTO prof;
+  INSERT INTO premiacoes (tenant_id, profissional_id, valor, situacao) VALUES (ta, prof, 50, 'aprovada');
+  PERFORM ci.entrar(fin);
+  cr3 := (conta_receber_parcelar('Com crédito', 30, 1, current_date, 'boleto'))[1];
+  PERFORM premiacao_abater_conta(prof, cr3, 30);
+  PERFORM ci.exige(profissional_saldo_credito(prof) = 20, 'crédito do profissional caiu 30 ao abater a conta');
+  SELECT id INTO b_prem FROM financeiro_baixas WHERE conta_receber_id = cr3 AND estorno_de IS NULL;
+  PERFORM baixa_estornar(b_prem, 'abatimento lançado errado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aberto' AND valor_recebido = 0 FROM contas_receber WHERE id = cr3), 'estorno do abatimento reabre a conta');
+  PERFORM ci.entrar(fin);
+  PERFORM ci.exige(profissional_saldo_credito(prof) = 50, 'estorno devolve o crédito de premiação ao profissional (saldo volta a 50)');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) FROM premiacao_abatimentos WHERE conta_receber_id = cr3) = 2
+                   AND (SELECT sum(valor) FROM premiacao_abatimentos WHERE conta_receber_id = cr3) = 0, 'o abatimento original fica e o estorno entra como abatimento negativo');
 
   -- quem não é do financeiro não escreve em contas a pagar
   PERFORM ci.exige(ci.contar_como(coz, format($c$WITH u AS (UPDATE contas_pagar SET descricao = 'x' WHERE tenant_id = %L RETURNING 1) SELECT count(*) FROM u$c$, ta)) = 0, 'cozinha não altera contas a pagar');
