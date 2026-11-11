@@ -2771,6 +2771,7 @@ export type Database = {
       contas_pagar: {
         Row: {
           categoria: string | null
+          categoria_id: string | null
           compra_id: string | null
           created_at: string
           descricao: string
@@ -2793,6 +2794,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string | null
+          categoria_id?: string | null
           compra_id?: string | null
           created_at?: string
           descricao: string
@@ -2817,6 +2819,7 @@ export type Database = {
         }
         Update: {
           categoria?: string | null
+          categoria_id?: string | null
           compra_id?: string | null
           created_at?: string
           descricao?: string
@@ -2840,6 +2843,13 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_categorias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_compra_id_fkey"
             columns: ["compra_id"]
@@ -2880,6 +2890,7 @@ export type Database = {
       contas_receber: {
         Row: {
           cliente_id: string | null
+          categoria_id: string | null
           created_at: string
           descricao: string
           empresa_id: string | null
@@ -2901,6 +2912,7 @@ export type Database = {
         }
         Insert: {
           cliente_id?: string | null
+          categoria_id?: string | null
           created_at?: string
           descricao: string
           empresa_id?: string | null
@@ -2924,6 +2936,7 @@ export type Database = {
         }
         Update: {
           cliente_id?: string | null
+          categoria_id?: string | null
           created_at?: string
           descricao?: string
           empresa_id?: string | null
@@ -2946,6 +2959,13 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_receber_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "financeiro_categorias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_receber_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -4375,6 +4395,47 @@ export type Database = {
           },
           {
             foreignKeyName: "financeiro_baixas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financeiro_categorias: {
+        Row: {
+          ativa: boolean
+          created_at: string
+          grupo: string
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          created_at?: string
+          grupo: string
+          id?: string
+          nome: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          created_at?: string
+          grupo?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_categorias_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -16487,6 +16548,7 @@ export type Database = {
       conta_pagar_parcelar: {
         Args: {
           p_categoria?: string
+          p_categoria_id?: string
           p_descricao: string
           p_forma: Database["public"]["Enums"]["forma_pagamento"]
           p_fornecedor_id?: string
@@ -16499,6 +16561,7 @@ export type Database = {
       }
       conta_receber_parcelar: {
         Args: {
+          p_categoria_id?: string
           p_cliente_id?: string
           p_descricao: string
           p_forma: Database["public"]["Enums"]["forma_pagamento"]
@@ -16508,6 +16571,33 @@ export type Database = {
           p_valor: number
         }
         Returns: string[]
+      }
+      financeiro_categoria_salvar: {
+        Args: {
+          p_ativa?: boolean
+          p_grupo: string
+          p_id: string | null
+          p_nome: string
+          p_tipo: string
+        }
+        Returns: string
+      }
+      financeiro_categorias_importar_texto: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      financeiro_categorias_padrao: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      financeiro_dre: {
+        Args: { p_ate: string; p_de: string; p_filial_id?: string }
+        Returns: {
+          categoria: string
+          categoria_id: string
+          secao: string
+          valor: number
+        }[]
       }
       baixa_estornar: {
         Args: { p_baixa_id: string; p_motivo: string }

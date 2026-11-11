@@ -61,6 +61,7 @@ PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/backu
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/backup-restauracao.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/financeiro-estorno.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/financeiro-parcelas.sql
+PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/financeiro-dre.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/smoke.sql
 # concorrência de verdade (duas sessões ao mesmo tempo) da agenda do lava rápido
 bash ci/lava-agenda-concorrencia.sh

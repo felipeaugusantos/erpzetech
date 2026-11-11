@@ -77,6 +77,7 @@ const TABELAS_COM_TENANT = [
   "faixas_desconto",
   "filiais",
   "financeiro_baixas",
+  "financeiro_categorias",
   "fiscal_config",
   "fornecedores",
   "gestor_autorizacoes",
