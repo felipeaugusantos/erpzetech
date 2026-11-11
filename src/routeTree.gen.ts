@@ -65,6 +65,7 @@ import { Route as AuthenticatedCustoParRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDeliveryRouteImport } from './routes/_authenticated/delivery'
 import { Route as AuthenticatedDevolucoesRouteImport } from './routes/_authenticated/devolucoes'
+import { Route as AuthenticatedDreRouteImport } from './routes/_authenticated/dre'
 import { Route as AuthenticatedEmpresaRouteImport } from './routes/_authenticated/empresa'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEntregasMotoristaRouteImport } from './routes/_authenticated/entregas-motorista'
@@ -74,6 +75,7 @@ import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_au
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
+import { Route as AuthenticatedFinanceiroCategoriasRouteImport } from './routes/_authenticated/financeiro-categorias'
 import { Route as AuthenticatedFiscalRouteImport } from './routes/_authenticated/fiscal'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
@@ -528,6 +530,11 @@ const AuthenticatedDevolucoesRoute = AuthenticatedDevolucoesRouteImport.update({
   path: '/devolucoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDreRoute = AuthenticatedDreRouteImport.update({
+  id: '/dre',
+  path: '/dre',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEmpresaRoute = AuthenticatedEmpresaRouteImport.update({
   id: '/empresa',
   path: '/empresa',
@@ -577,6 +584,12 @@ const AuthenticatedFilialExtraRoute =
   AuthenticatedFilialExtraRouteImport.update({
     id: '/filial-extra',
     path: '/filial-extra',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFinanceiroCategoriasRoute =
+  AuthenticatedFinanceiroCategoriasRouteImport.update({
+    id: '/financeiro-categorias',
+    path: '/financeiro-categorias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedFiscalRoute = AuthenticatedFiscalRouteImport.update({
@@ -1430,6 +1443,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
+  '/dre': typeof AuthenticatedDreRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
@@ -1439,6 +1453,7 @@ export interface FileRoutesByFullPath {
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
+  '/financeiro-categorias': typeof AuthenticatedFinanceiroCategoriasRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -1637,6 +1652,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/delivery': typeof AuthenticatedDeliveryRoute
   '/devolucoes': typeof AuthenticatedDevolucoesRoute
+  '/dre': typeof AuthenticatedDreRoute
   '/empresa': typeof AuthenticatedEmpresaRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
@@ -1646,6 +1662,7 @@ export interface FileRoutesByTo {
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
+  '/financeiro-categorias': typeof AuthenticatedFinanceiroCategoriasRoute
   '/fiscal': typeof AuthenticatedFiscalRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -1846,6 +1863,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/delivery': typeof AuthenticatedDeliveryRoute
   '/_authenticated/devolucoes': typeof AuthenticatedDevolucoesRoute
+  '/_authenticated/dre': typeof AuthenticatedDreRoute
   '/_authenticated/empresa': typeof AuthenticatedEmpresaRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/entregas-motorista': typeof AuthenticatedEntregasMotoristaRoute
@@ -1855,6 +1873,7 @@ export interface FileRoutesById {
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
+  '/_authenticated/financeiro-categorias': typeof AuthenticatedFinanceiroCategoriasRoute
   '/_authenticated/fiscal': typeof AuthenticatedFiscalRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
@@ -2055,6 +2074,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
+    | '/dre'
     | '/empresa'
     | '/entregas'
     | '/entregas-motorista'
@@ -2064,6 +2084,7 @@ export interface FileRouteTypes {
     | '/extrato-receber'
     | '/fechamento-operador'
     | '/filial-extra'
+    | '/financeiro-categorias'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
@@ -2262,6 +2283,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/delivery'
     | '/devolucoes'
+    | '/dre'
     | '/empresa'
     | '/entregas'
     | '/entregas-motorista'
@@ -2271,6 +2293,7 @@ export interface FileRouteTypes {
     | '/extrato-receber'
     | '/fechamento-operador'
     | '/filial-extra'
+    | '/financeiro-categorias'
     | '/fiscal'
     | '/fluxo-caixa'
     | '/fornecedores'
@@ -2470,6 +2493,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/delivery'
     | '/_authenticated/devolucoes'
+    | '/_authenticated/dre'
     | '/_authenticated/empresa'
     | '/_authenticated/entregas'
     | '/_authenticated/entregas-motorista'
@@ -2479,6 +2503,7 @@ export interface FileRouteTypes {
     | '/_authenticated/extrato-receber'
     | '/_authenticated/fechamento-operador'
     | '/_authenticated/filial-extra'
+    | '/_authenticated/financeiro-categorias'
     | '/_authenticated/fiscal'
     | '/_authenticated/fluxo-caixa'
     | '/_authenticated/fornecedores'
@@ -3039,6 +3064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDevolucoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dre': {
+      id: '/_authenticated/dre'
+      path: '/dre'
+      fullPath: '/dre'
+      preLoaderRoute: typeof AuthenticatedDreRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/empresa': {
       id: '/_authenticated/empresa'
       path: '/empresa'
@@ -3100,6 +3132,13 @@ declare module '@tanstack/react-router' {
       path: '/filial-extra'
       fullPath: '/filial-extra'
       preLoaderRoute: typeof AuthenticatedFilialExtraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro-categorias': {
+      id: '/_authenticated/financeiro-categorias'
+      path: '/financeiro-categorias'
+      fullPath: '/financeiro-categorias'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCategoriasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fiscal': {
@@ -4141,6 +4180,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDeliveryRoute: typeof AuthenticatedDeliveryRoute
   AuthenticatedDevolucoesRoute: typeof AuthenticatedDevolucoesRoute
+  AuthenticatedDreRoute: typeof AuthenticatedDreRoute
   AuthenticatedEmpresaRoute: typeof AuthenticatedEmpresaRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEntregasMotoristaRoute: typeof AuthenticatedEntregasMotoristaRoute
@@ -4150,6 +4190,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
+  AuthenticatedFinanceiroCategoriasRoute: typeof AuthenticatedFinanceiroCategoriasRoute
   AuthenticatedFiscalRoute: typeof AuthenticatedFiscalRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
@@ -4332,6 +4373,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDeliveryRoute: AuthenticatedDeliveryRoute,
   AuthenticatedDevolucoesRoute: AuthenticatedDevolucoesRoute,
+  AuthenticatedDreRoute: AuthenticatedDreRoute,
   AuthenticatedEmpresaRoute: AuthenticatedEmpresaRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEntregasMotoristaRoute: AuthenticatedEntregasMotoristaRoute,
@@ -4341,6 +4383,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,
+  AuthenticatedFinanceiroCategoriasRoute:
+    AuthenticatedFinanceiroCategoriasRoute,
   AuthenticatedFiscalRoute: AuthenticatedFiscalRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,

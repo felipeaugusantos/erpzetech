@@ -19,6 +19,11 @@ import {
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { HistoricoTitulo, type TituloHistorico } from "@/components/app/HistoricoTitulo";
+import {
+  AlterarCategoriaTitulo,
+  SeletorCategoria,
+  type TituloCategoria,
+} from "@/components/app/CategoriaFinanceira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,7 +86,8 @@ function ContasPagar() {
 
   const [fornecedorId, setFornecedorId] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [trocaCategoria, setTrocaCategoria] = useState<TituloCategoria | null>(null);
   const [valor, setValor] = useState("");
   const [venc, setVenc] = useState(somaDias(hojeISO(), 30));
   const [parcelas, setParcelas] = useState("1");
@@ -93,7 +99,9 @@ function ContasPagar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar")
-        .select("*, fornecedores(razao_social, nome_fantasia), compras(numero, origem)")
+        .select(
+          "*, fornecedores(razao_social, nome_fantasia), compras(numero, origem), financeiro_categorias(nome)",
+        )
         .order("vencimento");
       if (error) throw error;
       return data;
@@ -169,7 +177,7 @@ function ContasPagar() {
         p_primeiro_vencimento: venc,
         p_forma: forma as never,
         ...(fornecedorId ? { p_fornecedor_id: fornecedorId } : {}),
-        ...(categoria ? { p_categoria: categoria } : {}),
+        ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
       });
       if (error) throw error;
     },
@@ -179,6 +187,7 @@ function ContasPagar() {
       setDescricao("");
       setValor("");
       setParcelas("1");
+      setCategoriaId("");
       void queryClient.invalidateQueries({ queryKey: ["contas-pagar"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -339,7 +348,10 @@ function ContasPagar() {
                     <TableCell className="text-sm">
                       {c.descricao}
                       <p className="text-xs text-muted-foreground">
-                        {c.categoria ? `${c.categoria} · ` : ""}Parcela {c.parcela}/{c.parcelas}
+                        {((c.financeiro_categorias as { nome: string } | null)?.nome ?? c.categoria)
+                          ? `${(c.financeiro_categorias as { nome: string } | null)?.nome ?? c.categoria} · `
+                          : ""}
+                        Parcela {c.parcela}/{c.parcelas}
                       </p>
                     </TableCell>
                     <TableCell className="text-xs">
@@ -417,6 +429,19 @@ function ContasPagar() {
                         }
                       >
                         Histórico
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setTrocaCategoria({
+                            id: c.id,
+                            numero: c.numero,
+                            categoria_id: c.categoria_id,
+                          })
+                        }
+                      >
+                        Categoria
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -521,11 +546,7 @@ function ContasPagar() {
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Input
-                  placeholder="Ex.: Aluguel, Energia, Mercadorias"
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
-                />
+                <SeletorCategoria tipo="despesa" valor={categoriaId} onChange={setCategoriaId} />
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -573,6 +594,11 @@ function ContasPagar() {
         </DialogContent>
       </Dialog>
 
+      <AlterarCategoriaTitulo
+        tipo="despesa"
+        titulo={trocaCategoria}
+        onOpenChange={(aberto) => !aberto && setTrocaCategoria(null)}
+      />
       <HistoricoTitulo
         tipo="pagar"
         titulo={historico}

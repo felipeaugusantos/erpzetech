@@ -200,6 +200,7 @@ const groups: Group[] = [
       { label: "Contas a pagar", to: "/contas-pagar", icon: Wallet },
       { label: "Caixa", to: "/caixa", icon: Wallet },
       { label: "Contas bancárias", to: "/contas-bancarias", icon: Building2 },
+      { label: "Categorias financeiras", to: "/financeiro-categorias", icon: Tag },
       { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
@@ -343,6 +344,7 @@ const groups: Group[] = [
       { secao: "Estoque", label: "Movimento por tamanho", to: "/movimento-grade", icon: Boxes },
       { secao: "Financeiro", label: "Extrato a receber", to: "/extrato-receber", icon: Wallet },
       { secao: "Financeiro", label: "Fluxo de caixa", to: "/fluxo-caixa", icon: Wallet },
+      { secao: "Financeiro", label: "DRE", to: "/dre", icon: TrendingUp },
       {
         secao: "Financeiro",
         label: "Fechamento por operador",

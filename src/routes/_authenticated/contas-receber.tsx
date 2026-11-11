@@ -19,6 +19,11 @@ import {
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { HistoricoTitulo, type TituloHistorico } from "@/components/app/HistoricoTitulo";
+import {
+  AlterarCategoriaTitulo,
+  SeletorCategoria,
+  type TituloCategoria,
+} from "@/components/app/CategoriaFinanceira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +89,8 @@ function ContasReceber() {
   const [valor, setValor] = useState("");
   const [venc, setVenc] = useState(somaDias(hojeISO(), 30));
   const [parcelas, setParcelas] = useState("1");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [trocaCategoria, setTrocaCategoria] = useState<TituloCategoria | null>(null);
   const [forma, setForma] = useState("boleto");
 
   const [creditoAberta, setCreditoAberta] = useState(false);
@@ -97,7 +104,7 @@ function ContasReceber() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_receber")
-        .select("*, clientes(nome, profissional_id), pedidos(numero)")
+        .select("*, clientes(nome, profissional_id), pedidos(numero), financeiro_categorias(nome)")
         .order("vencimento");
       if (error) throw error;
       return data;
@@ -196,6 +203,7 @@ function ContasReceber() {
         p_primeiro_vencimento: venc,
         p_forma: forma as never,
         ...(clienteId ? { p_cliente_id: clienteId } : {}),
+        ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
       });
       if (error) throw error;
     },
@@ -205,6 +213,7 @@ function ContasReceber() {
       setDescricao("");
       setValor("");
       setParcelas("1");
+      setCategoriaId("");
       void queryClient.invalidateQueries({ queryKey: ["contas-receber"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -418,6 +427,9 @@ function ContasReceber() {
                     <TableCell className="text-sm">
                       {c.descricao}
                       <p className="text-xs text-muted-foreground">
+                        {(c.financeiro_categorias as { nome: string } | null)?.nome
+                          ? `${(c.financeiro_categorias as { nome: string }).nome} · `
+                          : ""}
                         Parcela {c.parcela}/{c.parcelas}
                       </p>
                     </TableCell>
@@ -482,6 +494,19 @@ function ContasReceber() {
                         }
                       >
                         Histórico
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setTrocaCategoria({
+                            id: c.id,
+                            numero: c.numero,
+                            categoria_id: c.categoria_id,
+                          })
+                        }
+                      >
+                        Categoria
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -605,6 +630,10 @@ function ContasReceber() {
               </div>
             </div>
             <div>
+              <Label>Categoria</Label>
+              <SeletorCategoria tipo="receita" valor={categoriaId} onChange={setCategoriaId} />
+            </div>
+            <div>
               <Label>Forma de pagamento</Label>
               <Select value={forma} onValueChange={setForma}>
                 <SelectTrigger>
@@ -704,6 +733,11 @@ function ContasReceber() {
         </DialogContent>
       </Dialog>
 
+      <AlterarCategoriaTitulo
+        tipo="receita"
+        titulo={trocaCategoria}
+        onOpenChange={(aberto) => !aberto && setTrocaCategoria(null)}
+      />
       <HistoricoTitulo
         tipo="receber"
         titulo={historico}
