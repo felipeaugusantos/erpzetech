@@ -15664,6 +15664,54 @@ export type Database = {
           },
         ]
       }
+      tributos_aprox_ajuste: {
+        Row: {
+          aliq_estadual: number
+          aliq_importado_federal: number
+          aliq_municipal: number
+          aliq_nacional_federal: number
+          criado_em: string
+          criado_por: string | null
+          id: string
+          motivo: string
+          ncm: string
+          removido_em: string | null
+          removido_por: string | null
+          tenant_id: string
+          valido_ate: string
+        }
+        Insert: {
+          aliq_estadual: number
+          aliq_importado_federal: number
+          aliq_municipal: number
+          aliq_nacional_federal: number
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          motivo: string
+          ncm: string
+          removido_em?: string | null
+          removido_por?: string | null
+          tenant_id: string
+          valido_ate: string
+        }
+        Update: {
+          aliq_estadual?: number
+          aliq_importado_federal?: number
+          aliq_municipal?: number
+          aliq_nacional_federal?: number
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          motivo?: string
+          ncm?: string
+          removido_em?: string | null
+          removido_por?: string | null
+          tenant_id?: string
+          valido_ate?: string
+        }
+        Relationships: []
+      }
       tributos_aprox_ncm: {
         Row: {
           aliq_estadual: number
@@ -17991,6 +18039,22 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
+      }
+      tributos_aprox_ajustar: {
+        Args: {
+          p_estadual: number
+          p_importado_federal: number
+          p_motivo: string
+          p_municipal: number
+          p_nacional_federal: number
+          p_ncm: string
+          p_valido_ate: string
+        }
+        Returns: string
+      }
+      tributos_aprox_ajuste_remover: {
+        Args: { p_ncm: string }
+        Returns: boolean
       }
       tributos_aprox_importar: {
         Args: { p_linhas: Json }

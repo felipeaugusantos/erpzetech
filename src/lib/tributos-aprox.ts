@@ -15,7 +15,50 @@ export type RegraTributos = {
   vigencia_fim?: string | null;
   versao?: string | null;
   fonte?: string | null;
+  /** Verdadeiro quando os valores vêm de um ajuste do cliente, e não da tabela da IBPT. */
+  ajustada?: boolean;
 };
+
+/** Ajuste do cliente sobre a alíquota de um NCM (tabela tributos_aprox_ajuste). Não é dado da IBPT. */
+export type AjusteTributos = {
+  ncm: string;
+  aliq_nacional_federal: number;
+  aliq_importado_federal: number;
+  aliq_estadual: number;
+  aliq_municipal: number;
+  /** AAAA-MM-DD, último dia em que o ajuste vale. */
+  valido_ate: string;
+  removido_em?: string | null;
+};
+
+/** O ajuste vale hoje? Removido ou vencido não vale; nunca é válido sem data. */
+export function ajusteVigente(a: AjusteTributos | null | undefined, hoje: string): boolean {
+  return !!a && !a.removido_em && !!a.valido_ate && a.valido_ate >= hoje;
+}
+
+/**
+ * Regra que a nota usa para um NCM: o ajuste vigente do cliente por cima da linha da IBPT, ou a própria linha da IBPT.
+ * A linha da IBPT (valores, versão, fonte, vigência) nunca é alterada aqui. No ajuste, a fonte deixa de ser "IBPT":
+ * `ajustada` fica verdadeiro, a vigência passa a ser a do ajuste e a versão/fonte da IBPT seguem rastreáveis no texto.
+ * Ajuste sem linha da IBPT na empresa não é aplicado (a origem precisa existir).
+ */
+export function regraComAjuste(
+  base: RegraTributos | null | undefined,
+  ajuste: AjusteTributos | null | undefined,
+  hoje: string,
+): RegraTributos | null {
+  if (!base) return null;
+  if (!ajusteVigente(ajuste, hoje) || ajuste!.ncm !== base.ncm) return base;
+  return {
+    ...base,
+    aliq_nacional_federal: ajuste!.aliq_nacional_federal,
+    aliq_importado_federal: ajuste!.aliq_importado_federal,
+    aliq_estadual: ajuste!.aliq_estadual,
+    aliq_municipal: ajuste!.aliq_municipal,
+    vigencia_fim: ajuste!.valido_ate,
+    ajustada: true,
+  };
+}
 
 /** Origem da mercadoria importada (1, 2, 3, 6, 7, 8): usa a alíquota federal de importados. */
 export const origemImportada = (origem: unknown) => [1, 2, 3, 6, 7, 8].includes(Number(origem));
@@ -54,12 +97,21 @@ const reais = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Texto das informações complementares: valor e percentual por esfera e a fonte (Decreto 8.264/2014). */
-export function textoTributos(t: TotaisTributos, fonte: string, versao?: string | null): string {
+export function textoTributos(
+  t: TotaisTributos,
+  fonte: string,
+  versao?: string | null,
+  ncmsAjustados: string[] = [],
+): string {
   const pct = t.baseTotal > 0 ? (t.total / t.baseTotal) * 100 : 0;
   const origem = `Fonte: ${fonte}${versao ? ` (versão ${versao})` : ""}`;
+  // valor ajustado pelo cliente não é da IBPT: o texto diz isso, sem atribuir o número à fonte
+  const ajuste = ncmsAjustados.length
+    ? ` Alíquotas ajustadas pelo contribuinte (não são da IBPT) para os NCM: ${ncmsAjustados.join(", ")}.`
+    : "";
   return (
     `Valor aproximado dos tributos: R$ ${reais(t.total)} (${reais(pct)}%) — ` +
-    `Federal R$ ${reais(t.federal)}, Estadual R$ ${reais(t.estadual)}, Municipal R$ ${reais(t.municipal)}. ${origem}.`
+    `Federal R$ ${reais(t.federal)}, Estadual R$ ${reais(t.estadual)}, Municipal R$ ${reais(t.municipal)}. ${origem}.${ajuste}`
   );
 }
 

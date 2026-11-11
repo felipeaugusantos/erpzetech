@@ -18,6 +18,7 @@ export const ENTIDADES: Record<string, string> = {
   empresas: "Empresa",
   filiais: "Filial",
   fiscal_config: "Configuração fiscal",
+  tributos_aprox_ajuste: "Ajuste de tributos aproximados",
   user_roles: "Perfil de acesso",
   produtos: "Produto",
   estoques: "Estoque",

@@ -208,6 +208,7 @@ const groups: Group[] = [
       { label: "Pendências fiscais", to: "/pendencias-fiscais", icon: FileText },
       { label: "Configuração da NFC-e", to: "/nfce-config", icon: FileText },
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
+      { label: "Tributos aproximados", to: "/tributos-aprox", icon: Percent },
       { label: "Impostos por filial", to: "/impostos-filial", icon: Percent },
       { label: "Impostos por nota", to: "/impostos-nota", icon: Percent },
       { label: "Configuração de prefeitura", to: "/prefeitura", icon: Landmark },
@@ -409,6 +410,7 @@ const AREAS_PRINCIPAIS: Array<{ label: string; icon: typeof Gauge }> = [
   { label: "Vendas", icon: ShoppingCart },
   { label: "Estoque", icon: Boxes },
   { label: "Notas Fiscais", icon: FileText },
+  { label: "Fiscal", icon: Scale },
   { label: "Financeiro", icon: Wallet },
   { label: "Relatórios", icon: BarChart3 },
   { label: "Ajustes", icon: Settings },
@@ -434,10 +436,15 @@ const AREA_DA_TELA: Record<string, string> = {
   "/nfe-recebidas": "Notas Fiscais",
   "/pendencias-fiscais": "Notas Fiscais",
   "/nfce-config": "Notas Fiscais",
-  "/fiscal": "Notas Fiscais",
-  "/impostos-filial": "Notas Fiscais",
-  "/impostos-nota": "Notas Fiscais",
-  "/prefeitura": "Notas Fiscais",
+  // cadastros e regras fiscais reunidos na área Fiscal; emitir e acompanhar notas fica em Notas Fiscais
+  "/fiscal": "Fiscal",
+  "/fiscal-regras": "Fiscal",
+  "/tributos-aprox": "Fiscal",
+  "/impostos": "Fiscal",
+  "/impostos-filial": "Fiscal",
+  "/impostos-nota": "Fiscal",
+  "/prefeitura": "Fiscal",
+  "/certificado-nfse": "Fiscal",
   "/nfe-simulacao": "Notas Fiscais",
   "/fluxo-caixa": "Financeiro",
 };
@@ -678,6 +685,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/menu-personalizado") return souGestao;
               // as regras fiscais da empresa são da administração
               if (i.to === "/fiscal-regras") return souGestao;
+              // ajustar os tributos aproximados: administração e financeiro (o banco confere de novo)
+              if (i.to === "/tributos-aprox")
+                return souGestao || (data?.roles ?? []).includes("financeiro");
               if (i.to === "/backup-nuvem") return (data?.roles ?? []).includes("administrador");
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)

@@ -16,6 +16,8 @@ import {
   regraVigente,
   somarTributos,
   textoTributos,
+  regraComAjuste,
+  type AjusteTributos,
   tributosDoItem,
   type RegraTributos,
   type TributosItem,
@@ -461,6 +463,30 @@ export const transmitirNfe = createServerFn({ method: "POST" })
           .eq("tenant_id", nota.tenant_id)
           .in("ncm", ncmsDaNota);
         if (erroTrib) throw erroTrib;
+        // ajustes vigentes do cliente (tabela própria; a linha da IBPT acima não é alterada)
+        const { data: ajustes, error: erroAjuste } = await (supabase as any)
+          .from("tributos_aprox_ajuste")
+          .select(
+            "ncm, aliq_nacional_federal, aliq_importado_federal, aliq_estadual, aliq_municipal, valido_ate, removido_em",
+          )
+          .eq("tenant_id", nota.tenant_id)
+          .is("removido_em", null)
+          .in("ncm", ncmsDaNota);
+        if (erroAjuste) throw erroAjuste;
+        const ajusteDoNcm = new Map<string, AjusteTributos>(
+          ((ajustes ?? []) as any[]).map((a) => [
+            a.ncm,
+            {
+              ncm: a.ncm,
+              aliq_nacional_federal: Number(a.aliq_nacional_federal),
+              aliq_importado_federal: Number(a.aliq_importado_federal),
+              aliq_estadual: Number(a.aliq_estadual),
+              aliq_municipal: Number(a.aliq_municipal),
+              valido_ate: a.valido_ate,
+              removido_em: a.removido_em,
+            },
+          ]),
+        );
         for (const r of (regras ?? []) as any[]) {
           const regra: RegraTributos = {
             ncm: r.ncm,
@@ -472,7 +498,9 @@ export const transmitirNfe = createServerFn({ method: "POST" })
             versao: r.versao,
             fonte: r.fonte,
           };
-          if (regraVigente(regra, hojeIso)) regrasTrib.set(r.ncm, regra);
+          // o ajuste vigente vale no lugar da IBPT; vencido, a regra volta a ser a da IBPT (se ainda vigente)
+          const efetiva = regraComAjuste(regra, ajusteDoNcm.get(r.ncm), hojeIso) ?? regra;
+          if (regraVigente(efetiva, hojeIso)) regrasTrib.set(r.ncm, efetiva);
         }
         const semRegra = ncmsDaNota.filter((n: string) => !regrasTrib.has(n));
         tributosAtivos = semRegra.length === 0;
@@ -642,7 +670,12 @@ export const transmitirNfe = createServerFn({ method: "POST" })
     const totaisTrib = somarTributos(itensTrib);
     const regraDeReferencia = [...regrasTrib.values()][0];
     const textoTrib = tributosAtivos
-      ? textoTributos(totaisTrib, regraDeReferencia?.fonte || "IBPT", regraDeReferencia?.versao)
+      ? textoTributos(
+          totaisTrib,
+          regraDeReferencia?.fonte || "IBPT",
+          regraDeReferencia?.versao,
+          [...regrasTrib.values()].filter((r) => r.ajustada).map((r) => r.ncm),
+        )
       : null;
     const infCpl = [
       cfg.informacoes_complementares ? String(cfg.informacoes_complementares).slice(0, 500) : null,

@@ -175,6 +175,7 @@ import { Route as AuthenticatedTecnicosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTefRouteImport } from './routes/_authenticated/tef'
 import { Route as AuthenticatedTefPainelRouteImport } from './routes/_authenticated/tef-painel'
 import { Route as AuthenticatedTransferenciasRouteImport } from './routes/_authenticated/transferencias'
+import { Route as AuthenticatedTributosAproxRouteImport } from './routes/_authenticated/tributos-aprox'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticated/veiculos'
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
@@ -1149,6 +1150,12 @@ const AuthenticatedTransferenciasRoute =
     path: '/transferencias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTributosAproxRoute =
+  AuthenticatedTributosAproxRouteImport.update({
+    id: '/tributos-aprox',
+    path: '/tributos-aprox',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -1567,6 +1574,7 @@ export interface FileRoutesByFullPath {
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
+  '/tributos-aprox': typeof AuthenticatedTributosAproxRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
@@ -1778,6 +1786,7 @@ export interface FileRoutesByTo {
   '/tef': typeof AuthenticatedTefRoute
   '/tef-painel': typeof AuthenticatedTefPainelRoute
   '/transferencias': typeof AuthenticatedTransferenciasRoute
+  '/tributos-aprox': typeof AuthenticatedTributosAproxRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/veiculos': typeof AuthenticatedVeiculosRoute
   '/vendedores': typeof AuthenticatedVendedoresRoute
@@ -1991,6 +2000,7 @@ export interface FileRoutesById {
   '/_authenticated/tef': typeof AuthenticatedTefRoute
   '/_authenticated/tef-painel': typeof AuthenticatedTefPainelRoute
   '/_authenticated/transferencias': typeof AuthenticatedTransferenciasRoute
+  '/_authenticated/tributos-aprox': typeof AuthenticatedTributosAproxRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/veiculos': typeof AuthenticatedVeiculosRoute
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
@@ -2204,6 +2214,7 @@ export interface FileRouteTypes {
     | '/tef'
     | '/tef-painel'
     | '/transferencias'
+    | '/tributos-aprox'
     | '/usuarios'
     | '/veiculos'
     | '/vendedores'
@@ -2415,6 +2426,7 @@ export interface FileRouteTypes {
     | '/tef'
     | '/tef-painel'
     | '/transferencias'
+    | '/tributos-aprox'
     | '/usuarios'
     | '/veiculos'
     | '/vendedores'
@@ -2627,6 +2639,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tef'
     | '/_authenticated/tef-painel'
     | '/_authenticated/transferencias'
+    | '/_authenticated/tributos-aprox'
     | '/_authenticated/usuarios'
     | '/_authenticated/veiculos'
     | '/_authenticated/vendedores'
@@ -3860,6 +3873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTransferenciasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tributos-aprox': {
+      id: '/_authenticated/tributos-aprox'
+      path: '/tributos-aprox'
+      fullPath: '/tributos-aprox'
+      preLoaderRoute: typeof AuthenticatedTributosAproxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usuarios': {
       id: '/_authenticated/usuarios'
       path: '/usuarios'
@@ -4330,6 +4350,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTefRoute: typeof AuthenticatedTefRoute
   AuthenticatedTefPainelRoute: typeof AuthenticatedTefPainelRoute
   AuthenticatedTransferenciasRoute: typeof AuthenticatedTransferenciasRoute
+  AuthenticatedTributosAproxRoute: typeof AuthenticatedTributosAproxRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVeiculosRoute: typeof AuthenticatedVeiculosRoute
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
@@ -4529,6 +4550,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTefRoute: AuthenticatedTefRoute,
   AuthenticatedTefPainelRoute: AuthenticatedTefPainelRoute,
   AuthenticatedTransferenciasRoute: AuthenticatedTransferenciasRoute,
+  AuthenticatedTributosAproxRoute: AuthenticatedTributosAproxRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVeiculosRoute: AuthenticatedVeiculosRoute,
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
