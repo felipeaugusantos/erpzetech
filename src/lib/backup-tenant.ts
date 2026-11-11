@@ -256,6 +256,8 @@ export const TABELAS_BACKUP: readonly string[] = [
 
 /** tabelas com tenant_id que ficam de FORA do backup do cliente, e por quê */
 export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
+  contador_acessos:
+    "acessos externos do contador: uma restauração não pode devolver acesso a quem foi revogado; o administrador libera de novo",
   portal_convites: "guarda só o hash do código de convite do tutor; não deve sair do banco",
   saas_clientes:
     "cadastro comercial do cliente na Ze Tech (cobrança, plano), não é dado do cliente",
