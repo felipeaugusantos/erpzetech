@@ -107,6 +107,7 @@ export type CrtEmitente = 1 | 2 | 3 | 4;
 /** CRT do emitente a partir do regime da configuração fiscal (mesma regra do restante da emissão). */
 export function crtDoRegime(regime: string | null | undefined): CrtEmitente {
   if (regime === "simples") return 1;
+  if (regime === "simples_excesso") return 2;
   if (regime === "mei") return 4;
   return 3;
 }

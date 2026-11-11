@@ -16,6 +16,11 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CabecalhoImpresso } from "@/components/app/DocumentoVenda";
+import { AliquotasDifal } from "@/components/app/AliquotasDifal";
+import { ContingenciaNfe } from "@/components/app/ContingenciaNfe";
+import { TributosAprox } from "@/components/app/TributosAprox";
+import { NotaComplementar } from "@/components/app/NotaComplementar";
+import { InutilizarNumeracao } from "@/components/app/InutilizarNumeracao";
 import {
   arquivosNfe,
   consultarNfe,
@@ -133,12 +138,13 @@ function Nfe() {
 
   const enviarSefaz = useMutation({
     mutationFn: async (nfeId: string) => transmitir({ data: { nfeId } }),
-    onSuccess: (r: { status: string; mensagem: string | null }) => {
+    onSuccess: (r: { status: string; mensagem: string | null; aviso?: string | null }) => {
       if (r.status === "autorizado" || r.status === "autorizada") {
         toast.success("Nota autorizada pela Receita");
       } else {
         toast.info(`Nota enviada — situação: ${r.status}${r.mensagem ? ` · ${r.mensagem}` : ""}`);
       }
+      if (r.aviso) toast.warning(r.aviso);
       qc.invalidateQueries({ queryKey: ["nfe"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -189,7 +195,7 @@ function Nfe() {
       const { data, error } = await supabase
         .from("nfe")
         .select(
-          "id, numero, serie, situacao, ambiente, natureza_operacao, cfop, modelo, codigo_servico, municipio_prestacao, iss_retido, valor_total, valor_produtos, valor_frete, valor_desconto, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, pdf_url, xml_url, provider_id, provider_status, pedidos(numero), clientes(nome), depositos(nome)",
+          "id, numero, serie, situacao, ambiente, natureza_operacao, cfop, modelo, codigo_servico, municipio_prestacao, iss_retido, valor_total, valor_produtos, valor_frete, valor_desconto, base_icms, valor_icms, base_icms_st, valor_icms_st, valor_pis, valor_cofins, valor_iss, pendencias, mensagem, created_at, emitente, destinatario, chave, protocolo, pdf_url, xml_url, provider_id, provider_status, complementa_nfe_id, ajusta_nfe_id, pedidos(numero), clientes(nome), depositos(nome)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -389,10 +395,16 @@ function Nfe() {
         title="Notas fiscais"
         description="Gere a nota a partir do pedido com cliente, produtos, depósito e valores."
         actions={
-          <Button variant="outline" size="sm" onClick={() => setAbrirConfig(true)}>
-            <Settings2 className="mr-2 size-4" />
-            Configuração fiscal
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <ContingenciaNfe />
+            <AliquotasDifal />
+            <TributosAprox />
+            <InutilizarNumeracao />
+            <Button variant="outline" size="sm" onClick={() => setAbrirConfig(true)}>
+              <Settings2 className="mr-2 size-4" />
+              Configuração fiscal
+            </Button>
+          </div>
         }
       />
 
@@ -783,6 +795,15 @@ function Nfe() {
                 <RefreshCw className="mr-2 size-4" /> Atualizar dados do cliente
               </Button>
             )}
+            {nota &&
+              nota.situacao === "autorizada" &&
+              !nota.complementa_nfe_id &&
+              !nota.ajusta_nfe_id && (
+                <>
+                  <NotaComplementar nfeId={nota.id} />
+                  <NotaComplementar nfeId={nota.id} tipo="ajuste" />
+                </>
+              )}
             {nota && nota.situacao !== "autorizada" && nota.situacao !== "cancelada" && (
               <Button disabled={enviarSefaz.isPending} onClick={() => enviarSefaz.mutate(nota.id)}>
                 <Send className="mr-2 size-4" /> Enviar à Receita
@@ -828,6 +849,10 @@ function Nfe() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="simples">Simples Nacional</SelectItem>
+                    <SelectItem value="simples_excesso">
+                      Simples Nacional — excesso de sublimite
+                    </SelectItem>
+                    <SelectItem value="mei">MEI</SelectItem>
                     <SelectItem value="presumido">Lucro presumido</SelectItem>
                     <SelectItem value="real">Lucro real</SelectItem>
                   </SelectContent>
