@@ -2697,6 +2697,57 @@ export type Database = {
           },
         ]
       }
+      contador_acessos: {
+        Row: {
+          concedido_em: string
+          concedido_por: string
+          empresa_id: string
+          id: string
+          pode_editar_tributos: boolean
+          revogado_em: string | null
+          revogado_por: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          concedido_em?: string
+          concedido_por: string
+          empresa_id: string
+          id?: string
+          pode_editar_tributos?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          concedido_em?: string
+          concedido_por?: string
+          empresa_id?: string
+          id?: string
+          pode_editar_tributos?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contador_acessos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contador_acessos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
@@ -17221,6 +17272,38 @@ export type Database = {
         Returns: string
       }
       eh_motorista_restrito: { Args: never; Returns: boolean }
+      contador_acessos_listar: {
+        Args: never
+        Returns: {
+          concedido_em: string
+          email: string
+          empresa_id: string
+          empresa_nome: string
+          id: string
+          nome: string
+          pode_editar_tributos: boolean
+          revogado_em: string
+          user_id: string
+        }[]
+      }
+      contador_conceder: {
+        Args: { p_edita_tributos?: boolean; p_empresa: string; p_user: string }
+        Returns: string
+      }
+      contador_edita_tributos: { Args: never; Returns: boolean }
+      contador_empresa_id: { Args: never; Returns: string }
+      contador_meu_acesso: {
+        Args: never
+        Returns: {
+          cnpj: string
+          concedido_em: string
+          empresa_id: string
+          empresa_nome: string
+          pode_editar_tributos: boolean
+        }[]
+      }
+      contador_revogar: { Args: { p_user: string }; Returns: undefined }
+      eh_contador_restrito: { Args: never; Returns: boolean }
       eh_profissional_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
@@ -19022,6 +19105,7 @@ export type Database = {
         | "profissional"
         | "veterinario"
         | "producao"
+        | "contador"
       autorizacao_situacao: "pendente" | "aprovada" | "negada"
       caixa_mov_tipo:
         | "abertura"
@@ -19238,6 +19322,7 @@ export const Constants = {
         "profissional",
         "veterinario",
         "producao",
+        "contador",
       ],
       autorizacao_situacao: ["pendente", "aprovada", "negada"],
       caixa_mov_tipo: [

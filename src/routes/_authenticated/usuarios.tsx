@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { initials } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { ContadorAcessos } from "@/components/app/ContadorAcessos";
 import {
   PERFIS,
   atualizarUsuario,
@@ -247,6 +248,7 @@ function Usuarios() {
         <TabsList>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="permissoes">Permissões</TabsTrigger>
+          {isAdmin && <TabsTrigger value="contador">Contador</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="usuarios" className="mt-4">
@@ -385,6 +387,12 @@ function Usuarios() {
             de acesso e pode ativar, inativar ou trocar a senha quando precisar.
           </p>
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="contador" className="mt-4">
+            <ContadorAcessos />
+          </TabsContent>
+        )}
 
         <TabsContent value="permissoes" className="mt-4">
           {!isAdmin && (

@@ -5,10 +5,6 @@ import { AppShell } from "@/components/app/AppShell";
 import { ContadorShell } from "@/components/app/ContadorShell";
 import { registrarLinkDeEntrada } from "@/lib/link-uso";
 
-// As funções do contador entram nos tipos gerados quando o Lovable os atualizar depois da migration.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const rpcSemTipo = (nome: string) => (supabase as any).rpc(nome);
-
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
@@ -35,9 +31,9 @@ export const Route = createFileRoute("/_authenticated")({
 
     // Contador: só a própria área (o banco recusa o resto mesmo que alguém abra outro endereço). Sem acesso ativo
     // (revogado), vai para a tela do contador, que mostra o aviso.
-    const { data: ehContador } = await rpcSemTipo("eh_contador_restrito");
+    const { data: ehContador } = await supabase.rpc("eh_contador_restrito");
     if (ehContador === true) {
-      const { data: acesso } = await rpcSemTipo("contador_meu_acesso");
+      const { data: acesso } = await supabase.rpc("contador_meu_acesso");
       const edita = Array.isArray(acesso) && acesso[0]?.pode_editar_tributos === true;
       const liberadas = edita ? ["/contador", "/tributos-aprox", "/fiscal-regras"] : ["/contador"];
       if (!liberadas.includes(location.pathname.replace(/\/+$/, ""))) {
