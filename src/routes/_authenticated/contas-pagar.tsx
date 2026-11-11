@@ -159,22 +159,18 @@ function ContasPagar() {
       const v = Number(valor.replace(",", "."));
       if (!descricao.trim()) throw new Error("Informe a descrição");
       if (!v || v <= 0) throw new Error("Informe um valor maior que zero");
-      const n = Math.max(1, Number(parcelas || 1));
-      const parcela = Number((v / n).toFixed(2));
-      const linhas = Array.from({ length: n }, (_, i) => ({
-        tenant_id: profile.tenant_id as string,
-        empresa_id: profile.empresa_id,
-        filial_id: profile.filial_id,
-        fornecedor_id: fornecedorId || null,
-        descricao: descricao.trim(),
-        categoria: categoria || null,
-        parcela: i + 1,
-        parcelas: n,
-        vencimento: somaDias(venc, i * 30),
-        valor: i === n - 1 ? Number((v - parcela * (n - 1)).toFixed(2)) : parcela,
-        forma_pagamento: forma as never,
-      }));
-      const { error } = await supabase.from("contas_pagar").insert(linhas);
+      const n = Math.trunc(Number(parcelas || 1));
+      if (!Number.isFinite(n) || n < 1 || n > 120) throw new Error("Parcelas: de 1 a 120");
+      // parcelas, vencimento mensal e arredondamento são feitos no banco, numa transação só
+      const { error } = await supabase.rpc("conta_pagar_parcelar", {
+        p_descricao: descricao.trim(),
+        p_valor: v,
+        p_parcelas: n,
+        p_primeiro_vencimento: venc,
+        p_forma: forma as never,
+        ...(fornecedorId ? { p_fornecedor_id: fornecedorId } : {}),
+        ...(categoria ? { p_categoria: categoria } : {}),
+      });
       if (error) throw error;
     },
     onSuccess: () => {

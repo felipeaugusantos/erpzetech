@@ -5,7 +5,7 @@ import { ArrowDownCircle, ArrowUpCircle, Store, TrendingUp } from "lucide-react"
 
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, dateTimeBR } from "@/lib/format";
-import { entradaCaixa, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
+import { entradaCaixa, hojeISO, labelForma, somaDias, valorLiquidoBaixa } from "@/lib/financeiro";
 import { PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ function FluxoCaixa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financeiro_baixas")
-        .select("conta_receber_id, conta_pagar_id, valor, data_baixa")
+        .select("conta_receber_id, conta_pagar_id, valor, data_baixa, estorno_de")
         .gte("data_baixa", de)
         .lte("data_baixa", ate);
       if (error) throw error;
@@ -97,8 +97,8 @@ function FluxoCaixa() {
     },
   });
 
-  const recebido = baixas.reduce((s, b) => (b.conta_receber_id ? s + Number(b.valor) : s), 0);
-  const pago = baixas.reduce((s, b) => (b.conta_pagar_id ? s + Number(b.valor) : s), 0);
+  const recebido = baixas.reduce((s, b) => (b.conta_receber_id ? s + valorLiquidoBaixa(b) : s), 0);
+  const pago = baixas.reduce((s, b) => (b.conta_pagar_id ? s + valorLiquidoBaixa(b) : s), 0);
   const aReceber = receber.reduce((s, c) => s + Number(c.valor) - Number(c.valor_recebido), 0);
   const aPagar = pagar.reduce((s, c) => s + Number(c.valor) - Number(c.valor_pago), 0);
 

@@ -4305,8 +4305,10 @@ export type Database = {
           conta_receber_id: string | null
           created_at: string
           data_baixa: string
+          estorno_de: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id: string
+          motivo_estorno: string | null
           observacao: string | null
           tenant_id: string
           usuario_id: string | null
@@ -4318,8 +4320,10 @@ export type Database = {
           conta_receber_id?: string | null
           created_at?: string
           data_baixa?: string
+          estorno_de?: string | null
           forma_pagamento: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
+          motivo_estorno?: string | null
           observacao?: string | null
           tenant_id: string
           usuario_id?: string | null
@@ -4331,14 +4335,23 @@ export type Database = {
           conta_receber_id?: string | null
           created_at?: string
           data_baixa?: string
+          estorno_de?: string | null
           forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"]
           id?: string
+          motivo_estorno?: string | null
           observacao?: string | null
           tenant_id?: string
           usuario_id?: string | null
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "financeiro_baixas_estorno_de_fkey"
+            columns: ["estorno_de"]
+            isOneToOne: true
+            referencedRelation: "financeiro_baixas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "financeiro_baixas_caixa_id_fkey"
             columns: ["caixa_id"]
@@ -16470,6 +16483,43 @@ export type Database = {
           p_usuario?: string
         }
         Returns: Json
+      }
+      conta_pagar_parcelar: {
+        Args: {
+          p_categoria?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_fornecedor_id?: string
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
+      conta_receber_parcelar: {
+        Args: {
+          p_cliente_id?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
+      baixa_estornar: {
+        Args: { p_baixa_id: string; p_motivo: string }
+        Returns: string
+      }
+      valor_parcela: {
+        Args: { p_numero: number; p_parcelas: number; p_total: number }
+        Returns: number
+      }
+      vencimento_parcela: {
+        Args: { p_numero: number; p_primeiro: string }
+        Returns: string
       }
       baixar_conta: {
         Args: {
