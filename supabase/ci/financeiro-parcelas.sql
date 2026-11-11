@@ -63,6 +63,16 @@ BEGIN
   PERFORM ci.exige(vencimento_parcela('2026-12-15', 2) = '2027-01-15', 'vira o ano mantendo o dia 15');
   PERFORM ci.exige(valor_parcela(100, 3, 1) = 33.33 AND valor_parcela(100, 3, 3) = 33.34, '100 em 3: 33,33 + 33,33 + 33,34');
 
+  -- geradores de parcelas: todos usam o vencimento mensal e a divisão em centavos (nenhum soma 30 dias por parcela)
+  PERFORM ci.exige((SELECT count(*) = 4 FROM pg_proc p
+                     WHERE p.pronamespace = 'public'::regnamespace
+                       AND p.proname IN ('gerar_contas_receber_interno', 'importar_nfe_entrada', 'locacao_faturar', 'receber_compra')
+                       AND p.prosrc LIKE '%vencimento_parcela(%' AND p.prosrc LIKE '%valor_parcela(%'),
+                   'pedido, nota de entrada, compra e locação geram parcelas pelas funções mensais');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM pg_proc p
+                     WHERE p.pronamespace = 'public'::regnamespace AND p.prosrc ~ '\(i - 1\) \* 30'),
+                   'nenhuma função do banco soma 30 dias por parcela');
+
   -- a receber
   PERFORM ci.entrar(fin);
   ids := conta_receber_parcelar('Venda a prazo', 100, 3, '2027-01-31', 'boleto', cli_a, 'obs');

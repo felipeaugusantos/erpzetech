@@ -2352,6 +2352,7 @@ BEGIN
   PERFORM gerar_contas_receber(p4, 2, current_date + 30, 'boleto');
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT count(*) FROM contas_receber WHERE pedido_id = p4) = 2, 'financeiro gera as contas a receber');
+  PERFORM ci.exige((SELECT array_agg(vencimento ORDER BY parcela) = ARRAY[vencimento_parcela(current_date + 30, 1), vencimento_parcela(current_date + 30, 2)] AND sum(valor) = 10 FROM contas_receber WHERE pedido_id = p4), 'parcelas do pedido vencem mês a mês e somam o total');
   -- a venda a prazo de um vendedor no PDV segue gerando as parcelas (usa a função interna)
   PERFORM ci.entrar(vend);
   p5 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 1, 'preco_unitario', 10)), 'crediario', cli, 0, 2, current_date + 30);
@@ -2635,6 +2636,15 @@ BEGIN
   SELECT quantidade INTO lote_qtd FROM estoque_lotes WHERE produto_id = prod AND deposito_id = dep AND lote = 'L1' AND tonalidade = 'A' AND calibre = '2';
   PERFORM ci.exige(lote_qtd = 10, 'o lote do XML entra junto com a compra (10)');
   PERFORM ci.exige((SELECT count(*) = 0 FROM estoque_lotes l JOIN produtos p ON p.id = l.produto_id WHERE p.codigo_interno = 'XML-B'), 'item sem lote não cria lote');
+
+  -- contas a pagar da nota: vencimento mensal no mesmo dia e o resto dos centavos na última parcela
+  PERFORM ci.entrar(adm);
+  r2 := importar_nfe_entrada(nota || jsonb_build_object('chave', 'CHAVE-XML-CI-PARC', 'numero', '9190'), forn, jsonb_build_array(itens -> 1), dep, true, 7, '2027-01-31');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT array_agg(vencimento ORDER BY parcela) = ARRAY['2027-01-31','2027-02-28','2027-03-31','2027-04-30','2027-05-31','2027-06-30','2027-07-31']::date[]
+                           AND sum(valor) = (SELECT total FROM compras WHERE id = (r2->>'compra_id')::uuid)
+                           AND max(valor) FILTER (WHERE parcela = 7) >= max(valor) FILTER (WHERE parcela = 1)
+                      FROM contas_pagar WHERE compra_id = (r2->>'compra_id')::uuid), 'contas a pagar da nota vencem mês a mês e somam o total');
 
   -- a mesma nota de novo é recusada, e outra nota segue entrando
   PERFORM ci.deve_falhar(adm, format($c$SELECT importar_nfe_entrada(%L::jsonb, %L::jsonb, %L::jsonb, %L)$c$, nota, forn, itens, dep), 'a mesma nota importada de novo');
