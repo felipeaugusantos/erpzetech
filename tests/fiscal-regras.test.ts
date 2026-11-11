@@ -276,3 +276,48 @@ describe("resolverTributacao", () => {
     assert.doesNotThrow(() => resolverTributacao(entrada));
   });
 });
+
+describe("MEI usa as regras de Simples Nacional", () => {
+  const mei = ctx({ regime: "mei" });
+  it("regra de simples vale para empresa MEI; de mei vale só para MEI; de simples não vale para normal", () => {
+    assert.equal(regraCasa(regra({ regime: "simples" }), mei), true);
+    assert.equal(regraCasa(regra({ regime: "mei" }), mei), true);
+    assert.equal(regraCasa(regra({ regime: "mei" }), ctx({ regime: "simples" })), false);
+    assert.equal(regraCasa(regra({ regime: "simples" }), ctx({ regime: "normal" })), false);
+    assert.equal(regraCasa(regra({ regime: "simples" }), ctx({ regime: "simples" })), true);
+    assert.equal(regraCasa(regra({ regime: null }), mei), true);
+  });
+  it("para MEI, a regra de mei vence a de simples, e a de simples vence a sem regime", () => {
+    const simples = regra({ regime: "simples", perfil: { csosn: "102" } });
+    const soMei = regra({ regime: "mei", perfil: { csosn: "103" } });
+    const geral = regra({ regime: null, perfil: { csosn: "400" } });
+    assert.deepEqual(melhoresRegras([simples, soMei, geral], mei), [soMei]);
+    assert.deepEqual(melhoresRegras([simples, geral], mei), [simples]);
+    assert.deepEqual(melhoresRegras([geral], mei), [geral]);
+  });
+  it("empresa do Simples nunca recebe a regra de mei; sem regra de simples cai na sem regime", () => {
+    const simples = regra({ regime: "simples" });
+    const soMei = regra({ regime: "mei" });
+    const geral = regra({ regime: null });
+    assert.deepEqual(melhoresRegras([soMei, geral], ctx({ regime: "simples" })), [geral]);
+    assert.deepEqual(melhoresRegras([simples, soMei], ctx({ regime: "simples" })), [simples]);
+    assert.deepEqual(melhoresRegras([simples], ctx({ regime: "normal" })), []);
+  });
+  it("duas regras de simples iguais continuam empatando para MEI", () => {
+    const a = regra({ regime: "simples" });
+    const b = regra({ regime: "simples", perfil: { cfop: "5405" } });
+    assert.deepEqual(melhoresRegras([a, b], mei), [a, b]);
+  });
+  it("a operação continua pesando mais do que um regime usado no lugar de mei", () => {
+    const comOperacao = regra({ operacao: "venda", regime: null, perfil: { cfop: "5102" } });
+    const soSimples = regra({ regime: "simples", perfil: { cfop: "5405" } });
+    assert.deepEqual(melhoresRegras([comOperacao, soSimples], mei), [comOperacao]);
+  });
+  it("pontuação do regime: exato 2, simples no lugar de mei 1, sem regime 0 (e 2 quando não há regime da empresa)", () => {
+    assert.equal(especificidade(regra({ regime: "mei" }), "mei")[2], 2);
+    assert.equal(especificidade(regra({ regime: "simples" }), "mei")[2], 1);
+    assert.equal(especificidade(regra({ regime: null }), "mei")[2], 0);
+    assert.equal(especificidade(regra({ regime: "simples", operacao: "venda" }), "simples")[2], 4);
+    assert.equal(especificidade(regra({ regime: "simples" }))[2], 2);
+  });
+});

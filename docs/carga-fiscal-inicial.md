@@ -67,7 +67,7 @@ Você é um analista tributário brasileiro. Preciso de um RASCUNHO de regras fi
 ENTRADA
 - Segmento desta rodada: [SEGMENTO]
 - UFs desta rodada (venda dentro do estado): [ex.: SP, MG]
-- Regimes: normal e simples
+- Regimes: normal e simples (a regra de simples vale também para empresa MEI)
 - Início da vigência: [AAAA-MM-DD]
 - Use SOMENTE os NCMs desta lista (não sugira outros). Formato: NCM — descrição do produto:
   [COLE AQUI, UM POR LINHA]
@@ -80,7 +80,7 @@ REGRAS
 2. Se o tratamento do NCM depende da descrição, da composição ou do uso do produto, NÃO gere linha: liste em "Dúvidas" as variações existentes (e o CEST de cada uma, se houver).
 3. Se o tratamento do NCM (por exemplo a substituição tributária, ST) depende de protocolo ou convênio de cada UF, gere UMA LINHA POR UF da lista, com uf_destino preenchido (sigla maiúscula), assumindo venda DENTRO do estado (origem igual ao destino). Só gere a linha de uma UF se houver base legal verificável DAQUELA UF; senão liste em "Dúvidas" (NCM e UF). Se o tratamento é uniforme para o Brasil inteiro, gere uma única linha com uf_destino vazio e diga isso na observação.
 4. Se o CEST separa tratamentos diferentes do mesmo NCM, gere uma linha por CEST (7 dígitos). Sem CEST: vazio.
-5. operacao = "venda". Uma linha por NCM e por regime ("normal" ou "simples").
+5. operacao = "venda". Uma linha por NCM e por regime ("normal" ou "simples"). A regra de "simples" vale também para empresa MEI: NÃO gere linha "mei" a menos que o tratamento do MEI seja diferente do Simples.
 6. Regime normal: cst_icms APENAS 00, 40, 41, 50, 51 ou 60, e csosn vazio. Regime simples: csosn APENAS 101, 102, 103, 300, 400, 500 ou 900, e cst_icms vazio. Se o produto exigir outro código, omita e explique em "Dúvidas".
 7. cfop: 5102 (venda tributada ou isenta) ou 5405 (substituído por ST). Assuma venda interna e escreva "operação interna" na observação.
 8. perfil: nome curto e padronizado ("Revenda tributada", "Substituição tributária", "Isento"). Linhas com o mesmo perfil precisam ter exatamente os mesmos valores nas colunas de tributação.
