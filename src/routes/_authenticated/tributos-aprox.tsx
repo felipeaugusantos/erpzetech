@@ -65,7 +65,7 @@ const pct = (v: number) => `${Number(v).toLocaleString("pt-BR", { minimumFractio
 function TributosAproximados() {
   const { data: sessao, isLoading } = useSessionData();
   const pode = (sessao?.roles ?? []).some(
-    (r) => r === "administrador" || r === "gestor" || r === "financeiro",
+    (r) => r === "administrador" || r === "gestor" || r === "financeiro" || r === "contador",
   );
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (!pode) {

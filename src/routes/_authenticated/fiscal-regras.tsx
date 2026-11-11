@@ -67,7 +67,10 @@ const hojeIso = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Americ
 
 function RegrasFiscaisEmpresa() {
   const { data: sessao, isLoading } = useSessionData();
-  const gestao = (sessao?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
+  // contador: a trava real é o banco (contador_edita_tributos); aqui só evita bloquear a tela.
+  const gestao = (sessao?.roles ?? []).some(
+    (r) => r === "administrador" || r === "gestor" || r === "contador",
+  );
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (!gestao) {
     return (
