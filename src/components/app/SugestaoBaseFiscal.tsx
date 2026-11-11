@@ -14,6 +14,7 @@ import { ROTULO_ORIGEM_REGRA, type SugestaoFiscal } from "@/lib/fiscal-sugestao"
 /** Painel da tela Fiscal: consulta a base para os produtos da lista e prepara as edições em rascunho. Nunca grava. */
 export function PainelSugestaoBase({
   regime,
+  uf,
   ncmsNaLista,
   modo,
   onModo,
@@ -25,6 +26,8 @@ export function PainelSugestaoBase({
 }: {
   /** regime da empresa (define se a base sugere CSOSN ou CST do ICMS) */
   regime: RegimeLote;
+  /** UF da empresa usada na última consulta (venda dentro do estado); nulo = empresa sem UF; indefinido = ainda não consultou */
+  uf?: string | null | undefined;
   /** quantos NCMs distintos de 8 dígitos há na lista */
   ncmsNaLista: number;
   modo: ModoAplicar;
@@ -80,6 +83,13 @@ export function PainelSugestaoBase({
       {erro && (
         <p role="alert" className="mt-2 text-sm text-destructive">
           {erro}
+        </p>
+      )}
+      {resumo && uf !== undefined && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {uf
+            ? `Consulta feita para vendas dentro de ${uf} (a UF da empresa): regras da UF valem, e as sem UF também.`
+            : "A empresa não tem UF cadastrada: regras por UF não foram consideradas. Cadastre a UF na empresa para considerá-las."}
         </p>
       )}
       {resumo && (

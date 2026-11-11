@@ -95,6 +95,28 @@ describe("Sugestão fiscal no cadastro de produto", () => {
     expect(aplicar).not.toHaveBeenCalled();
   });
 
+  it("diz qual UF foi considerada (a da empresa) e avisa quando a empresa não tem UF", async () => {
+    rpc.mockResolvedValue({
+      data: { status: "regra", regra, candidatas: [], perfil: { cfop: "5102" }, ufDestino: "SP" },
+      error: null,
+    });
+    await abrir();
+    expect(texto()).toContain("Considerando venda dentro de SP");
+    rpc.mockResolvedValue({
+      data: { status: "regra", regra, candidatas: [], perfil: { cfop: "5102" }, ufDestino: null },
+      error: null,
+    });
+    await atualizar({ ncm: "3004.10.00" });
+    expect(texto()).toContain("A empresa não tem UF cadastrada");
+  });
+
+  it("resposta sem a UF (de antes da migração) não mostra a linha de UF", async () => {
+    rpc.mockResolvedValue(resposta({ cfop: "5102" }));
+    await abrir();
+    expect(texto()).not.toContain("Considerando venda dentro de");
+    expect(texto()).not.toContain("não tem UF cadastrada");
+  });
+
   it("aplicar é um clique e leva o CST e o cClassTrib sugeridos", async () => {
     rpc.mockResolvedValue(resposta({ cstIbsCbs: "410", cclasstrib: "410004" }));
     await abrir();

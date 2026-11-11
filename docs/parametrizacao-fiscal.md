@@ -163,7 +163,11 @@ Banco (`supabase/ci/fiscal-regras.sql`):
 8. **Carga inicial (guia, sem código novo no app):** `docs/carga-fiscal-inicial.md` reúne o processo por segmento, os dois prompts (gerar e auditar) e as ferramentas: `docs/sql/ncms-usados-por-ramo.sql`
    (consulta de leitura: NCMs usados por segmento e regime, com o CST/CSOSN e o CFOP mais comuns e a concordância entre empresas; só NCMs de 2 ou mais empresas) e `scripts/ncm-descricoes.py`
    (lista de NCMs com a descrição completa da Tabela NCM, juntando a cadeia hierárquica).
-9. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
+9. **PR 8 (feito): a consulta usa a UF da empresa.** Migração `supabase/migrations/20270107000000_fiscal_sugerir_uf.sql` (a aplicar): `fiscal_sugerir`, sem UF informada, usa a UF da própria empresa como destino da venda
+   (venda dentro do estado); a UF informada continua valendo; UF vazia ou que não é sigla de 2 letras é ignorada (só regras sem UF casam, como antes). O retorno ganha `ufDestino` e `fiscal_sugerir_lote` ganha `uf`.
+   O cadastro de produto e a tela Fiscal mostram qual UF foi considerada e avisam quando a empresa não tem UF. A consulta `docs/sql/ncms-usados-por-ramo.sql` separa por UF, e o guia da carga manda uma linha por UF para ST.
+   Não mudou: a ordem de desempate (NCM, CEST, operação e regime, UF por último) e o CFOP interestadual, que continua não coberto.
+10. **Depois:** UF de destino, Simples Nacional/MEI (CSOSN, IBS/CBS em 04/01/2027), ST por UF, NFC-e.
 
 ## Pontos em aberto
 

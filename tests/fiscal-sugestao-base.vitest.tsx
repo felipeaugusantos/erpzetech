@@ -125,6 +125,20 @@ describe("PainelSugestaoBase", () => {
     expect(botao("Aplicar na lista (0)")?.props.disabled).toBe(true);
   });
 
+  it("mostra a UF da empresa usada na consulta, ou avisa que ela não tem UF", async () => {
+    await montar(painel({ resumo, uf: "SP" }));
+    expect(texto()).toContain("vendas dentro de SP (a UF da empresa)");
+    await act(async () => {
+      renderer?.update(painel({ resumo, uf: null }));
+    });
+    expect(texto()).toContain("A empresa não tem UF cadastrada");
+    await act(async () => {
+      renderer?.update(painel({ resumo }));
+    });
+    expect(texto()).not.toContain("UF da empresa");
+    expect(texto()).not.toContain("não tem UF cadastrada");
+  });
+
   it("erro da consulta aparece", async () => {
     await montar(painel({ erro: "função não existe" }));
     expect(texto()).toContain("função não existe");

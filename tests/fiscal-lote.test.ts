@@ -50,6 +50,12 @@ describe("lerLoteSugestoes", () => {
     assert.equal(l?.itens[0]?.resultado.status, "regra");
     assert.equal(l?.itens[1]?.cest, "0100100");
   });
+  it("lê a UF da empresa usada na consulta; nulo é sem UF e ausente é resposta antiga", () => {
+    const base = { regime: "normal", itens: [] };
+    assert.equal(lerLoteSugestoes({ ...base, uf: "SP" })?.uf, "SP");
+    assert.equal(lerLoteSugestoes({ ...base, uf: null })?.uf, null);
+    assert.equal(lerLoteSugestoes(base)?.uf, undefined); // resposta de antes da migração da UF: não é "sem UF"
+  });
   it("formato inesperado vira nulo", () => {
     for (const lixo of [
       null,
@@ -88,16 +94,19 @@ describe("consultas e lotes", () => {
     assert.deepEqual(emLotesFiscais([]), []);
     const a: LoteSugestoes = {
       regime: "normal",
+      uf: "SP",
       itens: [{ ncm: "1", cest: null, resultado: { status: "sem_regra" } }],
     };
     const b: LoteSugestoes = {
       regime: "normal",
+      uf: "SP",
       itens: [{ ncm: "2", cest: null, resultado: { status: "sem_regra" } }],
     };
     assert.deepEqual(
       juntarLotes([a, b])?.itens.map((i) => i.ncm),
       ["1", "2"],
     );
+    assert.equal(juntarLotes([a, b])?.uf, "SP");
     assert.equal(juntarLotes([]), null);
   });
   it("chave ignora pontuação", () => {
@@ -241,6 +250,7 @@ describe("edicoesDaSugestao", () => {
 describe("edicoesDoLote", () => {
   const lote: LoteSugestoes = {
     regime: "simples",
+    uf: "SP",
     itens: [
       {
         ncm: "23091000",

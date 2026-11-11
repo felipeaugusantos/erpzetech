@@ -153,11 +153,22 @@ export function SugestaoFiscal({
     return aviso("A base fiscal não tem regra para este NCM. Preencha manualmente, se precisar.");
   }
 
+  const ufLinha =
+    s.ufDestino === undefined ? null : (
+      <p className="text-xs text-muted-foreground">
+        {s.ufDestino
+          ? `Considerando venda dentro de ${s.ufDestino} (a UF da empresa).`
+          : "A empresa não tem UF cadastrada: regras por UF não foram consideradas."}
+      </p>
+    );
   const rodape = (
-    <p className="text-xs text-muted-foreground">
-      É uma sugestão, não substitui a validação do contador. Aplicar preenche só a tributação
-      IBS/CBS do produto; os demais valores são para consulta.
-    </p>
+    <>
+      {ufLinha}
+      <p className="text-xs text-muted-foreground">
+        É uma sugestão, não substitui a validação do contador. Aplicar preenche só a tributação
+        IBS/CBS do produto; os demais valores são para consulta.
+      </p>
+    </>
   );
 
   if (s.status === "empate") {

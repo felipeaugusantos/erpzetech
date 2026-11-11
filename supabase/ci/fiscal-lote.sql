@@ -53,6 +53,10 @@ DECLARE
   g_e1 constant uuid := 'b5000000-0000-0000-0000-000000000003';
   g_e2 constant uuid := 'b5000000-0000-0000-0000-000000000004';
   g_cest constant uuid := 'b5000000-0000-0000-0000-000000000005';
+  g_30g constant uuid := 'b5000000-0000-0000-0000-000000000006';
+  g_30sp constant uuid := 'b5000000-0000-0000-0000-000000000007';
+  g_30mg constant uuid := 'b5000000-0000-0000-0000-000000000008';
+  pg_mg constant uuid := 'a5000000-0000-0000-0000-000000000004';
   r jsonb; n integer;
 BEGIN
   INSERT INTO tenants (id, nome) VALUES (ta, 'Empresa F'), (tb, 'Empresa G');
@@ -75,6 +79,11 @@ BEGIN
     (g_e1, pg_rev, '1101', NULL, '2020-01-01'),
     (g_e2, pg_st, '1101', NULL, '2020-01-01'),
     (g_cest, pg_st, '8708', '0100100', '2020-01-01');
+  INSERT INTO fiscal_perfis (id, tenant_id, nome, cfop, csosn) VALUES (pg_mg, NULL, 'Regra de Minas', '5949', '102');
+  INSERT INTO fiscal_regras (id, perfil_id, ncm_prefixo, uf_destino, vigencia_inicio) VALUES
+    (g_30g, pg_rev, '3004', NULL, '2020-01-01'),
+    (g_30sp, pg_st, '3004', 'SP', '2020-01-01'),
+    (g_30mg, pg_mg, '3004', 'MG', '2020-01-01');
 
   -- ===== quem pode =====
   PERFORM ci.deve_falhar(NULL, $c$SELECT public.fiscal_sugerir_lote('[]'::jsonb)$c$, 'anônimo consulta em lote');
@@ -108,6 +117,43 @@ BEGIN
   r := ci.lote(admb, '[{"ncm":"23099000"},{"ncm":"87089990","cest":"0100100"}]');
   PERFORM ci.exige(r ->> 'regime' = 'normal' AND r #>> '{itens,0,resultado,regra,id}' = g_4::text AND r #>> '{itens,1,resultado,regra,id}' = g_cest::text,
                    'a outra empresa tem o regime e as regras dela');
+
+  -- ===== UF da empresa: venda dentro do estado =====
+  UPDATE empresas SET estado = 'SP' WHERE tenant_id = ta;
+  UPDATE empresas SET estado = 'mg' WHERE tenant_id = tb;
+  r := ci.lote(adm, '[{"ncm":"30041000"}]');
+  PERFORM ci.exige(r ->> 'uf' = 'SP' AND r #>> '{itens,0,resultado,ufDestino}' = 'SP', 'o lote devolve a UF da empresa e cada resultado traz a UF usada');
+  PERFORM ci.exige(r #>> '{itens,0,resultado,regra,id}' = g_30sp::text AND r #>> '{itens,0,resultado,perfil,csosn}' = '500',
+                   'a regra da UF da empresa vence a regra geral do mesmo NCM');
+  r := ci.lote(admb, '[{"ncm":"30041000"},{"ncm":"23099000"}]');
+  PERFORM ci.exige(r #>> '{itens,1,resultado,regra,id}' = g_4::text, 'regra sem UF continua valendo para empresa com UF');
+  PERFORM ci.exige(r ->> 'uf' = 'MG' AND r #>> '{itens,0,resultado,regra,id}' = g_30mg::text AND r #>> '{itens,0,resultado,perfil,cfop}' = '5949',
+                   'outra empresa recebe a regra da UF dela (sigla em minúsculas é normalizada)');
+  UPDATE empresas SET estado = 'RJ' WHERE tenant_id = tb;
+  r := ci.lote(admb, '[{"ncm":"30041000"}]');
+  PERFORM ci.exige(r #>> '{itens,0,resultado,regra,id}' = g_30g::text, 'UF sem regra própria cai na regra geral');
+  UPDATE empresas SET estado = 'São Paulo' WHERE tenant_id = tb;
+  r := ci.lote(admb, '[{"ncm":"30041000"}]');
+  PERFORM ci.exige(r ->> 'uf' IS NULL AND r #>> '{itens,0,resultado,ufDestino}' IS NULL AND r #>> '{itens,0,resultado,regra,id}' = g_30g::text,
+                   'UF da empresa que não é uma sigla é ignorada (só a regra geral vale)');
+  UPDATE empresas SET estado = NULL WHERE tenant_id = tb;
+  PERFORM ci.exige(ci.lote(admb, '[{"ncm":"30041000"}]') ->> 'uf' IS NULL, 'empresa sem UF: nenhuma UF é usada');
+  PERFORM ci.entrar(adm);
+  r := public.fiscal_sugerir('30041000', NULL, 'venda', NULL, 'MG', NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r #>> '{regra,id}' = g_30mg::text AND r ->> 'ufDestino' = 'MG', 'a UF informada vale no lugar da UF da empresa');
+  PERFORM ci.entrar(adm);
+  r := public.fiscal_sugerir('99999999');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'status' = 'sem_regra' AND r ->> 'ufDestino' = 'SP', 'sem regra, a resposta ainda diz qual UF foi considerada');
+  PERFORM ci.entrar(adm);
+  r := public.fiscal_sugerir('2309');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'status' = 'ncm_invalido' AND r ->> 'ufDestino' = 'SP', 'NCM inválido também traz a UF considerada');
+  UPDATE empresas SET estado = NULL WHERE tenant_id = ta;
+  PERFORM ci.exige(ci.lote(adm, '[{"ncm":"30041000"}]') #>> '{itens,0,resultado,regra,id}' = g_30g::text,
+                   'sem UF da empresa, regras com UF não casam (comportamento de antes)');
+  UPDATE empresas SET estado = 'SP' WHERE tenant_id = ta;
 
   -- ===== entrada inválida =====
   PERFORM ci.deve_falhar(adm, $c$SELECT public.fiscal_sugerir_lote('{}'::jsonb)$c$, 'entrada que não é lista');

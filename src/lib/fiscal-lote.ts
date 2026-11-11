@@ -15,10 +15,16 @@ export const LIMITE_LOTE_FISCAL = 300;
 
 export type RegimeLote = "simples" | "mei" | "normal";
 export type ItemLote = { ncm: string; cest: string | null; resultado: SugestaoFiscal };
-export type LoteSugestoes = { regime: RegimeLote; itens: ItemLote[] };
+/** `uf`: a UF da empresa usada nas consultas (venda dentro do estado); nulo = a empresa não tem UF; indefinido = resposta de antes da migração da UF. */
+export type LoteSugestoes = {
+  regime: RegimeLote;
+  uf: string | null | undefined;
+  itens: ItemLote[];
+};
 
 const loteSchema = z.object({
   regime: z.enum(["simples", "mei", "normal"]),
+  uf: z.string().nullable().optional(),
   itens: z.array(
     z.object({ ncm: z.string(), cest: z.string().nullable(), resultado: z.unknown() }),
   ),
@@ -34,7 +40,7 @@ export function lerLoteSugestoes(resposta: unknown): LoteSugestoes | null {
     if (!resultado) return null;
     itens.push({ ncm: i.ncm, cest: i.cest, resultado });
   }
-  return { regime: r.data.regime, itens };
+  return { regime: r.data.regime, uf: r.data.uf, itens };
 }
 
 const soDigitos = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "");
@@ -69,7 +75,7 @@ export function emLotesFiscais<T>(itens: readonly T[], tamanho = LIMITE_LOTE_FIS
 export function juntarLotes(lotes: readonly LoteSugestoes[]): LoteSugestoes | null {
   const primeiro = lotes[0];
   if (!primeiro) return null;
-  return { regime: primeiro.regime, itens: lotes.flatMap((l) => l.itens) };
+  return { regime: primeiro.regime, uf: primeiro.uf, itens: lotes.flatMap((l) => l.itens) };
 }
 
 /** Códigos de ICMS que a emissão (icmsDoItem) sabe formatar. Os demais são recusados na sugestão para não gerar nota errada. */

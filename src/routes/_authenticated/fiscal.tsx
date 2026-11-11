@@ -376,6 +376,7 @@ function Fiscal() {
 
       <PainelSugestaoBase
         regime={regimeBase}
+        uf={lote ? lote.uf : undefined}
         ncmsNaLista={ncmsNaLista}
         modo={modoBase}
         onModo={setModoBase}

@@ -17,11 +17,12 @@ export type RegraSugerida = {
 };
 export type CandidataSugerida = RegraSugerida & { perfil: PerfilSugerido };
 
+/** `ufDestino`: a UF considerada na consulta (a informada ou, sem informar, a da empresa); nulo se a empresa não tem UF. */
 export type SugestaoFiscal =
-  | { status: "regra"; regra: RegraSugerida; perfil: PerfilSugerido }
-  | { status: "empate"; candidatas: CandidataSugerida[] }
-  | { status: "sem_regra" }
-  | { status: "ncm_invalido" };
+  | { status: "regra"; regra: RegraSugerida; perfil: PerfilSugerido; ufDestino?: string | null }
+  | { status: "empate"; candidatas: CandidataSugerida[]; ufDestino?: string | null }
+  | { status: "sem_regra"; ufDestino?: string | null }
+  | { status: "ncm_invalido"; ufDestino?: string | null };
 
 const perfilSchema = z.record(z.string(), z.union([z.string(), z.number()])).transform((p) => {
   const limpo: PerfilSugerido = {};
@@ -41,14 +42,22 @@ const regraSchema = z.object({
   perfilNome: z.string().default(""),
 });
 
+const ufSchema = z.string().nullable().optional();
+
 const respostaSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("regra"), regra: regraSchema, perfil: perfilSchema }),
+  z.object({
+    status: z.literal("regra"),
+    regra: regraSchema,
+    perfil: perfilSchema,
+    ufDestino: ufSchema,
+  }),
   z.object({
     status: z.literal("empate"),
     candidatas: z.array(regraSchema.extend({ perfil: perfilSchema })).min(2),
+    ufDestino: ufSchema,
   }),
-  z.object({ status: z.literal("sem_regra") }),
-  z.object({ status: z.literal("ncm_invalido") }),
+  z.object({ status: z.literal("sem_regra"), ufDestino: ufSchema }),
+  z.object({ status: z.literal("ncm_invalido"), ufDestino: ufSchema }),
 ]);
 
 /** Lê a resposta de fiscal_sugerir; formato inesperado vira nulo (a tela diz "indisponível" e o cadastro segue normal). */

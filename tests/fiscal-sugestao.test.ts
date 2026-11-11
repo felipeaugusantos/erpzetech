@@ -81,6 +81,20 @@ describe("lerSugestaoFiscal", () => {
     });
     assert.deepEqual(lerSugestaoFiscal({ status: "ncm_invalido" }), { status: "ncm_invalido" });
   });
+  it("lê a UF considerada na consulta, quando vem (e aceita a resposta sem ela)", () => {
+    const com = lerSugestaoFiscal({ status: "sem_regra", ufDestino: "SP" });
+    assert.deepEqual(com, { status: "sem_regra", ufDestino: "SP" });
+    assert.equal(lerSugestaoFiscal({ status: "ncm_invalido", ufDestino: null })?.ufDestino, null);
+    const regraUf = lerSugestaoFiscal({
+      status: "regra",
+      regra,
+      perfil: { cfop: "5102" },
+      ufDestino: "MG",
+    });
+    assert.equal(regraUf?.ufDestino, "MG");
+    assert.equal(lerSugestaoFiscal({ status: "sem_regra" })?.ufDestino, undefined);
+    assert.equal(lerSugestaoFiscal({ status: "sem_regra", ufDestino: 5 }), null);
+  });
   it("formato inesperado vira nulo, sem lançar erro", () => {
     for (const lixo of [
       null,
