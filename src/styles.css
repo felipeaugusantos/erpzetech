@@ -327,3 +327,252 @@
     color: #000;
   }
 }
+
+/*
+ * Landing page pública (rota /) — camada visual isolada da proposta de redesign.
+ * Não altera tokens globais, componentes nem telas internas: só classes usadas em src/routes/index.tsx.
+ */
+
+/* Textura de pontos do hero escuro (decorativa, bem sutil). */
+@utility lp-grid-dark {
+  background-image: radial-gradient(circle, oklch(0.9 0.05 155 / 10%) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+/* Brilho menta no topo do hero escuro. */
+@utility lp-glow-hero {
+  background: radial-gradient(ellipse 55% 60% at 50% 0%, oklch(0.72 0.16 155 / 22%), transparent);
+}
+
+/* Brilho menta atrás da demonstração do caixa. */
+@utility lp-glow {
+  background: radial-gradient(closest-side, oklch(0.72 0.16 155 / 25%), transparent);
+}
+
+/* Entrada do hero: única, curta, ease-out, nunca bloqueia a interação. */
+/*
+ * Entrada coreografada do hero (emilkowalski/skills choreograph + animate):
+ * papéis com tratamentos diferentes (lead viaja mais, suporte menos, decoração só some),
+ * atrasos não-uniformes (~90ms com gaps decrescentes), mesma família de easing.
+ * Reduced-motion: só opacidade, sem deslocamento.
+ */
+@utility lp-lead {
+  animation: lp-rise-lead 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility lp-support {
+  animation: lp-rise-support 0.45s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility lp-mock {
+  animation: lp-rise-mock 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility lp-fade {
+  animation: lp-fade-in 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility lp-d1 {
+  animation-delay: 90ms;
+}
+
+@utility lp-d2 {
+  animation-delay: 170ms;
+}
+
+@utility lp-d3 {
+  animation-delay: 240ms;
+}
+
+@utility lp-d4 {
+  animation-delay: 310ms;
+}
+
+/* Troca de painel de segmento: crossfade leve, conteúdo inteiro junto (sem stagger em UI de aba). */
+@utility lp-swap {
+  animation: lp-in 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes lp-rise-lead {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lp-rise-support {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lp-rise-mock {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes lp-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lp-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Superfícies do navegador tematizadas (impeccable craft-floor: browser surfaces). */
+.lp-root ::selection {
+  background-color: var(--color-mint);
+  color: #0a1610;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-lead,
+  .lp-support,
+  .lp-mock,
+  .lp-fade,
+  .lp-swap {
+    animation-name: lp-fade-in;
+    animation-duration: 0.2s;
+    animation-delay: 0ms;
+  }
+}
+
+/*
+ * Padrões 21st.dev aplicados à landing (referência enviada pelo Enzo em 09/11):
+ * spotlight que segue o mouse, anel de energia no plano recomendado, aurora no hero e brilho de varredura no CTA.
+ * Tudo decorativo, só transform/opacity, desligado com prefers-reduced-motion.
+ */
+
+/* Spotlight: brilho menta que acompanha o cursor nos cartões (só mouse/trackpad). */
+.lp-spot {
+  position: relative;
+}
+
+.lp-spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--mx, 50%) var(--my, 50%),
+    oklch(0.72 0.16 155 / 12%),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lp-spot:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Anel de energia (border beam) ao redor do plano recomendado. */
+@property --lp-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@utility lp-beam {
+  background: conic-gradient(
+    from var(--lp-angle),
+    oklch(0.72 0.16 155 / 0%) 0%,
+    oklch(0.72 0.16 155 / 75%) 12%,
+    oklch(0.72 0.16 155 / 0%) 24%
+  );
+  animation: lp-spin 5s linear infinite;
+}
+
+@keyframes lp-spin {
+  to {
+    --lp-angle: 360deg;
+  }
+}
+
+/* Aurora: deriva lenta do brilho do hero. */
+@utility lp-aurora {
+  animation: lp-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes lp-drift {
+  from {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+
+/* Shimmer: varredura de brilho só no hover do CTA principal. */
+.lp-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, oklch(1 0 0 / 35%) 50%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform 500ms ease-out;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .lp-shine:hover::after {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-beam {
+    animation: none;
+  }
+
+  .lp-aurora {
+    animation: none;
+  }
+
+  .lp-shine::after {
+    display: none;
+  }
+}
