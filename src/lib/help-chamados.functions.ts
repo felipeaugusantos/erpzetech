@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { chamadoInput, empresaDoChamado, type Chamado, type ListaChamados } from "./help-chamados";
 
 const endpoint = "https://helpzetech.lovable.app/api/public/erp/tickets";

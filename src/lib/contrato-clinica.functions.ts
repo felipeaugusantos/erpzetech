@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { MARCADOR_SEM_PETSHOP, moduloLiberadoEmpresa } from "./cnae-regras";
 import {
   AVISO_PETSHOP_EXPLICITO,

@@ -57,6 +57,8 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   SELECT coalesce((SELECT a.pode_editar_tributos FROM public.contador_acessos a
                     WHERE a.user_id = auth.uid() AND a.revogado_em IS NULL
                       AND a.empresa_id = public.contador_empresa_id()), false)
+     -- revalidado a cada chamada: se a conta passar a ter mais de uma empresa ativa, a edição fecha sozinha
+     AND (SELECT count(*) FROM public.empresas e WHERE e.tenant_id = public.current_tenant_id() AND e.ativo) = 1
 $$;
 REVOKE ALL ON FUNCTION public.contador_edita_tributos() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.contador_edita_tributos() TO authenticated;

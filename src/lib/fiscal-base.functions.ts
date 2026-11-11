@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import type { CampoFiscal } from "./fiscal-regras.ts";
 import { mensagemNcmInexistente, ncmNaTabela } from "./ncm.ts";
 import { LIMITE_LINHAS_FISCAL, type ResultadoCargaFiscal } from "./fiscal-importacao.ts";

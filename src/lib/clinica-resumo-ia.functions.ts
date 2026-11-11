@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { empresaLiberada, listaDeEmpresasLiberadas } from "@/lib/whatsapp-liberacao";
 import {
   INSTRUCAO_RESUMO,

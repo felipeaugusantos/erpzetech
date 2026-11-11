@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 
 /**
  * Registra que o usuário logado entrou por este link (personalizado, principal, do cadastro ou código da empresa).

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 
 /** Confere e-mail/senha de um gestor e devolve uma autorização de uso único (5 min). */
 export const autorizarGestor = createServerFn({ method: "POST" })

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { erroDoUsuario, normalizarUsuario, tenantDoCodigoDeAcesso } from "@/lib/usuario-login";
 
 /** A mesma mensagem para usuário que não existe, inativo ou senha errada: não revela quem tem login na empresa. */

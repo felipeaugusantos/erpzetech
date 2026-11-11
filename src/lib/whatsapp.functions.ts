@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 
 // Conexão do WhatsApp da empresa (QR code). Só administrador ou gestor, e só a instância da própria empresa:
 // o nome vem do tenant da sessão, nunca de quem chama.

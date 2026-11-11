@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { emailInterno, erroDoUsuario, normalizarUsuario } from "@/lib/usuario-login";
 
 /** Perfis operacionais disponíveis para os operadores da loja. */

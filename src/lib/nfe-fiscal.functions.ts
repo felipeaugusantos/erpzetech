@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- payloads dinâmicos do emissor fiscal (ACBr) e cliente Supabase sem tipos */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { cnpjAlfaValido, limparDocumento } from "./cnpj-alfa.ts";
 import {
   TRIBUTACAO_INTEGRAL,

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { gtinValido, interpretarCosmos, type ProdutoGtin } from "@/lib/gtin";
 
 export type ResultadoGtin =

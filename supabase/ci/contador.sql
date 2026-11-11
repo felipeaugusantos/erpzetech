@@ -186,6 +186,14 @@ BEGIN
   PERFORM ci.deve_falhar_msg(cont2, $c$SELECT public.tributos_aprox_importar('[]'::jsonb)$c$, 'não tem acesso', 'contador não importa a base IBPT');
   PERFORM ci.rodar(cont2, $c$SELECT public.fiscal_empresa_minhas()$c$);
   PERFORM ci.exige(ci.contar(cont2, 'SELECT count(*) FROM produtos') = 0, 'contador com permissão continua sem ler produtos');
+  -- segunda empresa criada DEPOIS da concessão: a edição tributária fecha na hora (a conta passa a ter dois CNPJs)
+  INSERT INTO empresas (tenant_id, razao_social, ramo_atividade, regime_tributario) VALUES (ta, 'F3 LTDA', 'comercio', 'simples_nacional');
+  PERFORM ci.deve_falhar_msg(cont2, $c$SELECT public.fiscal_empresa_minhas()$c$, 'não permite alterar a parte tributária', 'segunda empresa criada depois: regras fiscais');
+  PERFORM ci.deve_falhar_msg(cont2, $c$SELECT public.tributos_aprox_ajustar('12345678', 1, 1, 1, 1, current_date + 30, 'orientação do contador')$c$, 'não permite alterar a parte tributária', 'segunda empresa criada depois: ajuste IBPT');
+  PERFORM ci.exige(ci.contar(cont2, 'SELECT count(*) FROM tributos_aprox_ncm') = 0, 'segunda empresa criada depois: não lê a base IBPT');
+  PERFORM ci.exige(ci.contar(cont2, 'SELECT count(*) FROM empresas') = 1, 'segunda empresa criada depois: contador vê só a empresa dele');
+  DELETE FROM empresas WHERE razao_social = 'F3 LTDA' AND tenant_id = ta;
+  PERFORM ci.exige(ci.contar(cont2, 'SELECT count(*) FROM tributos_aprox_ncm') = 1, 'com uma empresa de novo: lê a base IBPT');
   PERFORM ci.rodar(adm, format($c$SELECT public.contador_revogar(%L)$c$, cont2));
   PERFORM ci.deve_falhar_msg(cont2, $c$SELECT public.fiscal_empresa_minhas()$c$, 'não permite alterar a parte tributária', 'revogado: regras fiscais');
   PERFORM ci.deve_falhar_msg(cont2, $c$SELECT public.tributos_aprox_ajustar('12345678', 1, 1, 1, 1, current_date + 30, 'orientação do contador')$c$, 'não permite alterar a parte tributária', 'revogado: ajuste IBPT');

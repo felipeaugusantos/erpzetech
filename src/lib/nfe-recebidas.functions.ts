@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- retornos dinâmicos do emissor fiscal (ACBr) e cliente Supabase sem tipos */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { exigirPapelFiscal } from "./nfe-escopo.ts";
 import {
   PAPEIS_CONFIG_RECEBIDAS,
