@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilePlus2, Plus, Printer, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
+import { CampoMedicamento } from "@/components/app/CampoMedicamento";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +34,11 @@ import {
   itemReceitaVazio,
   marcadoresPendentes,
   montarTextoDocumento,
+  modelosReceitaDaResposta,
   numeroDoDocumento,
   type ItemExame,
   type ItemReceita,
+  type ModeloReceita,
   type ModeloDocumento,
   type ResumoDocumento,
   type TipoDocumento,
@@ -247,6 +250,15 @@ function EmitirDocumento({
       return data as unknown as Contexto;
     },
   });
+  const modelosReceita = useQuery({
+    queryKey: ["clinica-receita-modelos"],
+    enabled: tipo === "receita",
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_receita_modelos");
+      if (error) throw error;
+      return modelosReceitaDaResposta(data);
+    },
+  });
   const [titulo, setTitulo] = useState(TITULO_PADRAO[tipo]);
   const [texto, setTexto] = useState("");
   const [receita, setReceita] = useState<ItemReceitaForm[]>([
@@ -254,6 +266,7 @@ function EmitirDocumento({
   ]);
   const [exames, setExames] = useState<ItemExame[]>([{ exame: "" }]);
   const [modeloEscolhido, setModeloEscolhido] = useState("");
+  const [modeloReceitaId, setModeloReceitaId] = useState("");
 
   const modelos = useMemo<ModeloDocumento[]>(() => {
     const dela = (ctx.data?.modelos ?? []).filter((m) => m.tipo === tipo);
@@ -337,6 +350,57 @@ function EmitirDocumento({
     onError: (e: Error) => toast.error("Não foi possível guardar", { description: e.message }),
   });
 
+  const guardarReceitaModelo = useMutation({
+    mutationFn: async () => {
+      const itens = receita
+        .filter((i) => i.medicamento.trim() || i.posologia.trim())
+        .map((i) => ({
+          medicamento: i.medicamento,
+          posologia: i.posologia,
+          via: i.via ?? "",
+          duracao: i.duracao ?? "",
+          quantidade: i.quantidade ?? "",
+        }));
+      const { error } = await supabase.rpc("clinica_receita_modelo_salvar", {
+        p_titulo: titulo,
+        p_itens: itens,
+        p_orientacoes: texto.trim() || (null as unknown as string),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Modelo de receita guardado");
+      void qc.invalidateQueries({ queryKey: ["clinica-receita-modelos"] });
+    },
+    onError: (e: Error) => toast.error("Não foi possível guardar", { description: e.message }),
+  });
+
+  const excluirReceitaModelo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("clinica_receita_modelo_excluir", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Modelo excluído");
+      setModeloReceitaId("");
+      void qc.invalidateQueries({ queryKey: ["clinica-receita-modelos"] });
+    },
+    onError: (e: Error) => toast.error("Não foi possível excluir", { description: e.message }),
+  });
+
+  function escolherModeloReceita(id: string) {
+    setModeloReceitaId(id);
+    const m = (modelosReceita.data ?? []).find((x) => x.id === id);
+    if (!m) return;
+    setTitulo(m.titulo);
+    setTexto(m.orientacoes ?? "");
+    setReceita(
+      m.itens.length > 0
+        ? m.itens.map((i) => ({ ...i, controlado: false }))
+        : [{ ...itemReceitaVazio(), controlado: false }],
+    );
+  }
+
   function escolherModelo(t: string) {
     setModeloEscolhido(t);
     const m = modelos.find((x) => x.titulo === t);
@@ -368,6 +432,35 @@ function EmitirDocumento({
 
             {tipo === "receita" && (
               <>
+                {(modelosReceita.data ?? []).length > 0 && (
+                  <div className="flex items-end gap-2">
+                    <div className="grow">
+                      <Label>Modelo de receita</Label>
+                      <Select value={modeloReceitaId} onValueChange={escolherModeloReceita}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Usar um modelo guardado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(modelosReceita.data ?? []).map((m: ModeloReceita) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.titulo}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {modeloReceitaId && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={excluirReceitaModelo.isPending}
+                        onClick={() => excluirReceitaModelo.mutate(modeloReceitaId)}
+                      >
+                        <Trash2 className="size-4" /> Excluir modelo
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <div
                   role="note"
                   className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
@@ -383,13 +476,11 @@ function EmitirDocumento({
                     <div className="grid gap-2 sm:grid-cols-2">
                       <div>
                         <Label>Medicamento *</Label>
-                        <Input
+                        <CampoMedicamento
                           value={i.medicamento}
-                          onChange={(e) =>
+                          onChange={(v) =>
                             setReceita(
-                              receita.map((x, k) =>
-                                k === idx ? { ...x, medicamento: e.target.value } : x,
-                              ),
+                              receita.map((x, k) => (k === idx ? { ...x, medicamento: v } : x)),
                             )
                           }
                         />
@@ -497,6 +588,20 @@ function EmitirDocumento({
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
                   />
+                </div>
+                <div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={
+                      guardarReceitaModelo.isPending ||
+                      titulo.trim().length < 3 ||
+                      !receita.some((i) => i.medicamento.trim() && i.posologia.trim())
+                    }
+                    onClick={() => guardarReceitaModelo.mutate()}
+                  >
+                    Guardar como modelo da clínica
+                  </Button>
                 </div>
               </>
             )}

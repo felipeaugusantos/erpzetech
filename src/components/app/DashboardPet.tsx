@@ -1,3 +1,4 @@
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -6,6 +7,7 @@ import {
   Percent,
   Receipt,
   Repeat,
+  SlidersHorizontal,
   Syringe,
   Wallet,
 } from "lucide-react";
@@ -16,7 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PersonalizarDashboardDialog } from "@/components/app/PersonalizarDashboardDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionData } from "@/hooks/useSessionData";
 import {
   aFrente,
   agendaDoDia,
@@ -28,6 +32,12 @@ import {
   somaDiasISO,
   type AgendamentoDash,
 } from "@/lib/dashboard-pet";
+import {
+  PECAS_DASHBOARD_PET,
+  aplicarDashboard,
+  type PecaDashboard,
+} from "@/lib/dashboard-personalizado";
+import { useDashboardPersonalizado } from "@/lib/dashboard-personalizado-dados";
 import { brl, num } from "@/lib/format";
 import { isoBrasilia } from "@/lib/fuso";
 import { usePeriodo } from "@/lib/periodo";
@@ -110,6 +120,20 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
     },
   });
 
+  // personalização da empresa: administrador e gestor escolhem o que o dashboard mostra (o padrão vale sem configuração)
+  const { data: sessao } = useSessionData();
+  const gestao = (sessao?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
+  const { data: configDashboard } = useDashboardPersonalizado("pet");
+  const [personalizando, setPersonalizando] = useState(false);
+  // só entram as peças que a pessoa já pode ver: reforços de vacina dependem da clínica e do perfil
+  const disponiveis = useMemo<PecaDashboard[]>(
+    () =>
+      PECAS_DASHBOARD_PET.filter(
+        (p) => p.id !== "reforcos-vacina" || (clinica && Boolean(reforcos.data)),
+      ),
+    [clinica, reforcos.data],
+  );
+
   if (isLoading || !data) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -154,6 +178,167 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
 
   const reforcosAtrasados = (reforcos.data ?? []).filter((r) => r.dias < 0).length;
 
+  const visiveis = aplicarDashboard(disponiveis, configDashboard);
+  const cartoes: Record<string, ReactNode> = {
+    "atendimentos-hoje": (
+      <StatCard
+        label="Atendimentos hoje"
+        value={num(dia.total, 0)}
+        icon={CalendarDays}
+        tone="accent"
+        hint={`${dia.concluidos} concluídos · ${dia.emAtendimento} em atendimento · ${dia.aguardando} aguardando`}
+      />
+    ),
+    faturamento: (
+      <StatCard
+        label="Faturamento no período"
+        value={brl(fat.total)}
+        icon={Receipt}
+        tone="success"
+        hint={`${fat.atendimentos} atendimentos · ticket médio ${brl(fat.ticket)}`}
+      />
+    ),
+    faltas: (
+      <StatCard
+        label="Faltas e cancelamentos"
+        value={`${num(fal.taxa, 1)}%`}
+        icon={Percent}
+        tone={fal.taxa >= 20 ? "warning" : "default"}
+        hint={`${fal.faltas} faltas · ${fal.cancelados} cancelamentos de ${fal.total} marcados`}
+      />
+    ),
+    "marcados-a-frente": (
+      <StatCard
+        label="Marcados à frente"
+        value={num(adiante.total, 0)}
+        icon={CalendarClock}
+        hint={`${adiante.proximosDias} nos próximos 7 dias`}
+      />
+    ),
+    "sem-retorno": (
+      <StatCard
+        label="Clientes sem retorno há 90 dias"
+        value={num(retorno.semRetorno, 0)}
+        icon={Repeat}
+        tone={retorno.semRetorno > 0 ? "warning" : "default"}
+        hint={`de ${retorno.ativos} clientes atendidos nos últimos 12 meses`}
+      />
+    ),
+    "reforcos-vacina": reforcos.data ? (
+      <StatCard
+        label="Reforços de vacina"
+        value={num(reforcos.data.length, 0)}
+        icon={Syringe}
+        tone={reforcosAtrasados > 0 ? "warning" : "default"}
+        hint={`${reforcosAtrasados} atrasados · a vencer em 15 dias`}
+      />
+    ) : null,
+    "a-receber": (
+      <StatCard
+        label="A receber em aberto"
+        value={brl(saldoReceber)}
+        icon={Wallet}
+        tone="success"
+        hint={`${abertoReceber.filter((c) => c.vencimento < hoje).length} vencidas`}
+      />
+    ),
+    "a-pagar": (
+      <StatCard
+        label="A pagar em aberto"
+        value={brl(saldoPagar)}
+        icon={Wallet}
+        tone="danger"
+        hint={`${abertoPagar.filter((c) => c.vencimento < hoje).length} vencidas`}
+      />
+    ),
+  };
+  const paineis: Record<string, { largura: string; conteudo: ReactNode }> = {
+    "grafico-atendimentos": {
+      largura: "lg:col-span-2",
+      conteudo: (
+        <div className="panel p-4">
+          <h2 className="font-display text-sm font-semibold">Atendimentos concluídos por dia</h2>
+          <div className="mt-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={porDia}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis
+                  dataKey="dia"
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)}
+                />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="atendimentos" name="Atendimentos" fill="var(--chart-2)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ),
+    },
+    "servicos-top": {
+      largura: "",
+      conteudo: (
+        <div className="panel p-4">
+          <h2 className="font-display text-sm font-semibold">Serviços que mais faturaram</h2>
+          {top.length === 0 ? (
+            <EmptyState
+              className="mt-4 border-0 shadow-none"
+              title="Nenhum atendimento concluído no período."
+            />
+          ) : (
+            <ul className="mt-3 divide-y divide-border">
+              {top.map((t) => (
+                <li key={t.servico} className="flex items-center gap-2 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate">{t.servico}</span>
+                  <span className="text-xs text-muted-foreground">{t.quantidade}×</span>
+                  <span className="text-numeric font-medium">{brl(t.total)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ),
+    },
+    "agenda-hoje": {
+      largura: "lg:col-span-3",
+      conteudo: (
+        <div className="panel p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-display text-sm font-semibold">Agenda de hoje</h2>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/pet-agenda">Abrir a agenda</Link>
+            </Button>
+          </div>
+          {agendaHoje.length === 0 ? (
+            <EmptyState className="mt-4 border-0 shadow-none" title="Nada marcado para hoje." />
+          ) : (
+            <ul className="mt-3 divide-y divide-border">
+              {agendaHoje.map((l) => (
+                <li key={l.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                  <span className="text-numeric w-14 font-medium">{hora(l.inicio)}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {l.pets?.nome ?? "Pet"}
+                    {l.pet_profissionais?.nome ? ` · ${l.pet_profissionais.nome}` : ""}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {(l.pet_agendamento_itens ?? [])
+                      .map((i) => i.pet_servicos?.nome)
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                  <Badge variant="outline">{ROTULO_SITUACAO[l.situacao] ?? l.situacao}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ),
+    },
+  };
+  const cartoesVisiveis = visiveis.filter((p) => p.secao === "indicadores" && cartoes[p.id]);
+  const paineisVisiveis = visiveis.filter((p) => p.secao === "paineis" && paineis[p.id]);
+
   return (
     <>
       <PageHeader
@@ -161,6 +346,11 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
         description="A agenda do dia, o faturamento dos atendimentos, as faltas, o retorno dos clientes e as contas a receber e a pagar."
         actions={
           <div className="flex gap-2">
+            {gestao && (
+              <Button variant="outline" size="sm" onClick={() => setPersonalizando(true)}>
+                <SlidersHorizontal className="size-4" /> Personalizar
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link to="/pet-agenda">Agenda</Link>
             </Button>
@@ -188,137 +378,45 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Atendimentos hoje"
-          value={num(dia.total, 0)}
-          icon={CalendarDays}
-          tone="accent"
-          hint={`${dia.concluidos} concluídos · ${dia.emAtendimento} em atendimento · ${dia.aguardando} aguardando`}
+      {cartoesVisiveis.length === 0 && paineisVisiveis.length === 0 && (
+        <EmptyState
+          title="Nenhum cartão ou painel ligado"
+          description={
+            gestao
+              ? "Use o botão Personalizar para escolher o que o dashboard mostra."
+              : "A administração da empresa escolheu não mostrar nada aqui."
+          }
         />
-        <StatCard
-          label="Faturamento no período"
-          value={brl(fat.total)}
-          icon={Receipt}
-          tone="success"
-          hint={`${fat.atendimentos} atendimentos · ticket médio ${brl(fat.ticket)}`}
-        />
-        <StatCard
-          label="Faltas e cancelamentos"
-          value={`${num(fal.taxa, 1)}%`}
-          icon={Percent}
-          tone={fal.taxa >= 20 ? "warning" : "default"}
-          hint={`${fal.faltas} faltas · ${fal.cancelados} cancelamentos de ${fal.total} marcados`}
-        />
-        <StatCard
-          label="Marcados à frente"
-          value={num(adiante.total, 0)}
-          icon={CalendarClock}
-          hint={`${adiante.proximosDias} nos próximos 7 dias`}
-        />
-        <StatCard
-          label="Clientes sem retorno há 90 dias"
-          value={num(retorno.semRetorno, 0)}
-          icon={Repeat}
-          tone={retorno.semRetorno > 0 ? "warning" : "default"}
-          hint={`de ${retorno.ativos} clientes atendidos nos últimos 12 meses`}
-        />
-        {clinica && reforcos.data && (
-          <StatCard
-            label="Reforços de vacina"
-            value={num(reforcos.data.length, 0)}
-            icon={Syringe}
-            tone={reforcosAtrasados > 0 ? "warning" : "default"}
-            hint={`${reforcosAtrasados} atrasados · a vencer em 15 dias`}
-          />
-        )}
-        <StatCard
-          label="A receber em aberto"
-          value={brl(saldoReceber)}
-          icon={Wallet}
-          tone="success"
-          hint={`${abertoReceber.filter((c) => c.vencimento < hoje).length} vencidas`}
-        />
-        <StatCard
-          label="A pagar em aberto"
-          value={brl(saldoPagar)}
-          icon={Wallet}
-          tone="danger"
-          hint={`${abertoPagar.filter((c) => c.vencimento < hoje).length} vencidas`}
-        />
-      </div>
+      )}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="panel p-4 lg:col-span-2">
-          <h2 className="font-display text-sm font-semibold">Atendimentos concluídos por dia</h2>
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={porDia}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="dia"
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)}
-                />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="atendimentos" name="Atendimentos" fill="var(--chart-2)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      {cartoesVisiveis.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {cartoesVisiveis.map((p) => (
+            <div key={p.id} className="contents">
+              {cartoes[p.id]}
+            </div>
+          ))}
         </div>
+      )}
 
-        <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Serviços que mais faturaram</h2>
-          {top.length === 0 ? (
-            <EmptyState
-              className="mt-4 border-0 shadow-none"
-              title="Nenhum atendimento concluído no período."
-            />
-          ) : (
-            <ul className="mt-3 divide-y divide-border">
-              {top.map((t) => (
-                <li key={t.servico} className="flex items-center gap-2 py-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate">{t.servico}</span>
-                  <span className="text-xs text-muted-foreground">{t.quantidade}×</span>
-                  <span className="text-numeric font-medium">{brl(t.total)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+      {paineisVisiveis.length > 0 && (
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          {paineisVisiveis.map((p) => (
+            <div key={p.id} className={`${paineis[p.id]?.largura ?? ""} [&>.panel]:h-full`}>
+              {paineis[p.id]?.conteudo}
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div className="panel mt-4 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-display text-sm font-semibold">Agenda de hoje</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/pet-agenda">Abrir a agenda</Link>
-          </Button>
-        </div>
-        {agendaHoje.length === 0 ? (
-          <EmptyState className="mt-4 border-0 shadow-none" title="Nada marcado para hoje." />
-        ) : (
-          <ul className="mt-3 divide-y divide-border">
-            {agendaHoje.map((l) => (
-              <li key={l.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                <span className="text-numeric w-14 font-medium">{hora(l.inicio)}</span>
-                <span className="min-w-0 flex-1 truncate">
-                  {l.pets?.nome ?? "Pet"}
-                  {l.pet_profissionais?.nome ? ` · ${l.pet_profissionais.nome}` : ""}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {(l.pet_agendamento_itens ?? [])
-                    .map((i) => i.pet_servicos?.nome)
-                    .filter(Boolean)
-                    .join(", ")}
-                </span>
-                <Badge variant="outline">{ROTULO_SITUACAO[l.situacao] ?? l.situacao}</Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {gestao && (
+        <PersonalizarDashboardDialog
+          aberto={personalizando}
+          aoMudar={setPersonalizando}
+          disponiveis={disponiveis}
+          config={configDashboard ?? null}
+        />
+      )}
     </>
   );
 }

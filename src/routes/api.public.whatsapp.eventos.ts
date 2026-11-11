@@ -40,7 +40,14 @@ export const Route = createFileRoute("/api/public/whatsapp/eventos")({
               ...(ev.estado === "conectada" ? { conectada_em: agora } : {}),
               // sem conexão não há envio automático: volta desligado
               ...(ev.estado === "desconectada"
-                ? { numero: null, auto_pronto: false, auto_plano: false, auto_desde: null }
+                ? {
+                    numero: null,
+                    auto_pronto: false,
+                    auto_plano: false,
+                    auto_desde: null,
+                    auto_reforco: false,
+                    auto_retorno: false,
+                  }
                 : {}),
             })
             .eq("instancia", ev.instancia);

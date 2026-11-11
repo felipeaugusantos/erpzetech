@@ -15,6 +15,9 @@ export function useModulosCnae() {
     locacao: moduloLiberadoEmpresa(empresa, "locacao"),
     restaurante: moduloLiberadoEmpresa(empresa, "restaurante"),
     petshop: moduloLiberadoEmpresa(empresa, "petshop"),
+    /** Telas que a clínica usa mesmo sem o pet shop contratado (pets e tutores, contatos, serviços, profissionais, agenda, campos). */
+    petShopOuClinica:
+      moduloLiberadoEmpresa(empresa, "petshop") || moduloLiberadoEmpresa(empresa, "clinica"),
     clinica: moduloLiberadoEmpresa(empresa, "clinica"),
     lavarapido: moduloLiberadoEmpresa(empresa, "lavarapido"),
     hotelaria: moduloLiberadoEmpresa(empresa, "hotelaria"),

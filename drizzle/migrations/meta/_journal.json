@@ -505,6 +505,76 @@
       "when": 1793277800296,
       "tag": "0071_links_acesso_e_nomes_planos",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793794254701,
+      "tag": "0072_pet_campos_personalizados",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793794344218,
+      "tag": "0073_pet_os",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793794520040,
+      "tag": "0074_clinica_internacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793794693073,
+      "tag": "0075_clinica_internacao_prescricao",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793794906454,
+      "tag": "0076_sngpc",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793795020865,
+      "tag": "0077_revisao_pr_internacao_sngpc",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793795116098,
+      "tag": "0078_pet_cobranca_os_internacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1793897118997,
+      "tag": "0079_whatsapp_clinica",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1793897248277,
+      "tag": "0080_clinica_receita_fila_bulario_contato",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794320353401,
+      "tag": "0081_backup_google_drive",
+      "breakpoints": true
     }
   ]
 }

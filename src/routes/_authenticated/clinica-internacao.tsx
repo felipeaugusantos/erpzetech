@@ -5,6 +5,8 @@ import { BedDouble, Plus, Printer, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { PassagemTurnoInternacao } from "@/components/app/PassagemTurnoInternacao";
+import { SinaisVitaisInternacao } from "@/components/app/SinaisVitaisInternacao";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,7 @@ import {
   type FichaInternacao,
   type ResumoInternacao,
 } from "@/lib/internacao";
+import { avisosDoPlantao, type ItemPlantao } from "@/lib/passagem-turno";
 import { ESPECIES, idadeDoPet, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/clinica-internacao")({
@@ -82,6 +85,18 @@ function Internacao() {
     },
   });
   const itens = lista.data ?? [];
+  // plantão: pendências abertas e passagem aguardando o meu ciente, por internado (só leitura; erro não atrapalha a lista)
+  const plantao = useQuery({
+    queryKey: ["clinica-plantao"],
+    enabled: situacao === "internado",
+    refetchInterval: 60_000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_plantao");
+      if (error) throw error;
+      return new Map(((data ?? []) as unknown as ItemPlantao[]).map((x) => [x.internacao_id, x]));
+    },
+  });
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: ["clinica-internacoes"] });
@@ -170,6 +185,15 @@ function Internacao() {
                   <TriangleAlert className="size-3" /> Alergia: {i.pet.alergias}
                 </p>
               )}
+              {i.situacao === "internado" &&
+                avisosDoPlantao(plantao.data?.get(i.id)).map((a) => (
+                  <p
+                    key={a.texto}
+                    className={`mt-1 text-xs ${a.alerta ? "font-medium text-destructive" : "text-muted-foreground"}`}
+                  >
+                    {a.texto}
+                  </p>
+                ))}
             </button>
           ))}
         </div>
@@ -664,6 +688,19 @@ function FichaDialog({
                 )}
               </div>
             )}
+
+            <PassagemTurnoInternacao
+              internacaoId={id}
+              aberta={aberta}
+              prescricoes={f.prescricoes}
+            />
+
+            <SinaisVitaisInternacao
+              internacaoId={id}
+              aberta={aberta}
+              admitidoEm={f.internacao.admitido_em}
+              souVet={souVet}
+            />
 
             <PrescricaoSecao
               f={f}

@@ -517,8 +517,15 @@ DECLARE
   liberadas constant text[] := ARRAY['profiles', 'user_roles', 'empresas', 'filiais', 'tenants',
     'cardapio_categorias', 'cardapio_itens', 'cardapio_grupos', 'cardapio_opcoes',
     'mesas', 'comandas', 'comanda_itens', 'comanda_pagamentos', 'restaurante_zonas_entrega',
+    'restaurante_pracas', 'mesa_reservas', 'restaurante_taras', 'restaurante_pedidos_externos', 'restaurante_senhas_contador', 'cardapios', 'cardapio_cardapio_itens', 'restaurante_chamados', 'restaurante_chamados_motivos',
     -- módulos liberados da empresa: o menu e as travas de cada módulo leem para qualquer perfil (só leitura da própria empresa)
-    'empresa_modulos_liberados'];
+    'empresa_modulos_liberados',
+    -- bulário veterinário (base global do MAPA): sem empresa dona e sem nenhum grant para authenticated; só as funções bulario_* leem, e elas exigem papel e clínica liberada
+    'bulario_medicamentos',
+    -- backup por cliente (rotina noturna da equipe): controle interno, só o serviço lê e grava; nenhum grant para authenticated
+    'backup_execucoes',
+    -- backup no Google Drive por cliente: conector cifrado e execuções; só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
+    'backup_drive_config', 'backup_drive_execucoes'];
   sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
@@ -529,6 +536,12 @@ DECLARE
     'eh_profissional_restrito', 'pet_minha_agenda', 'pet_minha_situacao',
     -- só responde se a empresa tem a clínica liberada
     'clinica_liberada',
+    -- bulário veterinário: exigem administrador, gestor ou veterinário (nunca o perfil restrito do salão) e clínica liberada; bulario_total é só da equipe EZRA
+    'bulario_buscar', 'bulario_resumo', 'bulario_ficha', 'bulario_nota_salvar', 'bulario_total',
+    -- menu personalizado: devolve só a disposição do menu da própria empresa (sem dado sensível), para qualquer pessoa dela; gravar e restaurar exigem administrador ou gestor
+    'menu_personalizado_obter',
+    -- dashboard personalizado: devolve só a disposição do dashboard da própria empresa (sem dado sensível); gravar e restaurar exigem administrador ou gestor
+    'dashboard_personalizado_obter',
     -- só responde se a empresa tem o lava rápido liberado
     'lava_rapido_liberado',
     -- fotos do lava rápido: respondem só verdadeiro com perfil do pátio, módulo liberado e foto reservada ou ativa
@@ -567,6 +580,10 @@ DECLARE
     -- receituário e documentos: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_documento_emitir', 'clinica_documento_cancelar', 'clinica_documento_obter', 'clinica_documentos_do_pet',
     'clinica_documento_contexto', 'clinica_documento_modelo_salvar', 'clinica_documento_modelo_excluir',
+    -- modelos de receita: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
+    'clinica_receita_modelos', 'clinica_receita_modelo_salvar', 'clinica_receita_modelo_excluir',
+    -- fila do dia: cada função confere perfil da recepção ou da gestão e a clínica liberada (veterinário é perfil restrito)
+    'clinica_fila_listar', 'clinica_fila_buscar_paciente', 'clinica_fila_entrada', 'clinica_fila_gravidade', 'clinica_fila_situacao',
     -- internação: cada função confere o perfil (veterinário; auxiliar só em pesagem e ocorrência; gestão só nos boxes), a clínica liberada e o cadastro ligado à conta
     'pet_box_salvar', 'clinica_boxes', 'clinica_internacao_admitir', 'clinica_internacoes', 'clinica_internacao_obter',
     'clinica_internacao_pesagem', 'clinica_internacao_relato', 'clinica_internacao_ocorrencia', 'clinica_internacao_box_trocar',
@@ -579,7 +596,16 @@ DECLARE
     'sngpc_responsaveis', 'sngpc_periodo', 'sngpc_inventario', 'sngpc_envio_registrar', 'sngpc_envio_transmitir', 'sngpc_envio_cancelar',
     'sngpc_envios', 'sngpc_envio_xml',
     -- cobrança no caixa da ordem de serviço do pet e da internação: confere perfil de recepção/gestão e, na internação, a clínica liberada
-    'clinica_internacoes_a_cobrar', 'clinica_internacao_cobranca', 'clinica_internacao_cobrar'];
+    'clinica_internacoes_a_cobrar', 'clinica_internacao_cobranca', 'clinica_internacao_cobrar',
+    -- sinais vitais da internação: registrar, corrigir e ler são do veterinário e do auxiliar (confere a internação aberta e o cadastro ligado à conta); o catálogo é lido por eles e mantido por gestão e veterinário; todas conferem a clínica liberada
+    'clinica_sinais_parametros', 'clinica_sinais_parametro_salvar', 'clinica_sinal_registrar', 'clinica_sinal_corrigir', 'clinica_sinais_internacao',
+    -- passagem de turno da internação: escrever, dar ciente, resolver pendência, ler e ver o plantão são do veterinário e do auxiliar (confere a internação aberta e o cadastro ligado à conta); todas conferem a clínica liberada
+    'clinica_turno_registrar', 'clinica_turno_ciente', 'clinica_pendencia_baixar', 'clinica_turnos_internacao', 'clinica_plantao',
+    -- portal do tutor, lado da clínica: convites e acessos são da recepção e da gestão (conferem o perfil e a clínica liberada); liberar, retirar e listar itens do animal são do veterinário (conferem o cadastro com CRMV)
+    'clinica_portal_convite_criar', 'clinica_portal_convite_revogar', 'clinica_portal_acessos', 'clinica_portal_vinculo_revogar',
+    'clinica_portal_itens_do_pet', 'clinica_portal_liberar', 'clinica_portal_retirar',
+    -- portal do tutor, lado do tutor: não usa papel nem empresa; a identidade vem da sessão e só vale com vínculo ATIVO ao cadastro do animal (animal de outro tutor responde "não encontrado")
+    'portal_resgatar_convite', 'portal_meus_pets', 'portal_pet_itens', 'portal_exame_obter', 'portal_receita_obter'];
   faltando text;
 BEGIN
   -- estrutura: tabela ou função nova sem a proteção reprova o CI
@@ -797,6 +823,606 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((SELECT situacao = 'cancelado' FROM comanda_itens WHERE id = i_c),
                    'cancelar item continua permitido quando a conta fica acima do recebido');
+END $$;
+
+-- 17b. crédito na conta e juntar contas
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  cat uuid; it uuid; ma uuid; mb uuid; mc uuid; md uuid; me uuid; cx uuid; cx_f uuid;
+  c1 uuid; c3 uuid; c4 uuid; c5 uuid; c6 uuid; c7 uuid; c8 uuid; r jsonb; n4 integer; i1 uuid;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Credito CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Rodizio CI', 50, 'nenhuma') RETURNING id INTO it;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-a') RETURNING id INTO ma;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-b') RETURNING id INTO mb;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-c') RETURNING id INTO mc;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-d') RETURNING id INTO md;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'cr-e') RETURNING id INTO me;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- crédito: só quem recebe; forma a prazo, valor zero e valor absurdo recusados
+  PERFORM ci.entrar(gar);
+  c1 := restaurante_abrir_comanda(ma, 2, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, cx), 'garçom recebe crédito');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100}]'::jsonb, %L)$c$, c1, cx), 'vendedor recebe crédito');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"boleto","valor":100}]'::jsonb, %L)$c$, c1, cx), 'boleto como crédito');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":0}]'::jsonb, %L)$c$, c1, cx), 'crédito de valor zero');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":100001}]'::jsonb, %L)$c$, c1, cx), 'crédito acima do limite');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":10}]'::jsonb, NULL)$c$, c1), 'crédito sem caixa');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_creditar_comanda(%L, '[{"forma":"pix","valor":10}]'::jsonb, %L)$c$, gen_random_uuid(), cx), 'crédito em comanda que não existe');
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c1, '[{"forma":"pix","valor":100,"pagante":"Ana"}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(credito) AND sum(valor) = 100 FROM comanda_pagamentos WHERE comanda_id = c1), 'crédito gravado na comanda');
+  PERFORM ci.exige((SELECT sum(valor) = 100 FROM caixa_movimentos WHERE caixa_id = cx AND descricao = 'Comanda ' || (SELECT numero FROM comandas WHERE id = c1) || ' (crédito)'), 'o crédito entra no caixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_cancelar_comanda(%L, 'teste')$c$, c1), 'cancelar comanda com crédito recebido');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO comanda_pagamentos (tenant_id, comanda_id, forma, valor, credito) VALUES (%L, %L, 'pix', -5, true)$c$, demo, c1), 'devolução por escrita direta');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO comanda_pagamentos (tenant_id, comanda_id, forma, valor) VALUES (%L, %L, 'pix', -5)$c$, demo, c1), 'valor negativo fora de crédito');
+
+  -- 1 rodízio de 50 + serviço 10% = 55; crédito 100; sobra 45
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(c1, it, 1);
+  PERFORM restaurante_enviar_cozinha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_fechar_comanda(%L, '[]'::jsonb, %L)$c$, c1, cx), 'fechar com crédito acima da conta sem devolver a sobra');
+  PERFORM ci.deve_falhar(cxa, format($c$SELECT restaurante_devolver_credito(%L, 45, %L, 'sobra')$c$, c1, cx), 'caixa devolve crédito (só a gestão)');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 45.01, %L, 'sobra')$c$, c1, cx), 'devolver mais do que a sobra');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 45, %L, ' ')$c$, c1, cx), 'devolver sem motivo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 0, %L, 'sobra')$c$, c1, cx), 'devolver zero');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_devolver_credito(c1, 45, cx, 'cliente pediu a sobra');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT sum(valor) = 55 FROM comanda_pagamentos WHERE comanda_id = c1), 'devolução reduz o que foi recebido');
+  PERFORM ci.exige((SELECT sum(valor) = 45 FROM caixa_movimentos WHERE caixa_id = cx AND tipo = 'saida' AND descricao = 'Devolução de crédito - comanda ' || (SELECT numero FROM comandas WHERE id = c1)), 'a devolução sai do caixa');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_devolver_credito(%L, 1, %L, 'de novo')$c$, c1, cx), 'devolver de novo sem sobra');
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(c1, '[]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 55 AND (r ->> 'restante')::numeric = 0, 'conta paga só com o crédito fecha sem novo recebimento');
+  PERFORM ci.exige((SELECT situacao = 'fechada' FROM comandas WHERE id = c1), 'comanda fechada');
+
+  -- crédito inteiro devolvido libera o cancelamento
+  PERFORM ci.entrar(gar);
+  c3 := restaurante_abrir_comanda(mc, 1, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c3, '[{"forma":"dinheiro","valor":30}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_devolver_credito(c3, 30, cx, 'desistiu');
+  PERFORM restaurante_cancelar_comanda(c3, 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelada' FROM comandas WHERE id = c3), 'comanda com crédito devolvido pode ser cancelada');
+
+  -- juntar contas
+  PERFORM ci.entrar(gar);
+  c4 := restaurante_abrir_comanda(mb, 2, NULL, 10, 0);
+  PERFORM restaurante_lancar_item(c4, it, 1);
+  c5 := restaurante_abrir_comanda(md, 3, NULL, 10, 0);
+  PERFORM restaurante_lancar_item(c5, it, 2);
+  c6 := restaurante_abrir_comanda(me, 1, NULL, 15, 0);
+  PERFORM restaurante_lancar_item(c6, it, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c5), 'vendedor junta contas');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[]::uuid[])$c$, c4), 'juntar sem escolher contas');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c4), 'juntar a conta com ela mesma');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, gen_random_uuid()), 'juntar conta que não existe');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c1), 'juntar conta já fechada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c6), 'juntar contas com serviço diferente sem autorização');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[], true)$c$, c4, c6), 'garçom autoriza usar o serviço da conta de destino');
+
+  PERFORM ci.entrar(gar);
+  r := restaurante_juntar_comandas(c4, ARRAY[c5]);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'unidas')::int = 1 AND (r ->> 'itens')::int = 1, 'junção devolve o resumo');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM comanda_itens WHERE comanda_id = c4 AND situacao <> 'cancelado'), 'itens da origem passaram para o destino');
+  PERFORM ci.exige((SELECT sum(quantidade) = 3 FROM comanda_itens WHERE comanda_id = c4 AND situacao <> 'cancelado'), 'as quantidades foram preservadas');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM comanda_itens WHERE comanda_id = c5), 'a origem ficou sem itens');
+  PERFORM ci.exige((SELECT pessoas = 5 FROM comandas WHERE id = c4), 'pessoas somadas');
+  PERFORM ci.exige((SELECT situacao = 'cancelada' AND unida_em_id = c4 FROM comandas WHERE id = c5), 'origem marcada como unida');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_abrir_comanda(md, 1, NULL, 10, 0);
+  PERFORM ci.sair();
+  PERFORM ci.exige(true, 'a mesa da conta unida fica livre');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_juntar_comandas(%L, ARRAY[%L]::uuid[])$c$, c4, c5), 'juntar conta já unida');
+
+  -- a gestão autoriza o serviço do destino; o crédito da origem acompanha
+  PERFORM ci.entrar(cxa);
+  PERFORM restaurante_creditar_comanda(c6, '[{"forma":"pix","valor":20}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(adm);
+  r := restaurante_juntar_comandas(c4, ARRAY[c6], true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'taxas_do_destino')::boolean AND (r ->> 'pagamentos')::int = 1, 'gestão junta contas com serviço diferente');
+  PERFORM ci.exige((SELECT count(*) = 1 AND sum(valor) = 20 FROM comanda_pagamentos WHERE comanda_id = c4), 'o crédito da conta de origem passou para o destino');
+  PERFORM ci.exige((SELECT pessoas = 6 FROM comandas WHERE id = c4), 'pessoas somadas na segunda junção');
+END $$;
+
+-- 17c. balança: item por peso, tara e teto do buffet livre
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  filial constant uuid := '33333333-3333-3333-3333-333333333333';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cxa    constant uuid := 'a0000000-0000-0000-0000-0000000000a1';
+  outro_tenant uuid; cat uuid; kg uuid; un uuid; prato uuid; vasi uuid; inativa uuid; tara_alheia uuid;
+  cmd uuid; cx uuid; r jsonb; it record;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  SELECT id INTO cx FROM caixas WHERE tenant_id = demo AND filial_id = filial AND situacao = 'aberto' LIMIT 1;
+
+  -- taras: a gestão cadastra, a operação lê
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Prato CI', 350) RETURNING id INTO prato;
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Vasilhame CI', 120) RETURNING id INTO vasi;
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g, ativo) VALUES (demo, 'Antiga CI', 200, false) RETURNING id INTO inativa;
+  PERFORM ci.sair();
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (outro_tenant, 'Prato alheio', 300) RETURNING id INTO tara_alheia;
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_taras') = 3, 'garçom lê só as taras da própria empresa');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_taras') = 3, 'cozinha lê as taras');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_taras') = 0, 'vendedor não lê as taras');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Outra', 100)$c$, demo), 'garçom cadastra tara');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, ' prato ci ', 100)$c$, demo), 'tara repetida');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Zero', 0)$c$, demo), 'tara de peso zero');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (%L, 'Gigante', 5001)$c$, demo), 'tara acima de 5 kg');
+
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Balanca CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso, tara_id)
+    VALUES (demo, cat, 'Buffet por kg CI', 60, 'nenhuma', true, prato) RETURNING id INTO kg;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Suco CI', 8, 'nenhuma') RETURNING id INTO un;
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET tara_id = %L WHERE id = %L$c$, prato, un), 'tara padrão em item que não é por peso');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET tara_id = %L WHERE id = %L$c$, tara_alheia, kg), 'tara de outra empresa no item');
+
+  -- cálculo
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_pesagem_calcular(%L, 850, %L)$c$, kg, prato), 'vendedor pesa');
+  PERFORM ci.entrar(gar);
+  r := restaurante_pesagem_calcular(kg, 850, prato);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'liquido_g')::int = 500 AND (r ->> 'valor')::numeric = 30 AND NOT (r ->> 'teto_aplicado')::boolean, 'prato de 850 g com tara de 350 g custa 500 g x R$ 60/kg');
+  PERFORM ci.entrar(gar);
+  r := restaurante_pesagem_calcular(kg, 850, NULL);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'tara_g')::int = 0 AND (r ->> 'valor')::numeric = 51, 'sem tara cobra o peso bruto');
+  UPDATE cardapio_itens SET preco = 59.90 WHERE id = kg;
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 683, prato) ->> 'valor')::numeric = 19.95, 'arredondamento: 333 g x 59,90 = 19,95');
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 685, prato) ->> 'valor')::numeric = 20.07, 'arredondamento: 335 g x 59,90 = 20,07');
+  PERFORM ci.sair();
+  UPDATE cardapio_itens SET preco = 60 WHERE id = kg;
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 350, %L)$c$, kg, prato), 'peso igual à tara');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 300, %L)$c$, kg, prato), 'peso menor que a tara');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 0, NULL)$c$, kg), 'peso zero');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 30001, NULL)$c$, kg), 'peso acima de 30 kg');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, %L)$c$, kg, inativa), 'tara inativa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, %L)$c$, kg, tara_alheia), 'tara de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_pesagem_calcular(%L, 500, NULL)$c$, un), 'pesar item que não é por peso');
+
+  -- lançar: só pela balança
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, 'Balança CI', 0, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item(%L, %L, 1)$c$, cmd, kg), 'lançar item por peso pelo lançamento comum');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 850, %L)$c$, cmd, kg, prato), 'vendedor lança pesagem');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO comanda_itens (tenant_id, comanda_id, cardapio_item_id, nome, estacao, quantidade, preco_unitario, total) VALUES (%L, %L, %L, 'x', 'nenhuma', 1, 60, 60)$c$, demo, cmd, kg), 'inserir item por peso direto no banco');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 850, %L)$c$, gen_random_uuid(), kg, prato), 'pesagem em comanda que não existe');
+  PERFORM ci.entrar(gar);
+  r := restaurante_lancar_pesagem(cmd, kg, 850, prato, 'sem pimenta');
+  PERFORM ci.sair();
+  SELECT * INTO it FROM comanda_itens WHERE id = (r ->> 'item_id')::uuid;
+  PERFORM ci.exige(it.quantidade = 0.5 AND it.total = 30 AND it.preco_unitario = 60 AND it.situacao = 'entregue', 'pesagem vira item entregue com o peso líquido e o valor');
+  PERFORM ci.exige(it.peso_bruto_g = 850 AND it.tara_g = 350 AND it.peso_liquido_g = 500 AND NOT it.teto_buffet, 'pesagem fica gravada no item');
+  PERFORM ci.exige(it.observacao LIKE '%Prato CI%' AND it.observacao LIKE '%sem pimenta%', 'observação traz a tara e o pedido');
+
+  -- buffet livre
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo) VALUES (%L, true) ON CONFLICT (tenant_id) DO UPDATE SET buffet_livre_ativo = true$c$, demo), 'buffet livre ativo sem preço');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo, buffet_livre_preco) VALUES (%L, true, 40)$c$, demo), 'garçom configura o buffet livre');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, buffet_livre_ativo, buffet_livre_preco) VALUES (demo, true, 40)
+    ON CONFLICT (tenant_id) DO UPDATE SET buffet_livre_ativo = true, buffet_livre_preco = 40;
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gar);
+  r := restaurante_balanca_config();
+  PERFORM ci.exige((r ->> 'buffet_livre_ativo')::boolean AND (r ->> 'buffet_livre_preco')::numeric = 40, 'operação lê o buffet livre configurado');
+  r := restaurante_pesagem_calcular(kg, 1350, prato);
+  PERFORM ci.exige((r ->> 'valor_sem_teto')::numeric = 60 AND (r ->> 'valor')::numeric = 40 AND (r ->> 'teto_aplicado')::boolean, 'prato acima do buffet livre cobra o buffet livre');
+  r := restaurante_pesagem_calcular(kg, 850, prato);
+  PERFORM ci.exige((r ->> 'valor')::numeric = 30 AND NOT (r ->> 'teto_aplicado')::boolean, 'prato abaixo do buffet livre cobra o peso');
+  r := restaurante_pesagem_calcular(kg, 1017, prato);
+  PERFORM ci.exige((r ->> 'valor_sem_teto')::numeric = 40.02 AND (r ->> 'valor')::numeric = 40 AND (r ->> 'teto_aplicado')::boolean, 'um centavo acima do buffet livre já aplica o teto');
+  r := restaurante_lancar_pesagem(cmd, kg, 1350, prato);
+  PERFORM ci.sair();
+  SELECT * INTO it FROM comanda_itens WHERE id = (r ->> 'item_id')::uuid;
+  PERFORM ci.exige(it.total = 40 AND it.teto_buffet AND it.quantidade = 1 AND it.observacao LIKE '%limitado ao buffet livre%', 'item com teto guarda o valor do buffet livre e a marca');
+  PERFORM ci.deve_falhar(vend, 'SELECT restaurante_balanca_config()', 'vendedor lê a configuração da balança');
+
+  -- desligado: volta ao peso
+  UPDATE restaurante_config SET buffet_livre_ativo = false WHERE tenant_id = demo;
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_pesagem_calcular(kg, 1350, prato) ->> 'valor')::numeric = 60, 'buffet livre desligado não limita');
+  PERFORM ci.exige((restaurante_balanca_config() ->> 'buffet_livre_preco') IS NULL, 'configuração desligada não expõe o preço');
+  PERFORM ci.sair();
+
+  -- fecha a conta com os dois pratos: 30 + 40 = 70
+  PERFORM ci.entrar(cxa);
+  r := restaurante_fechar_comanda(cmd, '[{"forma":"pix","valor":70}]'::jsonb, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'total')::numeric = 70, 'a conta soma o valor das pesagens (sem recalcular pelo peso)');
+
+  -- os testes seguintes partem de uma empresa sem configuração do restaurante
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
+END $$;
+
+-- 17d. pedidos externos (caixa de entrada do iFood)
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro_tenant uuid; cat uuid; burger uuid; suco uuid; pesado uuid; alheio uuid; ext uuid; ext2 uuid; ext3 uuid; ext4 uuid; cmd uuid;
+  ped jsonb; r jsonb; c record; msg text;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Externo CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Burger Externo CI', 30, 'cozinha') RETURNING id INTO burger;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, codigo_externo, preco_ifood) VALUES (demo, cat, 'Suco Externo CI', 8, 'nenhuma', 'IF-SUCO', 9.5) RETURNING id INTO suco;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso) VALUES (demo, cat, 'Kg Externo CI', 60, 'nenhuma', true) RETURNING id INTO pesado;
+  INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (outro_tenant, 'Item alheio CI', 5, 'cozinha') RETURNING id INTO alheio;
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao, codigo_externo) VALUES (%L, 'Duplicado', 1, 'cozinha', 'IF-SUCO')$c$, demo), 'código do canal repetido na mesma empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET preco_ifood = -1 WHERE id = %L$c$, burger), 'preço do iFood negativo');
+
+  ped := '{"numero":"4321","tipo":"entrega","cliente":{"nome":"Marina","telefone":"11988887777"},
+           "endereco":{"texto":"Rua das Flores, 100","bairro":"Centro","referencia":"portão azul"},
+           "itens":[{"codigo":"IF-BURGER","nome":"X-Burger","quantidade":2,"preco":30,"observacao":"sem cebola",
+                     "adicionais":[{"nome":"Bacon","preco":4},{"nome":"Queijo","preco":2.5}]},
+                    {"codigo":"IF-SUCO","nome":"Suco de laranja","quantidade":1,"preco":9.5}],
+           "taxa_entrega":6,"desconto":5,"total":88,"pagamento":"pago_online","observacao":"tocar a campainha"}'::jsonb;
+
+  -- só o servidor recebe
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'garçom injeta pedido externo');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'gestão injeta pedido externo');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, demo, ped), 'anônimo injeta pedido externo');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'rappi', 'P-1', %L::jsonb)$c$, demo, ped), 'canal inventado');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"itens":[]}'::jsonb)$c$, demo), 'pedido sem itens');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"itens":[{"codigo":"a","nome":"x","quantidade":0,"preco":1}]}'::jsonb)$c$, demo), 'item com quantidade zero');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', '{"tipo":"voando","itens":[{"codigo":"a","nome":"x","quantidade":1,"preco":1}]}'::jsonb)$c$, demo), 'tipo de pedido inventado');
+  PERFORM ci.deve_falhar_dono(format($c$SELECT restaurante_externo_receber(%L, 'ifood', 'P-1', %L::jsonb)$c$, gen_random_uuid(), ped), 'pedido para empresa que não existe');
+
+  ext := restaurante_externo_receber(demo, 'ifood', 'P-1', ped);
+  PERFORM ci.exige(restaurante_externo_receber(demo, 'ifood', 'P-1', ped) = ext, 'pedido repetido do canal devolve o mesmo registro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM restaurante_pedidos_externos WHERE tenant_id = demo AND codigo_externo = 'P-1'), 'pedido repetido não duplica');
+  PERFORM restaurante_externo_receber(outro_tenant, 'ifood', 'P-ALHEIO', ped);
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_pedidos_externos') = 1, 'garçom vê só os pedidos da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_pedidos_externos') = 0, 'vendedor não vê pedidos externos');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE restaurante_pedidos_externos SET situacao = 'aceito', decidido_em = now() WHERE id = ext;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'recebido' FROM restaurante_pedidos_externos WHERE id = ext), 'decidir pedido por escrita direta não altera nada');
+
+  -- aceitar
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext), 'vendedor aceita pedido externo');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    PERFORM restaurante_externo_aceitar(ext);
+    msg := NULL;
+  EXCEPTION WHEN OTHERS THEN msg := SQLERRM;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige(msg LIKE '%X-Burger%' AND msg NOT LIKE '%Suco de laranja%', 'aceitar sem correspondência lista só o item que falta');
+  PERFORM ci.exige((SELECT situacao = 'recebido' FROM restaurante_pedidos_externos WHERE id = ext), 'pedido segue na caixa de entrada após o erro');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, %L::jsonb)$c$, ext, jsonb_build_object('IF-BURGER', alheio)), 'mapear para item de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, %L::jsonb)$c$, ext, jsonb_build_object('IF-BURGER', pesado)), 'mapear para item vendido por peso');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L, '{"IF-BURGER":"nao-e-uuid"}'::jsonb)$c$, ext), 'mapeamento com id inválido');
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_externo_aceitar(ext, jsonb_build_object('IF-BURGER', burger));
+  PERFORM ci.sair();
+  SELECT * INTO c FROM comandas WHERE id = cmd;
+  PERFORM ci.exige(c.tipo = 'delivery' AND c.canal = 'ifood' AND c.codigo_externo = 'P-1' AND c.entrega_situacao = 'aguardando', 'aceitar abre o delivery do canal');
+  PERFORM ci.exige(c.entrega_pagamento = 'pago_online' AND c.entrega_bairro = 'Centro' AND c.cliente_nome = 'Marina', 'dados da entrega e do pagamento');
+  PERFORM ci.exige(c.observacao LIKE '%Pedido iFood 4321%' AND c.observacao LIKE '%Desconto%5,00%' OR c.observacao LIKE '%Desconto%5.00%', 'desconto e total do canal anotados');
+  -- 2 x (30 + 4 + 2,5) = 73 ; suco 9,50 ; taxa 6 => 88,50 (o canal informou 88 com R$ 5 de desconto: a diferença fica anotada)
+  PERFORM ci.exige((SELECT sum(total) = 88.5 FROM comanda_itens WHERE comanda_id = cmd AND situacao <> 'cancelado'), 'itens saem pelo preço do pedido, com adicionais e taxa');
+  PERFORM ci.exige((SELECT preco_unitario = 36.5 AND quantidade = 2 AND observacao = 'sem cebola' AND jsonb_array_length(opcoes) = 2 FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Burger Externo CI'), 'adicionais viram opções do item');
+  PERFORM ci.exige((SELECT situacao = 'enviado' FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Burger Externo CI'), 'item de cozinha vai para a fila');
+  PERFORM ci.exige((SELECT situacao = 'entregue' FROM comanda_itens WHERE comanda_id = cmd AND nome = 'Suco Externo CI'), 'item pronto para servir já sai entregue');
+  PERFORM ci.exige((SELECT codigo_externo = 'IF-BURGER' FROM cardapio_itens WHERE id = burger), 'o mapeamento escolhido fica guardado no item');
+  PERFORM ci.exige((SELECT situacao = 'aceito' AND comanda_id = cmd FROM restaurante_pedidos_externos WHERE id = ext), 'pedido marcado como aceito e ligado à comanda');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext), 'aceitar o mesmo pedido de novo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_recusar(%L, 'tarde demais')$c$, ext), 'recusar pedido já aceito');
+
+  -- retirada (sem endereço), telefone mascarado e reconhecimento pelo código guardado
+  ext2 := restaurante_externo_receber(demo, 'ifood', 'P-2',
+    '{"tipo":"retirada","cliente":{"nome":"","telefone":"0800"},"itens":[{"codigo":"IF-BURGER","nome":"X-Burger","quantidade":1,"preco":30}],"pagamento":"inventado"}'::jsonb);
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_externo_aceitar(ext2);
+  PERFORM ci.sair();
+  SELECT * INTO c FROM comandas WHERE id = cmd;
+  PERFORM ci.exige(c.entrega_endereco LIKE 'Retirada no balcão%' AND c.entrega_telefone IS NULL AND c.cliente_nome = 'Cliente iFood' AND c.entrega_pagamento IS NULL,
+                   'retirada: endereço padrão, telefone mascarado ignorado, nome e pagamento padrão');
+  PERFORM ci.exige((SELECT sum(total) = 30 FROM comanda_itens WHERE comanda_id = cmd), 'item reconhecido pelo código já guardado, sem taxa');
+
+  -- entrega sem endereço é recusada pelo banco; recusa com motivo
+  ext3 := restaurante_externo_receber(demo, 'ifood', 'P-3',
+    '{"tipo":"entrega","cliente":{"nome":"Zé"},"itens":[{"codigo":"IF-SUCO","nome":"Suco","quantidade":1,"preco":9.5}]}'::jsonb);
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext3), 'aceitar entrega sem endereço');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_recusar(%L, 'x')$c$, ext3), 'recusar sem motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_externo_recusar(%L, 'sem estoque')$c$, ext3), 'vendedor recusa pedido');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_externo_recusar(ext3, 'sem estoque');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'recusado' AND motivo = 'sem estoque' AND decidido_em IS NOT NULL FROM restaurante_pedidos_externos WHERE id = ext3), 'pedido recusado com motivo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_externo_aceitar(%L)$c$, ext3), 'aceitar pedido recusado');
+
+  -- o mesmo código do canal não vira duas comandas
+  ext4 := restaurante_externo_receber(demo, 'ifood', 'P-1', ped);
+  PERFORM ci.exige(ext4 = ext AND (SELECT count(*) = 1 FROM comandas WHERE tenant_id = demo AND canal = 'ifood' AND codigo_externo = 'P-1'), 'pedido reenviado depois de aceito não cria outra comanda');
+END $$;
+
+-- 17e. senha do pedido de balcão
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  cat uuid; lanche uuid; mesa uuid; c1 uuid; c2 uuid; c3 uuid; cm uuid; r jsonb; i1 uuid;
+BEGIN
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Senha CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Lanche Senha CI', 20, 'cozinha') RETURNING id INTO lanche;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'senha-1') RETURNING id INTO mesa;
+
+  PERFORM ci.entrar(gar);
+  c1 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  c2 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  c3 := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  cm := restaurante_abrir_comanda(mesa, 2, NULL, 10, 0);
+  PERFORM ci.sair();
+
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'senha para comanda sem itens');
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item(c1, lanche, 2);
+  PERFORM restaurante_lancar_item(c2, lanche, 1);
+  PERFORM restaurante_lancar_item(c3, lanche, 1);
+  PERFORM restaurante_lancar_item(cm, lanche, 1);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'vendedor emite senha');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_emitir_senha(%L)$c$, c1), 'cozinha emite senha');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, cm), 'senha para comanda de mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_emitir_senha(%L)$c$, gen_random_uuid()), 'senha para comanda que não existe');
+
+  PERFORM ci.entrar(gar);
+  r := restaurante_emitir_senha(c1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'senha')::int >= 1 AND (r ->> 'enviados')::int = 1 AND (r ->> 'nova')::boolean, 'emitir a senha atribui o número e envia o pedido');
+  PERFORM ci.exige((SELECT situacao = 'enviado' FROM comanda_itens WHERE id = i1), 'o item foi para a fila da produção');
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige((restaurante_emitir_senha(c1) ->> 'senha')::int = (r ->> 'senha')::int, 'reemitir devolve a mesma senha');
+  PERFORM ci.exige(NOT (restaurante_emitir_senha(c1) ->> 'nova')::boolean, 'reemitir não é senha nova');
+  r := restaurante_emitir_senha(c2);
+  PERFORM ci.exige((r ->> 'senha')::int = (SELECT senha + 1 FROM comandas WHERE id = c1), 'a senha seguinte é sequencial');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT senha_data = (now() AT TIME ZONE 'America/Sao_Paulo')::date FROM comandas WHERE id = c1), 'a senha vale para o dia de hoje');
+
+  -- o contador do dia nunca repete, mesmo após comanda cancelada
+  PERFORM ci.entrar(gar);
+  r := restaurante_emitir_senha(c3);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'senha')::int = (SELECT senha + 2 FROM comandas WHERE id = c1), 'terceira senha do dia');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET senha = (SELECT senha FROM comandas WHERE id = %L), senha_data = (SELECT senha_data FROM comandas WHERE id = %L) WHERE id = %L$c$, c1, c1, c2), 'duas comandas com a mesma senha no dia');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE comandas SET senha = 7 WHERE id = %L$c$, cm), 'senha sem data');
+  PERFORM ci.deve_falhar(gar, 'SELECT count(*) FROM restaurante_senhas_contador', 'o contador de senhas lido pelo cliente');
+END $$;
+
+-- 17f. vários cardápios
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  outro_tenant uuid; principal uuid; jantar uuid; inativo uuid; alheio uuid; cat uuid; it_a uuid; it_b uuid; it_c uuid; op uuid; grp uuid;
+  cmd uuid; i1 uuid; i2 uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO cardapios (tenant_id, nome) VALUES (%L, 'Do garçom')$c$, demo), 'garçom cria cardápio');
+  PERFORM ci.entrar(adm);
+  INSERT INTO cardapios (tenant_id, nome, padrao, ordem) VALUES (demo, 'Principal CI', true, 0) RETURNING id INTO principal;
+  INSERT INTO cardapios (tenant_id, nome, ordem, uso_ifood, hora_inicio, hora_fim) VALUES (demo, 'Jantar CI', 1, true, '18:00', '23:30') RETURNING id INTO jantar;
+  INSERT INTO cardapios (tenant_id, nome, ativo) VALUES (demo, 'Parado CI', false) RETURNING id INTO inativo;
+  PERFORM ci.sair();
+  INSERT INTO cardapios (tenant_id, nome, padrao) VALUES (outro_tenant, 'Principal alheio', true) RETURNING id INTO alheio;
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome, padrao) VALUES (%L, 'Outro padrão', true)$c$, demo), 'dois cardápios padrão na mesma empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome) VALUES (%L, ' principal ci ')$c$, demo), 'nome de cardápio repetido');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapios (tenant_id, nome, hora_inicio) VALUES (%L, 'Meio horário', '10:00')$c$, demo), 'horário com só o início');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM cardapios') = 3, 'garçom lê só os cardápios da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM cardapios') = 0, 'vendedor não lê cardápios');
+
+  -- item novo entra no cardápio padrão sozinho
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Varios CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato A CI', 40, 'nenhuma') RETURNING id INTO it_a;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao) VALUES (demo, cat, 'Prato B CI', 25, 'nenhuma') RETURNING id INTO it_b;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, interno, ativo) VALUES (demo, cat, 'Interno CI', 1, 'nenhuma', true, false) RETURNING id INTO it_c;
+  PERFORM ci.exige((SELECT count(*) = 2 FROM cardapio_cardapio_itens WHERE cardapio_id = principal AND item_id IN (it_a, it_b)), 'item novo entra no cardápio padrão');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM cardapio_cardapio_itens WHERE item_id = it_c), 'item interno não entra em cardápio');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id) VALUES (%L, %L, %L)$c$, demo, alheio, it_a), 'item ligado a cardápio de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id, preco) VALUES (%L, %L, %L, -1)$c$, demo, jantar, it_a), 'preço negativo no cardápio');
+
+  -- o jantar vende só o prato A, por 50 (base 40)
+  INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id, preco, ordem) VALUES (demo, jantar, it_a, 50, 1);
+  INSERT INTO cardapio_cardapio_itens (tenant_id, cardapio_id, item_id) VALUES (demo, inativo, it_b);
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (demo, it_a, 'Molho CI') RETURNING id INTO grp;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, grp, 'Extra', 3) RETURNING id INTO op;
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_a, jantar), 'vendedor lança item por cardápio');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, NULL)$c$, cmd, it_a), 'lançar sem escolher o cardápio');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_b, jantar), 'item que não está no cardápio escolhido');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_b, inativo), 'lançar por cardápio inativo');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_item_no_cardapio(%L, %L, 1, %L)$c$, cmd, it_a, alheio), 'lançar por cardápio de outra empresa');
+  PERFORM ci.entrar(gar);
+  i1 := restaurante_lancar_item_no_cardapio(cmd, it_a, 2, jantar, ARRAY[op], 'sem sal');
+  i2 := restaurante_lancar_item_no_cardapio(cmd, it_a, 1, principal);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_unitario = 53 AND total = 106 AND observacao = 'sem sal' FROM comanda_itens WHERE id = i1), 'jantar cobra o preço do cardápio mais a opção');
+  PERFORM ci.exige((SELECT preco_unitario = 40 AND total = 40 FROM comanda_itens WHERE id = i2), 'cardápio sem preço próprio cobra o preço base');
+  UPDATE cardapio_itens SET preco = 45 WHERE id = it_a;
+  PERFORM ci.exige((SELECT preco_unitario = 53 FROM comanda_itens WHERE id = i1), 'mudar o preço depois não altera o item já lançado');
+
+END $$;
+
+-- 17g. chamar o garçom pelo QR da mesa
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  outro_tenant uuid; emp record; mesa uuid; mesa_off uuid; mesa_alheia uuid; m_conta uuid; m_agua uuid; r jsonb; r2 jsonb; ch uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  SELECT id, slug, nome_fantasia, ativo INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  UPDATE empresas SET slug = 'chamar-ci', ativo = true WHERE id = emp.id;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'ch-1') RETURNING id INTO mesa;
+  INSERT INTO mesas (tenant_id, numero, ativa) VALUES (demo, 'ch-off', false) RETURNING id INTO mesa_off;
+  INSERT INTO mesas (tenant_id, numero) VALUES (outro_tenant, 'ch-alheia') RETURNING id INTO mesa_alheia;
+
+  -- desligado por padrão
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa) IS NULL, 'chamar garçom desligado não mostra a página');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa), 'chamar com o recurso desligado');
+
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, chamar_garcom) VALUES (%L, true)$c$, demo), 'garçom liga o chamar garçom');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, chamar_garcom) VALUES (demo, true)
+    ON CONFLICT (tenant_id) DO UPDATE SET chamar_garcom = true;
+  INSERT INTO restaurante_chamados_motivos (tenant_id, nome, ordem) VALUES (demo, 'Pedir a conta CI', 2) RETURNING id INTO m_conta;
+  INSERT INTO restaurante_chamados_motivos (tenant_id, nome, ordem) VALUES (demo, 'Pedir água CI', 1) RETURNING id INTO m_agua;
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_chamados_motivos (tenant_id, nome) VALUES (%L, 'Do garçom')$c$, demo), 'garçom cadastra motivo');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_chamados_motivos (tenant_id, nome) VALUES (%L, ' pedir a conta ci ')$c$, demo), 'motivo repetido');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_chamados_motivos') = 2, 'cozinha lê os motivos');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_chamados_motivos') = 0, 'vendedor não lê os motivos');
+
+  -- página da mesa
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_info('CHAMAR-ci', mesa);
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'mesa' = 'ch-1' AND jsonb_array_length(r -> 'motivos') = 2 AND r -> 'motivos' -> 0 ->> 'nome' = 'Pedir água CI', 'página da mesa lista os motivos na ordem');
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa_off) IS NULL, 'mesa desativada não mostra a página');
+  PERFORM ci.exige(restaurante_chamar_info('chamar-ci', mesa_alheia) IS NULL, 'mesa de outra empresa não aparece');
+  PERFORM ci.exige(restaurante_chamar_info('a b', mesa) IS NULL AND restaurante_chamar_info(NULL, mesa) IS NULL, 'link inválido');
+  PERFORM ci.sair();
+
+  -- chamar (anônimo)
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa_off), 'chamar de mesa desativada');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L)$c$, mesa_alheia), 'chamar de mesa de outra empresa');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('chamar-ci', %L, %L)$c$, mesa, gen_random_uuid()), 'chamar com motivo que não existe');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamar_garcom('nao-existe-ci', %L)$c$, mesa), 'chamar com link desconhecido');
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  r2 := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean AND (r2 ->> 'repetido')::boolean AND r ->> 'id' = r2 ->> 'id', 'toque repetido devolve o mesmo chamado');
+  PERFORM ci.entrar(NULL);
+  r2 := restaurante_chamar_garcom('chamar-ci', mesa, m_agua);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r2 ->> 'repetido')::boolean, 'outro chamado da mesma mesa em menos de 20 s é tratado como repetição');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM restaurante_chamados WHERE mesa_id = mesa AND situacao = 'aberto'), 'um só chamado aberto');
+  ch := (r ->> 'id')::uuid;
+  PERFORM ci.exige((SELECT motivo = 'Pedir a conta CI' FROM restaurante_chamados WHERE id = ch), 'o chamado guarda o motivo');
+
+  -- quem vê e quem atende
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM restaurante_chamados') = 1, 'garçom vê os chamados da própria empresa');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_chamados') = 0, 'vendedor não vê chamados');
+  PERFORM ci.deve_falhar(NULL, 'SELECT count(*) FROM restaurante_chamados', 'anônimo lê chamados');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'vendedor atende chamado');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'anônimo atende chamado');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE restaurante_chamados SET situacao = 'atendido', atendido_em = now() WHERE id = ch;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'aberto' FROM restaurante_chamados WHERE id = ch), 'atender por escrita direta não altera nada');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_chamado_atender(ch);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'atendido' AND atendido_por = gar FROM restaurante_chamados WHERE id = ch), 'garçom atende o chamado');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_chamado_atender(%L)$c$, ch), 'atender de novo');
+
+  -- depois de atendido (e passados os 20 s) a mesa pode chamar de novo
+  UPDATE restaurante_chamados SET criado_em = now() - interval '1 minute' WHERE id = ch;
+  PERFORM ci.entrar(NULL);
+  r := restaurante_chamar_garcom('chamar-ci', mesa, m_conta);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'repetido')::boolean, 'mesa chama de novo depois do atendimento');
+
+  UPDATE empresas SET slug = emp.slug, ativo = emp.ativo WHERE id = emp.id;
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
+END $$;
+
+-- 17h. a pesagem baixa o estoque pela ficha técnica
+DO $$
+DECLARE
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  dep uuid; arroz uuid; kg uuid; cat uuid; prato uuid; cmd uuid; r jsonb; n bigint;
+BEGIN
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Cozinha pesagem CI') RETURNING id INTO dep;
+  INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, custo) VALUES (demo, 'PS-ARROZ', 'Arroz pesagem CI', 'kg', 8) RETURNING id INTO arroz;
+  INSERT INTO cardapio_categorias (tenant_id, nome) VALUES (demo, 'Pesagem estoque CI') RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, estacao, venda_por_peso) VALUES (demo, cat, 'Buffet estoque CI', 60, 'nenhuma', true) RETURNING id INTO kg;
+  -- 0,4 kg de arroz por kg vendido, com 20% de perda de preparo
+  INSERT INTO cardapio_ficha (tenant_id, item_id, produto_id, quantidade, perda_percentual) VALUES (demo, kg, arroz, 0.4, 20);
+  INSERT INTO restaurante_taras (tenant_id, nome, peso_g) VALUES (demo, 'Prato estoque CI', 300) RETURNING id INTO prato;
+  PERFORM ci.entrar(adm);
+  PERFORM registrar_movimentacao(arroz, dep, 'entrada'::mov_tipo, 2, 'ci', 'ci', NULL, 8);
+  PERFORM ci.sair();
+  INSERT INTO restaurante_config (tenant_id, baixa_estoque, deposito_id) VALUES (demo, true, dep);
+
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(NULL, NULL, NULL, 0, 0);
+  -- 1,3 kg bruto - 0,3 de tara = 1 kg líquido: 1 x 0,4 / 0,8 = 0,5 kg de arroz
+  r := restaurante_lancar_pesagem(cmd, kg, 1300, prato);
+  PERFORM ci.sair();
+  SELECT numero INTO n FROM comandas WHERE id = cmd;
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'a pesagem baixa o insumo pela ficha, com a perda de preparo');
+  PERFORM ci.exige((SELECT count(*) = 1 AND bool_and(tipo = 'saida') AND bool_and(quantidade = 0.5) FROM estoque_movimentacoes WHERE documento = 'COMANDA-' || n), 'a baixa da pesagem gera uma movimentação de saída');
+
+  -- sem saldo, a pesagem é recusada e nada é lançado
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_lancar_pesagem(%L, %L, 4300, %L)$c$, cmd, kg, prato), 'pesagem sem estoque suficiente do insumo');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM comanda_itens WHERE comanda_id = cmd), 'pesagem recusada não deixa item na comanda');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'pesagem recusada não mexe no estoque');
+
+  -- baixa desligada: a pesagem não mexe no estoque
+  UPDATE restaurante_config SET baixa_estoque = false, deposito_id = NULL WHERE tenant_id = demo;
+  PERFORM ci.entrar(gar);
+  r := restaurante_lancar_pesagem(cmd, kg, 1300, prato);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = arroz AND deposito_id = dep) = 1.5, 'sem baixa de estoque configurada a pesagem não baixa');
+  DELETE FROM restaurante_config WHERE tenant_id = demo;
+  DELETE FROM cardapio_ficha WHERE item_id = kg;
 END $$;
 
 -- 18. quantidade de mesas do restaurante
@@ -1125,6 +1751,203 @@ BEGIN
   PERFORM ci.deve_falhar(cxa, format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Sul', 5)$c$, demo), 'caixa cadastra zona de entrega');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, ' centro ', 5)$c$, demo), 'zona repetida (sem diferenciar maiúsculas)');
   PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_zonas_entrega (tenant_id, nome, taxa) VALUES (%L, 'Cara', 5000)$c$, demo), 'taxa de zona absurda');
+END $$;
+
+-- 20b. praças de produção, mesa bloqueada e reserva de mesa
+DO $$
+DECLARE
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  coz    constant uuid := 'a0000000-0000-0000-0000-000000000007';
+  vend   constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  outro_tenant uuid; m1 uuid; m2 uuid; it uuid; cmd uuid; res uuid; praca_churras uuid;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'PZ1') RETURNING id INTO m1;
+  INSERT INTO mesas (tenant_id, numero) VALUES (demo, 'PZ2') RETURNING id INTO m2;
+
+  -- praças: a gestão cadastra; garçom e cozinha leem; o código nasce do nome
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (demo, 'Churrascaria Açougue') RETURNING id INTO praca_churras;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT codigo FROM restaurante_pracas WHERE id = praca_churras) = 'churrascaria_acougue', 'código da praça nasce do nome, sem acento');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM restaurante_pracas') = 1, 'cozinha lê as praças');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM restaurante_pracas') = 0, 'vendedor não lê as praças');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Pizzaria')$c$, demo), 'garçom cadastra praça');
+  PERFORM ci.deve_falhar(coz, format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Pizzaria')$c$, demo), 'cozinha cadastra praça');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, 'Bar')$c$, demo), 'praça com o nome da fixa (Bar)');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, ' churrascaria  acougue ')$c$, demo), 'praça repetida pelo código');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (%L, '!')$c$, demo), 'praça sem letras');
+  UPDATE restaurante_pracas SET codigo = 'outro', nome = 'Churrasco' WHERE id = praca_churras;
+  PERFORM ci.exige((SELECT codigo FROM restaurante_pracas WHERE id = praca_churras) = 'churrascaria_acougue', 'código da praça não muda ao renomear');
+
+  -- item do cardápio: aceita praça ativa da própria empresa; recusa praça inexistente, de outra empresa ou inativa
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Fantasma', 10, 'nao_existe')$c$, demo), 'item em praça inexistente');
+  INSERT INTO restaurante_pracas (tenant_id, nome) VALUES (outro_tenant, 'Pizzaria');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Pizza', 40, 'pizzaria')$c$, demo), 'item em praça de outra empresa');
+  INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (demo, 'Picanha', 80, 'churrascaria_acougue') RETURNING id INTO it;
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM restaurante_pracas WHERE id = %L$c$, praca_churras), 'excluir praça em uso por item');
+  UPDATE restaurante_pracas SET ativo = false WHERE id = praca_churras;
+  UPDATE cardapio_itens SET preco = 85 WHERE id = it;
+  PERFORM ci.exige(true, 'item segue editável com a praça desativada');
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO cardapio_itens (tenant_id, nome, preco, estacao) VALUES (%L, 'Costela', 70, 'churrascaria_acougue')$c$, demo), 'item novo em praça inativa');
+
+  -- bloqueio de mesa
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, m1), 'vendedor bloqueia mesa');
+  PERFORM ci.deve_falhar(coz, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, m1), 'cozinha bloqueia mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_bloquear_mesa(%L, true, 'x')$c$, gen_random_uuid()), 'bloquear mesa que não existe');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m1, true, 'Mesa quebrada');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT bloqueada FROM mesas WHERE id = m1), 'garçom bloqueia mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_abrir_comanda(%L, 2)$c$, m1), 'abrir comanda em mesa bloqueada');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day')$c$, m1), 'reservar mesa bloqueada');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m1, false);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (SELECT bloqueada FROM mesas WHERE id = m1) AND (SELECT bloqueio_motivo FROM mesas WHERE id = m1) IS NULL, 'desbloquear limpa o motivo');
+
+  -- mesa com comanda aberta não bloqueia; transferir para mesa bloqueada é recusado
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(m1, 2);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_bloquear_mesa(%L, true)$c$, m1), 'bloquear mesa com comanda aberta');
+  PERFORM ci.entrar(gar);
+  PERFORM restaurante_bloquear_mesa(m2, true, 'Evento');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_transferir_mesa(%L, %L)$c$, cmd, m2), 'transferir para mesa bloqueada');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd, 'teste');
+  PERFORM restaurante_bloquear_mesa(m2, false);
+  PERFORM ci.sair();
+
+  -- reservas
+  PERFORM ci.deve_falhar(vend, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day')$c$, m1), 'vendedor reserva mesa');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, '  ', now() + interval '1 day')$c$, m1), 'reserva sem nome');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() - interval '3 hours')$c$, m1), 'reserva no passado');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '2 years')$c$, m1), 'reserva distante demais');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Ana', now() + interval '1 day', NULL, 0)$c$, m1), 'reserva com zero pessoas');
+  PERFORM ci.entrar(gar);
+  res := restaurante_reservar_mesa(m1, 'Ana', now() + interval '10 minutes', '11999990000', 4, 'aniversário');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_reservar_mesa(%L, 'Bia', now() + interval '70 minutes')$c$, m1), 'duas reservas da mesma mesa com menos de 2 h');
+  PERFORM ci.exige(ci.contar(coz, 'SELECT count(*) FROM mesa_reservas') >= 1, 'cozinha lê as reservas');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM mesa_reservas') = 0, 'vendedor não lê reservas');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO mesa_reservas (tenant_id, mesa_id, nome, reservada_para) VALUES (%L, %L, 'Z', now())$c$, demo, m1), 'reserva por escrita direta');
+  PERFORM ci.entrar(gar);
+  BEGIN
+    UPDATE mesa_reservas SET situacao = 'cancelada' WHERE id = res;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'ativa', 'cancelar reserva por escrita direta não altera nada');
+
+  -- abrir a comanda na mesa reservada atende a reserva
+  PERFORM ci.entrar(gar);
+  cmd := restaurante_abrir_comanda(m1, 4);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'atendida', 'abrir a comanda atende a reserva');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT restaurante_cancelar_reserva(%L)$c$, res), 'cancelar reserva já atendida');
+  PERFORM ci.entrar(adm);
+  PERFORM restaurante_cancelar_comanda(cmd, 'teste');
+  res := restaurante_reservar_mesa(m2, 'Caio', now() + interval '1 day');
+  PERFORM restaurante_cancelar_reserva(res);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao FROM mesa_reservas WHERE id = res) = 'cancelada', 'reserva cancelada');
+END $$;
+
+-- 20c. foto do item e cardápio online
+DO $$
+DECLARE
+  adm    constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar    constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  demo   constant uuid := '11111111-1111-1111-1111-111111111111';
+  outro_tenant uuid; cat uuid; it1 uuid; it2 uuid; g1 uuid; r jsonb; emp record;
+BEGIN
+  SELECT id INTO outro_tenant FROM tenants WHERE id <> demo LIMIT 1;
+  -- a empresa mais antiga da loja recebe o link (o espelho com o cadastro do assinante usa essa mesma)
+  SELECT id, slug, nome_fantasia, ativo INTO emp FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
+  IF emp.id IS NOT NULL THEN
+    UPDATE empresas SET slug = 'bistro-ci', nome_fantasia = 'Bistrô CI', ativo = true
+     WHERE id = (SELECT id FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1);
+  ELSE
+    INSERT INTO empresas (tenant_id, razao_social, nome_fantasia, slug) VALUES (demo, 'Cardápio CI LTDA', 'Bistrô CI', 'bistro-ci');
+  END IF;
+  INSERT INTO cardapio_categorias (tenant_id, nome, ordem) VALUES (demo, 'Pratos CI', 1) RETURNING id INTO cat;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, descricao, preco, ordem, foto_path)
+    VALUES (demo, cat, 'Risoto CI', 'Cremoso', 52.5, 2, demo::text || '/risoto-1.jpg') RETURNING id INTO it1;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, ordem) VALUES (demo, cat, 'Filé CI', 70, 1) RETURNING id INTO it2;
+  INSERT INTO cardapio_itens (tenant_id, categoria_id, nome, preco, ativo) VALUES (demo, cat, 'Item inativo CI', 9, false);
+  INSERT INTO cardapio_grupos (tenant_id, item_id, nome) VALUES (demo, it2, 'Ponto') RETURNING id INTO g1;
+  INSERT INTO cardapio_opcoes (tenant_id, grupo_id, nome, preco_adicional) VALUES (demo, g1, 'Ao ponto', 0), (demo, g1, 'Bem passado', 2);
+
+  -- foto: caminho precisa ser da própria empresa e ter nome simples
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, outro_tenant::text || '/x.jpg', it1), 'foto no caminho de outra empresa');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, demo::text || '/../x.jpg', it1), 'foto com caminho fora da pasta');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE cardapio_itens SET foto_path = %L WHERE id = %L$c$, demo::text || '/a/b.jpg', it1), 'foto em subpasta');
+
+  -- desligado por padrão
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('bistro-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'cardápio online desligado não aparece');
+
+  -- só a gestão liga
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO restaurante_config (tenant_id, cardapio_online) VALUES (%L, true)$c$, demo), 'garçom liga o cardápio online');
+  PERFORM ci.entrar(adm);
+  INSERT INTO restaurante_config (tenant_id, cardapio_online) VALUES (demo, true)
+    ON CONFLICT (tenant_id) DO UPDATE SET cardapio_online = true;
+  PERFORM ci.sair();
+
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('BISTRO-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(r IS NOT NULL AND r->'empresa'->>'nome' = 'Bistrô CI', 'anônimo vê o cardápio ligado (link sem diferenciar maiúsculas)');
+  PERFORM ci.exige(jsonb_array_length(r->'cardapios') >= 1 AND jsonb_array_length(r->'cardapios'->0->'categorias') >= 1, 'cardápio público tem cardápios e categorias');
+  PERFORM ci.exige((SELECT c->'itens'->0->>'nome' FROM jsonb_array_elements(r->'cardapios'->0->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 'Filé CI', 'itens saem na ordem do cadastro');
+  PERFORM ci.exige(NOT (r::text LIKE '%Item inativo CI%'), 'item inativo não aparece');
+  PERFORM ci.exige((SELECT (c->'itens'->0->'grupos'->0->'opcoes'->1->>'preco_adicional')::numeric FROM jsonb_array_elements(r->'cardapios'->0->'categorias') c WHERE c->>'nome' = 'Pratos CI') = 2, 'adicionais saem com valor');
+  PERFORM ci.exige(r::text LIKE '%risoto-1.jpg%', 'foto do item sai no cardápio');
+  PERFORM ci.exige((SELECT (i->>'preco')::numeric FROM jsonb_array_elements(r->'cardapios') m, jsonb_array_elements(m->'categorias') c, jsonb_array_elements(c->'itens') i
+                     WHERE m->>'nome' = 'Jantar CI' AND i->>'nome' = 'Prato A CI') = 50, 'cada cardápio público mostra o seu preço');
+  PERFORM ci.exige((SELECT (i->>'preco')::numeric FROM jsonb_array_elements(r->'cardapios') m, jsonb_array_elements(m->'categorias') c, jsonb_array_elements(c->'itens') i
+                     WHERE m->>'nome' = 'Principal CI' AND i->>'nome' = 'Prato A CI') = 45, 'cardápio sem preço próprio mostra o preço base');
+  PERFORM ci.exige(NOT (r::text LIKE '%Parado CI%'), 'cardápio inativo não aparece no público');
+  PERFORM ci.exige(r::text NOT LIKE '%custo%' AND r::text NOT LIKE '%estacao%' AND r::text NOT LIKE '%tenant%', 'cardápio público não expõe custo, estação nem empresa');
+
+  -- categoria desativada some do cardápio
+  UPDATE cardapio_categorias SET ativo = false WHERE id = cat;
+  PERFORM ci.entrar(NULL);
+  r := restaurante_cardapio_publico('bistro-ci');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r::text LIKE '%Filé CI%'), 'item de categoria desativada some do cardápio online');
+  UPDATE cardapio_categorias SET ativo = true WHERE id = cat;
+
+  -- link inválido ou desconhecido
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_cardapio_publico('nao-existe-ci') IS NULL, 'link desconhecido');
+  PERFORM ci.exige(restaurante_cardapio_publico('a b') IS NULL, 'link inválido');
+  PERFORM ci.exige(restaurante_cardapio_publico(NULL) IS NULL, 'link vazio');
+  PERFORM ci.sair();
+
+  -- empresa inativa não publica
+  UPDATE empresas SET ativo = false WHERE tenant_id = demo AND slug = 'bistro-ci';
+  PERFORM ci.entrar(NULL);
+  PERFORM ci.exige(restaurante_cardapio_publico('bistro-ci') IS NULL, 'empresa inativa não publica o cardápio');
+  PERFORM ci.sair();
+  UPDATE empresas SET ativo = true WHERE tenant_id = demo AND slug = 'bistro-ci';
+
+  -- armazenamento: só a gestão da própria empresa mexe na pasta
+  PERFORM ci.entrar(adm);
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', demo::text || '/prato.jpg');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, outro_tenant::text || '/prato.jpg'), 'gestão envia foto na pasta de outra empresa');
+  PERFORM ci.deve_falhar(gar, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, demo::text || '/garcom.jpg'), 'garçom envia foto do cardápio');
+  PERFORM ci.deve_falhar(NULL, format($c$INSERT INTO storage.objects (bucket_id, name) VALUES ('cardapio-fotos', %L)$c$, demo::text || '/anon.jpg'), 'anônimo envia foto do cardápio');
+
+  -- devolve a empresa ao que era, para não interferir nos testes seguintes
+  UPDATE empresas SET slug = emp.slug, nome_fantasia = emp.nome_fantasia, ativo = emp.ativo WHERE id = emp.id;
 END $$;
 
 -- 21. pedido de obra com retirada parcial: saldo por item e trava de saída
@@ -9482,8 +10305,8 @@ BEGIN
                                              'comodidades', jsonb_build_array('Ar-condicionado', ' TV ', 'tv', '')));
   t2 := hs_tipo_uh_salvar(jsonb_build_object('filial_id', f2, 'nome', 'Standard casal'));
   PERFORM ci.sair();
-  -- a ordem das comodidades depende da collation do banco: confere como conjunto
-  PERFORM ci.exige((SELECT comodidades @> ARRAY['Ar-condicionado', 'TV', 'tv'] AND comodidades <@ ARRAY['Ar-condicionado', 'TV', 'tv'] AND cardinality(comodidades) = 3 AND capacidade_criancas = 1 FROM hs_tipos_uh WHERE id = t1), 'tipo guarda capacidade e comodidades sem vazios');
+  -- a lista sai de array_agg(DISTINCT ...), cuja ordem depende da collation do banco ("TV, tv" em C, "tv, TV" em en_US): compara na ordem de C
+  PERFORM ci.exige((SELECT (SELECT array_agg(c ORDER BY c COLLATE "C") FROM unnest(comodidades) c) = ARRAY['Ar-condicionado', 'TV', 'tv'] AND capacidade_criancas = 1 FROM hs_tipos_uh WHERE id = t1), 'tipo guarda capacidade e comodidades sem vazios');
   PERFORM ci.exige(t1 <> t2, 'o mesmo nome vale em hotéis diferentes');
   PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', ' standard CASAL '))$c$, f1), 'tipo com nome repetido no mesmo hotel');
   PERFORM ci.deve_falhar(gest, format($c$SELECT hs_tipo_uh_salvar(jsonb_build_object('filial_id', %L, 'nome', 'X', 'capacidade_adultos', 0))$c$, f1), 'tipo sem adulto');
@@ -11185,4 +12008,407 @@ BEGIN
   DELETE FROM user_roles WHERE user_id = hgar;
   DELETE FROM empresa_modulos_liberados WHERE empresa_id = emp AND modulo = 'hotelaria';
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant, modulos_sem_cnpj = sem_ant WHERE id = emp;
+END $$;
+
+-- 102. Lava rápido (agenda): RLS nas quatro tabelas, escrita só por função, papel e módulo, empresa de cada referência (cross-tenant),
+-- conflito por lavador e por box (intervalo aberto), cancelar e faltar liberam, remarcar ignora o próprio, regra por empresa,
+-- chegada idempotente que cria a ordem em aguardando sem cobrar, sem plano e sem baixa, e que respeita o checklist do pátio
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  vend constant uuid := 'a0000000-0000-0000-0000-000000000002';
+  gest constant uuid := 'a0000000-0000-0000-0000-000000000005';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  est  constant uuid := 'a0000000-0000-0000-0000-0000000000b1';
+  u2   constant uuid := 'a0000000-0000-0000-0000-000000007802';
+  u3   constant uuid := 'a0000000-0000-0000-0000-000000007803';
+  ramo_ant text; cnae_ant text; cnae2_ant text;
+  t2 uuid; t3 uuid;
+  cli uuid; cli_b uuid; v1 uuid; v2 uuid; v3 uuid; v_b uuid; l1 uuid; l2 uuid; l_b uuid; s1 uuid; s2 uuid; s_sem uuid; s_b uuid; s_prod uuid;
+  dep uuid; ped uuid;
+  a1 uuid; a2 uuid; a3 uuid; a4 uuid; a5 uuid; a6 uuid; a_b uuid; o uuid; o2 uuid; r jsonb; n int; n0 int; i1 uuid;
+  pl uuid; ass uuid; a7 uuid; a8 uuid; a9 uuid; o3 uuid; ped2 uuid; cli_p uuid; v_p uuid; v_q uuid; cli_f uuid; v_f uuid; v_g uuid;
+  ini timestamptz := '2030-03-15 09:00:00-03';
+BEGIN
+  SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
+
+  -- outra empresa com o módulo e um administrador (prova de que a recusa é por empresa) e uma empresa sem o módulo
+  INSERT INTO tenants (nome) VALUES ('Lava Agenda T2 CI') RETURNING id INTO t2;
+  INSERT INTO tenants (nome) VALUES ('Lava Agenda T3 CI') RETURNING id INTO t3;
+  INSERT INTO empresas (tenant_id, razao_social, cnae) VALUES (t2, 'Lava Agenda T2 Ltda', '4520-0/06');
+  INSERT INTO empresas (tenant_id, razao_social) VALUES (t3, 'Lava Agenda T3 Ltda');
+  INSERT INTO auth.users (id, email) VALUES (u2, 'agenda-t2@ci'), (u3, 'agenda-t3@ci');
+  UPDATE profiles SET tenant_id = t2, nome = 'Admin T2' WHERE id = u2;
+  UPDATE profiles SET tenant_id = t3, nome = 'Admin T3' WHERE id = u3;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (u2, t2, 'administrador'), (u3, t3, 'administrador');
+
+  INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Agenda CI') RETURNING id INTO dep;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Agenda CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (t2, 'Cliente Agenda T2', '11144477735') RETURNING id INTO cli_b;
+  PERFORM ci.entrar(vend);
+  v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AGD1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
+  v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'AGD2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
+  v3 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AGD3C33', 'fabricante', 'VW', 'modelo', 'Polo'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  s1 := lr_servico_salvar('{"nome":"Lavagem agenda","duracao_min":30,"preco_base":40}'::jsonb);
+  s2 := lr_servico_salvar('{"nome":"Cera agenda","duracao_min":45,"preco_base":30}'::jsonb);
+  s_sem := lr_servico_salvar('{"nome":"Serviço sem preço agenda","duracao_min":20,"preco_base":10}'::jsonb);
+  l1 := lr_lavador_salvar('{"nome":"Lavador Agenda 1","comissao_percentual":10}'::jsonb);
+  l2 := lr_lavador_salvar('{"nome":"Lavador Agenda 2","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+  -- serviço sem nenhum preço cadastrado (nem por tipo, nem geral, nem no cadastro)
+  UPDATE produtos SET preco_venda = 0 WHERE id = (SELECT produto_id FROM lr_servicos WHERE id = s_sem);
+  DELETE FROM lr_servico_precos WHERE servico_id = s_sem;
+  -- preço por tipo vence o geral no carro
+  INSERT INTO lr_servico_precos (tenant_id, servico_id, tipo, preco) VALUES (demo, s1, 'carro', 55);
+  SELECT produto_id INTO s_prod FROM lr_servicos WHERE id = s1;
+
+  PERFORM ci.entrar(u2);
+  v_b := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_b, 'tipo', 'carro', 'identificacao', 'AGB1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
+  s_b := lr_servico_salvar('{"nome":"Lavagem T2","duracao_min":30,"preco_base":40}'::jsonb);
+  l_b := lr_lavador_salvar('{"nome":"Lavador T2","comissao_percentual":0}'::jsonb);
+  PERFORM ci.sair();
+
+  -- ===== escrita direta e leitura: só pelas funções, só da própria empresa =====
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agendamentos (tenant_id, veiculo_id, cliente_id, inicio, fim) VALUES (%L, %L, %L, now(), now() + interval '1 hour')$c$, demo, v1, cli), 'inserir agendamento direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agendamento_itens (tenant_id, agendamento_id, servico_id, duracao_min) VALUES (%L, gen_random_uuid(), %L, 30)$c$, demo, s1), 'inserir item de agendamento direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agenda_ocupacoes (tenant_id, agendamento_id, recurso, chave, periodo) VALUES (%L, gen_random_uuid(), 'box', 'x', tstzrange(now(), now() + interval '1 hour'))$c$, demo), 'inserir ocupação direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO lr_agenda_config (tenant_id) VALUES (%L)$c$, demo), 'inserir configuração da agenda direto');
+  PERFORM ci.deve_falhar(adm, $c$UPDATE lr_agendamentos SET situacao = 'faltou'$c$, 'alterar agendamento direto');
+  PERFORM ci.deve_falhar(adm, $c$DELETE FROM lr_agendamentos$c$, 'apagar agendamento direto');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT count(*) FROM lr_agendamentos$c$, 'anon lê agendamentos');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT count(*) FROM lr_agendamento_itens$c$, 'anon lê itens');
+  PERFORM ci.exige(ci.contar(gar, 'SELECT count(*) FROM lr_agendamentos') = 0, 'garçom não lê agendamentos');
+
+  -- ===== papel e módulo nas cinco funções de escrita =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'garçom agenda');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'estoquista agenda');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'anon agenda');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, s1), 'administrador de empresa sem o módulo agenda');
+  PERFORM ci.deve_falhar(vend, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'vendedor muda a regra da agenda');
+  PERFORM ci.deve_falhar(gar, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'garçom muda a regra da agenda');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'anon muda a regra da agenda');
+  PERFORM ci.deve_falhar(u3, $c$SELECT lr_agenda_config_salvar(true, true, true)$c$, 'empresa sem o módulo muda a regra da agenda');
+
+  -- ===== agendar: validações, fim sugerido, preço e duração do cadastro =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, ini, s1), 'agendar sem lavador e sem box');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, s1), 'agendar sem início');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array()))$c$, v1, l1, ini), 'agendar sem serviço');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, ini, s1), 'fim igual ao início');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l1, ini, ini + interval '25 hours', s1), 'agendamento de mais de 24 horas');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'cliente_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, cli_b, l1, ini, s1), 'cliente que não é dono do veículo');
+  PERFORM ci.entrar(vend);
+  a1 := lr_agendar(jsonb_build_object('veiculo_id', v1, 'cliente_id', cli, 'lavador_id', l1, 'box', ' Box 1 ', 'inicio', ini, 'servicos', jsonb_build_array(s1, s2), 'observacoes', 'Cliente pede cuidado com o banco'));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT fim = inicio + interval '75 minutes' AND situacao = 'agendado' AND box = 'Box 1' AND lavador_id = l1 AND cliente_id = cli FROM lr_agendamentos WHERE id = a1),
+                   'o fim sugerido é a soma das durações cadastradas (30 + 45) e o box é gravado sem espaços');
+  PERFORM ci.exige((SELECT preco_estimado = 55 AND duracao_min = 30 FROM lr_agendamento_itens WHERE agendamento_id = a1 AND servico_id = s1), 'o preço previsto é o do tipo do veículo e a duração é a do serviço');
+  PERFORM ci.exige((SELECT preco_estimado = 30 AND duracao_min = 45 FROM lr_agendamento_itens WHERE agendamento_id = a1 AND servico_id = s2), 'sem preço por tipo, vale o preço do cadastro do serviço');
+  PERFORM ci.entrar(vend);
+  a2 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'lavador_id', l2, 'inicio', ini + interval '3 hours', 'servicos', jsonb_build_array(s_sem)));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT preco_estimado IS NULL FROM lr_agendamento_itens WHERE agendamento_id = a2), 'serviço sem preço cadastrado fica sem preço previsto (nada é inventado)');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_agenda_ocupacoes WHERE agendamento_id = a1) AND (SELECT count(*) = 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a2), 'o calendário guarda lavador e box de cada agendamento');
+
+  -- ===== cross-tenant: cada referência precisa ser da empresa de quem chama =====
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v1, l_b, ini, s_b), 'agendar com veículo de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l1, ini, s_b), 'agendar com lavador de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l_b, ini, s1), 'agendar com serviço de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'cliente_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, cli, l_b, ini, s_b), 'agendar com cliente de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v_b, l1, ini + interval '5 hours', s1), 'a empresa de demonstração agenda veículo da T2');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l_b, ini + interval '5 hours', s1), 'a empresa de demonstração agenda com lavador da T2');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini + interval '5 hours', s_b), 'a empresa de demonstração agenda serviço da T2');
+  PERFORM ci.entrar(u2);
+  a_b := lr_agendar(jsonb_build_object('veiculo_id', v_b, 'cliente_id', cli_b, 'lavador_id', l_b, 'inicio', ini, 'servicos', jsonb_build_array(s_b)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a_b IS NOT NULL, 'a T2 agenda com os próprios cadastros (a recusa acima é por empresa, não por papel ou módulo)');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'confirmar agendamento de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l_b), 'remarcar agendamento de outra empresa');
+  PERFORM ci.deve_falhar(u2, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'registrar chegada de agendamento de outra empresa');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a_b), 'chegada de agendamento da T2 pela empresa de demonstração');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l_b), 'remarcar com lavador de outra empresa');
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_agendamentos') = 1 AND ci.contar(u2, 'SELECT count(*) FROM lr_agendamento_itens') = 1, 'a T2 só lê o que é dela (cabeçalho e itens)');
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_agenda_ocupacoes') = 1, 'a T2 só lê as ocupações dela');
+  PERFORM ci.exige(ci.contar(vend, format($c$SELECT count(*) FROM lr_agendamentos WHERE id = %L$c$, a_b)) = 0, 'a empresa de demonstração não lê agendamento da T2');
+  PERFORM ci.exige(ci.contar(vend, 'SELECT count(*) FROM lr_agendamentos') >= 2, 'a empresa de demonstração lê os seus');
+
+  -- ===== conflito por lavador e por box (intervalo aberto no fim) =====
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini + interval '30 minutes', ini + interval '90 minutes', s1), 'mesmo lavador em horário que cruza');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l1, ini - interval '30 minutes', ini + interval '1 minute', s1), 'mesmo lavador cruzando só o começo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'box', 'BOX 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, l2, ini + interval '10 minutes', ini + interval '40 minutes', s1), 'mesmo box (maiúsculas e minúsculas não diferenciam) em horário que cruza');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'box', 'Box 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v3, ini + interval '10 minutes', ini + interval '40 minutes', s1), 'só o box informado, que está ocupado');
+  PERFORM ci.entrar(vend);
+  a3 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 1', 'inicio', ini + interval '75 minutes', 'servicos', jsonb_build_array(s1)));
+  a4 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l2, 'box', 'Box 2', 'inicio', ini, 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a3 IS NOT NULL, 'começar quando o outro termina é permitido (intervalo aberto no fim)');
+  PERFORM ci.exige(a4 IS NOT NULL, 'outro lavador e outro box no mesmo horário é permitido');
+  -- só o box, sem lavador
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'box', 'Box 3', 'inicio', ini + interval '6 hours', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a5 IS NOT NULL AND (SELECT count(*) = 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a5 AND recurso = 'box'), 'agendar só com o box vale e ocupa o box');
+
+  -- ===== situação: confirmar, cancelar com motivo, faltar =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'garçom confirma');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'estoquista confirma');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'anon confirma');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a1), 'empresa sem o módulo confirma');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'concluido')$c$, a1), 'concluir sem registrar a chegada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado')$c$, a1), 'cancelar sem motivo');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', '   ')$c$, a1), 'cancelar com motivo em branco');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a1, 'confirmado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmado' FROM lr_agendamentos WHERE id = a1), 'confirmar');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'agendado')$c$, a1), 'voltar de confirmado para agendado');
+  -- cancelar libera o horário do lavador e do box
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a3, 'cancelado', 'cliente desistiu');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'cancelado' AND motivo = 'cliente desistiu' FROM lr_agendamentos WHERE id = a3) AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3), 'cancelar guarda o motivo e libera o calendário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'confirmado')$c$, a3), 'confirmar agendamento cancelado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'faltou')$c$, a3), 'marcar falta em agendamento cancelado');
+  PERFORM ci.entrar(vend);
+  a6 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 1', 'inicio', ini + interval '75 minutes', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a6 IS NOT NULL, 'o horário liberado pelo cancelamento pode ser agendado de novo');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a6, 'faltou');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'faltou' FROM lr_agendamentos WHERE id = a6) AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a6), 'falta libera o calendário');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', 'x')$c$, a6), 'cancelar depois da falta');
+
+  -- ===== remarcar =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'garçom remarca');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'anon remarca');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '1 day', l1), 'empresa sem o módulo remarca');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, NULL, NULL)$c$, a1, ini + interval '1 day'), 'remarcar sem lavador e sem box');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a3, ini + interval '1 day', l1), 'remarcar agendamento cancelado');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, 'Box 2')$c$, a1, ini, l2), 'remarcar para cima de outro lavador e outro box');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_remarcar(a1, ini + interval '10 minutes', NULL, l1, 'Box 1');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT inicio = ini + interval '10 minutes' AND fim = ini + interval '85 minutes' AND situacao = 'agendado' FROM lr_agendamentos WHERE id = a1),
+                   'remarcar para um horário que cruza só o próprio agendamento vale, mantém a duração e volta a "agendado"');
+  PERFORM ci.exige((SELECT periodo = tstzrange(ini + interval '10 minutes', ini + interval '85 minutes', '[)') FROM lr_agenda_ocupacoes WHERE agendamento_id = a1 AND recurso = 'lavador'), 'o calendário acompanha a remarcação');
+
+  -- ===== regra por empresa =====
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(false, true, true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  a3 := lr_agendar(jsonb_build_object('veiculo_id', v3, 'lavador_id', l1, 'box', 'Box 9', 'inicio', ini + interval '20 minutes', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a3 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3 AND recurso = 'lavador'), 'com o conflito por lavador desligado, o lavador pode repetir (e o calendário não o trava)');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'lavador_id', %L, 'box', 'Box 1', 'inicio', %L, 'fim', %L, 'servicos', jsonb_build_array(%L)))$c$, v2, l2, ini + interval '20 minutes', ini + interval '50 minutes', s1), 'o conflito por box continua ligado');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(true, false, false);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'inicio', ini + interval '8 hours', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.exige(a5 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a5), 'sem exigir recurso, agendar sem lavador e sem box vale (e não ocupa nada)');
+  PERFORM ci.entrar(gest);
+  PERFORM lr_agenda_config_salvar(true, true, true);
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agendar(jsonb_build_object('veiculo_id', %L, 'inicio', %L, 'servicos', jsonb_build_array(%L)))$c$, v2, ini + interval '9 hours', s1), 'a regra padrão volta a exigir lavador ou box');
+  -- o agendamento aceito com o conflito por lavador desligado (a3 cruza a1) ainda se confirma depois que a regra volta: confirmar não refaz o calendário
+  SELECT count(*) INTO n FROM lr_agenda_ocupacoes WHERE agendamento_id IN (a1, a3);
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a3, 'confirmado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'confirmado' FROM lr_agendamentos WHERE id = a3) AND (SELECT count(*) = n FROM lr_agenda_ocupacoes WHERE agendamento_id IN (a1, a3))
+                   AND NOT EXISTS (SELECT 1 FROM lr_agenda_ocupacoes WHERE agendamento_id = a3 AND recurso = 'lavador'),
+                   'confirmar preserva o calendário: agendamento aceito antes da regra nova continua confirmável');
+  -- no fundo, o banco recusa cruzamento mesmo fora das funções
+  PERFORM ci.deve_falhar_dono(format($c$INSERT INTO lr_agenda_ocupacoes (tenant_id, agendamento_id, recurso, chave, periodo)
+      VALUES (%L, %L, 'lavador', %L, tstzrange(%L::timestamptz, %L::timestamptz, '[)'))$c$, demo, a4, l2::text, ini + interval '10 minutes', ini + interval '20 minutes'), 'a restrição de exclusão do calendário recusa cruzamento');
+
+  -- ===== chegada =====
+  PERFORM ci.deve_falhar(gar, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'garçom registra chegada');
+  PERFORM ci.deve_falhar(est, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'estoquista registra chegada');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'anon registra chegada');
+  PERFORM ci.deve_falhar(u3, format($c$SELECT lr_agenda_chegada(%L)$c$, a1), 'empresa sem o módulo registra chegada');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, gen_random_uuid()), 'chegada de agendamento que não existe');
+  SELECT count(*) INTO n0 FROM lr_ordens WHERE tenant_id = demo;
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a6), 'agendamento marcado como falta não gera ordem');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a2, 'cancelado', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'agendamento cancelado não gera ordem');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'clique repetido em agendamento cancelado continua sem gerar ordem');
+  PERFORM ci.exige((SELECT count(*) = n0 FROM lr_ordens WHERE tenant_id = demo) AND (SELECT ordem_id IS NULL FROM lr_agendamentos WHERE id = a2), 'cancelado e falta não criaram ordem');
+
+  -- serviço sem preço: a chegada recusa e nada fica pela metade
+  PERFORM ci.entrar(vend);
+  a2 := lr_agendar(jsonb_build_object('veiculo_id', v2, 'lavador_id', l2, 'inicio', ini + interval '12 hours', 'servicos', jsonb_build_array(s_sem)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a2), 'chegada com serviço sem preço cadastrado');
+  PERFORM ci.exige((SELECT count(*) = n0 FROM lr_ordens WHERE tenant_id = demo) AND (SELECT situacao = 'agendado' AND ordem_id IS NULL FROM lr_agendamentos WHERE id = a2), 'a chegada recusada não deixou ordem nem mudou o agendamento');
+
+  -- chegada de verdade (checklist obrigatório na empresa)
+  PERFORM ci.entrar(gest);
+  PERFORM lr_config_salvar(true);
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend);
+  PERFORM lr_agenda_situacao(a1, 'confirmado');
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  o := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.exige(o IS NOT NULL AND NOT (r ->> 'repetido')::boolean, 'a chegada cria a ordem');
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND veiculo_id = v1 AND cliente_id = cli AND lavador_id = l1 AND box = 'Box 1' AND observacoes = 'Cliente pede cuidado com o banco' AND checklist_em IS NULL
+                      FROM lr_ordens WHERE id = o), 'a ordem nasce em aguardando, com cliente, veículo, lavador, box e observações, sem checklist');
+  PERFORM ci.exige((SELECT situacao = 'concluido' AND ordem_id = o AND chegada_em IS NOT NULL FROM lr_agendamentos WHERE id = a1), 'o agendamento guarda o ordem_id e fica concluído');
+  PERFORM ci.exige((SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o AND cobertura IS NULL AND assinatura_id IS NULL), 'sem plano nem brinde, os serviços previstos entram como itens comuns');
+  PERFORM ci.exige((SELECT preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s1) AND (SELECT preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o AND servico_id = s2), 'preço da ordem: o do cadastro, por tipo de veículo');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o), 'sem plano nem brinde no cadastro, a chegada não aplica cobertura');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM lr_insumo_baixas b WHERE b.ordem_id = o) AND NOT EXISTS (SELECT 1 FROM lr_comissoes WHERE ordem_id = o) AND (SELECT venda_id IS NULL FROM lr_ordens WHERE id = o), 'a chegada não cobra, não baixa insumo e não gera comissão');
+  -- repetir a chegada devolve a mesma ordem
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'clique repetido devolve a ordem existente');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_ordens WHERE veiculo_id = v1 AND situacao <> 'cancelada') AND (SELECT count(*) = 2 FROM lr_ordem_itens WHERE ordem_id = o), 'e não cria outra ordem nem repete itens');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_situacao(%L, 'cancelado', 'x')$c$, a1), 'cancelar agendamento já concluído');
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_remarcar(%L, %L, NULL, %L, NULL)$c$, a1, ini + interval '2 days', l1), 'remarcar agendamento já concluído');
+  -- veículo que já tem ordem aberta: a chegada seguinte recusa
+  PERFORM ci.entrar(vend);
+  a5 := lr_agendar(jsonb_build_object('veiculo_id', v1, 'lavador_id', l2, 'inicio', ini + interval '2 days', 'servicos', jsonb_build_array(s1)));
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_agenda_chegada(%L)$c$, a5), 'chegada de veículo que já tem ordem aberta');
+  PERFORM ci.exige((SELECT situacao = 'agendado' AND ordem_id IS NULL FROM lr_agendamentos WHERE id = a5), 'a recusa deixou o agendamento como estava');
+
+  -- o pátio manda: checklist obrigatório vale para a ordem vinda da agenda
+  PERFORM ci.deve_falhar(vend, format($c$SELECT lr_ordem_situacao(%L, 'lavando')$c$, o), 'lavar sem o checklist (a agenda não contorna)');
+  PERFORM ci.entrar(vend);
+  PERFORM lr_checklist_concluir(o, true);
+  PERFORM lr_ordem_situacao(o, 'lavando');
+  PERFORM lr_ordem_situacao(o, 'pronto');
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'pronto' FROM lr_ordens WHERE id = o), 'com o checklist concluído a ordem segue o pátio normalmente');
+  -- entregar e cobrar: pelo fluxo de sempre
+  PERFORM ci.entrar(vend);
+  ped := pdv_venda(dep, jsonb_build_array(
+           jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = s1), 'quantidade', 1, 'preco_unitario', 55),
+           jsonb_build_object('produto_id', (SELECT produto_id FROM lr_servicos WHERE id = s2), 'quantidade', 1, 'preco_unitario', 30)), 'crediario', cli, 0, 1, current_date + 30);
+  r := lr_ordem_retirar(o, ped);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT situacao = 'entregue' AND venda_id = ped FROM lr_ordens WHERE id = o), 'Entregar e cobrar cobra a ordem da agenda pelo fluxo existente');
+  PERFORM ci.exige((SELECT valor = 8.5 FROM lr_comissoes WHERE ordem_id = o), 'a comissão sai só na entrega (10% de 85)');
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a1);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'depois de entregue, a chegada repetida ainda devolve a mesma ordem');
+
+  -- ===== plano e fidelidade: a chegada aplica a mesma cobertura da ordem aberta no pátio =====
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano Agenda CI', '11144477735') RETURNING id INTO cli_p;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel Agenda CI', '39053344705') RETURNING id INTO cli_f;
+  PERFORM ci.entrar(vend);
+  v_p := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP1A11', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
+  v_q := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP2B22', 'fabricante', 'Fiat', 'modelo', 'Palio'));
+  v_f := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_f, 'tipo', 'carro', 'identificacao', 'AGF1C33', 'fabricante', 'VW', 'modelo', 'Fox'));
+  v_g := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_f, 'tipo', 'carro', 'identificacao', 'AGF2D44', 'fabricante', 'VW', 'modelo', 'Up'));
+  PERFORM ci.sair();
+  PERFORM ci.entrar(gest);
+  pl := lr_plano_salvar(jsonb_build_object('nome', 'Plano agenda CI', 'servico_id', s1, 'lavagens', 2, 'preco', 60, 'validade_dias', 30, 'tipo', 'carro'));
+  PERFORM ci.sair();
+  -- assinatura ativa do veículo v_p para o serviço s1 (a venda do plano é testada na seção do pátio)
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, pl, v_p, cli_p, s1, 2, 60, current_date, current_date + 30) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  a7 := lr_agendar(jsonb_build_object('veiculo_id', v_p, 'lavador_id', l2, 'inicio', ini + interval '3 days', 'servicos', jsonb_build_array(s1, s2)));
+  r := lr_agenda_chegada(a7);
+  PERFORM ci.sair();
+  o3 := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND assinatura_id = ass FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s1), 'o serviço do plano ativo do veículo sai coberto pela assinatura');
+  PERFORM ci.exige((SELECT cobertura IS NULL AND assinatura_id IS NULL AND preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s2), 'o serviço fora do plano segue cobrado, com o preço do cadastro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM lr_assinatura_usos u JOIN lr_ordem_itens i ON i.id = u.item_id WHERE i.ordem_id = o3 AND u.assinatura_id = ass AND NOT u.desfeito)
+                   AND _lr_assinatura_restam(ass) = 1, 'a lavagem do plano é gasta uma vez');
+  PERFORM ci.exige((SELECT situacao = 'aguardando' AND venda_id IS NULL FROM lr_ordens WHERE id = o3), 'a ordem com plano nasce em aguardando, sem venda');
+  -- repetir a chegada não gasta outra lavagem
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a7);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'ordem_id')::uuid = o3 AND (r ->> 'repetido')::boolean AND _lr_assinatura_restam(ass) = 1, 'clique repetido não gasta outra lavagem do plano');
+  -- cancelar a ordem devolve a lavagem (regra do pátio)
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.exige(_lr_assinatura_restam(ass) = 2, 'cancelar a ordem da agenda devolve a lavagem do plano');
+  -- plano de outro veículo do mesmo cliente não vale
+  PERFORM ci.entrar(vend);
+  a8 := lr_agendar(jsonb_build_object('veiculo_id', v_q, 'lavador_id', l2, 'inicio', ini + interval '3 days 2 hours', 'servicos', jsonb_build_array(s1)));
+  r := lr_agenda_chegada(a8);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'a assinatura de um veículo não cobre outro veículo');
+  -- plano vencido não cobre
+  UPDATE lr_assinaturas SET vence_em = current_date - 1 WHERE id = ass;
+  PERFORM ci.entrar(vend);
+  a9 := lr_agendar(jsonb_build_object('veiculo_id', v_p, 'lavador_id', l1, 'inicio', ini + interval '4 days', 'servicos', jsonb_build_array(s1)));
+  r := lr_agenda_chegada(a9);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid) AND _lr_assinatura_restam(ass) = 2, 'plano vencido não cobre a ordem da agenda');
+  -- outra empresa não enxerga nem usa essa assinatura
+  PERFORM ci.exige(ci.contar(u2, 'SELECT count(*) FROM lr_assinaturas') = 0, 'a assinatura não aparece para outra empresa');
+
+  -- fidelidade: a cada 2 lavagens entregues, a próxima do serviço-brinde (s2) é grátis
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(true, 2, s2);
+  PERFORM ci.sair();
+  FOR n IN 1..2 LOOP
+    PERFORM ci.entrar(vend);
+    o3 := lr_ordem_criar(jsonb_build_object('veiculo_id', v_f, 'lavador_id', l2, 'servicos', jsonb_build_array(s1)));
+    PERFORM lr_checklist_concluir(o3, true);
+    PERFORM lr_ordem_situacao(o3, 'lavando'); PERFORM lr_ordem_situacao(o3, 'pronto');
+    ped2 := pdv_venda(dep, jsonb_build_array(jsonb_build_object('produto_id', s_prod, 'quantidade', 1, 'preco_unitario', 55)), 'crediario', cli_f, 0, 1, current_date + 30);
+    PERFORM lr_ordem_retirar(o3, ped2);
+    PERFORM ci.sair();
+  END LOOP;
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 1, 'duas lavagens entregues dão um brinde');
+  PERFORM ci.entrar(vend);
+  a7 := lr_agendar(jsonb_build_object('veiculo_id', v_f, 'lavador_id', l2, 'inicio', ini + interval '5 days', 'servicos', jsonb_build_array(s1, s2)));
+  a8 := lr_agendar(jsonb_build_object('veiculo_id', v_g, 'lavador_id', l1, 'inicio', ini + interval '5 days', 'servicos', jsonb_build_array(s2)));
+  r := lr_agenda_chegada(a7);
+  o3 := (r ->> 'ordem_id')::uuid;
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'fidelidade' AND assinatura_id IS NULL FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s2), 'o serviço-brinde sai de graça na chegada');
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 55 FROM lr_ordem_itens WHERE ordem_id = o3 AND servico_id = s1), 'os outros serviços seguem cobrados');
+  -- o brinde é do cliente: a chegada do outro veículo dele, com o brinde já usado, cobra normalmente
+  PERFORM ci.entrar(vend);
+  r := lr_agenda_chegada(a8);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura IS NULL AND preco_aplicado = 30 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'brinde já usado: a segunda ordem do cliente é cobrada');
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 0, 'o brinde usado na agenda não fica disponível de novo');
+  -- cancelar a ordem devolve o brinde
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao(o3, 'cancelada', 'teste');
+  PERFORM ci.sair();
+  PERFORM ci.entrar(vend); r := lr_fidelidade_cliente(cli_f); PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'disponiveis')::int = 1, 'cancelar a ordem da agenda devolve o brinde');
+  -- serviço coberto não exige preço cadastrado (o cobrado exige, como testado acima)
+  PERFORM ci.entrar(vend);
+  PERFORM lr_ordem_situacao((SELECT ordem_id FROM lr_agendamentos WHERE id = a8), 'cancelada', 'teste');
+  PERFORM ci.sair();
+  INSERT INTO lr_assinaturas (tenant_id, plano_id, veiculo_id, cliente_id, servico_id, lavagens, valor, comprado_em, vence_em)
+  VALUES (demo, pl, v_g, cli_f, s_sem, 2, 20, current_date, current_date + 30) RETURNING id INTO ass;
+  PERFORM ci.entrar(vend);
+  a9 := lr_agendar(jsonb_build_object('veiculo_id', v_g, 'lavador_id', l1, 'inicio', ini + interval '6 days', 'servicos', jsonb_build_array(s_sem)));
+  r := lr_agenda_chegada(a9);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT cobertura = 'assinatura' AND preco_aplicado = 0 FROM lr_ordem_itens WHERE ordem_id = (r ->> 'ordem_id')::uuid), 'serviço coberto pelo plano entra sem exigir preço cadastrado');
+  -- fidelidade desligada
+  PERFORM ci.entrar(gest);
+  PERFORM lr_fidelidade_salvar(false, 2, s2);
+  PERFORM ci.sair();
+
+  -- limpeza
+  DELETE FROM lr_agenda_config WHERE tenant_id = demo;
+  DELETE FROM lr_config WHERE tenant_id = demo;
+  UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
 END $$;

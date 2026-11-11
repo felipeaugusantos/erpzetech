@@ -166,3 +166,13 @@ test("dashboard pet: clínica, ramo pet shop e CNAE de pet shop; liberação de 
   );
   assert.equal(ehEmpresaPet(null), false);
 });
+
+test("dashboard da clínica: os atalhos da agenda valem para a clínica também (a agenda não é bloqueada sem o pet shop)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const fonte = readFileSync(
+    new URL("../src/components/app/DashboardPet.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.equal((fonte.match(/to="\/pet-agenda"/g) ?? []).length, 2);
+  assert.equal(/petshop &&/.test(fonte), false, "os atalhos não dependem do pet shop");
+});

@@ -1,11 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { urlChamarMesa } from "../src/lib/chamados.ts";
+import {
+  cardapioSugerido,
+  dentroDoHorario,
+  itensDoCardapio,
+  precoNoCardapio,
+} from "../src/lib/cardapios.ts";
+import { itensSemCorrespondencia, totalItensPedido } from "../src/lib/pedido-externo.ts";
+import { calcularPesagem, kgTexto, pesoEmGramas } from "../src/lib/pesagem.ts";
 import {
   calcularBaixa,
   calcularConta,
   dividirConta,
   ehGestaoSalao,
+  reservaVigente,
+  rotuloEstacao,
+  statusMesa,
   ehProfissionalRestrito,
   ehSalaoRestrito,
   minutosDesde,
@@ -234,5 +246,203 @@ test("serviço acumulado: duas baixas somam o serviço da conta inteira (sem per
       cobrarServico: true,
       desconto: 0,
     }).total,
+  );
+});
+
+test("rotuloEstacao: fixas, cadastradas e desconhecidas", () => {
+  const pracas = [{ codigo: "churrascaria", nome: "Churrascaria" }];
+  assert.equal(rotuloEstacao("cozinha", pracas), "Cozinha");
+  assert.equal(rotuloEstacao("nenhuma", pracas), "Pronto para servir");
+  assert.equal(rotuloEstacao("churrascaria", pracas), "Churrascaria");
+  assert.equal(rotuloEstacao("sumiu", pracas), "sumiu");
+});
+
+test("statusMesa: ocupada > bloqueada > reservada > livre", () => {
+  const agora = new Date("2026-11-01T20:00:00Z").getTime();
+  const em = (min: number) => new Date(agora + min * 60_000).toISOString();
+  const base = { bloqueada: false, ocupada: false, reservas: [], agora };
+  assert.equal(statusMesa(base), "livre");
+  assert.equal(statusMesa({ ...base, bloqueada: true }), "bloqueada");
+  assert.equal(statusMesa({ ...base, bloqueada: true, ocupada: true }), "ocupada");
+  assert.equal(statusMesa({ ...base, reservas: [{ reservada_para: em(20) }] }), "reservada");
+  assert.equal(
+    statusMesa({ ...base, bloqueada: true, reservas: [{ reservada_para: em(0) }] }),
+    "bloqueada",
+  );
+});
+
+test("reservaVigente: de 30 min antes a 2 h depois do horário", () => {
+  const agora = new Date("2026-11-01T20:00:00Z").getTime();
+  const em = (min: number) => new Date(agora + min * 60_000).toISOString();
+  assert.equal(reservaVigente(em(31), agora), false);
+  assert.equal(reservaVigente(em(30), agora), true);
+  assert.equal(reservaVigente(em(-120), agora), true);
+  assert.equal(reservaVigente(em(-121), agora), false);
+});
+
+test("calcularPesagem: peso líquido x preço do kg, arredondado no centavo", () => {
+  assert.deepEqual(calcularPesagem({ brutoG: 850, taraG: 350, precoKg: 60 }), {
+    liquidoG: 500,
+    valorSemTeto: 30,
+    valor: 30,
+    tetoAplicado: false,
+  });
+  assert.equal(calcularPesagem({ brutoG: 683, taraG: 350, precoKg: 59.9 })?.valor, 19.95);
+  assert.equal(calcularPesagem({ brutoG: 685, taraG: 350, precoKg: 59.9 })?.valor, 20.07);
+  assert.equal(calcularPesagem({ brutoG: 350, taraG: 350, precoKg: 60 }), null);
+  assert.equal(calcularPesagem({ brutoG: 300, taraG: 350, precoKg: 60 }), null);
+});
+
+test("calcularPesagem: o buffet livre limita o valor do prato", () => {
+  const r = calcularPesagem({ brutoG: 1350, taraG: 350, precoKg: 60, buffetLivre: 40 });
+  assert.equal(r?.valorSemTeto, 60);
+  assert.equal(r?.valor, 40);
+  assert.equal(r?.tetoAplicado, true);
+  // um centavo acima já aplica; igual ao teto não conta como aplicado
+  assert.equal(
+    calcularPesagem({ brutoG: 1367, taraG: 350, precoKg: 60, buffetLivre: 40 })?.tetoAplicado,
+    true,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1017, taraG: 350, precoKg: 60, buffetLivre: 40 })?.valor,
+    40,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1017, taraG: 350, precoKg: 60, buffetLivre: 40.02 })?.tetoAplicado,
+    false,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 850, taraG: 350, precoKg: 60, buffetLivre: 40 })?.tetoAplicado,
+    false,
+  );
+  assert.equal(
+    calcularPesagem({ brutoG: 1350, taraG: 350, precoKg: 60, buffetLivre: null })?.valor,
+    60,
+  );
+});
+
+test("pesoEmGramas e kgTexto", () => {
+  assert.equal(pesoEmGramas("850", "g"), 850);
+  assert.equal(pesoEmGramas("0,850", "kg"), 850);
+  assert.equal(pesoEmGramas("0.850", "kg"), 850);
+  assert.equal(pesoEmGramas("1,25", "kg"), 1250);
+  assert.equal(pesoEmGramas("", "g"), null);
+  assert.equal(pesoEmGramas("abc", "g"), null);
+  assert.equal(pesoEmGramas("0", "g"), null);
+  assert.equal(pesoEmGramas("31", "kg"), null);
+  assert.equal(kgTexto(500), "0,500 kg");
+  assert.equal(kgTexto(1250), "1,250 kg");
+});
+
+test("pedido externo: itens sem correspondência e total dos itens", () => {
+  const pedido = {
+    itens: [
+      {
+        codigo: "A",
+        nome: "Burger",
+        quantidade: 2,
+        preco: 30,
+        adicionais: [
+          { nome: "Bacon", preco: 4 },
+          { nome: "Queijo", preco: 2.5 },
+        ],
+      },
+      { codigo: "B", nome: "Suco", quantidade: 1, preco: 9.5 },
+      { codigo: "B", nome: "Suco", quantidade: 1, preco: 9.5 },
+    ],
+  };
+  assert.deepEqual(
+    itensSemCorrespondencia(pedido, [{ codigo_externo: "B" }, { codigo_externo: null }]).map(
+      (i) => i.codigo,
+    ),
+    ["A"],
+  );
+  assert.deepEqual(
+    itensSemCorrespondencia(pedido, []).map((i) => i.codigo),
+    ["A", "B"],
+  );
+  assert.equal(
+    itensSemCorrespondencia(pedido, [{ codigo_externo: "A" }, { codigo_externo: "B" }]).length,
+    0,
+  );
+  assert.equal(totalItensPedido(pedido), 2 * 36.5 + 19);
+});
+
+test("vários cardápios: horário, sugestão, preço e ordem", () => {
+  const base = {
+    ativo: true,
+    uso_salao: true,
+    uso_delivery: true,
+    uso_online: true,
+    uso_ifood: false,
+  };
+  const almoco = {
+    ...base,
+    id: "a",
+    nome: "Almoço",
+    ordem: 1,
+    padrao: false,
+    hora_inicio: "11:00:00",
+    hora_fim: "15:00:00",
+  };
+  const jantar = {
+    ...base,
+    id: "j",
+    nome: "Jantar",
+    ordem: 2,
+    padrao: false,
+    hora_inicio: "18:00",
+    hora_fim: "02:00",
+  };
+  const principal = {
+    ...base,
+    id: "p",
+    nome: "Principal",
+    ordem: 0,
+    padrao: true,
+    hora_inicio: null,
+    hora_fim: null,
+  };
+  const hora = (h: number, m = 0) => new Date(2026, 10, 1, h, m);
+  assert.equal(dentroDoHorario(almoco, hora(11, 0)), true);
+  assert.equal(dentroDoHorario(almoco, hora(15, 0)), false);
+  assert.equal(dentroDoHorario(jantar, hora(23, 30)), true);
+  assert.equal(dentroDoHorario(jantar, hora(1, 0)), true);
+  assert.equal(dentroDoHorario(jantar, hora(2, 0)), false);
+  assert.equal(dentroDoHorario(principal, hora(12)), false);
+  const todos = [jantar, principal, almoco];
+  assert.equal(cardapioSugerido(todos, hora(12))?.id, "a");
+  assert.equal(cardapioSugerido(todos, hora(20))?.id, "j");
+  assert.equal(cardapioSugerido(todos, hora(16))?.id, "p");
+  assert.equal(cardapioSugerido([almoco, jantar], hora(16))?.id, "a");
+  assert.equal(cardapioSugerido([], hora(16)), null);
+
+  const itens = [
+    { id: "x", nome: "Xis", ordem: 5, preco: 20 },
+    { id: "y", nome: "Yakisoba", ordem: 1, preco: 30 },
+    { id: "z", nome: "Zebu", ordem: 2, preco: 40 },
+  ];
+  const vinculos = [
+    { cardapio_id: "j", item_id: "x", preco: 25, ordem: 0 },
+    { cardapio_id: "j", item_id: "y", preco: null, ordem: null },
+    { cardapio_id: "p", item_id: "z", preco: null, ordem: null },
+  ];
+  assert.deepEqual(
+    itensDoCardapio(itens, vinculos, "j").map((i) => i.id),
+    ["x", "y"],
+  );
+  assert.deepEqual(
+    itensDoCardapio(itens, vinculos, "p").map((i) => i.id),
+    ["z"],
+  );
+  assert.equal(precoNoCardapio(itens[0]!, vinculos, "j"), 25);
+  assert.equal(precoNoCardapio(itens[1]!, vinculos, "j"), 30);
+  assert.equal(precoNoCardapio(itens[0]!, vinculos, null), 20);
+});
+
+test("chamar garçom: endereço do QR da mesa", () => {
+  assert.equal(
+    urlChamarMesa("https://app.exemplo.com/", "meu-bistro", "11111111-2222-3333-4444-555555555555"),
+    "https://app.exemplo.com/chamar/meu-bistro/11111111-2222-3333-4444-555555555555",
   );
 });

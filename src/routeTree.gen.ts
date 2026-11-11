@@ -21,12 +21,16 @@ import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedBackupHistoricoRouteImport } from './routes/_authenticated/backup-historico'
+import { Route as AuthenticatedBackupNuvemRouteImport } from './routes/_authenticated/backup-nuvem'
+import { Route as AuthenticatedBalancaRouteImport } from './routes/_authenticated/balanca'
 import { Route as AuthenticatedBalancoFiscalRouteImport } from './routes/_authenticated/balanco-fiscal'
 import { Route as AuthenticatedBancoMovimentosRouteImport } from './routes/_authenticated/banco-movimentos'
 import { Route as AuthenticatedCaixaRouteImport } from './routes/_authenticated/caixa'
 import { Route as AuthenticatedCardapioRouteImport } from './routes/_authenticated/cardapio'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated/categorias'
 import { Route as AuthenticatedCertificadoNfseRouteImport } from './routes/_authenticated/certificado-nfse'
+import { Route as AuthenticatedChamadosRouteImport } from './routes/_authenticated/chamados'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedClientesObrasRouteImport } from './routes/_authenticated/clientes-obras'
 import { Route as AuthenticatedClinicaAtendimentoRouteImport } from './routes/_authenticated/clinica-atendimento'
@@ -39,12 +43,15 @@ import { Route as AuthenticatedClinicaExamesRouteImport } from './routes/_authen
 import { Route as AuthenticatedClinicaExamesModelosRouteImport } from './routes/_authenticated/clinica-exames-modelos'
 import { Route as AuthenticatedClinicaExecucoesRouteImport } from './routes/_authenticated/clinica-execucoes'
 import { Route as AuthenticatedClinicaFichaRouteImport } from './routes/_authenticated/clinica-ficha'
+import { Route as AuthenticatedClinicaFilaRouteImport } from './routes/_authenticated/clinica-fila'
 import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
 import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
+import { Route as AuthenticatedClinicaPortalRouteImport } from './routes/_authenticated/clinica-portal'
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
 import { Route as AuthenticatedClinicaVacinasRouteImport } from './routes/_authenticated/clinica-vacinas'
+import { Route as AuthenticatedClinicaWhatsappRouteImport } from './routes/_authenticated/clinica-whatsapp'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -87,6 +94,7 @@ import { Route as AuthenticatedImpostosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedImpostosFilialRouteImport } from './routes/_authenticated/impostos-filial'
 import { Route as AuthenticatedImpostosNotaRouteImport } from './routes/_authenticated/impostos-nota'
 import { Route as AuthenticatedInventariosRouteImport } from './routes/_authenticated/inventarios'
+import { Route as AuthenticatedLavaAgendaRouteImport } from './routes/_authenticated/lava-agenda'
 import { Route as AuthenticatedLavaAvisosRouteImport } from './routes/_authenticated/lava-avisos'
 import { Route as AuthenticatedLavaClientesRouteImport } from './routes/_authenticated/lava-clientes'
 import { Route as AuthenticatedLavaInsumosRouteImport } from './routes/_authenticated/lava-insumos'
@@ -111,6 +119,7 @@ import { Route as AuthenticatedManufaturaEtapasRouteImport } from './routes/_aut
 import { Route as AuthenticatedManufaturaMargemRouteImport } from './routes/_authenticated/manufatura-margem'
 import { Route as AuthenticatedManufaturaNecessidadeRouteImport } from './routes/_authenticated/manufatura-necessidade'
 import { Route as AuthenticatedManufaturaOrdensRouteImport } from './routes/_authenticated/manufatura-ordens'
+import { Route as AuthenticatedMenuPersonalizadoRouteImport } from './routes/_authenticated/menu-personalizado'
 import { Route as AuthenticatedModulosSemCnpjRouteImport } from './routes/_authenticated/modulos-sem-cnpj'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -119,6 +128,7 @@ import { Route as AuthenticatedMovimentoGradeRouteImport } from './routes/_authe
 import { Route as AuthenticatedNfceConfigRouteImport } from './routes/_authenticated/nfce-config'
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedNfeEntradaRouteImport } from './routes/_authenticated/nfe-entrada'
+import { Route as AuthenticatedNfeRecebidasRouteImport } from './routes/_authenticated/nfe-recebidas'
 import { Route as AuthenticatedNfeSimulacaoRouteImport } from './routes/_authenticated/nfe-simulacao'
 import { Route as AuthenticatedObraHistoricoRouteImport } from './routes/_authenticated/obra-historico'
 import { Route as AuthenticatedObrasRouteImport } from './routes/_authenticated/obras'
@@ -127,6 +137,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPainelFilialRouteImport } from './routes/_authenticated/painel-filial'
 import { Route as AuthenticatedPainelFiscalRouteImport } from './routes/_authenticated/painel-fiscal'
 import { Route as AuthenticatedPainelLocacaoRouteImport } from './routes/_authenticated/painel-locacao'
+import { Route as AuthenticatedPainelSenhasRouteImport } from './routes/_authenticated/painel-senhas'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
 import { Route as AuthenticatedPendenciasFiscaisRouteImport } from './routes/_authenticated/pendencias-fiscais'
 import { Route as AuthenticatedPersonalizacaoRouteImport } from './routes/_authenticated/personalizacao'
@@ -166,9 +177,13 @@ import { Route as AuthenticatedVeiculosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedVendedoresRouteImport } from './routes/_authenticated/vendedores'
 import { Route as AuthenticatedZeTechRouteImport } from './routes/_authenticated/ze-tech'
 import { Route as AuthenticatedZeTechAssistenciaRouteImport } from './routes/_authenticated/ze-tech-assistencia'
+import { Route as AuthenticatedZeTechBackupsRouteImport } from './routes/_authenticated/ze-tech-backups'
+import { Route as AuthenticatedZeTechBularioRouteImport } from './routes/_authenticated/ze-tech-bulario'
 import { Route as AuthenticatedZeTechClientesRouteImport } from './routes/_authenticated/ze-tech-clientes'
 import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authenticated/ze-tech-cobranca'
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
+import { Route as AuthenticatedZeTechContratosRouteImport } from './routes/_authenticated/ze-tech-contratos'
+import { Route as AuthenticatedZeTechEquipeRouteImport } from './routes/_authenticated/ze-tech-equipe'
 import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
 import { Route as AuthenticatedZeTechLinksRouteImport } from './routes/_authenticated/ze-tech-links'
 import { Route as AuthenticatedZeTechLojasRouteImport } from './routes/_authenticated/ze-tech-lojas'
@@ -176,8 +191,14 @@ import { Route as AuthenticatedZeTechNotasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
 import { Route as AuthenticatedZeTechRelatorioFiscalRouteImport } from './routes/_authenticated/ze-tech-relatorio-fiscal'
 import { Route as AuthenticatedZeTechRelatoriosRouteImport } from './routes/_authenticated/ze-tech-relatorios'
+import { Route as AuthenticatedZeTechRestauracaoRouteImport } from './routes/_authenticated/ze-tech-restauracao'
 import { Route as AuthenticatedZeTechTecnicosRouteImport } from './routes/_authenticated/ze-tech-tecnicos'
 import { Route as AuthenticatedZeTechTempoRealRouteImport } from './routes/_authenticated/ze-tech-tempo-real'
+import { Route as MenuEmpresaRouteImport } from './routes/menu.$empresa'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as PortalEntrarRouteImport } from './routes/portal.entrar'
+import { Route as AuthenticatedClinicaBularioIndexRouteImport } from './routes/_authenticated/clinica-bulario.index'
+import { Route as AuthenticatedClinicaBularioIdRouteImport } from './routes/_authenticated/clinica-bulario.$id'
 import { Route as AuthenticatedComprasIndexRouteImport } from './routes/_authenticated/compras.index'
 import { Route as AuthenticatedComprasIdRouteImport } from './routes/_authenticated/compras.$id'
 import { Route as AuthenticatedDepositosIndexRouteImport } from './routes/_authenticated/depositos.index'
@@ -185,9 +206,15 @@ import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authenticated/hotel-estadia.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
+import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
+import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
+import { Route as PortalReceitaIdRouteImport } from './routes/portal.receita.$id'
+import { Route as ApiPublicHooksBackupClientesRouteImport } from './routes/api.public.hooks.backup-clientes'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
+import { Route as ApiPublicOauthBackupDriveReturnRouteImport } from './routes/api.public.oauth.backup-drive.return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -251,6 +278,23 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBackupHistoricoRoute =
+  AuthenticatedBackupHistoricoRouteImport.update({
+    id: '/backup-historico',
+    path: '/backup-historico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBackupNuvemRoute =
+  AuthenticatedBackupNuvemRouteImport.update({
+    id: '/backup-nuvem',
+    path: '/backup-nuvem',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBalancaRoute = AuthenticatedBalancaRouteImport.update({
+  id: '/balanca',
+  path: '/balanca',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBalancoFiscalRoute =
   AuthenticatedBalancoFiscalRouteImport.update({
     id: '/balanco-fiscal',
@@ -284,6 +328,11 @@ const AuthenticatedCertificadoNfseRoute =
     path: '/certificado-nfse',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedChamadosRoute = AuthenticatedChamadosRouteImport.update({
+  id: '/chamados',
+  path: '/chamados',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -355,6 +404,12 @@ const AuthenticatedClinicaFichaRoute =
     path: '/clinica-ficha',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaFilaRoute =
+  AuthenticatedClinicaFilaRouteImport.update({
+    id: '/clinica-fila',
+    path: '/clinica-fila',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClinicaInternacaoRoute =
   AuthenticatedClinicaInternacaoRouteImport.update({
     id: '/clinica-internacao',
@@ -373,6 +428,12 @@ const AuthenticatedClinicaOfflineRoute =
     path: '/clinica-offline',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaPortalRoute =
+  AuthenticatedClinicaPortalRouteImport.update({
+    id: '/clinica-portal',
+    path: '/clinica-portal',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClinicaProntuarioRoute =
   AuthenticatedClinicaProntuarioRouteImport.update({
     id: '/clinica-prontuario',
@@ -389,6 +450,12 @@ const AuthenticatedClinicaVacinasRoute =
   AuthenticatedClinicaVacinasRouteImport.update({
     id: '/clinica-vacinas',
     path: '/clinica-vacinas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaWhatsappRoute =
+  AuthenticatedClinicaWhatsappRouteImport.update({
+    id: '/clinica-whatsapp',
+    path: '/clinica-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
@@ -625,6 +692,11 @@ const AuthenticatedInventariosRoute =
     path: '/inventarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLavaAgendaRoute = AuthenticatedLavaAgendaRouteImport.update({
+  id: '/lava-agenda',
+  path: '/lava-agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLavaAvisosRoute = AuthenticatedLavaAvisosRouteImport.update({
   id: '/lava-avisos',
   path: '/lava-avisos',
@@ -764,6 +836,12 @@ const AuthenticatedManufaturaOrdensRoute =
     path: '/manufatura-ordens',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMenuPersonalizadoRoute =
+  AuthenticatedMenuPersonalizadoRouteImport.update({
+    id: '/menu-personalizado',
+    path: '/menu-personalizado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModulosSemCnpjRoute =
   AuthenticatedModulosSemCnpjRouteImport.update({
     id: '/modulos-sem-cnpj',
@@ -807,6 +885,12 @@ const AuthenticatedNfeEntradaRoute = AuthenticatedNfeEntradaRouteImport.update({
   path: '/nfe-entrada',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNfeRecebidasRoute =
+  AuthenticatedNfeRecebidasRouteImport.update({
+    id: '/nfe-recebidas',
+    path: '/nfe-recebidas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNfeSimulacaoRoute =
   AuthenticatedNfeSimulacaoRouteImport.update({
     id: '/nfe-simulacao',
@@ -850,6 +934,12 @@ const AuthenticatedPainelLocacaoRoute =
   AuthenticatedPainelLocacaoRouteImport.update({
     id: '/painel-locacao',
     path: '/painel-locacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPainelSenhasRoute =
+  AuthenticatedPainelSenhasRouteImport.update({
+    id: '/painel-senhas',
+    path: '/painel-senhas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
@@ -1064,6 +1154,18 @@ const AuthenticatedZeTechAssistenciaRoute =
     path: '/ze-tech-assistencia',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechBackupsRoute =
+  AuthenticatedZeTechBackupsRouteImport.update({
+    id: '/ze-tech-backups',
+    path: '/ze-tech-backups',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedZeTechBularioRoute =
+  AuthenticatedZeTechBularioRouteImport.update({
+    id: '/ze-tech-bulario',
+    path: '/ze-tech-bulario',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechClientesRoute =
   AuthenticatedZeTechClientesRouteImport.update({
     id: '/ze-tech-clientes',
@@ -1080,6 +1182,18 @@ const AuthenticatedZeTechContasPagarRoute =
   AuthenticatedZeTechContasPagarRouteImport.update({
     id: '/ze-tech-contas-pagar',
     path: '/ze-tech-contas-pagar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedZeTechContratosRoute =
+  AuthenticatedZeTechContratosRouteImport.update({
+    id: '/ze-tech-contratos',
+    path: '/ze-tech-contratos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedZeTechEquipeRoute =
+  AuthenticatedZeTechEquipeRouteImport.update({
+    id: '/ze-tech-equipe',
+    path: '/ze-tech-equipe',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedZeTechLavaRapidoRoute =
@@ -1124,6 +1238,12 @@ const AuthenticatedZeTechRelatoriosRoute =
     path: '/ze-tech-relatorios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechRestauracaoRoute =
+  AuthenticatedZeTechRestauracaoRouteImport.update({
+    id: '/ze-tech-restauracao',
+    path: '/ze-tech-restauracao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechTecnicosRoute =
   AuthenticatedZeTechTecnicosRouteImport.update({
     id: '/ze-tech-tecnicos',
@@ -1134,6 +1254,33 @@ const AuthenticatedZeTechTempoRealRoute =
   AuthenticatedZeTechTempoRealRouteImport.update({
     id: '/ze-tech-tempo-real',
     path: '/ze-tech-tempo-real',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const MenuEmpresaRoute = MenuEmpresaRouteImport.update({
+  id: '/menu/$empresa',
+  path: '/menu/$empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/portal/',
+  path: '/portal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalEntrarRoute = PortalEntrarRouteImport.update({
+  id: '/portal/entrar',
+  path: '/portal/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedClinicaBularioIndexRoute =
+  AuthenticatedClinicaBularioIndexRouteImport.update({
+    id: '/clinica-bulario/',
+    path: '/clinica-bulario/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaBularioIdRoute =
+  AuthenticatedClinicaBularioIdRouteImport.update({
+    id: '/clinica-bulario/$id',
+    path: '/clinica-bulario/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedComprasIndexRoute =
@@ -1176,6 +1323,32 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
+  id: '/chamar/$empresa/$mesa',
+  path: '/chamar/$empresa/$mesa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalAnimalIdRoute = PortalAnimalIdRouteImport.update({
+  id: '/portal/animal/$id',
+  path: '/portal/animal/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalExameIdRoute = PortalExameIdRouteImport.update({
+  id: '/portal/exame/$id',
+  path: '/portal/exame/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalReceitaIdRoute = PortalReceitaIdRouteImport.update({
+  id: '/portal/receita/$id',
+  path: '/portal/receita/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksBackupClientesRoute =
+  ApiPublicHooksBackupClientesRouteImport.update({
+    id: '/api/public/hooks/backup-clientes',
+    path: '/api/public/hooks/backup-clientes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
@@ -1194,6 +1367,12 @@ const ApiPublicWhatsappEventosRoute =
     path: '/api/public/whatsapp/eventos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOauthBackupDriveReturnRoute =
+  ApiPublicOauthBackupDriveReturnRouteImport.update({
+    id: '/api/public/oauth/backup-drive/return',
+    path: '/api/public/oauth/backup-drive/return',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1207,12 +1386,16 @@ export interface FileRoutesByFullPath {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
+  '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
+  '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/chamados': typeof AuthenticatedChamadosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1225,12 +1408,15 @@ export interface FileRoutesByFullPath {
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1273,6 +1459,7 @@ export interface FileRoutesByFullPath {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-agenda': typeof AuthenticatedLavaAgendaRoute
   '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
   '/lava-clientes': typeof AuthenticatedLavaClientesRoute
   '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
@@ -1297,6 +1484,7 @@ export interface FileRoutesByFullPath {
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1305,6 +1493,7 @@ export interface FileRoutesByFullPath {
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/nfe-recebidas': typeof AuthenticatedNfeRecebidasRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/obras': typeof AuthenticatedObrasRoute
@@ -1313,6 +1502,7 @@ export interface FileRoutesByFullPath {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1352,9 +1542,13 @@ export interface FileRoutesByFullPath {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
+  '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
+  '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
@@ -1362,18 +1556,30 @@ export interface FileRoutesByFullPath {
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/ze-tech-restauracao': typeof AuthenticatedZeTechRestauracaoRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal/': typeof PortalIndexRoute
+  '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
+  '/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras/': typeof AuthenticatedComprasIndexRoute
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1387,12 +1593,16 @@ export interface FileRoutesByTo {
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
+  '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
+  '/balanca': typeof AuthenticatedBalancaRoute
   '/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/caixa': typeof AuthenticatedCaixaRoute
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/chamados': typeof AuthenticatedChamadosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1405,12 +1615,15 @@ export interface FileRoutesByTo {
   '/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1453,6 +1666,7 @@ export interface FileRoutesByTo {
   '/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/inventarios': typeof AuthenticatedInventariosRoute
+  '/lava-agenda': typeof AuthenticatedLavaAgendaRoute
   '/lava-avisos': typeof AuthenticatedLavaAvisosRoute
   '/lava-clientes': typeof AuthenticatedLavaClientesRoute
   '/lava-insumos': typeof AuthenticatedLavaInsumosRoute
@@ -1477,6 +1691,7 @@ export interface FileRoutesByTo {
   '/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1485,6 +1700,7 @@ export interface FileRoutesByTo {
   '/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/nfe-recebidas': typeof AuthenticatedNfeRecebidasRoute
   '/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/obras': typeof AuthenticatedObrasRoute
@@ -1493,6 +1709,7 @@ export interface FileRoutesByTo {
   '/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1532,9 +1749,13 @@ export interface FileRoutesByTo {
   '/vendedores': typeof AuthenticatedVendedoresRoute
   '/ze-tech': typeof AuthenticatedZeTechRoute
   '/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
+  '/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
+  '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
@@ -1542,18 +1763,30 @@ export interface FileRoutesByTo {
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
   '/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/ze-tech-restauracao': typeof AuthenticatedZeTechRestauracaoRoute
   '/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal': typeof PortalIndexRoute
+  '/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/compras/$id': typeof AuthenticatedComprasIdRoute
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
+  '/clinica-bulario': typeof AuthenticatedClinicaBularioIndexRoute
   '/compras': typeof AuthenticatedComprasIndexRoute
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1569,12 +1802,16 @@ export interface FileRoutesById {
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/backup-historico': typeof AuthenticatedBackupHistoricoRoute
+  '/_authenticated/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
+  '/_authenticated/balanca': typeof AuthenticatedBalancaRoute
   '/_authenticated/balanco-fiscal': typeof AuthenticatedBalancoFiscalRoute
   '/_authenticated/banco-movimentos': typeof AuthenticatedBancoMovimentosRoute
   '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
   '/_authenticated/cardapio': typeof AuthenticatedCardapioRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/certificado-nfse': typeof AuthenticatedCertificadoNfseRoute
+  '/_authenticated/chamados': typeof AuthenticatedChamadosRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/clientes-obras': typeof AuthenticatedClientesObrasRoute
   '/_authenticated/clinica-atendimento': typeof AuthenticatedClinicaAtendimentoRoute
@@ -1587,12 +1824,15 @@ export interface FileRoutesById {
   '/_authenticated/clinica-exames-modelos': typeof AuthenticatedClinicaExamesModelosRoute
   '/_authenticated/clinica-execucoes': typeof AuthenticatedClinicaExecucoesRoute
   '/_authenticated/clinica-ficha': typeof AuthenticatedClinicaFichaRoute
+  '/_authenticated/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/_authenticated/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/_authenticated/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/_authenticated/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -1635,6 +1875,7 @@ export interface FileRoutesById {
   '/_authenticated/impostos-filial': typeof AuthenticatedImpostosFilialRoute
   '/_authenticated/impostos-nota': typeof AuthenticatedImpostosNotaRoute
   '/_authenticated/inventarios': typeof AuthenticatedInventariosRoute
+  '/_authenticated/lava-agenda': typeof AuthenticatedLavaAgendaRoute
   '/_authenticated/lava-avisos': typeof AuthenticatedLavaAvisosRoute
   '/_authenticated/lava-clientes': typeof AuthenticatedLavaClientesRoute
   '/_authenticated/lava-insumos': typeof AuthenticatedLavaInsumosRoute
@@ -1659,6 +1900,7 @@ export interface FileRoutesById {
   '/_authenticated/manufatura-margem': typeof AuthenticatedManufaturaMargemRoute
   '/_authenticated/manufatura-necessidade': typeof AuthenticatedManufaturaNecessidadeRoute
   '/_authenticated/manufatura-ordens': typeof AuthenticatedManufaturaOrdensRoute
+  '/_authenticated/menu-personalizado': typeof AuthenticatedMenuPersonalizadoRoute
   '/_authenticated/modulos-sem-cnpj': typeof AuthenticatedModulosSemCnpjRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -1667,6 +1909,7 @@ export interface FileRoutesById {
   '/_authenticated/nfce-config': typeof AuthenticatedNfceConfigRoute
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/nfe-entrada': typeof AuthenticatedNfeEntradaRoute
+  '/_authenticated/nfe-recebidas': typeof AuthenticatedNfeRecebidasRoute
   '/_authenticated/nfe-simulacao': typeof AuthenticatedNfeSimulacaoRoute
   '/_authenticated/obra-historico': typeof AuthenticatedObraHistoricoRoute
   '/_authenticated/obras': typeof AuthenticatedObrasRoute
@@ -1675,6 +1918,7 @@ export interface FileRoutesById {
   '/_authenticated/painel-filial': typeof AuthenticatedPainelFilialRoute
   '/_authenticated/painel-fiscal': typeof AuthenticatedPainelFiscalRoute
   '/_authenticated/painel-locacao': typeof AuthenticatedPainelLocacaoRoute
+  '/_authenticated/painel-senhas': typeof AuthenticatedPainelSenhasRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/pendencias-fiscais': typeof AuthenticatedPendenciasFiscaisRoute
   '/_authenticated/personalizacao': typeof AuthenticatedPersonalizacaoRoute
@@ -1714,9 +1958,13 @@ export interface FileRoutesById {
   '/_authenticated/vendedores': typeof AuthenticatedVendedoresRoute
   '/_authenticated/ze-tech': typeof AuthenticatedZeTechRoute
   '/_authenticated/ze-tech-assistencia': typeof AuthenticatedZeTechAssistenciaRoute
+  '/_authenticated/ze-tech-backups': typeof AuthenticatedZeTechBackupsRoute
+  '/_authenticated/ze-tech-bulario': typeof AuthenticatedZeTechBularioRoute
   '/_authenticated/ze-tech-clientes': typeof AuthenticatedZeTechClientesRoute
   '/_authenticated/ze-tech-cobranca': typeof AuthenticatedZeTechCobrancaRoute
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
+  '/_authenticated/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
+  '/_authenticated/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
   '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/_authenticated/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/_authenticated/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
@@ -1724,18 +1972,30 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/_authenticated/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
   '/_authenticated/ze-tech-relatorios': typeof AuthenticatedZeTechRelatoriosRoute
+  '/_authenticated/ze-tech-restauracao': typeof AuthenticatedZeTechRestauracaoRoute
   '/_authenticated/ze-tech-tecnicos': typeof AuthenticatedZeTechTecnicosRoute
   '/_authenticated/ze-tech-tempo-real': typeof AuthenticatedZeTechTempoRealRoute
+  '/menu/$empresa': typeof MenuEmpresaRoute
+  '/portal/entrar': typeof PortalEntrarRoute
+  '/portal/': typeof PortalIndexRoute
+  '/_authenticated/clinica-bulario/$id': typeof AuthenticatedClinicaBularioIdRoute
   '/_authenticated/compras/$id': typeof AuthenticatedComprasIdRoute
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
+  '/portal/animal/$id': typeof PortalAnimalIdRoute
+  '/portal/exame/$id': typeof PortalExameIdRoute
+  '/portal/receita/$id': typeof PortalReceitaIdRoute
+  '/_authenticated/clinica-bulario/': typeof AuthenticatedClinicaBularioIndexRoute
   '/_authenticated/compras/': typeof AuthenticatedComprasIndexRoute
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
+  '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
+  '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1751,12 +2011,16 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-historico'
+    | '/backup-nuvem'
+    | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
     | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
+    | '/chamados'
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
@@ -1769,12 +2033,15 @@ export interface FileRouteTypes {
     | '/clinica-exames-modelos'
     | '/clinica-execucoes'
     | '/clinica-ficha'
+    | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1817,6 +2084,7 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-agenda'
     | '/lava-avisos'
     | '/lava-clientes'
     | '/lava-insumos'
@@ -1841,6 +2109,7 @@ export interface FileRouteTypes {
     | '/manufatura-margem'
     | '/manufatura-necessidade'
     | '/manufatura-ordens'
+    | '/menu-personalizado'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -1849,6 +2118,7 @@ export interface FileRouteTypes {
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
+    | '/nfe-recebidas'
     | '/nfe-simulacao'
     | '/obra-historico'
     | '/obras'
@@ -1857,6 +2127,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -1896,9 +2167,13 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-backups'
+    | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
+    | '/ze-tech-contratos'
+    | '/ze-tech-equipe'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
     | '/ze-tech-lojas'
@@ -1906,18 +2181,30 @@ export interface FileRouteTypes {
     | '/ze-tech-planos'
     | '/ze-tech-relatorio-fiscal'
     | '/ze-tech-relatorios'
+    | '/ze-tech-restauracao'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal/'
+    | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
+    | '/clinica-bulario/'
     | '/compras/'
     | '/depositos/'
     | '/pedidos/'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1931,12 +2218,16 @@ export interface FileRouteTypes {
     | '/assistencia'
     | '/assistencia-lojas'
     | '/auditoria'
+    | '/backup-historico'
+    | '/backup-nuvem'
+    | '/balanca'
     | '/balanco-fiscal'
     | '/banco-movimentos'
     | '/caixa'
     | '/cardapio'
     | '/categorias'
     | '/certificado-nfse'
+    | '/chamados'
     | '/clientes'
     | '/clientes-obras'
     | '/clinica-atendimento'
@@ -1949,12 +2240,15 @@ export interface FileRouteTypes {
     | '/clinica-exames-modelos'
     | '/clinica-execucoes'
     | '/clinica-ficha'
+    | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
     | '/configuracoes'
@@ -1997,6 +2291,7 @@ export interface FileRouteTypes {
     | '/impostos-filial'
     | '/impostos-nota'
     | '/inventarios'
+    | '/lava-agenda'
     | '/lava-avisos'
     | '/lava-clientes'
     | '/lava-insumos'
@@ -2021,6 +2316,7 @@ export interface FileRouteTypes {
     | '/manufatura-margem'
     | '/manufatura-necessidade'
     | '/manufatura-ordens'
+    | '/menu-personalizado'
     | '/modulos-sem-cnpj'
     | '/motorista'
     | '/motoristas'
@@ -2029,6 +2325,7 @@ export interface FileRouteTypes {
     | '/nfce-config'
     | '/nfe'
     | '/nfe-entrada'
+    | '/nfe-recebidas'
     | '/nfe-simulacao'
     | '/obra-historico'
     | '/obras'
@@ -2037,6 +2334,7 @@ export interface FileRouteTypes {
     | '/painel-filial'
     | '/painel-fiscal'
     | '/painel-locacao'
+    | '/painel-senhas'
     | '/pdv'
     | '/pendencias-fiscais'
     | '/personalizacao'
@@ -2076,9 +2374,13 @@ export interface FileRouteTypes {
     | '/vendedores'
     | '/ze-tech'
     | '/ze-tech-assistencia'
+    | '/ze-tech-backups'
+    | '/ze-tech-bulario'
     | '/ze-tech-clientes'
     | '/ze-tech-cobranca'
     | '/ze-tech-contas-pagar'
+    | '/ze-tech-contratos'
+    | '/ze-tech-equipe'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
     | '/ze-tech-lojas'
@@ -2086,18 +2388,30 @@ export interface FileRouteTypes {
     | '/ze-tech-planos'
     | '/ze-tech-relatorio-fiscal'
     | '/ze-tech-relatorios'
+    | '/ze-tech-restauracao'
     | '/ze-tech-tecnicos'
     | '/ze-tech-tempo-real'
+    | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal'
+    | '/clinica-bulario/$id'
     | '/compras/$id'
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
+    | '/clinica-bulario'
     | '/compras'
     | '/depositos'
     | '/pedidos'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   id:
     | '__root__'
     | '/'
@@ -2112,12 +2426,16 @@ export interface FileRouteTypes {
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
     | '/_authenticated/auditoria'
+    | '/_authenticated/backup-historico'
+    | '/_authenticated/backup-nuvem'
+    | '/_authenticated/balanca'
     | '/_authenticated/balanco-fiscal'
     | '/_authenticated/banco-movimentos'
     | '/_authenticated/caixa'
     | '/_authenticated/cardapio'
     | '/_authenticated/categorias'
     | '/_authenticated/certificado-nfse'
+    | '/_authenticated/chamados'
     | '/_authenticated/clientes'
     | '/_authenticated/clientes-obras'
     | '/_authenticated/clinica-atendimento'
@@ -2130,12 +2448,15 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-exames-modelos'
     | '/_authenticated/clinica-execucoes'
     | '/_authenticated/clinica-ficha'
+    | '/_authenticated/clinica-fila'
     | '/_authenticated/clinica-internacao'
     | '/_authenticated/clinica-internacao-historico'
     | '/_authenticated/clinica-offline'
+    | '/_authenticated/clinica-portal'
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
     | '/_authenticated/clinica-vacinas'
+    | '/_authenticated/clinica-whatsapp'
     | '/_authenticated/comissoes'
     | '/_authenticated/conferencia-offline'
     | '/_authenticated/configuracoes'
@@ -2178,6 +2499,7 @@ export interface FileRouteTypes {
     | '/_authenticated/impostos-filial'
     | '/_authenticated/impostos-nota'
     | '/_authenticated/inventarios'
+    | '/_authenticated/lava-agenda'
     | '/_authenticated/lava-avisos'
     | '/_authenticated/lava-clientes'
     | '/_authenticated/lava-insumos'
@@ -2202,6 +2524,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manufatura-margem'
     | '/_authenticated/manufatura-necessidade'
     | '/_authenticated/manufatura-ordens'
+    | '/_authenticated/menu-personalizado'
     | '/_authenticated/modulos-sem-cnpj'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -2210,6 +2533,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nfce-config'
     | '/_authenticated/nfe'
     | '/_authenticated/nfe-entrada'
+    | '/_authenticated/nfe-recebidas'
     | '/_authenticated/nfe-simulacao'
     | '/_authenticated/obra-historico'
     | '/_authenticated/obras'
@@ -2218,6 +2542,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel-filial'
     | '/_authenticated/painel-fiscal'
     | '/_authenticated/painel-locacao'
+    | '/_authenticated/painel-senhas'
     | '/_authenticated/pdv'
     | '/_authenticated/pendencias-fiscais'
     | '/_authenticated/personalizacao'
@@ -2257,9 +2582,13 @@ export interface FileRouteTypes {
     | '/_authenticated/vendedores'
     | '/_authenticated/ze-tech'
     | '/_authenticated/ze-tech-assistencia'
+    | '/_authenticated/ze-tech-backups'
+    | '/_authenticated/ze-tech-bulario'
     | '/_authenticated/ze-tech-clientes'
     | '/_authenticated/ze-tech-cobranca'
     | '/_authenticated/ze-tech-contas-pagar'
+    | '/_authenticated/ze-tech-contratos'
+    | '/_authenticated/ze-tech-equipe'
     | '/_authenticated/ze-tech-lava-rapido'
     | '/_authenticated/ze-tech-links'
     | '/_authenticated/ze-tech-lojas'
@@ -2267,18 +2596,30 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-planos'
     | '/_authenticated/ze-tech-relatorio-fiscal'
     | '/_authenticated/ze-tech-relatorios'
+    | '/_authenticated/ze-tech-restauracao'
     | '/_authenticated/ze-tech-tecnicos'
     | '/_authenticated/ze-tech-tempo-real'
+    | '/menu/$empresa'
+    | '/portal/entrar'
+    | '/portal/'
+    | '/_authenticated/clinica-bulario/$id'
     | '/_authenticated/compras/$id'
     | '/_authenticated/depositos/$id'
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
+    | '/chamar/$empresa/$mesa'
+    | '/portal/animal/$id'
+    | '/portal/exame/$id'
+    | '/portal/receita/$id'
+    | '/_authenticated/clinica-bulario/'
     | '/_authenticated/compras/'
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
+    | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
+    | '/api/public/oauth/backup-drive/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2290,9 +2631,18 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   FuncionalidadesRoute: typeof FuncionalidadesRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
+  MenuEmpresaRoute: typeof MenuEmpresaRoute
+  PortalEntrarRoute: typeof PortalEntrarRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+  ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
+  PortalAnimalIdRoute: typeof PortalAnimalIdRoute
+  PortalExameIdRoute: typeof PortalExameIdRoute
+  PortalReceitaIdRoute: typeof PortalReceitaIdRoute
+  ApiPublicHooksBackupClientesRoute: typeof ApiPublicHooksBackupClientesRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
+  ApiPublicOauthBackupDriveReturnRoute: typeof ApiPublicOauthBackupDriveReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2381,6 +2731,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/backup-historico': {
+      id: '/_authenticated/backup-historico'
+      path: '/backup-historico'
+      fullPath: '/backup-historico'
+      preLoaderRoute: typeof AuthenticatedBackupHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/backup-nuvem': {
+      id: '/_authenticated/backup-nuvem'
+      path: '/backup-nuvem'
+      fullPath: '/backup-nuvem'
+      preLoaderRoute: typeof AuthenticatedBackupNuvemRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/balanca': {
+      id: '/_authenticated/balanca'
+      path: '/balanca'
+      fullPath: '/balanca'
+      preLoaderRoute: typeof AuthenticatedBalancaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/balanco-fiscal': {
       id: '/_authenticated/balanco-fiscal'
       path: '/balanco-fiscal'
@@ -2421,6 +2792,13 @@ declare module '@tanstack/react-router' {
       path: '/certificado-nfse'
       fullPath: '/certificado-nfse'
       preLoaderRoute: typeof AuthenticatedCertificadoNfseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chamados': {
+      id: '/_authenticated/chamados'
+      path: '/chamados'
+      fullPath: '/chamados'
+      preLoaderRoute: typeof AuthenticatedChamadosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
@@ -2507,6 +2885,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClinicaFichaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinica-fila': {
+      id: '/_authenticated/clinica-fila'
+      path: '/clinica-fila'
+      fullPath: '/clinica-fila'
+      preLoaderRoute: typeof AuthenticatedClinicaFilaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clinica-internacao': {
       id: '/_authenticated/clinica-internacao'
       path: '/clinica-internacao'
@@ -2528,6 +2913,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClinicaOfflineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinica-portal': {
+      id: '/_authenticated/clinica-portal'
+      path: '/clinica-portal'
+      fullPath: '/clinica-portal'
+      preLoaderRoute: typeof AuthenticatedClinicaPortalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clinica-prontuario': {
       id: '/_authenticated/clinica-prontuario'
       path: '/clinica-prontuario'
@@ -2547,6 +2939,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-vacinas'
       fullPath: '/clinica-vacinas'
       preLoaderRoute: typeof AuthenticatedClinicaVacinasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-whatsapp': {
+      id: '/_authenticated/clinica-whatsapp'
+      path: '/clinica-whatsapp'
+      fullPath: '/clinica-whatsapp'
+      preLoaderRoute: typeof AuthenticatedClinicaWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/comissoes': {
@@ -2843,6 +3242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInventariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lava-agenda': {
+      id: '/_authenticated/lava-agenda'
+      path: '/lava-agenda'
+      fullPath: '/lava-agenda'
+      preLoaderRoute: typeof AuthenticatedLavaAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/lava-avisos': {
       id: '/_authenticated/lava-avisos'
       path: '/lava-avisos'
@@ -3011,6 +3417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManufaturaOrdensRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/menu-personalizado': {
+      id: '/_authenticated/menu-personalizado'
+      path: '/menu-personalizado'
+      fullPath: '/menu-personalizado'
+      preLoaderRoute: typeof AuthenticatedMenuPersonalizadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/modulos-sem-cnpj': {
       id: '/_authenticated/modulos-sem-cnpj'
       path: '/modulos-sem-cnpj'
@@ -3067,6 +3480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNfeEntradaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/nfe-recebidas': {
+      id: '/_authenticated/nfe-recebidas'
+      path: '/nfe-recebidas'
+      fullPath: '/nfe-recebidas'
+      preLoaderRoute: typeof AuthenticatedNfeRecebidasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/nfe-simulacao': {
       id: '/_authenticated/nfe-simulacao'
       path: '/nfe-simulacao'
@@ -3121,6 +3541,13 @@ declare module '@tanstack/react-router' {
       path: '/painel-locacao'
       fullPath: '/painel-locacao'
       preLoaderRoute: typeof AuthenticatedPainelLocacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/painel-senhas': {
+      id: '/_authenticated/painel-senhas'
+      path: '/painel-senhas'
+      fullPath: '/painel-senhas'
+      preLoaderRoute: typeof AuthenticatedPainelSenhasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pdv': {
@@ -3396,6 +3823,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechAssistenciaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-backups': {
+      id: '/_authenticated/ze-tech-backups'
+      path: '/ze-tech-backups'
+      fullPath: '/ze-tech-backups'
+      preLoaderRoute: typeof AuthenticatedZeTechBackupsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ze-tech-bulario': {
+      id: '/_authenticated/ze-tech-bulario'
+      path: '/ze-tech-bulario'
+      fullPath: '/ze-tech-bulario'
+      preLoaderRoute: typeof AuthenticatedZeTechBularioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-clientes': {
       id: '/_authenticated/ze-tech-clientes'
       path: '/ze-tech-clientes'
@@ -3415,6 +3856,20 @@ declare module '@tanstack/react-router' {
       path: '/ze-tech-contas-pagar'
       fullPath: '/ze-tech-contas-pagar'
       preLoaderRoute: typeof AuthenticatedZeTechContasPagarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ze-tech-contratos': {
+      id: '/_authenticated/ze-tech-contratos'
+      path: '/ze-tech-contratos'
+      fullPath: '/ze-tech-contratos'
+      preLoaderRoute: typeof AuthenticatedZeTechContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ze-tech-equipe': {
+      id: '/_authenticated/ze-tech-equipe'
+      path: '/ze-tech-equipe'
+      fullPath: '/ze-tech-equipe'
+      preLoaderRoute: typeof AuthenticatedZeTechEquipeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ze-tech-lava-rapido': {
@@ -3466,6 +3921,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechRelatoriosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-restauracao': {
+      id: '/_authenticated/ze-tech-restauracao'
+      path: '/ze-tech-restauracao'
+      fullPath: '/ze-tech-restauracao'
+      preLoaderRoute: typeof AuthenticatedZeTechRestauracaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-tecnicos': {
       id: '/_authenticated/ze-tech-tecnicos'
       path: '/ze-tech-tecnicos'
@@ -3478,6 +3940,41 @@ declare module '@tanstack/react-router' {
       path: '/ze-tech-tempo-real'
       fullPath: '/ze-tech-tempo-real'
       preLoaderRoute: typeof AuthenticatedZeTechTempoRealRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/menu/$empresa': {
+      id: '/menu/$empresa'
+      path: '/menu/$empresa'
+      fullPath: '/menu/$empresa'
+      preLoaderRoute: typeof MenuEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/portal'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/entrar': {
+      id: '/portal/entrar'
+      path: '/portal/entrar'
+      fullPath: '/portal/entrar'
+      preLoaderRoute: typeof PortalEntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/clinica-bulario/': {
+      id: '/_authenticated/clinica-bulario/'
+      path: '/clinica-bulario'
+      fullPath: '/clinica-bulario/'
+      preLoaderRoute: typeof AuthenticatedClinicaBularioIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-bulario/$id': {
+      id: '/_authenticated/clinica-bulario/$id'
+      path: '/clinica-bulario/$id'
+      fullPath: '/clinica-bulario/$id'
+      preLoaderRoute: typeof AuthenticatedClinicaBularioIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/compras/': {
@@ -3529,6 +4026,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/chamar/$empresa/$mesa': {
+      id: '/chamar/$empresa/$mesa'
+      path: '/chamar/$empresa/$mesa'
+      fullPath: '/chamar/$empresa/$mesa'
+      preLoaderRoute: typeof ChamarEmpresaMesaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/animal/$id': {
+      id: '/portal/animal/$id'
+      path: '/portal/animal/$id'
+      fullPath: '/portal/animal/$id'
+      preLoaderRoute: typeof PortalAnimalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/exame/$id': {
+      id: '/portal/exame/$id'
+      path: '/portal/exame/$id'
+      fullPath: '/portal/exame/$id'
+      preLoaderRoute: typeof PortalExameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/receita/$id': {
+      id: '/portal/receita/$id'
+      path: '/portal/receita/$id'
+      fullPath: '/portal/receita/$id'
+      preLoaderRoute: typeof PortalReceitaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/backup-clientes': {
+      id: '/api/public/hooks/backup-clientes'
+      path: '/api/public/hooks/backup-clientes'
+      fullPath: '/api/public/hooks/backup-clientes'
+      preLoaderRoute: typeof ApiPublicHooksBackupClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/whatsapp-despachar': {
       id: '/api/public/hooks/whatsapp-despachar'
       path: '/api/public/hooks/whatsapp-despachar'
@@ -3550,6 +4082,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappEventosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oauth/backup-drive/return': {
+      id: '/api/public/oauth/backup-drive/return'
+      path: '/api/public/oauth/backup-drive/return'
+      fullPath: '/api/public/oauth/backup-drive/return'
+      preLoaderRoute: typeof ApiPublicOauthBackupDriveReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -3558,12 +4097,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedBackupHistoricoRoute: typeof AuthenticatedBackupHistoricoRoute
+  AuthenticatedBackupNuvemRoute: typeof AuthenticatedBackupNuvemRoute
+  AuthenticatedBalancaRoute: typeof AuthenticatedBalancaRoute
   AuthenticatedBalancoFiscalRoute: typeof AuthenticatedBalancoFiscalRoute
   AuthenticatedBancoMovimentosRoute: typeof AuthenticatedBancoMovimentosRoute
   AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
   AuthenticatedCardapioRoute: typeof AuthenticatedCardapioRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedCertificadoNfseRoute: typeof AuthenticatedCertificadoNfseRoute
+  AuthenticatedChamadosRoute: typeof AuthenticatedChamadosRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedClientesObrasRoute: typeof AuthenticatedClientesObrasRoute
   AuthenticatedClinicaAtendimentoRoute: typeof AuthenticatedClinicaAtendimentoRoute
@@ -3576,12 +4119,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaExamesModelosRoute: typeof AuthenticatedClinicaExamesModelosRoute
   AuthenticatedClinicaExecucoesRoute: typeof AuthenticatedClinicaExecucoesRoute
   AuthenticatedClinicaFichaRoute: typeof AuthenticatedClinicaFichaRoute
+  AuthenticatedClinicaFilaRoute: typeof AuthenticatedClinicaFilaRoute
   AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
   AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
+  AuthenticatedClinicaPortalRoute: typeof AuthenticatedClinicaPortalRoute
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
   AuthenticatedClinicaVacinasRoute: typeof AuthenticatedClinicaVacinasRoute
+  AuthenticatedClinicaWhatsappRoute: typeof AuthenticatedClinicaWhatsappRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -3624,6 +4170,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedImpostosFilialRoute: typeof AuthenticatedImpostosFilialRoute
   AuthenticatedImpostosNotaRoute: typeof AuthenticatedImpostosNotaRoute
   AuthenticatedInventariosRoute: typeof AuthenticatedInventariosRoute
+  AuthenticatedLavaAgendaRoute: typeof AuthenticatedLavaAgendaRoute
   AuthenticatedLavaAvisosRoute: typeof AuthenticatedLavaAvisosRoute
   AuthenticatedLavaClientesRoute: typeof AuthenticatedLavaClientesRoute
   AuthenticatedLavaInsumosRoute: typeof AuthenticatedLavaInsumosRoute
@@ -3648,6 +4195,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedManufaturaMargemRoute: typeof AuthenticatedManufaturaMargemRoute
   AuthenticatedManufaturaNecessidadeRoute: typeof AuthenticatedManufaturaNecessidadeRoute
   AuthenticatedManufaturaOrdensRoute: typeof AuthenticatedManufaturaOrdensRoute
+  AuthenticatedMenuPersonalizadoRoute: typeof AuthenticatedMenuPersonalizadoRoute
   AuthenticatedModulosSemCnpjRoute: typeof AuthenticatedModulosSemCnpjRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -3656,6 +4204,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNfceConfigRoute: typeof AuthenticatedNfceConfigRoute
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedNfeEntradaRoute: typeof AuthenticatedNfeEntradaRoute
+  AuthenticatedNfeRecebidasRoute: typeof AuthenticatedNfeRecebidasRoute
   AuthenticatedNfeSimulacaoRoute: typeof AuthenticatedNfeSimulacaoRoute
   AuthenticatedObraHistoricoRoute: typeof AuthenticatedObraHistoricoRoute
   AuthenticatedObrasRoute: typeof AuthenticatedObrasRoute
@@ -3664,6 +4213,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelFilialRoute: typeof AuthenticatedPainelFilialRoute
   AuthenticatedPainelFiscalRoute: typeof AuthenticatedPainelFiscalRoute
   AuthenticatedPainelLocacaoRoute: typeof AuthenticatedPainelLocacaoRoute
+  AuthenticatedPainelSenhasRoute: typeof AuthenticatedPainelSenhasRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedPendenciasFiscaisRoute: typeof AuthenticatedPendenciasFiscaisRoute
   AuthenticatedPersonalizacaoRoute: typeof AuthenticatedPersonalizacaoRoute
@@ -3703,9 +4253,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVendedoresRoute: typeof AuthenticatedVendedoresRoute
   AuthenticatedZeTechRoute: typeof AuthenticatedZeTechRoute
   AuthenticatedZeTechAssistenciaRoute: typeof AuthenticatedZeTechAssistenciaRoute
+  AuthenticatedZeTechBackupsRoute: typeof AuthenticatedZeTechBackupsRoute
+  AuthenticatedZeTechBularioRoute: typeof AuthenticatedZeTechBularioRoute
   AuthenticatedZeTechClientesRoute: typeof AuthenticatedZeTechClientesRoute
   AuthenticatedZeTechCobrancaRoute: typeof AuthenticatedZeTechCobrancaRoute
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
+  AuthenticatedZeTechContratosRoute: typeof AuthenticatedZeTechContratosRoute
+  AuthenticatedZeTechEquipeRoute: typeof AuthenticatedZeTechEquipeRoute
   AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
   AuthenticatedZeTechLinksRoute: typeof AuthenticatedZeTechLinksRoute
   AuthenticatedZeTechLojasRoute: typeof AuthenticatedZeTechLojasRoute
@@ -3713,12 +4267,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
   AuthenticatedZeTechRelatorioFiscalRoute: typeof AuthenticatedZeTechRelatorioFiscalRoute
   AuthenticatedZeTechRelatoriosRoute: typeof AuthenticatedZeTechRelatoriosRoute
+  AuthenticatedZeTechRestauracaoRoute: typeof AuthenticatedZeTechRestauracaoRoute
   AuthenticatedZeTechTecnicosRoute: typeof AuthenticatedZeTechTecnicosRoute
   AuthenticatedZeTechTempoRealRoute: typeof AuthenticatedZeTechTempoRealRoute
+  AuthenticatedClinicaBularioIdRoute: typeof AuthenticatedClinicaBularioIdRoute
   AuthenticatedComprasIdRoute: typeof AuthenticatedComprasIdRoute
   AuthenticatedDepositosIdRoute: typeof AuthenticatedDepositosIdRoute
   AuthenticatedHotelEstadiaIdRoute: typeof AuthenticatedHotelEstadiaIdRoute
   AuthenticatedPedidosIdRoute: typeof AuthenticatedPedidosIdRoute
+  AuthenticatedClinicaBularioIndexRoute: typeof AuthenticatedClinicaBularioIndexRoute
   AuthenticatedComprasIndexRoute: typeof AuthenticatedComprasIndexRoute
   AuthenticatedDepositosIndexRoute: typeof AuthenticatedDepositosIndexRoute
   AuthenticatedPedidosIndexRoute: typeof AuthenticatedPedidosIndexRoute
@@ -3729,12 +4286,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedBackupHistoricoRoute: AuthenticatedBackupHistoricoRoute,
+  AuthenticatedBackupNuvemRoute: AuthenticatedBackupNuvemRoute,
+  AuthenticatedBalancaRoute: AuthenticatedBalancaRoute,
   AuthenticatedBalancoFiscalRoute: AuthenticatedBalancoFiscalRoute,
   AuthenticatedBancoMovimentosRoute: AuthenticatedBancoMovimentosRoute,
   AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
   AuthenticatedCardapioRoute: AuthenticatedCardapioRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedCertificadoNfseRoute: AuthenticatedCertificadoNfseRoute,
+  AuthenticatedChamadosRoute: AuthenticatedChamadosRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedClientesObrasRoute: AuthenticatedClientesObrasRoute,
   AuthenticatedClinicaAtendimentoRoute: AuthenticatedClinicaAtendimentoRoute,
@@ -3748,13 +4309,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedClinicaExamesModelosRoute,
   AuthenticatedClinicaExecucoesRoute: AuthenticatedClinicaExecucoesRoute,
   AuthenticatedClinicaFichaRoute: AuthenticatedClinicaFichaRoute,
+  AuthenticatedClinicaFilaRoute: AuthenticatedClinicaFilaRoute,
   AuthenticatedClinicaInternacaoRoute: AuthenticatedClinicaInternacaoRoute,
   AuthenticatedClinicaInternacaoHistoricoRoute:
     AuthenticatedClinicaInternacaoHistoricoRoute,
   AuthenticatedClinicaOfflineRoute: AuthenticatedClinicaOfflineRoute,
+  AuthenticatedClinicaPortalRoute: AuthenticatedClinicaPortalRoute,
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
   AuthenticatedClinicaVacinasRoute: AuthenticatedClinicaVacinasRoute,
+  AuthenticatedClinicaWhatsappRoute: AuthenticatedClinicaWhatsappRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
@@ -3797,6 +4361,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedImpostosFilialRoute: AuthenticatedImpostosFilialRoute,
   AuthenticatedImpostosNotaRoute: AuthenticatedImpostosNotaRoute,
   AuthenticatedInventariosRoute: AuthenticatedInventariosRoute,
+  AuthenticatedLavaAgendaRoute: AuthenticatedLavaAgendaRoute,
   AuthenticatedLavaAvisosRoute: AuthenticatedLavaAvisosRoute,
   AuthenticatedLavaClientesRoute: AuthenticatedLavaClientesRoute,
   AuthenticatedLavaInsumosRoute: AuthenticatedLavaInsumosRoute,
@@ -3822,6 +4387,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedManufaturaNecessidadeRoute:
     AuthenticatedManufaturaNecessidadeRoute,
   AuthenticatedManufaturaOrdensRoute: AuthenticatedManufaturaOrdensRoute,
+  AuthenticatedMenuPersonalizadoRoute: AuthenticatedMenuPersonalizadoRoute,
   AuthenticatedModulosSemCnpjRoute: AuthenticatedModulosSemCnpjRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
@@ -3830,6 +4396,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNfceConfigRoute: AuthenticatedNfceConfigRoute,
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedNfeEntradaRoute: AuthenticatedNfeEntradaRoute,
+  AuthenticatedNfeRecebidasRoute: AuthenticatedNfeRecebidasRoute,
   AuthenticatedNfeSimulacaoRoute: AuthenticatedNfeSimulacaoRoute,
   AuthenticatedObraHistoricoRoute: AuthenticatedObraHistoricoRoute,
   AuthenticatedObrasRoute: AuthenticatedObrasRoute,
@@ -3838,6 +4405,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelFilialRoute: AuthenticatedPainelFilialRoute,
   AuthenticatedPainelFiscalRoute: AuthenticatedPainelFiscalRoute,
   AuthenticatedPainelLocacaoRoute: AuthenticatedPainelLocacaoRoute,
+  AuthenticatedPainelSenhasRoute: AuthenticatedPainelSenhasRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedPendenciasFiscaisRoute: AuthenticatedPendenciasFiscaisRoute,
   AuthenticatedPersonalizacaoRoute: AuthenticatedPersonalizacaoRoute,
@@ -3879,9 +4447,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVendedoresRoute: AuthenticatedVendedoresRoute,
   AuthenticatedZeTechRoute: AuthenticatedZeTechRoute,
   AuthenticatedZeTechAssistenciaRoute: AuthenticatedZeTechAssistenciaRoute,
+  AuthenticatedZeTechBackupsRoute: AuthenticatedZeTechBackupsRoute,
+  AuthenticatedZeTechBularioRoute: AuthenticatedZeTechBularioRoute,
   AuthenticatedZeTechClientesRoute: AuthenticatedZeTechClientesRoute,
   AuthenticatedZeTechCobrancaRoute: AuthenticatedZeTechCobrancaRoute,
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,
+  AuthenticatedZeTechContratosRoute: AuthenticatedZeTechContratosRoute,
+  AuthenticatedZeTechEquipeRoute: AuthenticatedZeTechEquipeRoute,
   AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
   AuthenticatedZeTechLinksRoute: AuthenticatedZeTechLinksRoute,
   AuthenticatedZeTechLojasRoute: AuthenticatedZeTechLojasRoute,
@@ -3890,12 +4462,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechRelatorioFiscalRoute:
     AuthenticatedZeTechRelatorioFiscalRoute,
   AuthenticatedZeTechRelatoriosRoute: AuthenticatedZeTechRelatoriosRoute,
+  AuthenticatedZeTechRestauracaoRoute: AuthenticatedZeTechRestauracaoRoute,
   AuthenticatedZeTechTecnicosRoute: AuthenticatedZeTechTecnicosRoute,
   AuthenticatedZeTechTempoRealRoute: AuthenticatedZeTechTempoRealRoute,
+  AuthenticatedClinicaBularioIdRoute: AuthenticatedClinicaBularioIdRoute,
   AuthenticatedComprasIdRoute: AuthenticatedComprasIdRoute,
   AuthenticatedDepositosIdRoute: AuthenticatedDepositosIdRoute,
   AuthenticatedHotelEstadiaIdRoute: AuthenticatedHotelEstadiaIdRoute,
   AuthenticatedPedidosIdRoute: AuthenticatedPedidosIdRoute,
+  AuthenticatedClinicaBularioIndexRoute: AuthenticatedClinicaBularioIndexRoute,
   AuthenticatedComprasIndexRoute: AuthenticatedComprasIndexRoute,
   AuthenticatedDepositosIndexRoute: AuthenticatedDepositosIndexRoute,
   AuthenticatedPedidosIndexRoute: AuthenticatedPedidosIndexRoute,
@@ -3913,9 +4488,18 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   FuncionalidadesRoute: FuncionalidadesRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
+  MenuEmpresaRoute: MenuEmpresaRoute,
+  PortalEntrarRoute: PortalEntrarRoute,
+  PortalIndexRoute: PortalIndexRoute,
+  ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
+  PortalAnimalIdRoute: PortalAnimalIdRoute,
+  PortalExameIdRoute: PortalExameIdRoute,
+  PortalReceitaIdRoute: PortalReceitaIdRoute,
+  ApiPublicHooksBackupClientesRoute: ApiPublicHooksBackupClientesRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
+  ApiPublicOauthBackupDriveReturnRoute: ApiPublicOauthBackupDriveReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

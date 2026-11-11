@@ -5,6 +5,8 @@ import {
   ArrowLeftRight,
   Calculator,
   Bike,
+  Scale,
+  Tv,
   ChefHat,
   ConciergeBell,
   UtensilsCrossed,
@@ -36,12 +38,16 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  ListOrdered,
   MessageCircle,
   Package,
   PackageOpen,
   PawPrint,
   Stethoscope,
+  DatabaseBackup,
   Syringe,
+  BookOpen,
+  Smartphone,
   Scissors,
   Tag,
   TrendingUp,
@@ -57,6 +63,10 @@ import {
   Droplets,
   Link2,
   Gift,
+  Home,
+  BarChart3,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -98,8 +108,13 @@ import {
   ROTULO_LOTES_CLINICA,
   TELAS_FORA_DA_CLINICA,
   ehEmpresaSoClinica,
+  itemPetVisivel,
+  rotuloAreaProfissional,
 } from "@/lib/ramo-clinica";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
+import { MenuBaseContext } from "@/components/app/menu-base-context";
+import { aplicarMenuPersonalizado, essenciaisDoMenu } from "@/lib/menu-personalizado";
+import { useMenuPersonalizado } from "@/lib/menu-personalizado-dados";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 
 type Item = { label: string; to?: string; icon: typeof Gauge; soon?: boolean; secao?: string };
@@ -188,6 +203,7 @@ const groups: Group[] = [
       { label: "Movimentação bancária", to: "/banco-movimentos", icon: ArrowLeftRight },
       { label: "Crédito de clientes", to: "/credito", icon: ShieldCheck },
       { label: "Notas fiscais", to: "/nfe", icon: FileText },
+      { label: "Notas recebidas", to: "/nfe-recebidas", icon: FileText },
       { label: "Pendências fiscais", to: "/pendencias-fiscais", icon: FileText },
       { label: "Configuração da NFC-e", to: "/nfce-config", icon: FileText },
       { label: "Fiscal (NCM e CFOP)", to: "/fiscal", icon: FileText },
@@ -203,6 +219,8 @@ const groups: Group[] = [
     items: [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Delivery", to: "/delivery", icon: Bike },
+      { label: "Balança", to: "/balanca", icon: Scale },
+      { label: "Painel de senhas", to: "/painel-senhas", icon: Tv },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Cardápio e mesas", to: "/cardapio", icon: ClipboardList },
     ],
@@ -226,6 +244,7 @@ const groups: Group[] = [
     label: "Lava rápido",
     icon: Droplets,
     items: [
+      { label: "Agenda", to: "/lava-agenda", icon: CalendarClock },
       { label: "Pátio", to: "/lava-patio", icon: Droplets },
       { label: "Veículos", to: "/lava-veiculos", icon: Car },
       { label: "Serviços e preços", to: "/lava-servicos", icon: Tag },
@@ -263,8 +282,12 @@ const groups: Group[] = [
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+      { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
+      { label: "Portal do tutor", to: "/clinica-portal", icon: Smartphone },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
+      { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
+      { label: "WhatsApp da clínica", to: "/clinica-whatsapp", icon: MessageCircle },
       { label: "Internações a cobrar", to: "/clinica-cobrancas", icon: BedDouble },
     ],
   },
@@ -359,6 +382,7 @@ const groups: Group[] = [
       { label: "Impostos da empresa", to: "/impostos", icon: Percent },
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
+      { label: "Menu da empresa", to: "/menu-personalizado", icon: LayoutGrid },
       { label: "Importação por planilha", to: "/importacao", icon: FileText },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
@@ -367,14 +391,105 @@ const groups: Group[] = [
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
+      { label: "Backup na nuvem", to: "/backup-nuvem", icon: DatabaseBackup },
+      { label: "Chamados de suporte", to: "/chamados", icon: MessageCircle },
     ],
   },
 ];
 
+type Area = { label: string; icon: typeof Gauge; items: Item[] };
+
+/** Áreas principais do trilho lateral; os grupos de ramo (restaurante, pet shop…) viram áreas próprias. */
+const AREAS_PRINCIPAIS: Array<{ label: string; icon: typeof Gauge }> = [
+  { label: "Início", icon: Home },
+  { label: "Catálogo", icon: Tag },
+  { label: "Vendas", icon: ShoppingCart },
+  { label: "Estoque", icon: Boxes },
+  { label: "Notas Fiscais", icon: FileText },
+  { label: "Financeiro", icon: Wallet },
+  { label: "Relatórios", icon: BarChart3 },
+  { label: "Ajustes", icon: Settings },
+];
+const AREA_DO_GRUPO: Record<string, string> = {
+  "Visão geral": "Início",
+  Comercial: "Vendas",
+  Logística: "Vendas",
+  Estoque: "Estoque",
+  Compras: "Estoque",
+  Financeiro: "Financeiro",
+  Relatórios: "Relatórios",
+  Administração: "Ajustes",
+};
+const AREA_DA_TELA: Record<string, string> = {
+  "/produtos": "Catálogo",
+  "/precos": "Catálogo",
+  "/categorias": "Catálogo",
+  "/clientes": "Catálogo",
+  "/fornecedores": "Catálogo",
+  "/vendedores": "Catálogo",
+  "/nfe": "Notas Fiscais",
+  "/nfe-recebidas": "Notas Fiscais",
+  "/pendencias-fiscais": "Notas Fiscais",
+  "/nfce-config": "Notas Fiscais",
+  "/fiscal": "Notas Fiscais",
+  "/impostos-filial": "Notas Fiscais",
+  "/impostos-nota": "Notas Fiscais",
+  "/prefeitura": "Notas Fiscais",
+  "/nfe-simulacao": "Notas Fiscais",
+  "/fluxo-caixa": "Financeiro",
+};
+
+/** Reorganiza os grupos já filtrados por permissão/módulo nas áreas do trilho, sem criar telas. */
+function montarAreas(grupos: Group[]): Area[] {
+  const mapa = new Map<string, Area>();
+  const ordem: string[] = [];
+  const garantir = (label: string, icon: typeof Gauge) => {
+    if (!mapa.has(label)) {
+      mapa.set(label, { label, icon, items: [] });
+      ordem.push(label);
+    }
+    return mapa.get(label)!;
+  };
+  for (const g of grupos) {
+    for (const item of g.items) {
+      const destino = (item.to && AREA_DA_TELA[item.to]) || AREA_DO_GRUPO[g.label] || g.label;
+      const base = AREAS_PRINCIPAIS.find((a) => a.label === destino);
+      const area = garantir(destino, base?.icon ?? g.icon);
+      const secao =
+        destino === "Financeiro" && item.to === "/fluxo-caixa"
+          ? undefined
+          : (item.secao ??
+            (AREA_DO_GRUPO[g.label] &&
+            g.label !== destino &&
+            g.label !== "Comercial" &&
+            g.label !== "Visão geral"
+              ? g.label
+              : undefined));
+      const { secao: _antiga, ...resto } = item;
+      area.items.push(secao ? { ...resto, secao } : resto);
+    }
+  }
+  const fin = mapa.get("Financeiro");
+  if (fin)
+    fin.items.sort((a, b) => Number(a.to !== "/fluxo-caixa") - Number(b.to !== "/fluxo-caixa"));
+  for (const a of mapa.values()) {
+    // itens sem seção primeiro, depois agrupados pela seção
+    const semSecao = a.items.filter((i) => !i.secao);
+    const secoes = [...new Set(a.items.filter((i) => i.secao).map((i) => i.secao!))];
+    a.items = [...semSecao, ...secoes.flatMap((sec) => a.items.filter((i) => i.secao === sec))];
+  }
+  const principais = AREAS_PRINCIPAIS.map((a) => a.label);
+  return [
+    ...principais.filter((l) => mapa.has(l)).map((l) => mapa.get(l)!),
+    ...ordem.filter((l) => !principais.includes(l)).map((l) => mapa.get(l)!),
+  ];
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  /** Módulos recolhidos, guardados no navegador do usuário. */
-  const [fechados, setFechados] = useState<string[]>([]);
+  /** Área escolhida no trilho (null = a da tela atual) e painel de submenus visível. */
+  const [areaEscolhida, setAreaEscolhida] = useState<string | null>(null);
+  const [painelAberto, setPainelAberto] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data } = useSessionData();
   // Aplica a cor da marca da loja assim que o sistema abre.
@@ -390,23 +505,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const salvo = localStorage.getItem("zeobra:menu-fechados");
-      if (salvo) setFechados(JSON.parse(salvo) as string[]);
+      if (localStorage.getItem("ezra:painel-menu") === "fechado") setPainelAberto(false);
     } catch {
-      /* preferência ausente ou inválida: mantém tudo aberto */
+      /* sem preferência salva */
     }
   }, []);
 
-  function alternarGrupo(label: string) {
-    setFechados((atual) => {
-      const proximo = atual.includes(label) ? atual.filter((l) => l !== label) : [...atual, label];
-      try {
-        localStorage.setItem("zeobra:menu-fechados", JSON.stringify(proximo));
-      } catch {
-        /* sem armazenamento: só não guarda a preferência */
-      }
-      return proximo;
-    });
+  function alternarPainel(aberto: boolean) {
+    setPainelAberto(aberto);
+    try {
+      localStorage.setItem("ezra:painel-menu", aberto ? "aberto" : "fechado");
+    } catch {
+      /* sem armazenamento: só não guarda a preferência */
+    }
   }
 
   useEffect(() => {
@@ -484,7 +595,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (g.label === "Assistência técnica") return modulos.assistencia;
           if (g.label === "Locação de equipamentos") return modulos.locacao;
           if (g.label === "Restaurante") return modulos.restaurante;
-          if (g.label === "Pet shop") return modulos.petshop;
+          if (g.label === "Pet shop") return modulos.petShopOuClinica;
           if (g.label === "Lava rápido") return modulos.lavarapido;
           if (g.label === "Hotelaria") return modulos.hotelaria;
           if (g.label === "Manufatura")
@@ -509,6 +620,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               soClinica && i.to === "/estoque-lotes" ? { ...i, label: ROTULO_LOTES_CLINICA } : i,
             )
             .filter((i) => {
+              // clínica sem pet shop contratado: da área Pet shop ficam só Pets e tutores e Contatos
+              if (g.label === "Pet shop" && !itemPetVisivel(i.to, modulos.petshop)) return false;
               if (
                 soAlimentacao &&
                 (TELAS_FORA_DA_ALIMENTACAO as readonly string[]).includes(i.to ?? "")
@@ -554,11 +667,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario;
               if (i.to === "/clinica-boxes" || i.to === "/sngpc")
                 return souVeterinario || souGestao;
-              if (i.to === "/clinica-catalogo") return souVeterinario || souGestao;
+              if (i.to === "/clinica-catalogo" || i.to === "/clinica-bulario")
+                return souVeterinario || souGestao;
+              // portal do tutor: o veterinário libera exames e receitas; recepção e gestão gerenciam os acessos
+              if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
+              // o menu da empresa é organizado pela administração
+              if (i.to === "/menu-personalizado") return souGestao;
+              if (i.to === "/backup-nuvem") return (data?.roles ?? []).includes("administrador");
               if (i.to === "/clinica-exames-modelos") return souVeterinario || souGestao;
               // quem chama o tutor: recepção e gestão (o veterinário é perfil restrito)
-              if (i.to === "/clinica-reforcos" || i.to === "/clinica-cobrancas")
+              if (
+                i.to === "/clinica-reforcos" ||
+                i.to === "/clinica-cobrancas" ||
+                i.to === "/clinica-whatsapp"
+              )
                 return souGestao || souRecepcao;
+              // a recepção registra a fila e o veterinário acompanha e chama o próximo
+              if (i.to === "/clinica-fila") return souGestao || souRecepcao || souVeterinario;
               if (
                 i.to === "/personalizacao" ||
                 i.to === "/custo-par" ||
@@ -575,6 +700,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modulos.locacao,
       modulos.restaurante,
       modulos.petshop,
+      modulos.petShopOuClinica,
       modulos.lavarapido,
       modulos.hotelaria,
       modulos.clinica,
@@ -598,12 +724,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return [
       { label: "PDV do restaurante", to: "/salao", icon: ConciergeBell },
       { label: "Delivery", to: "/delivery", icon: Bike },
+      { label: "Balança", to: "/balanca", icon: Scale },
+      { label: "Painel de senhas", to: "/painel-senhas", icon: Tv },
       { label: "Cozinha", to: "/cozinha", icon: ChefHat },
       { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
     ].filter((i) =>
       i.to === "/pet-minha-agenda"
         ? roles.some((r) => r === "profissional" || r === "veterinario")
-        : i.to === "/salao" || i.to === "/delivery"
+        : i.to === "/salao" ||
+            i.to === "/delivery" ||
+            i.to === "/balanca" ||
+            i.to === "/painel-senhas"
           ? gestao || roles.some((r) => r === "garcom" || r === "caixa")
           : gestao || roles.includes("cozinha"),
     );
@@ -615,8 +746,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     icon: LayoutGrid,
     items: [
       { label: "Painel de clientes", to: "/ze-tech", icon: Users },
+      { label: "Equipe Ze Tech", to: "/ze-tech-equipe", icon: Users },
       { label: "Tempo real das lojas", to: "/ze-tech-tempo-real", icon: Gauge },
       { label: "Clientes da rede", to: "/ze-tech-clientes", icon: Users },
+      { label: "Contrato da clínica", to: "/ze-tech-contratos", icon: Stethoscope },
+      { label: "Backup por cliente", to: "/ze-tech-backups", icon: DatabaseBackup },
+      { label: "Restauração de backup", to: "/ze-tech-restauracao", icon: DatabaseBackup },
       { label: "Lojas da rede", to: "/ze-tech-lojas", icon: Building2 },
       { label: "Links de acesso", to: "/ze-tech-links", icon: Link2 },
       { label: "Planos", to: "/ze-tech-planos", icon: Tag },
@@ -626,6 +761,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
       { label: "Lava rápido", to: "/ze-tech-lava-rapido", icon: Droplets },
+      { label: "Bulário veterinário", to: "/ze-tech-bulario", icon: BookOpen },
       { label: "Custo por técnico", to: "/ze-tech-tecnicos", icon: IdCard },
       { label: "Relatórios de assinatura", to: "/ze-tech-relatorios", icon: TrendingUp },
     ],
@@ -637,12 +773,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const menu: Group[] = somenteProfissional
     ? [
         {
-          label: "Pet shop",
-          icon: PawPrint,
+          label: rotuloAreaProfissional(modulos.clinica, modulos.petshop),
+          icon: modulos.clinica && !modulos.petshop ? Stethoscope : PawPrint,
           items: [
             { label: "Minha agenda", to: "/pet-minha-agenda", icon: CalendarClock },
             ...(modulos.clinica
               ? [
+                  { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
                   { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
                   { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
                 ]
@@ -655,6 +792,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
+                  { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
+                  { label: "Portal do tutor", to: "/clinica-portal", icon: Smartphone },
                   { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
                 ]
               : []),
@@ -689,6 +828,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-prontuario",
       "/clinica-atendimento",
       "/clinica-catalogo",
+      "/clinica-bulario",
+      "/clinica-portal",
       "/clinica-exames-modelos",
       "/clinica-exames",
       "/clinica-offline",
@@ -700,9 +841,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-internacao-historico",
       "/clinica-execucoes",
       "/clinica-boxes",
+      "/clinica-fila",
       "/sngpc",
     ];
-    if (somenteProfissional && !permitidas.includes(pathname)) {
+    if (
+      somenteProfissional &&
+      !permitidas.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    ) {
       navigate({ to: "/pet-minha-agenda", replace: true });
     }
   }, [somenteProfissional, pathname, navigate]);
@@ -714,6 +859,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [somenteSalao, itensSalao, pathname, navigate]);
 
+  const areasBase = useMemo(() => montarAreas(menu), [menu]);
+  // A personalização da empresa só vale no menu completo (não no do motorista, do salão, do profissional, da produção nem da equipe Ze Tech).
+  const { data: configMenu } = useMenuPersonalizado();
+  const menuPersonalizavel =
+    !somenteMotorista && !somenteSalao && !somenteProfissional && !somenteProducao && !naAreaZeTech;
+  const areas = useMemo(
+    () =>
+      menuPersonalizavel
+        ? aplicarMenuPersonalizado<Item, Area>(
+            areasBase,
+            configMenu,
+            (nome) => ({ label: nome, icon: LayoutGrid, items: [] }),
+            // na empresa com clínica, Serviços e preços e Profissionais não saem do menu (a clínica depende deles)
+            essenciaisDoMenu(modulos.clinica),
+          )
+        : areasBase,
+    [areasBase, configMenu, menuPersonalizavel, modulos.clinica],
+  );
+  const areaAtual =
+    areas.find((a) =>
+      a.items.some((i) => i.to && (pathname === i.to || pathname.startsWith(i.to + "/"))),
+    )?.label ?? areas[0]?.label;
+  useEffect(() => {
+    setAreaEscolhida(null);
+  }, [pathname]);
+  const areaAberta = areas.find((a) => a.label === (areaEscolhida ?? areaAtual)) ?? areas[0];
+  const mostrarPainel = painelAberto && (areaAberta?.items.length ?? 0) > 1;
+
+  function clicarArea(area: Area) {
+    const unica = area.items.length === 1 && area.items[0]?.to;
+    if (unica) {
+      setAreaEscolhida(area.label);
+      navigate({ to: unica as "/dashboard" });
+      return;
+    }
+    if (area.label === areaAberta?.label && painelAberto) {
+      alternarPainel(false);
+      return;
+    }
+    setAreaEscolhida(area.label);
+    alternarPainel(true);
+  }
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -724,7 +912,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === "/frente-caixa") return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
+    <div className="min-h-screen bg-background lg:flex">
       {mobileOpen && (
         <button
           aria-label="Fechar menu"
@@ -735,84 +923,114 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex min-h-0 shrink-0 transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-          <LogoEmpresa />
-          <div className="min-w-0">
-            <p className="truncate font-display text-sm font-bold tracking-wide">
-              {(data?.empresa?.nome_fantasia || data?.empresa?.razao_social || "EZRA ERP")
-                .toUpperCase()
-                .slice(0, 22)}
-            </p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">Desenvolvido por EZRA</p>
+        {/* trilho com as áreas */}
+        <nav
+          aria-label="Áreas do sistema"
+          className="menu-scroll flex min-h-0 w-[5.25rem] shrink-0 flex-col items-center gap-1 bg-rail px-1.5 py-3 text-rail-foreground"
+        >
+          <div className="mb-2 grid size-11 shrink-0 place-items-center">
+            <LogoEmpresa />
           </div>
-          <button
-            className="ml-auto lg:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Fechar"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-4">
-          {menu.map((group) => {
-            const aberto = !fechados.includes(group.label);
+          {areas.map((area) => {
+            const ativa = area.label === areaAtual;
+            const aberta = area.label === areaAberta?.label && mostrarPainel;
             return (
-              <div key={group.label}>
-                <button
-                  onClick={() => alternarGrupo(group.label)}
-                  aria-expanded={aberto}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                >
-                  <group.icon className="size-3.5 shrink-0" />
-                  <span className="flex-1 text-left">{group.label}</span>
-                  <ChevronDown
-                    className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")}
-                  />
-                </button>
-                <ul className={cn("space-y-0.5 pb-1", !aberto && "hidden")}>
-                  {group.items.map((item, i) => (
-                    <li key={`${item.secao ?? ""}-${item.label}`}>
-                      {item.secao && item.secao !== group.items[i - 1]?.secao ? (
-                        <p className="px-2 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/35">
-                          {item.secao}
-                        </p>
-                      ) : null}
-                      {item.to && !item.soon ? (
-                        <Link
-                          to={item.to}
-                          className="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                          activeProps={{
-                            className:
-                              "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-[inset_3px_0_0_0_var(--sidebar-primary)]",
-                          }}
-                        >
-                          <item.icon className="size-4 shrink-0" />
-                          {item.label}
-                        </Link>
-                      ) : (
-                        <span className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground/35">
-                          <item.icon className="size-4 shrink-0" />
-                          {item.label}
-                          <span className="ml-auto text-[9px] uppercase tracking-wider">
-                            fase 2
-                          </span>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <button
+                key={area.label}
+                onClick={() => clicarArea(area)}
+                aria-current={ativa ? "page" : undefined}
+                aria-expanded={area.items.length > 1 ? aberta : undefined}
+                title={area.label}
+                className={cn(
+                  "flex w-full min-w-0 shrink-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10.5px] font-medium leading-tight transition-colors",
+                  ativa
+                    ? "bg-rail-active text-rail-active-foreground font-semibold"
+                    : aberta
+                      ? "bg-rail-foreground/10 text-rail-foreground"
+                      : "text-rail-foreground/75 hover:bg-rail-foreground/10 hover:text-rail-foreground",
+                )}
+              >
+                <area.icon className="size-5 shrink-0" />
+                <span className="w-full break-words text-center">{area.label}</span>
+              </button>
             );
           })}
+          <button
+            onClick={() => alternarPainel(!painelAberto)}
+            className="mt-auto hidden shrink-0 rounded-lg p-2 text-rail-foreground/60 hover:bg-rail-foreground/10 hover:text-rail-foreground lg:block"
+            aria-label={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
+            title={painelAberto ? "Recolher submenus" : "Mostrar submenus"}
+          >
+            {painelAberto ? (
+              <PanelLeftClose className="size-4" />
+            ) : (
+              <PanelLeftOpen className="size-4" />
+            )}
+          </button>
         </nav>
+
+        {/* painel de submenus da área */}
+        {areaAberta && (mostrarPainel || mobileOpen) && (
+          <div className="flex min-h-0 w-60 min-w-0 flex-col border-r border-border bg-card text-card-foreground">
+            <div className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-bold">{areaAberta.label}</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {(
+                    data?.empresa?.nome_fantasia ||
+                    data?.empresa?.razao_social ||
+                    "EZRA ERP"
+                  ).slice(0, 28)}
+                </p>
+              </div>
+              <button
+                className="ml-auto lg:hidden"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Fechar"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <ul className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3">
+              {areaAberta.items.map((item, i) => (
+                <li key={`${item.secao ?? ""}-${item.to ?? item.label}`}>
+                  {item.secao && item.secao !== areaAberta.items[i - 1]?.secao ? (
+                    <p className="px-2 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {item.secao}
+                    </p>
+                  ) : null}
+                  {item.to && !item.soon ? (
+                    <Link
+                      to={item.to}
+                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground/80 transition-colors hover:bg-menta hover:text-foreground"
+                      activeProps={{
+                        className: "bg-jade text-jade-foreground font-semibold hover:bg-jade",
+                      }}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground">
+                      <item.icon className="size-4 shrink-0" />
+                      {item.label}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
+              Desenvolvido por EZRA
+            </p>
+          </div>
+        )}
       </aside>
 
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card/90 px-4 backdrop-blur">
           <Button
             variant="ghost"
@@ -891,7 +1109,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <MenuBaseContext.Provider value={areasBase}>{children}</MenuBaseContext.Provider>
+        </main>
       </div>
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />

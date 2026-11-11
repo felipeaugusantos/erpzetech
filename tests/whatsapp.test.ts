@@ -153,6 +153,26 @@ describe("avisos do servidor", () => {
     );
   });
 
+  it("falha informada pelo WhatsApp vira status erro; pendente e desconhecido são ignorados", () => {
+    const ev = (status: unknown) =>
+      interpretarEvento({
+        event: "MESSAGES_UPDATE",
+        instance: "zt-1",
+        data: { keyId: "A3", status },
+      });
+    for (const falha of ["ERROR", "failed", 0]) {
+      assert.deepEqual(ev(falha), {
+        tipo: "status",
+        instancia: "zt-1",
+        idMensagem: "A3",
+        status: "erro",
+      });
+    }
+    for (const sem of ["PENDING", 1, "ALGO_NOVO", null]) {
+      assert.deepEqual(ev(sem), { tipo: "ignorar" });
+    }
+  });
+
   it("mensagem recebida; ignora as próprias, grupos e sem texto", () => {
     const base = { event: "messages.upsert", instance: "zt-1" };
     contem(
@@ -369,6 +389,52 @@ describe("rodada de envio", () => {
       }),
     );
     assert.ok(t.includes("Mensal") && t.includes("10/02/2026") && t.includes("2"));
+  });
+});
+
+describe("avisos da clínica", () => {
+  const itemClinica = (o: Partial<ItemReservado> = {}): ItemReservado => ({
+    id: "m9",
+    tenant_id: "t1",
+    instancia: "zt-1",
+    numero: "5511988887777",
+    tipo: "reforco_vacina",
+    tentativas: 0,
+    modelo: null,
+    loja: "Clínica Bicho Bom",
+    variaveis: { cliente: "Ana Souza", pet: "Thor", data: "2026-11-10", itens: "V10 e Vermífugo" },
+    ...o,
+  });
+
+  it("reforço de vacina usa o padrão da clínica com tutor, pet, itens e data", () => {
+    const t = textoDoItem(itemClinica());
+    assert.ok(t.includes("Oi, Ana!"));
+    assert.ok(t.includes("Thor"));
+    assert.ok(t.includes("V10 e Vermífugo"));
+    assert.ok(t.includes("10/11/2026"));
+    assert.ok(t.includes("Clínica Bicho Bom"));
+    assert.ok(t.includes("responda SAIR"));
+  });
+
+  it("retorno de consulta usa o texto próprio", () => {
+    const t = textoDoItem(
+      itemClinica({
+        tipo: "retorno_consulta",
+        variaveis: { cliente: "Bia", pet: "Luna", data: "2026-11-12" },
+      }),
+    );
+    assert.ok(t.includes("retorno"));
+    assert.ok(t.includes("Luna"));
+    assert.ok(t.includes("12/11/2026"));
+  });
+
+  it("modelo da empresa vale mais que o padrão", () => {
+    const t = textoDoItem(
+      itemClinica({ modelo: "Atenção, {tutor}: o {pet} tem vacina em {data}. — {loja}" }),
+    );
+    assert.ok(t.startsWith("Atenção, Ana: o Thor tem vacina em 10/11/2026."));
+    assert.ok(t.includes("Clínica Bicho Bom"));
+    assert.ok(!t.includes("{tutor}"));
   });
 });
 

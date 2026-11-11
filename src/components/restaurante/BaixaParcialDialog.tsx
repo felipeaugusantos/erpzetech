@@ -207,7 +207,7 @@ export function BaixaParcialDialog({
                         {Number(i.quantidade)} na conta · {brl(i.preco_unitario)} cada
                       </span>
                     </span>
-                    {marcado && Number(i.quantidade) > 1 && (
+                    {marcado && Number(i.quantidade) > 1 && i.peso_liquido_g == null && (
                       <Input
                         aria-label={`Quantidade de ${i.nome} a pagar`}
                         className="h-8 w-16 text-right"

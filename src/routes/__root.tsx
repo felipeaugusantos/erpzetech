@@ -1,3 +1,4 @@
+import { consultaDoPortalDeOutroUsuario } from "@/lib/portal-tutor";
 import type { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { consultaPersistivel } from "@/lib/cache-clinico";
@@ -167,8 +168,12 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      // Dado clínico do portal é do tutor que o consultou: ao trocar de usuário, nada dele fica para o próximo.
+      queryClient.removeQueries({
+        predicate: (q) => consultaDoPortalDeOutroUsuario(q.queryKey, session?.user?.id),
+      });
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });

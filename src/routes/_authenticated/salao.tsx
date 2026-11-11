@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ConciergeBell, Plus, ScanBarcode, Users } from "lucide-react";
+import {
+  Ban,
+  CalendarClock,
+  ConciergeBell,
+  MoreVertical,
+  Plus,
+  ScanBarcode,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { AbrirComandaDialog } from "@/components/restaurante/AbrirComandaDialog";
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
+import { ChamadosBar } from "@/components/restaurante/ChamadosBar";
+import { MesaAcoesDialog } from "@/components/restaurante/MesaAcoesDialog";
 import { RestauranteOffline } from "@/components/restaurante/RestauranteOffline";
 import { useOnline } from "@/lib/offline";
 import { Button } from "@/components/ui/button";
@@ -18,13 +28,14 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { brl } from "@/lib/format";
 import { useModulosCnae } from "@/lib/cnae";
 import { acharMesa, interpretarLeitura } from "@/lib/leitor-comanda";
-import { minutosDesde } from "@/lib/restaurante";
+import { ROTULO_STATUS_MESA, minutosDesde, statusMesa, type StatusMesa } from "@/lib/restaurante";
 import {
   CHAVE_REST,
   tabela,
   type Comanda,
   type ComandaItem,
   type Mesa,
+  type MesaReserva,
 } from "@/lib/restaurante-dados";
 
 export const Route = createFileRoute("/_authenticated/salao")({
@@ -50,6 +61,8 @@ function Salao() {
   const roles = session?.roles ?? [];
   const agora = useRelogio();
   const online = useOnline();
+  const [mesaAcoes, setMesaAcoes] = useState<Mesa | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState<StatusMesa | "todas">("todas");
   const [abrindo, setAbrindo] = useState<{ mesa: Mesa | null } | null>(null);
   const [comandaAberta, setComandaAberta] = useState<string | null>(null);
   const [leitura, setLeitura] = useState("");
@@ -67,17 +80,19 @@ function Salao() {
     return () => window.removeEventListener("keydown", aoTeclar);
   }, []);
 
-  useRealtimeTabelas(["comandas", "comanda_itens"], () =>
+  useRealtimeTabelas(["comandas", "comanda_itens", "mesas", "mesa_reservas"], () =>
     qc.invalidateQueries({ queryKey: [CHAVE_REST] }),
   );
 
   const { data, isLoading } = useQuery({
     queryKey: [CHAVE_REST, "salao"],
     queryFn: async () => {
-      const [mesas, comandas] = await Promise.all([
+      const [mesas, comandas, reservas] = await Promise.all([
         tabela("mesas").select("*"),
         tabela("comandas").select("*").eq("situacao", "aberta").order("aberta_em"),
+        tabela("mesa_reservas").select("*").eq("situacao", "ativa").order("reservada_para"),
       ]);
+      if (reservas.error) throw new Error(reservas.error.message);
       if (mesas.error) throw new Error(mesas.error.message);
       if (comandas.error) throw new Error(comandas.error.message);
       const lista = (comandas.data ?? []) as unknown as Comanda[];
@@ -95,7 +110,12 @@ function Salao() {
       const ordenadas = ((mesas.data ?? []) as unknown as Mesa[]).sort((a, b) =>
         a.numero.localeCompare(b.numero, "pt-BR", { numeric: true }),
       );
-      return { mesas: ordenadas, comandas: lista, itens };
+      return {
+        mesas: ordenadas,
+        comandas: lista,
+        itens,
+        reservas: (reservas.data ?? []) as unknown as MesaReserva[],
+      };
     },
     enabled: modulos.restaurante,
   });
@@ -136,10 +156,22 @@ function Salao() {
 
   // mesa desativada some do mapa, menos enquanto ainda tem comanda aberta (senão ela ficaria inacessível)
   const mesas = (data?.mesas ?? []).filter((m) => m.ativa || porMesa.has(m.id));
-  const mesasLivres = mesas.filter((m) => m.ativa && !porMesa.has(m.id));
+  const mesasLivres = mesas.filter((m) => m.ativa && !m.bloqueada && !porMesa.has(m.id));
+  const reservas = data?.reservas ?? [];
+  const reservasDa = (mesaId: string) => reservas.filter((r) => r.mesa_id === mesaId);
+  const situacaoDa = (m: Mesa): StatusMesa =>
+    statusMesa({
+      bloqueada: m.bloqueada,
+      ocupada: porMesa.has(m.id),
+      reservas: reservasDa(m.id),
+      agora: agora.getTime(),
+    });
+  const contagem: Record<StatusMesa, number> = { livre: 0, ocupada: 0, reservada: 0, bloqueada: 0 };
+  for (const m of mesas) contagem[situacaoDa(m)] += 1;
+  const mesasVisiveis = mesas.filter(
+    (m) => filtroStatus === "todas" || situacaoDa(m) === filtroStatus,
+  );
   const avulsas = (data?.comandas ?? []).filter((c) => !c.mesa_id && c.tipo !== "delivery");
-
-  const ocupadas = mesas.filter((m) => porMesa.has(m.id)).length;
 
   /** Bipa o código da comanda ou digita o número da mesa: abre a comanda (ou pergunta para abrir a mesa). */
   async function ler(texto: string) {
@@ -167,6 +199,7 @@ function Salao() {
       else {
         const aberta = porMesa.get(mesa.id);
         if (aberta) setComandaAberta(aberta.id);
+        else if (mesa.bloqueada) toast.error(`Mesa ${mesa.numero} está bloqueada`);
         else setAbrindo({ mesa });
       }
     }
@@ -177,7 +210,7 @@ function Salao() {
     <>
       <PageHeader
         title="PDV do restaurante"
-        description="Bipe a comanda ou digite o número da mesa. Mesa vermelha está ocupada; verde está livre."
+        description="Bipe a comanda ou digite o número da mesa. Verde: livre · vermelha: ocupada · roxa: reservada · cinza: bloqueada."
         actions={
           <Button variant="outline" onClick={() => setAbrindo({ mesa: null })}>
             <Plus className="mr-1 size-4" /> Comanda avulsa
@@ -186,6 +219,7 @@ function Salao() {
       />
 
       <RestauranteOffline modo="salao" pendencias />
+      <ChamadosBar mesas={mesas} />
 
       <form
         className="mb-4 flex flex-wrap items-center gap-3"
@@ -209,13 +243,27 @@ function Salao() {
         <Button type="submit" size="lg">
           Abrir
         </Button>
-        <div className="ml-auto flex items-center gap-4 text-sm">
-          <span className="flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-emerald-500" /> Livre {mesas.length - ocupadas}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-3 rounded-full bg-red-500" /> Ocupada {ocupadas}
-          </span>
+        <div className="ml-auto flex flex-wrap items-center gap-1 text-sm">
+          {(
+            [
+              ["todas", "Todas", "bg-foreground", mesas.length],
+              ["livre", "Livre", "bg-emerald-500", contagem.livre],
+              ["ocupada", "Ocupada", "bg-red-500", contagem.ocupada],
+              ["reservada", "Reservada", "bg-violet-500", contagem.reservada],
+              ["bloqueada", "Bloqueada", "bg-slate-400", contagem.bloqueada],
+            ] as const
+          ).map(([valor, rotulo, cor, qtd]) => (
+            <Button
+              key={valor}
+              type="button"
+              size="sm"
+              variant={filtroStatus === valor ? "default" : "outline"}
+              aria-pressed={filtroStatus === valor}
+              onClick={() => setFiltroStatus(valor)}
+            >
+              <span className={`mr-1.5 size-2.5 rounded-full ${cor}`} /> {rotulo} {qtd}
+            </Button>
+          ))}
         </div>
       </form>
 
@@ -229,49 +277,94 @@ function Salao() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-        {mesas.map((m) => {
+        {mesasVisiveis.map((m) => {
           const c = porMesa.get(m.id);
           const r = c ? resumo(c.id) : null;
+          const status = situacaoDa(m);
+          const proxima = reservasDa(m.id)[0];
+          const estilo: Record<StatusMesa, string> = {
+            livre: "border-emerald-500 bg-emerald-50",
+            ocupada: `border-red-500 bg-red-50 ${r && r.prontos > 0 ? "ring-2 ring-amber-400 ring-offset-1" : ""}`,
+            reservada: "border-violet-500 bg-violet-50",
+            bloqueada: "border-slate-400 bg-slate-100 text-slate-600",
+          };
           return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => (c ? setComandaAberta(c.id) : setAbrindo({ mesa: m }))}
-              className={`rounded-xl border-2 p-3 text-left transition hover:shadow-md ${
-                !c
-                  ? "border-emerald-500 bg-emerald-50"
-                  : `border-red-500 bg-red-50 ${r && r.prontos > 0 ? "ring-2 ring-amber-400 ring-offset-1" : ""}`
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-display text-2xl font-bold">{m.numero}</span>
-                {m.capacidade && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users className="size-3" /> {m.capacidade}
-                  </span>
-                )}
-              </div>
-              {c && r ? (
-                <div className="mt-2 space-y-0.5 text-sm">
-                  <p className="font-medium">{brl(r.total)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    há {minutosDesde(c.aberta_em, agora)} min
-                    {c.pessoas ? ` · ${c.pessoas} pessoas` : ""}
-                  </p>
-                  {r.prontos > 0 && (
-                    <p className="flex items-center gap-1 text-xs font-semibold text-amber-700">
-                      <ConciergeBell className="size-3.5" />
-                      {r.prontos === 1 ? "1 item pronto" : `${r.prontos} itens prontos`}
-                    </p>
-                  )}
-                  {r.pendentes > 0 && (
-                    <p className="text-xs text-muted-foreground">{r.pendentes} a enviar</p>
+            <div key={m.id} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (c) setComandaAberta(c.id);
+                  else if (m.bloqueada) setMesaAcoes(m);
+                  else setAbrindo({ mesa: m });
+                }}
+                aria-label={`Mesa ${m.numero}, ${ROTULO_STATUS_MESA[status]}`}
+                className={`h-full w-full rounded-xl border-2 p-3 text-left transition hover:shadow-md ${estilo[status]}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-2xl font-bold">{m.numero}</span>
+                  {m.capacidade && (
+                    <span className="mr-6 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="size-3" /> {m.capacidade}
+                    </span>
                   )}
                 </div>
-              ) : (
-                <p className="mt-2 text-sm font-medium text-emerald-700">Livre</p>
+                {c && r ? (
+                  <div className="mt-2 space-y-0.5 text-sm">
+                    <p className="font-medium">{brl(r.total)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      há {minutosDesde(c.aberta_em, agora)} min
+                      {c.pessoas ? ` · ${c.pessoas} pessoas` : ""}
+                    </p>
+                    {r.prontos > 0 && (
+                      <p className="flex items-center gap-1 text-xs font-semibold text-amber-700">
+                        <ConciergeBell className="size-3.5" />
+                        {r.prontos === 1 ? "1 item pronto" : `${r.prontos} itens prontos`}
+                      </p>
+                    )}
+                    {r.pendentes > 0 && (
+                      <p className="text-xs text-muted-foreground">{r.pendentes} a enviar</p>
+                    )}
+                  </div>
+                ) : status === "bloqueada" ? (
+                  <p className="mt-2 flex items-center gap-1 text-sm font-medium">
+                    <Ban className="size-3.5" /> Bloqueada
+                    {m.bloqueio_motivo && (
+                      <span className="truncate text-xs font-normal">· {m.bloqueio_motivo}</span>
+                    )}
+                  </p>
+                ) : (
+                  <div className="mt-2 text-sm">
+                    <p
+                      className={`font-medium ${status === "reservada" ? "text-violet-700" : "text-emerald-700"}`}
+                    >
+                      {ROTULO_STATUS_MESA[status]}
+                    </p>
+                    {proxima && (
+                      <p className="flex items-center gap-1 text-xs text-violet-700">
+                        <CalendarClock className="size-3" />
+                        {new Date(proxima.reservada_para).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        · {proxima.nome}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </button>
+              {!c && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-1 top-1 size-7"
+                  aria-label={`Reservar ou bloquear a mesa ${m.numero}`}
+                  onClick={() => setMesaAcoes(m)}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -289,7 +382,10 @@ function Salao() {
                   onClick={() => setComandaAberta(c.id)}
                   className={`rounded-xl border-2 border-red-500 bg-red-50 p-3 text-left hover:shadow-md ${r.prontos > 0 ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
                 >
-                  <span className="font-display text-xl font-bold">Nº {c.numero}</span>
+                  <span className="font-display text-xl font-bold">
+                    {c.senha ? `Senha ${c.senha}` : `Nº ${c.numero}`}
+                  </span>
+                  {c.senha && <p className="text-xs text-muted-foreground">Comanda {c.numero}</p>}
                   {c.cliente_nome && <p className="text-sm">{c.cliente_nome}</p>}
                   <p className="text-sm font-medium">{brl(r.total)}</p>
                   {r.prontos > 0 && (
@@ -311,6 +407,8 @@ function Salao() {
           setComandaAberta(id);
         }}
       />
+
+      <MesaAcoesDialog mesa={mesaAcoes} reservas={reservas} onFechar={() => setMesaAcoes(null)} />
 
       {comandaAberta && (
         <ComandaDialog

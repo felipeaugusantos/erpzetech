@@ -58,6 +58,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-rail-active: var(--rail-active);
+  --color-rail-active-foreground: var(--rail-active-foreground);
+  --color-jade: var(--jade);
+  --color-jade-foreground: var(--jade-foreground);
+  --color-petroleo: var(--petroleo);
+  --color-petroleo-foreground: var(--petroleo-foreground);
+  --color-menta: var(--menta);
+  --color-menta-foreground: var(--menta-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -114,6 +124,18 @@
   --chart-3: #005927;
   --chart-4: #2d4036;
   --chart-5: #7cc7a1;
+
+  /* menu em trilho + painel (identidade EZRA) */
+  --rail: #14211a;
+  --rail-foreground: #dfeee5;
+  --rail-active: #a4e76c;
+  --rail-active-foreground: #14211a;
+  --jade: #a4e76c;
+  --jade-foreground: #14211a;
+  --petroleo: #234a3e;
+  --petroleo-foreground: #f2faf5;
+  --menta: #eaf4ee;
+  --menta-foreground: #14211a;
 
   --sidebar: #003d1a;
   --sidebar-foreground: #e6f5ed;
@@ -202,6 +224,17 @@
 
 @utility text-numeric {
   font-variant-numeric: tabular-nums;
+}
+
+/* O menu continua rolável por mouse, toque e teclado, sem barras permanentes. */
+@utility menu-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Impressão do cupom de venda: só o cupom vai para o papel (80 mm). */

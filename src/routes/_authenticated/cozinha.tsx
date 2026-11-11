@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtimeTabelas } from "@/hooks/useRealtimeTabelas";
 import { useCardapio } from "@/hooks/useCardapio";
+import { usePracas } from "@/hooks/usePracas";
 import { useRelogio } from "@/hooks/useRelogio";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useModulosCnae } from "@/lib/cnae";
-import { ROTULO_ESTACAO, minutosDesde, proximoPreparo } from "@/lib/restaurante";
+import { minutosDesde, proximoPreparo, rotuloEstacao } from "@/lib/restaurante";
 import {
   CHAVE_REST,
   rpcRestaurante,
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/cozinha")({
 });
 
 const PERFIS_COZINHA = ["administrador", "gestor", "cozinha"];
-const ESTACOES = [
+const ESTACOES_FIXAS = [
   { valor: "todas", rotulo: "Tudo" },
   { valor: "cozinha", rotulo: "Cozinha" },
   { valor: "bar", rotulo: "Bar" },
@@ -44,6 +45,11 @@ function Cozinha() {
   const { data: session } = useSessionData();
   const modulos = useModulosCnae();
   const [estacao, setEstacao] = useState("todas");
+  const { data: pracas = [] } = usePracas();
+  const estacoes = [
+    ...ESTACOES_FIXAS,
+    ...pracas.filter((p) => p.ativo).map((p) => ({ valor: p.codigo, rotulo: p.nome })),
+  ];
   const roles = session?.roles ?? [];
   const agora = useRelogio();
   // tempo de preparo configurado no cardápio; sem ele, o prato é considerado atrasado depois de 20 minutos
@@ -109,6 +115,7 @@ function Cozinha() {
     if (mesa) return `Mesa ${mesa.numero}`;
     if (c?.tipo === "delivery")
       return `Delivery ${c.numero}${c.cliente_nome ? ` · ${c.cliente_nome}` : ""}`;
+    if (c?.senha) return `Senha ${c.senha}`;
     return c ? `Comanda ${c.numero}` : "—";
   };
 
@@ -118,8 +125,8 @@ function Cozinha() {
         title="Cozinha"
         description="Os pedidos aparecem aqui assim que o garçom envia. Atualiza sozinho."
         actions={
-          <div className="flex gap-1">
-            {ESTACOES.map((e) => (
+          <div className="flex flex-wrap gap-1">
+            {estacoes.map((e) => (
               <Button
                 key={e.valor}
                 size="sm"
@@ -185,7 +192,7 @@ function Cozinha() {
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">
-                          {ROTULO_ESTACAO[i.estacao] ?? i.estacao}
+                          {rotuloEstacao(i.estacao, pracas)}
                         </span>
                         {prox && (
                           <Button

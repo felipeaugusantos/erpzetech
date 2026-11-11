@@ -75,7 +75,7 @@ const USA_RPC_ANTIGA = (t: TipoContato) => t === "retorno" || t === "aniversario
 function ContatosModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
-  if (!modulos.petshop) return <ModuloBloqueado modulo="petshop" />;
+  if (!modulos.petShopOuClinica) return <ModuloBloqueado modulo="petshop" />;
   return <Contatos />;
 }
 

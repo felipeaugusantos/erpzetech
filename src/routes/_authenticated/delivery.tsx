@@ -6,6 +6,7 @@ import { Bike, Plus } from "lucide-react";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { ComandaDialog } from "@/components/restaurante/ComandaDialog";
+import { PedidosExternos } from "@/components/restaurante/PedidosExternos";
 import { NovoDeliveryDialog } from "@/components/restaurante/NovoDeliveryDialog";
 import { RestauranteOffline } from "@/components/restaurante/RestauranteOffline";
 import { useOnline } from "@/lib/offline";
@@ -152,6 +153,7 @@ function Delivery() {
       />
 
       <RestauranteOffline modo="delivery" pendencias />
+      <PedidosExternos onAceito={(id) => setAberta(id)} />
       {isLoading && <p className="text-sm text-muted-foreground">Carregando pedidos...</p>}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
