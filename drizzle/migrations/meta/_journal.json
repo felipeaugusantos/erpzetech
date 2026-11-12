@@ -596,6 +596,13 @@
       "when": 1794504097597,
       "tag": "0084_clinica_exame_agenda_do_pet",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794504932469,
+      "tag": "0085_clinica_painel_pacientes",
+      "breakpoints": true
     }
   ]
 }

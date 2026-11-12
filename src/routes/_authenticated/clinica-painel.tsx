@@ -14,6 +14,7 @@ import {
 } from "recharts";
 
 import { DashboardChartTooltip } from "@/components/app/DashboardChartTooltip";
+import { PacientesPainelClinica } from "@/components/app/PacientesPainelClinica";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { SeletorPeriodo } from "@/components/app/SeletorPeriodo";
@@ -225,6 +226,7 @@ function PainelClinica() {
             Receita: serviços dos agendamentos ligados às consultas do período, sem faltas nem
             cancelamentos.
           </p>
+          <PacientesPainelClinica key={`${periodo.de}-${periodo.ate}`} de={periodo.de} ate={periodo.ate} />
         </>
       )}
     </div>

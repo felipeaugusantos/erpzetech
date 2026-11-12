@@ -17515,6 +17515,15 @@ export type Database = {
       clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
       clinica_painel: { Args: { p_ate: string; p_de: string }; Returns: Json }
+      clinica_painel_pacientes: {
+        Args: {
+          p_ate: string
+          p_busca?: string
+          p_de: string
+          p_pagina?: number
+        }
+        Returns: Json
+      }
       clinica_pendencia_baixar: {
         Args: { p_dados: Json; p_id: string }
         Returns: string

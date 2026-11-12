@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Painel da clínica: pacientes com visitas e exames por período, busca e paginação; leitura exclusiva da gestão sem texto clínico/resultados. Thor conferido na conta real de Bruna: duas visitas e nenhum exame cadastrado, computador e celular sem transbordamento. Testes de proteção adicionados; teste SQL completo depende do papel privilegiado da CI (sandbox não permite SET ROLE). Não publicado.
+
 - [x] Clínica: painel próprio (/clinica-painel, gestão), visão por veterinário (/clinica-veterinarios), favoritos do bulário com dose e validade (bulário e prontuário) e receita impressa com logo e cor da empresa. Typecheck e 63 testes OK; telas não vistas com sessão real (empresa de teste sem clínica). PDF baixado ainda sem logo. Não publicado.
 
 - [x] Modernizar gráficos do Dashboard: barras arredondadas, valores exatos e linha de faturamento integrada ao período; 23 testes passaram, conta autenticada confirmou R$ 1.224,00 em 18/10 e 2 pedidos aprovados, computador e celular sem transbordamento ou erros, build OK. Não publicado.
