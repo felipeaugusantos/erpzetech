@@ -1,6 +1,6 @@
 # Roadmap
 
-- [x] Registrar as 16 referências enviadas nas observações dos campos do Hemograma da clínica da Bruna; conferido na conta real em Modelos de exame → Hemograma → Editar Leucócitos totais. Nenhum resultado de paciente registrado. Faixas automáticas permanecem desativadas: a imagem omite espécie e unidades; ativação para cães e gatos aguarda validação da veterinária/laboratório.
+- [x] Registrar somente as oito referências absolutas destacadas nas observações dos campos do Hemograma da clínica da Bruna; removidas as anotações relativas e de plaquetas acrescentadas anteriormente, conforme o novo recorte. Leitura confirmou as oito faixas e seus campos; nenhum resultado de paciente registrado. Faixas automáticas permanecem desativadas: a imagem omite espécie e unidades; ativação para cães e gatos aguarda validação da veterinária/laboratório.
 
 - [x] Preencher rua, bairro, cidade e UF automaticamente pelo CEP no cadastro do tutor, preservando número e complemento e permitindo edição manual. Consulta real do CEP 01001-000 conferida na conta da clínica; sucesso e erro controlados verificados, sem gravar registros. Treze testes passaram; não publicado.
 
