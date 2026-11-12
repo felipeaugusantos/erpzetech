@@ -68,6 +68,18 @@ openssl req -x509 -newkey rsa:2048 -sha512 -nodes -days 3650 -subj "/CN=ERP Ze T
 - **A migração 0088 precisa ser aplicada** para a tela funcionar; sem ela a lista de modelos da empresa fica vazia e a tela de edição mostra o aviso.
 - Limite: a prévia é o desenho do driver; as impressoras ZPL/TSPL usam as fontes delas. Ficou fora o posicionamento livre (arrastar) e o logotipo.
 
+## Fase 7 (feita em parte): balança e granel
+
+Etiqueta de pesagem para produto vendido por kg, e o caixa que lê essa etiqueta.
+
+- **Código de balança** (`src/lib/balanca.ts`): EAN-13 que começa com `2`, seguido do código interno do produto (6 dígitos), do **peso em gramas** (5 dígitos, de 1 g a 99,999 kg) e do dígito verificador. O código guarda o peso, não o valor: o caixa calcula pelo preço do kg do cadastro, então etiqueta antiga não fica com valor errado quando o preço muda. Só vale para produto vendido por kg (`unidade_venda`, ou `unidade` se não houver) cujo código interno tem só números, de 1 a 6 dígitos.
+- **Etiqueta**: novo campo **"Peso e preço do kg"** (`0,850 kg × R$ 39,90/kg`) nos três formatos, e o modelo pronto **Térmica 60 × 40 mm — pesável**. Os modelos próprios passam a aceitar até 5 campos (migração `0089_etiqueta_modelos_peso.sql`, com teste em `supabase/ci/etiqueta-modelos.sql`).
+- **Impressão**: no botão de etiqueta de **Produtos**, produto por kg pede o **peso de cada etiqueta** (em kg, ex.: 0,850) e a validade (opcional); o valor é peso × preço do kg em centavos inteiros (mesma conta da pesagem do restaurante) e o diálogo sugere o modelo pesável. Produto sem preço por kg, ou com código interno que não cabe, é recusado com a explicação.
+- **Caixa** (`frente-caixa`): quando o texto lido não é código de barras nem código interno de nenhum produto, o sistema tenta ler como etiqueta de balança e lança o produto por kg com o peso lido. Etiquetas lidas duas vezes somam o peso na mesma linha. O que já funcionava (códigos de barras e códigos internos exatos, busca por nome) não muda.
+- **Peso digitado**: não há leitura direta da balança. O peso é digitado na hora de imprimir (a balança que "digita como teclado" cai no mesmo campo).
+- **Limites**: o PDV antigo (`pdv.tsx`) e os pedidos não leem a etiqueta de balança; só a frente de caixa. Etiqueta de balança de outro fabricante (com valor no código, ou código de outro tamanho) não é lida: o formato é o descrito acima. Dois produtos cujos códigos internos viram o mesmo número de 6 dígitos (`123` e `000123`) deixam a leitura ambígua e ela é recusada. Granel de outras formas (abrir o saco, custo por kg) segue na tela de Granel, sem mudança.
+
 ## Fases seguintes (a decidir)
 
-7. Balança/granel e etiqueta do pet shop (dependem de definir os dados).
+8. Etiqueta do pet shop (identificação do animal, hotelaria): depende de definir os dados.
+9. Ler a balança pela porta serial/USB, sem digitar o peso, e aceitar o formato com valor no código.

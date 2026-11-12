@@ -562,7 +562,7 @@ function Produtos() {
                           variant="ghost"
                           size="icon"
                           aria-label="Imprimir etiqueta"
-                          onClick={() => setEtiqueta([etiquetaDoProduto(p)])}
+                          onClick={() => setEtiqueta([etiquetaDoProduto(p, { pesagem: true })])}
                         >
                           <Tag className="size-4" />
                         </Button>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { interpretarBusca } from "@/lib/busca-pdv";
+import { leituraDeBalancaNoPdv } from "@/lib/balanca";
 import { trocarOperador as trocarOperadorLogin } from "@/lib/login-cliente";
 import { brl, num } from "@/lib/format";
 import {
@@ -1027,6 +1028,15 @@ function FrenteCaixa() {
         (p.codigo_barras ?? "").toLowerCase() === termo ||
         (p.codigo_interno ?? "").toLowerCase() === termo,
     );
+    if (!exato) {
+      // etiqueta de balança (peso no código de barras): vende o produto por kg com o peso lido
+      const balanca = leituraDeBalancaNoPdv(produtos, texto);
+      if (balanca) {
+        if ("erro" in balanca) toast.error(balanca.erro);
+        else adicionar(balanca.produto, balanca.quantidade);
+        return;
+      }
+    }
     const p = exato ?? achados[sel];
     if (p) adicionar(p, q);
     else toast.error("Produto não encontrado");

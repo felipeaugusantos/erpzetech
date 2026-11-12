@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { abrirImpressao } from "@/lib/imprimir";
 import { useModelosEtiqueta } from "@/lib/etiqueta-modelo-dados";
 import { ehModeloProprio } from "@/lib/etiqueta-modelo";
+import { etiquetaPesavel } from "@/lib/etiqueta-pesavel";
+import { pesoEmGramas } from "@/lib/pesagem";
 import { enviarCrusQz, listarImpressorasQz, type ApiAssinaturaQz } from "@/lib/etiqueta-qz";
 import { assinarQz, certificadoQz } from "@/lib/etiqueta-qz.functions";
 import {
@@ -17,6 +19,7 @@ import {
 } from "@/lib/etiqueta-raw";
 import {
   MODELOS_ETIQUETA,
+  camposDoModelo,
   htmlEtiquetas,
   modeloEtiqueta,
   type DadosEtiqueta,
@@ -66,6 +69,9 @@ export function EtiquetaProdutoDialog({
 }) {
   const [modeloId, setModeloId] = useState("t-50x30");
   const [copias, setCopias] = useState<string[]>([]);
+  // produto vendido por kg: peso (kg) e validade de cada etiqueta
+  const [pesos, setPesos] = useState<string[]>([]);
+  const [validades, setValidades] = useState<string[]>([]);
   const [pular, setPular] = useState("0");
   const [preco, setPreco] = useState(true);
   const [codigo, setCodigo] = useState(true);
@@ -79,6 +85,8 @@ export function EtiquetaProdutoDialog({
 
   useEffect(() => {
     setCopias((itens ?? []).map((i) => String(i.copias ?? 1)));
+    setPesos((itens ?? []).map(() => ""));
+    setValidades((itens ?? []).map(() => ""));
   }, [itens]);
 
   useEffect(() => {
@@ -123,12 +131,44 @@ export function EtiquetaProdutoDialog({
     }
   }
 
+  const temPesavel = (itens ?? []).some((i) => i.pesavel);
+
+  // ao abrir com produto por kg, sugere o modelo pesável (se o escolhido não mostra o peso)
+  useEffect(() => {
+    if (temPesavel && !camposDoModelo(modelo).some((c) => c.campo === "peso")) {
+      setModeloId("t-60x40-pesavel");
+    }
+    // só ao abrir com outros itens: trocar o modelo depois é escolha da pessoa
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itens]);
+  const modeloMostraPeso = camposDoModelo(modelo).some((c) => c.campo === "peso");
+
+  // Itens com quantidade: o produto por kg só entra com o peso informado (estrito = avisa o que falta).
+  function montarEscolhidos(estrito: boolean): DadosEtiqueta[] {
+    return (itens ?? []).flatMap((i, k) => {
+      const n = Math.floor(Number(copias[k]));
+      if (!(n > 0)) return [];
+      if (!i.pesavel) return [{ ...i, copias: n }];
+      const g = pesoEmGramas(pesos[k] ?? "", "kg");
+      if (g == null) {
+        if (estrito) throw new Error(`Informe o peso de “${i.descricao}” em kg (ex.: 0,850).`);
+        return [];
+      }
+      try {
+        return [{ ...etiquetaPesavel(i, g, validades[k] || null), copias: n }];
+      } catch (e) {
+        if (estrito) throw e;
+        return [];
+      }
+    });
+  }
+
   const naoCabe =
     modoEfetivo !== "driver" &&
     !!itens &&
     cabeNaEtiqueta(
       modelo,
-      itens,
+      montarEscolhidos(false),
       { linguagem: modoEfetivo, dpi },
       { mostrarPreco: preco, mostrarCodigo: codigo },
     ).some((c) => !c);
@@ -141,13 +181,20 @@ export function EtiquetaProdutoDialog({
       return;
     }
     try {
-      localStorage.setItem(CHAVE_MODELO, modeloId);
+      // o modelo sugerido para pesagem não vira o padrão dos outros produtos
+      if (!temPesavel) localStorage.setItem(CHAVE_MODELO, modeloId);
       localStorage.setItem(CHAVE_MODO, `${modo}|${dpi}`);
       localStorage.setItem(CHAVE_QZ, `${entrega}|${impressoraQz}`);
     } catch {
       /* não é essencial */
     }
-    const escolhidos = itens.map((i, k) => ({ ...i, copias: qtd[k]! })).filter((i) => i.copias > 0);
+    let escolhidos: DadosEtiqueta[];
+    try {
+      escolhidos = montarEscolhidos(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível montar a etiqueta");
+      return;
+    }
     if (modoEfetivo !== "driver") {
       const imp: ImpressoraEtiqueta = { linguagem: modoEfetivo, dpi };
       const texto = comandosEtiquetas(modelo, escolhidos, imp, {
@@ -197,7 +244,7 @@ export function EtiquetaProdutoDialog({
 
   return (
     <Dialog open={!!itens} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={temPesavel ? "max-w-2xl" : "max-w-md"}>
         <DialogHeader>
           <DialogTitle>Imprimir etiquetas</DialogTitle>
         </DialogHeader>
@@ -215,6 +262,29 @@ export function EtiquetaProdutoDialog({
                     </div>
                   )}
                 </div>
+                {i.pesavel && (
+                  <>
+                    <Input
+                      aria-label={`Peso de ${i.descricao} em kg`}
+                      className="w-24"
+                      inputMode="decimal"
+                      placeholder="Peso kg"
+                      value={pesos[k] ?? ""}
+                      onChange={(e) =>
+                        setPesos((c) => c.map((v, j) => (j === k ? e.target.value : v)))
+                      }
+                    />
+                    <Input
+                      aria-label={`Validade de ${i.descricao}`}
+                      className="w-36"
+                      type="date"
+                      value={validades[k] ?? ""}
+                      onChange={(e) =>
+                        setValidades((c) => c.map((v, j) => (j === k ? e.target.value : v)))
+                      }
+                    />
+                  </>
+                )}
                 <Input
                   aria-label={`Quantidade de ${i.descricao}`}
                   className="w-20"
@@ -229,6 +299,15 @@ export function EtiquetaProdutoDialog({
               </div>
             ))}
           </div>
+          {temPesavel && (
+            <p className="text-xs text-muted-foreground">
+              Produto vendido por kg: informe o peso de cada etiqueta. O código de barras sai no
+              formato de balança e o caixa lê o peso por ele
+              {modeloMostraPeso
+                ? "."
+                : ". Para mostrar peso e preço do kg na etiqueta, escolha o modelo “pesável”."}
+            </p>
+          )}
           <div>
             <Label>Modelo da etiqueta</Label>
             <Select value={modeloId} onValueChange={setModeloId}>

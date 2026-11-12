@@ -199,11 +199,12 @@ test("editor: desligar, mover e voltar a ligar campo mantém a ordem esperada", 
       ["descricao", true],
       ["preco", true],
       ["codigo", true],
+      ["peso", false],
       ["extra", false],
     ],
   );
   assert.equal(moverCampoEditor(e, 0, -1), e);
-  assert.equal(moverCampoEditor(e, 3, 1), e);
+  assert.equal(moverCampoEditor(e, 4, 1), e);
   assert.equal(
     validarModeloProprio(
       entradaDoEstado({ ...e, campos: e.campos.map((c) => ({ ...c, ativo: false })) }),

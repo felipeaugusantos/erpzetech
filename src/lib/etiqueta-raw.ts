@@ -5,6 +5,7 @@ import {
   desenhavel,
   fatorDoCampo,
   precoEtiqueta,
+  textoPesagem,
   type CampoEtiqueta,
   type DadosEtiqueta,
   type ModeloEtiqueta,
@@ -132,6 +133,13 @@ function zplEtiqueta(
         altura: Math.round(h * 1.2),
         texto: `^A0N,${h},${h}^FB${util},1,0,C,0^FD${limpar(extra, "zpl")}^FS`,
       };
+    } else if (c.campo === "peso" && d.pesagem) {
+      const h = Math.round(hd * 0.8 * f);
+      b = {
+        c,
+        altura: Math.round(h * 1.2),
+        texto: `^A0N,${h},${h}^FB${util},1,0,C,0^FD${limpar(textoPesagem(d.pesagem), "zpl")}^FS`,
+      };
     } else if (c.campo === "preco" && mostraPreco) {
       const h = Math.round((pequena ? 4 : 5) * pt * f);
       const txt = precoEtiqueta(d.preco!) + (d.unidade ? ` / ${d.unidade}` : "");
@@ -216,6 +224,9 @@ function tsplEtiqueta(
     } else if (c.campo === "extra" && extra) {
       base = "3";
       textos = [extra];
+    } else if (c.campo === "peso" && d.pesagem) {
+      base = "3";
+      textos = [limpar(textoPesagem(d.pesagem), "tspl")];
     } else if (c.campo === "preco" && mostraPreco) {
       base = "4";
       textos = [limpar(precoEtiqueta(d.preco!) + (d.unidade ? ` / ${d.unidade}` : ""), "tspl")];

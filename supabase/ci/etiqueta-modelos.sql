@@ -123,6 +123,15 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$SELECT public.etiqueta_modelo_salvar(NULL, 'Ruim 14', jsonb_build_object('versao', 1, 'tipo', 'termica', 'larguraMm', 50, 'alturaMm', 30, 'campos', '[{"campo":"preco"}]'::jsonb, 'lixo', repeat('x', 4000)))$c$, 'configuração acima de 4 mil caracteres');
   PERFORM ci.exige((SELECT count(*) = 2 FROM public.etiqueta_modelos WHERE tenant_id = ta), 'modelo recusado não grava nada');
 
+  -- campo "peso" (balança) e até 5 campos
+  PERFORM ci.entrar(adm);
+  PERFORM public.etiqueta_modelo_salvar(NULL, 'Pesável', (cfg || '{"campos":[{"campo":"descricao"},{"campo":"peso"},{"campo":"preco"},{"campo":"extra"},{"campo":"codigo"}]}'::jsonb));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT count(*) = 1 FROM public.etiqueta_modelos WHERE tenant_id = ta AND nome = 'Pesável'), 'modelo com 5 campos, inclusive o peso, é aceito');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT public.etiqueta_modelo_salvar(NULL, 'Seis', %L::jsonb)$c$, (cfg || '{"campos":[{"campo":"descricao"},{"campo":"peso"},{"campo":"preco"},{"campo":"extra"},{"campo":"codigo"},{"campo":"descricao"}]}'::jsonb)::text), 'modelo com 6 campos');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT public.etiqueta_modelo_salvar(NULL, 'Peso repetido', %L::jsonb)$c$, (cfg || '{"campos":[{"campo":"peso"},{"campo":"peso"}]}'::jsonb)::text), 'peso repetido');
+  DELETE FROM public.etiqueta_modelos WHERE nome = 'Pesável';
+
   -- limite de 30 por empresa
   PERFORM ci.entrar(adm);
   FOR n IN 1..28 LOOP

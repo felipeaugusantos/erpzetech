@@ -71,8 +71,8 @@ export function validarModeloProprio(entrada: {
   if (alturaMm == null || alturaMm < amin || alturaMm > amax)
     return { ok: false, erro: `A altura precisa ficar entre ${amin} e ${amax} mm.` };
 
-  if (!Array.isArray(entrada.campos) || entrada.campos.length === 0 || entrada.campos.length > 4)
-    return { ok: false, erro: "Escolha de 1 a 4 campos para a etiqueta." };
+  if (!Array.isArray(entrada.campos) || entrada.campos.length === 0 || entrada.campos.length > 5)
+    return { ok: false, erro: "Escolha de 1 a 5 campos para a etiqueta." };
   const campos: CampoEtiqueta[] = [];
   for (const c of entrada.campos) {
     const campo = (c as { campo?: unknown })?.campo;
@@ -208,11 +208,15 @@ export function estadoNovoModelo(): EstadoEditorModelo {
     margemEsquerdaMm: "5",
     espacoHMm: "2",
     espacoVMm: "0",
-    campos: CAMPOS_PADRAO.map((c) => ({
-      campo: c.campo,
-      ativo: true,
-      tamanho: "m" as TamanhoCampo,
-    })),
+    // os campos do modelo padrão ligados; os demais (peso e preço do kg) entram desligados
+    campos: [
+      ...CAMPOS_PADRAO.map((c) => ({ campo: c.campo, ativo: true, tamanho: "m" as TamanhoCampo })),
+      ...TODOS_OS_CAMPOS.filter((t) => !CAMPOS_PADRAO.some((c) => c.campo === t)).map((campo) => ({
+        campo,
+        ativo: false,
+        tamanho: "m" as TamanhoCampo,
+      })),
+    ],
   };
 }
 

@@ -30,12 +30,13 @@ export type ModeloEtiqueta = {
 };
 
 /** O que cada etiqueta pode mostrar. `extra` é validade e lote; `codigo` é o código de barras com o número. */
-export type TipoCampoEtiqueta = "descricao" | "extra" | "preco" | "codigo";
+export type TipoCampoEtiqueta = "descricao" | "extra" | "preco" | "codigo" | "peso";
 export type TamanhoCampo = "p" | "m" | "g";
 export type CampoEtiqueta = { campo: TipoCampoEtiqueta; tamanho?: TamanhoCampo };
 
 export const TIPOS_CAMPO_ETIQUETA: { id: TipoCampoEtiqueta; nome: string }[] = [
   { id: "descricao", nome: "Descrição do produto" },
+  { id: "peso", nome: "Peso e preço do kg" },
   { id: "extra", nome: "Validade e lote" },
   { id: "preco", nome: "Preço" },
   { id: "codigo", nome: "Código de barras" },
@@ -58,6 +59,20 @@ export const MODELOS_ETIQUETA: ModeloEtiqueta[] = [
   { id: "t-50x30", nome: "Térmica 50 × 30 mm", tipo: "termica", larguraMm: 50, alturaMm: 30 },
   { id: "t-60x40", nome: "Térmica 60 × 40 mm", tipo: "termica", larguraMm: 60, alturaMm: 40 },
   { id: "t-100x50", nome: "Térmica 100 × 50 mm", tipo: "termica", larguraMm: 100, alturaMm: 50 },
+  {
+    id: "t-60x40-pesavel",
+    nome: "Térmica 60 × 40 mm — pesável (balança)",
+    tipo: "termica",
+    larguraMm: 60,
+    alturaMm: 40,
+    campos: [
+      { campo: "descricao" },
+      { campo: "peso" },
+      { campo: "preco", tamanho: "g" },
+      { campo: "extra" },
+      { campo: "codigo" },
+    ],
+  },
   {
     id: "f-3x10",
     nome: "Folha A4 — 3 × 10 (66,7 × 25,4 mm)",
@@ -110,6 +125,13 @@ export type DadosEtiqueta = {
   unidade?: string | null;
   validade?: string | null;
   lote?: string | null;
+  /** Pesagem (produto vendido por kg): o campo "peso" mostra o peso e o preço do kg; `preco` leva o valor a pagar. */
+  pesagem?: { pesoG: number; precoKg: number } | null | undefined;
+  /**
+   * Produto vendido por kg: o diálogo de impressão pede o peso de cada etiqueta e monta preço, peso e o código de
+   * balança (ver `etiqueta-pesavel.ts`). Não é lido pelos geradores.
+   */
+  pesavel?: { codigoInterno: string; precoKg: number } | null | undefined;
   /** Quantas vias imprimir (1 a 500). */
   copias?: number | undefined;
 };
@@ -120,6 +142,10 @@ export type OpcoesEtiqueta = {
   /** Só folha: quantas posições já usadas da primeira folha ficam em branco (etiqueta parcial reaproveitada). */
   pular?: number;
 };
+
+/** "0,850 kg × R$ 39,90/kg" */
+export const textoPesagem = (p: { pesoG: number; precoKg: number }) =>
+  `${(p.pesoG / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg × ${precoEtiqueta(p.precoKg)}/kg`;
 
 export const precoEtiqueta = (v: number) =>
   "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -152,6 +178,10 @@ function corpoEtiqueta(m: ModeloEtiqueta, d: DadosEtiqueta, o: OpcoesEtiqueta): 
       case "extra":
         return extras
           ? `<div class="ext" style="${pt(pequena ? 6 : 7, c)}">${escapar(extras)}</div>`
+          : "";
+      case "peso":
+        return d.pesagem
+          ? `<div class="ext" style="${pt(pequena ? 7 : 8, c)}">${escapar(textoPesagem(d.pesagem))}</div>`
           : "";
       case "preco":
         return o.mostrarPreco !== false && d.preco != null
@@ -259,8 +289,15 @@ export type ProdutoParaEtiqueta = {
 /** Dados da etiqueta a partir do cadastro do produto; validade, lote e cópias entram em `extra`. */
 export function etiquetaDoProduto(
   p: ProdutoParaEtiqueta,
-  extra: { validade?: string | null; lote?: string | null; copias?: number } = {},
+  extra: {
+    validade?: string | null;
+    lote?: string | null;
+    copias?: number;
+    /** Só na tela de Produtos: produto vendido por kg pede o peso na impressão (ver `etiqueta-pesavel.ts`). */
+    pesagem?: boolean;
+  } = {},
 ): DadosEtiqueta {
+  const porKg = extra.pesagem && /^\s*kg\s*$/i.test(p.unidade_venda || p.unidade || "");
   return {
     descricao: p.descricao_resumida || p.descricao,
     codigo: p.codigo_barras || p.codigo_interno || null,
@@ -269,5 +306,8 @@ export function etiquetaDoProduto(
     validade: dataEtiqueta(extra.validade),
     lote: extra.lote || null,
     copias: extra.copias,
+    ...(porKg
+      ? { pesavel: { codigoInterno: p.codigo_interno ?? "", precoKg: Number(p.preco_venda ?? 0) } }
+      : {}),
   };
 }
