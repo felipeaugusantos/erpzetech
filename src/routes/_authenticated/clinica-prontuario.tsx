@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, TriangleAlert, UserPlus } from "lucide-react";
+import {
+  FlaskConical,
+  PawPrint,
+  Printer,
+  Search,
+  Stethoscope,
+  Syringe,
+  TrendingDown,
+  TrendingUp,
+  TriangleAlert,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
@@ -238,6 +249,10 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const p = data.pet;
   const evolucao = evolucaoDoPeso(data.atendimentos);
   const sinais = evolucaoDosSinais(data.atendimentos);
+  const pesoAtual = evolucao.at(-1);
+  const pesoAnterior = evolucao.at(-2);
+  const variacao =
+    pesoAtual && pesoAnterior ? Math.round((pesoAtual.peso - pesoAnterior.peso) * 100) / 100 : null;
   // continuar só vale para o atendimento aberto por este veterinário; o de outro não abre nem edita por aqui
   const aberto = atendimentoAbertoDoPaciente(
     data.atendimentos.filter(
@@ -252,26 +267,93 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   return (
     <div className="grid gap-4">
-      <div className="panel p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-lg font-semibold">{p.nome}</h2>
-          <span className="text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
+      <div className="panel overflow-hidden">
+        {p.alergias && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground"
+          >
+            <TriangleAlert className="size-4 shrink-0" /> Alergia: {p.alergias}
+          </div>
+        )}
+        <div className="flex flex-wrap items-start gap-4 p-4">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <PawPrint className="size-7" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-xl font-semibold">{p.nome}</h2>
+              <span className="text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Badge variant="secondary">{rotulo(ESPECIES, p.especie)}</Badge>
+              {p.raca && <Badge variant="secondary">{p.raca}</Badge>}
+              {p.nascimento && <Badge variant="secondary">{idadeDoPet(p.nascimento)}</Badge>}
+              {p.porte && (
+                <Badge variant="outline">Porte {rotulo(PORTES, p.porte).toLowerCase()}</Badge>
+              )}
+              {p.pelagem && (
+                <Badge variant="outline">Pelo {rotulo(PELAGENS, p.pelagem).toLowerCase()}</Badge>
+              )}
+              {p.castrado !== null && (
+                <Badge variant="outline">{p.castrado ? "Castrado" : "Não castrado"}</Badge>
+              )}
+            </div>
+          </div>
+          {pesoAtual && (
+            <div className="rounded-lg border border-border px-3 py-2 text-right">
+              <p className="text-xs text-muted-foreground">Último peso</p>
+              <p className="font-display text-lg font-semibold">{num(pesoAtual.peso, 2)} kg</p>
+              {variacao !== null && variacao !== 0 && (
+                <p
+                  className={`flex items-center justify-end gap-1 text-xs ${variacao > 0 ? "text-primary" : "text-destructive"}`}
+                >
+                  {variacao > 0 ? (
+                    <TrendingUp className="size-3" />
+                  ) : (
+                    <TrendingDown className="size-3" />
+                  )}
+                  {variacao > 0 ? "+" : ""}
+                  {num(variacao, 2)} kg desde a consulta anterior
+                </p>
+              )}
+            </div>
+          )}
         </div>
-        <div className="mt-2">
+
+        <div className="flex flex-wrap gap-2 border-t border-border bg-muted/40 px-4 py-3">
           {aberto ? (
             <Button asChild size="sm">
               <Link to="/clinica-atendimento" search={{ agendamento: aberto.agendamento_id }}>
-                Continuar atendimento
+                <Stethoscope /> Continuar atendimento
               </Link>
             </Button>
           ) : (
             <Button size="sm" onClick={() => setIniciando(true)}>
-              Iniciar atendimento
+              <Stethoscope /> Iniciar atendimento
             </Button>
           )}
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined }}>
+              <Syringe /> Vacinas e vermífugos
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link
+              to="/clinica-exames"
+              search={{ pet: petId, exame: undefined, atendimento: undefined }}
+            >
+              <FlaskConical /> Exames
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clinica-ficha" search={{ pet: petId }}>
+              <Printer /> Imprimir ficha
+            </Link>
+          </Button>
         </div>
         {abertoDeOutro && (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="px-4 pt-2 text-xs text-muted-foreground">
             Há atendimento aberto por outro(a) veterinário(a); só quem o abriu continua nele.
           </p>
         )}
@@ -287,37 +369,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             }}
           />
         )}
-        <Link
-          to="/clinica-vacinas"
-          search={{ pet: petId, agendamento: undefined }}
-          className="mt-1 inline-block text-sm text-primary underline"
-        >
-          Vacinas, vermífugos e cartão de vacinação
-        </Link>
-        <Link
-          to="/clinica-exames"
-          search={{ pet: petId, exame: undefined, atendimento: undefined }}
-          className="mt-1 ml-4 inline-block text-sm text-primary underline"
-        >
-          Exames
-        </Link>
-        <Link
-          to="/clinica-ficha"
-          search={{ pet: petId }}
-          className="mt-1 ml-4 inline-block text-sm text-primary underline"
-        >
-          Imprimir ficha clínica
-        </Link>
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <span>{rotulo(ESPECIES, p.especie)}</span>
-          {p.raca && <span>{p.raca}</span>}
-          {p.porte && <span>Porte {rotulo(PORTES, p.porte).toLowerCase()}</span>}
-          {p.pelagem && <span>Pelo {rotulo(PELAGENS, p.pelagem).toLowerCase()}</span>}
-          {p.nascimento && <span>{idadeDoPet(p.nascimento)}</span>}
-          {p.castrado !== null && <span>{p.castrado ? "Castrado" : "Não castrado"}</span>}
-        </div>
 
-        <div className="mt-3">
+        <div className="p-4">
           <Label htmlFor="f-alergia">Alergias</Label>
           <div className="flex gap-2">
             <Input
@@ -335,17 +388,16 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </Button>
           </div>
           {p.alergias && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-amber-800">
-              <TriangleAlert className="size-3" /> Esta alergia aparece na agenda de banho e tosa.
+            <p className="mt-1 text-xs text-muted-foreground">
+              Esta alergia aparece na agenda de banho e tosa.
+            </p>
+          )}
+          {evolucao.length > 1 && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Peso nas consultas: {evolucao.map((e) => `${num(e.peso, 1)} kg`).join(" → ")}
             </p>
           )}
         </div>
-
-        {evolucao.length > 1 && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Peso nas consultas: {evolucao.map((e) => `${num(e.peso, 1)} kg`).join(" → ")}
-          </p>
-        )}
       </div>
 
       {sinais.length > 0 && (
@@ -401,82 +453,93 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           description="O primeiro aparece aqui depois da consulta."
         />
       ) : (
-        data.atendimentos.map((a) => (
-          <div key={a.id} className="panel p-4 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <strong>{dateTimeBR(a.aberto_em)}</strong>
-              <span className="text-muted-foreground">
-                {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
-              </span>
-              <Badge variant={a.situacao === "fechado" ? "secondary" : "default"}>
-                {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
-              </Badge>
-            </div>
-            <dl className="mt-2 grid gap-1">
-              <Linha rotulo="Queixa" valor={a.queixa} />
-              <Linha rotulo="Anamnese" valor={a.anamnese} />
-              <Linha
-                rotulo="Sinais"
-                valor={[
-                  a.peso_kg ? `${num(Number(a.peso_kg), 2)} kg` : null,
-                  a.temperatura_c ? `${num(Number(a.temperatura_c), 1)} °C` : null,
-                  a.freq_cardiaca ? `${a.freq_cardiaca} bpm` : null,
-                  a.freq_respiratoria ? `${a.freq_respiratoria} mpm` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+        <ol className="relative ml-3 grid gap-4 border-l-2 border-border pl-6">
+          {data.atendimentos.map((a) => (
+            <li key={a.id} className="relative">
+              <span
+                aria-hidden
+                className={`absolute -left-[33px] top-4 size-4 rounded-full border-2 border-background ${a.situacao === "fechado" ? "bg-muted-foreground" : "bg-primary"}`}
               />
-              <Linha rotulo="Exame físico" valor={a.exame_fisico} />
-              <Linha rotulo="Diagnóstico" valor={a.diagnostico} />
-              <Linha rotulo="Conduta" valor={a.conduta} />
-              <Linha rotulo="Retorno" valor={a.retorno_em ? dateBR(a.retorno_em) : null} />
-              <Linha rotulo="Observações" valor={a.observacoes} />
-            </dl>
-
-            {a.adendos.map((d) => (
-              <div key={d.id} className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3">
-                <p className="whitespace-pre-wrap">{d.texto}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
-                  {dateTimeBR(d.created_at)}
-                </p>
-              </div>
-            ))}
-
-            {a.situacao === "fechado" &&
-              (adendo?.id === a.id ? (
-                <div className="mt-3 grid gap-2">
-                  <Textarea
-                    aria-label="Texto do adendo"
-                    rows={3}
-                    value={adendo.texto}
-                    onChange={(e) => setAdendo({ id: a.id, texto: e.target.value })}
+              <div className="panel p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{dateTimeBR(a.aberto_em)}</strong>
+                  <span className="text-muted-foreground">
+                    {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
+                  </span>
+                  <Badge variant={a.situacao === "fechado" ? "secondary" : "default"}>
+                    {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
+                  </Badge>
+                </div>
+                <dl className="mt-2 grid gap-1">
+                  <Linha rotulo="Queixa" valor={a.queixa} />
+                  <Linha rotulo="Anamnese" valor={a.anamnese} />
+                  <Linha
+                    rotulo="Sinais"
+                    valor={[
+                      a.peso_kg ? `${num(Number(a.peso_kg), 2)} kg` : null,
+                      a.temperatura_c ? `${num(Number(a.temperatura_c), 1)} °C` : null,
+                      a.freq_cardiaca ? `${a.freq_cardiaca} bpm` : null,
+                      a.freq_respiratoria ? `${a.freq_respiratoria} mpm` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   />
-                  <div className="flex gap-2">
+                  <Linha rotulo="Exame físico" valor={a.exame_fisico} />
+                  <Linha rotulo="Diagnóstico" valor={a.diagnostico} />
+                  <Linha rotulo="Conduta" valor={a.conduta} />
+                  <Linha rotulo="Retorno" valor={a.retorno_em ? dateBR(a.retorno_em) : null} />
+                  <Linha rotulo="Observações" valor={a.observacoes} />
+                </dl>
+
+                {a.adendos.map((d) => (
+                  <div
+                    key={d.id}
+                    className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3"
+                  >
+                    <p className="whitespace-pre-wrap">{d.texto}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
+                      {dateTimeBR(d.created_at)}
+                    </p>
+                  </div>
+                ))}
+
+                {a.situacao === "fechado" &&
+                  (adendo?.id === a.id ? (
+                    <div className="mt-3 grid gap-2">
+                      <Textarea
+                        aria-label="Texto do adendo"
+                        rows={3}
+                        value={adendo.texto}
+                        onChange={(e) => setAdendo({ id: a.id, texto: e.target.value })}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => criarAdendo.mutate()}
+                          disabled={criarAdendo.isPending || !adendo.texto.trim()}
+                        >
+                          Registrar adendo
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setAdendo(null)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
                     <Button
                       size="sm"
-                      onClick={() => criarAdendo.mutate()}
-                      disabled={criarAdendo.isPending || !adendo.texto.trim()}
+                      variant="outline"
+                      className="mt-3"
+                      onClick={() => setAdendo({ id: a.id, texto: "" })}
                     >
-                      Registrar adendo
+                      Adicionar adendo
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setAdendo(null)}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() => setAdendo({ id: a.id, texto: "" })}
-                >
-                  Adicionar adendo
-                </Button>
-              ))}
-          </div>
-        ))
+                  ))}
+              </div>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );
