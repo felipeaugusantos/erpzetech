@@ -603,6 +603,13 @@
       "when": 1794504932469,
       "tag": "0085_clinica_painel_pacientes",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794514633224,
+      "tag": "0086_whatsapp_gestor_clinica",
+      "breakpoints": true
     }
   ]
 }
