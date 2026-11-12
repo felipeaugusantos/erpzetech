@@ -11616,6 +11616,70 @@ export type Database = {
           },
         ]
       }
+      pet_exame_agenda: {
+        Row: {
+          agendado_para: string
+          created_at: string
+          criado_por: string | null
+          exame: string
+          id: string
+          observacao: string | null
+          pet_id: string
+          situacao: string
+          tenant_id: string
+          updated_at: string
+          veterinario_id: string | null
+        }
+        Insert: {
+          agendado_para: string
+          created_at?: string
+          criado_por?: string | null
+          exame: string
+          id?: string
+          observacao?: string | null
+          pet_id: string
+          situacao?: string
+          tenant_id: string
+          updated_at?: string
+          veterinario_id?: string | null
+        }
+        Update: {
+          agendado_para?: string
+          created_at?: string
+          criado_por?: string | null
+          exame?: string
+          id?: string
+          observacao?: string | null
+          pet_id?: string
+          situacao?: string
+          tenant_id?: string
+          updated_at?: string
+          veterinario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_exame_agenda_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_agenda_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_exame_agenda_veterinario_id_fkey"
+            columns: ["veterinario_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_exame_anexos: {
         Row: {
           atendimento_id: string | null
@@ -17329,6 +17393,15 @@ export type Database = {
         Args: { p_exame_id: string; p_texto: string }
         Returns: Json
       }
+      clinica_exame_agenda: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
+      clinica_exame_agenda_situacao: {
+        Args: { p_id: string; p_situacao: string }
+        Returns: undefined
+      }
+      clinica_exame_agendar: { Args: { p_dados: Json }; Returns: string }
       clinica_exame_campo_mover: {
         Args: { p_campo_id: string; p_delta: number }
         Returns: undefined
@@ -17485,6 +17558,10 @@ export type Database = {
         Returns: string
       }
       clinica_receita_modelos: { Args: never; Returns: Json }
+      clinica_receitas: {
+        Args: { p_ate: string; p_de: string; p_pet_id?: string }
+        Returns: Json
+      }
       clinica_reforcos_pendentes: {
         Args: { p_atraso?: number; p_janela?: number }
         Returns: Json
