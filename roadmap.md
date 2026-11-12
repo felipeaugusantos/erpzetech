@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Importação completa do PDF por pet: conferir resultados, criar modelos/campos faltantes e gravar exames em rascunho numa operação única, preservando precisão e isolamento.
+- [x] Importação do PDF por pet: conferência conjunta dos resultados reconhecidos, criação de modelos/campos faltantes e exames em rascunho numa transação idempotente. 48 testes de lógica/proteção e uma regressão de importação passaram; PDF real de Léo mostrou Hemograma e Bioquímica, ALT 26,9 e unidades editáveis, computador/celular sem transbordamento. Plaquetas ambíguas continuam avisadas, não convertidas. Build OK; não publicado.
+- [ ] Conferir gravação e leitura dos exames importados com acesso veterinário real: sessão disponível é da gestão, não veterinária; prévia validada com respostas controladas, sem criar exames no paciente real.
 
 - [x] Tela Laudos e evolução por pet, acessível em Exames e Prontuário: todos os exames com resultados e adendos, evolução dos fechados por nome/unidade e minigráfico dos quatro últimos. Trinta testes passaram; comparação controlada 30,5 → 26,9 conferida no navegador. Conta disponível não lê os exames de Léo; verificação com sessão veterinária real permanece pendente. Nenhum resultado alterado; não publicado.
 
