@@ -182,6 +182,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const [alergias, setAlergias] = useState<string | null>(null);
   const [adendo, setAdendo] = useState<{ id: string; texto: string } | null>(null);
   const [iniciando, setIniciando] = useState(false);
+  const [pedidoSolicitacao, setPedidoSolicitacao] = useState(0);
   const navegar = useNavigate();
 
   const meuVeterinario = useQuery({
@@ -347,6 +348,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <FlaskConical /> Exames
             </Link>
           </Button>
+          <Button size="sm" variant="outline" onClick={() => setPedidoSolicitacao((n) => n + 1)}>
+            <FilePlus2 /> Solicitar exames
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link to="/clinica-ficha" search={{ pet: petId }}>
               <Printer /> Imprimir ficha
@@ -443,6 +447,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         petId={petId}
         pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
         tutor={data.tutor}
+        pedidoSolicitacao={pedidoSolicitacao}
       />
 
       <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
