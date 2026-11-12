@@ -631,6 +631,13 @@
       "when": 1794524248091,
       "tag": "0089_clinica_importar_pdf_nome_explicito",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794526898137,
+      "tag": "0090_clinica_pacientes_atendidos",
+      "breakpoints": true
     }
   ]
 }

@@ -17518,6 +17518,10 @@ export type Database = {
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
       clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
+      clinica_pacientes_atendidos: {
+        Args: { p_pagina?: number }
+        Returns: Json
+      }
       clinica_painel: { Args: { p_ate: string; p_de: string }; Returns: Json }
       clinica_painel_pacientes: {
         Args: {
