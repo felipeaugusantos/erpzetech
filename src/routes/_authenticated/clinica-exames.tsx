@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
+import { ImportarExamesPetPdf } from "@/components/app/ImportarExamesPetPdf";
 import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -297,22 +298,12 @@ function ExamesDoPaciente({
         </div>
         <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline"><Link to="/clinica-laudos" search={{ pet: petId }}><TrendingUp className="size-4" />Laudos e evolução</Link></Button>
-        <Button variant="outline" onClick={() => {
-          setArquivoImportacao(null);
-          const selecionado = data.exames.find(e => e.id === exameId && e.situacao === "aberto");
-          if (selecionado) {
-            setSolicitacaoImportacao(s => s + 1);
-            return;
-          }
-          setImportando(true);
-          setDestinoImportacao("novo");
-          setModeloId("");
-          setLigar(true);
-          setLaboratorio("");
-          setColeta("");
-          setMaterial("");
-          setNovoAberto(true);
-        }}><FileUp className="size-4" /> Importar exame</Button>
+        <ImportarExamesPetPdf pet={data.pet} onImportado={id => {
+          void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
+          void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos-lista"] });
+          void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos"] });
+          void navegar({ to: "/clinica-exames", search: { pet: petId, exame: id, atendimento: atendimentoId } });
+        }} />
         <Button
           onClick={() => {
             setImportando(false);
