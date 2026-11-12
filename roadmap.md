@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Solicitação de exames: selecionar modelos ativos da clínica e adicionar à relação, sem digitar nomes; mantém observações e remoção. Conta real de Bruna/Thor conferida sem modelos cadastrados; inclusão de dois exames e remoção verificadas com resposta simulada, sem emitir documento. Nove testes de documentos passaram; não publicado.
+
 - [x] Painel da clínica: pacientes com visitas e exames por período, busca e paginação; leitura exclusiva da gestão sem texto clínico/resultados. Thor conferido na conta real de Bruna: duas visitas e nenhum exame cadastrado, computador e celular sem transbordamento. Testes de proteção adicionados; teste SQL completo depende do papel privilegiado da CI (sandbox não permite SET ROLE). Não publicado.
 
 - [x] Clínica: painel próprio (/clinica-painel, gestão), visão por veterinário (/clinica-veterinarios), favoritos do bulário com dose e validade (bulário e prontuário) e receita impressa com logo e cor da empresa. Typecheck e 63 testes OK; telas não vistas com sessão real (empresa de teste sem clínica). PDF baixado ainda sem logo. Não publicado.
