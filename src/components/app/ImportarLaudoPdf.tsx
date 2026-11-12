@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { conferirPacienteLaudo, corresponderLaudo, lerLaudoTexto, type LaudoPdf, type CorrespondenciaLaudo } from "@/lib/laudo-exame-pdf";
 import type { ExameClinico } from "@/lib/exames";
 
-export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, onAplicar }: { exame: ExameClinico; disabled: boolean; solicitacao?: number; onAplicar: (linhas: CorrespondenciaLaudo[], laudo: LaudoPdf) => void }) {
+export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, arquivo = null, onAplicar }: { exame: ExameClinico; disabled: boolean; solicitacao?: number; arquivo?: File | null; onAplicar: (linhas: CorrespondenciaLaudo[], laudo: LaudoPdf) => void }) {
   const input = useRef<HTMLInputElement>(null);
+  const arquivoLido = useRef<File | null>(null);
   const [escolherArquivo, setEscolherArquivo] = useState(false);
-  useEffect(() => { if (solicitacao > 0) setEscolherArquivo(true); }, [solicitacao]);
+  useEffect(() => { if (solicitacao > 0 && !arquivo) setEscolherArquivo(true); }, [solicitacao, arquivo]);
   const [lendo, setLendo] = useState(false);
   const [previa, setPrevia] = useState<{ laudo: LaudoPdf; linhas: CorrespondenciaLaudo[] } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
@@ -32,6 +33,11 @@ export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, onAplicar }
     } catch (e) { toast.error("Não foi possível importar", { description: e instanceof Error ? e.message : "Confira o arquivo." }); }
     finally { setLendo(false); }
   }
+  useEffect(() => {
+    if (!arquivo || arquivoLido.current === arquivo) return;
+    arquivoLido.current = arquivo;
+    void ler(arquivo);
+  }, [arquivo]);
   return <>
     <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" aria-label="Arquivo do laudo PDF"
       onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void ler(file); }} />
