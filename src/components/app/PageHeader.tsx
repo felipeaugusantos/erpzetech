@@ -67,18 +67,38 @@ export function StatCard({
     danger: "bg-destructive/12 text-destructive",
     accent: "bg-mint/15 text-accent-foreground",
   };
+  const barras: Record<string, string> = {
+    default: "bg-border",
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-destructive",
+    accent: "bg-primary",
+  };
+  const fundos: Record<string, string> = {
+    default: "",
+    success: "",
+    warning: "bg-warning/5",
+    danger: "bg-destructive/5",
+    accent: "",
+  };
   return (
-    <div className="panel p-4">
+    <div
+      className={cn(
+        "panel relative overflow-hidden p-4 pl-5 transition-shadow hover:shadow-md",
+        fundos[tone],
+      )}
+    >
+      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1", barras[tone])} />
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         {Icon && (
-          <span className={cn("grid size-8 shrink-0 place-items-center rounded-md", tones[tone])}>
+          <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg", tones[tone])}>
             <Icon className="size-4" />
           </span>
         )}
       </div>
-      <p className="mt-2 font-display text-2xl font-bold text-numeric">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      <p className="mt-1 font-display text-2xl font-bold tracking-tight text-numeric">{value}</p>
+      {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

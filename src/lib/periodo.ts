@@ -15,6 +15,48 @@ export function periodoPadrao(): Periodo {
   return { de: iso(inicio), ate: iso(hoje) };
 }
 
+export type AtalhoPeriodo = "hoje" | "7d" | "30d" | "mes" | "mes-anterior";
+
+export const ATALHOS_PERIODO: { id: AtalhoPeriodo; rotulo: string }[] = [
+  { id: "hoje", rotulo: "Hoje" },
+  { id: "7d", rotulo: "7 dias" },
+  { id: "30d", rotulo: "30 dias" },
+  { id: "mes", rotulo: "Mês atual" },
+  { id: "mes-anterior", rotulo: "Mês anterior" },
+];
+
+function local(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Datas de um atalho de período, contando o dia de hoje (7 dias = hoje e os 6 anteriores). */
+export function periodoDoAtalho(id: AtalhoPeriodo, hoje = new Date()): Periodo {
+  const y = hoje.getFullYear();
+  const m = hoje.getMonth();
+  const d = hoje.getDate();
+  switch (id) {
+    case "hoje":
+      return { de: local(hoje), ate: local(hoje) };
+    case "7d":
+      return { de: local(new Date(y, m, d - 6)), ate: local(hoje) };
+    case "30d":
+      return { de: local(new Date(y, m, d - 29)), ate: local(hoje) };
+    case "mes":
+      return { de: local(new Date(y, m, 1)), ate: local(hoje) };
+    case "mes-anterior":
+      return { de: local(new Date(y, m - 1, 1)), ate: local(new Date(y, m, 0)) };
+  }
+}
+
+/** Qual atalho corresponde ao período, ou null quando é personalizado. */
+export function atalhoAtivo(p: Periodo, hoje = new Date()): AtalhoPeriodo | null {
+  for (const a of ATALHOS_PERIODO) {
+    const q = periodoDoAtalho(a.id, hoje);
+    if (q.de === p.de && q.ate === p.ate) return a.id;
+  }
+  return null;
+}
+
 function ler(): Periodo {
   if (typeof window === "undefined") return periodoPadrao();
   try {
