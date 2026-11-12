@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ChevronDown,
   Eye,
   FileUp,
   Grid3x3,
@@ -680,32 +681,34 @@ function NfeEntrada() {
             </div>
           </div>
 
-          <div className="panel overflow-x-auto">
-            <Table>
-              <TableHeader>
+          <div className="overflow-hidden border border-border bg-card">
+            <Table className="block w-full table-fixed lg:table">
+              <TableHeader className="hidden bg-muted/50 lg:table-header-group">
                 <TableRow>
-                  <TableHead>Item da nota</TableHead>
-                  <TableHead>Produto na loja</TableHead>
-                  <TableHead className="text-right">Qtd.</TableHead>
-                  <TableHead className="text-right">Custo unit.</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Custo final unit.</TableHead>
+                  <TableHead className="w-[44%] px-5">Produto</TableHead>
+                  <TableHead className="w-[32%] px-5">Recebimento</TableHead>
+                  <TableHead className="w-[24%] px-5">Custos</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="block lg:table-row-group">
                 {lida.itens.map((item, idx) => {
                   const custo = custos[idx];
                   const escolha = mapa[item.seq] ?? NOVO;
                   return (
-                    <TableRow key={item.seq}>
-                      <TableCell>
-                        <p className="font-medium">{item.descricao}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Cód. {item.codigo || "—"}
-                          {item.codigo_barras ? ` · EAN ${item.codigo_barras}` : ""}
-                          {item.ncm ? ` · NCM ${item.ncm}` : ""} · {item.unidade}
+                    <TableRow key={item.seq} className="grid grid-cols-1 hover:bg-transparent md:grid-cols-2 lg:table-row">
+                      <TableCell className="block min-w-0 whitespace-normal px-5 py-5 md:col-span-2 lg:table-cell">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground lg:hidden">Produto</p>
+                        <p className="font-semibold leading-snug">{item.descricao}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Cód. {item.codigo || "—"} · Nota: {num(item.quantidade)} {item.unidade}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <details className="group mt-2 text-xs text-muted-foreground">
+                          <summary className="inline-flex cursor-pointer list-none items-center gap-1 font-medium text-primary">
+                            Ver impostos <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                          </summary>
+                          <p className="mt-2 leading-relaxed">
+                          {item.codigo_barras ? `EAN ${item.codigo_barras} · ` : ""}
+                          {item.ncm ? `NCM ${item.ncm} · ` : ""}
                           {item.cfop ? `CFOP ${item.cfop} · ` : ""}
                           {item.impostos.cst ? `CST ${item.impostos.cst} · ` : ""}
                           ICMS {brl(item.impostos.icms)}
@@ -718,9 +721,9 @@ function NfeEntrada() {
                             ? ` (${num(item.impostos.aliquota_ipi)}%)`
                             : ""}
                           {` · PIS ${brl(item.impostos.pis)} · COFINS ${brl(item.impostos.cofins)}`}
-                        </p>
-                      </TableCell>
-                      <TableCell className="min-w-[280px]">
+                          </p>
+                        </details>
+                        <Label className="mb-1 mt-4 block text-xs text-muted-foreground" htmlFor={`produto-${item.seq}`}>Produto na loja</Label>
                         <Select
                           value={escolha}
                           onValueChange={(v) => {
@@ -732,7 +735,7 @@ function NfeEntrada() {
                             });
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id={`produto-${item.seq}`} className="h-auto min-h-9 w-full [&>span]:whitespace-normal [&>span]:text-left">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -750,7 +753,7 @@ function NfeEntrada() {
                           </Badge>
                         )}
                         {
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <Button
                               size="sm"
                               variant={
@@ -775,17 +778,19 @@ function NfeEntrada() {
                           </div>
                         }
                       </TableCell>
-                      <TableCell className="text-right text-numeric">
-                        <p>{num(item.quantidade)}</p>
+                      <TableCell className="block min-w-0 whitespace-normal border-t border-border px-5 py-5 text-numeric md:border-t-0 lg:table-cell lg:align-top">
+                        <p className="mb-3 text-xs font-medium text-muted-foreground lg:hidden">Recebimento</p>
+                        <div className="grid grid-cols-2 items-end gap-3">
+                        <div>
                         <Label
                           htmlFor={`rec-${item.seq}`}
-                          className="mt-1 block text-xs font-normal text-muted-foreground"
+                          className="mb-1 block text-xs font-normal text-muted-foreground"
                         >
                           Recebido ({item.unidade})
                         </Label>
                         <Input
                           id={`rec-${item.seq}`}
-                          className="ml-auto h-8 w-24 text-right"
+                          className="h-10 w-full text-right"
                           inputMode="decimal"
                           placeholder={num(item.quantidade)}
                           value={qtdFisica[item.seq] ?? ""}
@@ -793,49 +798,61 @@ function NfeEntrada() {
                             setQtdFisica((m) => ({ ...m, [item.seq]: e.target.value }))
                           }
                         />
-                        <Label htmlFor={`fator-${item.seq}`} className="mt-2 block text-xs font-normal text-muted-foreground">
+                        </div>
+                        <div>
+                        <Label htmlFor={`fator-${item.seq}`} className="mb-1 block text-xs font-normal text-muted-foreground">
                           Unidades por embalagem
                         </Label>
                         <Input
                           id={`fator-${item.seq}`}
-                          className="ml-auto h-8 w-24 text-right"
+                          className="h-10 w-full text-right"
                           inputMode="decimal"
                           value={fatores[item.seq] ?? String(fatorDoItem(item)).replace(".", ",")}
                           onChange={(e) => setFatores((m) => ({ ...m, [item.seq]: e.target.value }))}
                         />
-                        <p className="mt-2 whitespace-nowrap text-xs font-semibold">
-                          Estoque: {num(qtdRecebida(item))} {unidadeEstoque(item)}
-                        </p>
+                        </div>
+                        </div>
+                        <div className="mt-3 border-l-2 border-primary bg-primary/5 px-3 py-3">
+                          <p className="text-xs text-muted-foreground">{num(embalagensRecebidas(item))} {item.unidade} × {num(fatorDoItem(item))}</p>
+                          <p className="mt-1 text-lg font-semibold text-primary">{num(qtdRecebida(item))} {unidadeEstoque(item)}</p>
+                          <p className="text-xs text-muted-foreground">Entrada no estoque</p>
+                        </div>
                         {fatorDoItem(item) !== 1 && normaliza(unidadeEstoque(item)) === normaliza(item.unidade) && (
                           <Link to="/produtos" className="mt-1 block text-xs text-destructive underline">
                             Alterar unidade de estoque no cadastro para UN
                           </Link>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-numeric">
-                        {brl(item.custo_unitario)}
-                      </TableCell>
-                      <TableCell className="text-right text-numeric">{brl(item.total)}</TableCell>
                       <TableCell
-                        className="text-right text-numeric font-semibold"
+                        className="block min-w-0 whitespace-normal border-t border-border px-5 py-5 text-numeric md:border-t-0 lg:table-cell lg:align-top"
                         title={custo ? textoComposicao(custo.composicao) : ""}
                       >
+                        <p className="mb-3 text-xs font-medium text-muted-foreground lg:hidden">Custos</p>
+                        <dl className="space-y-2 text-xs">
+                          <div className="flex flex-wrap justify-between gap-1"><dt className="text-muted-foreground">Por {item.unidade} na nota</dt><dd>{brl(item.custo_unitario)}</dd></div>
+                          <div className="flex flex-wrap justify-between gap-1"><dt className="text-muted-foreground">Total do produto na nota</dt><dd>{brl(item.total)}</dd></div>
+                        </dl>
+                        <div className="mt-3 border-t border-border pt-3">
+                        <p className="text-xs text-muted-foreground">Custo por {unidadeEstoque(item)}</p>
+                        <p className="mt-1 text-xl font-semibold text-primary">
                         {conferenciaAtiva
                           ? brl(custosReais.nota[idx] ?? 0)
                           : custo
                             ? brl(custo.custo_unitario)
                             : "—"}
+                        </p>
                         {conferenciaAtiva ? (
-                          <p className="text-xs font-normal text-muted-foreground">
-                            real · total {brl((custosReais.nota[idx] ?? 0) * qtdRecebida(item))}
+                          <p className="mt-1 text-xs font-normal text-muted-foreground">
+                            Custo total {brl((custosReais.nota[idx] ?? 0) * qtdRecebida(item))}
                           </p>
                         ) : (
                           custo && (
-                            <p className="text-xs font-normal text-muted-foreground">
-                              total {brl(custo.composicao.total)}
+                            <p className="mt-1 text-xs font-normal text-muted-foreground">
+                              Custo total {brl(custo.composicao.total)}
                             </p>
                           )
                         )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

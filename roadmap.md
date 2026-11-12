@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Melhorar visualmente a conferência do XML: separar produto, recebimento e custos, recolher impostos e destacar conversão e custo por unidade, sem mudar os cálculos.
+
 - [x] Converter embalagens na importação da nota: campo Unidades por embalagem, fator automático quando a unidade de compra cadastrada corresponde à nota, prévia de 3 × 6 = 18 UN e custo proporcional; 14 testes passaram, prévia autenticada e celular conferidos, build OK. Nenhuma compra gravada nem estoque existente corrigido; não publicado.
 
 - [x] Histórico Google Drive: tela própria acessível por Backup na nuvem, com data e hora do envio em Brasília, tamanho e situação; navegação autenticada e celular conferidos sem erros, quatro testes existentes passaram. Conta ainda sem execuções reais para conferir linhas de envio; não publicado.
