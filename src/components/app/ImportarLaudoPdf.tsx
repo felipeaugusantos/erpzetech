@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileUp, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { conferirPacienteLaudo, corresponderLaudo, lerLaudoTexto, type LaudoPdf, type CorrespondenciaLaudo } from "@/lib/laudo-exame-pdf";
 import type { ExameClinico } from "@/lib/exames";
 
-export function ImportarLaudoPdf({ exame, disabled, onAplicar }: { exame: ExameClinico; disabled: boolean; onAplicar: (linhas: CorrespondenciaLaudo[], laudo: LaudoPdf) => void }) {
+export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, onAplicar }: { exame: ExameClinico; disabled: boolean; solicitacao?: number; onAplicar: (linhas: CorrespondenciaLaudo[], laudo: LaudoPdf) => void }) {
   const input = useRef<HTMLInputElement>(null);
+  const [escolherArquivo, setEscolherArquivo] = useState(false);
+  useEffect(() => { if (solicitacao > 0) setEscolherArquivo(true); }, [solicitacao]);
   const [lendo, setLendo] = useState(false);
   const [previa, setPrevia] = useState<{ laudo: LaudoPdf; linhas: CorrespondenciaLaudo[] } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   async function ler(file: File) {
+    setEscolherArquivo(false);
     setLendo(true);
     setPrevia(null);
     setConfirmado(false);
@@ -35,6 +38,13 @@ export function ImportarLaudoPdf({ exame, disabled, onAplicar }: { exame: ExameC
     <Button variant="outline" disabled={disabled || lendo} onClick={() => input.current?.click()}>
       {lendo ? <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" /> : <FileUp className="size-4" />}Importar laudo PDF
     </Button>
+    <Dialog open={escolherArquivo} onOpenChange={setEscolherArquivo}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Importar exame — {exame.pet.nome}</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">{exame.nome}</p>
+        <Button variant="outline" disabled={disabled || lendo} onClick={() => input.current?.click()}><FileUp className="size-4" />Selecionar laudo PDF</Button>
+      </DialogContent>
+    </Dialog>
     <Dialog open={previa !== null} onOpenChange={o => { if (!o) setPrevia(null); }}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader><DialogTitle>Conferir laudo — {previa?.laudo.paciente}</DialogTitle></DialogHeader>

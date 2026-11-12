@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Lock, Plus, Printer, Search, TrendingUp } from "lucide-react";
+import { ArrowDown, ArrowUp, FileUp, Lock, Plus, Printer, Search, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
@@ -185,7 +185,7 @@ function Exames() {
       )}
 
       {pet ? (
-        <ExamesDoPaciente petId={pet} exameId={exame} atendimentoId={atendimento} />
+        <ExamesDoPaciente key={pet} petId={pet} exameId={exame} atendimentoId={atendimento} />
       ) : (
         !termo && (
           <EmptyState
@@ -210,6 +210,9 @@ function ExamesDoPaciente({
   const qc = useQueryClient();
   const navegar = useNavigate();
   const [novoAberto, setNovoAberto] = useState(false);
+  const [importando, setImportando] = useState(false);
+  const [destinoImportacao, setDestinoImportacao] = useState("novo");
+  const [solicitacaoImportacao, setSolicitacaoImportacao] = useState(0);
   const [modeloId, setModeloId] = useState("");
   const [ligar, setLigar] = useState(true);
   const [laboratorio, setLaboratorio] = useState("");
@@ -254,6 +257,7 @@ function ExamesDoPaciente({
     onSuccess: (e) => {
       toast.success("Exame aberto");
       setNovoAberto(false);
+      if (importando) setSolicitacaoImportacao(s => s + 1);
       void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
       navegar({
         to: "/clinica-exames",
@@ -289,8 +293,25 @@ function ExamesDoPaciente({
             Ver o prontuário do paciente
           </Link>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => {
+          const selecionado = data.exames.find(e => e.id === exameId && e.situacao === "aberto");
+          if (selecionado) {
+            setSolicitacaoImportacao(s => s + 1);
+            return;
+          }
+          setImportando(true);
+          setDestinoImportacao("novo");
+          setModeloId("");
+          setLigar(true);
+          setLaboratorio("");
+          setColeta("");
+          setMaterial("");
+          setNovoAberto(true);
+        }}><FileUp className="size-4" /> Importar exame</Button>
         <Button
           onClick={() => {
+            setImportando(false);
             setModeloId("");
             setLigar(true);
             setLaboratorio("");
@@ -301,6 +322,7 @@ function ExamesDoPaciente({
         >
           <Plus className="size-4" /> Novo exame
         </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
@@ -346,7 +368,7 @@ function ExamesDoPaciente({
 
         <div>
           {exameId ? (
-            <ExameAberto key={exameId} petId={petId} exameId={exameId} />
+            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} />
           ) : (
             <EmptyState
               title="Escolha um exame"
@@ -360,8 +382,19 @@ function ExamesDoPaciente({
       <Dialog open={novoAberto} onOpenChange={(o) => !o && setNovoAberto(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo exame</DialogTitle>
+            <DialogTitle>{importando ? `Importar exame — ${data.pet.nome}` : "Novo exame"}</DialogTitle>
           </DialogHeader>
+          {importando && <div className="grid gap-2">
+            <Label htmlFor="importar-destino">Exame</Label>
+            <Select value={destinoImportacao} onValueChange={setDestinoImportacao}>
+              <SelectTrigger id="importar-destino"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="novo">Novo exame</SelectItem>
+                {data.exames.filter(e => e.situacao === "aberto").map(e => <SelectItem key={e.id} value={e.id}>{e.nome} · {dateBR(e.data_coleta)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>}
+          {(!importando || destinoImportacao === "novo") && <>
           <div className="grid gap-3">
             <div>
               <Label htmlFor="nx-modelo">Modelo</Label>
@@ -428,15 +461,22 @@ function ExamesDoPaciente({
               </div>
             </div>
           </div>
+          </>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setNovoAberto(false)}>
               Cancelar
             </Button>
             <Button
-              onClick={() => abrir.mutate()}
-              disabled={abrir.isPending || !modeloId || (avulso && !laboratorio.trim())}
+              onClick={() => {
+                if (importando && destinoImportacao !== "novo") {
+                  setNovoAberto(false);
+                  setSolicitacaoImportacao(s => s + 1);
+                  void navegar({ to: "/clinica-exames", search: { pet: petId, exame: destinoImportacao, atendimento: atendimentoId } });
+                } else abrir.mutate();
+              }}
+              disabled={abrir.isPending || ((!importando || destinoImportacao === "novo") && (!modeloId || (avulso && !laboratorio.trim())))}
             >
-              Abrir exame
+              {importando ? "Continuar importação" : "Abrir exame"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -463,7 +503,7 @@ function digitadoDe(e: ExameClinico): Digitado {
   );
 }
 
-function ExameAberto({ petId, exameId }: { petId: string; exameId: string }) {
+function ExameAberto({ petId, exameId, solicitacaoImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-exame", exameId],
     queryFn: async () => {
@@ -480,11 +520,12 @@ function ExameAberto({ petId, exameId }: { petId: string; exameId: string }) {
       key={`${data.id}-${data.situacao}-${data.adendos.length}`}
       petId={petId}
       exame={data}
+      solicitacaoImportacao={solicitacaoImportacao}
     />
   );
 }
 
-function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
+function Formulario({ petId, exame, solicitacaoImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number }) {
   const qc = useQueryClient();
   const aberto = exame.situacao === "aberto";
   const [dig, setDig] = useState<Digitado>(() => digitadoDe(exame));
@@ -865,7 +906,7 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
       <div className="flex flex-wrap gap-2">
         {aberto && (
           <>
-            <ImportarLaudoPdf exame={exame} disabled={ocupado} onAplicar={(linhas, laudo) => {
+            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} onAplicar={(linhas, laudo) => {
               setDig(atual => {
                 const novo = { ...atual };
                 for (const { campo, item } of linhas) {
