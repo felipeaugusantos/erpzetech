@@ -17457,6 +17457,10 @@ export type Database = {
         Returns: Json
       }
       clinica_historico: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_importar_pdf: {
+        Args: { p_chave: string; p_dados: Json; p_pet_id: string }
+        Returns: Json
+      }
       clinica_internacao_admitir: {
         Args: { p_dados: Json; p_pet_id: string }
         Returns: string

@@ -617,6 +617,13 @@
       "when": 1794517109504,
       "tag": "0087_clinica_exames_sem_arredondamento",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794524153074,
+      "tag": "0088_clinica_importar_pdf_completo",
+      "breakpoints": true
     }
   ]
 }
