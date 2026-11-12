@@ -16,7 +16,16 @@
 - Pontos de entrada: **Produtos** (um produto), **Lotes** (um lote, com lote e validade na etiqueta, quantidade inicial igual ao saldo) e **Compras** (botão "Etiquetas do recebido", uma linha por item já recebido, quantidade igual à recebida na unidade de estoque).
 - Ficou para depois: balança/granel (preço por peso e peso na etiqueta) e pet shop (identificação do animal e hotelaria). Dependem de definir quais dados entram na etiqueta; não foram inventados.
 
+## Fase 4 (feita em parte): comandos diretos da impressora
+
+- `src/lib/etiqueta-raw.ts` gera **ZPL** (Zebra; Argox em modo PPLZ) e **TSPL** (Argox e TSC novas) a partir dos mesmos dados e opções da etiqueta. Só etiqueta térmica; a folha A4 continua pelo driver.
+- O código de barras sai pelo gerador da própria impressora (`^BE`/`^BC` no ZPL, `BARCODE "EAN13"`/`"128"` no TSPL), com o módulo escolhido para caber na etiqueta. Quantidade de vias por `^PQ` / `PRINT`.
+- Resolução 203 ou 300 dpi, escolhida na tela. Texto em UTF-8 no ZPL (`^CI28`) e Windows-1252 no TSPL (`CODEPAGE 1252`); caracteres de comando são removidos do texto.
+- Entrega: o diálogo baixa `etiquetas.zpl` ou `etiquetas.prn`. Com a impressora compartilhada no Windows, `copy /b etiquetas.zpl \\localhost\NOME` manda o arquivo direto. Fica a escolha de "Como imprimir" lembrada no navegador.
+- **Não foi testado em impressora real.** Os testes conferem a estrutura dos comandos e que o código cabe na etiqueta; posições de texto, fontes (a fonte 0 do ZPL e as fontes 3 e 4 do TSPL) e o espaço entre etiquetas (`GAP 2 mm`) precisam de uma conferência com o rolo, e o ajuste é por modelo.
+- Ficou fora: PPLA/PPLB (Argox antigas) e EPL (Zebra antigas), por não haver como conferir o formato sem a documentação e a impressora; e o envio automático (QZ Tray ou agente), que exige instalar um programa em cada computador.
+
 ## Fases seguintes (a decidir)
 
 3. Modelos próprios por empresa (tamanho e campos), guardados como configuração.
-4. Impressão crua: ZPL (Zebra), TSPL e PPLA (Argox), pelo QZ Tray ou agente local. Depende de saber os modelos de impressora dos clientes e se aceitam instalar um programa.
+4. Envio automático à impressora (QZ Tray ou agente local), sem baixar arquivo.

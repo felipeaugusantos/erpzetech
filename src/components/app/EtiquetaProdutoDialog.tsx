@@ -4,6 +4,13 @@ import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
 import {
+  LINGUAGENS_ETIQUETA,
+  bytesEtiquetas,
+  comandosEtiquetas,
+  type ImpressoraEtiqueta,
+  type LinguagemEtiqueta,
+} from "@/lib/etiqueta-raw";
+import {
   MODELOS_ETIQUETA,
   htmlEtiquetas,
   modeloEtiqueta,
@@ -29,6 +36,10 @@ import {
 } from "@/components/ui/select";
 
 const CHAVE_MODELO = "etiqueta-modelo";
+const CHAVE_MODO = "etiqueta-modo";
+
+/** "driver" imprime pelo Windows; os demais baixam um arquivo de comandos para a térmica. */
+type Modo = "driver" | LinguagemEtiqueta;
 
 /** Imprime etiquetas de um produto: térmica (via driver da impressora) ou folha A4 (laser/jato). */
 export function EtiquetaProdutoDialog({
@@ -44,6 +55,8 @@ export function EtiquetaProdutoDialog({
   const [pular, setPular] = useState("0");
   const [preco, setPreco] = useState(true);
   const [codigo, setCodigo] = useState(true);
+  const [modo, setModo] = useState<Modo>("driver");
+  const [dpi, setDpi] = useState<203 | 300>(203);
 
   useEffect(() => {
     setCopias((itens ?? []).map((i) => String(i.copias ?? 1)));
@@ -53,6 +66,9 @@ export function EtiquetaProdutoDialog({
     try {
       const salvo = localStorage.getItem(CHAVE_MODELO);
       if (salvo && modeloEtiqueta(salvo)) setModeloId(salvo);
+      const m = localStorage.getItem(CHAVE_MODO)?.split("|");
+      if (m && ["driver", "zpl", "tspl"].includes(m[0]!)) setModo(m[0] as Modo);
+      if (m?.[1] === "300") setDpi(300);
     } catch {
       /* sem armazenamento: usa o padrão */
     }
@@ -60,6 +76,8 @@ export function EtiquetaProdutoDialog({
 
   const modelo = modeloEtiqueta(modeloId)!;
   const folha = modelo.tipo === "folha";
+  // A folha A4 só sai pelo driver; o arquivo de comandos é para etiqueta térmica.
+  const modoEfetivo: Modo = folha ? "driver" : modo;
 
   function imprimir() {
     if (!itens) return;
@@ -70,19 +88,34 @@ export function EtiquetaProdutoDialog({
     }
     try {
       localStorage.setItem(CHAVE_MODELO, modeloId);
+      localStorage.setItem(CHAVE_MODO, `${modo}|${dpi}`);
     } catch {
       /* não é essencial */
     }
+    const escolhidos = itens.map((i, k) => ({ ...i, copias: qtd[k]! })).filter((i) => i.copias > 0);
+    if (modoEfetivo !== "driver") {
+      const imp: ImpressoraEtiqueta = { linguagem: modoEfetivo, dpi };
+      const texto = comandosEtiquetas(modelo, escolhidos, imp, {
+        mostrarPreco: preco,
+        mostrarCodigo: codigo,
+      });
+      const ext = LINGUAGENS_ETIQUETA.find((l) => l.id === modoEfetivo)!.extensao;
+      const url = URL.createObjectURL(
+        new Blob([bytesEtiquetas(texto, modoEfetivo)], { type: "application/octet-stream" }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `etiquetas.${ext}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
     abrirImpressao(
-      htmlEtiquetas(
-        modelo,
-        itens.map((i, k) => ({ ...i, copias: qtd[k] })).filter((i) => i.copias > 0),
-        {
-          mostrarPreco: preco,
-          mostrarCodigo: codigo,
-          pular: folha ? Number(pular) || 0 : 0,
-        },
-      ),
+      htmlEtiquetas(modelo, escolhidos, {
+        mostrarPreco: preco,
+        mostrarCodigo: codigo,
+        pular: folha ? Number(pular) || 0 : 0,
+      }),
       700,
       600,
     );
@@ -137,6 +170,43 @@ export function EtiquetaProdutoDialog({
               </SelectContent>
             </Select>
           </div>
+          {!folha && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Como imprimir</Label>
+                <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="driver">Driver do sistema</SelectItem>
+                    {LINGUAGENS_ETIQUETA.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        Arquivo {l.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {modo !== "driver" && (
+                <div>
+                  <Label>Resolução</Label>
+                  <Select
+                    value={String(dpi)}
+                    onValueChange={(v) => setDpi(v === "300" ? 300 : 203)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="203">203 dpi (8 pontos/mm)</SelectItem>
+                      <SelectItem value="300">300 dpi (12 pontos/mm)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             {folha && (
               <div>
@@ -160,9 +230,11 @@ export function EtiquetaProdutoDialog({
             <Switch id="et-cod" checked={codigo} onCheckedChange={setCodigo} />
           </div>
           <p className="text-xs text-muted-foreground">
-            {folha
-              ? "Na janela de impressão, use papel A4, escala 100% e sem margens."
-              : `Na janela de impressão, escolha a impressora térmica com o papel em ${modelo.larguraMm} × ${modelo.alturaMm} mm, escala 100% e sem margens.`}
+            {modoEfetivo !== "driver"
+              ? "O arquivo vai direto para a impressora, sem o driver: com a impressora compartilhada no Windows, no Prompt de Comando use copy /b etiquetas.zpl \\\\localhost\\NOME (ou etiquetas.prn). Confira o tamanho do rolo e faça um teste com uma etiqueta."
+              : folha
+                ? "Na janela de impressão, use papel A4, escala 100% e sem margens."
+                : `Na janela de impressão, escolha a impressora térmica com o papel em ${modelo.larguraMm} × ${modelo.alturaMm} mm, escala 100% e sem margens.`}
           </p>
         </div>
         <DialogFooter>
@@ -170,7 +242,8 @@ export function EtiquetaProdutoDialog({
             Fechar
           </Button>
           <Button onClick={imprimir}>
-            <Printer className="mr-2 size-4" /> Imprimir
+            <Printer className="mr-2 size-4" />{" "}
+            {modoEfetivo === "driver" ? "Imprimir" : "Baixar arquivo"}
           </Button>
         </DialogFooter>
       </DialogContent>

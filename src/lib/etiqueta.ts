@@ -106,7 +106,7 @@ export function svgDoCodigo(codigo: string, altura: number): string {
 }
 
 /** Código que dá para desenhar (Code 128 aceita ASCII 32 a 126). */
-const desenhavel = (c: string) => c.length > 0 && /^[\x20-\x7e]+$/.test(c);
+export const desenhavel = (c: string) => c.length > 0 && /^[\x20-\x7e]+$/.test(c);
 
 function corpoEtiqueta(m: ModeloEtiqueta, d: DadosEtiqueta, o: OpcoesEtiqueta): string {
   const pequena = m.alturaMm < 30;
