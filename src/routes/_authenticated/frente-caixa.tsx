@@ -206,6 +206,8 @@ type Linha = {
   unidade: string;
   preco: number;
   quantidade: number;
+  /** embalagem de compra (fardo/caixa): o operador soma um fardo inteiro, mas a venda segue na unidade */
+  embalagem?: { unidade: string; fator: number } | undefined;
 };
 type AcaoGestor = "cancelar_venda" | "desconto" | "sangria";
 const rotuloAcao: Record<AcaoGestor, string> = {
@@ -857,7 +859,7 @@ function FrenteCaixa() {
         supabase
           .from("produtos")
           .select(
-            "id, descricao, codigo_interno, codigo_barras, unidade, unidade_venda, preco_venda",
+            "id, descricao, codigo_interno, codigo_barras, unidade, unidade_venda, preco_venda, unidade_compra, fator_conversao",
           )
           .eq("ativo", true)
           .order("descricao"),
@@ -981,6 +983,8 @@ function FrenteCaixa() {
       unidade: string | null;
       unidade_venda: string | null;
       preco_venda: number | null;
+      unidade_compra?: string | null;
+      fator_conversao?: number | null;
     },
     q: number,
   ) {
@@ -1004,6 +1008,12 @@ function FrenteCaixa() {
           unidade: p.unidade_venda ?? p.unidade ?? "UN",
           preco: Number(p.preco_venda ?? 0),
           quantidade: q,
+          embalagem:
+            Number(p.fator_conversao ?? 1) > 1 &&
+            p.unidade_compra &&
+            p.unidade_compra !== (p.unidade_venda ?? p.unidade)
+              ? { unidade: p.unidade_compra, fator: Number(p.fator_conversao) }
+              : undefined,
         },
       ];
     });
@@ -1678,6 +1688,41 @@ function FrenteCaixa() {
                       <td className="p-2">{l.descricao}</td>
                       <td className="p-2 text-right text-numeric">
                         {num(l.quantidade, 3)} {l.unidade}
+                        {l.embalagem && (
+                          <div className="mt-1 flex items-center justify-end gap-1">
+                            {l.quantidade >= l.embalagem.fator && (
+                              <span className="text-xs text-muted-foreground">
+                                {num(Math.floor(l.quantidade / l.embalagem.fator), 0)}{" "}
+                                {l.embalagem.unidade}
+                                {l.quantidade % l.embalagem.fator
+                                  ? ` + ${num(l.quantidade % l.embalagem.fator, 3)} ${l.unidade}`
+                                  : ""}
+                              </span>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs"
+                              title={`Somar 1 ${l.embalagem.unidade} = ${num(l.embalagem.fator, 0)} ${l.unidade}`}
+                              onClick={() =>
+                                setLinhas((a) =>
+                                  a.map((x) =>
+                                    x.produto_id === l.produto_id && x.embalagem
+                                      ? {
+                                          ...x,
+                                          quantidade:
+                                            Math.round((x.quantidade + x.embalagem.fator) * 1000) /
+                                            1000,
+                                        }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            >
+                              +1 {l.embalagem.unidade}
+                            </Button>
+                          </div>
+                        )}
                       </td>
                       <td className="p-2 text-right text-numeric">{brl(l.preco)}</td>
                       <td className="p-2 text-right text-numeric font-semibold">
