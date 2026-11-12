@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
-import { PageHeader } from "@/components/app/PageHeader";
+import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { PacientesProntuario } from "@/components/app/PacientesProntuario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ function Prontuario() {
 
       {pet ? (
         <>
-          <Button className="mb-4" variant="outline" onClick={() => { setTermo(""); setBusca(""); void navegar({ to: "/clinica-prontuario", search: {} }); }}>
+          <Button className="mb-4" variant="outline" onClick={() => { setTermo(""); setBusca(""); void navegar({ to: "/clinica-prontuario", search: { pet: undefined } }); }}>
             <PawPrint className="size-4" /> Todos os pacientes atendidos
           </Button>
           <FichaDoPaciente key={pet} petId={pet} />
