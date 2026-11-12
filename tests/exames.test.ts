@@ -158,6 +158,10 @@ const res = (id: string, nome: string, extra: Partial<ResultadoExame> = {}): Res
 });
 
 describe("formatarNumero e valorDoResultado", () => {
+  it("preserva ALT 26,9 mesmo quando o campo pede zero casas", () => {
+    assert.equal(valorDoResultado(res("alt", "ALT (TGP)", { valor_num: 26.9, casas: 0 })), "26,9");
+    assert.equal(formatarNumero(26.987, 1), "26,987");
+  });
   it("usa as casas do campo e vírgula", () => {
     assert.equal(formatarNumero(13.3, 1), "13,3");
     assert.equal(formatarNumero(6600, 0), "6600");
@@ -197,13 +201,14 @@ describe("situacaoNaFaixa", () => {
 });
 
 describe("calcularAbsoluto", () => {
-  it("total × percentual ÷ 100 com as casas do campo", () => {
+  it("total × percentual ÷ 100 sem arredondamento por campo", () => {
     assert.equal(calcularAbsoluto(6600, 40, 0), 2640);
     assert.equal(calcularAbsoluto(6600, 5, 0), 330);
     assert.equal(calcularAbsoluto(6600, 55, 0), 3630);
     assert.equal(calcularAbsoluto(10000, 33, 0), 3300);
-    assert.equal(calcularAbsoluto(7777, 33, 0), 2566);
+    assert.equal(calcularAbsoluto(7777, 33, 0), 2566.41);
     assert.equal(calcularAbsoluto(7777, 33, 2), 2566.41);
+    assert.equal(calcularAbsoluto(26.9, 10, 0), 2.69);
   });
   it("falta um dos dois: em branco", () => {
     assert.equal(calcularAbsoluto(null, 40, 0), null);
