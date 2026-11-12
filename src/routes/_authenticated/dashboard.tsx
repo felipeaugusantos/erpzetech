@@ -36,7 +36,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { hojeISO, somaDias } from "@/lib/financeiro";
-import { usePeriodo } from "@/lib/periodo";
+import { ATALHOS_PERIODO, atalhoAtivo, periodoDoAtalho, usePeriodo } from "@/lib/periodo";
+import { cn } from "@/lib/utils";
 import { ehEmpresaPet } from "@/lib/ramo-clinica";
 import { useModulosCnae } from "@/lib/cnae";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -113,7 +114,7 @@ function DashboardRota() {
 function Dashboard() {
   const hoje = hojeISO();
   const em7 = somaDias(hoje, 7);
-  const { periodo, setDe, setAte } = usePeriodo();
+  const { periodo, setDe, setAte, setPeriodo } = usePeriodo();
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
@@ -918,8 +919,45 @@ function Dashboard() {
       ))}
 
       <div className="panel mb-4 p-4">
-        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-sm font-semibold">Período de referência</h2>
+          <div
+            role="group"
+            aria-label="Atalhos de período"
+            className="inline-flex flex-wrap gap-1 rounded-lg bg-secondary p-1"
+          >
+            {ATALHOS_PERIODO.map((a) => {
+              const ativo = atalhoAtivo(periodo) === a.id;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => setPeriodo(periodoDoAtalho(a.id))}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    ativo
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background hover:text-foreground",
+                  )}
+                >
+                  {a.rotulo}
+                </button>
+              );
+            })}
+            <span
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium",
+                atalhoAtivo(periodo) === null
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              Personalizado
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr] lg:grid-cols-[180px_180px_1fr] lg:items-end">
           <div>
             <Label>De</Label>
             <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
@@ -928,15 +966,31 @@ function Dashboard() {
             <Label>Até</Label>
             <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Vendas no período: <strong className="text-foreground">{brl(receitaPeriodo)}</strong> ·
-            custo {brl(custoPeriodo)} · lucro{" "}
-            <strong className={lucroPeriodo >= 0 ? "text-success" : "text-destructive"}>
-              {brl(lucroPeriodo)}
-            </strong>{" "}
-            ({num(margemPeriodo, 1)}% de margem). O relatório de lucro usa o mesmo período.
-          </p>
+          <div className="grid grid-cols-3 gap-2 sm:col-span-2 lg:col-span-1">
+            <div className="rounded-lg bg-secondary/60 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vendas</p>
+              <p className="font-display text-sm font-bold text-numeric">{brl(receitaPeriodo)}</p>
+            </div>
+            <div className="rounded-lg bg-secondary/60 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Custo</p>
+              <p className="font-display text-sm font-bold text-numeric">{brl(custoPeriodo)}</p>
+            </div>
+            <div className="rounded-lg bg-secondary/60 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Lucro · {num(margemPeriodo, 1)}%
+              </p>
+              <p
+                className={cn(
+                  "font-display text-sm font-bold text-numeric",
+                  lucroPeriodo >= 0 ? "text-success" : "text-destructive",
+                )}
+              >
+                {brl(lucroPeriodo)}
+              </p>
+            </div>
+          </div>
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">O relatório de lucro usa o mesmo período.</p>
       </div>
 
       {resumoVisiveis.length + cartoesVisiveis.length + paineisVisiveis.length === 0 && (
