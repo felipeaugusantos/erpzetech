@@ -1,5 +1,9 @@
 import type { ExameClinico, PontoEvolucao } from "./exames.ts";
 
+export function historicoParaImpressao(exames: readonly ExameClinico[]) {
+  return [...exames].sort((a, b) => b.data_coleta.localeCompare(a.data_coleta) || a.id.localeCompare(b.id));
+}
+
 export function evolucaoDosLaudos(exames: readonly ExameClinico[]) {
   const grupos = new Map<string, { nome: string; unidade: string | null; pontos: PontoEvolucao[] }>();
   for (const exame of exames) {

@@ -14,9 +14,10 @@ import { formatarNumero } from "@/lib/exames";
 export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; nome: string; especie: string }; onImportado: (id: string | undefined) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const geracao = useRef(0);
+  const anexos = useRef(new Map<string, { id: string; caminho: string; enviado: boolean; confirmado: boolean }>());
   const [aberto, setAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; grupos: GrupoImportacao[]; chave: string } | null>(null);
+  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; grupos: GrupoImportacao[]; chave: string; arquivo: File } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [laboratorio, setLaboratorio] = useState("");
   const [coleta, setColeta] = useState("");
@@ -32,20 +33,41 @@ export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; 
       if (error) throw error;
       const grupos = agruparLaudoImportacao(laudo, (data ?? []) as unknown as ModeloImportacao[]);
       if (token !== geracao.current) return;
-      setPrevia({ laudo, grupos, chave: crypto.randomUUID() }); setColeta(laudo.coleta);
+      anexos.current.clear();
+      setPrevia({ laudo, grupos, chave: crypto.randomUUID(), arquivo: file }); setColeta(laudo.coleta);
     } catch (e) { if (token === geracao.current) toast.error("Não foi possível ler o laudo", { description: e instanceof Error ? e.message : "Confira o PDF." }); }
     finally { if (token === geracao.current) setOcupado(false); }
   }
   async function importar() {
     if (!previa || !confirmado) return;
     setOcupado(true);
+    let resultadosSalvos = false;
     try {
       const { data, error } = await supabase.rpc("clinica_importar_pdf", { p_pet_id: pet.id, p_chave: previa.chave, p_dados: { paciente: previa.laudo.paciente, especie: previa.laudo.especie, confirmado: true, laboratorio: laboratorio.trim(), coleta, grupos: previa.grupos } });
       if (error) throw error;
       const resultado = data as unknown as { exames: { id: string }[] };
-      toast.success(`${resultado.exames.length} exame(s) importado(s) em rascunho`);
+      resultadosSalvos = true;
+      for (const exame of resultado.exames) {
+        let reserva = anexos.current.get(exame.id);
+        if (!reserva) {
+          const { data: info, error: falhaReserva } = await supabase.rpc("clinica_anexo_preparar", { p_dados: { exame_id: exame.id, categoria: "laudo", descricao: "PDF original do laudo importado", nome_arquivo: previa.arquivo.name.slice(0, 116) + (previa.arquivo.name.length > 116 ? ".pdf" : ""), mime: "application/pdf", tamanho: previa.arquivo.size } });
+          if (falhaReserva) throw falhaReserva;
+          reserva = { ...(info as unknown as { id: string; caminho: string }), enviado: false, confirmado: false };
+          anexos.current.set(exame.id, reserva);
+        }
+        if (reserva.confirmado) continue;
+        if (!reserva.enviado) {
+          const { error: falhaEnvio } = await supabase.storage.from("clinica-anexos").upload(reserva.caminho, previa.arquivo, { contentType: "application/pdf", upsert: false });
+          if (falhaEnvio) throw falhaEnvio;
+          reserva.enviado = true;
+        }
+        const { error: falhaConfirmacao } = await supabase.rpc("clinica_anexo_confirmar", { p_id: reserva.id });
+        if (falhaConfirmacao) throw falhaConfirmacao;
+        reserva.confirmado = true;
+      }
+      toast.success(`${resultado.exames.length} exame(s) e PDF original salvos`);
       setAberto(false); setPrevia(null); onImportado(resultado.exames[0]?.id);
-    } catch (e) { toast.error("Nenhum exame foi gravado", { description: e instanceof Error ? e.message : (e as { message?: string }).message ?? "Confira os campos e tente novamente." }); }
+    } catch (e) { toast.error(resultadosSalvos ? "Resultados salvos; falta concluir o envio do PDF. Tente novamente nesta janela." : "Nenhum exame foi gravado", { description: e instanceof Error ? e.message : (e as { message?: string }).message ?? "Confira os campos e tente novamente." }); }
     finally { setOcupado(false); }
   }
   return <>

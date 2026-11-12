@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Guardar PDF original nos exames importados e disponibilizar histórico por pet para impressão com datas, valores exatos e situação de cada laudo.
+
 - [x] Importação do PDF por pet: conferência conjunta dos resultados reconhecidos, criação de modelos/campos faltantes e exames em rascunho numa transação idempotente. 48 testes de lógica/proteção e uma regressão de importação passaram; PDF real de Léo mostrou Hemograma e Bioquímica, ALT 26,9 e unidades editáveis, computador/celular sem transbordamento. Plaquetas ambíguas continuam avisadas, não convertidas. Build OK; não publicado.
 - [ ] Conferir gravação e leitura dos exames importados com acesso veterinário real: sessão disponível é da gestão, não veterinária; prévia validada com respostas controladas, sem criar exames no paciente real.
 
