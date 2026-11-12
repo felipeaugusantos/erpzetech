@@ -55,6 +55,8 @@ export function IniciarAtendimentoDialog({
       if (error) throw error;
       return servicosDaResposta(data);
     },
+    // a consulta pode ter acabado de ser cadastrada: não confiar na lista guardada no navegador
+    refetchOnMount: "always",
   });
 
   const lista = servicos.data ?? [];
