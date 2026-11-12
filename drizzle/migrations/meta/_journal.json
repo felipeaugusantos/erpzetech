@@ -610,6 +610,13 @@
       "when": 1794514633224,
       "tag": "0086_whatsapp_gestor_clinica",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794517109504,
+      "tag": "0087_clinica_exames_sem_arredondamento",
+      "breakpoints": true
     }
   ]
 }
