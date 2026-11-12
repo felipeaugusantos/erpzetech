@@ -147,7 +147,6 @@ function AgendaExames() {
         <p className="text-sm text-destructive">{(lista.error as Error).message}</p>
       ) : itens.length === 0 ? (
         <EmptyState
-          icon={CalendarClock}
           title="Nenhum exame agendado no período"
           description="Use Agendar exame para marcar data e horário."
         />

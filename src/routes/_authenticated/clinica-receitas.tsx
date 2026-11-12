@@ -106,7 +106,6 @@ function Receitas() {
         <p className="text-sm text-destructive">{(lista.error as Error).message}</p>
       ) : visiveis.length === 0 ? (
         <EmptyState
-          icon={Pill}
           title="Nenhuma receita no período"
           description="As receitas emitidas no prontuário ou no atendimento aparecem aqui."
         />
