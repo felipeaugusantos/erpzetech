@@ -9130,6 +9130,7 @@ export type Database = {
           empresa_id: string | null
           filial_id: string | null
           fornecedor_id: string | null
+          ibs_cbs_efeito: string | null
           id: string
           impostos_calculados_em: string | null
           iss_retido: boolean
@@ -9156,9 +9157,11 @@ export type Database = {
           tp_emis: number
           transmitida_em: string | null
           updated_at: string
+          valor_cbs: number
           valor_cofins: number
           valor_desconto: number
           valor_frete: number
+          valor_ibs: number
           valor_icms: number
           valor_icms_st: number
           valor_iss: number
@@ -9191,6 +9194,7 @@ export type Database = {
           empresa_id?: string | null
           filial_id?: string | null
           fornecedor_id?: string | null
+          ibs_cbs_efeito?: string | null
           id?: string
           impostos_calculados_em?: string | null
           iss_retido?: boolean
@@ -9217,9 +9221,11 @@ export type Database = {
           tp_emis?: number
           transmitida_em?: string | null
           updated_at?: string
+          valor_cbs?: number
           valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_ibs?: number
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number
@@ -9252,6 +9258,7 @@ export type Database = {
           empresa_id?: string | null
           filial_id?: string | null
           fornecedor_id?: string | null
+          ibs_cbs_efeito?: string | null
           id?: string
           impostos_calculados_em?: string | null
           iss_retido?: boolean
@@ -9278,9 +9285,11 @@ export type Database = {
           tp_emis?: number
           transmitida_em?: string | null
           updated_at?: string
+          valor_cbs?: number
           valor_cofins?: number
           valor_desconto?: number
           valor_frete?: number
+          valor_ibs?: number
           valor_icms?: number
           valor_icms_st?: number
           valor_iss?: number

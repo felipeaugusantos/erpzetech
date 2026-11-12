@@ -816,6 +816,19 @@ export const transmitirNfe = createServerFn({ method: "POST" })
         situacao: autorizada ? "autorizada" : rejeitada ? "rejeitada" : "transmitida",
         transmitida_em: new Date().toISOString(),
         tp_emis: emissao.tpEmis,
+        // Apuração do IBS/CBS: o que a nota destacou e o efeito dela (venda gera débito; devolução de venda estorna
+        // débito; devolução de compra estorna crédito). Só quando a nota levou o grupo.
+        ...(resultadosIbsCbs.length > 0
+          ? {
+              valor_ibs: totaisIbsCbs(resultadosIbsCbs).vIBS,
+              valor_cbs: totaisIbsCbs(resultadosIbsCbs).vCBS,
+              ibs_cbs_efeito: devolucaoCompra
+                ? "estorno_credito"
+                : devolucao
+                  ? "estorno_debito"
+                  : "debito",
+            }
+          : {}),
         ...(autorizada ? { autorizada_em: new Date().toISOString() } : {}),
         mensagem,
         retorno,
