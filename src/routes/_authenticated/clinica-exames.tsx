@@ -928,7 +928,7 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
       </Dialog>
 
       <Dialog open={laudo} onOpenChange={(o) => !o && setLaudo(false)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto print:translate-none">
           <DialogHeader>
             <DialogTitle>Laudo do exame</DialogTitle>
           </DialogHeader>
