@@ -624,6 +624,13 @@
       "when": 1794524153074,
       "tag": "0088_clinica_importar_pdf_completo",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794524248091,
+      "tag": "0089_clinica_importar_pdf_nome_explicito",
+      "breakpoints": true
     }
   ]
 }
