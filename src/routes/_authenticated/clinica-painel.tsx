@@ -96,7 +96,10 @@ function PainelClinica() {
       <SeletorPeriodo periodo={periodo} aoMudar={setPeriodo} />
 
       {error ? (
-        <EmptyState title="Não foi possível abrir o painel" description={(error as Error).message} />
+        <EmptyState
+          title="Não foi possível abrir o painel"
+          description={(error as Error).message}
+        />
       ) : isLoading || !data ? (
         <div className="panel h-64 animate-pulse" />
       ) : (
@@ -108,11 +111,7 @@ function PainelClinica() {
               icon={Stethoscope}
               tone="accent"
             />
-            <StatCard
-              label="Pacientes atendidos"
-              value={num(data.pacientes, 0)}
-              icon={PawPrint}
-            />
+            <StatCard label="Pacientes atendidos" value={num(data.pacientes, 0)} icon={PawPrint} />
             <StatCard
               label="Pacientes novos"
               value={num(data.novos, 0)}
@@ -142,7 +141,9 @@ function PainelClinica() {
                     tickFormatter={(v: number) => brl(v).replace(",00", "")}
                   />
                   <Tooltip
-                    content={<DashboardChartTooltip moeda labelFormatter={(l) => diaCurto(String(l))} />}
+                    content={
+                      <DashboardChartTooltip moeda labelFormatter={(l) => diaCurto(String(l))} />
+                    }
                   />
                   <Line
                     type="monotone"
@@ -160,7 +161,9 @@ function PainelClinica() {
 
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <div className="panel p-4">
-              <h2 className="font-display text-sm font-semibold">Atendimentos e pacientes por dia</h2>
+              <h2 className="font-display text-sm font-semibold">
+                Atendimentos e pacientes por dia
+              </h2>
               <div className="mt-3 h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.dias} margin={{ left: 0, right: 8, top: 8 }}>
@@ -169,7 +172,9 @@ function PainelClinica() {
                     <YAxis tick={eixo} allowDecimals={false} width={32} />
                     <Tooltip
                       cursor={{ fill: "var(--muted)" }}
-                      content={<DashboardChartTooltip labelFormatter={(l) => diaCurto(String(l))} />}
+                      content={
+                        <DashboardChartTooltip labelFormatter={(l) => diaCurto(String(l))} />
+                      }
                     />
                     <Bar
                       dataKey="atendimentos"

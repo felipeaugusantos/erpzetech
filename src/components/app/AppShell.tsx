@@ -276,6 +276,8 @@ const groups: Group[] = [
     label: "Clínica",
     icon: Stethoscope,
     items: [
+      { label: "Painel da clínica", to: "/clinica-painel", icon: BarChart3 },
+      { label: "Visão por veterinário", to: "/clinica-veterinarios", icon: Users },
       { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
       { label: "Internação", to: "/clinica-internacao", icon: BedDouble },
       { label: "Mapa de execuções", to: "/clinica-execucoes", icon: ClipboardList },
@@ -675,6 +677,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 return souVeterinario;
               if (i.to === "/clinica-internacao" || i.to === "/clinica-execucoes")
                 return souVeterinario;
+              // painel da clínica mostra receita: só a gestão; a visão por veterinário serve também ao veterinário
+              if (i.to === "/clinica-painel") return souGestao;
+              if (i.to === "/clinica-veterinarios") return souGestao || souVeterinario;
               if (i.to === "/clinica-boxes" || i.to === "/sngpc")
                 return souVeterinario || souGestao;
               if (i.to === "/clinica-catalogo" || i.to === "/clinica-bulario")
@@ -803,6 +808,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ...(souVeterinario && modulos.clinica
               ? [
                   { label: "Prontuário", to: "/clinica-prontuario", icon: Stethoscope },
+                  { label: "Visão por veterinário", to: "/clinica-veterinarios", icon: Users },
                   { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
                   { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
@@ -858,6 +864,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-execucoes",
       "/clinica-boxes",
       "/clinica-fila",
+      "/clinica-veterinarios",
       "/sngpc",
     ];
     if (
