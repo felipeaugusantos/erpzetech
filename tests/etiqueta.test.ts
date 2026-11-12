@@ -3,7 +3,17 @@ import { test } from "node:test";
 
 import { ean13Modulos, ean13Valido } from "../src/lib/ean13.ts";
 import { eanInterno } from "../src/lib/ean.ts";
-import { enviarCrusQz, listarImpressorasQz, paraBase64 } from "../src/lib/etiqueta-qz.ts";
+import {
+  configurarAssinaturaQz,
+  enviarCrusQz,
+  listarImpressorasQz,
+  paraBase64,
+} from "../src/lib/etiqueta-qz.ts";
+import {
+  LIMITE_MENSAGEM_QZ,
+  normalizarPem,
+  validarMensagemQz,
+} from "../src/lib/etiqueta-qz-assinatura.ts";
 import {
   bytesEtiquetas,
   comandosEtiquetas,
@@ -267,4 +277,112 @@ test("QZ: erros viram mensagens claras", async () => {
 test("QZ: arquivo grande é convertido sem estourar a pilha", () => {
   const grande = new Uint8Array(300_000).fill(0x41);
   assert.equal(atob(paraBase64(grande)).length, 300_000);
+});
+
+const AGORA = 1_800_000_000_000;
+const msg = (o: Record<string, unknown>) => JSON.stringify({ timestamp: AGORA, ...o });
+const impressao = (data: unknown[]) =>
+  msg({ call: "print", params: { printer: { name: "Zebra" }, options: {}, data } });
+const CRU = { type: "raw", format: "command", flavor: "base64", data: "XlhB" };
+
+test("assinatura: só libera listar impressoras e imprimir comando cru", () => {
+  assert.equal(
+    validarMensagemQz(msg({ call: "printers.find", params: { query: "" } }), AGORA).ok,
+    true,
+  );
+  assert.equal(validarMensagemQz(impressao([CRU]), AGORA).ok, true);
+  for (const call of [
+    "file.read",
+    "usb.claimDevice",
+    "websocket.getNetworkInfo",
+    "printers.getStatus",
+  ]) {
+    assert.equal(validarMensagemQz(msg({ call, params: {} }), AGORA).ok, false, call);
+  }
+});
+
+test("assinatura: impressão com arquivo, imagem, PDF ou sem impressora é recusada", () => {
+  for (const d of [
+    { type: "pixel", format: "pdf", flavor: "file", data: "C:/segredo.pdf" },
+    { type: "raw", format: "file", flavor: "file", data: "C:/x" },
+    { ...CRU, flavor: "file" },
+    { ...CRU, format: "image" },
+    { ...CRU, data: 5 },
+  ]) {
+    assert.equal(validarMensagemQz(impressao([CRU, d]), AGORA).ok, false, JSON.stringify(d));
+  }
+  assert.equal(validarMensagemQz(impressao([]), AGORA).ok, false);
+  assert.equal(validarMensagemQz(msg({ call: "print", params: { data: [CRU] } }), AGORA).ok, false);
+});
+
+test("assinatura: recusa mensagem antiga, grande, sem JSON ou vazia", () => {
+  const velha = JSON.stringify({ call: "printers.find", params: {}, timestamp: AGORA - 3_600_000 });
+  assert.equal(validarMensagemQz(velha, AGORA).ok, false);
+  assert.equal(validarMensagemQz(JSON.stringify({ call: "printers.find" }), AGORA).ok, false);
+  assert.equal(validarMensagemQz("não é json", AGORA).ok, false);
+  assert.equal(validarMensagemQz("", AGORA).ok, false);
+  assert.equal(validarMensagemQz("[1]", AGORA).ok, false);
+  assert.equal(
+    validarMensagemQz(impressao([{ ...CRU, data: "A".repeat(LIMITE_MENSAGEM_QZ) }]), AGORA).ok,
+    false,
+  );
+  assert.equal(normalizarPem("  -----A-----\\nB\\n-----C-----  "), "-----A-----\nB\n-----C-----");
+});
+
+test("assinatura: com certificado liga a assinatura SHA512; sem certificado nada muda", async () => {
+  const eventos: string[] = [];
+  const cliente = {
+    ...qzFalso().cliente,
+    security: {
+      setCertificatePromise: (f: (r: (c: string) => void, j: (e: unknown) => void) => void) =>
+        f(
+          (c) => eventos.push(`cert:${c}`),
+          () => {},
+        ),
+      setSignaturePromise: (
+        f: (m: string) => (r: (s: string) => void, j: (e: unknown) => void) => void,
+      ) =>
+        f("texto")(
+          (s) => eventos.push(`ass:${s}`),
+          () => {},
+        ),
+      setSignatureAlgorithm: (a: string) => eventos.push(`alg:${a}`),
+    },
+  };
+  const api = { certificado: async () => "PEM", assinar: async (m: string) => `assinado(${m})` };
+  assert.equal(await configurarAssinaturaQz(cliente, api), true);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(eventos, ["alg:SHA512", "cert:PEM", "ass:assinado(texto)"]);
+  assert.equal(await configurarAssinaturaQz(cliente, api), true); // já ligado: não repete
+  assert.equal(eventos.length, 3);
+
+  const outro = { ...cliente };
+  assert.equal(
+    await configurarAssinaturaQz(outro, { ...api, certificado: async () => null }),
+    false,
+  );
+  assert.equal(
+    await configurarAssinaturaQz(outro, {
+      ...api,
+      certificado: async () => {
+        throw new Error("x");
+      },
+    }),
+    false,
+  );
+  assert.equal(await configurarAssinaturaQz(qzFalso().cliente, api), false); // sem módulo de segurança
+  assert.equal(eventos.length, 3);
+});
+
+test("assinatura: a assinatura RSA-SHA512 do servidor confere com a chave pública", async () => {
+  const { generateKeyPairSync, createSign, createVerify } = await import("node:crypto");
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const texto = impressao([CRU]);
+  const s = createSign("RSA-SHA512");
+  s.update(texto, "utf8");
+  s.end();
+  const ass = s.sign(privateKey, "base64");
+  const v = createVerify("RSA-SHA512");
+  v.update(texto, "utf8");
+  assert.equal(v.verify(publicKey, ass, "base64"), true);
 });

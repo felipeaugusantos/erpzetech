@@ -3,7 +3,8 @@ import { Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
-import { enviarCrusQz, listarImpressorasQz } from "@/lib/etiqueta-qz";
+import { enviarCrusQz, listarImpressorasQz, type ApiAssinaturaQz } from "@/lib/etiqueta-qz";
+import { assinarQz, certificadoQz } from "@/lib/etiqueta-qz.functions";
 import {
   LINGUAGENS_ETIQUETA,
   bytesEtiquetas,
@@ -39,6 +40,12 @@ import {
 const CHAVE_MODELO = "etiqueta-modelo";
 const CHAVE_MODO = "etiqueta-modo";
 const CHAVE_QZ = "etiqueta-qz";
+
+// Assinatura das requisições (só funciona se o servidor tiver o certificado e a chave configurados).
+const API_ASSINATURA_QZ: ApiAssinaturaQz = {
+  certificado: async () => (await certificadoQz()).certificado,
+  assinar: async (mensagem) => (await assinarQz({ data: { mensagem } })).assinatura,
+};
 
 /** "driver" imprime pelo Windows; os demais baixam um arquivo de comandos para a térmica. */
 type Modo = "driver" | LinguagemEtiqueta;
@@ -95,7 +102,7 @@ export function EtiquetaProdutoDialog({
   async function buscarImpressoras() {
     setOcupado(true);
     try {
-      const lista = await listarImpressorasQz();
+      const lista = await listarImpressorasQz(undefined, API_ASSINATURA_QZ);
       setImpressoras(lista);
       if (!lista.includes(impressoraQz)) setImpressoraQz(lista[0] ?? "");
       if (lista.length === 0) toast.error("O QZ Tray não encontrou nenhuma impressora");
@@ -130,7 +137,12 @@ export function EtiquetaProdutoDialog({
       if (entrega === "qz") {
         setOcupado(true);
         try {
-          await enviarCrusQz(impressoraQz, bytesEtiquetas(texto, modoEfetivo));
+          await enviarCrusQz(
+            impressoraQz,
+            bytesEtiquetas(texto, modoEfetivo),
+            undefined,
+            API_ASSINATURA_QZ,
+          );
           toast.success("Etiquetas enviadas para a impressora");
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Falha ao enviar para o QZ Tray");
@@ -316,7 +328,7 @@ export function EtiquetaProdutoDialog({
           </div>
           <p className="text-xs text-muted-foreground">
             {modoEfetivo !== "driver" && entrega === "qz"
-              ? "Envio direto pelo QZ Tray, instalado e aberto neste computador (qz.io). Na primeira vez ele pede autorização para este site. Faça um teste com uma etiqueta."
+              ? "Envio direto pelo QZ Tray, instalado e aberto neste computador (qz.io). Se o servidor não tiver o certificado configurado, ele pede autorização para este site. Faça um teste com uma etiqueta."
               : modoEfetivo !== "driver"
                 ? "O arquivo vai direto para a impressora, sem o driver: com a impressora compartilhada no Windows, no Prompt de Comando use copy /b etiquetas.zpl \\\\localhost\\NOME (ou etiquetas.prn). Confira o tamanho do rolo e faça um teste com uma etiqueta."
                 : folha

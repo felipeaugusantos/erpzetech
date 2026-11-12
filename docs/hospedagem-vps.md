@@ -71,7 +71,8 @@ SUPABASE_URL=...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 # Só se for usar: EVOLUTION_API_URL, EVOLUTION_API_KEY, WHATSAPP_WEBHOOK_SECRET, WHATSAPP_APP_URL,
-# COSMOS_TOKEN, LOVABLE_API_KEY, LOVABLE_CRON_SECRET, ERP_ZETECH_API_KEY
+# COSMOS_TOKEN, LOVABLE_API_KEY, LOVABLE_CRON_SECRET, ERP_ZETECH_API_KEY,
+# QZ_CERTIFICADO e QZ_CHAVE_PRIVADA (assinatura do QZ Tray; ver docs/impressao-etiquetas.md)
 ```
 
 Para um primeiro teste, só `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` bastam (são públicas, já estão no `.env` do repositório): as telas e o login por e-mail e senha funcionam. As funções administrativas só funcionam com `SUPABASE_SERVICE_ROLE_KEY`; sem ela falham com erro de configuração, sem danos. No Lovable Cloud essa chave pode não ser exibida: confira a tela **Secrets** antes de planejar a mudança.

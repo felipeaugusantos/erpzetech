@@ -33,7 +33,31 @@
 - **Sem assinatura:** o envio vai sem certificado, então o QZ Tray trata o site como não confiável e pede autorização. Para o caixa não ver o aviso a cada impressão é preciso um certificado do QZ Tray assinando as requisições (`qz.security.setCertificatePromise` e `setSignaturePromise`), com a chave privada fora do navegador. Isso não foi feito.
 - **Não foi testado com o QZ Tray nem com impressora reais.** Os testes usam um cliente falso e conferem a conexão, o envio em base64 dos bytes certos e as mensagens de erro.
 
+## Fase 6 (feita em parte): assinatura das requisições do QZ Tray
+
+Sem assinatura o QZ Tray pede autorização a cada uso. Com ela, o sistema se identifica por um certificado e o aviso some nos computadores que confiam nesse certificado.
+
+- Servidor: `src/lib/etiqueta-qz.functions.ts` entrega o certificado (público) e assina requisições com a chave privada (RSA-SHA512). As duas ficam só em variáveis de ambiente do servidor, **nunca no navegador**: `QZ_CERTIFICADO` e `QZ_CHAVE_PRIVADA` (PEM; pode vir com `\n` escrito). Sem elas, tudo segue como na fase 5 (sem assinatura).
+- Só usuário autenticado (e nunca contador) assina, e o servidor **só assina o que o sistema pede**: listar impressoras e imprimir comando cru (`type: raw`, `format: command`, `flavor: base64` ou `plain`), com a mensagem de até 2 MB e a data dentro de 15 minutos do relógio do servidor. Arquivo, imagem, PDF, USB e outras chamadas são recusados (`src/lib/etiqueta-qz-assinatura.ts`), para a chave não virar um "assine qualquer coisa".
+- Navegador: `configurarAssinaturaQz` liga a assinatura (SHA512) antes de conectar, uma vez por página, e só se o servidor devolver o certificado.
+
+### Como ativar
+
+1. Gere o par de chaves num computador seguro (a chave privada não vai para o repositório):
+
+```bash
+openssl req -x509 -newkey rsa:2048 -sha512 -nodes -days 3650 -subj "/CN=ERP Ze Tech" -keyout qz-chave.pem -out qz-certificado.pem
+```
+
+2. Cadastre o conteúdo de `qz-certificado.pem` em `QZ_CERTIFICADO` e o de `qz-chave.pem` em `QZ_CHAVE_PRIVADA` nos segredos do servidor.
+3. Em cada computador com QZ Tray, o QZ precisa **confiar nesse certificado**. Um certificado próprio (como o acima) não é conhecido pelo QZ: segundo a documentação dele, instala-se o `qz-certificado.pem` no QZ Tray de cada máquina (opção de certificado de autenticação própria, `authcert.override`) ou compra-se um certificado reconhecido pela QZ Industries. **Confira o passo atual na documentação do QZ Tray**, que não foi testada aqui.
+
+### Limites
+
+- Quem chega a usar a conta de um usuário do sistema consegue assinar impressão de etiqueta nas máquinas que confiam no certificado. O risco fica restrito a imprimir comando cru em impressoras, mas é uma razão a mais para não compartilhar login.
+- A chave é única do sistema (não por empresa). Se vazar, gere outra e atualize o certificado em cada QZ Tray.
+- Não foi testado com o QZ Tray real; os testes conferem as regras de assinatura, a ligação no cliente e que a assinatura RSA-SHA512 confere com a chave pública.
+
 ## Fases seguintes (a decidir)
 
 3. Modelos próprios por empresa (tamanho e campos), guardados como configuração.
-4. Assinatura das requisições do QZ Tray (certificado e assinatura no servidor).
