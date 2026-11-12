@@ -7,7 +7,7 @@ export function normalizarCep(cep: string): string {
 export async function consultarCep(cep: string, signal?: AbortSignal): Promise<EnderecoCep> {
   const digitos = normalizarCep(cep);
   if (!/^\d{8}$/.test(digitos)) throw new Error("Informe um CEP com 8 números.");
-  const resposta = await fetch(`https://viacep.com.br/ws/${digitos}/json/`, { signal });
+  const resposta = await fetch(`https://viacep.com.br/ws/${digitos}/json/`, { signal: signal ?? null });
   if (!resposta.ok) throw new Error("Não foi possível consultar o CEP. Preencha o endereço manualmente.");
   const dados: unknown = await resposta.json();
   if (!dados || typeof dados !== "object") throw new Error("Resposta inválida ao consultar o CEP.");
