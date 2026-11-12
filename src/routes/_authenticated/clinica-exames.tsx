@@ -342,12 +342,15 @@ function ExamesDoPaciente({
                 key={x.id}
                 type="button"
                 className={`panel p-3 text-left hover:bg-muted ${x.id === exameId ? "ring-2 ring-primary" : ""}`}
-                onClick={() =>
-                  navegar({
+                onClick={() => {
+                  setSolicitacaoImportacao(0);
+                  setArquivoImportacao(null);
+                  setImportando(false);
+                  void navegar({
                     to: "/clinica-exames",
                     search: { pet: petId, exame: x.id, atendimento: atendimentoId },
-                  })
-                }
+                  });
+                }}
               >
                 <span className="font-medium">{x.nome}</span>
                 <span className="block text-xs text-muted-foreground">
@@ -371,7 +374,7 @@ function ExamesDoPaciente({
 
         <div>
           {exameId ? (
-            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} arquivoImportacao={arquivoImportacao} />
+            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} arquivoImportacao={arquivoImportacao} onConsumirImportacao={() => { setSolicitacaoImportacao(0); setArquivoImportacao(null); }} />
           ) : (
             <EmptyState
               title="Escolha um exame"
@@ -520,7 +523,7 @@ function digitadoDe(e: ExameClinico): Digitado {
   );
 }
 
-function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number; arquivoImportacao: File | null }) {
+function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao, onConsumirImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number; arquivoImportacao: File | null; onConsumirImportacao: () => void }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-exame", exameId],
     queryFn: async () => {
@@ -539,11 +542,12 @@ function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao 
       exame={data}
       solicitacaoImportacao={solicitacaoImportacao}
       arquivoImportacao={arquivoImportacao}
+      onConsumirImportacao={onConsumirImportacao}
     />
   );
 }
 
-function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number; arquivoImportacao: File | null }) {
+function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, onConsumirImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number; arquivoImportacao: File | null; onConsumirImportacao: () => void }) {
   const qc = useQueryClient();
   const aberto = exame.situacao === "aberto";
   const [dig, setDig] = useState<Digitado>(() => digitadoDe(exame));
@@ -924,7 +928,7 @@ function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao }: 
       <div className="flex flex-wrap gap-2">
         {aberto && (
           <>
-            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} arquivo={arquivoImportacao} onAplicar={(linhas, laudo) => {
+            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} arquivo={arquivoImportacao} onConsumir={onConsumirImportacao} onAplicar={(linhas, laudo) => {
               setDig(atual => {
                 const novo = { ...atual };
                 for (const { campo, item } of linhas) {
