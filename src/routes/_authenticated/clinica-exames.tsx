@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Lock, Plus, Printer, Search, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
+import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ import {
   type ResumoExame,
 } from "@/lib/exames";
 import { dateBR, dateTimeBR } from "@/lib/format";
+import { pontosDoLaudo } from "@/lib/exame-grafico";
 import { ESPECIES, SEXOS, idadeDoPet, rotulo } from "@/lib/pet";
 
 export const Route = createFileRoute("/_authenticated/clinica-exames")({
@@ -494,6 +496,7 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
   const [motivo, setMotivo] = useState("");
   const [adendo, setAdendo] = useState("");
   const [laudo, setLaudo] = useState(false);
+  const [laudoPronto, setLaudoPronto] = useState(false);
   const [evolucaoDe, setEvolucaoDe] = useState<ResultadoExame | null>(null);
 
   const valores = valoresNumericos(
@@ -889,7 +892,7 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
           </>
         )}
         {exame.situacao !== "cancelado" && (
-          <Button variant="outline" onClick={() => setLaudo(true)}>
+          <Button variant="outline" onClick={() => { setLaudoPronto(false); setLaudo(true); }}>
             <Printer className="size-4" /> Laudo para imprimir
           </Button>
         )}
@@ -925,16 +928,16 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
       </Dialog>
 
       <Dialog open={laudo} onOpenChange={(o) => !o && setLaudo(false)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto print:translate-none">
           <DialogHeader>
             <DialogTitle>Laudo do exame</DialogTitle>
           </DialogHeader>
-          <Laudo exame={exame} valores={valores} />
+          <Laudo exame={exame} valores={valores} onReady={setLaudoPronto} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setLaudo(false)}>
               Fechar
             </Button>
-            <Button onClick={() => window.print()}>
+            <Button disabled={!laudoPronto} onClick={() => window.print()}>
               <Printer className="size-4" /> Imprimir
             </Button>
           </DialogFooter>
@@ -1020,9 +1023,11 @@ function Evolucao({ petId, campo }: { petId: string; campo: ResultadoExame }) {
 function Laudo({
   exame,
   valores,
+  onReady,
 }: {
   exame: ExameClinico;
   valores: Record<string, number | null>;
+  onReady: (ready: boolean) => void;
 }) {
   const feitos = exame.resultados.filter((r) =>
     r.forma === "texto" || r.forma === "escolha"
@@ -1030,6 +1035,31 @@ function Laudo({
       : (valores[r.id] ?? r.valor_num) !== null,
   );
   const grupos = agruparCampos(feitos);
+  const numericos = feitos.filter(r => r.forma === "numero" || r.forma === "calculado");
+  const historicos = useQueries({ queries: numericos.map(r => ({
+    queryKey: ["clinica-exame-evolucao", exame.pet_id, r.nome, r.unidade],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_exame_evolucao", {
+        p_pet_id: exame.pet_id, p_nome: r.nome, p_unidade: r.unidade ?? "",
+      });
+      if (error) throw error;
+      return (data ?? []) as unknown as PontoEvolucao[];
+    },
+    staleTime: 0,
+  })) });
+  const carregando = historicos.some(h => h.isPending || h.isFetching);
+  const falhou = historicos.some(h => h.isError);
+  const pronto = !carregando && !falhou;
+  useEffect(() => { onReady(pronto); }, [pronto, onReady]);
+  const graficos = numericos.flatMap((r, i) => {
+    const valor = valores[r.id] ?? r.valor_num;
+    if (valor === null) return [];
+    const pontos = pontosDoLaudo(historicos[i]?.data ?? [], {
+      exame_id: exame.id, exame: exame.nome, data_coleta: exame.data_coleta,
+      valor, casas: r.casas, faixa_min: r.faixa_min, faixa_max: r.faixa_max,
+    });
+    return pontos.length ? [{ campo: r, pontos }] : [];
+  });
   return (
     <div id="documento-impresso" className="grid gap-3 bg-card text-sm">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-2">
@@ -1106,6 +1136,17 @@ function Laudo({
           </table>
         </div>
       ))}
+      {carregando && <p className="text-xs text-muted-foreground print:hidden" role="status">Carregando resultados anteriores…</p>}
+      {falhou && <div className="print:hidden">
+        <p className="text-xs text-destructive" role="alert">Não foi possível consultar os resultados anteriores.</p>
+        <Button variant="outline" size="sm" onClick={() => historicos.forEach(h => { void h.refetch(); })}>Tentar novamente</Button>
+      </div>}
+      {pronto && graficos.length > 0 && <section className="border-t pt-3">
+        <p className="mb-2 font-semibold">Evolução dos resultados</p>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 print:grid-cols-2">
+          {graficos.map(({ campo, pontos }) => <MiniGraficoExame key={campo.id} nome={campo.nome} unidade={campo.unidade} pontos={pontos} />)}
+        </div>
+      </section>}
       {exame.observacoes && (
         <p className="whitespace-pre-wrap">
           <span className="font-semibold">Observações: </span>

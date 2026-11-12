@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Incluir minigráficos na impressão com até três resultados anteriores compatíveis do paciente e o atual, mantendo valores exatos. Consulta real de Léo não tem anteriores fechados (não mostra gráfico); histórico controlado validou gráfico, valores 30,5 e 26,9, folha A4 e celular. Corrigido deslocamento da janela apenas na impressão do laudo. 42 testes passaram; nenhum resultado gravado; não publicado.
+
 - [x] Preservar decimais dos exames sem arredondamento na tela, impressão e cálculos; 39 testes passaram, função decimal confirmada no banco, ALT 26,9 conferido no exame real de Léo pela conta de Bruna e no laudo para impressão. Nenhum resultado ou exame fechado alterado; não publicado.
 
 - [x] Importar PDF digital de laboratório no exame aberto, com prévia, conferência de paciente/espécie, resultados compatíveis e apenas referências absolutas do leucograma deste exame; não converter plaquetas sem unidade, não modificar modelos ou exames fechados. PDF de Leo conferido na conta real: 22 campos do hemograma, confirmação obrigatória, rascunho e envio verificados com gravação interceptada, computador/celular sem transbordamento. 38 testes passaram. Leitura conservadora de tabelas digitais compatíveis; digitalizações e outros formatos não reconhecidos exigem conferência manual. Não publicado.
