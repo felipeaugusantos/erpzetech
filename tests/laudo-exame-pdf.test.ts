@@ -47,6 +47,19 @@ test("bioquímica mantém decimal de creatinina e não copia referência fora do
   const l = lerLaudoTexto(cabecalho + "CREATININA\n1,3 mg/dL | 0,7 a 1,9 mg/dL");
   assert.deepEqual(l.itens[0], { nome: "Creatinina", valor: 1.3, unidade: "mg/dL", minimo: null, maximo: null });
 });
+test("lê os cinco resultados de Léo com títulos Resultado e Referência em linha separada", () => {
+  const laudo = lerLaudoTexto(cabecalho + [
+    "ALT (TGP) | Resultado | Referência", "26,9 U/L | 10,0 a 80,0 U/L",
+    "CREATININA | Resultado | Referência", "1,3 mg/dL | 0,7 a 1,9 mg/dL",
+    "URÉIA | Resultado | Referência", "50,5 mg/dL | 10,0 a 75,0 mg/dL",
+    "FA - FOSFATASE ALCALINA | Resultado | Referência", "30,5 U/L | 10,0 a 96,0 U/L",
+    "ALBUMINA | Resultado | Referência", "2,7 g/dL | 2,1 a 3,9 g/dL",
+  ].join("\n"));
+  const campos = [campo("a", "ALT (TGP)", "U/L"), campo("b", "Creatinina", "mg/dL"), campo("c", "Ureia", "mg/dL"), campo("d", "Fosfatase alcalina", "U/L"), campo("e", "Albumina", "g/dL")];
+  assert.deepEqual(corresponderLaudo(laudo, campos).map(({ item }) => [item.nome, item.valor]), [
+    ["ALT (TGP)", 26.9], ["Creatinina", 1.3], ["Ureia", 50.5], ["Fosfatase alcalina", 30.5], ["Albumina", 2.7],
+  ]);
+});
 
 for (const [nome, minimo, maximo] of [
   ["METAMIELÓCITOS", 0, 0], ["BASTONETES", 0, 300], ["SEGMENTADOS", 2500, 12500],
