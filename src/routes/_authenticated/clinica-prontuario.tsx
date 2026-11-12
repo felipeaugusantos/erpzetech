@@ -482,6 +482,18 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
                 </div>
+                {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
+                  <div className="mt-3">
+                    <Button asChild size="sm">
+                      <Link
+                        to="/clinica-atendimento"
+                        search={{ agendamento: a.agendamento_id }}
+                      >
+                        <Stethoscope /> Continuar atendimento
+                      </Link>
+                    </Button>
+                  </div>
+                )}
                 <dl className="mt-2 grid gap-1">
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
