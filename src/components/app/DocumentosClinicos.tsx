@@ -280,10 +280,11 @@ function EmitirDocumento({
   const [receita, setReceita] = useState<ItemReceitaForm[]>([
     { ...itemReceitaVazio(), controlado: false },
   ]);
-  const [exames, setExames] = useState<ItemExame[]>([{ exame: "" }]);
+  const [exames, setExames] = useState<ItemExame[]>([]);
   const modelosExame = useQuery({
     queryKey: ["clinica-exame-modelos-lista"],
     enabled: tipo === "solicitacao_exame",
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase.rpc("clinica_exame_modelos");
       if (error) throw error;
@@ -642,50 +643,50 @@ function EmitirDocumento({
 
             {tipo === "solicitacao_exame" && (
               <>
-                {(modelosExame.data ?? []).length > 0 && (
-                  <div>
-                    <Label>Exames da clínica (toque para incluir)</Label>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {(modelosExame.data ?? []).map((m) => {
-                        const incluido = exames.some(
-                          (x) => x.exame.trim().toLowerCase() === m.nome.toLowerCase(),
-                        );
-                        return (
-                          <Button
-                            key={m.id}
-                            type="button"
-                            size="sm"
-                            variant={incluido ? "default" : "outline"}
-                            className="h-7 rounded-full px-3 text-xs"
-                            onClick={() => adicionarExame(m.nome)}
-                          >
-                            {incluido ? "✓ " : "+ "}
-                            {m.nome}
-                          </Button>
-                        );
-                      })}
+                <div className="min-w-0 space-y-1">
+                  <Label htmlFor="doc-exame-selecionar">Adicionar exame</Label>
+                  <Select
+                    value=""
+                    onValueChange={(id) => {
+                      const modelo = modelosExame.data?.find((m) => m.id === id);
+                      if (modelo) adicionarExame(modelo.nome);
+                    }}
+                    disabled={modelosExame.isPending || Boolean(modelosExame.error) || !modelosExame.data?.length || exames.length >= 30}
+                  >
+                    <SelectTrigger id="doc-exame-selecionar" className="w-full min-w-0">
+                      <SelectValue placeholder={modelosExame.isPending ? "Carregando exames…" : "Selecionar exame da clínica"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(modelosExame.data ?? []).map((m) => (
+                        <SelectItem
+                          key={m.id}
+                          value={m.id}
+                          disabled={exames.some((e) => e.exame.trim().toLowerCase() === m.nome.toLowerCase())}
+                        >
+                          {m.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {modelosExame.error ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-destructive">Não foi possível carregar os exames.</p>
+                      <Button size="sm" variant="outline" onClick={() => void modelosExame.refetch()}>Tentar novamente</Button>
                     </div>
-                  </div>
-                )}
+                  ) : !modelosExame.isPending && !modelosExame.data?.length ? (
+                    <p className="text-sm text-muted-foreground">Nenhum exame ativo cadastrado. Peça à gestão para cadastrar em Modelos de exame.</p>
+                  ) : null}
+                </div>
                 {exames.map((e, idx) => (
                   <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                    <div>
-                      <Label>Exame *</Label>
-                      <Input
-                        placeholder="Ex.: Hemograma completo"
-                        value={e.exame}
-                        onChange={(ev) =>
-                          setExames(
-                            exames.map((x, k) =>
-                              k === idx ? { ...x, exame: ev.target.value } : x,
-                            ),
-                          )
-                        }
-                      />
+                    <div className="min-w-0">
+                      <Label>Exame</Label>
+                      <p className="flex min-h-9 items-center break-words py-1 text-sm font-medium">{e.exame}</p>
                     </div>
                     <div>
-                      <Label>Observação</Label>
+                      <Label htmlFor={`doc-exame-obs-${idx}`}>Observação</Label>
                       <Input
+                        id={`doc-exame-obs-${idx}`}
                         value={e.observacao ?? ""}
                         onChange={(ev) =>
                           setExames(
@@ -696,25 +697,18 @@ function EmitirDocumento({
                         }
                       />
                     </div>
-                    {exames.length > 1 && (
                       <Button
                         className="self-end"
                         size="sm"
                         variant="ghost"
+                        aria-label={`Remover ${e.exame}`}
+                        title={`Remover ${e.exame}`}
                         onClick={() => setExames(exames.filter((_, k) => k !== idx))}
                       >
                         <Trash2 className="size-4" />
                       </Button>
-                    )}
                   </div>
                 ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setExames([...exames, { exame: "" }])}
-                >
-                  <Plus className="size-4" /> Outro exame
-                </Button>
                 <div>
                   <Label htmlFor="doc-ind">Indicação clínica</Label>
                   <Textarea
