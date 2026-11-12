@@ -18,6 +18,28 @@ export type NfeXmlItem = {
   impostos: NfeXmlImpostosItem;
 };
 
+/** IBS/CBS destacados no item (<imposto><IBSCBS>, NT 2025.002-RTC). Valores zerados quando o CST não leva grupo de valores. */
+export type NfeXmlIbsCbsItem = {
+  cst: string | null;
+  cclasstrib: string | null;
+  base: number;
+  ibs_uf: number;
+  ibs_mun: number;
+  ibs: number;
+  cbs: number;
+};
+
+/** IBS/CBS no total da nota (<total><IBSCBSTot>); crédito presumido destacado separado, quando houver. */
+export type NfeXmlIbsCbsNota = {
+  base: number;
+  ibs_uf: number;
+  ibs_mun: number;
+  ibs: number;
+  cbs: number;
+  cred_pres_ibs: number;
+  cred_pres_cbs: number;
+};
+
 export type NfeXmlImpostosItem = {
   cst: string | null;
   base_icms: number;
@@ -29,6 +51,8 @@ export type NfeXmlImpostosItem = {
   ipi: number;
   pis: number;
   cofins: number;
+  /** Null quando o XML não traz IBSCBS (nota anterior à reforma ou de emitente do Simples). */
+  ibs_cbs: NfeXmlIbsCbsItem | null;
 };
 
 export type NfeXmlImpostosNota = {
@@ -43,6 +67,7 @@ export type NfeXmlImpostosNota = {
   seguro: number;
   outras: number;
   tributos_aprox: number;
+  ibs_cbs: NfeXmlIbsCbsNota | null;
 };
 
 export type NfeXmlFornecedor = {
@@ -184,6 +209,7 @@ export function lerXmlNfe(conteudo: string): NfeXmlLida {
         seguro: numero(total, "vSeg"),
         outras: numero(total, "vOutro"),
         tributos_aprox: numero(total, "vTotTrib"),
+        ibs_cbs: ibsCbsDaNota(infNFe),
       },
     },
     fornecedor: {
@@ -225,6 +251,43 @@ export function impostosDoItem(det: Element | null): NfeXmlImpostosItem {
     ipi: numero(ipi, "vIPI"),
     pis: numero(pis, "vPIS"),
     cofins: numero(cofins, "vCOFINS"),
+    ibs_cbs: ibsCbsDoItem(imp),
+  };
+}
+
+/**
+ * IBS/CBS do item. Os valores saem só de dentro de <gIBSCBS>: em CST de transferência de crédito (800) o <vIBS> que
+ * existe no item é o valor transferido, não um tributo destacado, e não pode ser lido como se fosse.
+ */
+export function ibsCbsDoItem(imposto: Element | null): NfeXmlIbsCbsItem | null {
+  const grupo = imposto?.getElementsByTagName("IBSCBS")[0] ?? null;
+  if (!grupo) return null;
+  const g = grupo.getElementsByTagName("gIBSCBS")[0] ?? null;
+  return {
+    cst: texto(grupo, "CST"),
+    cclasstrib: texto(grupo, "cClassTrib"),
+    base: numero(g, "vBC"),
+    ibs_uf: numero(g, "vIBSUF"),
+    ibs_mun: numero(g, "vIBSMun"),
+    ibs: numero(g, "vIBS"),
+    cbs: numero(g, "vCBS"),
+  };
+}
+
+/** IBS/CBS do total da nota (<total><IBSCBSTot>); null quando a nota não traz o grupo. */
+export function ibsCbsDaNota(infNFe: Element | null): NfeXmlIbsCbsNota | null {
+  const tot = infNFe?.getElementsByTagName("IBSCBSTot")[0] ?? null;
+  if (!tot) return null;
+  const gIbs = tot.getElementsByTagName("gIBS")[0] ?? null;
+  const gCbs = tot.getElementsByTagName("gCBS")[0] ?? null;
+  return {
+    base: numero(tot, "vBCIBSCBS"),
+    ibs_uf: numero(gIbs, "vIBSUF"),
+    ibs_mun: numero(gIbs, "vIBSMun"),
+    ibs: numero(gIbs, "vIBS"),
+    cbs: numero(gCbs, "vCBS"),
+    cred_pres_ibs: numero(gIbs, "vCredPres"),
+    cred_pres_cbs: numero(gCbs, "vCredPres"),
   };
 }
 
