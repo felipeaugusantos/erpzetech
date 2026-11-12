@@ -15,3 +15,11 @@ test("até 30 dias avisa; 31 dias está válido", () => {
 test("sem validade informada", () => {
   assert.equal(situacaoValidade(null, "2026-11-12"), "sem_validade");
 });
+
+import { minutosLegiveis } from "../src/lib/clinica-veterinarios.ts";
+test("tempo de espera em texto", () => {
+  assert.equal(minutosLegiveis(null), "—");
+  assert.equal(minutosLegiveis(45), "45 min");
+  assert.equal(minutosLegiveis(65), "1 h 05 min");
+  assert.equal(minutosLegiveis(120), "2 h");
+});
