@@ -566,7 +566,7 @@ function Pets() {
                     return <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                       <p>{t.cpf ? `CPF: ${t.cpf}` : t.cnpj ? `CNPJ: ${t.cnpj}` : "CPF / CNPJ não informado"}</p>
                       <p>{[t.endereco, t.numero, t.complemento, t.bairro, t.cidade, t.estado, t.cep].filter(Boolean).join(" · ") || "Endereço não informado"}</p>
-                      <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/clientes">Editar cadastro do tutor em Clientes</Link></Button>
+                      <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/clientes" search={{ editar: form.cliente_id }}>Editar cadastro do tutor em Clientes</Link></Button>
                     </div>;
                   })()}
                   {!form.id && (

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,6 +43,10 @@ import {
 } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
+  validateSearch: (search: Record<string, unknown>): { editar?: string } =>
+    typeof search.editar === "string" && search.editar.trim()
+      ? { editar: search.editar.trim() }
+      : {},
   head: () => ({
     meta: [
       { title: "Clientes — ERP Ze Tech" },
@@ -111,6 +115,8 @@ const vazio: FormState = {
 };
 
 function Clientes() {
+  const { editar: clienteParaEditar } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const { data: session } = useSessionData();
   const [busca, setBusca] = useState("");
@@ -214,7 +220,7 @@ function Clientes() {
     onError: (e: Error) => toast.error("Erro ao salvar", { description: e.message }),
   });
 
-  function editar(c: Record<string, unknown>) {
+  const editar = useCallback((c: Record<string, unknown>) => {
     setForm({
       id: c["id"] as string,
       tipo: c["tipo"] as "PF" | "PJ",
@@ -241,7 +247,15 @@ function Clientes() {
       observacoes: (c["observacoes"] as string) ?? "",
     });
     setOpen(true);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!clienteParaEditar || !data) return;
+    const cliente = data.clientes.find((c) => c.id === clienteParaEditar);
+    if (cliente) editar(cliente);
+    else toast.error("Cliente não encontrado ou indisponível para edição.");
+    void navigate({ search: {}, replace: true });
+  }, [clienteParaEditar, data, editar, navigate]);
 
   const totalLimite = (data?.clientes ?? []).reduce((s, c) => s + Number(c.limite_credito), 0);
   const totalUsado = (data?.clientes ?? []).reduce((s, c) => s + Number(c.saldo_utilizado), 0);
