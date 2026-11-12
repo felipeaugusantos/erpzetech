@@ -1,5 +1,39 @@
 // Tutor novo cadastrado dentro do cadastro do pet (sem passar por Clientes). Sem dependência de tela nem de banco.
 
+import { limparDocumento } from "./cnpj-alfa.ts";
+
+export type DadosTutor = {
+  documento: string;
+  cep: string;
+  endereco: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+};
+
+export const dadosTutorVazios: DadosTutor = {
+  documento: "", cep: "", endereco: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
+};
+
+export function dadosTutorParaSalvar(dados: DadosTutor) {
+  const documento = limparDocumento(dados.documento);
+  const juridica = documento.length > 11 || /[A-Z]/.test(documento);
+  return {
+    tipo: juridica ? "PJ" as const : "PF" as const,
+    cpf: !juridica && documento ? documento : null,
+    cnpj: juridica && documento ? documento : null,
+    cep: dados.cep.replace(/\D/g, "") || null,
+    endereco: dados.endereco.trim() || null,
+    numero: dados.numero.trim() || null,
+    complemento: dados.complemento.trim() || null,
+    bairro: dados.bairro.trim() || null,
+    cidade: dados.cidade.trim() || null,
+    estado: dados.estado.trim().toUpperCase() || null,
+  };
+}
+
 export type TutorOpcao = { id: string; nome: string; telefone?: string | null };
 
 const digitos = (s: string) => s.replace(/\D/g, "");

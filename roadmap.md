@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Incluir CPF ou CNPJ e endereço completo no tutor novo de Pets e tutores, reutilizando Clientes; conferir formulário e dados enviados sem cadastrar pessoas fictícias.
+
 - [x] Corrigir autorização compartilhada do WhatsApp: aceita clínica ou Lava rápido, mantendo papéis, isolamento e lista autorizada do servidor. Migração aplicada; conta real da Bruna confirmou clínica=true, Lava rápido=false e autorização para o próprio tenant; tela abriu sem o aviso indevido. 34 testes passaram e build OK. Pareamento do número não concluído nem mensagens enviadas.
 
 - [x] Solicitação de exames: selecionar modelos ativos da clínica e adicionar à relação, sem digitar nomes; mantém observações e remoção. Conta real de Bruna/Thor conferida sem modelos cadastrados; inclusão de dois exames e remoção verificadas com resposta simulada, sem emitir documento. Nove testes de documentos passaram; não publicado.

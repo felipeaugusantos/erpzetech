@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { erroDoTutorNovo, nomeParaComparar, tutoresParecidos } from "../src/lib/tutor-novo.ts";
+import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, nomeParaComparar, tutoresParecidos } from "../src/lib/tutor-novo.ts";
+
+test("CPF do tutor salva como pessoa física, sem CNPJ", () => {
+  const dados = dadosTutorParaSalvar({ ...dadosTutorVazios, documento: "529.982.247-25" });
+  assert.equal(dados.tipo, "PF");
+  assert.equal(dados.cpf, "52998224725");
+  assert.equal(dados.cnpj, null);
+});
+
+test("CNPJ do tutor salva como pessoa jurídica, sem CPF", () => {
+  const dados = dadosTutorParaSalvar({ ...dadosTutorVazios, documento: "11.222.333/0001-81" });
+  assert.equal(dados.tipo, "PJ");
+  assert.equal(dados.cnpj, "11222333000181");
+  assert.equal(dados.cpf, null);
+});
+
+test("endereço do tutor mantém todos os campos e normaliza CEP e UF", () => {
+  assert.deepEqual(dadosTutorParaSalvar({ ...dadosTutorVazios,
+    cep: "14000-000", endereco: " Rua A ", numero: " 20 ", complemento: " Sala 2 ",
+    bairro: " Centro ", cidade: " Ribeirão Preto ", estado: "sp",
+  }), { tipo: "PF", cpf: null, cnpj: null, cep: "14000000", endereco: "Rua A", numero: "20",
+    complemento: "Sala 2", bairro: "Centro", cidade: "Ribeirão Preto", estado: "SP" });
+});
 
 test("confere nome e telefone do tutor novo", () => {
   assert.equal(erroDoTutorNovo("Maria Silva", "(16) 99999-0000"), null);
