@@ -84,7 +84,8 @@ function CategoriasFinanceiras() {
   const salvar = useMutation({
     mutationFn: async (c: Partial<Categoria>) => {
       const { error } = await supabase.rpc("financeiro_categoria_salvar", {
-        ...(c.id ? { p_id: c.id } : {}),
+        // The SQL function requires a nullable id; generated RPC types omit null.
+        p_id: c.id ?? (null as unknown as string),
         p_nome: (c.nome ?? "").trim(),
         p_tipo: c.tipo ?? "despesa",
         p_grupo: c.grupo ?? "operacional",
