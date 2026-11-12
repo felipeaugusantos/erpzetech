@@ -120,6 +120,8 @@ export const lerDanfePdf = createServerFn({ method: "POST" })
           seguro: d.seguro,
           outras: d.outras,
           tributos_aprox: d.tributos_aprox,
+          // o PDF não é lido para IBS/CBS (a leitura é por IA); o XML da nota traz o grupo
+          ibs_cbs: null,
         },
       },
       fornecedor: {
@@ -154,6 +156,7 @@ export const lerDanfePdf = createServerFn({ method: "POST" })
           ipi: i.ipi,
           pis: 0,
           cofins: 0,
+          ibs_cbs: null,
         },
       })),
     };

@@ -238,6 +238,9 @@ export function DetalhesNotaEntrada({
                           return item.cfop || t ? (
                             <p className="text-xs text-muted-foreground">
                               {item.cfop ? `CFOP ${item.cfop}` : "CFOP —"}
+                              {t?.ibs_cbs
+                                ? ` · IBS/CBS CST ${t.ibs_cbs.cst ?? "—"} (IBS ${brl(t.ibs_cbs.ibs ?? 0)} · CBS ${brl(t.ibs_cbs.cbs ?? 0)})`
+                                : ""}
                               {t
                                 ? ` · CST ${t.cst ?? "—"} · ICMS ${brl(t.icms ?? 0)}${t.aliquota_icms ? ` (${num(t.aliquota_icms)}%)` : ""}${t.icms_st ? ` · ST ${brl(t.icms_st)}` : ""} · IPI ${brl(t.ipi ?? 0)} · PIS ${brl(t.pis ?? 0)} · COFINS ${brl(t.cofins ?? 0)}`
                                 : ""}
@@ -331,6 +334,17 @@ export function DetalhesNotaEntrada({
                       <Campo label="Pago fora da nota" value={brl(t.ajuste_comercial ?? 0)} />
                     )}
                   </dl>
+                  {t.ibs_cbs && (
+                    <p className="mt-3 text-sm">
+                      <span className="font-medium">IBS/CBS destacados (Reforma Tributária): </span>
+                      IBS {brl(t.ibs_cbs.ibs ?? 0)} (UF {brl(t.ibs_cbs.ibs_uf ?? 0)} · Município{" "}
+                      {brl(t.ibs_cbs.ibs_mun ?? 0)}) · CBS {brl(t.ibs_cbs.cbs ?? 0)}
+                      <span className="block text-xs text-muted-foreground">
+                        Só informativo: o crédito do IBS/CBS ainda não entra no custo nem na
+                        apuração do sistema.
+                      </span>
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs text-muted-foreground">
                       Para recalcular o custo com a regra atual (frete, desconto e créditos do
@@ -478,7 +492,23 @@ function Campo({ label, value }: { label: string; value: string | null | undefin
   );
 }
 type Num = number | null | undefined;
+type IbsCbsItem = {
+  cst?: string | null;
+  cclasstrib?: string | null;
+  base?: Num;
+  ibs?: Num;
+  cbs?: Num;
+};
+type IbsCbsNota = {
+  ibs_uf?: Num;
+  ibs_mun?: Num;
+  ibs?: Num;
+  cbs?: Num;
+  cred_pres_ibs?: Num;
+  cred_pres_cbs?: Num;
+};
 type ImpItem = {
+  ibs_cbs?: IbsCbsItem | null;
   cst?: string | null;
   icms?: Num;
   aliquota_icms?: Num;
@@ -488,6 +518,7 @@ type ImpItem = {
   cofins?: Num;
 };
 type ImpNota = {
+  ibs_cbs?: IbsCbsNota | null;
   base_icms?: Num;
   icms?: Num;
   base_st?: Num;

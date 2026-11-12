@@ -645,6 +645,23 @@ function NfeEntrada() {
                 </div>
               ))}
             </div>
+            {lida.nota.impostos.ibs_cbs && (
+              <p className="mt-3 border-t border-border pt-3 text-sm">
+                <span className="font-medium">IBS/CBS destacados (Reforma Tributária): </span>
+                IBS {brl(lida.nota.impostos.ibs_cbs.ibs)} (UF{" "}
+                {brl(lida.nota.impostos.ibs_cbs.ibs_uf)}
+                {" · "}Município {brl(lida.nota.impostos.ibs_cbs.ibs_mun)}) · CBS{" "}
+                {brl(lida.nota.impostos.ibs_cbs.cbs)}
+                {lida.nota.impostos.ibs_cbs.cred_pres_ibs ||
+                lida.nota.impostos.ibs_cbs.cred_pres_cbs
+                  ? ` · crédito presumido IBS ${brl(lida.nota.impostos.ibs_cbs.cred_pres_ibs)} / CBS ${brl(lida.nota.impostos.ibs_cbs.cred_pres_cbs)}`
+                  : ""}
+                <span className="block text-xs text-muted-foreground">
+                  Só informativo: o crédito do IBS/CBS ainda não entra no custo nem na apuração do
+                  sistema.
+                </span>
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">
                 Tributos aproximados: {brl(lida.nota.impostos.tributos_aprox)}
@@ -683,6 +700,9 @@ function NfeEntrada() {
                         <p className="text-xs text-muted-foreground">
                           {item.cfop ? `CFOP ${item.cfop} · ` : ""}
                           {item.impostos.cst ? `CST ${item.impostos.cst} · ` : ""}
+                          {item.impostos.ibs_cbs
+                            ? `IBS/CBS CST ${item.impostos.ibs_cbs.cst ?? "—"} (IBS ${brl(item.impostos.ibs_cbs.ibs)} · CBS ${brl(item.impostos.ibs_cbs.cbs)}) · `
+                            : ""}
                           ICMS {brl(item.impostos.icms)}
                           {item.impostos.aliquota_icms
                             ? ` (${num(item.impostos.aliquota_icms)}%)`
