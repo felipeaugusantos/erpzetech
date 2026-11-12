@@ -47,3 +47,14 @@ test("bioquímica mantém decimal de creatinina e não copia referência fora do
   const l = lerLaudoTexto(cabecalho + "CREATININA\n1,3 mg/dL | 0,7 a 1,9 mg/dL");
   assert.deepEqual(l.itens[0], { nome: "Creatinina", valor: 1.3, unidade: "mg/dL", minimo: null, maximo: null });
 });
+
+for (const [nome, minimo, maximo] of [
+  ["METAMIELÓCITOS", 0, 0], ["BASTONETES", 0, 300], ["SEGMENTADOS", 2500, 12500],
+  ["EOSINÓFILOS", 120, 1500], ["LINFÓCITOS", 1500, 7000], ["MONÓCITOS", 0, 850], ["BASÓFILOS", 0, 190],
+] as const) {
+  test(`referência absoluta de ${nome}: ${minimo} a ${maximo}`, () => {
+    const l = lerLaudoTexto(cabecalho + `LEUCOGRAMA | Relativo | Absoluto | Valor Rel. Ref. | Valor Abs. Ref.\n${nome} | 0 | 0 | 0 a 1 | ${minimo.toLocaleString("pt-BR")} a ${maximo.toLocaleString("pt-BR")}`);
+    assert.equal(l.itens[1]?.minimo, minimo);
+    assert.equal(l.itens[1]?.maximo, maximo);
+  });
+}

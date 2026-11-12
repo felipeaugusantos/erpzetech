@@ -65,11 +65,15 @@ export const Route = createFileRoute("/_authenticated/clinica-exames")({
   }),
   head: () => ({
     meta: [
-      { title: "Exames — EZRA ERP" },
+      { title: "Exames e laudos — ERP Ze Tech" },
       {
         name: "description",
-        content: "Resultados de exames do paciente: hemograma, bioquímica, urina e outros.",
+        content: "Resultados de exames do paciente e importação de laudos PDF com conferência veterinária.",
       },
+      { property: "og:title", content: "Exames e laudos — ERP Ze Tech" },
+      { property: "og:description", content: "Exames do paciente e leitura de laudos digitais com referências absolutas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ExamesModulo,
