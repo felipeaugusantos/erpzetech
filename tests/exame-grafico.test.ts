@@ -18,5 +18,5 @@ test("preserva 26,9 e usa apenas resultados anteriores em ordem de coleta", () =
 });
 test("mini gráfico limita a três anteriores sem repetir registros", () => {
   const anteriores = [1, 2, 3, 4].map(i => ponto(String(i), `2026-07-0${i}`, i));
-  assert.deepEqual(pontosDoLaudo([...anteriores, anteriores[3]], ponto("atual", "2026-08-03", 26.9)).map(p => p.exame_id), ["2", "3", "4", "atual"]);
+  assert.deepEqual(pontosDoLaudo([...anteriores, ponto("4", "2026-07-04", 4)], ponto("atual", "2026-08-03", 26.9)).map(p => p.exame_id), ["2", "3", "4", "atual"]);
 });
