@@ -54,17 +54,21 @@ import { Label } from "@/components/ui/label";
 import { PageHeader, StatCard, EmptyState } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DashboardChartTooltip } from "@/components/app/DashboardChartTooltip";
+import { serieFaturamento } from "@/lib/dashboard-faturamento";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — EZRA ERP" },
+      { title: "Dashboard — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Pedidos em andamento, orçamentos expirados, contas a receber e a pagar, alertas de vencimento e estoque.",
       },
-      { property: "og:title", content: "Dashboard — EZRA ERP" },
+      { property: "og:title", content: "Dashboard — ERP Ze Tech" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content: "Visão geral comercial, financeira e de estoque da loja.",
@@ -228,6 +232,9 @@ function Dashboard() {
   );
   const lucroPeriodo = receitaPeriodo - custoPeriodo;
   const margemPeriodo = receitaPeriodo > 0 ? (lucroPeriodo / receitaPeriodo) * 100 : 0;
+  const faturamentoDiario = serieFaturamento(data.pedidos, periodo);
+  const eixoMoeda = (valor: number) =>
+    new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(valor);
 
   const nomeCliente = (x: unknown) => (x as { nome: string } | null)?.nome ?? "—";
 
@@ -612,11 +619,11 @@ function Dashboard() {
           </h2>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={serieCaixa}>
+              <LineChart data={serieCaixa} accessibilityLayer>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="dia" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => brl(Number(v))} />
+                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickFormatter={eixoMoeda} axisLine={false} tickLine={false} />
+                <Tooltip content={<DashboardChartTooltip moeda />} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Line
                   type="monotone"
@@ -624,6 +631,9 @@ function Dashboard() {
                   name="A receber"
                   stroke="var(--chart-1)"
                   strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }}
+                  isAnimationActive={false}
                 />
                 <Line
                   type="monotone"
@@ -631,6 +641,9 @@ function Dashboard() {
                   name="A pagar"
                   stroke="var(--chart-4)"
                   strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }}
+                  isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -661,7 +674,7 @@ function Dashboard() {
                     ))}
                   </Pie>
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip content={<DashboardChartTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -670,18 +683,18 @@ function Dashboard() {
       ),
     },
     "pedidos-etapa": {
-      largura: "lg:col-span-2",
+      largura: "lg:col-span-3",
       conteudo: (
         <div className="panel p-4">
           <h2 className="font-display text-sm font-semibold">Pedidos por etapa</h2>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={etapas} layout="vertical">
+              <BarChart data={etapas} layout="vertical" accessibilityLayer barSize={16} margin={{ left: 0, right: 18 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                <YAxis dataKey="nome" type="category" width={110} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="valor" fill="var(--chart-2)" radius={[0, 4, 4, 0]} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="nome" type="category" width={130} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                <Tooltip content={<DashboardChartTooltip />} cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }} />
+                <Bar dataKey="valor" name="Pedidos" fill="var(--chart-1)" radius={[0, 8, 8, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -929,9 +942,11 @@ function Dashboard() {
             {ATALHOS_PERIODO.map((a) => {
               const ativo = atalhoAtivo(periodo) === a.id;
               return (
-                <button
+                <Button
                   key={a.id}
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   aria-pressed={ativo}
                   onClick={() => setPeriodo(periodoDoAtalho(a.id))}
                   className={cn(
@@ -942,7 +957,7 @@ function Dashboard() {
                   )}
                 >
                   {a.rotulo}
-                </button>
+                </Button>
               );
             })}
             <span
@@ -957,40 +972,44 @@ function Dashboard() {
             </span>
           </div>
         </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr] lg:grid-cols-[180px_180px_1fr] lg:items-end">
+        <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
           <div>
-            <Label>De</Label>
-            <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+            <Label htmlFor="dashboard-de">De</Label>
+            <Input id="dashboard-de" type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
           </div>
           <div>
-            <Label>Até</Label>
-            <Input type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:col-span-2 lg:col-span-1">
-            <div className="rounded-lg bg-secondary/60 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vendas</p>
-              <p className="font-display text-sm font-bold text-numeric">{brl(receitaPeriodo)}</p>
-            </div>
-            <div className="rounded-lg bg-secondary/60 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Custo</p>
-              <p className="font-display text-sm font-bold text-numeric">{brl(custoPeriodo)}</p>
-            </div>
-            <div className="rounded-lg bg-secondary/60 px-3 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Lucro · {num(margemPeriodo, 1)}%
-              </p>
-              <p
-                className={cn(
-                  "font-display text-sm font-bold text-numeric",
-                  lucroPeriodo >= 0 ? "text-success" : "text-destructive",
-                )}
-              >
-                {brl(lucroPeriodo)}
-              </p>
-            </div>
+            <Label htmlFor="dashboard-ate">Até</Label>
+            <Input id="dashboard-ate" type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">O relatório de lucro usa o mesmo período.</p>
+        <div className="mt-5 border-t border-border pt-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-sm font-semibold">Faturamento por período</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{dateBR(periodo.de)} — {dateBR(periodo.ate)}</p>
+              <p className="mt-2 font-display text-2xl font-bold text-numeric">{brl(receitaPeriodo)}</p>
+            </div>
+            <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <div><dt className="text-xs text-muted-foreground">Custo</dt><dd className="mt-1 text-numeric font-semibold">{brl(custoPeriodo)}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Lucro · {num(margemPeriodo, 1)}%</dt><dd className={cn("mt-1 text-numeric font-semibold", lucroPeriodo >= 0 ? "text-success" : "text-destructive")}>{brl(lucroPeriodo)}</dd></div>
+            </dl>
+          </div>
+          <div className="mt-4 h-64 min-w-0" role="region" aria-label="Gráfico de faturamento diário">
+            {faturamentoDiario.length === 0 ? (
+              <EmptyState className="border-0 shadow-none" title="Selecione um período válido." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={faturamentoDiario} accessibilityLayer margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="data" tickFormatter={(d: string) => dateBR(d).slice(0, 5)} minTickGap={32} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={eixoMoeda} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={52} />
+                  <Tooltip content={<DashboardChartTooltip moeda />} labelFormatter={(d) => dateBR(String(d))} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
+                  <Line type="linear" dataKey="faturamento" name="Faturamento" stroke="var(--chart-1)" strokeWidth={3} dot={faturamentoDiario.length <= 7 ? { r: 3, fill: "var(--chart-1)", stroke: "var(--card)", strokeWidth: 2 } : false} activeDot={{ r: 6, stroke: "var(--card)", strokeWidth: 2 }} isAnimationActive={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
       </div>
 
       {resumoVisiveis.length + cartoesVisiveis.length + paineisVisiveis.length === 0 && (
