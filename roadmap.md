@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Organizar o tutor novo pela referência: nome em destaque e abas Endereço e contatos, Documentos e Observações; apelido, e-mail, WhatsApp separado e inscrição estadual nos campos existentes. Dez testes passaram; conferido na conta da clínica em computador e celular e envio interceptado, sem criar cadastros fictícios. Sem novas regras financeiras; não publicado.
+
 - [x] Incluir CPF ou CNPJ e endereço completo no tutor novo de Pets e tutores, reutilizando Clientes. Documentos e endereço aparecem para tutor existente, com acesso a Clientes para edição. Conta real da Bruna, formulário desktop/celular e envio PF/PJ conferidos com gravação interceptada; nenhuma pessoa fictícia cadastrada. Nove testes passaram. Não publicado.
 
 - [x] Corrigir autorização compartilhada do WhatsApp: aceita clínica ou Lava rápido, mantendo papéis, isolamento e lista autorizada do servidor. Migração aplicada; conta real da Bruna confirmou clínica=true, Lava rápido=false e autorização para o próprio tenant; tela abriu sem o aviso indevido. 34 testes passaram e build OK. Pareamento do número não concluído nem mensagens enviadas.

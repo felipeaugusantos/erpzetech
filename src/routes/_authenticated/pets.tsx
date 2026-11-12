@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { DadosCadastroTutor } from "@/components/app/DadosCadastroTutor";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, tutoresParecidos, type DadosTutor } from "@/lib/tutor-novo";
 import {
@@ -231,7 +232,7 @@ function Pets() {
           ...dadosTutorParaSalvar(form.novo_tutor_dados),
           nome: form.novo_tutor_nome.trim(),
           telefone: fone || null,
-          whatsapp: fone || null,
+          whatsapp: form.novo_tutor_dados.whatsapp?.trim() || fone || null,
         });
         // chave repetida: este mesmo tutor já foi criado na tentativa anterior (a resposta se perdeu)
         if (erroTutor && erroTutor.code !== "23505") throw erroTutor;
@@ -476,7 +477,7 @@ function Pets() {
       )}
 
       <Dialog open={aberto} onOpenChange={(o) => !o && setAberto(false)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form.id ? "Editar pet" : "Novo pet"}</DialogTitle>
           </DialogHeader>
@@ -503,28 +504,17 @@ function Pets() {
                 )}
               </div>
               {form.tutor_novo ? (
-                <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                  <div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 border-t pt-3">
+                  <div className="sm:col-span-2">
                     <Label htmlFor="tutor-nome" className="text-xs">
-                      Nome do tutor
+                      Nome / razão social do tutor
                     </Label>
                     <Input
                       id="tutor-nome"
+                      className="h-11 bg-primary/5 font-semibold"
                       value={form.novo_tutor_nome}
                       maxLength={120}
                       onChange={(e) => setForm({ ...form, novo_tutor_nome: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="tutor-fone" className="text-xs">
-                      Telefone / WhatsApp (com DDD)
-                    </Label>
-                    <Input
-                      id="tutor-fone"
-                      mascara="telefone"
-                      value={form.novo_tutor_telefone}
-                      maxLength={30}
-                      onChange={(e) => setForm({ ...form, novo_tutor_telefone: e.target.value })}
                     />
                   </div>
                   {parecidos.length > 0 && (
@@ -558,28 +548,9 @@ function Pets() {
                       </ul>
                     </div>
                   )}
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="tutor-documento" className="text-xs">CPF ou CNPJ</Label>
-                    <Input id="tutor-documento" mascara="cpfcnpj" value={form.novo_tutor_dados.documento}
-                      onChange={(e) => setForm({ ...form, novo_tutor_dados: { ...form.novo_tutor_dados, documento: e.target.value } })} />
-                  </div>
-                  <div className="sm:col-span-2 mt-2 border-t pt-3">
-                    <h3 className="text-sm font-medium">Endereço do tutor</h3>
-                  </div>
-                  {([
-                    ["cep", "CEP"], ["endereco", "Rua / avenida"],
-                    ["numero", "Número"], ["complemento", "Complemento"],
-                    ["bairro", "Bairro"], ["cidade", "Cidade"], ["estado", "UF"],
-                  ] as const).map(([campo, label]) => (
-                    <div key={campo}>
-                      <Label htmlFor={`tutor-${campo}`} className="text-xs">{label}</Label>
-                      <Input id={`tutor-${campo}`} value={form.novo_tutor_dados[campo]}
-                        {...(campo === "cep" ? { mascara: "cep" as const } : {})}
-                        maxLength={campo === "estado" ? 2 : 160}
-                        onChange={(e) => setForm({ ...form, novo_tutor_dados: { ...form.novo_tutor_dados,
-                          [campo]: campo === "estado" ? e.target.value.toUpperCase() : e.target.value } })} />
-                    </div>
-                  ))}
+                  <DadosCadastroTutor dados={form.novo_tutor_dados} telefone={form.novo_tutor_telefone}
+                    onChange={(dados) => setForm((f) => ({ ...f, novo_tutor_dados: dados }))}
+                    onTelefone={(telefone) => setForm((f) => ({ ...f, novo_tutor_telefone: telefone }))} />
                 </div>
               ) : (
                 <>
