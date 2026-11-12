@@ -5,6 +5,7 @@ import {
   calcularItemIbsCbs,
   crtDoRegime,
   exigenciaIbsCbs,
+  totaisIbsCbs,
   type ExigenciaIbsCbs,
   type ResultadoItemIbsCbs,
 } from "./ibs-cbs.ts";
@@ -74,4 +75,49 @@ export function situacaoIbsCbs(
   dataIso: string,
 ): ExigenciaIbsCbs {
   return exigenciaIbsCbs(crtDoRegime(regime), dataIso);
+}
+
+export type ItemEstimativa = {
+  id: string;
+  descricao: string;
+  /** Valor do item já sem o desconto do próprio item. */
+  total: number;
+  /** Classificação do produto; em branco = tributação integral (como na emissão). */
+  cst: string | null | undefined;
+  cClassTrib: string | null | undefined;
+};
+
+export type EstimativaPedido = {
+  itens: { id: string; descricao: string; sim: SimulacaoItem }[];
+  totais: ReturnType<typeof totaisIbsCbs>;
+  /** Itens que a emissão ainda não calcula (a nota deles seria recusada). */
+  comErro: { id: string; descricao: string; motivo: string }[];
+};
+
+/**
+ * Estimativa de IBS/CBS de um pedido, antes de existir a nota. Usa a mesma conta da emissão, mas a base é o valor
+ * do item: ICMS, PIS e COFINS só existem depois que a nota é calculada, então a estimativa fica um pouco acima do
+ * valor da nota. O desconto do pedido inteiro também não é rateado aqui.
+ */
+export function estimarIbsCbsPedido(
+  itens: readonly ItemEstimativa[],
+  ano: number,
+): EstimativaPedido {
+  const linhas = itens.map((i) => ({
+    id: i.id,
+    descricao: i.descricao,
+    sim: simularItemIbsCbs({
+      cst: i.cst ?? "",
+      cClassTrib: i.cClassTrib ?? "",
+      total: i.total,
+      ano,
+    }),
+  }));
+  return {
+    itens: linhas,
+    totais: totaisIbsCbs(linhas.flatMap((l) => (l.sim.ok ? [l.sim.resultado] : []))),
+    comErro: linhas.flatMap((l) =>
+      l.sim.ok ? [] : [{ id: l.id, descricao: l.descricao, motivo: l.sim.motivo }],
+    ),
+  };
 }
