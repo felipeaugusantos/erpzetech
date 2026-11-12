@@ -20,6 +20,7 @@ import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDia
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
+import { PacientesProntuario } from "@/components/app/PacientesProntuario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,14 +167,14 @@ function Prontuario() {
       )}
 
       {pet ? (
-        <FichaDoPaciente key={pet} petId={pet} />
-      ) : (
-        !termo && (
-          <EmptyState
-            title="Escolha um paciente"
-            description="Busque pelo nome do pet ou do tutor, ou abra o prontuário pela Minha agenda."
-          />
-        )
+        <>
+          <Button className="mb-4" variant="outline" onClick={() => { setTermo(""); setBusca(""); void navegar({ to: "/clinica-prontuario", search: { pet: undefined } }); }}>
+            <PawPrint className="size-4" /> Todos os pacientes atendidos
+          </Button>
+          <FichaDoPaciente key={pet} petId={pet} />
+        </>
+      ) : !termo && (
+        <PacientesProntuario aoAbrir={(id) => void navegar({ to: "/clinica-prontuario", search: { pet: id } })} />
       )}
     </div>
   );
