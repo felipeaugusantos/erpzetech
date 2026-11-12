@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ClipboardList, FileText, TrendingUp } from "lucide-react";
+import { ArrowLeft, ClipboardList, FileText, Printer, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
+import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useModulosCnae } from "@/lib/cnae";
 import { SITUACOES_EXAME, formatarNumero, rotuloFaixa, valorDoResultado, type ExameClinico, type ResumoExame } from "@/lib/exames";
-import { evolucaoDosLaudos } from "@/lib/laudos-pet";
+import { evolucaoDosLaudos, historicoParaImpressao } from "@/lib/laudos-pet";
 import { ESPECIES, rotulo } from "@/lib/pet";
 import { dateBR } from "@/lib/format";
 
@@ -41,6 +43,7 @@ function Tela() {
 
 function Laudos({ petId }: { petId: string }) {
   const [busca, setBusca] = useState("");
+  const [imprimindo, setImprimindo] = useState(false);
   const lista = useQuery({ queryKey: ["clinica-exames-pet", petId], queryFn: async () => {
     const { data, error } = await supabase.rpc("clinica_exames_do_pet", { p_pet_id: petId });
     if (error) throw error;
@@ -53,7 +56,7 @@ function Laudos({ petId }: { petId: string }) {
       return data as unknown as ExameClinico;
     },
   })) });
-  const exames = detalhes.flatMap(d => d.data ? [d.data] : []);
+  const exames = historicoParaImpressao(detalhes.flatMap(d => d.data ? [d.data] : []));
   const grupos = evolucaoDosLaudos(exames).filter(g => g.nome.toLowerCase().includes(busca.trim().toLowerCase()));
   const falha = lista.error ?? detalhes.find(d => d.error)?.error;
   const carregando = lista.isPending || detalhes.some(d => d.isPending);
@@ -62,6 +65,7 @@ function Laudos({ petId }: { petId: string }) {
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
       <p className="text-sm text-muted-foreground">{lista.data && <>{rotulo(ESPECIES, lista.data.pet.especie)}{lista.data.pet.raca ? ` · ${lista.data.pet.raca}` : ""} · Tutor(a): {lista.data.tutor}</>}</p>
       <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" disabled={carregando || !!falha || !exames.length} onClick={() => setImprimindo(true)}><Printer className="size-4" />Imprimir histórico</Button>
         <Button asChild variant="outline" size="sm"><Link to="/clinica-prontuario" search={{ pet: petId }}><ArrowLeft className="size-4" />Prontuário</Link></Button>
         <Button asChild variant="outline" size="sm"><Link to="/clinica-exames" search={{ pet: petId, exame: undefined, atendimento: undefined }}><ClipboardList className="size-4" />Exames</Link></Button>
       </div>
@@ -77,6 +81,7 @@ function Laudos({ petId }: { petId: string }) {
             <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Campo</TableHead><TableHead>Resultado</TableHead><TableHead>Referência</TableHead></TableRow></TableHeader><TableBody>{e.resultados.map(r => <TableRow key={r.id}><TableCell>{r.nome}</TableCell><TableCell className="whitespace-nowrap">{valorDoResultado(r)} {r.unidade}</TableCell><TableCell>{rotuloFaixa({ minimo: r.faixa_min, maximo: r.faixa_max })}</TableCell></TableRow>)}</TableBody></Table></div>
             {e.observacoes && <p className="whitespace-pre-wrap text-sm">{e.observacoes}</p>}
             {e.adendos.map(a => <div key={a.id} className="border-l-2 pl-3 text-sm"><p className="font-medium">Adendo · {a.veterinario}</p><p className="whitespace-pre-wrap">{a.texto}</p></div>)}
+            <AnexosClinicos exameId={e.id} podeEnviar={false} />
             <div><Button asChild variant="outline" size="sm"><Link to="/clinica-exames" search={{ pet: petId, exame: e.id, atendimento: undefined }}>Abrir laudo</Link></Button></div>
           </div>
         </details>)}
@@ -91,5 +96,22 @@ function Laudos({ petId }: { petId: string }) {
         </section>)}</div>
       </TabsContent>
     </Tabs>}
+    <Dialog open={imprimindo} onOpenChange={setImprimindo}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto print:translate-none">
+        <DialogHeader className="print:hidden"><DialogTitle>Histórico de laudos</DialogTitle></DialogHeader>
+        <div className="print:hidden"><Button onClick={() => window.print()}><Printer className="size-4" />Imprimir</Button></div>
+        <article id="documento-impresso" className="grid gap-5 p-4">
+          <header className="border-b pb-3"><h1 className="text-xl font-semibold">Histórico de laudos — {lista.data?.pet.nome}</h1><p className="text-sm">{rotulo(ESPECIES, lista.data?.pet.especie ?? "")} · Tutor(a): {lista.data?.tutor}</p></header>
+          {exames.map(e => <section key={e.id} className="border-b pb-4">
+            <h2 className="font-semibold">{e.nome} · {dateBR(e.data_coleta)}</h2>
+            <p className="mb-2 text-sm">{rotulo(SITUACOES_EXAME, e.situacao)}{e.situacao === "aberto" ? " — Rascunho, não validado" : ""} · {e.laboratorio} · {e.veterinario.nome} · CRMV {e.veterinario.crmv}/{e.veterinario.crmv_uf}</p>
+            <Table><TableHeader><TableRow><TableHead>Campo</TableHead><TableHead>Resultado</TableHead><TableHead>Referência</TableHead></TableRow></TableHeader><TableBody>{e.resultados.map(r => <TableRow key={r.id}><TableCell>{r.nome}</TableCell><TableCell>{valorDoResultado(r)} {r.unidade}</TableCell><TableCell>{rotuloFaixa({ minimo: r.faixa_min, maximo: r.faixa_max })}</TableCell></TableRow>)}</TableBody></Table>
+            {e.observacoes && <p className="mt-2 whitespace-pre-wrap text-sm">{e.observacoes}</p>}
+            {e.adendos.map(a => <p key={a.id} className="mt-2 whitespace-pre-wrap text-sm">Adendo · {a.veterinario}: {a.texto}</p>)}
+          </section>)}
+          {evolucaoDosLaudos(exames).filter(g => g.pontos.length >= 2).map(g => <section key={JSON.stringify([g.nome, g.unidade])} className="break-inside-avoid"><h2 className="font-semibold">Evolução — {g.nome}</h2><MiniGraficoExame nome={g.nome} unidade={g.unidade} pontos={g.pontos.slice(-4)} /></section>)}
+        </article>
+      </DialogContent>
+    </Dialog>
   </div>;
 }

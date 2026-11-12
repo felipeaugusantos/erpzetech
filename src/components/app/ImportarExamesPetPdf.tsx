@@ -10,13 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { conferirPacienteLaudo, lerLaudoTexto, type LaudoPdf } from "@/lib/laudo-exame-pdf";
 import { agruparLaudoImportacao, type GrupoImportacao, type ModeloImportacao } from "@/lib/laudo-importacao";
 import { formatarNumero } from "@/lib/exames";
+import { salvarPdfLaudo } from "@/lib/salvar-pdf-laudo";
 
 export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; nome: string; especie: string }; onImportado: (id: string | undefined) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const geracao = useRef(0);
+  const anexos = useRef(new Map<string, { id: string; caminho: string; enviado: boolean; confirmado: boolean }>());
   const [aberto, setAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; grupos: GrupoImportacao[]; chave: string } | null>(null);
+  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; grupos: GrupoImportacao[]; chave: string; arquivo: File } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [laboratorio, setLaboratorio] = useState("");
   const [coleta, setColeta] = useState("");
@@ -32,20 +34,26 @@ export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; 
       if (error) throw error;
       const grupos = agruparLaudoImportacao(laudo, (data ?? []) as unknown as ModeloImportacao[]);
       if (token !== geracao.current) return;
-      setPrevia({ laudo, grupos, chave: crypto.randomUUID() }); setColeta(laudo.coleta);
+      anexos.current.clear();
+      setPrevia({ laudo, grupos, chave: crypto.randomUUID(), arquivo: file }); setColeta(laudo.coleta);
     } catch (e) { if (token === geracao.current) toast.error("Não foi possível ler o laudo", { description: e instanceof Error ? e.message : "Confira o PDF." }); }
     finally { if (token === geracao.current) setOcupado(false); }
   }
   async function importar() {
     if (!previa || !confirmado) return;
     setOcupado(true);
+    let resultadosSalvos = false;
     try {
       const { data, error } = await supabase.rpc("clinica_importar_pdf", { p_pet_id: pet.id, p_chave: previa.chave, p_dados: { paciente: previa.laudo.paciente, especie: previa.laudo.especie, confirmado: true, laboratorio: laboratorio.trim(), coleta, grupos: previa.grupos } });
       if (error) throw error;
       const resultado = data as unknown as { exames: { id: string }[] };
-      toast.success(`${resultado.exames.length} exame(s) importado(s) em rascunho`);
+      resultadosSalvos = true;
+      for (const exame of resultado.exames) {
+        await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current);
+      }
+      toast.success(`${resultado.exames.length} exame(s) e PDF original salvos`);
       setAberto(false); setPrevia(null); onImportado(resultado.exames[0]?.id);
-    } catch (e) { toast.error("Nenhum exame foi gravado", { description: e instanceof Error ? e.message : (e as { message?: string }).message ?? "Confira os campos e tente novamente." }); }
+    } catch (e) { toast.error(resultadosSalvos ? "Resultados salvos; falta concluir o envio do PDF. Tente novamente nesta janela." : "Nenhum exame foi gravado", { description: e instanceof Error ? e.message : (e as { message?: string }).message ?? "Confira os campos e tente novamente." }); }
     finally { setOcupado(false); }
   }
   return <>

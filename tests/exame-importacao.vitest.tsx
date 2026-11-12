@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { act, create } from "react-test-renderer";
 import { expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ExameClinico } from "../src/lib/exames";
 
 vi.mock("@/components/ui/dialog", () => ({
@@ -14,10 +15,11 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 it("consome a solicitação uma vez e não reabre ao montar outro exame", async () => {
   const consumir = vi.fn();
+  const qc = new QueryClient();
   function Tela({ id }: { id: string }) {
     const [pedido, setPedido] = useState(1);
     const exame = { id, nome: "Bioquímica", pet: { nome: "Léo", especie: "gato" } } as ExameClinico;
-    return <ImportarLaudoPdf key={id} exame={exame} disabled={false} solicitacao={pedido} onConsumir={() => { consumir(); setPedido(0); }} onAplicar={() => {}} />;
+    return <QueryClientProvider client={qc}><ImportarLaudoPdf key={id} exame={exame} disabled={false} solicitacao={pedido} onConsumir={() => { consumir(); setPedido(0); }} onAplicar={() => {}} /></QueryClientProvider>;
   }
   let renderer: ReturnType<typeof create> | undefined;
   await act(async () => { renderer = create(<Tela id="a" />); });

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Guardar PDF original nas duas importações usando anexos clínicos privados e reservas reutilizadas em reenvios; histórico por pet acessa arquivos e imprime datas, valores exatos, situação, adendos e minigráficos dos fechados. 28 testes de histórico/precisão e três de envio/importação passaram; A4 controlado confirmou ALT 30,5 → 26,9 e datas no PDF. Build OK; gravação real depende da sessão veterinária pendente abaixo; não publicado.
+
 - [x] Importação do PDF por pet: conferência conjunta dos resultados reconhecidos, criação de modelos/campos faltantes e exames em rascunho numa transação idempotente. 48 testes de lógica/proteção e uma regressão de importação passaram; PDF real de Léo mostrou Hemograma e Bioquímica, ALT 26,9 e unidades editáveis, computador/celular sem transbordamento. Plaquetas ambíguas continuam avisadas, não convertidas. Build OK; não publicado.
 - [ ] Conferir gravação e leitura dos exames importados com acesso veterinário real: sessão disponível é da gestão, não veterinária; prévia validada com respostas controladas, sem criar exames no paciente real.
 
