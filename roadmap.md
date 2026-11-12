@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Melhorar visualmente a conferência do XML: separar produto, recebimento e custos, recolher impostos e destacar conversão e custo por unidade, sem mudar os cálculos.
+- [x] Melhorar visualmente a conferência do XML: produto, recebimento e custos separados, impostos recolhidos e conversão/custo por unidade destacados; tela autenticada, abertura dos impostos e celular sem transbordamento conferidos, 14 testes passaram e build OK. Sem mudança nos cálculos ou no estoque; não publicado.
 
 - [x] Converter embalagens na importação da nota: campo Unidades por embalagem, fator automático quando a unidade de compra cadastrada corresponde à nota, prévia de 3 × 6 = 18 UN e custo proporcional; 14 testes passaram, prévia autenticada e celular conferidos, build OK. Nenhuma compra gravada nem estoque existente corrigido; não publicado.
 
