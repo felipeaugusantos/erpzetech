@@ -638,6 +638,13 @@
       "when": 1794526898137,
       "tag": "0090_clinica_pacientes_atendidos",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794527090705,
+      "tag": "0091_clinica_pacientes_proxima_consulta",
+      "breakpoints": true
     }
   ]
 }
