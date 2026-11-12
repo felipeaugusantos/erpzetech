@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { DetalhesNotaEntrada, textoComposicao } from "@/components/app/DetalhesNotaEntrada";
+import { creditoPotencialDaCompra, textoCreditoIbsCbs } from "@/lib/credito-ibs-cbs";
 import { custosEntrada, impostosRecuperaveis, lerXmlNfe, type NfeXmlLida } from "@/lib/nfe-xml";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -682,8 +683,7 @@ function NfeEntrada() {
                   ? ` · crédito presumido IBS ${brl(lida.nota.impostos.ibs_cbs.cred_pres_ibs)} / CBS ${brl(lida.nota.impostos.ibs_cbs.cred_pres_cbs)}`
                   : ""}
                 <span className="block text-xs text-muted-foreground">
-                  Só informativo: o crédito do IBS/CBS ainda não entra no custo nem na apuração do
-                  sistema.
+                  {textoCreditoIbsCbs(creditoPotencialDaCompra(lida.nota.impostos.ibs_cbs, regime))}
                 </span>
               </p>
             )}

@@ -19,6 +19,7 @@ import { brl, dateBR, num } from "@/lib/format";
 import { rotuloMes, usePeriodo } from "@/lib/periodo";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { somarCreditoCompras } from "@/lib/credito-ibs-cbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,7 +85,7 @@ function BalancoFiscal() {
   const { data, isLoading } = useQuery({
     queryKey: ["balanco-fiscal", periodo.de, periodo.ate],
     queryFn: async () => {
-      const [notas, pedidos, movs] = await Promise.all([
+      const [notas, pedidos, movs, compras, configs] = await Promise.all([
         supabase
           .from("nfe")
           .select(
@@ -110,11 +111,27 @@ function BalancoFiscal() {
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`)
           .limit(2000),
+        // compras com NF-e de entrada: o IBS/CBS destacado nelas é o crédito potencial do período
+        supabase
+          .from("compras")
+          .select("id, situacao, filial_id, nfe_impostos")
+          .not("nfe_impostos", "is", null)
+          .gte("created_at", `${periodo.de}T00:00:00`)
+          .lte("created_at", `${periodo.ate}T23:59:59`),
+        supabase.from("fiscal_config").select("regime_tributario, filial_id"),
       ]);
       if (notas.error) throw notas.error;
       if (pedidos.error) throw pedidos.error;
       if (movs.error) throw movs.error;
-      return { notas: notas.data ?? [], pedidos: pedidos.data ?? [], movs: movs.data ?? [] };
+      if (compras.error) throw compras.error;
+      if (configs.error) throw configs.error;
+      return {
+        notas: notas.data ?? [],
+        pedidos: pedidos.data ?? [],
+        movs: movs.data ?? [],
+        compras: compras.data ?? [],
+        configs: configs.data ?? [],
+      };
     },
   });
 
@@ -123,6 +140,20 @@ function BalancoFiscal() {
     filial_id: string | null;
     depositos: { filial_id: string | null } | null;
   }) => n.depositos?.filial_id ?? n.filial_id;
+
+  // Crédito potencial de IBS/CBS das compras do período (só informativo: não entra no lucro nem no custo).
+  const creditoIbsCbs = useMemo(() => {
+    const configs = data?.configs ?? [];
+    const regime = (
+      configs.find((c) => filialSel !== "todas" && c.filial_id === filialSel) ??
+      configs.find((c) => !c.filial_id) ??
+      configs[0]
+    )?.regime_tributario;
+    const compras = (data?.compras ?? []).filter(
+      (c) => filialSel === "todas" || c.filial_id === filialSel,
+    );
+    return somarCreditoCompras(compras, regime);
+  }, [data?.compras, data?.configs, filialSel]);
 
   const contas = useMemo(() => {
     const notas = (data?.notas ?? [])
@@ -296,6 +327,11 @@ function BalancoFiscal() {
     { conta: "6. Vendas de balcão no PDV", valor: vendasPdv.receita, tipo: "receita" },
     { conta: "6.1 Custo das vendas do PDV", valor: -vendasPdv.custo, tipo: "custo" },
     { conta: "6.2 Lucro das vendas do PDV", valor: vendasPdv.lucro, tipo: "resultado" },
+    {
+      conta: "7. Crédito potencial de IBS/CBS das compras (informativo, fora do lucro)",
+      valor: creditoIbsCbs.total,
+      tipo: "crédito",
+    },
   ];
 
   return (
@@ -352,7 +388,7 @@ function BalancoFiscal() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Receita em notas" value={brl(contas.receitaNotas)} icon={Receipt} />
         <StatCard
           label="Custo das mercadorias"
@@ -366,6 +402,16 @@ function BalancoFiscal() {
           hint={`Próprio ${brl(contas.icms)} · ST ${brl(contas.icmsST)}`}
           icon={Percent}
           tone="accent"
+        />
+        <StatCard
+          label="Crédito potencial de IBS/CBS"
+          value={creditoIbsCbs.disponivel ? brl(creditoIbsCbs.total) : "—"}
+          hint={
+            creditoIbsCbs.disponivel
+              ? `IBS ${brl(creditoIbsCbs.ibs)} · CBS ${brl(creditoIbsCbs.cbs)} · ${creditoIbsCbs.compras} compra(s)`
+              : "Regime sem crédito de IBS/CBS"
+          }
+          icon={Percent}
         />
         <StatCard
           label="Lucro do período"
