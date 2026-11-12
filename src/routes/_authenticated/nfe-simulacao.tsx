@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, num } from "@/lib/format";
 import { PageHeader, StatCard } from "@/components/app/PageHeader";
+import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
+import { simularItemIbsCbs, situacaoIbsCbs } from "@/lib/ibs-cbs-simulacao";
+import { totaisIbsCbs, type ResultadoItemIbsCbs } from "@/lib/ibs-cbs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +57,9 @@ type Linha = {
   quantidade: string;
   valor: string;
   cst: string;
+  /** IBS/CBS: em branco = tributação integral (como o produto sem classificação). */
+  cstIbs: string;
+  cClassIbs: string;
 };
 
 const CSTS = [
@@ -72,6 +78,8 @@ const novaLinha = (): Linha => ({
   quantidade: "1",
   valor: "0",
   cst: "102",
+  cstIbs: "",
+  cClassIbs: "",
 });
 
 function Simulacao() {
@@ -158,6 +166,30 @@ function Simulacao() {
   );
   const impostos = totais.icms + totais.st + totais.pis + totais.cofins + totais.iss;
 
+  // IBS/CBS (Reforma Tributária): mesma conta da emissão da NF-e, com a base já sem ICMS, PIS e COFINS.
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const situacaoReforma = situacaoIbsCbs(cfg.regime, hoje.toISOString().slice(0, 10));
+  const reforma = useMemo(() => {
+    if (tipo === "servico") return null;
+    const itens = calculadas.map((l) => ({
+      linha: l,
+      sim: simularItemIbsCbs({
+        cst: l.cstIbs,
+        cClassTrib: l.cClassIbs,
+        total: l.total,
+        pis: l.pis,
+        cofins: l.cofins,
+        icms: l.valorIcms,
+        ano,
+      }),
+    }));
+    const resultados = itens.flatMap((i) =>
+      i.sim.ok ? [i.sim.resultado as ResultadoItemIbsCbs] : [],
+    );
+    return { itens, totais: totaisIbsCbs(resultados), comErro: itens.some((i) => !i.sim.ok) };
+  }, [calculadas, tipo, ano]);
+
   const set = (id: string, campo: keyof Linha, valor: string) =>
     setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)));
 
@@ -229,7 +261,7 @@ function Simulacao() {
         </Badge>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Valor dos itens" value={brl(totais.total)} icon={Calculator} />
         <StatCard
           label="ICMS próprio"
@@ -242,6 +274,16 @@ function Simulacao() {
           label="PIS e COFINS"
           value={brl(totais.pis + totais.cofins)}
           hint={`PIS ${brl(totais.pis)} · COFINS ${brl(totais.cofins)}`}
+          icon={Percent}
+        />
+        <StatCard
+          label="IBS + CBS (estimativa)"
+          value={reforma ? brl(reforma.totais.vIBS + reforma.totais.vCBS) : "—"}
+          hint={
+            reforma
+              ? `IBS ${brl(reforma.totais.vIBS)} · CBS ${brl(reforma.totais.vCBS)}`
+              : "Nota de serviço: regra do município"
+          }
           icon={Percent}
         />
         <StatCard
@@ -350,6 +392,86 @@ function Simulacao() {
           </p>
         </div>
       </div>
+
+      <section className="panel mt-5 p-4">
+        <h2 className="text-base font-semibold">Reforma Tributária: IBS e CBS</h2>
+        {reforma === null ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            O IBS/CBS da nota de serviço (NFS-e) segue as regras do município e não é simulado aqui.
+          </p>
+        ) : (
+          <>
+            <p
+              className={`mt-2 rounded-lg border p-3 text-sm ${
+                situacaoReforma === "obrigatorio"
+                  ? "border-border bg-muted/40 text-muted-foreground"
+                  : "border-warning/40 bg-warning/10"
+              }`}
+            >
+              {situacaoReforma === "obrigatorio"
+                ? `Neste regime a NF-e já leva o IBS/CBS. Alíquotas de ${ano} fixadas em lei para a transição (CBS 0,9% e IBS 0,1%); o município fica em 0%. A base é o valor do item sem ICMS, PIS e COFINS.`
+                : "Neste regime a NF-e AINDA NÃO envia o IBS/CBS (vale a partir de 04/01/2027, com orientação em nota técnica futura). O cálculo abaixo é só uma estimativa para planejamento."}
+            </p>
+            <div className="mt-3 divide-y divide-border">
+              {reforma.itens.map(({ linha, sim }) => (
+                <div key={linha.id} className="grid gap-3 py-3 lg:grid-cols-[14rem_1fr_16rem]">
+                  <div className="text-sm">
+                    <p className="font-medium">{linha.descricao || "Item sem descrição"}</p>
+                    <p className="text-muted-foreground">
+                      Base IBS/CBS {brl(sim.base)} · total {brl(linha.total)}
+                    </p>
+                  </div>
+                  <ClassificacaoIbsCbs
+                    cst={linha.cstIbs}
+                    cClassTrib={linha.cClassIbs}
+                    onChange={(c, k) =>
+                      setLinhas((ls) =>
+                        ls.map((x) => (x.id === linha.id ? { ...x, cstIbs: c, cClassIbs: k } : x)),
+                      )
+                    }
+                  />
+                  <div className="text-sm">
+                    {sim.ok ? (
+                      sim.resultado.grupo ? (
+                        <>
+                          <p>
+                            IBS {brl(sim.resultado.vIBS)}{" "}
+                            <span className="text-muted-foreground">
+                              (UF {brl(sim.resultado.vIBSUF)} · município{" "}
+                              {brl(sim.resultado.vIBSMun)})
+                            </span>
+                          </p>
+                          <p>
+                            CBS {brl(sim.resultado.vCBS)}{" "}
+                            <span className="text-muted-foreground">
+                              ({num(sim.resultado.pCBS, 2)}%
+                              {sim.resultado.redCBS
+                                ? `, com redução de ${num(sim.resultado.redCBS.pRedAliq, 0)}%`
+                                : ""}
+                              )
+                            </span>
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground">
+                          CST {sim.resultado.cst}: sem IBS/CBS a recolher neste item.
+                        </p>
+                      )
+                    ) : (
+                      <p className="text-destructive">{sim.motivo}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {reforma.comErro && (
+              <p className="text-sm text-destructive">
+                Há item que a emissão ainda não calcula: a nota dele seria recusada com esse motivo.
+              </p>
+            )}
+          </>
+        )}
+      </section>
 
       <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm text-muted-foreground">
         Simulação sem valor fiscal: nada é gravado, nenhuma nota é criada e nada é enviado à Receita
