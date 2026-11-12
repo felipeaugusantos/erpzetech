@@ -12,6 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import { ajusteComercial, ratearValorReal } from "@/lib/conferencia-fisica";
+import { fatorEntrada, quantidadeEntrada } from "@/lib/conversao-entrada";
 import { lerDanfePdf } from "@/lib/danfe-pdf.functions";
 import { GradeEntradaDialog } from "@/components/app/GradeEntradaDialog";
 import { ehTira, tamanhoNaDescricao, type GradeEntrada } from "@/lib/personalizacao";
@@ -71,6 +72,8 @@ type ProdutoOpcao = {
   codigo_barras: string | null;
   descricao: string;
   unidade: string;
+  unidade_compra: string | null;
+  fator_conversao: number;
   ncm: string | null;
 };
 
@@ -119,14 +122,25 @@ function NfeEntrada() {
   const [gradeSeq, setGradeSeq] = useState<number | null>(null);
   // conferência física: o que realmente chegou e o que foi pago, quando o fornecedor fatura diferente
   const [qtdFisica, setQtdFisica] = useState<Record<number, string>>({});
+  const [fatores, setFatores] = useState<Record<number, string>>({});
   const [extras, setExtras] = useState<Extra[]>([]);
   const [valorReal, setValorReal] = useState("");
-  const qtdRecebida = (item: { seq: number; quantidade: number }) => {
+  const embalagensRecebidas = (item: { seq: number; quantidade: number }) => {
     const v = numero(qtdFisica[item.seq]);
     return v > 0 ? v : item.quantidade;
   };
+  const produtoDoItem = (item: { seq: number }) =>
+    (produtos ?? []).find((p) => p.id === mapa[item.seq]);
+  const fatorDoItem = (item: { seq: number; unidade: string }) =>
+    fatores[item.seq] !== undefined
+      ? numero(fatores[item.seq])
+      : fatorEntrada(item.unidade, produtoDoItem(item));
+  const qtdRecebida = (item: { seq: number; quantidade: number; unidade: string }) =>
+    quantidadeEntrada(embalagensRecebidas(item), fatorDoItem(item) > 0 ? fatorDoItem(item) : 1);
+  const unidadeEstoque = (item: { seq: number; unidade: string }) =>
+    produtoDoItem(item)?.unidade ?? (fatorDoItem(item) !== 1 ? "UN" : item.unidade);
   const somaGrade = (seq: number) => (grades[seq] ?? []).reduce((s, l) => s + l.quantidade, 0);
-  const gradeOk = (item: { seq: number; quantidade: number }) =>
+  const gradeOk = (item: { seq: number; quantidade: number; unidade: string }) =>
     somaGrade(item.seq) === qtdRecebida(item);
 
   const { data: depositos } = useQuery({
@@ -147,7 +161,7 @@ function NfeEntrada() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, codigo_interno, codigo_barras, descricao, unidade, ncm")
+        .select("id, codigo_interno, codigo_barras, descricao, unidade, unidade_compra, fator_conversao, ncm")
         .eq("ativo", true)
         .is("deleted_at", null)
         .order("descricao");
@@ -250,6 +264,7 @@ function NfeEntrada() {
       });
       setGrades(gradesIniciais);
       setQtdFisica({});
+      setFatores({});
       setExtras([]);
       setValorReal("");
       setParcelas(String(parsed.nota.parcelas));
@@ -289,11 +304,12 @@ function NfeEntrada() {
     const r = ratearValorReal(linhas, valorRealNum);
     return { nota: r.slice(0, lida.itens.length), extras: r.slice(lida.itens.length) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lida, custos, extras, qtdFisica, valorRealNum]);
+  }, [lida, custos, extras, qtdFisica, fatores, mapa, produtos, valorRealNum]);
   const conferenciaAtiva =
     valorRealNum != null ||
     extras.length > 0 ||
-    Object.values(qtdFisica).some((v) => numero(v) > 0);
+    Object.values(qtdFisica).some((v) => numero(v) > 0) ||
+    (lida?.itens.some((i) => fatorDoItem(i) !== 1) ?? false);
   const ajuste = lida ? ajusteComercial(lida.nota.total, valorRealNum) : 0;
 
   const resumo = useMemo(() => {
@@ -316,6 +332,11 @@ function NfeEntrada() {
     mutationFn: async () => {
       if (!lida) throw new Error("Escolha o XML da nota.");
       if (!depositoId) throw new Error("Escolha o depósito que vai receber a mercadoria.");
+      for (const i of lida.itens) {
+        quantidadeEntrada(embalagensRecebidas(i), fatorDoItem(i));
+        if (fatorDoItem(i) !== 1 && normaliza(unidadeEstoque(i)) === normaliza(i.unidade))
+          throw new Error(`No cadastro de "${i.descricao}", altere a unidade de estoque para UN e mantenha ${i.unidade} como unidade de compra antes de converter a embalagem.`);
+      }
       const semGrade = lida.itens.find((i) => ehTira(i.descricao) && !gradeOk(i));
       if (semGrade)
         throw new Error(`Informe a grade da tira "${semGrade.descricao}" antes de importar.`);
@@ -351,18 +372,22 @@ function NfeEntrada() {
                     quantidade_nota: i.quantidade,
                     quantidade_recebida: qtdRecebida(i),
                     custo_nota: custos[idx]?.custo_unitario ?? i.custo_unitario,
+                    unidade_nota: i.unidade,
+                    embalagens_recebidas: embalagensRecebidas(i),
+                    fator_conversao: fatorDoItem(i),
+                    unidade_estoque: unidadeEstoque(i),
                   },
                 }
               : {}),
           },
-          unidade: i.unidade,
+          unidade: unidadeEstoque(i),
           quantidade: qtdRecebida(i),
           custo_unitario: conferenciaAtiva
             ? (custosReais.nota[idx] ?? 0)
             : (custos[idx]?.custo_unitario ?? i.custo_unitario),
           ...(qtdRecebida(i) !== i.quantidade
             ? {
-                observacao: `Na nota: ${num(i.quantidade)} ${i.unidade}; recebido: ${num(qtdRecebida(i))}`,
+                observacao: `Na nota: ${num(i.quantidade)} ${i.unidade}; recebido: ${num(embalagensRecebidas(i))} ${i.unidade}; fator: ${num(fatorDoItem(i))}; estoque: ${num(qtdRecebida(i))} ${unidadeEstoque(i)}`,
               }
             : {}),
           // lote, tonalidade e calibre entram na mesma transação da compra
@@ -718,7 +743,14 @@ function NfeEntrada() {
                       <TableCell className="min-w-[280px]">
                         <Select
                           value={escolha}
-                          onValueChange={(v) => setMapa((m) => ({ ...m, [item.seq]: v }))}
+                          onValueChange={(v) => {
+                            setMapa((m) => ({ ...m, [item.seq]: v }));
+                            setFatores((m) => {
+                              const proximo = { ...m };
+                              delete proximo[item.seq];
+                              return proximo;
+                            });
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -769,7 +801,7 @@ function NfeEntrada() {
                           htmlFor={`rec-${item.seq}`}
                           className="mt-1 block text-xs font-normal text-muted-foreground"
                         >
-                          Recebido
+                          Recebido ({item.unidade})
                         </Label>
                         <Input
                           id={`rec-${item.seq}`}
@@ -781,6 +813,24 @@ function NfeEntrada() {
                             setQtdFisica((m) => ({ ...m, [item.seq]: e.target.value }))
                           }
                         />
+                        <Label htmlFor={`fator-${item.seq}`} className="mt-2 block text-xs font-normal text-muted-foreground">
+                          Unidades por embalagem
+                        </Label>
+                        <Input
+                          id={`fator-${item.seq}`}
+                          className="ml-auto h-8 w-24 text-right"
+                          inputMode="decimal"
+                          value={fatores[item.seq] ?? String(fatorDoItem(item)).replace(".", ",")}
+                          onChange={(e) => setFatores((m) => ({ ...m, [item.seq]: e.target.value }))}
+                        />
+                        <p className="mt-2 whitespace-nowrap text-xs font-semibold">
+                          Estoque: {num(qtdRecebida(item))} {unidadeEstoque(item)}
+                        </p>
+                        {fatorDoItem(item) !== 1 && normaliza(unidadeEstoque(item)) === normaliza(item.unidade) && (
+                          <Link to="/produtos" className="mt-1 block text-xs text-destructive underline">
+                            Alterar unidade de estoque no cadastro para UN
+                          </Link>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(item.custo_unitario)}
