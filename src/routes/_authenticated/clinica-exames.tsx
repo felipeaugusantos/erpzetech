@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, FileUp, Lock, Plus, Printer, Search, TrendingUp } from "lucide-react";
@@ -213,6 +213,8 @@ function ExamesDoPaciente({
   const [importando, setImportando] = useState(false);
   const [destinoImportacao, setDestinoImportacao] = useState("novo");
   const [solicitacaoImportacao, setSolicitacaoImportacao] = useState(0);
+  const [arquivoImportacao, setArquivoImportacao] = useState<File | null>(null);
+  const seletorPdf = useRef<HTMLInputElement>(null);
   const [modeloId, setModeloId] = useState("");
   const [ligar, setLigar] = useState(true);
   const [laboratorio, setLaboratorio] = useState("");
@@ -295,6 +297,7 @@ function ExamesDoPaciente({
         </div>
         <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => {
+          setArquivoImportacao(null);
           const selecionado = data.exames.find(e => e.id === exameId && e.situacao === "aberto");
           if (selecionado) {
             setSolicitacaoImportacao(s => s + 1);
@@ -368,7 +371,7 @@ function ExamesDoPaciente({
 
         <div>
           {exameId ? (
-            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} />
+            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} arquivoImportacao={arquivoImportacao} />
           ) : (
             <EmptyState
               title="Escolha um exame"
@@ -384,6 +387,20 @@ function ExamesDoPaciente({
           <DialogHeader>
             <DialogTitle>{importando ? `Importar exame — ${data.pet.nome}` : "Novo exame"}</DialogTitle>
           </DialogHeader>
+          {importando && <div className="grid min-w-0 gap-2">
+            <input ref={seletorPdf} type="file" accept="application/pdf,.pdf" className="hidden" aria-label="PDF do exame do animal" onChange={e => {
+              const arquivo = e.target.files?.[0];
+              e.target.value = "";
+              if (!arquivo) return;
+              if (!arquivo.name.toLowerCase().endsWith(".pdf") || arquivo.size > 10 * 1024 * 1024) {
+                toast.error("Envie um PDF digital de até 10 MB.");
+                return;
+              }
+              setArquivoImportacao(arquivo);
+            }} />
+            <Button variant="outline" onClick={() => seletorPdf.current?.click()}><FileUp className="size-4" />{arquivoImportacao ? "Trocar PDF" : "Selecionar PDF"}</Button>
+            {arquivoImportacao && <p className="break-all text-sm text-muted-foreground">{arquivoImportacao.name}</p>}
+          </div>}
           {importando && <div className="grid gap-2">
             <Label htmlFor="importar-destino">Exame</Label>
             <Select value={destinoImportacao} onValueChange={setDestinoImportacao}>
@@ -503,7 +520,7 @@ function digitadoDe(e: ExameClinico): Digitado {
   );
 }
 
-function ExameAberto({ petId, exameId, solicitacaoImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number }) {
+function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number; arquivoImportacao: File | null }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-exame", exameId],
     queryFn: async () => {
@@ -521,11 +538,12 @@ function ExameAberto({ petId, exameId, solicitacaoImportacao }: { petId: string;
       petId={petId}
       exame={data}
       solicitacaoImportacao={solicitacaoImportacao}
+      arquivoImportacao={arquivoImportacao}
     />
   );
 }
 
-function Formulario({ petId, exame, solicitacaoImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number }) {
+function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number; arquivoImportacao: File | null }) {
   const qc = useQueryClient();
   const aberto = exame.situacao === "aberto";
   const [dig, setDig] = useState<Digitado>(() => digitadoDe(exame));
@@ -906,7 +924,7 @@ function Formulario({ petId, exame, solicitacaoImportacao }: { petId: string; ex
       <div className="flex flex-wrap gap-2">
         {aberto && (
           <>
-            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} onAplicar={(linhas, laudo) => {
+            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} arquivo={arquivoImportacao} onAplicar={(linhas, laudo) => {
               setDig(atual => {
                 const novo = { ...atual };
                 for (const { campo, item } of linhas) {
