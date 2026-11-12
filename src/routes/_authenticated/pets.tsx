@@ -5,7 +5,7 @@ import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
-import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
+import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, tutoresParecidos, type DadosTutor } from "@/lib/tutor-novo";
 import {
   CamposPersonalizados,
   useCamposPet,
@@ -62,11 +62,15 @@ import { camposAtivos, erroDosCampos, valoresParaEnvio } from "@/lib/pet-campos"
 export const Route = createFileRoute("/_authenticated/pets")({
   head: () => ({
     meta: [
-      { title: "Pets e tutores — EZRA ERP" },
+      { title: "Pets e tutores — ERP Ze Tech" },
       {
         name: "description",
-        content: "Cadastro dos pets e de seus tutores: espécie, raça, porte, pelagem e alergias.",
+        content: "Cadastro de pets e tutores com CPF ou CNPJ, endereço e dados dos animais.",
       },
+      { property: "og:title", content: "Pets e tutores — ERP Ze Tech" },
+      { property: "og:description", content: "Pets e tutores com documentos, endereço e dados dos animais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PetsModulo,
@@ -81,6 +85,7 @@ type Form = {
   tutor_novo: boolean;
   novo_tutor_nome: string;
   novo_tutor_telefone: string;
+  novo_tutor_dados: DadosTutor;
   nome: string;
   especie: string;
   raca: string;
@@ -104,6 +109,7 @@ const vazio: Form = {
   tutor_novo: false,
   novo_tutor_nome: "",
   novo_tutor_telefone: "",
+  novo_tutor_dados: dadosTutorVazios,
   nome: "",
   especie: "cao",
   raca: "",
@@ -153,7 +159,7 @@ function Pets() {
           .order("nome"),
         supabase
           .from("clientes")
-          .select("id, nome, cpf, cnpj, telefone")
+          .select("id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado")
           .is("deleted_at", null)
           .order("nome")
           .limit(2000),
@@ -222,7 +228,7 @@ function Pets() {
           tenant_id: session?.profile?.tenant_id as string,
           empresa_id: session?.profile?.empresa_id ?? null,
           filial_id: session?.profile?.filial_id ?? null,
-          tipo: "PF",
+          ...dadosTutorParaSalvar(form.novo_tutor_dados),
           nome: form.novo_tutor_nome.trim(),
           telefone: fone || null,
           whatsapp: fone || null,
@@ -436,6 +442,7 @@ function Pets() {
                               tutor_novo: false,
                               novo_tutor_nome: "",
                               novo_tutor_telefone: "",
+                              novo_tutor_dados: dadosTutorVazios,
                               nome: p.nome,
                               especie: p.especie,
                               raca: p.raca ?? "",
@@ -551,10 +558,28 @@ function Pets() {
                       </ul>
                     </div>
                   )}
-                  <p className="text-xs text-muted-foreground sm:col-span-2">
-                    O tutor é cadastrado junto com o pet e já aparece em Clientes; os demais dados
-                    (CPF, endereço) podem ser completados depois.
-                  </p>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="tutor-documento" className="text-xs">CPF ou CNPJ</Label>
+                    <Input id="tutor-documento" mascara="cpfcnpj" value={form.novo_tutor_dados.documento}
+                      onChange={(e) => setForm({ ...form, novo_tutor_dados: { ...form.novo_tutor_dados, documento: e.target.value } })} />
+                  </div>
+                  <div className="sm:col-span-2 mt-2 border-t pt-3">
+                    <h3 className="text-sm font-medium">Endereço do tutor</h3>
+                  </div>
+                  {([
+                    ["cep", "CEP"], ["endereco", "Rua / avenida"],
+                    ["numero", "Número"], ["complemento", "Complemento"],
+                    ["bairro", "Bairro"], ["cidade", "Cidade"], ["estado", "UF"],
+                  ] as const).map(([campo, label]) => (
+                    <div key={campo}>
+                      <Label htmlFor={`tutor-${campo}`} className="text-xs">{label}</Label>
+                      <Input id={`tutor-${campo}`} value={form.novo_tutor_dados[campo]}
+                        {...(campo === "cep" ? { mascara: "cep" as const } : {})}
+                        maxLength={campo === "estado" ? 2 : 160}
+                        onChange={(e) => setForm({ ...form, novo_tutor_dados: { ...form.novo_tutor_dados,
+                          [campo]: campo === "estado" ? e.target.value.toUpperCase() : e.target.value } })} />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
@@ -564,6 +589,15 @@ function Pets() {
                     onChange={(id) => setForm({ ...form, cliente_id: id })}
                     placeholder="Digite o nome do tutor…"
                   />
+                  {form.cliente_id && (() => {
+                    const t = tutor(form.cliente_id);
+                    if (!t) return null;
+                    return <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      <p>{t.cpf ? `CPF: ${t.cpf}` : t.cnpj ? `CNPJ: ${t.cnpj}` : "CPF / CNPJ não informado"}</p>
+                      <p>{[t.endereco, t.numero, t.complemento, t.bairro, t.cidade, t.estado, t.cep].filter(Boolean).join(" · ") || "Endereço não informado"}</p>
+                      <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/clientes">Editar cadastro do tutor em Clientes</Link></Button>
+                    </div>;
+                  })()}
                   {!form.id && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Não achou? Use <strong>Tutor novo</strong> para cadastrar aqui mesmo.
