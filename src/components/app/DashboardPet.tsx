@@ -50,11 +50,10 @@ import {
   type PecaDashboard,
 } from "@/lib/dashboard-personalizado";
 import { useDashboardPersonalizado } from "@/lib/dashboard-personalizado-dados";
-import { brl, num } from "@/lib/format";
+import { brl, dateBR, num } from "@/lib/format";
 import { isoBrasilia } from "@/lib/fuso";
 import { ATALHOS_PERIODO, atalhoAtivo, periodoDoAtalho, usePeriodo } from "@/lib/periodo";
 import { cn } from "@/lib/utils";
-import { dateBR } from "@/lib/format";
 
 type LinhaAgenda = {
   id: string;
