@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Preservar decimais dos exames sem arredondamento na tela, impressão e cálculos; conferir ALT 26,9 sem modificar exames fechados.
+- [x] Preservar decimais dos exames sem arredondamento na tela, impressão e cálculos; 39 testes passaram, função decimal confirmada no banco, ALT 26,9 conferido no exame real de Léo pela conta de Bruna e no laudo para impressão. Nenhum resultado ou exame fechado alterado; não publicado.
 
 - [x] Importar PDF digital de laboratório no exame aberto, com prévia, conferência de paciente/espécie, resultados compatíveis e apenas referências absolutas do leucograma deste exame; não converter plaquetas sem unidade, não modificar modelos ou exames fechados. PDF de Leo conferido na conta real: 22 campos do hemograma, confirmação obrigatória, rascunho e envio verificados com gravação interceptada, computador/celular sem transbordamento. 38 testes passaram. Leitura conservadora de tabelas digitais compatíveis; digitalizações e outros formatos não reconhecidos exigem conferência manual. Não publicado.
 
