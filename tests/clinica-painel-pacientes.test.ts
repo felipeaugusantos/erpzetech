@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { consultaPersistivel } from "../src/lib/cache-clinico.ts";
 
-const sql = readFileSync(new URL("../drizzle/migrations/0085_clinica_painel_pacientes.sql", import.meta.url), "utf8");
+const sql = readFileSync(
+  new URL("../drizzle/migrations/0085_clinica_painel_pacientes.sql", import.meta.url),
+  "utf8",
+);
 
 test("o painel de pacientes exige administrador ou gestor no banco", () => {
   assert.match(sql, /exige_papel\(ARRAY\['administrador','gestor'\]\)/);
@@ -19,10 +22,22 @@ test("visitas e os dois tipos de exame são restritos à empresa e ao período",
 
 test("a lista administrativa não seleciona texto clínico nem resultados", () => {
   const consulta = sql.slice(sql.indexOf("RETURN (WITH"), sql.indexOf("END $$"));
-  assert.doesNotMatch(consulta, /\b(queixa|anamnese|diagnostico|conduta|observacoes|resultados|alergias)\b/);
+  assert.doesNotMatch(
+    consulta,
+    /\b(queixa|anamnese|diagnostico|conduta|observacoes|resultados|alergias)\b/,
+  );
 });
 
 test("pacientes do painel não são persistidos no navegador", () => {
-  assert.equal(consultaPersistivel(["clinica-painel-pacientes", "gestor", "empresa", "2026-11-01", "2026-11-30"]), false);
+  assert.equal(
+    consultaPersistivel([
+      "clinica-painel-pacientes",
+      "gestor",
+      "empresa",
+      "2026-11-01",
+      "2026-11-30",
+    ]),
+    false,
+  );
   assert.equal(consultaPersistivel(["estoques"]), true);
 });
