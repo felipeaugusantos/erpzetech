@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 
+import { useEmpresaImpressa } from "@/components/app/MarcaEmpresa";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,11 @@ const SEXOS: Record<string, string> = { macho: "Macho", femea: "Fêmea" };
 function Documento() {
   const { id } = Route.useSearch();
   const [gerandoPdf, setGerandoPdf] = useState(false);
+  const { empresa, logoUrl } = useEmpresaImpressa();
+  // a cor da marca vem do cadastro da empresa (hex validado); sem ela, o padrão do sistema
+  const corMarca = /^#[0-9a-fA-F]{6}$/.test(empresa?.cor_primaria ?? "")
+    ? (empresa?.cor_primaria as string)
+    : null;
   const {
     data: d,
     isLoading,
@@ -157,17 +163,34 @@ function Documento() {
           </p>
         )}
 
-        <div className="mb-4 border-b border-border pb-3">
-          <p className="font-display text-lg font-bold uppercase">
-            {c?.nome ?? "Clínica veterinária"}
-          </p>
-          {c?.razao_social && c.razao_social !== c.nome && (
-            <p className="text-xs text-muted-foreground">{c.razao_social}</p>
+        <div
+          className="mb-4 flex items-center gap-4 border-b-2 pb-3"
+          style={corMarca ? { borderColor: corMarca } : undefined}
+        >
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={c?.nome ?? "Logo da clínica"}
+              className="h-16 w-auto max-w-[160px] object-contain"
+            />
           )}
-          <p className="text-xs text-muted-foreground">
-            {[c?.cnpj ? `CNPJ ${c.cnpj}` : null, c?.telefone, c?.email].filter(Boolean).join(" · ")}
-          </p>
-          {endereco && <p className="text-xs text-muted-foreground">{endereco}</p>}
+          <div className="min-w-0">
+            <p
+              className="font-display text-lg font-bold uppercase"
+              style={corMarca ? { color: corMarca } : undefined}
+            >
+              {c?.nome ?? "Clínica veterinária"}
+            </p>
+            {c?.razao_social && c.razao_social !== c.nome && (
+              <p className="text-xs text-muted-foreground">{c.razao_social}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {[c?.cnpj ? `CNPJ ${c.cnpj}` : null, c?.telefone, c?.email]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            {endereco && <p className="text-xs text-muted-foreground">{endereco}</p>}
+          </div>
         </div>
 
         <div className="mb-4 flex items-baseline justify-between">
