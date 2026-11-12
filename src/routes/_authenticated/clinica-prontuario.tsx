@@ -353,6 +353,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <Button size="sm" variant="outline" onClick={() => setPedidoSolicitacao((n) => n + 1)}>
             <FilePlus2 /> Solicitar exames
           </Button>
+          <Button asChild size="sm" variant="outline"><Link to="/clinica-laudos" search={{ pet: petId }}><FlaskConical />Laudos e evolução</Link></Button>
           <Button asChild size="sm" variant="outline">
             <Link to="/clinica-ficha" search={{ pet: petId }}>
               <Printer /> Imprimir ficha

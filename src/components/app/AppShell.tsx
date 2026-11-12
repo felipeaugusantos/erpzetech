@@ -860,6 +860,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       "/clinica-portal",
       "/clinica-exames-modelos",
       "/clinica-exames",
+      "/clinica-laudos",
       "/clinica-offline",
       "/clinica-vacinas",
       "/clinica-cartao",

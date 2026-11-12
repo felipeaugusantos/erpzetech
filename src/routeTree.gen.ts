@@ -47,6 +47,7 @@ import { Route as AuthenticatedClinicaFichaRouteImport } from './routes/_authent
 import { Route as AuthenticatedClinicaFilaRouteImport } from './routes/_authenticated/clinica-fila'
 import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
 import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
+import { Route as AuthenticatedClinicaLaudosRouteImport } from './routes/_authenticated/clinica-laudos'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
 import { Route as AuthenticatedClinicaPainelRouteImport } from './routes/_authenticated/clinica-painel'
 import { Route as AuthenticatedClinicaPortalRouteImport } from './routes/_authenticated/clinica-portal'
@@ -436,6 +437,12 @@ const AuthenticatedClinicaInternacaoHistoricoRoute =
   AuthenticatedClinicaInternacaoHistoricoRouteImport.update({
     id: '/clinica-internacao-historico',
     path: '/clinica-internacao-historico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaLaudosRoute =
+  AuthenticatedClinicaLaudosRouteImport.update({
+    id: '/clinica-laudos',
+    path: '/clinica-laudos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaOfflineRoute =
@@ -1480,6 +1487,7 @@ export interface FileRoutesByFullPath {
   '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
+  '/clinica-laudos': typeof AuthenticatedClinicaLaudosRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
@@ -1697,6 +1705,7 @@ export interface FileRoutesByTo {
   '/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
+  '/clinica-laudos': typeof AuthenticatedClinicaLaudosRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
@@ -1916,6 +1925,7 @@ export interface FileRoutesById {
   '/_authenticated/clinica-fila': typeof AuthenticatedClinicaFilaRoute
   '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
+  '/_authenticated/clinica-laudos': typeof AuthenticatedClinicaLaudosRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
   '/_authenticated/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/_authenticated/clinica-portal': typeof AuthenticatedClinicaPortalRoute
@@ -2135,6 +2145,7 @@ export interface FileRouteTypes {
     | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
+    | '/clinica-laudos'
     | '/clinica-offline'
     | '/clinica-painel'
     | '/clinica-portal'
@@ -2352,6 +2363,7 @@ export interface FileRouteTypes {
     | '/clinica-fila'
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
+    | '/clinica-laudos'
     | '/clinica-offline'
     | '/clinica-painel'
     | '/clinica-portal'
@@ -2570,6 +2582,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-fila'
     | '/_authenticated/clinica-internacao'
     | '/_authenticated/clinica-internacao-historico'
+    | '/_authenticated/clinica-laudos'
     | '/_authenticated/clinica-offline'
     | '/_authenticated/clinica-painel'
     | '/_authenticated/clinica-portal'
@@ -3039,6 +3052,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-internacao-historico'
       fullPath: '/clinica-internacao-historico'
       preLoaderRoute: typeof AuthenticatedClinicaInternacaoHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-laudos': {
+      id: '/_authenticated/clinica-laudos'
+      path: '/clinica-laudos'
+      fullPath: '/clinica-laudos'
+      preLoaderRoute: typeof AuthenticatedClinicaLaudosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-offline': {
@@ -4321,6 +4341,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaFilaRoute: typeof AuthenticatedClinicaFilaRoute
   AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
   AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
+  AuthenticatedClinicaLaudosRoute: typeof AuthenticatedClinicaLaudosRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
   AuthenticatedClinicaPainelRoute: typeof AuthenticatedClinicaPainelRoute
   AuthenticatedClinicaPortalRoute: typeof AuthenticatedClinicaPortalRoute
@@ -4522,6 +4543,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaInternacaoRoute: AuthenticatedClinicaInternacaoRoute,
   AuthenticatedClinicaInternacaoHistoricoRoute:
     AuthenticatedClinicaInternacaoHistoricoRoute,
+  AuthenticatedClinicaLaudosRoute: AuthenticatedClinicaLaudosRoute,
   AuthenticatedClinicaOfflineRoute: AuthenticatedClinicaOfflineRoute,
   AuthenticatedClinicaPainelRoute: AuthenticatedClinicaPainelRoute,
   AuthenticatedClinicaPortalRoute: AuthenticatedClinicaPortalRoute,
