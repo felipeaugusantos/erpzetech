@@ -232,7 +232,7 @@ function Pets() {
           ...dadosTutorParaSalvar(form.novo_tutor_dados),
           nome: form.novo_tutor_nome.trim(),
           telefone: fone || null,
-          whatsapp: fone || null,
+          whatsapp: form.novo_tutor_dados.whatsapp?.trim() || fone || null,
         });
         // chave repetida: este mesmo tutor já foi criado na tentativa anterior (a resposta se perdeu)
         if (erroTutor && erroTutor.code !== "23505") throw erroTutor;
