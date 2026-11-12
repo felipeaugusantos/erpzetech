@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  FilePlus2,
   FlaskConical,
   PawPrint,
   Printer,
