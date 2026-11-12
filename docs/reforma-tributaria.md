@@ -14,7 +14,7 @@ Base: NT 2025.002-RTC v1.52 (setembro/2026) e Informe Técnico 2025.002 v1.70 (t
 - Combinações calculadas hoje: CST 000, 011, 200 (com redução de alíquota da tabela), 400 e 410. As demais são recusadas com o motivo.
 
 ## Próximas fases
-1. Tela de simulação (`nfe-simulacao`) e pedido/orçamento mostrando IBS/CBS estimado.
+1. Tela de simulação (`nfe-simulacao`): feita. Seção "Reforma Tributária: IBS e CBS" com a classificação por item (mesmo seletor do cadastro de produto, só as combinações que a emissão calcula), a conta da emissão (`src/lib/ibs-cbs-simulacao.ts`: base sem ICMS, PIS e COFINS, alíquotas do ano, redução da classificação) e o aviso de que, no Simples e MEI, a NF-e ainda não envia o grupo (estimativa só para planejamento). Nota de serviço não entra (NFS-e segue o município). Falta o pedido/orçamento mostrar o IBS/CBS estimado.
 2. NFC-e (modelo 65) e NF de devolução (referência em `DFeReferenciado`, VC02-14).
 3. Compras: ler o grupo IBS/CBS do XML de entrada e guardar o crédito; conferência com o pedido de compra.
 4. DANFE com os campos de IBS/CBS (seção 9 da NT) e relatórios fiscais.
