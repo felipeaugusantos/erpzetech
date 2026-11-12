@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Lock, Plus, Printer, Search, TrendingUp } from "luc
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -857,6 +858,21 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
       <div className="flex flex-wrap gap-2">
         {aberto && (
           <>
+            <ImportarLaudoPdf exame={exame} disabled={ocupado} onAplicar={(linhas, laudo) => {
+              setDig(atual => {
+                const novo = { ...atual };
+                for (const { campo, item } of linhas) {
+                  const anterior = novo[campo.id] ?? { valor: "", nota: "", min: "", max: "" };
+                  novo[campo.id] = { ...anterior,
+                    ...(campo.forma === "numero" ? { valor: String(item.valor) } : {}),
+                    ...(item.minimo !== null ? { min: String(item.minimo), max: String(item.maximo) } : {}),
+                  };
+                }
+                return novo;
+              });
+              if (laudo.coleta) setColeta(laudo.coleta);
+              toast.success("Rascunho preenchido. Confira e salve o exame.");
+            }} />
             <Button onClick={() => salvar.mutate()} disabled={ocupado}>
               Salvar
             </Button>
