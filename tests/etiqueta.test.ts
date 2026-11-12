@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import { ean13Modulos, ean13Valido } from "../src/lib/ean13.ts";
 import { eanInterno } from "../src/lib/ean.ts";
+import { enviarCrusQz, listarImpressorasQz, paraBase64 } from "../src/lib/etiqueta-qz.ts";
 import {
   bytesEtiquetas,
   comandosEtiquetas,
@@ -198,4 +199,72 @@ test("o código de barras cabe na etiqueta em 203 e 300 dpi", () => {
       assert.ok(x >= 0 && x + 95 * mod <= largura, `${id} ${dpi}dpi`);
     }
   }
+});
+
+function qzFalso(opts: { ativo?: boolean; falhaConexao?: boolean; falhaImpressao?: boolean } = {}) {
+  const chamadas: { conectou: number; config?: string; dados?: unknown[] } = { conectou: 0 };
+  const cliente = {
+    websocket: {
+      isActive: () => !!opts.ativo,
+      connect: async () => {
+        chamadas.conectou++;
+        if (opts.falhaConexao) throw new Error("sem conexão");
+      },
+    },
+    printers: { find: async () => ["Zebra ZD230", "Argox OS-214", "Brother"] },
+    configs: {
+      create: (nome: string) => {
+        chamadas.config = nome;
+        return { nome };
+      },
+    },
+    print: async (_c: unknown, dados: unknown[]) => {
+      if (opts.falhaImpressao) throw new Error("impressora offline");
+      chamadas.dados = dados;
+    },
+  };
+  return { cliente, chamadas, carregar: async () => cliente };
+}
+
+test("QZ: base64 preserva os bytes e vai como comando cru", async () => {
+  assert.equal(paraBase64(Uint8Array.from([0xe7, 0x41, 0x00])), "50EA");
+  const q = qzFalso();
+  await enviarCrusQz("Zebra ZD230", Uint8Array.from([0x5e, 0x58, 0x41]), q.carregar);
+  assert.equal(q.chamadas.conectou, 1);
+  assert.equal(q.chamadas.config, "Zebra ZD230");
+  assert.deepEqual(q.chamadas.dados, [
+    { type: "raw", format: "command", flavor: "base64", data: "XlhB" },
+  ]);
+});
+
+test("QZ: não reconecta quando já está conectado e lista as impressoras em ordem", async () => {
+  const q = qzFalso({ ativo: true });
+  assert.deepEqual(await listarImpressorasQz(q.carregar), [
+    "Argox OS-214",
+    "Brother",
+    "Zebra ZD230",
+  ]);
+  assert.equal(q.chamadas.conectou, 0);
+});
+
+test("QZ: erros viram mensagens claras", async () => {
+  const bytes = Uint8Array.from([1]);
+  await assert.rejects(
+    enviarCrusQz("Z", bytes, qzFalso({ falhaConexao: true }).carregar),
+    /QZ Tray.*aberto/,
+  );
+  await assert.rejects(
+    enviarCrusQz("Z", bytes, qzFalso({ falhaImpressao: true }).carregar),
+    /não imprimiu: impressora offline/,
+  );
+  await assert.rejects(enviarCrusQz("  ", bytes, qzFalso().carregar), /Escolha a impressora/);
+  await assert.rejects(
+    enviarCrusQz("Z", new Uint8Array(), qzFalso().carregar),
+    /Nada para imprimir/,
+  );
+});
+
+test("QZ: arquivo grande é convertido sem estourar a pilha", () => {
+  const grande = new Uint8Array(300_000).fill(0x41);
+  assert.equal(atob(paraBase64(grande)).length, 300_000);
 });

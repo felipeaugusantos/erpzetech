@@ -25,7 +25,15 @@
 - **Não foi testado em impressora real.** Os testes conferem a estrutura dos comandos e que o código cabe na etiqueta; posições de texto, fontes (a fonte 0 do ZPL e as fontes 3 e 4 do TSPL) e o espaço entre etiquetas (`GAP 2 mm`) precisam de uma conferência com o rolo, e o ajuste é por modelo.
 - Ficou fora: PPLA/PPLB (Argox antigas) e EPL (Zebra antigas), por não haver como conferir o formato sem a documentação e a impressora; e o envio automático (QZ Tray ou agente), que exige instalar um programa em cada computador.
 
+## Fase 5 (feita em parte): envio direto pelo QZ Tray
+
+- `src/lib/etiqueta-qz.ts` fala com o QZ Tray (programa instalado e aberto no computador do caixa, qz.io) por WebSocket local e manda os mesmos bytes ZPL/TSPL da fase 4 como comando cru em base64, sem passar pelo driver gráfico. Nada vai a servidor: o navegador conversa direto com o programa local.
+- No diálogo, em ZPL ou TSPL, aparece **Entrega**: "Baixar arquivo" ou "Enviar direto (QZ Tray)". O botão "Buscar" lista as impressoras do computador; a escolhida fica lembrada no navegador.
+- A biblioteca (`qz-tray` 2.3.0, licença **LGPL-2.1**) só é carregada quando alguém usa o envio direto. Está no `package.json`, `package-lock.json` e `bun.lock`. Vale o aval de quem decide sobre licenças antes de publicar.
+- **Sem assinatura:** o envio vai sem certificado, então o QZ Tray trata o site como não confiável e pede autorização. Para o caixa não ver o aviso a cada impressão é preciso um certificado do QZ Tray assinando as requisições (`qz.security.setCertificatePromise` e `setSignaturePromise`), com a chave privada fora do navegador. Isso não foi feito.
+- **Não foi testado com o QZ Tray nem com impressora reais.** Os testes usam um cliente falso e conferem a conexão, o envio em base64 dos bytes certos e as mensagens de erro.
+
 ## Fases seguintes (a decidir)
 
 3. Modelos próprios por empresa (tamanho e campos), guardados como configuração.
-4. Envio automático à impressora (QZ Tray ou agente local), sem baixar arquivo.
+4. Assinatura das requisições do QZ Tray (certificado e assinatura no servidor).

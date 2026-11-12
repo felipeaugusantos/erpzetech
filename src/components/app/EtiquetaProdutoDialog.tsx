@@ -3,6 +3,7 @@ import { Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
+import { enviarCrusQz, listarImpressorasQz } from "@/lib/etiqueta-qz";
 import {
   LINGUAGENS_ETIQUETA,
   bytesEtiquetas,
@@ -37,6 +38,7 @@ import {
 
 const CHAVE_MODELO = "etiqueta-modelo";
 const CHAVE_MODO = "etiqueta-modo";
+const CHAVE_QZ = "etiqueta-qz";
 
 /** "driver" imprime pelo Windows; os demais baixam um arquivo de comandos para a térmica. */
 type Modo = "driver" | LinguagemEtiqueta;
@@ -57,6 +59,11 @@ export function EtiquetaProdutoDialog({
   const [codigo, setCodigo] = useState(true);
   const [modo, setModo] = useState<Modo>("driver");
   const [dpi, setDpi] = useState<203 | 300>(203);
+  // Entrega do arquivo de comandos: baixar ou enviar direto pelo QZ Tray.
+  const [entrega, setEntrega] = useState<"arquivo" | "qz">("arquivo");
+  const [impressoraQz, setImpressoraQz] = useState("");
+  const [impressoras, setImpressoras] = useState<string[]>([]);
+  const [ocupado, setOcupado] = useState(false);
 
   useEffect(() => {
     setCopias((itens ?? []).map((i) => String(i.copias ?? 1)));
@@ -69,6 +76,12 @@ export function EtiquetaProdutoDialog({
       const m = localStorage.getItem(CHAVE_MODO)?.split("|");
       if (m && ["driver", "zpl", "tspl"].includes(m[0]!)) setModo(m[0] as Modo);
       if (m?.[1] === "300") setDpi(300);
+      const q = localStorage.getItem(CHAVE_QZ)?.split("|");
+      if (q?.[0] === "qz") setEntrega("qz");
+      if (q?.[1]) {
+        setImpressoraQz(q[1]);
+        setImpressoras([q[1]]);
+      }
     } catch {
       /* sem armazenamento: usa o padrão */
     }
@@ -79,7 +92,21 @@ export function EtiquetaProdutoDialog({
   // A folha A4 só sai pelo driver; o arquivo de comandos é para etiqueta térmica.
   const modoEfetivo: Modo = folha ? "driver" : modo;
 
-  function imprimir() {
+  async function buscarImpressoras() {
+    setOcupado(true);
+    try {
+      const lista = await listarImpressorasQz();
+      setImpressoras(lista);
+      if (!lista.includes(impressoraQz)) setImpressoraQz(lista[0] ?? "");
+      if (lista.length === 0) toast.error("O QZ Tray não encontrou nenhuma impressora");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao falar com o QZ Tray");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function imprimir() {
     if (!itens) return;
     const qtd = copias.map((c) => Math.floor(Number(c)));
     if (qtd.some((n) => !Number.isFinite(n) || n < 0 || n > 500) || qtd.every((n) => n === 0)) {
@@ -89,6 +116,7 @@ export function EtiquetaProdutoDialog({
     try {
       localStorage.setItem(CHAVE_MODELO, modeloId);
       localStorage.setItem(CHAVE_MODO, `${modo}|${dpi}`);
+      localStorage.setItem(CHAVE_QZ, `${entrega}|${impressoraQz}`);
     } catch {
       /* não é essencial */
     }
@@ -99,9 +127,23 @@ export function EtiquetaProdutoDialog({
         mostrarPreco: preco,
         mostrarCodigo: codigo,
       });
+      if (entrega === "qz") {
+        setOcupado(true);
+        try {
+          await enviarCrusQz(impressoraQz, bytesEtiquetas(texto, modoEfetivo));
+          toast.success("Etiquetas enviadas para a impressora");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao enviar para o QZ Tray");
+        } finally {
+          setOcupado(false);
+        }
+        return;
+      }
       const ext = LINGUAGENS_ETIQUETA.find((l) => l.id === modoEfetivo)!.extensao;
       const url = URL.createObjectURL(
-        new Blob([bytesEtiquetas(texto, modoEfetivo)], { type: "application/octet-stream" }),
+        new Blob([bytesEtiquetas(texto, modoEfetivo) as BlobPart], {
+          type: "application/octet-stream",
+        }),
       );
       const a = document.createElement("a");
       a.href = url;
@@ -207,6 +249,49 @@ export function EtiquetaProdutoDialog({
               )}
             </div>
           )}
+          {!folha && modo !== "driver" && (
+            <div className="space-y-2">
+              <div>
+                <Label>Entrega</Label>
+                <Select value={entrega} onValueChange={(v) => setEntrega(v as "arquivo" | "qz")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="arquivo">Baixar arquivo</SelectItem>
+                    <SelectItem value="qz">Enviar direto (QZ Tray)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {entrega === "qz" && (
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Label>Impressora</Label>
+                    <Select value={impressoraQz} onValueChange={setImpressoraQz}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Busque as impressoras" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {impressoras.map((n) => (
+                          <SelectItem key={n} value={n}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={ocupado}
+                    onClick={buscarImpressoras}
+                  >
+                    Buscar
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             {folha && (
               <div>
@@ -230,20 +315,26 @@ export function EtiquetaProdutoDialog({
             <Switch id="et-cod" checked={codigo} onCheckedChange={setCodigo} />
           </div>
           <p className="text-xs text-muted-foreground">
-            {modoEfetivo !== "driver"
-              ? "O arquivo vai direto para a impressora, sem o driver: com a impressora compartilhada no Windows, no Prompt de Comando use copy /b etiquetas.zpl \\\\localhost\\NOME (ou etiquetas.prn). Confira o tamanho do rolo e faça um teste com uma etiqueta."
-              : folha
-                ? "Na janela de impressão, use papel A4, escala 100% e sem margens."
-                : `Na janela de impressão, escolha a impressora térmica com o papel em ${modelo.larguraMm} × ${modelo.alturaMm} mm, escala 100% e sem margens.`}
+            {modoEfetivo !== "driver" && entrega === "qz"
+              ? "Envio direto pelo QZ Tray, instalado e aberto neste computador (qz.io). Na primeira vez ele pede autorização para este site. Faça um teste com uma etiqueta."
+              : modoEfetivo !== "driver"
+                ? "O arquivo vai direto para a impressora, sem o driver: com a impressora compartilhada no Windows, no Prompt de Comando use copy /b etiquetas.zpl \\\\localhost\\NOME (ou etiquetas.prn). Confira o tamanho do rolo e faça um teste com uma etiqueta."
+                : folha
+                  ? "Na janela de impressão, use papel A4, escala 100% e sem margens."
+                  : `Na janela de impressão, escolha a impressora térmica com o papel em ${modelo.larguraMm} × ${modelo.alturaMm} mm, escala 100% e sem margens.`}
           </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          <Button onClick={imprimir}>
+          <Button onClick={imprimir} disabled={ocupado}>
             <Printer className="mr-2 size-4" />{" "}
-            {modoEfetivo === "driver" ? "Imprimir" : "Baixar arquivo"}
+            {modoEfetivo === "driver"
+              ? "Imprimir"
+              : entrega === "qz"
+                ? "Enviar à impressora"
+                : "Baixar arquivo"}
           </Button>
         </DialogFooter>
       </DialogContent>

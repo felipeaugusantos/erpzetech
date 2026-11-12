@@ -83,7 +83,7 @@ export type DadosEtiqueta = {
   validade?: string | null;
   lote?: string | null;
   /** Quantas vias imprimir (1 a 500). */
-  copias?: number;
+  copias?: number | undefined;
 };
 
 export type OpcoesEtiqueta = {
