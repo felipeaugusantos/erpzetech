@@ -44,8 +44,8 @@ import {
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   validateSearch: (search: Record<string, unknown>): { editar?: string } =>
-    typeof search.editar === "string" && search.editar.trim()
-      ? { editar: search.editar.trim() }
+    typeof search["editar"] === "string" && search["editar"].trim()
+      ? { editar: search["editar"].trim() }
       : {},
   head: () => ({
     meta: [
