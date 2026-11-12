@@ -17397,6 +17397,7 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: Json
       }
+      clinica_exame_agenda_do_pet: { Args: { p_pet_id: string }; Returns: Json }
       clinica_exame_agenda_situacao: {
         Args: { p_id: string; p_situacao: string }
         Returns: undefined
