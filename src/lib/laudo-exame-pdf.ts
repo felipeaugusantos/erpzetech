@@ -1,3 +1,5 @@
+import { calcularAbsoluto } from "./exames.ts";
+
 export type ItemLaudo = { nome: string; valor: number; unidade: string | null; minimo: number | null; maximo: number | null };
 export type LaudoPdf = { paciente: string; especie: string; coleta: string; itens: ItemLaudo[]; avisos: string[] };
 export type CampoLaudo = { id: string; nome: string; unidade: string | null; forma: string; casas: number | null; total_id: string | null; pct_id: string | null };
@@ -91,13 +93,12 @@ export function corresponderLaudo(laudo: LaudoPdf, campos: CampoLaudo[]): Corres
     if (!compat) continue;
     saida.push({ campo, item });
   }
-  // Calculated counts can only be imported when the PDF agrees with the existing formula and precision.
+  // Calculated counts must agree with the exact formula; never round the PDF to match.
   return saida.filter(({ campo, item }) => {
     if (campo.forma !== "calculado") return true;
     const total = saida.find(s => s.campo.id === campo.total_id);
     const pct = saida.find(s => s.campo.id === campo.pct_id);
     if (!total || !pct) return false;
-    const fator = 10 ** (campo.casas ?? 2);
-    return Math.round(total.item.valor * pct.item.valor / 100 * fator) / fator === item.valor;
+    return calcularAbsoluto(total.item.valor, pct.item.valor, campo.casas) === item.valor;
   });
 }

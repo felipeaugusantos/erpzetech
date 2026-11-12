@@ -1,4 +1,5 @@
 // Regras dos modelos de exame sem dependência de tela: tipos, rótulos e conferências (as regras de verdade ficam no banco).
+import Decimal from "decimal.js";
 
 export const TIPOS_EXAME = [
   { value: "hemograma", label: "Hemograma" },
@@ -232,9 +233,11 @@ export const SITUACOES_EXAME = [
   { value: "cancelado", label: "Cancelado" },
 ] as const;
 
-/** Número com as casas do campo e vírgula (sem casas definidas, como veio). */
+/** Casas definem apenas zeros finais; nunca eliminam decimais do resultado. */
 export function formatarNumero(n: number, casas: number | null | undefined): string {
-  const t = casas === null || casas === undefined ? String(n) : n.toFixed(casas);
+  if (!Number.isFinite(n)) return String(n);
+  const valor = new Decimal(n);
+  const t = valor.toFixed(Math.max(valor.decimalPlaces(), casas ?? 0));
   return t.replace(".", ",");
 }
 
@@ -259,15 +262,14 @@ export function situacaoNaFaixa(
   return "dentro";
 }
 
-/** Mesma conta do banco para o campo calculado: total × percentual ÷ 100, com as casas do campo. */
+/** Mesma conta decimal do banco: total × percentual ÷ 100, sem arredondamento por campo. */
 export function calcularAbsoluto(
   total: number | null,
   pct: number | null,
-  casas: number | null,
+  _casas: number | null,
 ): number | null {
   if (total === null || pct === null || Number.isNaN(total) || Number.isNaN(pct)) return null;
-  const f = 10 ** (casas ?? 2);
-  return Math.round((total * pct * f) / 100) / f;
+  return new Decimal(total).times(pct).dividedBy(100).toNumber();
 }
 
 /** Valores numéricos como a tela está editando (texto digitado) e, para os calculados, o valor refeito na hora. */
@@ -309,7 +311,7 @@ export function avisoDiferencial(
     if (lista.some((x) => x === null)) continue;
     const soma = lista.reduce<number>((a, b) => a + (b ?? 0), 0);
     if (Math.abs(soma - 100) > 0.5) {
-      return `O diferencial soma ${formatarNumero(Math.round(soma * 10) / 10, null)}% (deveria somar 100%). Confira os percentuais.`;
+      return `O diferencial soma ${formatarNumero(soma, null)}% (deveria somar 100%). Confira os percentuais.`;
     }
   }
   return null;
