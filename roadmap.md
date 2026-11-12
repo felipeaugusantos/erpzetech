@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Corrigir consulta automática de CEP em Clientes, reutilizando a consulta dos tutores; conferir preenchimento e cancelamento sem alterar cadastros reais.
+
 - [x] Incluir minigráficos na impressão com até três resultados anteriores compatíveis do paciente e o atual, mantendo valores exatos. Consulta real de Léo não tem anteriores fechados (não mostra gráfico); histórico controlado validou gráfico, valores 30,5 e 26,9, folha A4 e celular. Corrigido deslocamento da janela apenas na impressão do laudo. 42 testes passaram; nenhum resultado gravado; não publicado.
 
 - [x] Preservar decimais dos exames sem arredondamento na tela, impressão e cálculos; 39 testes passaram, função decimal confirmada no banco, ALT 26,9 conferido no exame real de Léo pela conta de Bruna e no laudo para impressão. Nenhum resultado ou exame fechado alterado; não publicado.

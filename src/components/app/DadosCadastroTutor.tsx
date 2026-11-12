@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { Contact, FileText, LoaderCircle, MapPin } from "lucide-react";
-import { aplicarEnderecoCep, consultarCep, normalizarCep } from "@/lib/cep";
+import { useConsultaCep } from "@/hooks/useConsultaCep";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,29 +14,7 @@ type Props = {
 };
 
 export function DadosCadastroTutor({ dados, telefone, onChange, onTelefone }: Props) {
-  const atuais = useRef({ dados, onChange });
-  atuais.current = { dados, onChange };
-  const [situacaoCep, setSituacaoCep] = useState<{ carregando: boolean; mensagem: string; erro: boolean }>({ carregando: false, mensagem: "", erro: false });
-  const cep = normalizarCep(dados.cep);
-  useEffect(() => {
-    setSituacaoCep({ carregando: false, mensagem: "", erro: false });
-    if (cep.length !== 8) return;
-    const controle = new AbortController();
-    const tempo = setTimeout(async () => {
-      const inicio = { ...atuais.current.dados };
-      setSituacaoCep({ carregando: true, mensagem: "Buscando endereço…", erro: false });
-      try {
-        const encontrado = await consultarCep(cep, controle.signal);
-        if (controle.signal.aborted || normalizarCep(atuais.current.dados.cep) !== cep) return;
-        atuais.current.onChange(aplicarEnderecoCep(atuais.current.dados, inicio, encontrado));
-        setSituacaoCep({ carregando: false, mensagem: encontrado.endereco ? "Endereço encontrado." : "Cidade e UF encontradas. Informe a rua e o bairro.", erro: false });
-      } catch {
-        if (controle.signal.aborted) return;
-        setSituacaoCep({ carregando: false, mensagem: "CEP não encontrado ou consulta indisponível. Confira o CEP ou preencha manualmente.", erro: true });
-      }
-    }, 400);
-    return () => { clearTimeout(tempo); controle.abort(); };
-  }, [cep]);
+  const situacaoCep = useConsultaCep(dados, onChange);
   const campo = (chave: keyof DadosTutor, titulo: string, classe = "", tipo = "text") => (
     <div className={classe}>
       <Label htmlFor={`tutor-${chave}`} className="text-xs">{titulo}</Label>

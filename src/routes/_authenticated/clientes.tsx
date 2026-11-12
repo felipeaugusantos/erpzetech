@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Search } from "lucide-react";
+import { LoaderCircle, Pencil, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { consultarCnpj } from "@/lib/cnpj.functions";
 import { useSessionData } from "@/hooks/useSessionData";
+import { useConsultaCep } from "@/hooks/useConsultaCep";
 import { brl, num } from "@/lib/format";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -44,13 +45,15 @@ import {
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes — EZRA ERP" },
+      { title: "Clientes — ERP Ze Tech" },
       {
         name: "description",
         content: "Cadastro de clientes pessoa física e jurídica com limite de crédito e obras.",
       },
-      { property: "og:title", content: "Clientes — EZRA ERP" },
+      { property: "og:title", content: "Clientes — ERP Ze Tech" },
       { property: "og:description", content: "Gestão de clientes da loja de materiais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Clientes,
@@ -114,6 +117,7 @@ function Clientes() {
   const [filtro, setFiltro] = useState("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(vazio);
+  const situacaoCep = useConsultaCep(form, setForm, open, form.id);
 
   /** Preenche o cadastro do cliente pelo CNPJ, direto da base pública da Receita. */
   const buscarCnpjFn = useServerFn(consultarCnpj);
@@ -519,9 +523,15 @@ function Clientes() {
                 <Input
                   mascara="cep"
                   id="c-cep"
+                  inputMode="numeric"
+                  aria-describedby="cliente-cep-status"
                   value={form.cep}
                   onChange={(e) => setForm({ ...form, cep: e.target.value })}
                 />
+                <div id="cliente-cep-status" role="status" aria-live="polite" className={`mt-1 flex items-center gap-1 text-xs ${situacaoCep.erro ? "text-destructive" : "text-muted-foreground"}`}>
+                  {situacaoCep.carregando && <LoaderCircle className="size-3 shrink-0 animate-spin motion-reduce:animate-none" />}
+                  {situacaoCep.mensagem}
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="c-end">Endereço</Label>
