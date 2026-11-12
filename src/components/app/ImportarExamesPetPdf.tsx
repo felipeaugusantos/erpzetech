@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { conferirPacienteLaudo, lerLaudoTexto, type LaudoPdf } from "@/lib/laudo-exame-pdf";
 import { agruparLaudoImportacao, type GrupoImportacao, type ModeloImportacao } from "@/lib/laudo-importacao";
 import { formatarNumero } from "@/lib/exames";
+import { salvarPdfLaudo } from "@/lib/salvar-pdf-laudo";
 
 export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; nome: string; especie: string }; onImportado: (id: string | undefined) => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -48,22 +49,7 @@ export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; 
       const resultado = data as unknown as { exames: { id: string }[] };
       resultadosSalvos = true;
       for (const exame of resultado.exames) {
-        let reserva = anexos.current.get(exame.id);
-        if (!reserva) {
-          const { data: info, error: falhaReserva } = await supabase.rpc("clinica_anexo_preparar", { p_dados: { exame_id: exame.id, categoria: "laudo", descricao: "PDF original do laudo importado", nome_arquivo: previa.arquivo.name.slice(0, 116) + (previa.arquivo.name.length > 116 ? ".pdf" : ""), mime: "application/pdf", tamanho: previa.arquivo.size } });
-          if (falhaReserva) throw falhaReserva;
-          reserva = { ...(info as unknown as { id: string; caminho: string }), enviado: false, confirmado: false };
-          anexos.current.set(exame.id, reserva);
-        }
-        if (reserva.confirmado) continue;
-        if (!reserva.enviado) {
-          const { error: falhaEnvio } = await supabase.storage.from("clinica-anexos").upload(reserva.caminho, previa.arquivo, { contentType: "application/pdf", upsert: false });
-          if (falhaEnvio) throw falhaEnvio;
-          reserva.enviado = true;
-        }
-        const { error: falhaConfirmacao } = await supabase.rpc("clinica_anexo_confirmar", { p_id: reserva.id });
-        if (falhaConfirmacao) throw falhaConfirmacao;
-        reserva.confirmado = true;
+        await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current);
       }
       toast.success(`${resultado.exames.length} exame(s) e PDF original salvos`);
       setAberto(false); setPrevia(null); onImportado(resultado.exames[0]?.id);

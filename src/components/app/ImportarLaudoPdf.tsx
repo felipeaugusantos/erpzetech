@@ -6,10 +6,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { conferirPacienteLaudo, corresponderLaudo, lerLaudoTexto, type LaudoPdf, type CorrespondenciaLaudo } from "@/lib/laudo-exame-pdf";
-import type { ExameClinico } from "@/lib/exames";
+import { formatarNumero, type ExameClinico } from "@/lib/exames";
+import { salvarPdfLaudo, type ReservaPdfLaudo } from "@/lib/salvar-pdf-laudo";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, arquivo = null, onConsumir, onAplicar }: { exame: ExameClinico; disabled: boolean; solicitacao?: number; arquivo?: File | null; onConsumir?: () => void; onAplicar: (linhas: CorrespondenciaLaudo[], laudo: LaudoPdf) => void }) {
   const input = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const reservas = useRef(new Map<string, ReservaPdfLaudo>());
   const arquivoLido = useRef<File | null>(null);
   const [escolherArquivo, setEscolherArquivo] = useState(false);
   useEffect(() => {
@@ -19,7 +23,7 @@ export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, arquivo = n
     }
   }, [solicitacao, arquivo]);
   const [lendo, setLendo] = useState(false);
-  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; linhas: CorrespondenciaLaudo[] } | null>(null);
+  const [previa, setPrevia] = useState<{ laudo: LaudoPdf; linhas: CorrespondenciaLaudo[]; arquivo: File } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   async function ler(file: File) {
     setEscolherArquivo(false);
@@ -34,7 +38,8 @@ export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, arquivo = n
       if (!conferirPacienteLaudo(laudo, exame.pet)) throw new Error(`O laudo é de ${laudo.paciente}, ${laudo.especie === "gato" ? "gato" : "cão"}. Abra o exame do paciente correto.`);
       const linhas = corresponderLaudo(laudo, exame.resultados);
       if (!linhas.length) throw new Error("Nenhum campo com nome e unidade compatíveis neste exame. Confira o modelo selecionado.");
-      setPrevia({ laudo, linhas });
+      reservas.current.clear();
+      setPrevia({ laudo, linhas, arquivo: file });
     } catch (e) { toast.error("Não foi possível importar", { description: e instanceof Error ? e.message : "Confira o arquivo." }); }
     finally { setLendo(false); }
   }
@@ -63,13 +68,22 @@ export function ImportarLaudoPdf({ exame, disabled, solicitacao = 0, arquivo = n
         {previa && <>
           <p className="text-sm">{previa.laudo.especie === "gato" ? "Gato" : "Cão"} · Coleta {previa.laudo.coleta.split("-").reverse().join("/") || "não identificada"} · {previa.linhas.length} campos compatíveis</p>
           <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Campo</TableHead><TableHead>Resultado</TableHead><TableHead>Referência absoluta</TableHead></TableRow></TableHeader><TableBody>
-            {previa.linhas.map(({ campo, item }) => <TableRow key={campo.id}><TableCell>{campo.nome}</TableCell><TableCell>{item.valor.toLocaleString("pt-BR")} {campo.unidade}</TableCell><TableCell>{item.minimo !== null ? `${item.minimo.toLocaleString("pt-BR")} a ${item.maximo?.toLocaleString("pt-BR")}` : "Mantém a atual"}</TableCell></TableRow>)}
+            {previa.linhas.map(({ campo, item }) => <TableRow key={campo.id}><TableCell>{campo.nome}</TableCell><TableCell>{formatarNumero(item.valor, null)} {campo.unidade}</TableCell><TableCell>{item.minimo !== null && item.maximo !== null ? `${formatarNumero(item.minimo, null)} a ${formatarNumero(item.maximo, null)}` : "Mantém a atual"}</TableCell></TableRow>)}
           </TableBody></Table></div>
           {previa.laudo.avisos.map(a => <p key={a} className="text-sm text-warning">{a}</p>)}
           {previa.linhas.length < previa.laudo.itens.length && <p className="text-sm text-muted-foreground">{previa.laudo.itens.length - previa.linhas.length} campos de outros modelos, incompatíveis ou ambíguos não serão preenchidos.</p>}
           <p className="text-sm text-muted-foreground">As referências absolutas valem apenas para este exame. As relativas e as do modelo não serão alteradas.</p>
           <label className="flex items-start gap-2 text-sm"><Checkbox checked={confirmado} onCheckedChange={v => setConfirmado(v === true)} />Conferi o paciente, a espécie, a data, os valores e as unidades; autorizo substituir os campos listados no rascunho.</label>
-          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setPrevia(null)}>Cancelar</Button><Button disabled={!confirmado} onClick={() => { onAplicar(previa.linhas, previa.laudo); setPrevia(null); }}>Preencher exame</Button></div>
+          <div className="flex justify-end gap-2"><Button variant="outline" disabled={lendo} onClick={() => setPrevia(null)}>Cancelar</Button><Button disabled={!confirmado || lendo} onClick={async () => {
+            setLendo(true);
+            try {
+              await salvarPdfLaudo(exame.id, previa.arquivo, reservas.current);
+              void qc.invalidateQueries({ queryKey: ["clinica-anexos", exame.id] });
+              onAplicar(previa.linhas, previa.laudo); setPrevia(null);
+              toast.success("PDF original salvo; confira e salve os resultados do exame");
+            } catch (e) { toast.error("Não foi possível salvar o PDF", { description: e instanceof Error ? e.message : (e as { message?: string }).message }); }
+            finally { setLendo(false); }
+          }}>Preencher exame</Button></div>
         </>}
       </DialogContent>
     </Dialog>
