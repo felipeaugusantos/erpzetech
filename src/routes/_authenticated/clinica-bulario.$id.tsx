@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState } from "@/components/app/PageHeader";
+import { BotaoFavoritoBulario } from "@/components/app/FavoritosBulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,7 +149,10 @@ function Ficha() {
       </Button>
 
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{m.nome}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h1 className="text-2xl font-semibold">{m.nome}</h1>
+          <BotaoFavoritoBulario medicamentoId={id} />
+        </div>
         {m.fabricante && (
           <p className="text-xs font-semibold uppercase text-muted-foreground">{m.fabricante}</p>
         )}

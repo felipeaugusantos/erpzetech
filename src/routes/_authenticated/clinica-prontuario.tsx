@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
+import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
   evolucaoDoPeso,
@@ -445,6 +446,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
       />
 
       <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
+
+      <ListaFavoritosBulario titulo="Remédios favoritos da clínica" />
 
       <h3 className="font-display text-base font-semibold">Atendimentos</h3>
       {data.atendimentos.length === 0 ? (
