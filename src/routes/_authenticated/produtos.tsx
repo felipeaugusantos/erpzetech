@@ -865,84 +865,110 @@ function Produtos() {
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <div>
-                <Label htmlFor="p-compra">
-                  Valor de compra{form.unidade_compra ? ` (${form.unidade_compra})` : ""}
-                </Label>
-                <Input
-                  id="p-compra"
-                  type="number"
-                  step="0.01"
-                  value={
-                    valorCompraTxt ??
-                    (Number(form.custo || 0) * fator
-                      ? String(Math.round(Number(form.custo || 0) * fator * 100) / 100)
-                      : "")
-                  }
-                  onChange={(e) => {
-                    setValorCompraTxt(e.target.value);
-                    const v = Number(e.target.value.replace(",", ".") || 0);
-                    mudarCusto(String(Math.round((v / fator) * 10000) / 10000), true);
-                  }}
-                  onBlur={() => setValorCompraTxt(null)}
-                />
-                {fator > 1 && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    ÷ {num(fator)} = custo por {form.unidade || "unidade"}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="p-custo">Custo{form.unidade ? ` (${form.unidade})` : ""}</Label>
-                <Input
-                  id="p-custo"
-                  type="number"
-                  step="0.0001"
-                  value={form.custo}
-                  onChange={(e) => mudarCusto(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="p-preco">Preço de venda</Label>
-                <Input
-                  id="p-preco"
-                  type="number"
-                  step="0.0001"
-                  value={form.preco_venda}
-                  onChange={(e) => {
-                    setMargemTxt(null);
-                    setForm({ ...form, preco_venda: e.target.value });
-                  }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="p-margem">Margem (%)</Label>
-                <Input
-                  id="p-margem"
-                  inputMode="decimal"
-                  value={
-                    margemTxt ??
-                    num(margem(Number(form.custo || 0), Number(form.preco_venda || 0)), 1)
-                  }
-                  onChange={(e) => {
-                    const txt = e.target.value;
-                    setMargemTxt(txt);
-                    const m = Number(txt.replace(",", "."));
-                    if (txt.trim() === "" || !Number.isFinite(m)) return;
-                    if (m >= 100) {
-                      toast.error("A margem precisa ser menor que 100%");
-                      return;
-                    }
-                    const preco = Number(form.custo || 0) / (1 - m / 100);
-                    setForm({ ...form, preco_venda: preco.toFixed(2) });
-                  }}
-                  onBlur={() => setMargemTxt(null)}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Digite a % e o preço é calculado.
-                </p>
-              </div>
+            {(() => {
+              const un = form.unidade || "UN";
+              const emb = fator > 1 && form.unidade_compra && form.unidade_compra !== un;
+              const custoUn = Number(form.custo || 0);
+              const precoUn = Number(form.preco_venda || 0);
+              return (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-md border border-border p-3">
+                    <p className="mb-3 text-sm font-semibold">Compra e custo</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="p-compra" className="block truncate">
+                          Valor do {emb ? form.unidade_compra : un} na compra
+                        </Label>
+                        <Input
+                          id="p-compra"
+                          type="number"
+                          step="0.01"
+                          disabled={!emb}
+                          value={
+                            valorCompraTxt ??
+                            (custoUn * fator ? String(Math.round(custoUn * fator * 100) / 100) : "")
+                          }
+                          onChange={(e) => {
+                            setValorCompraTxt(e.target.value);
+                            const v = Number(e.target.value.replace(",", ".") || 0);
+                            mudarCusto(String(Math.round((v / fator) * 10000) / 10000), true);
+                          }}
+                          onBlur={() => setValorCompraTxt(null)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="p-custo" className="block truncate">
+                          Custo por {un}
+                        </Label>
+                        <Input
+                          id="p-custo"
+                          type="number"
+                          step="0.0001"
+                          value={form.custo}
+                          onChange={(e) => mudarCusto(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {emb
+                        ? `1 ${form.unidade_compra} = ${num(fator)} ${un} · ${brl(custoUn * fator)} o ${form.unidade_compra} · ${brl(custoUn)} por ${un}`
+                        : "Para comprar em fardo ou caixa, informe a unidade de compra e o fator acima."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border border-border p-3">
+                    <p className="mb-3 text-sm font-semibold">Venda por {un}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="p-preco" className="block truncate">
+                          Preço por {un}
+                        </Label>
+                        <Input
+                          id="p-preco"
+                          type="number"
+                          step="0.0001"
+                          value={form.preco_venda}
+                          onChange={(e) => {
+                            setMargemTxt(null);
+                            setForm({ ...form, preco_venda: e.target.value });
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="p-margem" className="block truncate">
+                          Margem (%)
+                        </Label>
+                        <Input
+                          id="p-margem"
+                          inputMode="decimal"
+                          value={margemTxt ?? num(margem(custoUn, precoUn), 1)}
+                          onChange={(e) => {
+                            const txt = e.target.value;
+                            setMargemTxt(txt);
+                            const m = Number(txt.replace(",", "."));
+                            if (txt.trim() === "" || !Number.isFinite(m)) return;
+                            if (m >= 100) {
+                              toast.error("A margem precisa ser menor que 100%");
+                              return;
+                            }
+                            const preco = custoUn / (1 - m / 100);
+                            setForm({ ...form, preco_venda: preco.toFixed(2) });
+                          }}
+                          onBlur={() => setMargemTxt(null)}
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {emb
+                        ? `A venda é sempre por ${un}. No caixa, "+1 ${form.unidade_compra}" soma ${num(fator)} ${un} (${brl(precoUn * fator)}).`
+                        : "Digite a margem e o preço é calculado."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="p-loc">Localização no depósito</Label>
                 <Input
