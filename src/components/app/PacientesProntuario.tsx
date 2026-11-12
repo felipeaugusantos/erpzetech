@@ -10,7 +10,7 @@ import { ESPECIES, rotulo } from "@/lib/pet";
 
 type Paciente = {
   id: string; nome: string; especie: string; raca: string | null; tutor: string | null;
-  atendimentos: number; ultimo_atendimento: string; em_atendimento: boolean;
+  atendimentos: number; ultimo_atendimento: string; em_atendimento: boolean; proxima_consulta: string | null;
 };
 type Lista = { total: number; pacientes: Paciente[] };
 
@@ -55,7 +55,18 @@ export function PacientesProntuario({ aoAbrir }: { aoAbrir: (id: string) => void
                 <span>{p.atendimentos} atendimento{p.atendimentos === 1 ? "" : "s"}</span>
                 {p.em_atendimento && <Badge variant="secondary">Em atendimento</Badge>}
               </div>
-              <p className="mb-4 mt-2 text-xs text-muted-foreground">Último atendimento: {dateTimeBR(p.ultimo_atendimento)}</p>
+              <dl className="mb-4 mt-3 space-y-2 border-t border-border pt-3 text-sm">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Última visita</dt>
+                  <dd>{dateTimeBR(p.ultimo_atendimento)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Próxima consulta</dt>
+                  <dd className={p.proxima_consulta ? "font-medium text-primary" : "text-muted-foreground"}>
+                    {p.proxima_consulta ? dateTimeBR(p.proxima_consulta) : "Sem consulta agendada"}
+                  </dd>
+                </div>
+              </dl>
               <Button className="mt-auto w-full" variant="outline" onClick={() => aoAbrir(p.id)}>Abrir prontuário <ArrowUpRight className="size-4" /></Button>
             </article>
           ))}
