@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Printer } from "lucide-react";
+import { Printer, Scale } from "lucide-react";
 import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
 import { useModelosEtiqueta } from "@/lib/etiqueta-modelo-dados";
 import { ehModeloProprio } from "@/lib/etiqueta-modelo";
+import { LerBalancaDialog } from "@/components/app/LerBalancaDialog";
+import { pesoParaCampo } from "@/lib/balanca-serial";
 import { etiquetaPesavel } from "@/lib/etiqueta-pesavel";
 import { pesoEmGramas } from "@/lib/pesagem";
 import { enviarCrusQz, listarImpressorasQz, type ApiAssinaturaQz } from "@/lib/etiqueta-qz";
@@ -75,6 +77,8 @@ export function EtiquetaProdutoDialog({
   // produto vendido por kg: peso (kg) e validade de cada etiqueta
   const [pesos, setPesos] = useState<string[]>([]);
   const [validades, setValidades] = useState<string[]>([]);
+  // item cujo peso está sendo lido da balança por cabo serial
+  const [balancaPara, setBalancaPara] = useState<number | null>(null);
   const [pular, setPular] = useState("0");
   const [preco, setPreco] = useState(true);
   const [codigo, setCodigo] = useState(true);
@@ -301,6 +305,16 @@ export function EtiquetaProdutoDialog({
                         setPesos((c) => c.map((v, j) => (j === k ? e.target.value : v)))
                       }
                     />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={`Ler o peso de ${i.descricao} da balança`}
+                      title="Ler da balança"
+                      onClick={() => setBalancaPara(k)}
+                    >
+                      <Scale className="size-4" />
+                    </Button>
                     <Input
                       aria-label={`Validade de ${i.descricao}`}
                       className="w-36"
@@ -510,6 +524,11 @@ export function EtiquetaProdutoDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <LerBalancaDialog
+        aberto={balancaPara != null}
+        onClose={() => setBalancaPara(null)}
+        onPeso={(g) => setPesos((c) => c.map((v, j) => (j === balancaPara ? pesoParaCampo(g) : v)))}
+      />
     </Dialog>
   );
 }

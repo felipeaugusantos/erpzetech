@@ -91,7 +91,19 @@ Ficha para gaiola, coleira ou pertences, com o mínimo de dados à vista.
 - **Sem código de barras**: a ficha não leva código de barras ou QR, porque nada no sistema lê. Se for útil (conferir a retirada pela OS), vira uma fase própria.
 - **Não testado** em impressora real nem com o diálogo aberto em navegador (o teste de renderização do projeto não cobre diálogos); a lógica e os três formatos têm testes.
 
+## Fase 9 (feita em parte): leitura da balança pela porta serial
+
+Na etiqueta de pesagem, o botão da balança ao lado do campo de peso lê o peso do cabo, em vez de digitar.
+
+- **Como funciona**: usa a Web Serial do navegador (`src/lib/balanca-serial-porta.ts`). Só no **Chrome e no Edge para computador**, em página segura (https ou localhost); Firefox e Safari não têm. A pessoa escolhe a porta num clique (o navegador pede autorização); se houver uma única porta já autorizada nesta máquina, ela é usada direto. "Escolher outra porta" troca.
+- **Peso parado**: o peso só vale depois de N leituras iguais seguidas (padrão 3, de 2 a 10). Enquanto oscila aparece "Variando"; o botão **Usar este peso** só liga quando para. O peso preenche o campo em kg (`0,850`), que continua editável e passa pela mesma validação do digitado (1 g a 30 kg).
+- **Formato configurável**, porque cada fabricante manda de um jeito: velocidade (1200 a 115200, padrão 9600; 8 bits e 1 de parada fixos), paridade, **número com vírgula ou ponto** (`1,250`) ou **só dígitos com casas decimais implícitas** (`001250`), unidade (kg ou g) e se a balança envia sozinha ou precisa ser **pedida com ENQ** (0x05, a cada 400 ms). Os quadros terminam em CR, LF, STX ou ETX. A configuração fica no navegador do computador.
+- **Tela de teste**: o diálogo mostra o que a balança manda, com os caracteres de controle visíveis (`<STX>001250<ETX>`), o peso achado e se está parado. É assim que se ajusta o formato na instalação.
+- **Cuidados**: peso zero, negativo (tara) ou acima de 30 kg é ignorado; cabo solto ou balança desligada avisa uma vez e solta a porta; fechar o diálogo ou sair da tela solta a porta.
+- **Não foi testado com balança nem com porta serial real.** Os testes usam uma porta de mentira (fluxos de bytes) e cobrem os quadros, o formato, a estabilidade, o ENQ, a escolha da porta e as falhas; um teste achou e eu corrigi um impasse ao fechar depois de cabo solto. **Não se afirma compatibilidade com marca ou modelo** (Toledo, Filizola, Urano etc.): não conferi os protocolos de cada um. Balança que mande o peso de outro jeito (por exemplo com bytes de status misturados nos dígitos) pode não ser lida até o formato ser ampliado, com um exemplo real do que ela manda.
+- Ficou fora: leitura contínua no caixa, aceitar o formato com valor no código de barras e conversor serial por rede (balança em IP).
+
 ## Fases seguintes (a decidir)
 
-9. Ler a balança pela porta serial/USB, sem digitar o peso, e aceitar o formato com valor no código.
 10. Etiqueta de hotelaria pet (a tela de hotelaria atual é de hospedagem geral; precisa definir o que identifica o animal hospedado).
+11. Ajustar o leitor da balança a partir de exemplos reais do que cada modelo envia.
