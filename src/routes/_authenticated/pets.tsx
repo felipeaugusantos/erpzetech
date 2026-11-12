@@ -567,14 +567,14 @@ function Pets() {
                     <h3 className="text-sm font-medium">Endereço do tutor</h3>
                   </div>
                   {([
-                    ["cep", "CEP", false], ["endereco", "Rua / avenida", false],
-                    ["numero", "Número", false], ["complemento", "Complemento", false],
-                    ["bairro", "Bairro", false], ["cidade", "Cidade", false], ["estado", "UF", false],
+                    ["cep", "CEP"], ["endereco", "Rua / avenida"],
+                    ["numero", "Número"], ["complemento", "Complemento"],
+                    ["bairro", "Bairro"], ["cidade", "Cidade"], ["estado", "UF"],
                   ] as const).map(([campo, label]) => (
                     <div key={campo}>
                       <Label htmlFor={`tutor-${campo}`} className="text-xs">{label}</Label>
                       <Input id={`tutor-${campo}`} value={form.novo_tutor_dados[campo]}
-                        mascara={campo === "cep" ? "cep" : undefined}
+                        {...(campo === "cep" ? { mascara: "cep" as const } : {})}
                         maxLength={campo === "estado" ? 2 : 160}
                         onChange={(e) => setForm({ ...form, novo_tutor_dados: { ...form.novo_tutor_dados,
                           [campo]: campo === "estado" ? e.target.value.toUpperCase() : e.target.value } })} />
