@@ -36,6 +36,7 @@ import {
   type FormatoDocumento,
 } from "@/components/app/DocumentoVenda";
 import { useSessionData } from "@/hooks/useSessionData";
+import { EstimativaIbsCbs } from "@/components/app/EstimativaIbsCbs";
 import { RentabilidadeChinelo } from "@/components/app/RentabilidadeChinelo";
 import { AlterarPedidoDialog } from "@/components/app/AlterarPedidoDialog";
 import { NotaComplementar } from "@/components/app/NotaComplementar";
@@ -322,6 +323,18 @@ function PedidoDetalhe() {
   const { data: session } = useSessionData();
   const queryClient = qc;
 
+  // regime tributário da empresa/filial do pedido, para saber se a NF-e já leva o IBS/CBS
+  const { data: configsFiscais = [] } = useQuery({
+    queryKey: ["fiscal-config-regime"],
+    queryFn: async () => {
+      const { data: cfgs, error } = await supabase
+        .from("fiscal_config")
+        .select("regime_tributario, empresa_id, filial_id");
+      if (error) throw error;
+      return cfgs ?? [];
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["pedido", id],
     queryFn: async () => {
@@ -335,7 +348,9 @@ function PedidoDetalhe() {
           .single(),
         supabase
           .from("pedido_itens")
-          .select("*, produtos(descricao, codigo_interno, codigo_barras, localizacao)")
+          .select(
+            "*, produtos(descricao, codigo_interno, codigo_barras, localizacao, cst_ibs_cbs, cclasstrib)",
+          )
           .eq("pedido_id", id)
           .order("created_at"),
         supabase
@@ -1060,6 +1075,25 @@ function PedidoDetalhe() {
               </p>
             </div>
           </div>
+
+          <EstimativaIbsCbs
+            regime={
+              (
+                configsFiscais.find(
+                  (c) => c.filial_id === pedido.filial_id && c.empresa_id === pedido.empresa_id,
+                ) ??
+                configsFiscais.find((c) => c.empresa_id === pedido.empresa_id) ??
+                configsFiscais[0]
+              )?.regime_tributario
+            }
+            itens={itens.map((i) => ({
+              id: i.id,
+              descricao: i.produtos?.descricao ?? "Produto",
+              total: Number(i.total),
+              cst: i.produtos?.cst_ibs_cbs ?? null,
+              cClassTrib: i.produtos?.cclasstrib ?? null,
+            }))}
+          />
 
           <div className="panel p-4">
             <p className="font-display font-semibold">Histórico</p>

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { baseIbsCbs, simularItemIbsCbs, situacaoIbsCbs } from "../src/lib/ibs-cbs-simulacao.ts";
+import {
+  baseIbsCbs,
+  estimarIbsCbsPedido,
+  simularItemIbsCbs,
+  situacaoIbsCbs,
+} from "../src/lib/ibs-cbs-simulacao.ts";
 import { calcularItemIbsCbs } from "../src/lib/ibs-cbs.ts";
 
 test("baseIbsCbs: valor menos desconto, PIS, COFINS e ICMS, nunca negativa", () => {
@@ -77,4 +82,30 @@ test("situacaoIbsCbs segue a regra da emissão por regime e data", () => {
   assert.equal(situacaoIbsCbs("real", "2026-08-02"), "opcional");
   for (const r of ["simples", "simples_excesso", "mei"])
     assert.equal(situacaoIbsCbs(r, "2026-11-12"), "aguardando_nt", r);
+});
+
+test("estimarIbsCbsPedido soma os itens com a conta da emissão e separa os que não são calculados", () => {
+  const e = estimarIbsCbsPedido(
+    [
+      { id: "a", descricao: "Ração", total: 1000, cst: "", cClassTrib: "" },
+      { id: "b", descricao: "Vacina", total: 500, cst: null, cClassTrib: null },
+      { id: "c", descricao: "Item suspenso", total: 300, cst: "550", cClassTrib: "550001" },
+    ],
+    2026,
+  );
+  // 2026: CBS 0,9% e IBS 0,1%; a base do pedido é o valor do item
+  assert.equal(e.totais.vBC, 1500);
+  assert.equal(e.totais.vCBS, 13.5);
+  assert.equal(e.totais.vIBS, 1.5);
+  assert.equal(e.comErro.length, 1);
+  assert.equal(e.comErro[0]!.id, "c");
+  assert.match(e.comErro[0]!.motivo, /550/);
+  assert.equal(e.itens.length, 3);
+});
+
+test("estimarIbsCbsPedido sem itens dá totais zerados", () => {
+  const e = estimarIbsCbsPedido([], 2026);
+  assert.equal(e.totais.vIBS, 0);
+  assert.equal(e.totais.vCBS, 0);
+  assert.deepEqual(e.comErro, []);
 });
