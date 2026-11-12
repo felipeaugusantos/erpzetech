@@ -1,6 +1,6 @@
 # Roadmap
 
-- [x] Prontuário carrega cartões de todos os pacientes já atendidos da empresa, sem exigir busca; lista paginada por último atendimento, com tutor, quantidade de visitas e acesso à ficha, mantendo o acesso veterinário existente.
+- [x] Prontuário carrega cartões de todos os pacientes já atendidos da empresa, sem exigir busca; lista paginada por último atendimento, com animal, tutor, última visita e próxima consulta futura agendada/confirmada (ou sem consulta agendada), quantidade de visitas e acesso à ficha, mantendo o acesso veterinário existente.
 
 - [x] Guardar PDF original nas duas importações usando anexos clínicos privados e reservas reutilizadas em reenvios; histórico por pet acessa arquivos e imprime datas, valores exatos, situação, adendos e minigráficos dos fechados. 28 testes de histórico/precisão e três de envio/importação passaram; A4 controlado confirmou ALT 30,5 → 26,9 e datas no PDF. Build OK; gravação real depende da sessão veterinária pendente abaixo; não publicado.
 
