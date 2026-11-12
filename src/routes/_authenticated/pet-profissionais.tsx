@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Scissors } from "lucide-react";
+import { CheckCircle2, Link2, Pencil, Plus, Scissors } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -131,6 +132,9 @@ function Profissionais() {
   const fnCriarUsuario = useServerFn(criarUsuario);
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [vinculo, setVinculo] = useState<{ id: string; nome: string; profile_id: string | null } | null>(null);
+  const [contaVinculo, setContaVinculo] = useState("");
+  const [confirmacaoVinculo, setConfirmacaoVinculo] = useState("");
 
   const { data: lista = [], isLoading } = useQuery({
     queryKey: ["pet-profissionais"],
@@ -261,6 +265,35 @@ function Profissionais() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const contasParaVinculo = contas.filter(
+    (c) => c.ativo && c.papel === "veterinario" &&
+      !lista.some((p) => p.profile_id === c.id && p.id !== vinculo?.id),
+  );
+  const vincularConta = useMutation({
+    mutationFn: async () => {
+      if (!vinculo || !contasParaVinculo.some((c) => c.id === contaVinculo))
+        throw new Error("Selecione uma conta de veterinário disponível.");
+      const alvo = vinculo;
+      const conta = contasParaVinculo.find((c) => c.id === contaVinculo);
+      const { error } = await supabase.rpc("pet_profissional_vincular", {
+        p_profissional_id: alvo.id,
+        p_profile_id: contaVinculo,
+      });
+      if (error) throw error;
+      const { data: salvo, error: erroLeitura } = await supabase
+        .from("pet_profissionais").select("profile_id").eq("id", alvo.id).single();
+      if (erroLeitura || salvo?.profile_id !== contaVinculo)
+        throw new Error("Não foi possível confirmar o vínculo salvo. Atualize a lista antes de tentar novamente.");
+      return `Conta ${conta?.nome ?? "selecionada"} vinculada a ${alvo.nome}.`;
+    },
+    onSuccess: (mensagem) => {
+      setConfirmacaoVinculo(mensagem);
+      toast.success("Conta vinculada com sucesso.", { description: mensagem });
+      setVinculo(null);
+      setContaVinculo("");
+      void qc.invalidateQueries({ queryKey: ["pet-profissionais"] });
+    },
+  });
   const ativos = lista.filter((p) => p.ativo).length;
 
   return (
@@ -285,6 +318,12 @@ function Profissionais() {
         <StatCard label="Ativos" value={String(ativos)} icon={Scissors} />
         <StatCard label="Inativos" value={String(lista.length - ativos)} tone="warning" />
       </div>
+      {confirmacaoVinculo && (
+        <div role="status" className="mb-4 flex items-start gap-2 rounded-md border border-border bg-muted p-3 text-sm">
+          <CheckCircle2 className="size-4 shrink-0 text-primary" />
+          <span>{confirmacaoVinculo}</span>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="panel h-40 animate-pulse" />
@@ -302,6 +341,7 @@ function Profissionais() {
                 <TableHead>Função</TableHead>
                 <TableHead>Loja</TableHead>
                 <TableHead className="text-right">Comissão</TableHead>
+                <TableHead>Conta de acesso</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
@@ -321,7 +361,30 @@ function Profissionais() {
                     {filiais.find((f) => f.id === p.filial_id)?.nome ?? "Todas"}
                   </TableCell>
                   <TableCell className="text-right">{Number(p.comissao_percentual)}%</TableCell>
+                  <TableCell>
+                    {p.profile_id ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                        {contas.find((c) => c.id === p.profile_id)?.nome ?? "Conta vinculada"}
+                      </div>
+                    ) : <Badge variant="outline">Sem conta vinculada</Badge>}
+                  </TableCell>
                   <TableCell className="text-right">
+                    {podeEditar && p.funcao === "veterinario" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mr-2"
+                        aria-label={`${p.profile_id ? "Alterar conta" : "Vincular conta"} de ${p.nome}`}
+                        onClick={() => {
+                          vincularConta.reset();
+                          setVinculo({ id: p.id, nome: p.nome, profile_id: p.profile_id });
+                          setContaVinculo(p.profile_id ?? "");
+                        }}
+                      >
+                        <Link2 className="size-4" /> {p.profile_id ? "Alterar conta" : "Vincular conta"}
+                      </Button>
+                    )}
                     {podeEditar && (
                       <Button
                         variant="ghost"
@@ -360,6 +423,38 @@ function Profissionais() {
         </div>
       )}
 
+      <Dialog open={vinculo !== null} onOpenChange={(o) => {
+        if (!o && !vincularConta.isPending) setVinculo(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular conta de acesso</DialogTitle>
+            <DialogDescription>Veterinário: {vinculo?.nome}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="vinculo-conta">Conta do veterinário</Label>
+            <Select value={contaVinculo} disabled={vincularConta.isPending} onValueChange={(v) => {
+              setContaVinculo(v);
+              vincularConta.reset();
+            }}>
+              <SelectTrigger id="vinculo-conta"><SelectValue placeholder="Selecione a conta de acesso" /></SelectTrigger>
+              <SelectContent>
+                {contasParaVinculo.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {contasParaVinculo.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma conta ativa de veterinário disponível. Cadastre o acesso em Usuários e perfis ou em Editar profissional.</p>
+            )}
+            {vincularConta.error && <p role="alert" className="text-sm text-destructive">{vincularConta.error.message}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={vincularConta.isPending} onClick={() => setVinculo(null)}>Cancelar</Button>
+            <Button disabled={!contaVinculo || vincularConta.isPending} onClick={() => vincularConta.mutate()}>
+              <Link2 className="size-4" /> {vincularConta.isPending ? "Salvando…" : "Salvar vínculo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={aberto} onOpenChange={(o) => !o && setAberto(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
