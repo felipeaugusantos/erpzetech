@@ -55,8 +55,8 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
       continue;
     }
     if (nome === "plaquetas") { avisos.push("Plaquetas não importadas: resultado e referência estão em escalas diferentes e o laudo não informa a unidade."); continue; }
-    if (nomes[nome]) {
-      pendente = nomes[nome] ?? "";
+    if (nomes[nome] || (p.length >= 3 && chaveLaudo(p[1] ?? "") === "resultado") || (p.length >= 3 && /^[A-Za-zÀ-ÿ]/.test(p[0] ?? "") && new RegExp(`^${numero}\\s+`).test(p[1] ?? ""))) {
+      pendente = nomes[nome] ?? p[0] ?? "";
       // Headings contain labels, not values: keep the analyte for the next row.
       if (p.length < 3 || chaveLaudo(p[1] ?? "") === "resultado") continue;
     } else if (!pendente || p.length !== 2 || !/^\d/.test(p[0] ?? "")) { pendente = ""; continue; }
