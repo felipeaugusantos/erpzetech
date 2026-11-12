@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
+import { ExamesAgendadosPaciente } from "@/components/app/ExamesAgendadosPaciente";
 import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
@@ -450,6 +451,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         tutor={data.tutor}
         pedidoSolicitacao={pedidoSolicitacao}
       />
+
+      <ExamesAgendadosPaciente petId={petId} />
 
       <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
 
