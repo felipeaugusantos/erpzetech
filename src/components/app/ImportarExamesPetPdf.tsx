@@ -62,7 +62,7 @@ export function ImportarExamesPetPdf({ pet, onImportado }: { pet: { id: string; 
             <div className="mt-2 grid gap-2">{g.itens.map((it, ii) => <div key={ii} className="grid items-center gap-2 border-b pb-2 sm:grid-cols-[1fr_6rem_8rem_1fr]">
               <span className="text-sm">{it.nome}</span><span className="text-sm font-medium">{formatarNumero(it.valor, null)}</span>
               <Input aria-label={`Unidade de ${it.nome}`} placeholder="Unidade" disabled={ocupado} value={it.unidade ?? ""} maxLength={30} onChange={e => { const grupos = previa.grupos.map((gr, j) => j === gi ? { ...gr, itens: gr.itens.map((item, k) => k === ii ? { ...item, unidade: e.target.value || null } : item) } : gr); setPrevia({ ...previa, grupos }); setConfirmado(false); }} />
-              <span className="text-xs text-muted-foreground">{it.minimo !== null ? `Ref. absoluta: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}` : "Sem referência importada"}</span>
+              <span className="text-xs text-muted-foreground">{it.minimo !== null && it.maximo !== null ? `Ref. absoluta: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}` : "Sem referência importada"}</span>
             </div>)}</div>
           </section>)}
           {previa.laudo.avisos.map(a => <p key={a} className="text-sm text-warning">{a}</p>)}
