@@ -19,6 +19,7 @@ import { brl, dateBR, num } from "@/lib/format";
 import { rotuloMes, usePeriodo } from "@/lib/periodo";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { apurarIbsCbs } from "@/lib/apuracao-ibs-cbs";
 import { somarCreditoCompras } from "@/lib/credito-ibs-cbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,7 @@ function BalancoFiscal() {
         supabase
           .from("nfe")
           .select(
-            "id, numero, serie, situacao, ambiente, filial_id, deposito_id, valor_total, valor_produtos, valor_frete, valor_desconto, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), depositos(nome, filial_id), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, cst_csosn, descricao)",
+            "id, numero, serie, situacao, ambiente, filial_id, deposito_id, valor_total, valor_produtos, valor_frete, valor_desconto, valor_ibs, valor_cbs, ibs_cbs_efeito, created_at, transmitida_em, autorizada_em, pendencias, clientes(nome), depositos(nome, filial_id), nfe_itens(nfe_id, quantidade, preco_unitario, custo_unitario, desconto, total, aliquota_icms, cst_csosn, descricao)",
           )
           .gte("created_at", `${periodo.de}T00:00:00`)
           .lte("created_at", `${periodo.ate}T23:59:59`)
@@ -154,6 +155,19 @@ function BalancoFiscal() {
     );
     return somarCreditoCompras(compras, regime);
   }, [data?.compras, data?.configs, filialSel]);
+
+  // Apuração do IBS/CBS do período: débito das notas autorizadas, crédito potencial das compras e saldo por tributo.
+  const apuracaoIbsCbs = useMemo(() => {
+    const notas = (data?.notas ?? []).filter(
+      (n) =>
+        filialSel === "todas" ||
+        filialDaNota(n as unknown as Parameters<typeof filialDaNota>[0]) === filialSel,
+    );
+    return apurarIbsCbs({
+      notas,
+      credito: { ibs: creditoIbsCbs.ibs, cbs: creditoIbsCbs.cbs },
+    });
+  }, [data?.notas, creditoIbsCbs, filialSel]);
 
   const contas = useMemo(() => {
     const notas = (data?.notas ?? [])
@@ -420,6 +434,54 @@ function BalancoFiscal() {
           icon={FileText}
           tone="success"
         />
+      </div>
+
+      <div className="panel mt-6 p-4">
+        <h2 className="font-display text-sm font-semibold">
+          Apuração do IBS e da CBS (informativa)
+        </h2>
+        <Table className="mt-2">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Conta</TableHead>
+              <TableHead className="text-right">IBS</TableHead>
+              <TableHead className="text-right">CBS</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(
+              [
+                ["Débito: IBS/CBS destacado nas notas de venda autorizadas", apuracaoIbsCbs.debito],
+                ["(−) Devoluções de venda", apuracaoIbsCbs.estornoDebito],
+                ["Crédito potencial das compras", apuracaoIbsCbs.credito],
+                ["(−) Devoluções de compra", apuracaoIbsCbs.estornoCredito],
+              ] as const
+            ).map(([conta, v]) => (
+              <TableRow key={conta}>
+                <TableCell>{conta}</TableCell>
+                <TableCell className="text-right text-numeric">{brl(v.ibs)}</TableCell>
+                <TableCell className="text-right text-numeric">{brl(v.cbs)}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="font-semibold">
+              <TableCell>Saldo (débito líquido − crédito líquido)</TableCell>
+              <TableCell className="text-right text-numeric">
+                {brl(apuracaoIbsCbs.saldo.ibs)}
+              </TableCell>
+              <TableCell className="text-right text-numeric">
+                {brl(apuracaoIbsCbs.saldo.cbs)}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+        <p className="mt-2 text-xs text-muted-foreground">
+          IBS e CBS são apurados separados: um não compensa o outro. Saldo positivo é a recolher;
+          negativo é crédito a compensar. Entram só notas AUTORIZADAS que levaram o IBS/CBS e foram
+          emitidas depois que esta apuração passou a guardar o valor (nota anterior fica de fora).
+          Informativa: não inclui a compensação com PIS/COFINS prevista para 2026 nem o crédito do
+          Simples que opta pelo regime regular, e não substitui a apuração oficial. Confirme com o
+          contador.
+        </p>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
