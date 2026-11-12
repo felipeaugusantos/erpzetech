@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FilePlus2, Plus, Printer, Trash2, TriangleAlert } from "lucide-react";
+import { FilePlus2, FlaskConical, Plus, Printer, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { CampoMedicamento } from "@/components/app/CampoMedicamento";
@@ -71,14 +71,21 @@ export function DocumentosClinicos({
   atendimentoId,
   pet,
   tutor,
+  pedidoSolicitacao = 0,
 }: {
   petId: string;
   atendimentoId?: string;
   pet: { nome: string; especie: string; raca: string | null };
   tutor: string;
+  /** Cada aumento abre a solicitação de exames (botão "Solicitar exames" fora do quadro). */
+  pedidoSolicitacao?: number;
 }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [novo, setNovo] = useState<TipoDocumento | null>(null);
+  useEffect(() => {
+    if (pedidoSolicitacao > 0) setNovo("solicitacao_exame");
+  }, [pedidoSolicitacao]);
   const [cancelando, setCancelando] = useState<ResumoDocumento | null>(null);
   const [motivo, setMotivo] = useState("");
 
@@ -124,6 +131,10 @@ export function DocumentosClinicos({
         <p className="flex items-center gap-2 font-display text-sm font-semibold">
           <FilePlus2 className="size-4" /> Documentos
         </p>
+        <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setNovo("solicitacao_exame")}>
+          <FlaskConical className="size-4" /> Solicitar exames
+        </Button>
         <Select value="" onValueChange={(v) => setNovo(v as TipoDocumento)}>
           <SelectTrigger className="w-56">
             <SelectValue placeholder="Emitir documento…" />
@@ -136,6 +147,7 @@ export function DocumentosClinicos({
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {lista.isLoading ? (
@@ -185,9 +197,13 @@ export function DocumentosClinicos({
           pet={pet}
           tutor={tutor}
           onFechar={() => setNovo(null)}
-          onEmitido={() => {
+          onEmitido={(id) => {
+            const tipoEmitido = novo;
             setNovo(null);
             void qc.invalidateQueries({ queryKey: ["clinica-documentos"] });
+            // solicitação de exames vai direto para a impressão da relação
+            if (tipoEmitido === "solicitacao_exame" && id)
+              void navigate({ to: "/clinica-documento", search: { id } });
           }}
         />
       )}
@@ -239,7 +255,7 @@ function EmitirDocumento({
   pet: { nome: string; especie: string; raca: string | null };
   tutor: string;
   onFechar: () => void;
-  onEmitido: () => void;
+  onEmitido: (id?: string) => void;
 }) {
   const qc = useQueryClient();
   const ctx = useQuery({
@@ -265,6 +281,24 @@ function EmitirDocumento({
     { ...itemReceitaVazio(), controlado: false },
   ]);
   const [exames, setExames] = useState<ItemExame[]>([{ exame: "" }]);
+  const modelosExame = useQuery({
+    queryKey: ["clinica-exame-modelos-lista"],
+    enabled: tipo === "solicitacao_exame",
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_exame_modelos");
+      if (error) throw error;
+      return ((data ?? []) as unknown as { id: string; nome: string; ativo: boolean }[]).filter(
+        (m) => m.ativo,
+      );
+    },
+  });
+  function adicionarExame(nome: string) {
+    setExames((atual) => {
+      if (atual.some((x) => x.exame.trim().toLowerCase() === nome.toLowerCase())) return atual;
+      const vazios = atual.filter((x) => x.exame.trim());
+      return vazios.length >= 30 ? atual : [...vazios, { exame: nome }];
+    });
+  }
   const [modeloEscolhido, setModeloEscolhido] = useState("");
   const [modeloReceitaId, setModeloReceitaId] = useState("");
 
@@ -327,9 +361,9 @@ function EmitirDocumento({
       if (error) throw error;
       return data as unknown as { id: string };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Documento emitido");
-      onEmitido();
+      onEmitido(data?.id);
     },
     onError: (e: Error) => toast.error("Não foi possível emitir", { description: e.message }),
   });
@@ -608,6 +642,31 @@ function EmitirDocumento({
 
             {tipo === "solicitacao_exame" && (
               <>
+                {(modelosExame.data ?? []).length > 0 && (
+                  <div>
+                    <Label>Exames da clínica (toque para incluir)</Label>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {(modelosExame.data ?? []).map((m) => {
+                        const incluido = exames.some(
+                          (x) => x.exame.trim().toLowerCase() === m.nome.toLowerCase(),
+                        );
+                        return (
+                          <Button
+                            key={m.id}
+                            type="button"
+                            size="sm"
+                            variant={incluido ? "default" : "outline"}
+                            className="h-7 rounded-full px-3 text-xs"
+                            onClick={() => adicionarExame(m.nome)}
+                          >
+                            {incluido ? "✓ " : "+ "}
+                            {m.nome}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 {exames.map((e, idx) => (
                   <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <div>
