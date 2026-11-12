@@ -582,6 +582,13 @@
       "when": 1794495775223,
       "tag": "0082_clinica_painel_veterinarios_favoritos",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1794503304470,
+      "tag": "0083_clinica_agenda_exames_receitas",
+      "breakpoints": true
     }
   ]
 }
