@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 
 const CHAVE_MODELO = "etiqueta-modelo";
+const CHAVE_MODELO_PET = "etiqueta-modelo-pet";
 const CHAVE_MODO = "etiqueta-modo";
 const CHAVE_QZ = "etiqueta-qz";
 
@@ -67,7 +68,9 @@ export function EtiquetaProdutoDialog({
   itens: DadosEtiqueta[] | null;
   onClose: () => void;
 }) {
-  const [modeloId, setModeloId] = useState("t-50x30");
+  const [modeloProdutoId, setModeloProdutoId] = useState("t-50x30");
+  const [modeloPetId, setModeloPetId] = useState("t-60x40-pet");
+  const [telefone, setTelefone] = useState(false);
   const [copias, setCopias] = useState<string[]>([]);
   // produto vendido por kg: peso (kg) e validade de cada etiqueta
   const [pesos, setPesos] = useState<string[]>([]);
@@ -92,7 +95,14 @@ export function EtiquetaProdutoDialog({
   useEffect(() => {
     try {
       const salvo = localStorage.getItem(CHAVE_MODELO);
-      if (salvo && (modeloEtiqueta(salvo) || ehModeloProprio(salvo))) setModeloId(salvo);
+      if (
+        salvo &&
+        modeloEtiqueta(salvo)?.uso !== "pet" &&
+        (modeloEtiqueta(salvo) || ehModeloProprio(salvo))
+      )
+        setModeloProdutoId(salvo);
+      const salvoPet = localStorage.getItem(CHAVE_MODELO_PET);
+      if (salvoPet && modeloEtiqueta(salvoPet)?.uso === "pet") setModeloPetId(salvoPet);
       const m = localStorage.getItem(CHAVE_MODO)?.split("|");
       if (m && ["driver", "zpl", "tspl"].includes(m[0]!)) setModo(m[0] as Modo);
       if (m?.[1] === "300") setDpi(300);
@@ -109,10 +119,18 @@ export function EtiquetaProdutoDialog({
 
   const proprios = useModelosEtiqueta().data ?? [];
   // modelo salvo que a empresa excluiu: volta para o padrão
+  const ehPet = (itens ?? []).some((i) => i.pet);
+  const modeloId = ehPet ? modeloPetId : modeloProdutoId;
+  const setModeloId = ehPet ? setModeloPetId : setModeloProdutoId;
   const modelo =
-    modeloEtiqueta(modeloId) ??
-    proprios.find((p) => p.modelo.id === modeloId)?.modelo ??
-    modeloEtiqueta("t-50x30")!;
+    (ehPet
+      ? modeloEtiqueta(modeloPetId)?.uso === "pet"
+        ? modeloEtiqueta(modeloPetId)
+        : undefined
+      : modeloEtiqueta(modeloProdutoId)?.uso !== "pet"
+        ? (modeloEtiqueta(modeloProdutoId) ??
+          proprios.find((p) => p.modelo.id === modeloProdutoId)?.modelo)
+        : undefined) ?? modeloEtiqueta(ehPet ? "t-60x40-pet" : "t-50x30")!;
   const folha = modelo.tipo === "folha";
   // A folha A4 só sai pelo driver; o arquivo de comandos é para etiqueta térmica.
   const modoEfetivo: Modo = folha ? "driver" : modo;
@@ -170,7 +188,7 @@ export function EtiquetaProdutoDialog({
       modelo,
       montarEscolhidos(false),
       { linguagem: modoEfetivo, dpi },
-      { mostrarPreco: preco, mostrarCodigo: codigo },
+      { mostrarPreco: preco, mostrarCodigo: codigo, mostrarTelefoneTutor: telefone },
     ).some((c) => !c);
 
   async function imprimir() {
@@ -182,7 +200,8 @@ export function EtiquetaProdutoDialog({
     }
     try {
       // o modelo sugerido para pesagem não vira o padrão dos outros produtos
-      if (!temPesavel) localStorage.setItem(CHAVE_MODELO, modeloId);
+      if (ehPet) localStorage.setItem(CHAVE_MODELO_PET, modeloPetId);
+      else if (!temPesavel) localStorage.setItem(CHAVE_MODELO, modeloProdutoId);
       localStorage.setItem(CHAVE_MODO, `${modo}|${dpi}`);
       localStorage.setItem(CHAVE_QZ, `${entrega}|${impressoraQz}`);
     } catch {
@@ -200,6 +219,7 @@ export function EtiquetaProdutoDialog({
       const texto = comandosEtiquetas(modelo, escolhidos, imp, {
         mostrarPreco: preco,
         mostrarCodigo: codigo,
+        mostrarTelefoneTutor: telefone,
       });
       if (entrega === "qz") {
         setOcupado(true);
@@ -246,7 +266,7 @@ export function EtiquetaProdutoDialog({
     <Dialog open={!!itens} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className={temPesavel ? "max-w-2xl" : "max-w-md"}>
         <DialogHeader>
-          <DialogTitle>Imprimir etiquetas</DialogTitle>
+          <DialogTitle>{ehPet ? "Imprimir ficha do animal" : "Imprimir etiquetas"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="max-h-56 space-y-2 overflow-y-auto">
@@ -254,6 +274,13 @@ export function EtiquetaProdutoDialog({
               <div key={k} className="flex items-center gap-2">
                 <div className="min-w-0 flex-1 text-sm">
                   <div className="truncate font-medium">{i.descricao}</div>
+                  {i.pet && (
+                    <div className="text-xs text-muted-foreground">
+                      {[i.pet.os != null && `OS ${i.pet.os}`, i.pet.tutor]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  )}
                   {(i.lote || i.validade) && (
                     <div className="text-xs text-muted-foreground">
                       {[i.lote && `Lote ${i.lote}`, i.validade && `Val ${i.validade}`]
@@ -317,13 +344,13 @@ export function EtiquetaProdutoDialog({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Modelos prontos</SelectLabel>
-                  {MODELOS_ETIQUETA.map((m) => (
+                  {MODELOS_ETIQUETA.filter((m) => (m.uso === "pet") === ehPet).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.nome}
                     </SelectItem>
                   ))}
                 </SelectGroup>
-                {proprios.length > 0 && (
+                {!ehPet && proprios.length > 0 && (
                   <SelectGroup>
                     <SelectLabel>Modelos da empresa</SelectLabel>
                     {proprios.map((p) => (
@@ -430,14 +457,29 @@ export function EtiquetaProdutoDialog({
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="et-preco">Mostrar preço</Label>
-            <Switch id="et-preco" checked={preco} onCheckedChange={setPreco} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="et-cod">Mostrar código de barras</Label>
-            <Switch id="et-cod" checked={codigo} onCheckedChange={setCodigo} />
-          </div>
+          {ehPet ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="et-tel">Mostrar o telefone do tutor</Label>
+                <Switch id="et-tel" checked={telefone} onCheckedChange={setTelefone} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A ficha fica à vista de quem passa. O tutor sai só com o primeiro nome e a inicial
+                do sobrenome; ligue o telefone apenas se precisar.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="et-preco">Mostrar preço</Label>
+                <Switch id="et-preco" checked={preco} onCheckedChange={setPreco} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="et-cod">Mostrar código de barras</Label>
+                <Switch id="et-cod" checked={codigo} onCheckedChange={setCodigo} />
+              </div>
+            </>
+          )}
           {naoCabe && (
             <p className="text-xs text-destructive">
               O conteúdo não cabe nesse tamanho de etiqueta, nem com as letras menores. Tire algum

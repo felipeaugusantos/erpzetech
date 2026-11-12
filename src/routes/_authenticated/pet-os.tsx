@@ -1,9 +1,19 @@
 import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, ListChecks, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
+import {
+  ClipboardList,
+  ListChecks,
+  Pencil,
+  Plus,
+  Printer,
+  Search,
+  Tag,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +46,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSessionData } from "@/hooks/useSessionData";
 import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
+import type { DadosEtiqueta } from "@/lib/etiqueta";
+import { etiquetaDoPet } from "@/lib/etiqueta-pet";
 import { brl, dateBR } from "@/lib/format";
 import { ESPECIES, idadeDoPet, rotulo } from "@/lib/pet";
 import {
@@ -106,6 +118,7 @@ function PetOs() {
   const [form, setForm] = useState<Form>(vazio);
   const [buscaPet, setBuscaPet] = useState("");
   const [osAberta, setOsAberta] = useState<string | null>(null);
+  const [ficha, setFicha] = useState<DadosEtiqueta[] | null>(null);
   const [item, setItem] = useState<ItemForm>(itemVazio);
 
   const { data: ordens = [], isLoading } = useQuery({
@@ -738,6 +751,31 @@ function PetOs() {
                     <Printer className="size-4" /> Imprimir
                   </Link>
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const r = resumo(ordem);
+                    setFicha([
+                      etiquetaDoPet({
+                        pet: {
+                          nome: r.nome ?? "",
+                          especie: r.especie ?? null,
+                          raca: r.raca ?? null,
+                          porte: r.porte ?? null,
+                          alergias: r.alergias ?? null,
+                        },
+                        tutor: { nome: r.tutor ?? null, telefone: r.tutor_telefone ?? null },
+                        os: {
+                          numero: ordem.numero,
+                          previsao: ordem.previsao,
+                          servicos: itens.filter((i) => i.tipo !== "peca").map((i) => i.descricao),
+                        },
+                      }),
+                    ]);
+                  }}
+                >
+                  <Tag className="size-4" /> Ficha do animal
+                </Button>
                 {podeEditar && !encerrada && (
                   <>
                     <Button
@@ -788,6 +826,7 @@ function PetOs() {
           )}
         </DialogContent>
       </Dialog>
+      <EtiquetaProdutoDialog itens={ficha} onClose={() => setFicha(null)} />
     </div>
   );
 }

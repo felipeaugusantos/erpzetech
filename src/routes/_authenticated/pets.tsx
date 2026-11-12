@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Trash2 } from "lucide-react";
+import { Camera, PawPrint, Pencil, Plus, Search, Syringe, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
+import type { DadosEtiqueta } from "@/lib/etiqueta";
+import { etiquetaDoPet } from "@/lib/etiqueta-pet";
 import { erroDoTutorNovo, tutoresParecidos } from "@/lib/tutor-novo";
 import {
   CamposPersonalizados,
@@ -137,6 +140,7 @@ function Pets() {
   );
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
+  const [ficha, setFicha] = useState<DadosEtiqueta[] | null>(null);
   const [form, setForm] = useState<Form>(vazio);
   // identificador do tutor novo, gerado aqui: repetir o salvamento (resposta perdida) reaproveita o mesmo e não cria outro tutor
   const tutorNovoId = useRef<string | null>(null);
@@ -399,6 +403,21 @@ function Pets() {
                     </TableCell>
                     <TableCell className="max-w-48 truncate">{p.alergias ?? "—"}</TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Ficha de identificação de ${p.nome}`}
+                        onClick={() =>
+                          setFicha([
+                            etiquetaDoPet({
+                              pet: p,
+                              tutor: tutor(p.cliente_id) ?? null,
+                            }),
+                          ])
+                        }
+                      >
+                        <Tag className="size-4" />
+                      </Button>
                       {clinica && (
                         <Button
                           asChild
@@ -754,6 +773,7 @@ function Pets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <EtiquetaProdutoDialog itens={ficha} onClose={() => setFicha(null)} />
     </div>
   );
 }

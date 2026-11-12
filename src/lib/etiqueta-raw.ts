@@ -3,8 +3,10 @@ import { ean13Valido } from "./ean13.ts";
 import {
   camposDoModelo,
   desenhavel,
+  ehCampoPet,
   fatorDoCampo,
   precoEtiqueta,
+  textoDoCampoPet,
   textoPesagem,
   type CampoEtiqueta,
   type DadosEtiqueta,
@@ -119,7 +121,19 @@ function zplEtiqueta(
   for (const c of campos) {
     const f = fatorDoCampo(c) * FATOR_REDUCAO[reducao]!;
     let b: Bloco | null = null;
-    if (c.campo === "descricao") {
+    const tp = ehCampoPet(c.campo) ? textoDoCampoPet(c.campo, d, o) : null;
+    if (tp) {
+      const h = Math.round(
+        (tp.tam === "g" ? (pequena ? 3.6 : 4.4) * pt : hd * (tp.tam === "p" ? 0.7 : 0.9)) * f,
+      );
+      b = {
+        c,
+        altura: Math.round(h * 1.15 * tp.linhas),
+        texto: `^A0N,${h},${h}^FB${util},${tp.linhas},0,C,0^FD${limpar(tp.texto, "zpl")}^FS`,
+      };
+    } else if (ehCampoPet(c.campo)) {
+      // campo de pet sem dado: não ocupa espaço
+    } else if (c.campo === "descricao") {
       const h = Math.round(hd * f);
       b = {
         c,
@@ -217,7 +231,14 @@ function tsplEtiqueta(
   for (const c of camposDoModelo(modelo)) {
     let base: FonteTspl | null = null;
     let textos: string[] = [];
-    if (c.campo === "descricao") {
+    const tp = ehCampoPet(c.campo) ? textoDoCampoPet(c.campo, d, o) : null;
+    if (tp) {
+      base = tp.tam === "g" ? "4" : tp.tam === "p" ? "2" : "3";
+      const [lw] = FONTES_TSPL[fonteTspl(base, c.tamanho, reducao)];
+      textos = quebrarTexto(limpar(tp.texto, "tspl"), Math.floor(util / lw), tp.linhas);
+    } else if (ehCampoPet(c.campo)) {
+      // campo de pet sem dado: não ocupa espaço
+    } else if (c.campo === "descricao") {
       base = "3";
       const [lw] = FONTES_TSPL[fonteTspl(base, c.tamanho, reducao)];
       textos = quebrarTexto(limpar(d.descricao, "tspl"), Math.floor(util / lw), 2);

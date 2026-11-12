@@ -79,7 +79,19 @@ Etiqueta de pesagem para produto vendido por kg, e o caixa que lê essa etiqueta
 - **Peso digitado**: não há leitura direta da balança. O peso é digitado na hora de imprimir (a balança que "digita como teclado" cai no mesmo campo).
 - **Limites**: o PDV antigo (`pdv.tsx`) e os pedidos não leem a etiqueta de balança; só a frente de caixa. Etiqueta de balança de outro fabricante (com valor no código, ou código de outro tamanho) não é lida: o formato é o descrito acima. Dois produtos cujos códigos internos viram o mesmo número de 6 dígitos (`123` e `000123`) deixam a leitura ambígua e ela é recusada. Granel de outras formas (abrir o saco, custo por kg) segue na tela de Granel, sem mudança.
 
+## Fase 8 (feita): etiqueta do pet shop — ficha de identificação do animal
+
+Ficha para gaiola, coleira ou pertences, com o mínimo de dados à vista.
+
+- **Onde imprimir**: botão **Ficha do animal** dentro da ordem de serviço do pet (`/pet-os`) e botão de etiqueta em cada animal em **Pets e tutores** (`/pets`).
+- **O que sai**: número da OS (quando vem de uma), **nome do animal** em destaque, espécie · raça · porte, tutor, serviços da ordem (sem repetição, só serviços, nunca produtos), retirada prevista (hora de Brasília) e **ALERGIA** em destaque. Campo sem dado não ocupa espaço.
+- **Privacidade**: o tutor sai só com o primeiro nome e a inicial do sobrenome (`Maria S.`); o **telefone fica desligado** e só aparece se a pessoa ligar a opção no diálogo (a ficha fica à vista de quem passa). Observações e histórico clínico nunca saem. A alergia sai por ser aviso de segurança para quem manuseia o animal.
+- **Modelos prontos**: térmica 60 × 40 mm, térmica 100 × 50 mm (com serviços) e folha A4 2 × 7 (99,1 × 38,1 mm). No diálogo, a ficha do animal só mostra esses modelos (e os modelos de produto não aparecem nela); a escolha fica lembrada à parte da etiqueta de produto. Os modelos próprios da empresa continuam só de produto: o editor e o banco não aceitam campos de pet.
+- **Formatos**: HTML (driver), ZPL e TSPL, com o mesmo aviso de "não cabe" e o encolhimento de letras. O HTML foi medido no Chromium com os dados mais cheios (nome longo, raça longa, alergia de duas linhas, quatro serviços): sem estouro em nenhum dos três modelos.
+- **Sem código de barras**: a ficha não leva código de barras ou QR, porque nada no sistema lê. Se for útil (conferir a retirada pela OS), vira uma fase própria.
+- **Não testado** em impressora real nem com o diálogo aberto em navegador (o teste de renderização do projeto não cobre diálogos); a lógica e os três formatos têm testes.
+
 ## Fases seguintes (a decidir)
 
-8. Etiqueta do pet shop (identificação do animal, hotelaria): depende de definir os dados.
 9. Ler a balança pela porta serial/USB, sem digitar o peso, e aceitar o formato com valor no código.
+10. Etiqueta de hotelaria pet (a tela de hotelaria atual é de hospedagem geral; precisa definir o que identifica o animal hospedado).

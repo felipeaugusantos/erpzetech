@@ -27,14 +27,20 @@ export type ModeloEtiqueta = {
   campos?: CampoEtiqueta[];
   /** Só modelo próprio da empresa: id da linha no banco. */
   proprio?: boolean;
+  /** Para que serve: sem isto vale "produto"; "pet" é a ficha de identificação do animal. */
+  uso?: "produto" | "pet";
 };
 
 /** O que cada etiqueta pode mostrar. `extra` é validade e lote; `codigo` é o código de barras com o número. */
-export type TipoCampoEtiqueta = "descricao" | "extra" | "preco" | "codigo" | "peso";
+export type TipoCampoProduto = "descricao" | "extra" | "preco" | "codigo" | "peso";
+/** Campos da ficha de identificação do animal (pet shop); não entram nos modelos próprios da empresa. */
+export type TipoCampoPet =
+  "os" | "animal" | "animal_info" | "tutor" | "servicos" | "previsao" | "alergia";
+export type TipoCampoEtiqueta = TipoCampoProduto | TipoCampoPet;
 export type TamanhoCampo = "p" | "m" | "g";
 export type CampoEtiqueta = { campo: TipoCampoEtiqueta; tamanho?: TamanhoCampo };
 
-export const TIPOS_CAMPO_ETIQUETA: { id: TipoCampoEtiqueta; nome: string }[] = [
+export const TIPOS_CAMPO_ETIQUETA: { id: TipoCampoProduto; nome: string }[] = [
   { id: "descricao", nome: "Descrição do produto" },
   { id: "peso", nome: "Peso e preço do kg" },
   { id: "extra", nome: "Validade e lote" },
@@ -71,6 +77,60 @@ export const MODELOS_ETIQUETA: ModeloEtiqueta[] = [
       { campo: "preco", tamanho: "g" },
       { campo: "extra" },
       { campo: "codigo" },
+    ],
+  },
+  {
+    id: "t-60x40-pet",
+    nome: "Pet — ficha de identificação 60 × 40 mm",
+    tipo: "termica",
+    larguraMm: 60,
+    alturaMm: 40,
+    uso: "pet",
+    campos: [
+      { campo: "os" },
+      { campo: "animal" },
+      { campo: "animal_info" },
+      { campo: "tutor" },
+      { campo: "previsao" },
+      { campo: "alergia" },
+    ],
+  },
+  {
+    id: "t-100x50-pet",
+    nome: "Pet — ficha de identificação 100 × 50 mm",
+    tipo: "termica",
+    larguraMm: 100,
+    alturaMm: 50,
+    uso: "pet",
+    campos: [
+      { campo: "os" },
+      { campo: "animal" },
+      { campo: "animal_info" },
+      { campo: "tutor" },
+      { campo: "servicos" },
+      { campo: "previsao" },
+      { campo: "alergia" },
+    ],
+  },
+  {
+    id: "f-2x7-pet",
+    nome: "Pet — folha A4 2 × 7 (99,1 × 38,1 mm)",
+    tipo: "folha",
+    larguraMm: 99.1,
+    alturaMm: 38.1,
+    colunas: 2,
+    linhas: 7,
+    margemSuperiorMm: 15.1,
+    margemEsquerdaMm: 4.7,
+    espacoHMm: 2.5,
+    espacoVMm: 0,
+    uso: "pet",
+    campos: [
+      { campo: "animal" },
+      { campo: "animal_info" },
+      { campo: "tutor" },
+      { campo: "previsao" },
+      { campo: "alergia" },
     ],
   },
   {
@@ -117,6 +177,21 @@ export const MODELOS_ETIQUETA: ModeloEtiqueta[] = [
 export const modeloEtiqueta = (id: string): ModeloEtiqueta | undefined =>
   MODELOS_ETIQUETA.find((m) => m.id === id);
 
+export type DadosPetEtiqueta = {
+  /** Número da ordem de serviço, quando a ficha vem de uma. */
+  os?: number | null;
+  nome: string;
+  /** "Cão · Shih-tzu · Pequeno" */
+  info?: string | null;
+  /** Nome do tutor já resumido (ver `etiqueta-pet.ts`) e o telefone, que só sai com `mostrarTelefoneTutor`. */
+  tutor?: string | null;
+  tutorTelefone?: string | null;
+  servicos?: string[];
+  /** Quando o animal fica pronto/retirada, já em texto. */
+  previsao?: string | null;
+  alergias?: string | null;
+};
+
 export type DadosEtiqueta = {
   descricao: string;
   /** EAN-13 válido sai como EAN-13; qualquer outro texto imprimível sai como Code 128. */
@@ -125,6 +200,8 @@ export type DadosEtiqueta = {
   unidade?: string | null;
   validade?: string | null;
   lote?: string | null;
+  /** Ficha do animal (pet shop): o que sai nos campos de pet. */
+  pet?: DadosPetEtiqueta | null | undefined;
   /** Pesagem (produto vendido por kg): o campo "peso" mostra o peso e o preço do kg; `preco` leva o valor a pagar. */
   pesagem?: { pesoG: number; precoKg: number } | null | undefined;
   /**
@@ -139,6 +216,8 @@ export type DadosEtiqueta = {
 export type OpcoesEtiqueta = {
   mostrarPreco?: boolean;
   mostrarCodigo?: boolean;
+  /** Ficha do pet: mostra o telefone do tutor ao lado do nome (desligado por padrão). */
+  mostrarTelefoneTutor?: boolean;
   /** Só folha: quantas posições já usadas da primeira folha ficam em branco (etiqueta parcial reaproveitada). */
   pular?: number;
 };
@@ -161,6 +240,46 @@ export function svgDoCodigo(codigo: string, altura: number): string {
 
 /** Código que dá para desenhar (Code 128 aceita ASCII 32 a 126). */
 export const desenhavel = (c: string) => c.length > 0 && /^[\x20-\x7e]+$/.test(c);
+
+/** Um campo de pet como linhas de texto: quanto de espaço pede e que tamanho de letra usa (g = destaque, n = normal, p = pequeno). */
+export type TextoPet = { texto: string; linhas: number; tam: "g" | "n" | "p"; forte?: boolean };
+
+export function textoDoCampoPet(
+  campo: TipoCampoPet,
+  d: DadosEtiqueta,
+  o: OpcoesEtiqueta = {},
+): TextoPet | null {
+  const p = d.pet;
+  if (!p) return null;
+  switch (campo) {
+    case "os":
+      return p.os != null ? { texto: `OS ${p.os}`, linhas: 1, tam: "p" } : null;
+    case "animal":
+      return p.nome ? { texto: p.nome, linhas: 1, tam: "g", forte: true } : null;
+    case "animal_info":
+      return p.info ? { texto: p.info, linhas: 1, tam: "n" } : null;
+    case "tutor": {
+      // o telefone do tutor só sai se a pessoa ligou a opção ao imprimir
+      const t = [p.tutor, o.mostrarTelefoneTutor ? p.tutorTelefone : null]
+        .filter(Boolean)
+        .join(" · ");
+      return t ? { texto: `Tutor: ${t}`, linhas: 1, tam: "n" } : null;
+    }
+    case "servicos":
+      return p.servicos && p.servicos.length > 0
+        ? { texto: p.servicos.join(", "), linhas: 2, tam: "n" }
+        : null;
+    case "previsao":
+      return p.previsao ? { texto: `Retirada: ${p.previsao}`, linhas: 1, tam: "n" } : null;
+    case "alergia":
+      return p.alergias
+        ? { texto: `ALERGIA: ${p.alergias}`, linhas: 2, tam: "n", forte: true }
+        : null;
+  }
+}
+
+export const ehCampoPet = (c: TipoCampoEtiqueta): c is TipoCampoPet =>
+  ["os", "animal", "animal_info", "tutor", "servicos", "previsao", "alergia"].includes(c);
 
 function corpoEtiqueta(m: ModeloEtiqueta, d: DadosEtiqueta, o: OpcoesEtiqueta): string {
   const pequena = m.alturaMm < 30;
@@ -187,6 +306,30 @@ function corpoEtiqueta(m: ModeloEtiqueta, d: DadosEtiqueta, o: OpcoesEtiqueta): 
         return o.mostrarPreco !== false && d.preco != null
           ? `<div class="preco" style="${pt(pequena ? 11 : 14, c)}">${escapar(precoEtiqueta(d.preco))}${d.unidade ? `<small> / ${escapar(d.unidade)}</small>` : ""}</div>`
           : "";
+      case "os":
+      case "animal":
+      case "animal_info":
+      case "tutor":
+      case "servicos":
+      case "previsao":
+      case "alergia": {
+        const t = textoDoCampoPet(c.campo, d, o);
+        if (!t) return "";
+        const base =
+          t.tam === "g"
+            ? pequena
+              ? 12
+              : 15
+            : t.tam === "p"
+              ? pequena
+                ? 6
+                : 7
+              : pequena
+                ? 7.5
+                : 9;
+        const estilo = `${pt(base, c)}${t.forte ? ";font-weight:800" : ""}${t.linhas > 1 ? `;max-height:${t.linhas * 1.15}em;overflow:hidden` : ""}`;
+        return `<div class="pet${t.forte ? " forte" : ""}" style="${estilo}">${escapar(t.texto)}</div>`;
+      }
       case "codigo":
         return o.mostrarCodigo !== false && desenhavel(codigo)
           ? `<div class="cod" style="height:${alturaBarras.toFixed(1)}mm">${svgDoCodigo(codigo, 40)}</div><div class="num">${escapar(codigo)}</div>`
@@ -205,6 +348,7 @@ const ESTILO_ETIQUETA = `
   .desc { font-weight: 700; line-height: 1.1; max-height: 2.3em; overflow: hidden; }
   .preco { font-weight: 800; line-height: 1; }
   .preco small { font-size: 0.5em; font-weight: 400; }
+  .pet { line-height: 1.1; }
   .cod { width: 80%; margin: 0 auto; }
   .cod svg { width: 100%; height: 100%; display: block; }
   .num { font-family: monospace; font-size: 7pt; line-height: 1; }
