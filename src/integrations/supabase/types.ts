@@ -2312,7 +2312,36 @@ export type Database = {
           total?: number
           unidade?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "compra_devolucao_itens_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucao_itens_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "compra_devolucoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucao_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucao_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compra_devolucoes: {
         Row: {
@@ -2366,7 +2395,43 @@ export type Database = {
           valor_abatido?: number
           valor_total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "compra_devolucoes_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucoes_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucoes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucoes_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_devolucoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compra_itens: {
         Row: {
@@ -2940,8 +3005,8 @@ export type Database = {
       }
       contas_receber: {
         Row: {
-          cliente_id: string | null
           categoria_id: string | null
+          cliente_id: string | null
           created_at: string
           descricao: string
           empresa_id: string | null
@@ -2962,8 +3027,8 @@ export type Database = {
           vencimento: string
         }
         Insert: {
-          cliente_id?: string | null
           categoria_id?: string | null
+          cliente_id?: string | null
           created_at?: string
           descricao: string
           empresa_id?: string | null
@@ -2986,8 +3051,8 @@ export type Database = {
           vencimento: string
         }
         Update: {
-          cliente_id?: string | null
           categoria_id?: string | null
+          cliente_id?: string | null
           created_at?: string
           descricao?: string
           empresa_id?: string | null
@@ -4417,13 +4482,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "financeiro_baixas_estorno_de_fkey"
-            columns: ["estorno_de"]
-            isOneToOne: true
-            referencedRelation: "financeiro_baixas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "financeiro_baixas_caixa_id_fkey"
             columns: ["caixa_id"]
             isOneToOne: false
@@ -4442,6 +4500,13 @@ export type Database = {
             columns: ["conta_receber_id"]
             isOneToOne: false
             referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_baixas_estorno_de_fkey"
+            columns: ["estorno_de"]
+            isOneToOne: false
+            referencedRelation: "financeiro_baixas"
             referencedColumns: ["id"]
           },
           {
@@ -4658,6 +4723,247 @@ export type Database = {
             columns: ["filial_id"]
             isOneToOne: false
             referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_empresa_ocultas: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          motivo: string
+          regra_id: string
+          tenant_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          motivo: string
+          regra_id: string
+          tenant_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          motivo?: string
+          regra_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_empresa_ocultas_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_empresa_ocultas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_empresa_regras: {
+        Row: {
+          ativa: boolean
+          cest: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          ncm_prefixo: string
+          observacao: string | null
+          operacao: string | null
+          perfil_id: string
+          regime: string | null
+          tenant_id: string
+          uf_destino: string | null
+          versao: number
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          ativa?: boolean
+          cest?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          ncm_prefixo: string
+          observacao?: string | null
+          operacao?: string | null
+          perfil_id: string
+          regime?: string | null
+          tenant_id: string
+          uf_destino?: string | null
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          ativa?: boolean
+          cest?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          ncm_prefixo?: string
+          observacao?: string | null
+          operacao?: string | null
+          perfil_id?: string
+          regime?: string | null
+          tenant_id?: string
+          uf_destino?: string | null
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_empresa_regras_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_perfis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_empresa_regras_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_perfis: {
+        Row: {
+          aliq_cofins: number | null
+          aliq_icms: number | null
+          aliq_pis: number | null
+          cclasstrib: string | null
+          cfop: string | null
+          criado_em: string
+          csosn: string | null
+          cst_cofins: string | null
+          cst_ibs_cbs: string | null
+          cst_icms: string | null
+          cst_pis: string | null
+          descricao: string | null
+          id: string
+          mva_st: number | null
+          nome: string
+          origem: string | null
+          reducao_base_icms: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          aliq_cofins?: number | null
+          aliq_icms?: number | null
+          aliq_pis?: number | null
+          cclasstrib?: string | null
+          cfop?: string | null
+          criado_em?: string
+          csosn?: string | null
+          cst_cofins?: string | null
+          cst_ibs_cbs?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          id?: string
+          mva_st?: number | null
+          nome: string
+          origem?: string | null
+          reducao_base_icms?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          aliq_cofins?: number | null
+          aliq_icms?: number | null
+          aliq_pis?: number | null
+          cclasstrib?: string | null
+          cfop?: string | null
+          criado_em?: string
+          csosn?: string | null
+          cst_cofins?: string | null
+          cst_ibs_cbs?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao?: string | null
+          id?: string
+          mva_st?: number | null
+          nome?: string
+          origem?: string | null
+          reducao_base_icms?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_perfis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_regras: {
+        Row: {
+          ativa: boolean
+          cest: string | null
+          criado_em: string
+          criado_por: string | null
+          fonte: string | null
+          id: string
+          ncm_prefixo: string
+          observacao: string | null
+          operacao: string | null
+          perfil_id: string
+          regime: string | null
+          uf_destino: string | null
+          versao: number
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          ativa?: boolean
+          cest?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          fonte?: string | null
+          id?: string
+          ncm_prefixo: string
+          observacao?: string | null
+          operacao?: string | null
+          perfil_id: string
+          regime?: string | null
+          uf_destino?: string | null
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          ativa?: boolean
+          cest?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          fonte?: string | null
+          id?: string
+          ncm_prefixo?: string
+          observacao?: string | null
+          operacao?: string | null
+          perfil_id?: string
+          regime?: string | null
+          uf_destino?: string | null
+          versao?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_regras_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_perfis"
             referencedColumns: ["id"]
           },
         ]
@@ -5910,7 +6216,15 @@ export type Database = {
           tenant_id?: string
           uf?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "icms_uf_destino_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       importacoes: {
         Row: {
@@ -8803,10 +9117,10 @@ export type Database = {
           cfop: string | null
           chave: string | null
           cliente_id: string | null
-          complementa_nfe_id: string | null
-          compra_id: string | null
           codigo_servico: string | null
           comanda_id: string | null
+          complementa_nfe_id: string | null
+          compra_id: string | null
           contingencia: boolean
           created_at: string
           deposito_id: string | null
@@ -8864,10 +9178,10 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
-          complementa_nfe_id?: string | null
-          compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
+          complementa_nfe_id?: string | null
+          compra_id?: string | null
           contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
@@ -8925,10 +9239,10 @@ export type Database = {
           cfop?: string | null
           chave?: string | null
           cliente_id?: string | null
-          complementa_nfe_id?: string | null
-          compra_id?: string | null
           codigo_servico?: string | null
           comanda_id?: string | null
+          complementa_nfe_id?: string | null
+          compra_id?: string | null
           contingencia?: boolean
           created_at?: string
           deposito_id?: string | null
@@ -8978,6 +9292,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "nfe_ajusta_nfe_id_fkey"
+            columns: ["ajusta_nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "nfe_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
@@ -8989,6 +9310,20 @@ export type Database = {
             columns: ["comanda_id"]
             isOneToOne: false
             referencedRelation: "comandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_complementa_nfe_id_fkey"
+            columns: ["complementa_nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
             referencedColumns: ["id"]
           },
           {
@@ -9010,6 +9345,13 @@ export type Database = {
             columns: ["filial_id"]
             isOneToOne: false
             referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
           {
@@ -9065,7 +9407,15 @@ export type Database = {
           usuario_entrada?: string
           usuario_saida?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nfe_contingencia_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nfe_entrada_produtos: {
         Row: {
@@ -9189,7 +9539,22 @@ export type Database = {
           tipo?: string
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nfe_eventos_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_eventos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nfe_itens: {
         Row: {
@@ -9298,6 +9663,68 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_manifestacoes: {
+        Row: {
+          ambiente: string
+          autor_id: string | null
+          chave_acesso: string
+          cnpj: string
+          created_at: string
+          emitente: string | null
+          id: string
+          justificativa: string | null
+          mensagem: string | null
+          protocolo: string | null
+          provider_id: string | null
+          status: string
+          tenant_id: string
+          tipo_evento: string
+          valor: number | null
+        }
+        Insert: {
+          ambiente: string
+          autor_id?: string | null
+          chave_acesso: string
+          cnpj: string
+          created_at?: string
+          emitente?: string | null
+          id?: string
+          justificativa?: string | null
+          mensagem?: string | null
+          protocolo?: string | null
+          provider_id?: string | null
+          status: string
+          tenant_id: string
+          tipo_evento: string
+          valor?: number | null
+        }
+        Update: {
+          ambiente?: string
+          autor_id?: string | null
+          chave_acesso?: string
+          cnpj?: string
+          created_at?: string
+          emitente?: string | null
+          id?: string
+          justificativa?: string | null
+          mensagem?: string | null
+          protocolo?: string | null
+          provider_id?: string | null
+          status?: string
+          tenant_id?: string
+          tipo_evento?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_manifestacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -15761,7 +16188,15 @@ export type Database = {
           tenant_id?: string
           valido_ate?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tributos_aprox_ajuste_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tributos_aprox_ncm: {
         Row: {
@@ -15803,7 +16238,15 @@ export type Database = {
           versao?: string | null
           vigencia_fim?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tributos_aprox_ncm_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -16275,7 +16718,13 @@ export type Database = {
       }
       _clinica_receita_modelo_itens: { Args: { p_itens: Json }; Returns: Json }
       _clinica_vet: { Args: never; Returns: string }
+      _contador_travas_funcoes: { Args: never; Returns: undefined }
+      _contador_travas_tabelas: { Args: never; Returns: undefined }
       _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
+      _fiscal_perfil_json: {
+        Args: { p: Database["public"]["Tables"]["fiscal_perfis"]["Row"] }
+        Returns: Json
+      }
       _fone_normalizado: { Args: { p_fone: string }; Returns: string }
       _hs_auditar: {
         Args: {
@@ -16644,70 +17093,8 @@ export type Database = {
         }
         Returns: Json
       }
-      conta_pagar_parcelar: {
-        Args: {
-          p_categoria?: string
-          p_categoria_id?: string
-          p_descricao: string
-          p_forma: Database["public"]["Enums"]["forma_pagamento"]
-          p_fornecedor_id?: string
-          p_observacoes?: string
-          p_parcelas: number
-          p_primeiro_vencimento: string
-          p_valor: number
-        }
-        Returns: string[]
-      }
-      conta_receber_parcelar: {
-        Args: {
-          p_categoria_id?: string
-          p_cliente_id?: string
-          p_descricao: string
-          p_forma: Database["public"]["Enums"]["forma_pagamento"]
-          p_observacoes?: string
-          p_parcelas: number
-          p_primeiro_vencimento: string
-          p_valor: number
-        }
-        Returns: string[]
-      }
-      financeiro_categoria_salvar: {
-        Args: {
-          p_ativa?: boolean
-          p_grupo: string
-          p_id: string | null
-          p_nome: string
-          p_tipo: string
-        }
-        Returns: string
-      }
-      financeiro_categorias_importar_texto: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      financeiro_categorias_padrao: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      financeiro_dre: {
-        Args: { p_ate: string; p_de: string; p_filial_id?: string }
-        Returns: {
-          categoria: string
-          categoria_id: string
-          secao: string
-          valor: number
-        }[]
-      }
       baixa_estornar: {
         Args: { p_baixa_id: string; p_motivo: string }
-        Returns: string
-      }
-      valor_parcela: {
-        Args: { p_numero: number; p_parcelas: number; p_total: number }
-        Returns: number
-      }
-      vencimento_parcela: {
-        Args: { p_numero: number; p_primeiro: string }
         Returns: string
       }
       baixar_conta: {
@@ -17170,6 +17557,16 @@ export type Database = {
         }
         Returns: string
       }
+      compra_devolucao_registrar: {
+        Args: {
+          p_abater_pagar?: boolean
+          p_compra_id: string
+          p_itens: Json
+          p_modo?: string
+          p_motivo?: string
+        }
+        Returns: string
+      }
       compra_escolher_cotacao: {
         Args: { p_cotacao_id: string }
         Returns: undefined
@@ -17182,6 +17579,64 @@ export type Database = {
         Args: { p_acao: string; p_id: string }
         Returns: string
       }
+      conta_pagar_parcelar: {
+        Args: {
+          p_categoria?: string
+          p_categoria_id?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_fornecedor_id?: string
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
+      conta_receber_parcelar: {
+        Args: {
+          p_categoria_id?: string
+          p_cliente_id?: string
+          p_descricao: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacoes?: string
+          p_parcelas: number
+          p_primeiro_vencimento: string
+          p_valor: number
+        }
+        Returns: string[]
+      }
+      contador_acessos_listar: {
+        Args: never
+        Returns: {
+          concedido_em: string
+          email: string
+          empresa_id: string
+          empresa_nome: string
+          id: string
+          nome: string
+          pode_editar_tributos: boolean
+          revogado_em: string
+          user_id: string
+        }[]
+      }
+      contador_conceder: {
+        Args: { p_edita_tributos?: boolean; p_empresa: string; p_user: string }
+        Returns: string
+      }
+      contador_edita_tributos: { Args: never; Returns: boolean }
+      contador_empresa_id: { Args: never; Returns: string }
+      contador_meu_acesso: {
+        Args: never
+        Returns: {
+          cnpj: string
+          concedido_em: string
+          empresa_id: string
+          empresa_nome: string
+          pode_editar_tributos: boolean
+        }[]
+      }
+      contador_revogar: { Args: { p_user: string }; Returns: undefined }
       contato_enviar: {
         Args: {
           p_aberto_em?: string
@@ -17250,16 +17705,6 @@ export type Database = {
         Returns: undefined
       }
       desconto_limite_itens: { Args: { p_itens: Json }; Returns: number }
-      compra_devolucao_registrar: {
-        Args: {
-          p_abater_pagar?: boolean
-          p_compra_id: string
-          p_itens: Json
-          p_modo?: string
-          p_motivo?: string
-        }
-        Returns: string
-      }
       devolucao_registrar: {
         Args: {
           p_abater_receber?: boolean
@@ -17271,39 +17716,8 @@ export type Database = {
         }
         Returns: string
       }
-      eh_motorista_restrito: { Args: never; Returns: boolean }
-      contador_acessos_listar: {
-        Args: never
-        Returns: {
-          concedido_em: string
-          email: string
-          empresa_id: string
-          empresa_nome: string
-          id: string
-          nome: string
-          pode_editar_tributos: boolean
-          revogado_em: string
-          user_id: string
-        }[]
-      }
-      contador_conceder: {
-        Args: { p_edita_tributos?: boolean; p_empresa: string; p_user: string }
-        Returns: string
-      }
-      contador_edita_tributos: { Args: never; Returns: boolean }
-      contador_empresa_id: { Args: never; Returns: string }
-      contador_meu_acesso: {
-        Args: never
-        Returns: {
-          cnpj: string
-          concedido_em: string
-          empresa_id: string
-          empresa_nome: string
-          pode_editar_tributos: boolean
-        }[]
-      }
-      contador_revogar: { Args: { p_user: string }; Returns: undefined }
       eh_contador_restrito: { Args: never; Returns: boolean }
+      eh_motorista_restrito: { Args: never; Returns: boolean }
       eh_profissional_restrito: { Args: never; Returns: boolean }
       eh_saas_operador: { Args: never; Returns: boolean }
       eh_salao_restrito: { Args: never; Returns: boolean }
@@ -17387,6 +17801,7 @@ export type Database = {
           tentativas: number
         }[]
       }
+      exige_contador_tributos: { Args: never; Returns: undefined }
       exige_desconto_autorizado: {
         Args: { p_autorizacao: string; p_desconto_total: number; p_itens: Json }
         Returns: string
@@ -17395,6 +17810,7 @@ export type Database = {
         Args: { p_entrega_id: string }
         Returns: undefined
       }
+      exige_nao_contador: { Args: never; Returns: undefined }
       exige_nao_salao: { Args: never; Returns: undefined }
       exige_papel: { Args: { p_papeis: string[] }; Returns: undefined }
       fechar_caixa: {
@@ -17421,6 +17837,97 @@ export type Database = {
         Returns: string
       }
       filial_irrestrita: { Args: never; Returns: boolean }
+      financeiro_categoria_salvar: {
+        Args: {
+          p_ativa?: boolean
+          p_grupo: string
+          p_id: string
+          p_nome: string
+          p_tipo: string
+        }
+        Returns: string
+      }
+      financeiro_categorias_importar_texto: { Args: never; Returns: Json }
+      financeiro_categorias_padrao: { Args: never; Returns: number }
+      financeiro_dre: {
+        Args: { p_ate: string; p_de: string; p_filial_id?: string }
+        Returns: {
+          categoria: string
+          categoria_id: string
+          secao: string
+          valor: number
+        }[]
+      }
+      fiscal_base_aplicar: {
+        Args: { p_fonte: string; p_linhas: Json; p_operador: string }
+        Returns: Json
+      }
+      fiscal_base_encerrar: {
+        Args: { p_fim: string; p_regra_id: string }
+        Returns: string
+      }
+      fiscal_base_listar: {
+        Args: {
+          p_apenas_vigentes?: boolean
+          p_busca?: string
+          p_limite?: number
+          p_pagina?: number
+        }
+        Returns: Json
+      }
+      fiscal_base_publicar: {
+        Args: {
+          p_confirmar?: boolean
+          p_fonte: string
+          p_linhas: Json
+          p_operador?: string
+        }
+        Returns: Json
+      }
+      fiscal_empresa_globais: {
+        Args: {
+          p_apenas_vigentes?: boolean
+          p_busca?: string
+          p_limite?: number
+          p_pagina?: number
+        }
+        Returns: Json
+      }
+      fiscal_empresa_minhas: {
+        Args: {
+          p_apenas_vigentes?: boolean
+          p_busca?: string
+          p_limite?: number
+          p_pagina?: number
+        }
+        Returns: Json
+      }
+      fiscal_empresa_ocultar: {
+        Args: { p_motivo: string; p_regra_id: string }
+        Returns: undefined
+      }
+      fiscal_empresa_perfis: { Args: never; Returns: Json }
+      fiscal_empresa_reexibir: {
+        Args: { p_regra_id: string }
+        Returns: undefined
+      }
+      fiscal_empresa_regra_encerrar: {
+        Args: { p_fim: string; p_regra_id: string }
+        Returns: string
+      }
+      fiscal_empresa_regra_salvar: { Args: { p_dados: Json }; Returns: Json }
+      fiscal_sugerir: {
+        Args: {
+          p_cest?: string
+          p_data?: string
+          p_ncm: string
+          p_operacao?: string
+          p_regime?: string
+          p_uf_destino?: string
+        }
+        Returns: Json
+      }
+      fiscal_sugerir_lote: { Args: { p_itens: Json }; Returns: Json }
       frente_abrir_caixa: {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
@@ -17526,6 +18033,7 @@ export type Database = {
         Args: { p_caixa?: string; p_pagamentos?: Json; p_reserva_uh: string }
         Returns: Json
       }
+      hs_checkout_previa: { Args: { p_reserva_uh: string }; Returns: Json }
       hs_config_salvar: {
         Args: { p_dados: Json; p_filial: string }
         Returns: string
@@ -17684,6 +18192,15 @@ export type Database = {
           p_tipo?: string
         }
         Returns: Json
+      }
+      icms_uf_destino_salvar: {
+        Args: {
+          p_aliquota_interna: number
+          p_fcp: number
+          p_metodo: string
+          p_uf: string
+        }
+        Returns: undefined
       }
       importar_clientes: {
         Args: {
@@ -18099,6 +18616,10 @@ export type Database = {
         Args: { p_comanda_id: string; p_cpf?: string }
         Returns: string
       }
+      nfe_ajuste_gerar: {
+        Args: { p_itens: Json; p_motivo: string; p_nfe_id: string }
+        Returns: string
+      }
       nfe_calcular_impostos: {
         Args: {
           p_aliquota_cofins?: number
@@ -18122,34 +18643,6 @@ export type Database = {
           p_reducao_base?: number
         }
         Returns: Json
-      }
-      tributos_aprox_ajustar: {
-        Args: {
-          p_estadual: number
-          p_importado_federal: number
-          p_motivo: string
-          p_municipal: number
-          p_nacional_federal: number
-          p_ncm: string
-          p_valido_ate: string
-        }
-        Returns: string
-      }
-      tributos_aprox_ajuste_remover: {
-        Args: { p_ncm: string }
-        Returns: boolean
-      }
-      tributos_aprox_importar: {
-        Args: { p_linhas: Json }
-        Returns: number
-      }
-      icms_uf_destino_salvar: {
-        Args: { p_aliquota_interna: number; p_fcp: number; p_metodo: string; p_uf: string }
-        Returns: undefined
-      }
-      nfe_ajuste_gerar: {
-        Args: { p_itens: Json; p_motivo: string; p_nfe_id: string }
-        Returns: string
       }
       nfe_complementar_gerar: {
         Args: { p_itens: Json; p_motivo?: string; p_nfe_id: string }
@@ -19021,12 +19514,37 @@ export type Database = {
         Args: { p_id: string; p_itens?: Json; p_observacao?: string }
         Returns: undefined
       }
+      tributos_aprox_ajustar: {
+        Args: {
+          p_estadual: number
+          p_importado_federal: number
+          p_motivo: string
+          p_municipal: number
+          p_nacional_federal: number
+          p_ncm: string
+          p_valido_ate: string
+        }
+        Returns: string
+      }
+      tributos_aprox_ajuste_remover: {
+        Args: { p_ncm: string }
+        Returns: boolean
+      }
+      tributos_aprox_importar: { Args: { p_linhas: Json }; Returns: number }
       usuario_definir_papeis: {
         Args: {
           p_papeis: Database["public"]["Enums"]["app_role"][]
           p_user_id: string
         }
         Returns: undefined
+      }
+      valor_parcela: {
+        Args: { p_numero: number; p_parcelas: number; p_total: number }
+        Returns: number
+      }
+      vencimento_parcela: {
+        Args: { p_numero: number; p_primeiro: string }
+        Returns: string
       }
       wa_auto_varrer: { Args: never; Returns: number }
       wa_automatico_salvar: {
