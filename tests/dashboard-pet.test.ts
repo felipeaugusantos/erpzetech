@@ -101,7 +101,7 @@ test("serviços mais vendidos ordena por faturamento e ignora o que não foi con
 });
 
 test("atendimentos por dia completa os dias sem atendimento", () => {
-  assert.deepEqual(atendimentosPorDia(lista, "2026-10-18", "2026-10-20"), [
+  assert.deepEqual(atendimentosPorDia(lista, "2026-10-18", "2026-10-20").map(({ dia, atendimentos }) => ({ dia, atendimentos })), [
     { dia: "2026-10-18", atendimentos: 0 },
     { dia: "2026-10-19", atendimentos: 1 },
     { dia: "2026-10-20", atendimentos: 1 },
