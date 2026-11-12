@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Modernizar gráficos do Dashboard: barras arredondadas, valores exatos e linha de faturamento integrada ao período; 23 testes passaram, conta autenticada confirmou R$ 1.224,00 em 18/10 e 2 pedidos aprovados, computador e celular sem transbordamento ou erros, build OK. Não publicado.
+
 - [x] Converter embalagens na importação da nota: campo Unidades por embalagem, fator automático quando a unidade de compra cadastrada corresponde à nota, prévia de 3 × 6 = 18 UN e custo proporcional; 14 testes passaram, prévia autenticada e celular conferidos, build OK. Nenhuma compra gravada nem estoque existente corrigido; não publicado.
 
 - [x] Histórico Google Drive: tela própria acessível por Backup na nuvem, com data e hora do envio em Brasília, tamanho e situação; navegação autenticada e celular conferidos sem erros, quatro testes existentes passaram. Conta ainda sem execuções reais para conferir linhas de envio; não publicado.
