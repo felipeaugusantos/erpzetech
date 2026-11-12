@@ -296,6 +296,7 @@ function ExamesDoPaciente({
           </Link>
         </div>
         <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline"><Link to="/clinica-laudos" search={{ pet: petId }}><TrendingUp className="size-4" />Laudos e evolução</Link></Button>
         <Button variant="outline" onClick={() => {
           setArquivoImportacao(null);
           const selecionado = data.exames.find(e => e.id === exameId && e.situacao === "aberto");

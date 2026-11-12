@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Tela de laudos por pet com todos os exames, resultados anteriores compatíveis e minigráficos; leitura pelas funções clínicas existentes, sem alterar resultados.
+
 - [x] Corrigir consulta automática de CEP em Clientes, reutilizando a consulta dos tutores; CEP real 01001-000 preencheu Praça da Sé, Sé, São Paulo/SP em computador e celular, preservando número e complemento. Seis testes passaram, consultas antigas canceladas, sem alterar cadastros reais; não publicado.
 
 - [x] Incluir minigráficos na impressão com até três resultados anteriores compatíveis do paciente e o atual, mantendo valores exatos. Consulta real de Léo não tem anteriores fechados (não mostra gráfico); histórico controlado validou gráfico, valores 30,5 e 26,9, folha A4 e celular. Corrigido deslocamento da janela apenas na impressão do laudo. 42 testes passaram; nenhum resultado gravado; não publicado.
