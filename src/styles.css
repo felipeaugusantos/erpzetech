@@ -275,6 +275,7 @@
     position: static !important;
     inset: auto !important;
     transform: none !important;
+    translate: none !important;
     max-height: none !important;
     height: auto !important;
     overflow: visible !important;
