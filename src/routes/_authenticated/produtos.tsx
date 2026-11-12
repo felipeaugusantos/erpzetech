@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Barcode, Pencil, Plus, Ruler, ScanSearch, Search, Wand2 } from "lucide-react";
+import { Barcode, Pencil, Plus, Ruler, ScanSearch, Search, Tag, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
+import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
+import type { DadosEtiqueta } from "@/lib/etiqueta";
 import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
 import { AvisoNcm } from "@/components/app/AvisoNcm";
 import { SugestaoFiscal } from "@/components/app/SugestaoFiscal";
@@ -186,6 +188,7 @@ function Produtos() {
   }, [novoDoBulario, fabDoBulario, session]);
   // Texto da margem enquanto o usuário digita; null = mostrar a margem calculada.
   const [margemTxt, setMargemTxt] = useState<string | null>(null);
+  const [etiqueta, setEtiqueta] = useState<DadosEtiqueta | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["produtos"],
@@ -558,6 +561,21 @@ function Produtos() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Imprimir etiqueta"
+                          onClick={() =>
+                            setEtiqueta({
+                              descricao: p.descricao_resumida || p.descricao,
+                              codigo: p.codigo_barras || p.codigo_interno,
+                              preco: Number(p.preco_venda),
+                              unidade: p.unidade_venda || p.unidade,
+                            })
+                          }
+                        >
+                          <Tag className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           aria-label="Editar"
                           onClick={() => {
                             setForm({
@@ -616,6 +634,8 @@ function Produtos() {
           </div>
         )}
       </div>
+
+      <EtiquetaProdutoDialog produto={etiqueta} onClose={() => setEtiqueta(null)} />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
