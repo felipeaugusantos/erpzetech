@@ -469,6 +469,54 @@ export type Database = {
           },
         ]
       }
+      bulario_favoritos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          dose: string | null
+          id: string
+          medicamento_id: string
+          tenant_id: string
+          updated_at: string
+          validade: string | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          dose?: string | null
+          id?: string
+          medicamento_id: string
+          tenant_id?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          dose?: string | null
+          id?: string
+          medicamento_id?: string
+          tenant_id?: string
+          updated_at?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulario_favoritos_medicamento_id_fkey"
+            columns: ["medicamento_id"]
+            isOneToOne: false
+            referencedRelation: "bulario_medicamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulario_favoritos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulario_medicamentos: {
         Row: {
           atualizado_em: string
@@ -17179,6 +17227,12 @@ export type Database = {
         }
         Returns: Json
       }
+      bulario_favorito_remover: { Args: { p_id: string }; Returns: undefined }
+      bulario_favorito_salvar: {
+        Args: { p_dose: string; p_id: string; p_validade: string }
+        Returns: undefined
+      }
+      bulario_favoritos: { Args: never; Returns: Json }
       bulario_ficha: { Args: { p_id: string }; Returns: Json }
       bulario_importar: { Args: { p_itens: Json }; Returns: number }
       bulario_nota_salvar: {
@@ -17316,6 +17370,7 @@ export type Database = {
         Returns: undefined
       }
       clinica_execucoes_mapa: { Args: { p_horas?: number }; Returns: Json }
+      clinica_fila_aguardando_agora: { Args: never; Returns: Json }
       clinica_fila_buscar_paciente: { Args: { p_busca: string }; Returns: Json }
       clinica_fila_entrada: { Args: { p_dados: Json }; Returns: Json }
       clinica_fila_gravidade: {
@@ -17385,6 +17440,7 @@ export type Database = {
       clinica_lotes_vacina: { Args: { p_catalogo_id: string }; Returns: Json }
       clinica_meu_veterinario: { Args: never; Returns: string }
       clinica_pacientes: { Args: { p_busca: string }; Returns: Json }
+      clinica_painel: { Args: { p_ate: string; p_de: string }; Returns: Json }
       clinica_pendencia_baixar: {
         Args: { p_dados: Json; p_id: string }
         Returns: string
@@ -17481,6 +17537,10 @@ export type Database = {
         Returns: Json
       }
       clinica_vacinas_catalogo: { Args: never; Returns: Json }
+      clinica_visao_veterinarios: {
+        Args: { p_ate: string; p_de: string }
+        Returns: Json
+      }
       clinica_visita_preparar: { Args: { p_dias?: number }; Returns: Json }
       clinica_visita_registrar: {
         Args: { p_chave: string; p_dados: Json }

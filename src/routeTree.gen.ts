@@ -47,10 +47,12 @@ import { Route as AuthenticatedClinicaFilaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClinicaInternacaoRouteImport } from './routes/_authenticated/clinica-internacao'
 import { Route as AuthenticatedClinicaInternacaoHistoricoRouteImport } from './routes/_authenticated/clinica-internacao-historico'
 import { Route as AuthenticatedClinicaOfflineRouteImport } from './routes/_authenticated/clinica-offline'
+import { Route as AuthenticatedClinicaPainelRouteImport } from './routes/_authenticated/clinica-painel'
 import { Route as AuthenticatedClinicaPortalRouteImport } from './routes/_authenticated/clinica-portal'
 import { Route as AuthenticatedClinicaProntuarioRouteImport } from './routes/_authenticated/clinica-prontuario'
 import { Route as AuthenticatedClinicaReforcosRouteImport } from './routes/_authenticated/clinica-reforcos'
 import { Route as AuthenticatedClinicaVacinasRouteImport } from './routes/_authenticated/clinica-vacinas'
+import { Route as AuthenticatedClinicaVeterinariosRouteImport } from './routes/_authenticated/clinica-veterinarios'
 import { Route as AuthenticatedClinicaWhatsappRouteImport } from './routes/_authenticated/clinica-whatsapp'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConferenciaOfflineRouteImport } from './routes/_authenticated/conferencia-offline'
@@ -434,6 +436,12 @@ const AuthenticatedClinicaOfflineRoute =
     path: '/clinica-offline',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaPainelRoute =
+  AuthenticatedClinicaPainelRouteImport.update({
+    id: '/clinica-painel',
+    path: '/clinica-painel',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClinicaPortalRoute =
   AuthenticatedClinicaPortalRouteImport.update({
     id: '/clinica-portal',
@@ -456,6 +464,12 @@ const AuthenticatedClinicaVacinasRoute =
   AuthenticatedClinicaVacinasRouteImport.update({
     id: '/clinica-vacinas',
     path: '/clinica-vacinas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicaVeterinariosRoute =
+  AuthenticatedClinicaVeterinariosRouteImport.update({
+    id: '/clinica-veterinarios',
+    path: '/clinica-veterinarios',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClinicaWhatsappRoute =
@@ -1452,10 +1466,12 @@ export interface FileRoutesByFullPath {
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-veterinarios': typeof AuthenticatedClinicaVeterinariosRoute
   '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
@@ -1665,10 +1681,12 @@ export interface FileRoutesByTo {
   '/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/clinica-veterinarios': typeof AuthenticatedClinicaVeterinariosRoute
   '/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
@@ -1880,10 +1898,12 @@ export interface FileRoutesById {
   '/_authenticated/clinica-internacao': typeof AuthenticatedClinicaInternacaoRoute
   '/_authenticated/clinica-internacao-historico': typeof AuthenticatedClinicaInternacaoHistoricoRoute
   '/_authenticated/clinica-offline': typeof AuthenticatedClinicaOfflineRoute
+  '/_authenticated/clinica-painel': typeof AuthenticatedClinicaPainelRoute
   '/_authenticated/clinica-portal': typeof AuthenticatedClinicaPortalRoute
   '/_authenticated/clinica-prontuario': typeof AuthenticatedClinicaProntuarioRoute
   '/_authenticated/clinica-reforcos': typeof AuthenticatedClinicaReforcosRoute
   '/_authenticated/clinica-vacinas': typeof AuthenticatedClinicaVacinasRoute
+  '/_authenticated/clinica-veterinarios': typeof AuthenticatedClinicaVeterinariosRoute
   '/_authenticated/clinica-whatsapp': typeof AuthenticatedClinicaWhatsappRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/conferencia-offline': typeof AuthenticatedConferenciaOfflineRoute
@@ -2095,10 +2115,12 @@ export interface FileRouteTypes {
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-painel'
     | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-veterinarios'
     | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
@@ -2308,10 +2330,12 @@ export interface FileRouteTypes {
     | '/clinica-internacao'
     | '/clinica-internacao-historico'
     | '/clinica-offline'
+    | '/clinica-painel'
     | '/clinica-portal'
     | '/clinica-prontuario'
     | '/clinica-reforcos'
     | '/clinica-vacinas'
+    | '/clinica-veterinarios'
     | '/clinica-whatsapp'
     | '/comissoes'
     | '/conferencia-offline'
@@ -2522,10 +2546,12 @@ export interface FileRouteTypes {
     | '/_authenticated/clinica-internacao'
     | '/_authenticated/clinica-internacao-historico'
     | '/_authenticated/clinica-offline'
+    | '/_authenticated/clinica-painel'
     | '/_authenticated/clinica-portal'
     | '/_authenticated/clinica-prontuario'
     | '/_authenticated/clinica-reforcos'
     | '/_authenticated/clinica-vacinas'
+    | '/_authenticated/clinica-veterinarios'
     | '/_authenticated/clinica-whatsapp'
     | '/_authenticated/comissoes'
     | '/_authenticated/conferencia-offline'
@@ -2989,6 +3015,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClinicaOfflineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinica-painel': {
+      id: '/_authenticated/clinica-painel'
+      path: '/clinica-painel'
+      fullPath: '/clinica-painel'
+      preLoaderRoute: typeof AuthenticatedClinicaPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clinica-portal': {
       id: '/_authenticated/clinica-portal'
       path: '/clinica-portal'
@@ -3015,6 +3048,13 @@ declare module '@tanstack/react-router' {
       path: '/clinica-vacinas'
       fullPath: '/clinica-vacinas'
       preLoaderRoute: typeof AuthenticatedClinicaVacinasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica-veterinarios': {
+      id: '/_authenticated/clinica-veterinarios'
+      path: '/clinica-veterinarios'
+      fullPath: '/clinica-veterinarios'
+      preLoaderRoute: typeof AuthenticatedClinicaVeterinariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinica-whatsapp': {
@@ -4241,10 +4281,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClinicaInternacaoRoute: typeof AuthenticatedClinicaInternacaoRoute
   AuthenticatedClinicaInternacaoHistoricoRoute: typeof AuthenticatedClinicaInternacaoHistoricoRoute
   AuthenticatedClinicaOfflineRoute: typeof AuthenticatedClinicaOfflineRoute
+  AuthenticatedClinicaPainelRoute: typeof AuthenticatedClinicaPainelRoute
   AuthenticatedClinicaPortalRoute: typeof AuthenticatedClinicaPortalRoute
   AuthenticatedClinicaProntuarioRoute: typeof AuthenticatedClinicaProntuarioRoute
   AuthenticatedClinicaReforcosRoute: typeof AuthenticatedClinicaReforcosRoute
   AuthenticatedClinicaVacinasRoute: typeof AuthenticatedClinicaVacinasRoute
+  AuthenticatedClinicaVeterinariosRoute: typeof AuthenticatedClinicaVeterinariosRoute
   AuthenticatedClinicaWhatsappRoute: typeof AuthenticatedClinicaWhatsappRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConferenciaOfflineRoute: typeof AuthenticatedConferenciaOfflineRoute
@@ -4438,10 +4480,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClinicaInternacaoHistoricoRoute:
     AuthenticatedClinicaInternacaoHistoricoRoute,
   AuthenticatedClinicaOfflineRoute: AuthenticatedClinicaOfflineRoute,
+  AuthenticatedClinicaPainelRoute: AuthenticatedClinicaPainelRoute,
   AuthenticatedClinicaPortalRoute: AuthenticatedClinicaPortalRoute,
   AuthenticatedClinicaProntuarioRoute: AuthenticatedClinicaProntuarioRoute,
   AuthenticatedClinicaReforcosRoute: AuthenticatedClinicaReforcosRoute,
   AuthenticatedClinicaVacinasRoute: AuthenticatedClinicaVacinasRoute,
+  AuthenticatedClinicaVeterinariosRoute: AuthenticatedClinicaVeterinariosRoute,
   AuthenticatedClinicaWhatsappRoute: AuthenticatedClinicaWhatsappRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConferenciaOfflineRoute: AuthenticatedConferenciaOfflineRoute,

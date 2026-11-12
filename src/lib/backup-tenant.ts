@@ -23,6 +23,7 @@ const TABELAS_COM_TENANT = [
   "auditoria",
   "banco_extrato_linhas",
   "banco_movimentos",
+  "bulario_favoritos",
   "bulario_notas",
   "caixa_movimentos",
   "caixas",

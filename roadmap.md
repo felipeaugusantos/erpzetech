@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Clínica: painel próprio (/clinica-painel, gestão), visão por veterinário (/clinica-veterinarios), favoritos do bulário com dose e validade (bulário e prontuário) e receita impressa com logo e cor da empresa. Typecheck e 63 testes OK; telas não vistas com sessão real (empresa de teste sem clínica). PDF baixado ainda sem logo. Não publicado.
+
 - [x] Modernizar gráficos do Dashboard: barras arredondadas, valores exatos e linha de faturamento integrada ao período; 23 testes passaram, conta autenticada confirmou R$ 1.224,00 em 18/10 e 2 pedidos aprovados, computador e celular sem transbordamento ou erros, build OK. Não publicado.
 
 - [x] Converter embalagens na importação da nota: campo Unidades por embalagem, fator automático quando a unidade de compra cadastrada corresponde à nota, prévia de 3 × 6 = 18 UN e custo proporcional; 14 testes passaram, prévia autenticada e celular conferidos, build OK. Nenhuma compra gravada nem estoque existente corrigido; não publicado.

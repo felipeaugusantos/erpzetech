@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
+import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,8 @@ function Bulario() {
         title="Bulário veterinário"
         description="Produtos veterinários registrados no MAPA. Consulta de referência: não substitui a bula nem o juízo do veterinário."
       />
+
+      <ListaFavoritosBulario />
 
       {vazia ? (
         <EmptyState
