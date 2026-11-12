@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Lock, Plus, Printer, Search, TrendingUp } from "luc
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -64,11 +65,15 @@ export const Route = createFileRoute("/_authenticated/clinica-exames")({
   }),
   head: () => ({
     meta: [
-      { title: "Exames — EZRA ERP" },
+      { title: "Exames e laudos — ERP Ze Tech" },
       {
         name: "description",
-        content: "Resultados de exames do paciente: hemograma, bioquímica, urina e outros.",
+        content: "Resultados de exames do paciente e importação de laudos PDF com conferência veterinária.",
       },
+      { property: "og:title", content: "Exames e laudos — ERP Ze Tech" },
+      { property: "og:description", content: "Exames do paciente e leitura de laudos digitais com referências absolutas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ExamesModulo,
@@ -857,6 +862,21 @@ function Formulario({ petId, exame }: { petId: string; exame: ExameClinico }) {
       <div className="flex flex-wrap gap-2">
         {aberto && (
           <>
+            <ImportarLaudoPdf exame={exame} disabled={ocupado} onAplicar={(linhas, laudo) => {
+              setDig(atual => {
+                const novo = { ...atual };
+                for (const { campo, item } of linhas) {
+                  const anterior = novo[campo.id] ?? { valor: "", nota: "", min: "", max: "" };
+                  novo[campo.id] = { ...anterior,
+                    ...(campo.forma === "numero" ? { valor: String(item.valor) } : {}),
+                    ...(item.minimo !== null ? { min: String(item.minimo), max: String(item.maximo) } : {}),
+                  };
+                }
+                return novo;
+              });
+              if (laudo.coleta) setColeta(laudo.coleta);
+              toast.success("Rascunho preenchido. Confira e salve o exame.");
+            }} />
             <Button onClick={() => salvar.mutate()} disabled={ocupado}>
               Salvar
             </Button>
