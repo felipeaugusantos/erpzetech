@@ -57,7 +57,7 @@ function ReceitasModulo() {
 }
 
 function Receitas() {
-  const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoAtalho("30dias"));
+  const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoAtalho("30d"));
   const [filtro, setFiltro] = useState("");
   const valido = /^\d{4}-\d{2}-\d{2}$/.test(periodo.de) && /^\d{4}-\d{2}-\d{2}$/.test(periodo.ate);
 

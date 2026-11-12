@@ -81,7 +81,7 @@ function AgendaModulo() {
 
 function AgendaExames() {
   const qc = useQueryClient();
-  const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoAtalho("7dias"));
+  const [periodo, setPeriodo] = useState<Periodo>(() => periodoDoAtalho("7d"));
   const [novo, setNovo] = useState(false);
   const valido = /^\d{4}-\d{2}-\d{2}$/.test(periodo.de) && /^\d{4}-\d{2}-\d{2}$/.test(periodo.ate);
 
