@@ -3,11 +3,14 @@ import { Printer } from "lucide-react";
 import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
+import { useModelosEtiqueta } from "@/lib/etiqueta-modelo-dados";
+import { ehModeloProprio } from "@/lib/etiqueta-modelo";
 import { enviarCrusQz, listarImpressorasQz, type ApiAssinaturaQz } from "@/lib/etiqueta-qz";
 import { assinarQz, certificadoQz } from "@/lib/etiqueta-qz.functions";
 import {
   LINGUAGENS_ETIQUETA,
   bytesEtiquetas,
+  cabeNaEtiqueta,
   comandosEtiquetas,
   type ImpressoraEtiqueta,
   type LinguagemEtiqueta,
@@ -32,7 +35,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -79,7 +84,7 @@ export function EtiquetaProdutoDialog({
   useEffect(() => {
     try {
       const salvo = localStorage.getItem(CHAVE_MODELO);
-      if (salvo && modeloEtiqueta(salvo)) setModeloId(salvo);
+      if (salvo && (modeloEtiqueta(salvo) || ehModeloProprio(salvo))) setModeloId(salvo);
       const m = localStorage.getItem(CHAVE_MODO)?.split("|");
       if (m && ["driver", "zpl", "tspl"].includes(m[0]!)) setModo(m[0] as Modo);
       if (m?.[1] === "300") setDpi(300);
@@ -94,7 +99,12 @@ export function EtiquetaProdutoDialog({
     }
   }, []);
 
-  const modelo = modeloEtiqueta(modeloId)!;
+  const proprios = useModelosEtiqueta().data ?? [];
+  // modelo salvo que a empresa excluiu: volta para o padrão
+  const modelo =
+    modeloEtiqueta(modeloId) ??
+    proprios.find((p) => p.modelo.id === modeloId)?.modelo ??
+    modeloEtiqueta("t-50x30")!;
   const folha = modelo.tipo === "folha";
   // A folha A4 só sai pelo driver; o arquivo de comandos é para etiqueta térmica.
   const modoEfetivo: Modo = folha ? "driver" : modo;
@@ -112,6 +122,16 @@ export function EtiquetaProdutoDialog({
       setOcupado(false);
     }
   }
+
+  const naoCabe =
+    modoEfetivo !== "driver" &&
+    !!itens &&
+    cabeNaEtiqueta(
+      modelo,
+      itens,
+      { linguagem: modoEfetivo, dpi },
+      { mostrarPreco: preco, mostrarCodigo: codigo },
+    ).some((c) => !c);
 
   async function imprimir() {
     if (!itens) return;
@@ -216,11 +236,24 @@ export function EtiquetaProdutoDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MODELOS_ETIQUETA.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.nome}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectLabel>Modelos prontos</SelectLabel>
+                  {MODELOS_ETIQUETA.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                {proprios.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Modelos da empresa</SelectLabel>
+                    {proprios.map((p) => (
+                      <SelectItem key={p.modelo.id} value={p.modelo.id}>
+                        {p.modelo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -326,6 +359,12 @@ export function EtiquetaProdutoDialog({
             <Label htmlFor="et-cod">Mostrar código de barras</Label>
             <Switch id="et-cod" checked={codigo} onCheckedChange={setCodigo} />
           </div>
+          {naoCabe && (
+            <p className="text-xs text-destructive">
+              O conteúdo não cabe nesse tamanho de etiqueta, nem com as letras menores. Tire algum
+              campo, desligue o preço ou o código de barras, ou escolha uma etiqueta maior.
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             {modoEfetivo !== "driver" && entrega === "qz"
               ? "Envio direto pelo QZ Tray, instalado e aberto neste computador (qz.io). Se o servidor não tiver o certificado configurado, ele pede autorização para este site. Faça um teste com uma etiqueta."

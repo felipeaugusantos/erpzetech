@@ -23,7 +23,35 @@ export type ModeloEtiqueta = {
   /** Espaço entre etiquetas (horizontal e vertical), em mm. */
   espacoHMm?: number;
   espacoVMm?: number;
+  /** Campos na ordem em que saem; sem isso vale `CAMPOS_PADRAO`. Modelos próprios da empresa sempre trazem. */
+  campos?: CampoEtiqueta[];
+  /** Só modelo próprio da empresa: id da linha no banco. */
+  proprio?: boolean;
 };
+
+/** O que cada etiqueta pode mostrar. `extra` é validade e lote; `codigo` é o código de barras com o número. */
+export type TipoCampoEtiqueta = "descricao" | "extra" | "preco" | "codigo";
+export type TamanhoCampo = "p" | "m" | "g";
+export type CampoEtiqueta = { campo: TipoCampoEtiqueta; tamanho?: TamanhoCampo };
+
+export const TIPOS_CAMPO_ETIQUETA: { id: TipoCampoEtiqueta; nome: string }[] = [
+  { id: "descricao", nome: "Descrição do produto" },
+  { id: "extra", nome: "Validade e lote" },
+  { id: "preco", nome: "Preço" },
+  { id: "codigo", nome: "Código de barras" },
+];
+
+export const CAMPOS_PADRAO: CampoEtiqueta[] = [
+  { campo: "descricao" },
+  { campo: "extra" },
+  { campo: "preco" },
+  { campo: "codigo" },
+];
+
+/** Fator de tamanho da letra (o código de barras não usa: ocupa o espaço que sobra). */
+export const FATOR_TAMANHO: Record<TamanhoCampo, number> = { p: 0.8, m: 1, g: 1.3 };
+export const fatorDoCampo = (c: CampoEtiqueta) => FATOR_TAMANHO[c.tamanho ?? "m"];
+export const camposDoModelo = (m: ModeloEtiqueta): CampoEtiqueta[] => m.campos ?? CAMPOS_PADRAO;
 
 export const MODELOS_ETIQUETA: ModeloEtiqueta[] = [
   { id: "t-40x25", nome: "Térmica 40 × 25 mm", tipo: "termica", larguraMm: 40, alturaMm: 25 },
@@ -111,16 +139,32 @@ export const desenhavel = (c: string) => c.length > 0 && /^[\x20-\x7e]+$/.test(c
 function corpoEtiqueta(m: ModeloEtiqueta, d: DadosEtiqueta, o: OpcoesEtiqueta): string {
   const pequena = m.alturaMm < 30;
   const codigo = (d.codigo ?? "").trim();
-  const barras = o.mostrarCodigo !== false && desenhavel(codigo);
   const extras = [d.validade && `Val ${d.validade}`, d.lote && `Lote ${d.lote}`]
     .filter(Boolean)
     .join(" · ");
   const alturaBarras = Math.max(6, m.alturaMm * (pequena ? 0.3 : 0.32));
+  const pt = (base: number, c: CampoEtiqueta) =>
+    `font-size:${(base * fatorDoCampo(c)).toFixed(1)}pt`;
+  const partes = camposDoModelo(m).map((c) => {
+    switch (c.campo) {
+      case "descricao":
+        return `<div class="desc" style="${pt(pequena ? 7 : 9, c)}">${escapar(d.descricao)}</div>`;
+      case "extra":
+        return extras
+          ? `<div class="ext" style="${pt(pequena ? 6 : 7, c)}">${escapar(extras)}</div>`
+          : "";
+      case "preco":
+        return o.mostrarPreco !== false && d.preco != null
+          ? `<div class="preco" style="${pt(pequena ? 11 : 14, c)}">${escapar(precoEtiqueta(d.preco))}${d.unidade ? `<small> / ${escapar(d.unidade)}</small>` : ""}</div>`
+          : "";
+      case "codigo":
+        return o.mostrarCodigo !== false && desenhavel(codigo)
+          ? `<div class="cod" style="height:${alturaBarras.toFixed(1)}mm">${svgDoCodigo(codigo, 40)}</div><div class="num">${escapar(codigo)}</div>`
+          : "";
+    }
+  });
   return `<div class="e${pequena ? " p" : ""}">
-  <div class="desc">${escapar(d.descricao)}</div>
-  ${extras ? `<div class="ext">${escapar(extras)}</div>` : ""}
-  ${o.mostrarPreco !== false && d.preco != null ? `<div class="preco">${escapar(precoEtiqueta(d.preco))}${d.unidade ? `<small> / ${escapar(d.unidade)}</small>` : ""}</div>` : ""}
-  ${barras ? `<div class="cod" style="height:${alturaBarras.toFixed(1)}mm">${svgDoCodigo(codigo, 40)}</div><div class="num">${escapar(codigo)}</div>` : ""}
+  ${partes.filter(Boolean).join("\n  ")}
 </div>`;
 }
 
@@ -128,16 +172,14 @@ const ESTILO_ETIQUETA = `
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Arial, sans-serif; color: #000; }
   .e { width: 100%; height: 100%; padding: 1.2mm 1.5mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
-  .desc { font-size: 9pt; font-weight: 700; line-height: 1.1; max-height: 2.3em; overflow: hidden; }
-  .ext { font-size: 7pt; }
-  .preco { font-size: 14pt; font-weight: 800; line-height: 1; }
-  .preco small { font-size: 7pt; font-weight: 400; }
+  .desc { font-weight: 700; line-height: 1.1; max-height: 2.3em; overflow: hidden; }
+  .preco { font-weight: 800; line-height: 1; }
+  .preco small { font-size: 0.5em; font-weight: 400; }
   .cod { width: 80%; margin: 0 auto; }
   .cod svg { width: 100%; height: 100%; display: block; }
   .num { font-family: monospace; font-size: 7pt; line-height: 1; }
-  .p .desc { font-size: 7pt; max-height: 2.2em; }
-  .p .preco { font-size: 11pt; }
-  .p .ext, .p .num { font-size: 6pt; }`;
+  .p .desc { max-height: 2.2em; }
+  .p .num { font-size: 6pt; }`;
 
 /** Expande as vias de cada item numa lista de etiquetas (limite de 500 por item). */
 export function expandirEtiquetas(itens: DadosEtiqueta[]): DadosEtiqueta[] {

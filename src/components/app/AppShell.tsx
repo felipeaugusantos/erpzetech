@@ -387,6 +387,7 @@ const groups: Group[] = [
       { label: "Certificado e NFS-e", to: "/certificado-nfse", icon: ShieldCheck },
       { label: "Usuários e perfis", to: "/usuarios", icon: ShieldCheck },
       { label: "Menu da empresa", to: "/menu-personalizado", icon: LayoutGrid },
+      { label: "Modelos de etiqueta", to: "/etiqueta-modelos", icon: Tag },
       { label: "Importação por planilha", to: "/importacao", icon: FileText },
       { label: "Operadores de caixa", to: "/operadores", icon: ShieldCheck },
       { label: "Maquininha (TEF)", to: "/tef", icon: Wallet },
@@ -683,6 +684,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
               // o menu da empresa é organizado pela administração
               if (i.to === "/menu-personalizado") return souGestao;
+              // os modelos de etiqueta da empresa são da administração
+              if (i.to === "/etiqueta-modelos") return souGestao;
               // as regras fiscais da empresa são da administração
               if (i.to === "/fiscal-regras") return souGestao;
               // ajustar os tributos aproximados: administração e financeiro (o banco confere de novo)

@@ -58,6 +58,16 @@ openssl req -x509 -newkey rsa:2048 -sha512 -nodes -days 3650 -subj "/CN=ERP Ze T
 - A chave é única do sistema (não por empresa). Se vazar, gere outra e atualize o certificado em cada QZ Tray.
 - Não foi testado com o QZ Tray real; os testes conferem as regras de assinatura, a ligação no cliente e que a assinatura RSA-SHA512 confere com a chave pública.
 
+## Fase 3 (feita): modelos próprios por empresa
+
+- Tela **Modelos de etiqueta** (Administração, só administrador e gestor): cria, edita, duplica e exclui modelos. Cada modelo tem nome, tipo (térmica ou folha A4), largura e altura, e para folha colunas, linhas, margens e espaços (a grade precisa caber na A4). Até 30 modelos por empresa; nome único.
+- Campos: descrição, validade e lote, preço e código de barras. Cada um liga ou desliga, muda de posição (sobe e desce) e, menos o código de barras, tem tamanho de letra pequeno, médio ou grande. Há prévia com dados de exemplo.
+- Os modelos aparecem no diálogo de impressão, em "Modelos da empresa", e valem nos três formatos (driver, ZPL e TSPL). Modelo excluído: quem o tinha escolhido volta ao padrão.
+- Nos formatos de impressora, se o conteúdo não cabe, o gerador encolhe as letras em até dois passos; se ainda não couber, o diálogo avisa antes de imprimir (tirar campo, desligar preço ou usar etiqueta maior).
+- Banco: migração `drizzle/migrations/0088_etiqueta_modelos.sql` (tabela sem acesso direto, só por `etiqueta_modelos_listar`, `etiqueta_modelo_salvar` e `etiqueta_modelo_excluir`; leitura para a empresa, gravação só da administração; trava do salão e do contador). O banco confere formato, medidas e tamanho; o app valida em detalhe (`src/lib/etiqueta-modelo.ts`). Teste: `supabase/ci/etiqueta-modelos.sql`. A tabela entrou no catálogo do backup por cliente.
+- **A migração 0088 precisa ser aplicada** para a tela funcionar; sem ela a lista de modelos da empresa fica vazia e a tela de edição mostra o aviso.
+- Limite: a prévia é o desenho do driver; as impressoras ZPL/TSPL usam as fontes delas. Ficou fora o posicionamento livre (arrastar) e o logotipo.
+
 ## Fases seguintes (a decidir)
 
-3. Modelos próprios por empresa (tamanho e campos), guardados como configuração.
+7. Balança/granel e etiqueta do pet shop (dependem de definir os dados).

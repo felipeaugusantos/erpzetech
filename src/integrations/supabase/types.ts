@@ -8267,6 +8267,44 @@ export type Database = {
           },
         ]
       }
+      etiqueta_modelos: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiqueta_modelos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_personalizado: {
         Row: {
           config: Json
@@ -18462,6 +18500,19 @@ export type Database = {
       lr_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       lr_veiculo_salvar: { Args: { p_dados: Json }; Returns: string }
       manufatura_liberada: { Args: never; Returns: boolean }
+      etiqueta_modelo_excluir: { Args: { p_id: string }; Returns: undefined }
+      etiqueta_modelo_salvar: {
+        Args: { p_config: Json; p_id: string; p_nome: string }
+        Returns: string
+      }
+      etiqueta_modelos_listar: {
+        Args: never
+        Returns: {
+          config: Json
+          id: string
+          nome: string
+        }[]
+      }
       menu_personalizado_obter: { Args: never; Returns: Json }
       menu_personalizado_restaurar: { Args: never; Returns: undefined }
       menu_personalizado_salvar: { Args: { p_config: Json }; Returns: string }

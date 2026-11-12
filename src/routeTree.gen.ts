@@ -73,6 +73,7 @@ import { Route as AuthenticatedEntregasMotoristaRouteImport } from './routes/_au
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedEstoqueLotesRouteImport } from './routes/_authenticated/estoque-lotes'
 import { Route as AuthenticatedEstoqueMovimentosRouteImport } from './routes/_authenticated/estoque-movimentos'
+import { Route as AuthenticatedEtiquetaModelosRouteImport } from './routes/_authenticated/etiqueta-modelos'
 import { Route as AuthenticatedExtratoReceberRouteImport } from './routes/_authenticated/extrato-receber'
 import { Route as AuthenticatedFechamentoOperadorRouteImport } from './routes/_authenticated/fechamento-operador'
 import { Route as AuthenticatedFilialExtraRouteImport } from './routes/_authenticated/filial-extra'
@@ -575,6 +576,12 @@ const AuthenticatedEstoqueMovimentosRoute =
   AuthenticatedEstoqueMovimentosRouteImport.update({
     id: '/estoque-movimentos',
     path: '/estoque-movimentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEtiquetaModelosRoute =
+  AuthenticatedEtiquetaModelosRouteImport.update({
+    id: '/etiqueta-modelos',
+    path: '/etiqueta-modelos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedExtratoReceberRoute =
@@ -1478,6 +1485,7 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
+  '/etiqueta-modelos': typeof AuthenticatedEtiquetaModelosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
@@ -1691,6 +1699,7 @@ export interface FileRoutesByTo {
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
+  '/etiqueta-modelos': typeof AuthenticatedEtiquetaModelosRoute
   '/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/filial-extra': typeof AuthenticatedFilialExtraRoute
@@ -1906,6 +1915,7 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/estoque-lotes': typeof AuthenticatedEstoqueLotesRoute
   '/_authenticated/estoque-movimentos': typeof AuthenticatedEstoqueMovimentosRoute
+  '/_authenticated/etiqueta-modelos': typeof AuthenticatedEtiquetaModelosRoute
   '/_authenticated/extrato-receber': typeof AuthenticatedExtratoReceberRoute
   '/_authenticated/fechamento-operador': typeof AuthenticatedFechamentoOperadorRoute
   '/_authenticated/filial-extra': typeof AuthenticatedFilialExtraRoute
@@ -2121,6 +2131,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/estoque-lotes'
     | '/estoque-movimentos'
+    | '/etiqueta-modelos'
     | '/extrato-receber'
     | '/fechamento-operador'
     | '/filial-extra'
@@ -2334,6 +2345,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/estoque-lotes'
     | '/estoque-movimentos'
+    | '/etiqueta-modelos'
     | '/extrato-receber'
     | '/fechamento-operador'
     | '/filial-extra'
@@ -2548,6 +2560,7 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/estoque-lotes'
     | '/_authenticated/estoque-movimentos'
+    | '/_authenticated/etiqueta-modelos'
     | '/_authenticated/extrato-receber'
     | '/_authenticated/fechamento-operador'
     | '/_authenticated/filial-extra'
@@ -3169,6 +3182,13 @@ declare module '@tanstack/react-router' {
       path: '/estoque-movimentos'
       fullPath: '/estoque-movimentos'
       preLoaderRoute: typeof AuthenticatedEstoqueMovimentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/etiqueta-modelos': {
+      id: '/_authenticated/etiqueta-modelos'
+      path: '/etiqueta-modelos'
+      fullPath: '/etiqueta-modelos'
+      preLoaderRoute: typeof AuthenticatedEtiquetaModelosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/extrato-receber': {
@@ -4267,6 +4287,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedEstoqueLotesRoute: typeof AuthenticatedEstoqueLotesRoute
   AuthenticatedEstoqueMovimentosRoute: typeof AuthenticatedEstoqueMovimentosRoute
+  AuthenticatedEtiquetaModelosRoute: typeof AuthenticatedEtiquetaModelosRoute
   AuthenticatedExtratoReceberRoute: typeof AuthenticatedExtratoReceberRoute
   AuthenticatedFechamentoOperadorRoute: typeof AuthenticatedFechamentoOperadorRoute
   AuthenticatedFilialExtraRoute: typeof AuthenticatedFilialExtraRoute
@@ -4464,6 +4485,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedEstoqueLotesRoute: AuthenticatedEstoqueLotesRoute,
   AuthenticatedEstoqueMovimentosRoute: AuthenticatedEstoqueMovimentosRoute,
+  AuthenticatedEtiquetaModelosRoute: AuthenticatedEtiquetaModelosRoute,
   AuthenticatedExtratoReceberRoute: AuthenticatedExtratoReceberRoute,
   AuthenticatedFechamentoOperadorRoute: AuthenticatedFechamentoOperadorRoute,
   AuthenticatedFilialExtraRoute: AuthenticatedFilialExtraRoute,

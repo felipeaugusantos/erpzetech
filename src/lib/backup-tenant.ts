@@ -74,6 +74,7 @@ const TABELAS_COM_TENANT = [
   "estoque_lotes",
   "estoque_movimentacoes",
   "estoques",
+  "etiqueta_modelos",
   "faixas_desconto",
   "filiais",
   "financeiro_baixas",
