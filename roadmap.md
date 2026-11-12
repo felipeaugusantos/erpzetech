@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Painel da clínica: lista de pacientes com visitas e exames, somente acompanhamento de gestão, sem expor texto clínico; conferir permissões e tela com conta da clínica.
+
 - [x] Clínica: painel próprio (/clinica-painel, gestão), visão por veterinário (/clinica-veterinarios), favoritos do bulário com dose e validade (bulário e prontuário) e receita impressa com logo e cor da empresa. Typecheck e 63 testes OK; telas não vistas com sessão real (empresa de teste sem clínica). PDF baixado ainda sem logo. Não publicado.
 
 - [x] Modernizar gráficos do Dashboard: barras arredondadas, valores exatos e linha de faturamento integrada ao período; 23 testes passaram, conta autenticada confirmou R$ 1.224,00 em 18/10 e 2 pedidos aprovados, computador e celular sem transbordamento ou erros, build OK. Não publicado.
