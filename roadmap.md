@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Registrar as referências enviadas no modelo Hemograma da clínica como observações de conferência para cães e gatos; a imagem omite espécie e unidades, portanto não ativar comparação automática até validação veterinária. Não registrar resultados ou observação clínica do paciente.
+
 - [x] Preencher rua, bairro, cidade e UF automaticamente pelo CEP no cadastro do tutor, preservando número e complemento e permitindo edição manual. Consulta real do CEP 01001-000 conferida na conta da clínica; sucesso e erro controlados verificados, sem gravar registros. Treze testes passaram; não publicado.
 
 - [x] Organizar o tutor novo pela referência: nome em destaque e abas Endereço e contatos, Documentos e Observações; apelido, e-mail, WhatsApp separado e inscrição estadual nos campos existentes. Dez testes passaram; conferido na conta da clínica em computador e celular e envio interceptado, sem criar cadastros fictícios. Sem novas regras financeiras; não publicado.
