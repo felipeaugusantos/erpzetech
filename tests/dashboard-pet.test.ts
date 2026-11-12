@@ -101,7 +101,7 @@ test("serviços mais vendidos ordena por faturamento e ignora o que não foi con
 });
 
 test("atendimentos por dia completa os dias sem atendimento", () => {
-  assert.deepEqual(atendimentosPorDia(lista, "2026-10-18", "2026-10-20"), [
+  assert.deepEqual(atendimentosPorDia(lista, "2026-10-18", "2026-10-20").map(({ dia, atendimentos }) => ({ dia, atendimentos })), [
     { dia: "2026-10-18", atendimentos: 0 },
     { dia: "2026-10-19", atendimentos: 1 },
     { dia: "2026-10-20", atendimentos: 1 },
@@ -175,4 +175,16 @@ test("dashboard da clínica: os atalhos da agenda valem para a clínica também 
   );
   assert.equal((fonte.match(/to="\/pet-agenda"/g) ?? []).length, 2);
   assert.equal(/petshop &&/.test(fonte), false, "os atalhos não dependem do pet shop");
+});
+
+test("série por dia soma o faturamento dos concluídos (centavos preservados)", async () => {
+  const { atendimentosPorDia } = await import("../src/lib/dashboard-pet.ts");
+  const ags = [
+    { id: "1", inicio: "2026-11-10T13:00:00Z", situacao: "pronto", cliente_id: "c", itens: [{ preco_aplicado: 59.9, servico: "Banho" }] },
+    { id: "2", inicio: "2026-11-10T15:00:00Z", situacao: "retirado", cliente_id: "c", itens: [{ preco_aplicado: 40.15, servico: "Tosa" }] },
+    { id: "3", inicio: "2026-11-10T16:00:00Z", situacao: "faltou", cliente_id: "c", itens: [{ preco_aplicado: 100, servico: "Banho" }] },
+  ];
+  const s = atendimentosPorDia(ags, "2026-11-10", "2026-11-11");
+  assert.deepEqual(s[0], { dia: "2026-11-10", atendimentos: 2, faturamento: 100.05 });
+  assert.deepEqual(s[1], { dia: "2026-11-11", atendimentos: 0, faturamento: 0 });
 });

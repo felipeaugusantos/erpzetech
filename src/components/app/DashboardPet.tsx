@@ -11,7 +11,19 @@ import {
   Syringe,
   Wallet,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { DashboardChartTooltip } from "@/components/app/DashboardChartTooltip";
 
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +50,10 @@ import {
   type PecaDashboard,
 } from "@/lib/dashboard-personalizado";
 import { useDashboardPersonalizado } from "@/lib/dashboard-personalizado-dados";
-import { brl, num } from "@/lib/format";
+import { brl, dateBR, num } from "@/lib/format";
 import { isoBrasilia } from "@/lib/fuso";
-import { usePeriodo } from "@/lib/periodo";
+import { ATALHOS_PERIODO, atalhoAtivo, periodoDoAtalho, usePeriodo } from "@/lib/periodo";
+import { cn } from "@/lib/utils";
 
 type LinhaAgenda = {
   id: string;
@@ -73,7 +86,7 @@ const hora = (inicio: string) =>
  */
 export function DashboardPet({ clinica }: { clinica: boolean }) {
   const hoje = isoBrasilia();
-  const { periodo, setDe, setAte } = usePeriodo();
+  const { periodo, setPeriodo, setDe, setAte } = usePeriodo();
   // 12 meses para o retorno dos clientes, e mais para trás se o período escolhido começar antes disso
   const umAno = somaDiasISO(hoje, -365);
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(periodo.de) && periodo.de < umAno ? periodo.de : umAno;
@@ -257,19 +270,28 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
       largura: "lg:col-span-2",
       conteudo: (
         <div className="panel p-4">
-          <h2 className="font-display text-sm font-semibold">Atendimentos concluídos por dia</h2>
-          <div className="mt-4 h-64">
+          <h2 className="font-display text-sm font-semibold">Faturamento dos atendimentos</h2>
+          <p className="text-xs text-muted-foreground">Atendimentos concluídos no período</p>
+          <div className="mt-4 h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={porDia} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)} />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={70} tickFormatter={(v: number) => brl(v)} />
+                <Tooltip content={<DashboardChartTooltip moeda />} labelFormatter={(d) => dateBR(String(d))} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
+                <Line type="monotone" dataKey="faturamento" name="Faturamento" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <h3 className="mt-4 font-display text-sm font-semibold">Atendimentos por dia</h3>
+          <div className="mt-2 h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={porDia}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="dia"
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)}
-                />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="atendimentos" name="Atendimentos" fill="var(--chart-2)" />
+                <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <Tooltip content={<DashboardChartTooltip />} labelFormatter={(d) => dateBR(String(d))} cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }} />
+                <Bar dataKey="atendimentos" name="Atendimentos" fill="var(--chart-2)" radius={[8, 8, 0, 0]} maxBarSize={36} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -362,8 +384,34 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
       />
 
       <div className="panel mb-4 p-4">
-        <h2 className="mb-3 font-display text-sm font-semibold">Período de referência</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-sm font-semibold">Período de referência</h2>
+          <div role="group" aria-label="Atalhos de período" className="inline-flex flex-wrap gap-1 rounded-lg bg-secondary p-1">
+            {ATALHOS_PERIODO.map((a) => {
+              const ativo = atalhoAtivo(periodo) === a.id;
+              return (
+                <Button
+                  key={a.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={ativo}
+                  onClick={() => setPeriodo(periodoDoAtalho(a.id))}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    ativo ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background hover:text-foreground",
+                  )}
+                >
+                  {a.rotulo}
+                </Button>
+              );
+            })}
+            <span className={cn("rounded-md px-3 py-1.5 text-xs font-medium", atalhoAtivo(periodo) === null ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+              Personalizado
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
           <div>
             <Label>De</Label>
             <Input type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
