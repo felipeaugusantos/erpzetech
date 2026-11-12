@@ -5,6 +5,8 @@ import { ean13Modulos, ean13Valido } from "../src/lib/ean13.ts";
 import { eanInterno } from "../src/lib/ean.ts";
 import {
   MODELOS_ETIQUETA,
+  dataEtiqueta,
+  etiquetaDoProduto,
   expandirEtiquetas,
   htmlEtiquetas,
   modeloEtiqueta,
@@ -78,4 +80,37 @@ test("os modelos têm medidas coerentes e a grade cabe na A4", () => {
     assert.ok(alt <= 297, `${m.id} altura ${alt}`);
   }
   assert.throws(() => htmlEtiquetas(modeloEtiqueta("t-40x25")!, []));
+});
+
+test("etiqueta do produto usa o resumo, o código de barras e a data em dia/mês/ano", () => {
+  const e = etiquetaDoProduto(
+    {
+      descricao: "Ração Premium Cães Adultos 15 kg",
+      descricao_resumida: "Ração Premium 15kg",
+      codigo_barras: null,
+      codigo_interno: "P-77",
+      preco_venda: "189.9",
+      unidade: "UN",
+      unidade_venda: "SC",
+    },
+    { validade: "2027-03-09", lote: "L42", copias: 3 },
+  );
+  assert.deepEqual(e, {
+    descricao: "Ração Premium 15kg",
+    codigo: "P-77",
+    preco: 189.9,
+    unidade: "SC",
+    validade: "09/03/2027",
+    lote: "L42",
+    copias: 3,
+  });
+  assert.equal(dataEtiqueta(null), null);
+  assert.equal(dataEtiqueta("lixo"), null);
+});
+
+test("validade e lote aparecem na etiqueta impressa", () => {
+  const html = htmlEtiquetas(modeloEtiqueta("t-50x30")!, [
+    { descricao: "Vacina", validade: "09/03/2027", lote: "L42" },
+  ]);
+  assert.ok(html.includes("Val 09/03/2027 · Lote L42"));
 });

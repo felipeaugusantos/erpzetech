@@ -10,7 +10,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { ImagemProduto, MiniaturaProduto } from "@/components/app/ImagemProduto";
 import { GradeTamanhos } from "@/components/app/GradeTamanhos";
 import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
-import type { DadosEtiqueta } from "@/lib/etiqueta";
+import { etiquetaDoProduto, type DadosEtiqueta } from "@/lib/etiqueta";
 import { ClassificacaoIbsCbs } from "@/components/app/ClassificacaoIbsCbs";
 import { AvisoNcm } from "@/components/app/AvisoNcm";
 import { SugestaoFiscal } from "@/components/app/SugestaoFiscal";
@@ -188,7 +188,7 @@ function Produtos() {
   }, [novoDoBulario, fabDoBulario, session]);
   // Texto da margem enquanto o usuário digita; null = mostrar a margem calculada.
   const [margemTxt, setMargemTxt] = useState<string | null>(null);
-  const [etiqueta, setEtiqueta] = useState<DadosEtiqueta | null>(null);
+  const [etiqueta, setEtiqueta] = useState<DadosEtiqueta[] | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["produtos"],
@@ -562,14 +562,7 @@ function Produtos() {
                           variant="ghost"
                           size="icon"
                           aria-label="Imprimir etiqueta"
-                          onClick={() =>
-                            setEtiqueta({
-                              descricao: p.descricao_resumida || p.descricao,
-                              codigo: p.codigo_barras || p.codigo_interno,
-                              preco: Number(p.preco_venda),
-                              unidade: p.unidade_venda || p.unidade,
-                            })
-                          }
+                          onClick={() => setEtiqueta([etiquetaDoProduto(p)])}
                         >
                           <Tag className="size-4" />
                         </Button>
@@ -635,7 +628,7 @@ function Produtos() {
         )}
       </div>
 
-      <EtiquetaProdutoDialog produto={etiqueta} onClose={() => setEtiqueta(null)} />
+      <EtiquetaProdutoDialog itens={etiqueta} onClose={() => setEtiqueta(null)} />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">

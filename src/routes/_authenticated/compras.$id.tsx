@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, PackageCheck, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, PackageCheck, Plus, Printer, Search, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ import {
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
 import { DevolucaoCompra } from "@/components/app/DevolucaoCompra";
+import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
+import { etiquetaDoProduto, type DadosEtiqueta } from "@/lib/etiqueta";
 import { NotaEntrada, type NotaEntradaDados } from "@/components/app/NotaEntrada";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +80,7 @@ function CompraDetalhe() {
   const queryClient = useQueryClient();
 
   const [buscaProduto, setBuscaProduto] = useState("");
+  const [etiquetas, setEtiquetas] = useState<DadosEtiqueta[] | null>(null);
   const [cancelarAberto, setCancelarAberto] = useState(false);
   const [alterarAberto, setAlterarAberto] = useState(false);
   const [motivoAlterar, setMotivoAlterar] = useState("");
@@ -126,7 +129,9 @@ function CompraDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compra_itens")
-        .select("*, produtos(codigo_interno, descricao, unidade, unidade_compra, fator_conversao)")
+        .select(
+          "*, produtos(codigo_interno, codigo_barras, descricao, descricao_resumida, preco_venda, unidade, unidade_compra, unidade_venda, fator_conversao)",
+        )
         .eq("compra_id", id)
         .order("created_at");
       if (error) throw error;
@@ -467,6 +472,24 @@ function CompraDetalhe() {
                 }}
               >
                 Editar dados
+              </Button>
+            )}
+            {itens.some((i) => Number(i.quantidade_recebida) > 0 && i.produtos) && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setEtiquetas(
+                    itens
+                      .filter((i) => Number(i.quantidade_recebida) > 0 && i.produtos)
+                      .map((i) =>
+                        etiquetaDoProduto(i.produtos!, {
+                          copias: Math.max(1, Math.round(Number(i.quantidade_recebida))),
+                        }),
+                      ),
+                  )
+                }
+              >
+                <Tag className="size-4" /> Etiquetas do recebido
               </Button>
             )}
             {!["recebido", "cancelado"].includes(compra.situacao) && (
@@ -973,7 +996,9 @@ function CompraDetalhe() {
                   {recebItens.map((r, idx) => {
                     const item = pendentes.find((p) => p.id === r.compra_item_id);
                     const prod = item?.produtos as
-                      { codigo_interno: string; descricao: string } | null | undefined;
+                      | { codigo_interno: string; descricao: string }
+                      | null
+                      | undefined;
                     return (
                       <TableRow key={r.compra_item_id}>
                         <TableCell>
@@ -1148,6 +1173,7 @@ function CompraDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <EtiquetaProdutoDialog itens={etiquetas} onClose={() => setEtiquetas(null)} />
     </div>
   );
 }

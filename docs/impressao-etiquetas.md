@@ -9,8 +9,14 @@
 - Tela: botão de etiqueta em Produtos (`EtiquetaProdutoDialog`), até 500 vias por vez; lembra o último modelo no navegador. Usa o código de barras do produto e, sem ele, o código interno.
 - Limite desta fase: o código de barras sai como imagem vetorial (SVG), não como o gerador nativo da impressora.
 
+## Fase 2 (feita em parte): vários itens, lote e validade
+
+- O diálogo de impressão aceita vários itens, cada um com a sua quantidade (0 a 500; zero tira o item da impressão).
+- `etiquetaDoProduto` monta a etiqueta a partir do cadastro (descrição resumida, código de barras ou interno, preço, unidade de venda) e `dataEtiqueta` formata a validade em dia/mês/ano.
+- Pontos de entrada: **Produtos** (um produto), **Lotes** (um lote, com lote e validade na etiqueta, quantidade inicial igual ao saldo) e **Compras** (botão "Etiquetas do recebido", uma linha por item já recebido, quantidade igual à recebida na unidade de estoque).
+- Ficou para depois: balança/granel (preço por peso e peso na etiqueta) e pet shop (identificação do animal e hotelaria). Dependem de definir quais dados entram na etiqueta; não foram inventados.
+
 ## Fases seguintes (a decidir)
 
-2. Mais origens: etiqueta de validade/lote, balança/granel, pet shop (animal, hotelaria), impressão em lote a partir de compras e estoque.
 3. Modelos próprios por empresa (tamanho e campos), guardados como configuração.
 4. Impressão crua: ZPL (Zebra), TSPL e PPLA (Argox), pelo QZ Tray ou agente local. Depende de saber os modelos de impressora dos clientes e se aceitam instalar um programa.

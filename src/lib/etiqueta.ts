@@ -197,3 +197,35 @@ export function htmlEtiquetas(
   .cel { width: ${modelo.larguraMm}mm; height: ${modelo.alturaMm}mm; overflow: hidden; }
 </style></head><body>${folhas.join("")}</body></html>`;
 }
+
+/** AAAA-MM-DD → DD/MM/AAAA, sem passar por fuso (data de validade não tem hora). */
+export function dataEtiqueta(iso: string | null | undefined): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
+}
+
+export type ProdutoParaEtiqueta = {
+  descricao: string;
+  descricao_resumida?: string | null;
+  codigo_barras?: string | null;
+  codigo_interno?: string | null;
+  preco_venda?: number | string | null;
+  unidade?: string | null;
+  unidade_venda?: string | null;
+};
+
+/** Dados da etiqueta a partir do cadastro do produto; validade, lote e cópias entram em `extra`. */
+export function etiquetaDoProduto(
+  p: ProdutoParaEtiqueta,
+  extra: { validade?: string | null; lote?: string | null; copias?: number } = {},
+): DadosEtiqueta {
+  return {
+    descricao: p.descricao_resumida || p.descricao,
+    codigo: p.codigo_barras || p.codigo_interno || null,
+    preco: p.preco_venda == null ? null : Number(p.preco_venda),
+    unidade: p.unidade_venda || p.unidade || null,
+    validade: dataEtiqueta(extra.validade),
+    lote: extra.lote || null,
+    copias: extra.copias,
+  };
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Printer } from "lucide-react";
+import { toast } from "sonner";
 
 import { abrirImpressao } from "@/lib/imprimir";
 import {
@@ -31,17 +32,22 @@ const CHAVE_MODELO = "etiqueta-modelo";
 
 /** Imprime etiquetas de um produto: térmica (via driver da impressora) ou folha A4 (laser/jato). */
 export function EtiquetaProdutoDialog({
-  produto,
+  itens,
   onClose,
 }: {
-  produto: DadosEtiqueta | null;
+  /** Itens a imprimir; `copias` de cada um é o valor inicial da quantidade. */
+  itens: DadosEtiqueta[] | null;
   onClose: () => void;
 }) {
   const [modeloId, setModeloId] = useState("t-50x30");
-  const [copias, setCopias] = useState("1");
+  const [copias, setCopias] = useState<string[]>([]);
   const [pular, setPular] = useState("0");
   const [preco, setPreco] = useState(true);
   const [codigo, setCodigo] = useState(true);
+
+  useEffect(() => {
+    setCopias((itens ?? []).map((i) => String(i.copias ?? 1)));
+  }, [itens]);
 
   useEffect(() => {
     try {
@@ -56,33 +62,66 @@ export function EtiquetaProdutoDialog({
   const folha = modelo.tipo === "folha";
 
   function imprimir() {
-    if (!produto) return;
-    const n = Math.floor(Number(copias));
-    if (!Number.isFinite(n) || n < 1 || n > 500) return;
+    if (!itens) return;
+    const qtd = copias.map((c) => Math.floor(Number(c)));
+    if (qtd.some((n) => !Number.isFinite(n) || n < 0 || n > 500) || qtd.every((n) => n === 0)) {
+      toast.error("Informe quantidades de 0 a 500, com pelo menos uma etiqueta");
+      return;
+    }
     try {
       localStorage.setItem(CHAVE_MODELO, modeloId);
     } catch {
       /* não é essencial */
     }
     abrirImpressao(
-      htmlEtiquetas(modelo, [{ ...produto, copias: n }], {
-        mostrarPreco: preco,
-        mostrarCodigo: codigo,
-        pular: folha ? Number(pular) || 0 : 0,
-      }),
+      htmlEtiquetas(
+        modelo,
+        itens.map((i, k) => ({ ...i, copias: qtd[k] })).filter((i) => i.copias > 0),
+        {
+          mostrarPreco: preco,
+          mostrarCodigo: codigo,
+          pular: folha ? Number(pular) || 0 : 0,
+        },
+      ),
       700,
       600,
     );
   }
 
   return (
-    <Dialog open={!!produto} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!itens} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Imprimir etiquetas</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{produto?.descricao}</p>
+          <div className="max-h-56 space-y-2 overflow-y-auto">
+            {(itens ?? []).map((i, k) => (
+              <div key={k} className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 text-sm">
+                  <div className="truncate font-medium">{i.descricao}</div>
+                  {(i.lote || i.validade) && (
+                    <div className="text-xs text-muted-foreground">
+                      {[i.lote && `Lote ${i.lote}`, i.validade && `Val ${i.validade}`]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  )}
+                </div>
+                <Input
+                  aria-label={`Quantidade de ${i.descricao}`}
+                  className="w-20"
+                  type="number"
+                  min={0}
+                  max={500}
+                  value={copias[k] ?? "1"}
+                  onChange={(e) =>
+                    setCopias((c) => c.map((v, j) => (j === k ? e.target.value : v)))
+                  }
+                />
+              </div>
+            ))}
+          </div>
           <div>
             <Label>Modelo da etiqueta</Label>
             <Select value={modeloId} onValueChange={setModeloId}>
@@ -99,17 +138,6 @@ export function EtiquetaProdutoDialog({
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="et-copias">Quantidade</Label>
-              <Input
-                id="et-copias"
-                type="number"
-                min={1}
-                max={500}
-                value={copias}
-                onChange={(e) => setCopias(e.target.value)}
-              />
-            </div>
             {folha && (
               <div>
                 <Label htmlFor="et-pular">Pular posições</Label>

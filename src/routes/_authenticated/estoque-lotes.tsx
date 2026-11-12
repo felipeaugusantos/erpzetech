@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { EtiquetaProdutoDialog } from "@/components/app/EtiquetaProdutoDialog";
+import { etiquetaDoProduto, type DadosEtiqueta } from "@/lib/etiqueta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +69,7 @@ function Lotes() {
   );
   const [f, setF] = useState(vazio);
   const [busca, setBusca] = useState("");
+  const [etiqueta, setEtiqueta] = useState<DadosEtiqueta[] | null>(null);
 
   const produtos = useQuery({
     queryKey: ["lotes-produtos"],
@@ -94,7 +98,7 @@ function Lotes() {
       const { data, error } = await supabase
         .from("estoque_lotes")
         .select(
-          "id, lote, tonalidade, calibre, quantidade, validade, produto_id, produtos(descricao, codigo_interno, unidade), depositos(nome)",
+          "id, lote, tonalidade, calibre, quantidade, validade, produto_id, produtos(descricao, descricao_resumida, codigo_interno, codigo_barras, preco_venda, unidade, unidade_venda), depositos(nome)",
         )
         .order("updated_at", { ascending: false })
         .limit(2000);
@@ -309,6 +313,7 @@ function Lotes() {
               <th className="px-3 py-2">Calibre</th>
               <th className="px-3 py-2">Validade</th>
               <th className="px-3 py-2 text-right">Saldo</th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -323,6 +328,26 @@ function Lotes() {
                 <td className="px-3 py-2 text-right">
                   {num(Number(l.quantidade))} {l.produtos?.unidade ?? ""}
                 </td>
+                <td className="px-3 py-2 text-right">
+                  {l.produtos && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Imprimir etiqueta do lote"
+                      onClick={() =>
+                        setEtiqueta([
+                          etiquetaDoProduto(l.produtos!, {
+                            lote: l.lote,
+                            validade: l.validade,
+                            copias: Math.max(1, Math.round(Number(l.quantidade))),
+                          }),
+                        ])
+                      }
+                    >
+                      <Tag className="size-4" />
+                    </Button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -331,6 +356,7 @@ function Lotes() {
           <p className="p-4 text-sm text-muted-foreground">Nenhum lote lançado ainda.</p>
         )}
       </div>
+      <EtiquetaProdutoDialog itens={etiqueta} onClose={() => setEtiqueta(null)} />
     </>
   );
 }
