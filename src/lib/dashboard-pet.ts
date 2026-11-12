@@ -129,14 +129,20 @@ export function atendimentosPorDia(ags: readonly AgendamentoDash[], de: string, 
   if (!dataValida(de) || !dataValida(ate) || de > ate) return [];
   const passo = diasPorGrupo(de, ate);
   const contagem = new Map<string, number>();
+  const valores = new Map<string, number>();
   for (const a of noPeriodo(ags, de, ate).filter((x) => CONCLUIDAS.includes(x.situacao))) {
     const d = dia(a.inicio);
     const deslocamento = Math.floor((Date.parse(d) - Date.parse(de)) / 86_400_000);
     const inicioGrupo = somaDiasISO(de, deslocamento - (deslocamento % passo));
     contagem.set(inicioGrupo, (contagem.get(inicioGrupo) ?? 0) + 1);
+    valores.set(inicioGrupo, (valores.get(inicioGrupo) ?? 0) + receita(a));
   }
-  const lista: { dia: string; atendimentos: number }[] = [];
+  const lista: { dia: string; atendimentos: number; faturamento: number }[] = [];
   for (let d = de; d <= ate; d = somaDiasISO(d, passo))
-    lista.push({ dia: d, atendimentos: contagem.get(d) ?? 0 });
+    lista.push({
+      dia: d,
+      atendimentos: contagem.get(d) ?? 0,
+      faturamento: Math.round((valores.get(d) ?? 0) * 100) / 100,
+    });
   return lista;
 }
