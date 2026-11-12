@@ -10,6 +10,16 @@ test("CPF do tutor salva como pessoa física, sem CNPJ", () => {
   assert.equal(dados.cnpj, null);
 });
 
+test("cadastro do tutor preserva contatos separados, apelido, inscrição e observações", () => {
+  const d = dadosTutorParaSalvar({ ...dadosTutorVazios, nome_fantasia: " Maria ", email: " maria@example.test ",
+    whatsapp: " (16) 99999-0000 ", inscricao_estadual: " ISENTO ", observacoes: " Prefere contato por e-mail. " });
+  assert.equal(d.nome_fantasia, "Maria");
+  assert.equal(d.email, "maria@example.test");
+  assert.equal(d.whatsapp, "(16) 99999-0000");
+  assert.equal(d.inscricao_estadual, "ISENTO");
+  assert.equal(d.observacoes, "Prefere contato por e-mail.");
+});
+
 test("CNPJ do tutor salva como pessoa jurídica, sem CPF", () => {
   const dados = dadosTutorParaSalvar({ ...dadosTutorVazios, documento: "11.222.333/0001-81" });
   assert.equal(dados.tipo, "PJ");

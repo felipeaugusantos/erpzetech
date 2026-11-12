@@ -11,6 +11,11 @@ export type DadosTutor = {
   bairro: string;
   cidade: string;
   estado: string;
+  nome_fantasia?: string;
+  email?: string;
+  whatsapp?: string;
+  inscricao_estadual?: string;
+  observacoes?: string;
 };
 
 export const dadosTutorVazios: DadosTutor = {
@@ -31,6 +36,11 @@ export function dadosTutorParaSalvar(dados: DadosTutor) {
     bairro: dados.bairro.trim() || null,
     cidade: dados.cidade.trim() || null,
     estado: dados.estado.trim().toUpperCase() || null,
+    ...(dados.nome_fantasia !== undefined ? { nome_fantasia: dados.nome_fantasia.trim() || null } : {}),
+    ...(dados.email !== undefined ? { email: dados.email.trim() || null } : {}),
+    ...(dados.whatsapp !== undefined ? { whatsapp: dados.whatsapp.trim() || null } : {}),
+    ...(dados.inscricao_estadual !== undefined ? { inscricao_estadual: dados.inscricao_estadual.trim() || null } : {}),
+    ...(dados.observacoes !== undefined ? { observacoes: dados.observacoes.trim() || null } : {}),
   };
 }
 
