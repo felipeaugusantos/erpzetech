@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Tela de laudos por pet com todos os exames, resultados anteriores compatíveis e minigráficos; leitura pelas funções clínicas existentes, sem alterar resultados.
+- [x] Tela Laudos e evolução por pet, acessível em Exames e Prontuário: todos os exames com resultados e adendos, evolução dos fechados por nome/unidade e minigráfico dos quatro últimos. Trinta testes passaram; comparação controlada 30,5 → 26,9 conferida no navegador. Conta disponível não lê os exames de Léo; verificação com sessão veterinária real permanece pendente. Nenhum resultado alterado; não publicado.
 
 - [x] Corrigir consulta automática de CEP em Clientes, reutilizando a consulta dos tutores; CEP real 01001-000 preencheu Praça da Sé, Sé, São Paulo/SP em computador e celular, preservando número e complemento. Seis testes passaram, consultas antigas canceladas, sem alterar cadastros reais; não publicado.
 
