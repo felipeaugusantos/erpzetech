@@ -7,6 +7,7 @@ import { FileUp, Loader2, ShoppingCart, Truck } from "lucide-react";
 import { cteDaNota, lerDactes, lerXmlCte } from "@/lib/cte";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dateBR, num } from "@/lib/format";
+import { creditoPotencialDaCompra, textoCreditoIbsCbs } from "@/lib/credito-ibs-cbs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -340,8 +341,16 @@ export function DetalhesNotaEntrada({
                       IBS {brl(t.ibs_cbs.ibs ?? 0)} (UF {brl(t.ibs_cbs.ibs_uf ?? 0)} · Município{" "}
                       {brl(t.ibs_cbs.ibs_mun ?? 0)}) · CBS {brl(t.ibs_cbs.cbs ?? 0)}
                       <span className="block text-xs text-muted-foreground">
-                        Só informativo: o crédito do IBS/CBS ainda não entra no custo nem na
-                        apuração do sistema.
+                        {textoCreditoIbsCbs(
+                          creditoPotencialDaCompra(
+                            t.ibs_cbs,
+                            (
+                              data.compra as {
+                                empresas?: { regime_tributario?: string | null } | null;
+                              }
+                            ).empresas?.regime_tributario,
+                          ),
+                        )}
                       </span>
                     </p>
                   )}
