@@ -575,6 +575,13 @@
       "when": 1794320353401,
       "tag": "0081_backup_google_drive",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794495775223,
+      "tag": "0082_clinica_painel_veterinarios_favoritos",
+      "breakpoints": true
     }
   ]
 }
