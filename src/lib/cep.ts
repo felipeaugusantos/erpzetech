@@ -12,13 +12,13 @@ export async function consultarCep(cep: string, signal?: AbortSignal): Promise<E
   const dados: unknown = await resposta.json();
   if (!dados || typeof dados !== "object") throw new Error("Resposta inválida ao consultar o CEP.");
   const d = dados as Record<string, unknown>;
-  if (d.erro) throw new Error("CEP não encontrado. Confira o número ou preencha o endereço manualmente.");
-  if (typeof d.localidade !== "string" || typeof d.uf !== "string") throw new Error("Resposta inválida ao consultar o CEP.");
+  if (d['erro']) throw new Error("CEP não encontrado. Confira o número ou preencha o endereço manualmente.");
+  if (typeof d['localidade'] !== "string" || typeof d['uf'] !== "string") throw new Error("Resposta inválida ao consultar o CEP.");
   return {
-    endereco: typeof d.logradouro === "string" ? d.logradouro : "",
-    bairro: typeof d.bairro === "string" ? d.bairro : "",
-    cidade: d.localidade,
-    estado: d.uf,
+    endereco: typeof d['logradouro'] === "string" ? d['logradouro'] : "",
+    bairro: typeof d['bairro'] === "string" ? d['bairro'] : "",
+    cidade: d['localidade'],
+    estado: d['uf'],
   };
 }
 
