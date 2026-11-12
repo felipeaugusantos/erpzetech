@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Importar PDF digital de laboratório no exame aberto, com prévia, conferência de paciente/espécie, resultados compatíveis e apenas referências absolutas do leucograma; não converter plaquetas sem unidade, não modificar modelos ou exames fechados. Testar o PDF de Leo sem gravar resultado clínico.
+- [x] Importar PDF digital de laboratório no exame aberto, com prévia, conferência de paciente/espécie, resultados compatíveis e apenas referências absolutas do leucograma deste exame; não converter plaquetas sem unidade, não modificar modelos ou exames fechados. PDF de Leo conferido na conta real: 22 campos do hemograma, confirmação obrigatória, rascunho e envio verificados com gravação interceptada, computador/celular sem transbordamento. 38 testes passaram. Leitura conservadora de tabelas digitais compatíveis; digitalizações e outros formatos não reconhecidos exigem conferência manual. Não publicado.
 
 - [x] Registrar somente as oito referências absolutas destacadas nas observações dos campos do Hemograma da clínica da Bruna; removidas as anotações relativas e de plaquetas acrescentadas anteriormente, conforme o novo recorte. Leitura confirmou as oito faixas e seus campos; nenhum resultado de paciente registrado. Faixas automáticas permanecem desativadas: a imagem omite espécie e unidades; ativação para cães e gatos aguarda validação da veterinária/laboratório.
 
