@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Converter embalagens na importação da nota: 3 fardos de 6 devem entrar como 18 unidades, preservando total e custo proporcional; conferir com testes e na tela sem alterar estoque real.
+
 - [x] Histórico Google Drive: tela própria acessível por Backup na nuvem, com data e hora do envio em Brasília, tamanho e situação; navegação autenticada e celular conferidos sem erros, quatro testes existentes passaram. Conta ainda sem execuções reais para conferir linhas de envio; não publicado.
 
 - [x] Backup no Google Drive: tela, conexão por administrador, envio noturno e retenção implementados; 35 testes passaram, tela autenticada e cron sem autenticação recusado conferidos. Não publicado.
