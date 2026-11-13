@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ExcluirExame } from "@/components/app/ExcluirExame";
+import { LimpezaPdfsExames } from "@/components/app/LimpezaPdfsExames";
 import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
 import { ImportarExamesPetPdf } from "@/components/app/ImportarExamesPetPdf";
 import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
@@ -133,6 +134,8 @@ function Exames() {
         title="Exames"
         description="Resultados do paciente, preenchidos pelo veterinário. Campo em branco é “não feito”; exame fechado não muda (correção é adendo) e cada abertura fica registrada."
       />
+
+      <LimpezaPdfsExames />
 
       <form
         className="mb-4 flex max-w-xl gap-2"

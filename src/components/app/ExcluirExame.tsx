@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
@@ -21,11 +21,6 @@ export function ExcluirExame({ exame, disabled, onExcluido }: { exame: ExameClin
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [confirmado, setConfirmado] = useState(false);
-  const [pendente, setPendente] = useState(false);
-  const tentarLimpeza = async () => {
-    try { setPendente((await limpar()).pendentes > 0); } catch { setPendente(true); }
-  };
-  useEffect(() => { void tentarLimpeza(); }, []);
   const excluir = useMutation({
     mutationFn: async () => {
       const entrada = excluirExameSchema.parse({ id: exame.id, motivo, confirmado });
@@ -49,7 +44,6 @@ export function ExcluirExame({ exame, disabled, onExcluido }: { exame: ExameClin
   });
   return <>
     <Button variant="destructive" disabled={disabled || excluir.isPending} onClick={() => { setMotivo(""); setConfirmado(false); setOpen(true); }}><Trash2 className="size-4" />Excluir exame</Button>
-    {pendente && <Button variant="outline" onClick={() => void tentarLimpeza()}>Tentar limpeza dos PDFs</Button>}
     <Dialog open={open} onOpenChange={o => { if (!excluir.isPending) setOpen(o); }}>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Excluir exame definitivamente</DialogTitle></DialogHeader>

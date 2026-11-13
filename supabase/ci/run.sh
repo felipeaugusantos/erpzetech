@@ -65,6 +65,7 @@ PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/finan
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/financeiro-dre.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/contador.sql
 PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/smoke.sql
+PGOPTIONS="-c client_min_messages=notice" psql -v ON_ERROR_STOP=1 -q -f ci/exame-exclusao.sql
 # concorrência de verdade (duas sessões ao mesmo tempo) da agenda do lava rápido
 bash ci/lava-agenda-concorrencia.sh
 echo "Migrations e testes de segurança OK"
