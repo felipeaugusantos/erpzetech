@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, FileUp, Lock, Plus, Printer, Search, TrendingUp } f
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ExcluirExame } from "@/components/app/ExcluirExame";
+import { LimpezaPdfsExames } from "@/components/app/LimpezaPdfsExames";
 import { ImportarLaudoPdf } from "@/components/app/ImportarLaudoPdf";
 import { ImportarExamesPetPdf } from "@/components/app/ImportarExamesPetPdf";
 import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
@@ -132,6 +134,8 @@ function Exames() {
         title="Exames"
         description="Resultados do paciente, preenchidos pelo veterinário. Campo em branco é “não feito”; exame fechado não muda (correção é adendo) e cada abertura fica registrada."
       />
+
+      <LimpezaPdfsExames />
 
       <form
         className="mb-4 flex max-w-xl gap-2"
@@ -541,6 +545,7 @@ function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao,
 
 function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, onConsumirImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number; arquivoImportacao: File | null; onConsumirImportacao: () => void }) {
   const qc = useQueryClient();
+  const navegar = useNavigate();
   const aberto = exame.situacao === "aberto";
   const [dig, setDig] = useState<Digitado>(() => digitadoDe(exame));
   const [obs, setObs] = useState(exame.observacoes ?? "");
@@ -918,6 +923,7 @@ function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, on
       )}
 
       <div className="flex flex-wrap gap-2">
+        <ExcluirExame exame={exame} disabled={ocupado || cancelar.isPending || criarAdendo.isPending} onExcluido={() => { void navegar({ to: "/clinica-exames", search: { pet: petId, exame: undefined, atendimento: undefined }, replace: true }); }} />
         {aberto && (
           <>
             <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} arquivo={arquivoImportacao} onConsumir={onConsumirImportacao} onAplicar={(linhas, laudo) => {

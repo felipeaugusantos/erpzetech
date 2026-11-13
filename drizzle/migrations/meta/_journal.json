@@ -645,6 +645,13 @@
       "when": 1794527090705,
       "tag": "0091_clinica_pacientes_proxima_consulta",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1794602006873,
+      "tag": "0092_clinica_excluir_exame_log",
+      "breakpoints": true
     }
   ]
 }
