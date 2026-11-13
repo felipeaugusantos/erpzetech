@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ExamesAgendadosPaciente } from "@/components/app/ExamesAgendadosPaciente";
+import { ExamesProntuario } from "@/components/app/ExamesProntuario";
 import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
@@ -446,6 +447,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           </table>
         </div>
       )}
+
+      <ExamesProntuario petId={petId} />
 
       <DocumentosClinicos
         petId={petId}
