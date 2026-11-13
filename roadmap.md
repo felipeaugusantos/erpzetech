@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Excluir definitivamente exames pela tela, com confirmação, motivo e log protegido; aguarda aprovação do plano por alterar as proteções de imutabilidade de resultados e anexos clínicos.
+- [x] Excluir definitivamente exames pela tela, com confirmação, motivo e log imutável. Conferido com Bruna em dois exames criados somente para teste: aberto e fechado com resultado, adendo e PDF; registros removidos fisicamente e arquivo privado limpo, log preservado. Trinta testes de lógica/precisão e três de importação passaram; recusas sem motivo/confirmação e reenvio idempotente conferidos no banco via conta veterinária. Janela conferida no celular; não publicado.
+- [ ] Executar testes SQL completos de exclusão/permissões na CI: sessão SQL do sandbox não pode assumir authenticated nem chamar clinica_exame_abrir; roteiro adicionado à CI inclui outra empresa, outro veterinário, portal, resultados calculados e log imutável.
 
 - [x] Prontuário carrega cartões de todos os pacientes já atendidos da empresa, sem exigir busca; lista paginada por último atendimento, com animal, tutor, última visita e próxima consulta futura agendada/confirmada (ou sem consulta agendada), quantidade de visitas e acesso à ficha, mantendo o acesso veterinário existente.
 
