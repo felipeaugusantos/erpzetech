@@ -559,7 +559,7 @@ DECLARE
     'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais',
     -- resultados de exame: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_exame_abrir', 'clinica_exame_salvar', 'clinica_exame_fechar', 'clinica_exame_cancelar', 'clinica_exame_adendo_criar',
-    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao', 'clinica_importar_pdf', 'clinica_pacientes_atendidos',
+    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao', 'clinica_importar_pdf', 'clinica_pacientes_atendidos', 'clinica_exame_excluir', 'clinica_exame_exclusao_acesso',
     -- anexos: cada função confere o perfil Veterinário e a clínica liberada; as duas de apoio só respondem verdadeiro com perfil, clínica e registro prévio
     'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
     '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler',
