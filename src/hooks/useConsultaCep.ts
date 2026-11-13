@@ -11,7 +11,7 @@ export function useConsultaCep<T extends EnderecoCep & { cep: string }>(
   atuais.current = { dados, onChange };
   const [situacao, setSituacao] = useState({ carregando: false, mensagem: "", erro: false });
   const cep = normalizarCep(dados.cep);
-  const anterior = useRef<{ cep: string; ativo: boolean; cadastro?: string } | null>(null);
+  const anterior = useRef<{ cep: string; ativo: boolean; cadastro: string | undefined } | null>(null);
 
   useEffect(() => {
     setSituacao({ carregando: false, mensagem: "", erro: false });
