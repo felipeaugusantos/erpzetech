@@ -1465,6 +1465,89 @@ export type Database = {
           },
         ]
       }
+      clinica_exames_exclusoes: {
+        Row: {
+          data_coleta: string | null
+          exame_id: string
+          excluido_em: string
+          id: string
+          motivo: string
+          nome: string
+          pet_id: string
+          situacao: string
+          tenant_id: string
+          transacao: string
+          usuario_id: string
+          veterinario_id: string
+        }
+        Insert: {
+          data_coleta?: string | null
+          exame_id: string
+          excluido_em?: string
+          id?: string
+          motivo: string
+          nome: string
+          pet_id: string
+          situacao: string
+          tenant_id: string
+          transacao?: string
+          usuario_id: string
+          veterinario_id: string
+        }
+        Update: {
+          data_coleta?: string | null
+          exame_id?: string
+          excluido_em?: string
+          id?: string
+          motivo?: string
+          nome?: string
+          pet_id?: string
+          situacao?: string
+          tenant_id?: string
+          transacao?: string
+          usuario_id?: string
+          veterinario_id?: string
+        }
+        Relationships: []
+      }
+      clinica_exames_limpeza: {
+        Row: {
+          caminho: string
+          concluido_em: string | null
+          erro: string | null
+          exclusao_id: string
+          id: string
+          tenant_id: string
+          tentativas: number
+        }
+        Insert: {
+          caminho: string
+          concluido_em?: string | null
+          erro?: string | null
+          exclusao_id: string
+          id?: string
+          tenant_id: string
+          tentativas?: number
+        }
+        Update: {
+          caminho?: string
+          concluido_em?: string | null
+          erro?: string | null
+          exclusao_id?: string
+          id?: string
+          tenant_id?: string
+          tentativas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_exames_limpeza_exclusao_id_fkey"
+            columns: ["exclusao_id"]
+            isOneToOne: false
+            referencedRelation: "clinica_exames_exclusoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinica_fila: {
         Row: {
           agendamento_id: string | null
@@ -16810,6 +16893,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      _clinica_exclusao_autorizada: {
+        Args: { p_exame: string }
+        Returns: boolean
+      }
       _clinica_exige_leitura: { Args: never; Returns: undefined }
       _clinica_exige_modelos: { Args: never; Returns: undefined }
       _clinica_fila_acesso: { Args: never; Returns: undefined }
@@ -17416,6 +17503,11 @@ export type Database = {
         Args: { p_nome: string; p_pet_id: string; p_unidade?: string }
         Returns: Json
       }
+      clinica_exame_excluir: {
+        Args: { p_confirmado: boolean; p_id: string; p_motivo: string }
+        Returns: Json
+      }
+      clinica_exame_exclusao_acesso: { Args: { p_id: string }; Returns: string }
       clinica_exame_fechar: { Args: { p_id: string }; Returns: Json }
       clinica_exame_get: { Args: { p_id: string }; Returns: Json }
       clinica_exame_modelo_salvar: { Args: { p_dados: Json }; Returns: string }
