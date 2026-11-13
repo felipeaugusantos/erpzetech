@@ -5434,6 +5434,37 @@ BEGIN
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_evolucao(%L, 'Hemoglobina', 'g/dL')$c$, pet_b), 'evolução de paciente de outra empresa');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_get(%L)$c$, gen_random_uuid()), 'exame que não existe');
 
+  -- Physical deletion: only the responsible veterinarian, with immutable audit log.
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT clinica_exame_excluir(%L,'Teste',true)$c$, ex1), 'visitante exclui exame');
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_exame_excluir(%L,'Teste',true)$c$, ex1), 'outro veterinário exclui exame');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_excluir(%L,' ',true)$c$, ex1), 'exclusão sem motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_excluir(%L,'Teste',false)$c$, ex1), 'exclusão sem confirmação');
+  UPDATE profiles SET tenant_id=tb WHERE id=va;
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exame_excluir(%L,'Teste',true)$c$, ex1), 'exclusão em outra empresa');
+  UPDATE profiles SET tenant_id=demo WHERE id=va;
+  PERFORM ci.entrar(va);
+  r := clinica_anexo_preparar(jsonb_build_object('exame_id',ex1,'categoria','laudo','descricao','Anexo exclusão CI','nome_arquivo','teste.pdf','mime','application/pdf','tamanho',100));
+  PERFORM ci.sair();
+  INSERT INTO portal_liberacoes(tenant_id,tipo,ref_id,pet_id,cliente_id,liberado_por) VALUES(demo,'exame',ex1,pet,tutor,pva);
+  PERFORM ci.entrar(va);
+  r := clinica_exame_excluir(ex1,'Laudo fechado de teste excluído',true);
+  PERFORM ci.exige(clinica_exame_excluir(ex1,'Reenvio',true)->>'exclusao_id'=r->>'exclusao_id','reenvio usa o mesmo log');
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS(SELECT 1 FROM pet_exames WHERE id=ex1),'exame fechado removido fisicamente');
+  PERFORM ci.exige(NOT EXISTS(SELECT 1 FROM pet_exame_resultados WHERE exame_id=ex1),'resultados calculados e base removidos');
+  PERFORM ci.exige(NOT EXISTS(SELECT 1 FROM pet_exame_adendos WHERE exame_id=ex1),'adendos removidos');
+  PERFORM ci.exige(NOT EXISTS(SELECT 1 FROM pet_exame_anexos WHERE exame_id=ex1),'vínculos de PDF removidos');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM clinica_exames_limpeza WHERE exclusao_id=(r->>'exclusao_id')::uuid AND concluido_em IS NULL),'arquivo permanece em fila privada para limpeza');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM portal_liberacoes WHERE ref_id=ex1 AND retirado_em IS NOT NULL),'tutor perde liberação do laudo');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM clinica_exames_exclusoes WHERE exame_id=ex1 AND usuario_id=va AND veterinario_id=pva AND motivo='Laudo fechado de teste excluído' AND excluido_em IS NOT NULL),'log guarda autor horário e motivo');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE clinica_exames_exclusoes SET motivo='Alterado' WHERE exame_id=%L$c$,ex1),'log imutável');
+  PERFORM ci.deve_falhar_dono(format($c$DELETE FROM clinica_exames_exclusoes WHERE exame_id=%L$c$,ex1),'log não apagável');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM pet_exames WHERE id=ex4),'outro exame preservado');
+  PERFORM ci.entrar(va);
+  PERFORM clinica_exame_excluir(ex3,'Cancelado de teste excluído',true);
+  PERFORM ci.sair();
+  PERFORM ci.exige(NOT EXISTS(SELECT 1 FROM pet_exames WHERE id=ex3),'exame cancelado removido');
+
   -- clínica deixa de estar liberada
   UPDATE empresas SET ramo_atividade = 'petshop', cnae = '4789-0/04', cnae_secundarios = NULL WHERE tenant_id = demo;
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_exames_do_pet(%L)$c$, pet), 'lista de exames sem a clínica liberada');
