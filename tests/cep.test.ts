@@ -18,3 +18,10 @@ test("consulta não sobrescreve endereço editado enquanto aguardava resposta", 
   const atual = { ...inicio, endereco: "Rua digitada" };
   assert.equal(aplicarEnderecoCep(atual, inicio, { endereco: "Outra rua", bairro: "Centro", cidade: "São Paulo", estado: "SP" }).endereco, "Rua digitada");
 });
+
+test("CEP de cidade sem rua e bairro não apaga os campos já preenchidos", () => {
+  const inicio = { endereco: "Rua cadastrada", bairro: "Bairro cadastrado", cidade: "Cidade anterior", estado: "MG" };
+  assert.deepEqual(aplicarEnderecoCep(inicio, inicio, { endereco: "", bairro: "", cidade: "Araraquara", estado: "SP" }), {
+    endereco: "Rua cadastrada", bairro: "Bairro cadastrado", cidade: "Araraquara", estado: "SP",
+  });
+});

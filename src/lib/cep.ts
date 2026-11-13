@@ -26,7 +26,7 @@ export async function consultarCep(cep: string, signal?: AbortSignal): Promise<E
 export function aplicarEnderecoCep<T extends EnderecoCep>(atual: T, inicio: EnderecoCep, encontrado: EnderecoCep): T {
   const resultado = { ...atual };
   for (const chave of ["endereco", "bairro", "cidade", "estado"] as const) {
-    if (atual[chave] === inicio[chave]) resultado[chave] = encontrado[chave];
+    if (encontrado[chave].trim() && atual[chave] === inicio[chave]) resultado[chave] = encontrado[chave];
   }
   return resultado;
 }
