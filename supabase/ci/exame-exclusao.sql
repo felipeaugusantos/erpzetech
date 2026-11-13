@@ -2,7 +2,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 DO $$
-DECLARE u uuid; v uuid; t uuid; pet uuid; modelo uuid; ex uuid; outro uuid; r jsonb; log uuid; recusado boolean; n integer;
+DECLARE u uuid; v uuid; t uuid; pet uuid; modelo uuid; ex uuid; outro uuid; r jsonb; log uuid; recusado boolean; n integer; trocar_papel boolean;
 BEGIN
  SELECT p.profile_id,p.id,p.tenant_id INTO u,v,t FROM public.pet_profissionais p
  WHERE p.ativo AND p.funcao='veterinario' AND p.crmv IS NOT NULL
@@ -13,7 +13,8 @@ BEGIN
  SELECT id INTO pet FROM public.pets WHERE tenant_id=t LIMIT 1;
  SELECT id INTO modelo FROM public.pet_exame_modelos WHERE tenant_id=t AND ativo LIMIT 1;
  PERFORM set_config('request.jwt.claim.sub',u::text,true);
- EXECUTE 'SET LOCAL ROLE authenticated';
+ trocar_papel := pg_has_role(current_user,'authenticated','MEMBER');
+ IF trocar_papel THEN EXECUTE 'SET LOCAL ROLE authenticated'; END IF;
  r := public.clinica_exame_abrir(pet,modelo,'{"laboratorio":"Teste exclusão CI"}');
  ex := (r->>'id')::uuid;
  outro := (public.clinica_exame_abrir(pet,modelo,'{"laboratorio":"Exame preservado CI"}')->>'id')::uuid;
@@ -34,7 +35,7 @@ BEGIN
  recusado := false;
  BEGIN UPDATE public.clinica_exames_exclusoes SET motivo='alterado' WHERE id=log; EXCEPTION WHEN OTHERS THEN recusado:=true; END;
  IF NOT recusado THEN RAISE EXCEPTION 'Log editable'; END IF;
- EXECUTE 'RESET ROLE';
+ IF trocar_papel THEN EXECUTE 'RESET ROLE'; END IF;
  IF EXISTS(SELECT 1 FROM public.pet_exames WHERE id=ex) OR EXISTS(SELECT 1 FROM public.pet_exame_resultados WHERE exame_id=ex) THEN RAISE EXCEPTION 'Exam or results not physically deleted'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.pet_exames WHERE id=outro) THEN RAISE EXCEPTION 'Sibling exam removed'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.clinica_exames_exclusoes WHERE id=log AND usuario_id=u AND veterinario_id=v AND motivo='Registro de teste removido' AND excluido_em IS NOT NULL) THEN RAISE EXCEPTION 'Log missing actor/time/reason'; END IF;
