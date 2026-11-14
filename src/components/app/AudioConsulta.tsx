@@ -25,8 +25,8 @@ export function AudioConsulta({ atendimento, agendamento, onConfirmar }: {
   const [completo, setCompleto] = useState(false);
   const [campo, setCampo] = useState<CampoAudio>("anamnese");
   const [erro, setErro] = useState("");
-  const recorder = useRef<Awaited<ReturnType<typeof recordWav>>>();
-  const abort = useRef<AbortController>();
+  const recorder = useRef<Awaited<ReturnType<typeof recordWav>> | undefined>(undefined);
+  const abort = useRef<AbortController | undefined>(undefined);
   const vivo = useRef(true);
   useEffect(() => { vivo.current = true; return () => {
     vivo.current = false; abort.current?.abort();
