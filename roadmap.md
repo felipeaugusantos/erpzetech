@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Gravar áudio na consulta com consentimento, WAV completo até 2 minutos, transcrição para revisão e escolha de campo, salvamento somente na confirmação; rascunho isolado por consulta e microfone encerrado ao sair. Transcrição real em português respondeu 200; acesso anônimo recusado. Gravação e confirmação visual conferidas com resposta controlada, sem alterar ficha real. Não publicado.
+- [ ] Conferir envio e salvamento completos numa consulta aberta autorizada: Bruna só tem consultas fechadas; não foi criada visita fictícia no histórico clínico.
+
 - [x] Mostrar exames do paciente no prontuário com data da coleta em destaque e acesso direto ao laudo. Conta veterinária confirmou três exames de Léo, datas 12/11/2026 e 03/08/2026 e abertura do exame correto; computador e celular conferidos, três testes de histórico passaram. Não publicado.
 
 - [x] Excluir definitivamente exames pela tela, com confirmação, motivo e log imutável. Conferido com Bruna em dois exames criados somente para teste: aberto e fechado com resultado, adendo e PDF; registros removidos fisicamente e arquivo privado limpo, log preservado. Trinta testes de lógica/precisão e três de importação passaram; recusas sem motivo/confirmação e reenvio idempotente conferidos no banco via conta veterinária. Janela conferida no celular; não publicado.

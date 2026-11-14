@@ -5,6 +5,8 @@ import { Lock, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { AudioConsulta } from "@/components/app/AudioConsulta";
+import { aplicarTranscricao, type CampoAudio } from "@/lib/consulta-audio";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -46,6 +48,13 @@ export const Route = createFileRoute("/_authenticated/clinica-atendimento")({
         name: "description",
         content: "Prontuário da consulta: queixa, exame, diagnóstico e conduta.",
       },
+      { property: "og:title", content: "Consulta veterinária — ERP Ze Tech" },
+      {
+        property: "og:description",
+        content: "Ficha da consulta veterinária com revisão de transcrição por áudio.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AtendimentoModulo,
@@ -55,7 +64,12 @@ function AtendimentoModulo() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
   if (!modulos.clinica) return <ModuloBloqueado modulo="clinica" />;
-  return <Atendimento />;
+  return <AtendimentoPorConsulta />;
+}
+
+function AtendimentoPorConsulta() {
+  const { agendamento } = Route.useSearch();
+  return <Atendimento key={agendamento ?? "sem-consulta"} />;
 }
 
 function Atendimento() {
@@ -86,6 +100,23 @@ function Atendimento() {
   function guardar(novo: AtendimentoClinico) {
     qc.setQueryData(["clinica-atendimento", agendamento], novo);
     void qc.invalidateQueries({ queryKey: ["pet-minha-agenda"] });
+    void qc.invalidateQueries({ queryKey: ["clinica-historico"] });
+  }
+
+  async function confirmarAudio(campoAudio: CampoAudio, texto: string) {
+    if (!data || !form || data.situacao !== "aberto")
+      throw new Error("A consulta não está aberta.");
+    const novo = aplicarTranscricao(form, campoAudio, texto);
+    const erro = erroDosSinais(novo);
+    if (erro) throw new Error(erro);
+    const resposta = await supabase.rpc("clinica_atendimento_salvar", {
+      p_id: data.id,
+      p_dados: novo as unknown as Json,
+    });
+    if (resposta.error) throw new Error(resposta.error.message);
+    setForm(novo);
+    guardar(resposta.data as unknown as AtendimentoClinico);
+    toast.success("Transcrição revisada e atendimento salvo");
   }
 
   const salvar = useMutation({
@@ -228,6 +259,16 @@ function Atendimento() {
       )}
 
       <div className="panel grid gap-4 p-4">
+        {!fechado && (
+          <div className="flex justify-end">
+            <AudioConsulta
+              key={data.id}
+              atendimento={data.id}
+              agendamento={agendamento}
+              onConfirmar={confirmarAudio}
+            />
+          </div>
+        )}
         <div>
           <Label htmlFor="c-queixa">Queixa *</Label>
           <Textarea id="c-queixa" rows={2} {...campo("queixa")} />
