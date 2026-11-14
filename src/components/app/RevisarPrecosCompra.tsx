@@ -87,7 +87,10 @@ export function RevisarPrecosCompra({
       novo[p.id] = preco.toFixed(2);
       n++;
     }
-    if (!n) return toast.error("Informe uma margem entre 0% e 99%, e produtos com custo.");
+    if (!n) {
+      toast.error("Informe uma margem entre 0% e 99%, e produtos com custo.");
+      return;
+    }
     setPrecos(novo);
     toast.success(`Preço sugerido em ${n} produto(s). Confira e clique em Salvar.`);
   }
