@@ -93,7 +93,7 @@ export function AudioConsulta({ atendimento, agendamento, onConfirmar }: {
           {gravando ? <Button variant="destructive" onClick={() => void parar()}><Square className="size-4" />Parar gravação</Button> : <Button onClick={() => void iniciar()} disabled={!consentimento || ocupado || Boolean(file)}><Mic className="size-4" />Iniciar gravação</Button>}
           <span className="text-sm tabular-nums" role="status">{String(Math.floor(segundos / 60)).padStart(2, "0")}:{String(segundos % 60).padStart(2, "0")} / 02:00</span>
         </div>
-        {file && <div className="space-y-3"><audio controls src={audioUrl} className="w-full" aria-label="Áudio gravado" />
+        {file && <div className="space-y-3"><audio controls src={audioUrl || undefined} className="w-full" aria-label="Áudio gravado" />
           <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={ocupado || completo || !consentimento} onClick={() => void transcrever()}>{ocupado ? <LoaderCircle className="size-4 animate-spin" /> : <FileText className="size-4" />}Transcrever</Button>
             <Button variant="ghost" disabled={ocupado} onClick={() => { setFile(undefined); setTexto(""); setCompleto(false); }}><Trash2 className="size-4" />Descartar áudio</Button></div></div>}
         {texto && <div className="space-y-3"><Label htmlFor="audio-campo">Adicionar ao campo</Label><Select value={campo} disabled={ocupado} onValueChange={v => setCampo(v as CampoAudio)}><SelectTrigger id="audio-campo"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(CAMPOS_AUDIO).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent></Select>
