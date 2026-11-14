@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Otimizar prontuário no celular: cartões de exames/laudos, datas destacadas, sinais vitais sem rolagem lateral e texto da consulta legível; conferir com acesso veterinário sem alterar dados.
+
 - [x] Gravar áudio na consulta com consentimento, WAV completo até 2 minutos, transcrição para revisão e escolha de campo, salvamento somente na confirmação; rascunho isolado por consulta e microfone encerrado ao sair. Transcrição real em português respondeu 200; acesso anônimo recusado. Gravação e confirmação visual conferidas com resposta controlada, sem alterar ficha real. Não publicado.
 - [ ] Conferir envio e salvamento completos numa consulta aberta autorizada: Bruna só tem consultas fechadas; não foi criada visita fictícia no histórico clínico.
 
