@@ -1147,7 +1147,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <GlobalSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        telas={menu.flatMap((g) =>
+          g.items
+            .filter((i) => i.to && !i.soon)
+            .map((i) => ({ label: i.label, to: i.to as string, grupo: g.label })),
+        )}
+        veClinica={menu.some((g) => g.label === "Pet shop" || g.label === "Clínica")}
+      />
     </div>
   );
 }

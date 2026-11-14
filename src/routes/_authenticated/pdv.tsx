@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateTimeBR, num } from "@/lib/format";
+import { lerMultiplicador } from "@/lib/busca-telas";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
@@ -148,7 +149,7 @@ function Pdv() {
   }, [estoque]);
 
   const sugestoes = useMemo(() => {
-    const t = busca.trim().toLowerCase();
+    const t = lerMultiplicador(busca).codigo.toLowerCase();
     if (!t) return [];
     return produtos
       .filter(
@@ -186,15 +187,35 @@ function Pdv() {
     buscaRef.current?.focus();
   }
 
-  /** Enter no campo: código de barras exato entra direto no carrinho. */
+  // Atalhos de balcão: F2 busca, F4 pagamento, Esc limpa a busca.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        buscaRef.current?.focus();
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        if (!linhas.length) toast.error("Carrinho vazio");
+        else setPagamentoAberto(true);
+      } else if (e.key === "Escape" && !pagamentoAberto && !cupom && busca) {
+        setBusca("");
+        buscaRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [linhas.length, pagamentoAberto, cupom, busca]);
+
+  /** Enter no campo: código de barras exato entra direto no carrinho ("3*código" = 3 unidades). */
   function onEnterBusca() {
-    const t = busca.trim().toLowerCase();
+    const { quantidade, codigo } = lerMultiplicador(busca);
+    const t = codigo.toLowerCase();
     if (!t) return;
     const exato =
       produtos.find((p) => (p.codigo_barras ?? "").toLowerCase() === t) ??
       produtos.find((p) => (p.codigo_interno ?? "").toLowerCase() === t) ??
       (sugestoes.length === 1 ? sugestoes[0] : null);
-    if (exato) adicionar(exato);
+    if (exato) adicionar(exato, quantidade);
     else
       toast.error("Produto não encontrado", {
         description: "Confira o código ou busque pelo nome.",
@@ -384,7 +405,7 @@ function Pdv() {
                   autoComplete="off"
                   enterKeyHint="done"
                   className="h-14 pl-10 text-base"
-                  placeholder="Passe o leitor ou digite e aperte Enter…"
+                  placeholder="F2 — passe o leitor ou digite (ex.: 3*código) e aperte Enter"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   onKeyDown={(e) => {
@@ -401,7 +422,7 @@ function Pdv() {
                     <li key={p.id}>
                       <button
                         className="flex w-full items-center gap-3 px-3 py-3 text-left text-sm hover:bg-secondary"
-                        onClick={() => adicionar(p)}
+                        onClick={() => adicionar(p, lerMultiplicador(busca).quantidade)}
                       >
                         <Plus className="size-4 shrink-0 text-primary" />
                         <span className="flex-1 truncate">{p.descricao}</span>
@@ -602,7 +623,7 @@ function Pdv() {
             disabled={linhas.length === 0}
             onClick={() => setPagamentoAberto(true)}
           >
-            Pagamento
+            F4 — Pagamento
           </Button>
         </div>
       </div>
