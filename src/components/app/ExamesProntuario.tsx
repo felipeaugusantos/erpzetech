@@ -23,12 +23,12 @@ export function ExamesProntuario({ petId }: { petId: string }) {
 
   return (
     <section className="min-w-0 border-y border-border py-5" aria-label="Exames do paciente">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 font-display text-base font-semibold">
-          <FlaskConical className="size-5 text-primary" /> Exames do paciente
+      <div className="mb-4 grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
+        <h3 className="flex min-w-0 items-center gap-2 font-display text-base font-semibold">
+          <FlaskConical className="size-5 shrink-0 text-primary" /> Exames do paciente
           {lista.data && <Badge variant="secondary">{exames.length}</Badge>}
         </h3>
-        <Button asChild size="sm" variant="outline">
+        <Button asChild size="sm" variant="outline" className="min-h-11 w-full sm:w-auto">
           <Link to="/clinica-laudos" search={{ pet: petId }}><FileText className="size-4" /> Laudos e evolução</Link>
         </Button>
       </div>
@@ -40,18 +40,18 @@ export function ExamesProntuario({ petId }: { petId: string }) {
       ) : !exames.length ? <p className="text-sm text-muted-foreground">Nenhum exame registrado para este paciente.</p> : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {exames.map(exame => (
-            <li key={exame.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-md border border-border bg-card p-4">
-              <div className="flex shrink-0 items-center gap-2 rounded-md bg-primary/10 px-3 py-2 text-primary">
+            <li key={exame.id} className="grid min-w-0 gap-3 rounded-md border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="flex min-w-0 items-center gap-2 border-b border-border pb-3 text-primary sm:col-span-2">
                 <CalendarDays className="size-5" />
                 <div><p className="text-xs font-medium">Data da coleta</p><time dateTime={exame.data_coleta} className="block text-lg font-semibold tabular-nums">{dateBR(exame.data_coleta)}</time></div>
               </div>
-              <div className="min-w-0 flex-1 basis-32">
-                <h4 className="break-words font-semibold">{exame.nome}</h4>
+              <div className="min-w-0">
+                <h4 className="break-words text-base font-semibold">{exame.nome}</h4>
                 <Badge className="mt-1" variant={exame.situacao === "fechado" ? "default" : "outline"}>{rotulo(SITUACOES_EXAME, exame.situacao)}</Badge>
                 {exame.laboratorio && <p className="mt-1 break-words text-sm text-muted-foreground">{exame.laboratorio}</p>}
-                <p className="mt-1 break-words text-xs text-muted-foreground">{exame.veterinario}</p>
+                <p className="mt-2 break-words text-sm text-muted-foreground">{exame.veterinario}</p>
               </div>
-              <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+              <Button asChild size="sm" variant="outline" className="min-h-11 w-full self-end sm:w-auto">
                 <Link to="/clinica-exames" search={{ pet: petId, exame: exame.id, atendimento: undefined }}><FileText className="size-4" />{exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}</Link>
               </Button>
             </li>

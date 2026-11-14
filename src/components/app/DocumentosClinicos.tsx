@@ -126,17 +126,17 @@ export function DocumentosClinicos({
   });
 
   return (
-    <div className="panel p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div className="min-w-0 border-b border-border py-4">
+      <div className="mb-3 grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 font-display text-sm font-semibold">
           <FilePlus2 className="size-4" /> Documentos
         </p>
-        <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => setNovo("solicitacao_exame")}>
+        <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
+        <Button size="sm" variant="outline" className="min-h-11" onClick={() => setNovo("solicitacao_exame")}>
           <FlaskConical className="size-4" /> Solicitar exames
         </Button>
         <Select value="" onValueChange={(v) => setNovo(v as TipoDocumento)}>
-          <SelectTrigger className="w-56">
+          <SelectTrigger className="min-h-11 w-full sm:w-56">
             <SelectValue placeholder="Emitir documento…" />
           </SelectTrigger>
           <SelectContent>
@@ -157,29 +157,28 @@ export function DocumentosClinicos({
       ) : (lista.data ?? []).length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum documento emitido.</p>
       ) : (
-        <ul className="divide-y divide-border text-sm">
+        <ul className="grid gap-3 text-sm lg:grid-cols-2">
           {(lista.data ?? []).map((d) => (
-            <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div>
-                <span className="font-medium">{d.titulo}</span>{" "}
-                <span className="text-xs text-muted-foreground">
-                  nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo} ·{" "}
-                  {dateTimeBR(d.emitido_em)} · {d.veterinario}
-                </span>
+            <li key={d.id} className="grid min-w-0 content-start gap-3 rounded-md border border-border bg-card p-4">
+              <div className="min-w-0">
+                <p className="break-words text-base font-semibold">{d.titulo}</p>
+                <p className="mt-1 text-sm text-muted-foreground">nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo}</p>
+                <time dateTime={d.emitido_em} className="mt-2 block font-semibold tabular-nums text-primary">{dateTimeBR(d.emitido_em)}</time>
+                <p className="mt-1 break-words text-sm text-muted-foreground">{d.veterinario}</p>
                 {d.situacao === "cancelado" && (
                   <Badge variant="destructive" className="ml-2">
                     Cancelado
                   </Badge>
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button asChild size="sm" variant="outline">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <Button asChild size="sm" variant="outline" className="min-h-11">
                   <Link to="/clinica-documento" search={{ id: d.id }}>
                     <Printer className="size-4" /> Abrir / imprimir
                   </Link>
                 </Button>
                 {d.pode_cancelar && (
-                  <Button size="sm" variant="ghost" onClick={() => setCancelando(d)}>
+                  <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setCancelando(d)}>
                     Cancelar
                   </Button>
                 )}

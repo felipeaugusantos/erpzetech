@@ -34,12 +34,12 @@ export function ExamesAgendadosPaciente({ petId }: { petId: string }) {
   const itens = lista.data ?? [];
 
   return (
-    <div className="panel p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div className="min-w-0 border-b border-border py-4">
+      <div className="mb-3 grid gap-3 sm:flex sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 font-display text-sm font-semibold">
           <CalendarClock className="size-4" /> Exames agendados
         </p>
-        <Button asChild size="sm" variant="outline">
+        <Button asChild size="sm" variant="outline" className="min-h-11 w-full sm:w-auto">
           <Link to="/clinica-agenda-exames">Abrir agenda de exames</Link>
         </Button>
       </div>
@@ -50,19 +50,19 @@ export function ExamesAgendadosPaciente({ petId }: { petId: string }) {
       ) : itens.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum exame agendado para este paciente.</p>
       ) : (
-        <ul className="divide-y divide-border text-sm">
+        <ul className="grid gap-3 text-sm lg:grid-cols-2">
           {itens.map((i) => (
-            <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div>
-                <span className="font-medium">{i.exame}</span>{" "}
-                <span className="text-xs text-muted-foreground">
+            <li key={i.id} className="grid min-w-0 gap-3 rounded-md border border-border bg-card p-4">
+              <div className="min-w-0">
+                <p className="break-words text-base font-semibold">{i.exame}</p>
+                <time dateTime={i.agendado_para} className="mt-2 block font-semibold tabular-nums text-primary">
                   {diaBrasilia(i.agendado_para).split("-").reverse().join("/")} às{" "}
                   {horaBrasilia(i.agendado_para)}
-                  {i.veterinario ? ` · ${i.veterinario}` : ""}
-                  {i.observacao ? ` · ${i.observacao}` : ""}
-                </span>
+                </time>
+                {i.veterinario && <p className="mt-2 break-words text-muted-foreground">{i.veterinario}</p>}
+                {i.observacao && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{i.observacao}</p>}
               </div>
-              <Badge variant={i.situacao === "faltou" || i.situacao === "cancelado" ? "destructive" : "outline"}>
+              <Badge className="w-fit" variant={i.situacao === "faltou" || i.situacao === "cancelado" ? "destructive" : "outline"}>
                 {SITUACOES_AGENDA_EXAME[i.situacao]}
               </Badge>
             </li>

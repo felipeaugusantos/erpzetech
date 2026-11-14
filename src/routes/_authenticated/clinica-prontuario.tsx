@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/clinica-prontuario")({
   }),
   head: () => ({
     meta: [
-      { title: "Prontuário — EZRA ERP" },
+      { title: "Prontuário veterinário — ERP Ze Tech" },
       {
         name: "description",
         content: "Ficha do paciente e histórico de atendimentos da clínica.",
@@ -121,7 +121,7 @@ function Prontuario() {
       )}
 
       <form
-        className="mb-4 flex max-w-xl gap-2"
+        className="mb-4 grid max-w-xl grid-cols-[minmax(0,1fr)_auto] gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           setTermo(busca.trim());
@@ -273,7 +273,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   return (
     <div className="grid gap-4">
-      <div className="panel overflow-hidden">
+      <div className="min-w-0 overflow-hidden border-y border-border">
         {p.alergias && (
           <div
             role="alert"
@@ -282,14 +282,14 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             <TriangleAlert className="size-4 shrink-0" /> Alergia: {p.alergias}
           </div>
         )}
-        <div className="flex flex-wrap items-start gap-4 p-4">
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 py-4 sm:flex sm:flex-wrap sm:gap-4">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <PawPrint className="size-7" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-display text-xl font-semibold">{p.nome}</h2>
-              <span className="text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
+            <div className="grid min-w-0 gap-1 sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
+              <h2 className="break-words font-display text-xl font-semibold">{p.nome}</h2>
+              <span className="break-words text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Badge variant="secondary">{rotulo(ESPECIES, p.especie)}</Badge>
@@ -307,12 +307,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </div>
           </div>
           {pesoAtual && (
-            <div className="rounded-lg border border-border px-3 py-2 text-right">
+            <div className="col-span-2 min-w-0 border-t border-border pt-3 text-left sm:border-t-0 sm:pt-0 sm:text-right">
               <p className="text-xs text-muted-foreground">Último peso</p>
               <p className="font-display text-lg font-semibold">{num(pesoAtual.peso, 2)} kg</p>
               {variacao !== null && variacao !== 0 && (
                 <p
-                  className={`flex items-center justify-end gap-1 text-xs ${variacao > 0 ? "text-primary" : "text-destructive"}`}
+                  className={`flex items-center gap-1 text-sm sm:justify-end ${variacao > 0 ? "text-primary" : "text-destructive"}`}
                 >
                   {variacao > 0 ? (
                     <TrendingUp className="size-3" />
@@ -327,7 +327,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 border-t border-border bg-muted/40 px-4 py-3">
+        <div className="grid gap-2 border-t border-border py-3 [&_a]:min-h-11 [&_button]:min-h-11 sm:flex sm:flex-wrap">
           {aberto ? (
             <Button asChild size="sm">
               <Link to="/clinica-atendimento" search={{ agendamento: aberto.agendamento_id }}>
@@ -380,9 +380,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           />
         )}
 
-        <div className="p-4">
+        <div className="min-w-0 py-4">
           <Label htmlFor="f-alergia">Alergias</Label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
             <Input
               id="f-alergia"
               value={alergias ?? p.alergias ?? ""}
@@ -411,11 +411,24 @@ function FichaDoPaciente({ petId }: { petId: string }) {
       </div>
 
       {sinais.length > 0 && (
-        <div className="panel overflow-x-auto p-4">
+        <section className="min-w-0 border-b border-border py-4" aria-label="Sinais vitais nas consultas">
           <h3 className="mb-2 font-display text-sm font-semibold">
             Sinais vitais nas consultas (mais recente primeiro)
           </h3>
-          <table className="w-full text-sm">
+          <ul className="grid gap-3 sm:hidden">
+            {sinais.map(v => (
+              <li key={v.em} className="min-w-0 rounded-md border border-border bg-card p-4">
+                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{dateTimeBR(v.em)}</time>
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
+                  <div><dt className="text-muted-foreground">Peso</dt><dd className="mt-1 font-medium">{v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}</dd></div>
+                  <div><dt className="text-muted-foreground">Temperatura</dt><dd className="mt-1 font-medium">{v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}</dd></div>
+                  <div><dt className="text-muted-foreground">Freq. cardíaca</dt><dd className="mt-1 font-medium">{v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}</dd></div>
+                  <div><dt className="text-muted-foreground">Freq. respiratória</dt><dd className="mt-1 font-medium">{v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}</dd></div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block"><table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
                 <th className="py-1 pr-3 font-medium">Consulta</th>
@@ -444,8 +457,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </table></div>
+        </section>
       )}
 
       <ExamesProntuario petId={petId} />
@@ -470,17 +483,17 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           description="O primeiro aparece aqui depois da consulta."
         />
       ) : (
-        <ol className="relative ml-3 grid gap-4 border-l-2 border-border pl-6">
+        <ol className="grid min-w-0 gap-4 sm:relative sm:ml-3 sm:border-l-2 sm:border-border sm:pl-6">
           {data.atendimentos.map((a) => (
-            <li key={a.id} className="relative">
+            <li key={a.id} className="relative min-w-0">
               <span
                 aria-hidden
-                className={`absolute -left-[33px] top-4 size-4 rounded-full border-2 border-background ${a.situacao === "fechado" ? "bg-muted-foreground" : "bg-primary"}`}
+                className={`absolute -left-[33px] top-4 hidden size-4 rounded-full border-2 border-background sm:block ${a.situacao === "fechado" ? "bg-muted-foreground" : "bg-primary"}`}
               />
-              <div className="panel p-4 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <strong>{dateTimeBR(a.aberto_em)}</strong>
-                  <span className="text-muted-foreground">
+              <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
+                  <time dateTime={a.aberto_em} className="font-semibold tabular-nums text-primary">{dateTimeBR(a.aberto_em)}</time>
+                  <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
                   <Badge variant={a.situacao === "fechado" ? "secondary" : "default"}>
@@ -499,7 +512,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     </Button>
                   </div>
                 )}
-                <dl className="mt-2 grid gap-1">
+                <dl className="mt-4 grid gap-4">
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
                   <Linha
@@ -525,7 +538,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     key={d.id}
                     className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3"
                   >
-                    <p className="whitespace-pre-wrap">{d.texto}</p>
+                    <p className="whitespace-pre-wrap break-words">{d.texto}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
                       {dateTimeBR(d.created_at)}
@@ -559,13 +572,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-3"
+                      className="mt-4 min-h-11 w-full sm:w-auto"
                       onClick={() => setAdendo({ id: a.id, texto: "" })}
                     >
                       Adicionar adendo
                     </Button>
                   ))}
-              </div>
+              </article>
             </li>
           ))}
         </ol>
@@ -577,9 +590,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 function Linha({ rotulo: r, valor }: { rotulo: string; valor: string | null | undefined }) {
   if (!valor) return null;
   return (
-    <div className="grid gap-0.5 sm:grid-cols-[8rem_1fr]">
-      <dt className="text-muted-foreground">{r}</dt>
-      <dd className="whitespace-pre-wrap">{valor}</dd>
+    <div className="grid min-w-0 gap-1 sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <dt className="text-sm font-medium text-muted-foreground">{r}</dt>
+      <dd className="min-w-0 whitespace-pre-wrap break-words leading-relaxed">{valor}</dd>
     </div>
   );
 }
