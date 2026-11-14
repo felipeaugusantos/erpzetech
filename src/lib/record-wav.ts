@@ -28,7 +28,7 @@ export function encodeWav(chunks: readonly Float32Array[], sampleRate: number): 
   return new Blob([bytes], { type: "audio/wav" });
 }
 
-export async function recordWav(): Promise<{ stop: () => Promise<File> }> {
+export async function recordWav(onLimite?: () => void): Promise<{ stop: () => Promise<File> }> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   let context: AudioContext | undefined;
   try {
@@ -38,7 +38,18 @@ export async function recordWav(): Promise<{ stop: () => Promise<File> }> {
     const source = audioContext.createMediaStreamSource(stream);
     const node = audioContext.createScriptProcessor(4096, 1, 1);
     const chunks: Float32Array[] = [];
-    node.onaudioprocess = (event) => chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+    let samples = 0;
+    let limite = false;
+    node.onaudioprocess = (event) => {
+      if (limite) return;
+      const chunk = new Float32Array(event.inputBuffer.getChannelData(0));
+      chunks.push(chunk);
+      samples += chunk.length;
+      if (samples >= Math.min(audioContext.sampleRate * 120, 10 * 1024 * 1024)) {
+        limite = true;
+        onLimite?.();
+      }
+    };
     source.connect(node);
     node.connect(audioContext.destination);
     let stopped = false;

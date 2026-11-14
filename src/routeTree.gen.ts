@@ -217,6 +217,7 @@ import { Route as AuthenticatedDepositosIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authenticated/hotel-estadia.$id'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
+import { Route as ApiClinicaTranscreverRouteImport } from './routes/api.clinica.transcrever'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
@@ -1398,6 +1399,11 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
   path: '/pedidos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiClinicaTranscreverRoute = ApiClinicaTranscreverRouteImport.update({
+  id: '/api/clinica/transcrever',
+  path: '/api/clinica/transcrever',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
   id: '/chamar/$empresa/$mesa',
   path: '/chamar/$empresa/$mesa',
@@ -1653,6 +1659,7 @@ export interface FileRoutesByFullPath {
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1871,6 +1878,7 @@ export interface FileRoutesByTo {
   '/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2091,6 +2099,7 @@ export interface FileRoutesById {
   '/_authenticated/depositos/$id': typeof AuthenticatedDepositosIdRoute
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
+  '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2311,6 +2320,7 @@ export interface FileRouteTypes {
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/api/clinica/transcrever'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2529,6 +2539,7 @@ export interface FileRouteTypes {
     | '/depositos/$id'
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
+    | '/api/clinica/transcrever'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2748,6 +2759,7 @@ export interface FileRouteTypes {
     | '/_authenticated/depositos/$id'
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
+    | '/api/clinica/transcrever'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2775,6 +2787,7 @@ export interface RootRouteChildren {
   MenuEmpresaRoute: typeof MenuEmpresaRoute
   PortalEntrarRoute: typeof PortalEntrarRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  ApiClinicaTranscreverRoute: typeof ApiClinicaTranscreverRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
@@ -4244,6 +4257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/clinica/transcrever': {
+      id: '/api/clinica/transcrever'
+      path: '/api/clinica/transcrever'
+      fullPath: '/api/clinica/transcrever'
+      preLoaderRoute: typeof ApiClinicaTranscreverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chamar/$empresa/$mesa': {
       id: '/chamar/$empresa/$mesa'
       path: '/chamar/$empresa/$mesa'
@@ -4732,6 +4752,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuEmpresaRoute: MenuEmpresaRoute,
   PortalEntrarRoute: PortalEntrarRoute,
   PortalIndexRoute: PortalIndexRoute,
+  ApiClinicaTranscreverRoute: ApiClinicaTranscreverRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
