@@ -1067,25 +1067,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="shrink-0 lg:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Abrir menu"
           >
             <Menu className="size-5" />
           </Button>
 
-          <button
+          <Button
+            variant="outline"
             onClick={() => setSearchOpen(true)}
-            className="flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-ring sm:max-w-md"
+            className="flex h-9 min-w-0 flex-1 justify-start gap-2 border-input bg-background px-3 text-sm text-muted-foreground sm:max-w-md"
           >
             <Search className="size-4" />
             <span className="truncate">Buscar cliente, produto, obra…</span>
             <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 text-[10px] sm:block">
               Ctrl K
             </kbd>
-          </button>
+          </Button>
 
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <div className="hidden items-center gap-2 rounded-md border border-border bg-secondary px-2.5 py-1.5 md:flex">
               <Building2 className="size-3.5 text-muted-foreground" />
               <div className="leading-tight">
