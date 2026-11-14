@@ -17,6 +17,7 @@ import {
   hojeISO,
 } from "@/lib/financeiro";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
+import { RevisarPrecosCompra } from "@/components/app/RevisarPrecosCompra";
 import { DevolucaoCompra } from "@/components/app/DevolucaoCompra";
 import { NotaEntrada, type NotaEntradaDados } from "@/components/app/NotaEntrada";
 import { Button } from "@/components/ui/button";
@@ -48,12 +49,16 @@ import {
 } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/compras/$id")({
+  validateSearch: (s: Record<string, unknown>): { precos?: string } =>
+    s["precos"] === "1" || s["precos"] === 1 ? { precos: "1" } : {},
   head: () => ({
     meta: [
       { title: "Pedido de compra — EZRA ERP" },
       { name: "description", content: "Itens, cotações e recebimento do pedido de compra." },
       { property: "og:title", content: "Pedido de compra — EZRA ERP" },
       { property: "og:description", content: "Acompanhe a compra do pedido ao recebimento." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CompraDetalhe,
@@ -99,6 +104,8 @@ function CompraDetalhe() {
   const [parcelas, setParcelas] = useState("1");
   const [recebItens, setRecebItens] = useState<RecebItem[]>([]);
   const [nota, setNota] = useState<NotaEntradaDados | null>(null);
+  const { precos: abrirPrecos } = Route.useSearch();
+  const [precosAberto, setPrecosAberto] = useState(abrirPrecos === "1");
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["compra", id] });
@@ -433,6 +440,11 @@ function CompraDetalhe() {
         </Link>
       </Button>
 
+      <RevisarPrecosCompra
+        open={precosAberto}
+        onOpenChange={setPrecosAberto}
+        produtoIds={itens.map((i) => i.produto_id).filter(Boolean) as string[]}
+      />
       <PageHeader
         title={`Compra nº ${compra.numero}`}
         description={`${(compra.fornecedores as { razao_social: string } | null)?.razao_social ?? "Fornecedor não definido"} · entrada em ${(compra.depositos as { nome: string } | null)?.nome ?? "—"}`}
@@ -443,6 +455,11 @@ function CompraDetalhe() {
                 {labelCompra(s)}
               </Button>
             ))}
+            {["recebido", "parcialmente_recebido"].includes(compra.situacao) && itens.length > 0 && (
+              <Button variant="outline" onClick={() => setPrecosAberto(true)}>
+                Revisar preços de venda
+              </Button>
+            )}
             {["recebido", "parcialmente_recebido"].includes(compra.situacao) && (
               <DevolucaoCompra compraId={id} itens={itens as never} temChave={!!compra.nfe_chave} />
             )}

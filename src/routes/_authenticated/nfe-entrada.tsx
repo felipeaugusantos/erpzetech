@@ -474,7 +474,7 @@ function NfeEntrada() {
       queryClient.invalidateQueries();
       setLida(null);
       setArquivo("");
-      void navigate({ to: "/compras/$id", params: { id: res.compra_id } });
+      void navigate({ to: "/compras/$id", params: { id: res.compra_id }, search: { precos: "1" } });
     },
     onError: async (e) => {
       if (e instanceof ImportacaoAbandonada) {
