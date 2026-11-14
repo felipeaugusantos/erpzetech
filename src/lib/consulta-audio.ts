@@ -2,11 +2,19 @@ import { createParser } from "eventsource-parser";
 import type { FormAtendimento } from "./clinica";
 
 export const CAMPOS_AUDIO = {
-  queixa: "Queixa", anamnese: "Anamnese", exame_fisico: "Exame físico",
-  diagnostico: "Diagnóstico", conduta: "Conduta", observacoes: "Observações",
+  queixa: "Queixa",
+  anamnese: "Anamnese",
+  exame_fisico: "Exame físico",
+  diagnostico: "Diagnóstico",
+  conduta: "Conduta",
+  observacoes: "Observações",
 } as const;
 export type CampoAudio = keyof typeof CAMPOS_AUDIO;
-export function aplicarTranscricao(form: FormAtendimento, campo: CampoAudio, texto: string): FormAtendimento {
+export function aplicarTranscricao(
+  form: FormAtendimento,
+  campo: CampoAudio,
+  texto: string,
+): FormAtendimento {
   const trecho = texto.trim();
   if (!trecho) throw new Error("A transcrição está vazia.");
   const novo = [form[campo].trim(), trecho].filter(Boolean).join("\n\n");
@@ -23,13 +31,23 @@ export async function lerTranscricao(response: Response, onTexto: (texto: string
   let texto = "";
   let completo = false;
   let erro: string | undefined;
-  const parser = createParser({ onEvent(event) {
-    if (event.data === "[DONE]") return;
-    const dado = JSON.parse(event.data);
-    if (dado.type === "transcript.text.delta") { texto += dado.delta; onTexto(texto); }
-    if (dado.type === "transcript.text.done") { texto = dado.text; completo = true; onTexto(texto); }
-    if (dado.error || dado.type === "error") erro = dado.error?.message ?? dado.message ?? "Transcrição interrompida.";
-  } });
+  const parser = createParser({
+    onEvent(event) {
+      if (event.data === "[DONE]") return;
+      const dado = JSON.parse(event.data);
+      if (dado.type === "transcript.text.delta") {
+        texto += dado.delta;
+        onTexto(texto);
+      }
+      if (dado.type === "transcript.text.done") {
+        texto = dado.text;
+        completo = true;
+        onTexto(texto);
+      }
+      if (dado.error || dado.type === "error")
+        erro = dado.error?.message ?? dado.message ?? "Transcrição interrompida.";
+    },
+  });
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   try {
@@ -39,9 +57,12 @@ export async function lerTranscricao(response: Response, onTexto: (texto: string
       parser.feed(decoder.decode(chunk.value, { stream: true }));
     }
     parser.feed(decoder.decode());
-  } finally { reader.releaseLock(); }
+  } finally {
+    reader.releaseLock();
+  }
   if (erro) throw new Error(erro);
-  if (!completo) throw new Error("Transcrição incompleta. O áudio continua disponível para nova tentativa.");
+  if (!completo)
+    throw new Error("Transcrição incompleta. O áudio continua disponível para nova tentativa.");
   if (!texto.trim()) throw new Error("Não foi identificada fala no áudio.");
   return texto;
 }

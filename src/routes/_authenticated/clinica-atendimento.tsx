@@ -49,7 +49,10 @@ export const Route = createFileRoute("/_authenticated/clinica-atendimento")({
         content: "Prontuário da consulta: queixa, exame, diagnóstico e conduta.",
       },
       { property: "og:title", content: "Consulta veterinária — ERP Ze Tech" },
-      { property: "og:description", content: "Ficha da consulta veterinária com revisão de transcrição por áudio." },
+      {
+        property: "og:description",
+        content: "Ficha da consulta veterinária com revisão de transcrição por áudio.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -101,11 +104,15 @@ function Atendimento() {
   }
 
   async function confirmarAudio(campoAudio: CampoAudio, texto: string) {
-    if (!data || !form || data.situacao !== "aberto") throw new Error("A consulta não está aberta.");
+    if (!data || !form || data.situacao !== "aberto")
+      throw new Error("A consulta não está aberta.");
     const novo = aplicarTranscricao(form, campoAudio, texto);
     const erro = erroDosSinais(novo);
     if (erro) throw new Error(erro);
-    const resposta = await supabase.rpc("clinica_atendimento_salvar", { p_id: data.id, p_dados: novo as unknown as Json });
+    const resposta = await supabase.rpc("clinica_atendimento_salvar", {
+      p_id: data.id,
+      p_dados: novo as unknown as Json,
+    });
     if (resposta.error) throw new Error(resposta.error.message);
     setForm(novo);
     guardar(resposta.data as unknown as AtendimentoClinico);
@@ -252,7 +259,16 @@ function Atendimento() {
       )}
 
       <div className="panel grid gap-4 p-4">
-        {!fechado && <div className="flex justify-end"><AudioConsulta key={data.id} atendimento={data.id} agendamento={agendamento} onConfirmar={confirmarAudio} /></div>}
+        {!fechado && (
+          <div className="flex justify-end">
+            <AudioConsulta
+              key={data.id}
+              atendimento={data.id}
+              agendamento={agendamento}
+              onConfirmar={confirmarAudio}
+            />
+          </div>
+        )}
         <div>
           <Label htmlFor="c-queixa">Queixa *</Label>
           <Textarea id="c-queixa" rows={2} {...campo("queixa")} />
