@@ -1098,7 +1098,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <ChevronDown className="size-3 text-muted-foreground" />
             </div>
 
-            <NotificationsMenu />
+            <NotificationsMenu telas={menu.flatMap((g) => g.items.map((i) => i.to ?? ""))} />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
