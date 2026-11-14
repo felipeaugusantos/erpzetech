@@ -30,6 +30,6 @@ export function filtrarTelas(telas: TelaBusca[], termo: string, limite = 6): Tel
 export function lerMultiplicador(entrada: string): { quantidade: number; codigo: string } {
   const m = entrada.trim().match(/^(\d+(?:[.,]\d{1,3})?)\s*\*\s*(.+)$/);
   if (!m) return { quantidade: 1, codigo: entrada.trim() };
-  const q = Number(m[1].replace(",", "."));
-  return q > 0 ? { quantidade: q, codigo: m[2].trim() } : { quantidade: 1, codigo: entrada.trim() };
+  const q = Number((m[1] ?? "").replace(",", "."));
+  return q > 0 ? { quantidade: q, codigo: (m[2] ?? "").trim() } : { quantidade: 1, codigo: entrada.trim() };
 }
