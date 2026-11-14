@@ -149,7 +149,7 @@ function Pdv() {
   }, [estoque]);
 
   const sugestoes = useMemo(() => {
-    const t = busca.trim().toLowerCase();
+    const t = lerMultiplicador(busca).codigo.toLowerCase();
     if (!t) return [];
     return produtos
       .filter(
@@ -422,7 +422,7 @@ function Pdv() {
                     <li key={p.id}>
                       <button
                         className="flex w-full items-center gap-3 px-3 py-3 text-left text-sm hover:bg-secondary"
-                        onClick={() => adicionar(p)}
+                        onClick={() => adicionar(p, lerMultiplicador(busca).quantidade)}
                       >
                         <Plus className="size-4 shrink-0 text-primary" />
                         <span className="flex-1 truncate">{p.descricao}</span>
