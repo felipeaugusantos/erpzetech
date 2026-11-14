@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Gravar áudio na consulta, transcrever para revisão e salvar na ficha somente com confirmação veterinária; proteger gravações e respostas ao trocar de atendimento.
+- [x] Gravar áudio na consulta com consentimento, WAV completo até 2 minutos, transcrição para revisão e escolha de campo, salvamento somente na confirmação; rascunho isolado por consulta e microfone encerrado ao sair. Transcrição real em português respondeu 200; acesso anônimo recusado. Gravação e confirmação visual conferidas com resposta controlada, sem alterar ficha real. Não publicado.
+- [ ] Conferir envio e salvamento completos numa consulta aberta autorizada: Bruna só tem consultas fechadas; não foi criada visita fictícia no histórico clínico.
 
 - [x] Mostrar exames do paciente no prontuário com data da coleta em destaque e acesso direto ao laudo. Conta veterinária confirmou três exames de Léo, datas 12/11/2026 e 03/08/2026 e abertura do exame correto; computador e celular conferidos, três testes de histórico passaram. Não publicado.
 
