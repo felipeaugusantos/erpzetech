@@ -49,3 +49,7 @@
 - Resumo do histórico com IA (clínica): só veterinário e só empresa em `CLINICA_IA_EMPRESAS_LIBERADAS` (vazia = ninguém); lê por `clinica_historico`, envia só dado clínico do animal (`textoDoHistorico`: nunca tutor, nome do pet, microchip, foto nem veterinário), mostra como rascunho que não é gravado e a IA não diagnostica, não sugere tratamento/dose nem interpreta valores. Guia em docs/clinica-resumo-ia.md.
 - Key the entire clinical patient record by pet ID so switching patients remounts all drafts and mutation observers, including cached records and late AI responses.
 - Run mounted React lifecycle regressions in `tests/**/*.vitest.tsx` with Vitest and a matching React test renderer; keep existing Node tests separate to preserve their runner.
+
+- Sales offline queues persist before clearing the cart, retain idempotency keys/payment parameters and reconcile the latest queue after uploads so concurrent sales are not lost; rejected sales remain visible.
+- Offline app-shell caching uses vite-plugin-pwa generateSW and one preview/dev/iframe-guarded registrar; navigations are NetworkFirst and API/OAuth responses are never cached.
+- PDV uses user/tenant-scoped base caches and an idempotent sale wrapper that pins the original cash register, preserving existing stock and authorization checks.
