@@ -20,8 +20,8 @@ export function conciliarVendas<T extends VendaPendente>(atual: T[], enviadas: T
 
 export function saldoAposFila(saldo: number, produto: string, deposito: string, fila: VendaPendente[]) {
   return Math.max(0, saldo - fila.reduce((s, v) => {
-    if (v.params.p_deposito_id !== deposito) return s;
-    const itens = v.params.p_itens as { produto_id: string; quantidade: number }[];
+    if (v.params['p_deposito_id'] !== deposito) return s;
+    const itens = v.params['p_itens'] as { produto_id: string; quantidade: number }[];
     return s + itens.filter((i) => i.produto_id === produto).reduce((q, i) => q + Number(i.quantidade), 0);
   }, 0));
 }
