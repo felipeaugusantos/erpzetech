@@ -715,7 +715,7 @@ function FrenteCaixa() {
     id: string;
     em: string;
     total: number;
-    tenant?: string;
+    tenant?: string | undefined;
     recebido?: number;
     troco?: number;
     params: Record<string, unknown>;
