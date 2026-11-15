@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Completar Fase 1 do PDV: guia de atalhos visível, leitor USB e câmera, fechamento com valor contado e relatório diário imprimível; implementação concluída, conferência em andamento.
+- [x] Completar Fase 1 do PDV: guia F2/Enter/F4/Esc visível, leitor USB e câmera, fechamento com valor contado e diferença, relatório diário imprimível por data e forma de pagamento. Seis testes passaram; bipagem simulada com produto real abriu pagamento, relatório de 20/10 mostrou R$ 188,88 em vendas; celular sem rolagem lateral. Nenhuma venda nem fechamento gravado; não publicado.
+- [ ] Validar leitura com câmera/leitor físico e confirmar fechamento autorizado: requer dispositivo físico e decisão de fechar o caixa real; não alterado durante a conferência.
 - [ ] Enviar resumo diário ao administrador da empresa com contas a pagar no vencimento, orçamentos sem resposta há 48 horas e exames sem laudo; bloqueado: nenhum domínio de envio configurado, depende de cadastrar e verificar um domínio próprio.
 
 - [x] Otimizar prontuário no celular: cartões de exames/laudos e documentos, datas destacadas, sinais vitais em cartões e consulta com texto maior e separado por campo. Conta veterinária confirmou três exames de Léo, consulta e abertura do laudo correto; celular 360/390 px e computador sem rolagem lateral ou erros. Trinta testes passaram, build OK; nenhum dado clínico alterado, não publicado.

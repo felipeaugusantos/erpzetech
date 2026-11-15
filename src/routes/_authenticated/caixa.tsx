@@ -87,7 +87,7 @@ function Caixa() {
 
   const caixaAtual = caixas.find((c) => c.situacao === "aberto") ?? null;
 
-  const { data: movimentos = [] } = useQuery({
+  const { data: movimentos = [], isPending: movimentosCarregando } = useQuery({
     queryKey: ["caixa-movimentos", caixaAtual?.id ?? "nenhum"],
     enabled: !!caixaAtual,
     queryFn: async () => {
@@ -241,6 +241,7 @@ function Caixa() {
                   <ArrowUpCircle className="size-4" /> Lançar movimento
                 </Button>
                 <Button
+                disabled={movimentosCarregando}
                   onClick={() => {
                     setValorInformado("");
                     setFecharAberto(true);
