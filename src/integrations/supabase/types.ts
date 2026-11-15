@@ -18990,6 +18990,20 @@ export type Database = {
         }
         Returns: string
       }
+      pdv_venda_offline: {
+        Args: {
+          p_caixa_id?: string
+          p_chave: string
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
       pedido_alterar: {
         Args: {
           p_condicao_pagamento?: string
