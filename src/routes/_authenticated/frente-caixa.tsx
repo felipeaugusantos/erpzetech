@@ -818,7 +818,7 @@ function FrenteCaixa() {
           continue;
         }
       }
-      const { data: pedidoEnviado, error } = await supabase.rpc("frente_venda", p.params as never);
+      const { data: pedidoEnviado, error } = await supabase.rpc(p.params["p_caixa_id"] ? "frente_venda_offline" : "frente_venda", p.params as never);
       if (error) {
         if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
         else {
@@ -1122,7 +1122,7 @@ function FrenteCaixa() {
             tenant: session?.profile?.tenant_id ?? undefined,
             recebido: Number(recebido.replace(",", ".")) || 0,
             troco,
-            params,
+            params: { ...params, p_caixa_id: caixa.id },
             // a conexão caiu no meio da venda: o vínculo vai junto, para ser feito quando a venda for enviada
             ...(vinculo ? { vinculo } : {}),
           },
