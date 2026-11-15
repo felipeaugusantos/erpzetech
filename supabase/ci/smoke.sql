@@ -2172,6 +2172,21 @@ BEGIN
   PERFORM ci.exige(v3 <> v1, 'outra chave é outra venda');
   PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM pedidos WHERE tenant_id = %L AND chave_idempotencia IS NOT NULL$c$, demo)) = 2, 'a chave fica guardada na venda');
 
+  -- PDV mobile: reenvio idempotente, caixa original e estoque protegidos.
+  chave_venda := gen_random_uuid();
+  SELECT quantidade INTO q_antes FROM estoques WHERE produto_id = prod AND deposito_id = dep;
+  SELECT count(*) INTO n_mov_antes FROM caixa_movimentos WHERE caixa_id = cx;
+  PERFORM ci.entrar(adm);
+  v1 := pdv_venda_offline(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 10)), 'dinheiro', chave_venda, cx);
+  v2 := pdv_venda_offline(dep, jsonb_build_array(jsonb_build_object('produto_id', prod, 'quantidade', 2, 'preco_unitario', 10)), 'dinheiro', chave_venda, cx);
+  PERFORM ci.sair();
+  PERFORM ci.exige(v1 = v2, 'PDV reenvia sem duplicar pedido');
+  PERFORM ci.exige((SELECT quantidade FROM estoques WHERE produto_id = prod AND deposito_id = dep) = q_antes - 2, 'PDV baixa duas unidades uma vez');
+  PERFORM ci.exige((SELECT count(*) FROM caixa_movimentos WHERE caixa_id = cx) = n_mov_antes + 1, 'PDV recebe uma vez');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT pdv_venda_offline(%L, '[{"produto_id":"%s","quantidade":1,"preco_unitario":10}]', 'dinheiro', %L, %L)$c$, dep, prod, gen_random_uuid(), gen_random_uuid()), 'PDV recusa caixa original inexistente');
+  PERFORM ci.deve_falhar(NULL, format($c$SELECT pdv_venda_offline(%L, '[]', 'dinheiro', %L, %L)$c$, dep, gen_random_uuid(), cx), 'anon não sincroniza PDV');
+  PERFORM ci.deve_falhar(gar, format($c$SELECT pdv_venda_offline(%L, '[]', 'dinheiro', %L, %L)$c$, dep, gen_random_uuid(), cx), 'salão não sincroniza PDV');
+
   -- aviso de venda repetida: a tela pergunta se a chave já tem venda antes de reenviar
   PERFORM ci.entrar(adm);
   PERFORM ci.exige((frente_venda_existente(chave_venda) ->> 'pedido_id') = v1::text, 'a chave de uma venda já feita devolve o pedido');

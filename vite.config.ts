@@ -9,7 +9,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   vite: { plugins: [VitePWA({
-    strategies: "generateSW", filename: "sw.js", injectRegister: null,
+    strategies: "generateSW", filename: "sw.js", injectRegister: null, outDir: "dist/client",
     registerType: "autoUpdate", devOptions: { enabled: false }, manifest: false,
     workbox: {
       globPatterns: ["**/*.{js,css,png,woff2}"],
