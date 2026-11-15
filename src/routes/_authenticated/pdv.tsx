@@ -388,8 +388,23 @@ function Pdv() {
         }
       />
 
-      <div aria-label="Atalhos do PDV" className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-border py-3 text-sm text-muted-foreground">
-        {[["F2", "Buscar"], ["Enter", "Adicionar"], ["F4", "Pagamento"], ["Esc", "Limpar busca"]].map(([tecla, label]) => <span key={tecla} className="flex items-center gap-2"><kbd className="rounded border border-border bg-muted px-2 py-1 font-mono text-xs text-foreground">{tecla}</kbd>{label}</span>)}
+      <div
+        aria-label="Atalhos do PDV"
+        className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-border py-3 text-sm text-muted-foreground"
+      >
+        {[
+          ["F2", "Buscar"],
+          ["Enter", "Adicionar"],
+          ["F4", "Pagamento"],
+          ["Esc", "Limpar busca"],
+        ].map(([tecla, label]) => (
+          <span key={tecla} className="flex items-center gap-2">
+            <kbd className="rounded border border-border bg-muted px-2 py-1 font-mono text-xs text-foreground">
+              {tecla}
+            </kbd>
+            {label}
+          </span>
+        ))}
       </div>
 
       {!caixaAberto && (
@@ -408,26 +423,26 @@ function Pdv() {
             <div>
               <Label className="text-xs">Código de barras ou nome do produto</Label>
               <div className="mt-1 flex gap-2">
-              <div className="relative min-w-0 flex-1">
-                <Barcode className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={buscaRef}
-                  autoFocus
-                  autoComplete="off"
-                  enterKeyHint="done"
-                  className="h-14 pl-10 text-base"
-                  placeholder="Código ou 3*código"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      onEnterBusca();
-                    }
-                  }}
-                />
-              </div>
-              <LeitorCodigoCamera onCodigo={incluirCodigo} />
+                <div className="relative min-w-0 flex-1">
+                  <Barcode className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    ref={buscaRef}
+                    autoFocus
+                    autoComplete="off"
+                    enterKeyHint="done"
+                    className="h-14 pl-10 text-base"
+                    placeholder="Código ou 3*código"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onEnterBusca();
+                      }
+                    }}
+                  />
+                </div>
+                <LeitorCodigoCamera onCodigo={incluirCodigo} />
               </div>
               {sugestoes.length > 0 && (
                 <ul className="mt-2 divide-y divide-border rounded-md border border-border">

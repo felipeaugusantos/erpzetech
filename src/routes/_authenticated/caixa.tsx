@@ -195,7 +195,8 @@ function Caixa() {
     mutationFn: async () => {
       if (!caixaAtual) throw new Error("Nenhum caixa aberto");
       const informado = Number(valorInformado.replace(",", "."));
-      if (!valorInformado.trim() || !Number.isFinite(informado) || informado < 0) throw new Error("Informe o valor contado na gaveta, maior ou igual a zero.");
+      if (!valorInformado.trim() || !Number.isFinite(informado) || informado < 0)
+        throw new Error("Informe o valor contado na gaveta, maior ou igual a zero.");
       const { data, error } = await supabase.rpc("fechar_caixa", {
         p_caixa_id: caixaAtual.id,
         p_valor_informado: Number(valorInformado.replace(",", ".") || 0),
@@ -224,31 +225,36 @@ function Caixa() {
         title="Caixa"
         description="Abertura, movimentos do dia e fechamento com conferência de valores."
         actions={
-          <><Button variant="outline" onClick={() => setRelatorioAberto(true)}><FileText className="size-4" /> Relatório do dia</Button>{caixaAtual ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTipoMov("entrada");
-                  setMovAberto(true);
-                }}
-              >
-                <ArrowUpCircle className="size-4" /> Lançar movimento
-              </Button>
-              <Button
-                onClick={() => {
-                  setValorInformado("");
-                  setFecharAberto(true);
-                }}
-              >
-                <Lock className="size-4" /> Fechar caixa
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setAbrirAberto(true)}>
-              <Unlock className="size-4" /> Abrir caixa
+          <>
+            <Button variant="outline" onClick={() => setRelatorioAberto(true)}>
+              <FileText className="size-4" /> Relatório do dia
             </Button>
-          )}</>
+            {caixaAtual ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTipoMov("entrada");
+                    setMovAberto(true);
+                  }}
+                >
+                  <ArrowUpCircle className="size-4" /> Lançar movimento
+                </Button>
+                <Button
+                  onClick={() => {
+                    setValorInformado("");
+                    setFecharAberto(true);
+                  }}
+                >
+                  <Lock className="size-4" /> Fechar caixa
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setAbrirAberto(true)}>
+                <Unlock className="size-4" /> Abrir caixa
+              </Button>
+            )}
+          </>
         }
       />
       <RelatorioDiaCaixa aberto={relatorioAberto} onOpenChange={setRelatorioAberto} />
@@ -518,7 +524,14 @@ function Caixa() {
               <Label>Valor conferido na gaveta</Label>
               <Input value={valorInformado} onChange={(e) => setValorInformado(e.target.value)} />
             </div>
-            {valorInformado.trim() && Number.isFinite(Number(valorInformado.replace(",", "."))) && <p className="text-sm">Diferença da conferência: <strong className="tabular-nums">{brl(Number(valorInformado.replace(",", ".")) - resumo.dinheiro)}</strong></p>}
+            {valorInformado.trim() && Number.isFinite(Number(valorInformado.replace(",", "."))) && (
+              <p className="text-sm">
+                Diferença da conferência:{" "}
+                <strong className="tabular-nums">
+                  {brl(Number(valorInformado.replace(",", ".")) - resumo.dinheiro)}
+                </strong>
+              </p>
+            )}
             <div>
               <Label>Observação</Label>
               <Textarea
