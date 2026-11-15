@@ -8,7 +8,11 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  vite: { plugins: [VitePWA({
+  vite: {
+    // Keep Radix hook consumers in the initial dependency graph instead of adding
+    // a second optimized React graph when a lazy screen first opens.
+    optimizeDeps: { include: ["@radix-ui/react-slot", "@radix-ui/react-compose-refs"] },
+    plugins: [VitePWA({
     strategies: "generateSW", filename: "sw.js", injectRegister: null, outDir: "dist/client",
     registerType: "autoUpdate", devOptions: { enabled: false }, manifest: false,
     workbox: {
