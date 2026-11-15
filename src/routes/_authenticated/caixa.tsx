@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownCircle, ArrowUpCircle, Lock, Unlock, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Lock, Unlock, Wallet, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateTimeBR } from "@/lib/format";
 import { entradaCaixa, formasPagamento, labelForma, tiposCaixaMov } from "@/lib/financeiro";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
+import { RelatorioDiaCaixa } from "@/components/app/RelatorioDiaCaixa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,13 +41,15 @@ import {
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
     meta: [
-      { title: "Caixa — EZRA ERP" },
+      { title: "Caixa e relatório diário — ERP Ze Tech" },
       {
         name: "description",
         content: "Abertura, entradas, saídas, sangria, suprimento e fechamento do caixa.",
       },
-      { property: "og:title", content: "Caixa — EZRA ERP" },
+      { property: "og:title", content: "Caixa e relatório diário — ERP Ze Tech" },
       { property: "og:description", content: "Controle diário do caixa da loja." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Caixa,
@@ -67,6 +70,7 @@ function Caixa() {
   const [fecharAberto, setFecharAberto] = useState(false);
   const [valorInformado, setValorInformado] = useState("");
   const [obsFechamento, setObsFechamento] = useState("");
+  const [relatorioAberto, setRelatorioAberto] = useState(false);
 
   const { data: caixas = [], isLoading } = useQuery({
     queryKey: ["caixas"],
@@ -83,7 +87,7 @@ function Caixa() {
 
   const caixaAtual = caixas.find((c) => c.situacao === "aberto") ?? null;
 
-  const { data: movimentos = [] } = useQuery({
+  const { data: movimentos = [], isPending: movimentosCarregando } = useQuery({
     queryKey: ["caixa-movimentos", caixaAtual?.id ?? "nenhum"],
     enabled: !!caixaAtual,
     queryFn: async () => {
@@ -190,6 +194,9 @@ function Caixa() {
   const fechar = useMutation({
     mutationFn: async () => {
       if (!caixaAtual) throw new Error("Nenhum caixa aberto");
+      const informado = Number(valorInformado.replace(",", "."));
+      if (!valorInformado.trim() || !Number.isFinite(informado) || informado < 0)
+        throw new Error("Informe o valor contado na gaveta, maior ou igual a zero.");
       const { data, error } = await supabase.rpc("fechar_caixa", {
         p_caixa_id: caixaAtual.id,
         p_valor_informado: Number(valorInformado.replace(",", ".") || 0),
@@ -207,6 +214,7 @@ function Caixa() {
       setObsFechamento("");
       void queryClient.invalidateQueries({ queryKey: ["caixas"] });
       void queryClient.invalidateQueries({ queryKey: ["caixa-aberto"] });
+      void queryClient.invalidateQueries({ queryKey: ["caixa-relatorio-dia"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -217,33 +225,40 @@ function Caixa() {
         title="Caixa"
         description="Abertura, movimentos do dia e fechamento com conferência de valores."
         actions={
-          caixaAtual ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTipoMov("entrada");
-                  setMovAberto(true);
-                }}
-              >
-                <ArrowUpCircle className="size-4" /> Lançar movimento
-              </Button>
-              <Button
-                onClick={() => {
-                  setValorInformado(resumo.dinheiro.toFixed(2));
-                  setFecharAberto(true);
-                }}
-              >
-                <Lock className="size-4" /> Fechar caixa
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setAbrirAberto(true)}>
-              <Unlock className="size-4" /> Abrir caixa
+          <>
+            <Button variant="outline" onClick={() => setRelatorioAberto(true)}>
+              <FileText className="size-4" /> Relatório do dia
             </Button>
-          )
+            {caixaAtual ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTipoMov("entrada");
+                    setMovAberto(true);
+                  }}
+                >
+                  <ArrowUpCircle className="size-4" /> Lançar movimento
+                </Button>
+                <Button
+                disabled={movimentosCarregando}
+                  onClick={() => {
+                    setValorInformado("");
+                    setFecharAberto(true);
+                  }}
+                >
+                  <Lock className="size-4" /> Fechar caixa
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setAbrirAberto(true)}>
+                <Unlock className="size-4" /> Abrir caixa
+              </Button>
+            )}
+          </>
         }
       />
+      <RelatorioDiaCaixa aberto={relatorioAberto} onOpenChange={setRelatorioAberto} />
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground">Carregando…</div>
@@ -510,6 +525,14 @@ function Caixa() {
               <Label>Valor conferido na gaveta</Label>
               <Input value={valorInformado} onChange={(e) => setValorInformado(e.target.value)} />
             </div>
+            {valorInformado.trim() && Number.isFinite(Number(valorInformado.replace(",", "."))) && (
+              <p className="text-sm">
+                Diferença da conferência:{" "}
+                <strong className="tabular-nums">
+                  {brl(Number(valorInformado.replace(",", ".")) - resumo.dinheiro)}
+                </strong>
+              </p>
+            )}
             <div>
               <Label>Observação</Label>
               <Textarea

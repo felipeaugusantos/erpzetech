@@ -12,6 +12,7 @@ import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro
 import type { FormaPagamento } from "@/lib/financeiro";
 import { CupomFiscal, type CupomDados } from "@/components/app/CupomFiscal";
 import { InstalarApp } from "@/components/app/InstalarApp";
+import { LeitorCodigoCamera } from "@/components/app/LeitorCodigoCamera";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -36,13 +37,13 @@ import {
 export const Route = createFileRoute("/_authenticated/pdv")({
   head: () => ({
     meta: [
-      { title: "PDV — venda rápida — EZRA ERP" },
+      { title: "PDV — venda rápida — ERP Ze Tech" },
       {
         name: "description",
         content:
           "Venda de balcão com leitura de código de barras, cupom impresso na hora, baixa de estoque no depósito e lançamento automático no caixa.",
       },
-      { property: "og:title", content: "PDV — venda rápida — EZRA ERP" },
+      { property: "og:title", content: "PDV — venda rápida — ERP Ze Tech" },
       {
         property: "og:description",
         content: "Passe o código de barras, receba o pagamento, imprima o cupom e emita a nota.",
@@ -190,6 +191,7 @@ function Pdv() {
   // Atalhos de balcão: F2 busca, F4 pagamento, Esc limpa a busca.
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      if (pagamentoAberto || cupom || document.querySelector('[role="dialog"]')) return;
       if (e.key === "F2") {
         e.preventDefault();
         buscaRef.current?.focus();
@@ -208,13 +210,17 @@ function Pdv() {
 
   /** Enter no campo: código de barras exato entra direto no carrinho ("3*código" = 3 unidades). */
   function onEnterBusca() {
-    const { quantidade, codigo } = lerMultiplicador(busca);
+    incluirCodigo(busca);
+  }
+
+  function incluirCodigo(valor: string) {
+    const { quantidade, codigo } = lerMultiplicador(valor);
     const t = codigo.toLowerCase();
     if (!t) return;
     const exato =
       produtos.find((p) => (p.codigo_barras ?? "").toLowerCase() === t) ??
       produtos.find((p) => (p.codigo_interno ?? "").toLowerCase() === t) ??
-      (sugestoes.length === 1 ? sugestoes[0] : null);
+      (valor === busca && sugestoes.length === 1 ? sugestoes[0] : null);
     if (exato) adicionar(exato, quantidade);
     else
       toast.error("Produto não encontrado", {
@@ -382,6 +388,25 @@ function Pdv() {
         }
       />
 
+      <div
+        aria-label="Atalhos do PDV"
+        className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-border py-3 text-sm text-muted-foreground"
+      >
+        {[
+          ["F2", "Buscar"],
+          ["Enter", "Adicionar"],
+          ["F4", "Pagamento"],
+          ["Esc", "Limpar busca"],
+        ].map(([tecla, label]) => (
+          <span key={tecla} className="flex items-center gap-2">
+            <kbd className="rounded border border-border bg-muted px-2 py-1 font-mono text-xs text-foreground">
+              {tecla}
+            </kbd>
+            {label}
+          </span>
+        ))}
+      </div>
+
       {!caixaAberto && (
         <div className="panel mb-6 border-destructive/40 bg-destructive/5 p-4 text-sm">
           Nenhum caixa aberto. Vendas à vista exigem caixa aberto — abra o caixa em{" "}
@@ -397,24 +422,27 @@ function Pdv() {
           <div className="panel mb-4 space-y-3 p-3 sm:p-4">
             <div>
               <Label className="text-xs">Código de barras ou nome do produto</Label>
-              <div className="relative mt-1">
-                <Barcode className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={buscaRef}
-                  autoFocus
-                  autoComplete="off"
-                  enterKeyHint="done"
-                  className="h-14 pl-10 text-base"
-                  placeholder="F2 — passe o leitor ou digite (ex.: 3*código) e aperte Enter"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      onEnterBusca();
-                    }
-                  }}
-                />
+              <div className="mt-1 flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <Barcode className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    ref={buscaRef}
+                    autoFocus
+                    autoComplete="off"
+                    enterKeyHint="done"
+                    className="h-14 pl-10 text-base"
+                    placeholder="Código ou 3*código"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onEnterBusca();
+                      }
+                    }}
+                  />
+                </div>
+                <LeitorCodigoCamera onCodigo={incluirCodigo} />
               </div>
               {sugestoes.length > 0 && (
                 <ul className="mt-2 divide-y divide-border rounded-md border border-border">
