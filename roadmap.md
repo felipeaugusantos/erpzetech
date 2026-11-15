@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Completar Fase 1 do PDV: guia de atalhos visível, leitor de código de barras e fechamento com relatório do dia.
+- [ ] Enviar resumo diário ao administrador da empresa com contas a pagar no vencimento, orçamentos sem resposta há 48 horas e exames sem laudo; aguarda verificação do domínio de e-mail.
+
 - [x] Otimizar prontuário no celular: cartões de exames/laudos e documentos, datas destacadas, sinais vitais em cartões e consulta com texto maior e separado por campo. Conta veterinária confirmou três exames de Léo, consulta e abertura do laudo correto; celular 360/390 px e computador sem rolagem lateral ou erros. Trinta testes passaram, build OK; nenhum dado clínico alterado, não publicado.
 
 - [x] Gravar áudio na consulta com consentimento, WAV completo até 2 minutos, transcrição para revisão e escolha de campo, salvamento somente na confirmação; rascunho isolado por consulta e microfone encerrado ao sair. Transcrição real em português respondeu 200; acesso anônimo recusado. Gravação e confirmação visual conferidas com resposta controlada, sem alterar ficha real. Não publicado.
