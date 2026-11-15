@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] PDV e balcão sem internet no celular: fila durável, pagamentos e reenvio idempotente, sincronização automática, saldo local e abertura offline segura no app publicado.
+- [x] PDV e balcão: fila local com pagamento, recebido/troco, reenvio idempotente, sincronização automática e conciliação concorrente; PDV desconta fila do saldo disponível e mostra recusas. Migrações 0093/0094 preservam caixa original. Dezessete testes passaram; celular autenticado confirmou venda offline e reconexão com recusa controlada sem apagar pagamento, nenhuma venda real criada; build OK.
+- [ ] Validar reabertura sem internet e sincronização financeira completa no publicado: depende de publicar a nova versão e conferir no celular com caixa autorizado; a prévia não registra cache de páginas por segurança. Testes SQL de idempotência/caixa/perfis adicionados à CI; sessão sandbox não pode assumir authenticated.
 
 - [x] Completar Fase 1 do PDV: guia F2/Enter/F4/Esc visível, leitor USB e câmera, fechamento com valor contado e diferença, relatório diário imprimível por data e forma de pagamento. Seis testes passaram; bipagem simulada com produto real abriu pagamento, relatório de 20/10 mostrou R$ 188,88 em vendas; celular sem rolagem lateral. Nenhuma venda nem fechamento gravado; não publicado.
 - [ ] Validar leitura com câmera/leitor físico e confirmar fechamento autorizado: requer dispositivo físico e decisão de fechar o caixa real; não alterado durante a conferência.
