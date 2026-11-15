@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { conciliarVendas } from "@/lib/vendas-offline";
 import { interpretarBusca } from "@/lib/busca-pdv";
 import { trocarOperador as trocarOperadorLogin } from "@/lib/login-cliente";
 import { brl, num } from "@/lib/format";
@@ -714,6 +715,9 @@ function FrenteCaixa() {
     id: string;
     em: string;
     total: number;
+    tenant?: string | undefined;
+    recebido?: number;
+    troco?: number;
     params: Record<string, unknown>;
     /** pet shop ou lava rápido ligado a esta venda: se ela cair na fila, o vínculo é feito quando a venda for enviada */
     vinculo?: VinculoPet | undefined;
@@ -782,10 +786,12 @@ function FrenteCaixa() {
     }
     if (!atual.some((p) => !p.erro)) return;
     enviando.current = true;
+    try {
     const restantes: Pendente[] = [];
     let ok = 0;
     let repetidas = 0;
     for (const p of atual) {
+      if (p.tenant && p.tenant !== session?.profile?.tenant_id) { restantes.push(p); continue; }
       // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
       if (p.erro) {
         restantes.push(p);
@@ -812,7 +818,7 @@ function FrenteCaixa() {
           continue;
         }
       }
-      const { data: pedidoEnviado, error } = await supabase.rpc("frente_venda", p.params as never);
+      const { data: pedidoEnviado, error } = await supabase.rpc(p.params["p_caixa_id"] ? "frente_venda_offline" : "frente_venda", p.params as never);
       if (error) {
         if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
         else {
@@ -828,31 +834,33 @@ function FrenteCaixa() {
           await vincularPet(p.vinculo, chave, (pedidoEnviado as string) ?? null);
       }
     }
-    salvarFila(restantes);
-    enviando.current = false;
+    const corrente: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
+    salvarFila(conciliarVendas(corrente, atual, restantes));
     if (ok) toast.success(`${ok} venda(s) guardada(s) enviada(s)`);
     if (ok || repetidas) void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
+    } finally { enviando.current = false; }
   }
 
   useEffect(() => {
     const on = () => {
       setOnline(true);
-      void enviarFila();
+      void enviarFila().catch(() => undefined);
     };
     const off = () => setOnline(false);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
-    const t = setInterval(() => void enviarFila(), 30_000);
-    void enviarFila();
+    const t = setInterval(() => void enviarFila().catch(() => undefined), 30_000);
+    void enviarFila().catch(() => undefined);
     return () => {
       window.removeEventListener("online", on);
       window.removeEventListener("offline", off);
       clearInterval(t);
     };
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, session?.profile?.tenant_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: base } = useQuery({
-    queryKey: ["frente-base"],
+    queryKey: ["frente-base", userId, session?.profile?.tenant_id],
+    enabled: !!userId,
     queryFn: async () => {
       const [dep, prod, emp, cx] = await Promise.all([
         supabase.from("depositos").select("id, nome, filial_id").eq("ativo", true).order("nome"),
@@ -866,6 +874,7 @@ function FrenteCaixa() {
         supabase.from("empresas").select("pdv_desconto_limite").limit(1).maybeSingle(),
         supabase.rpc("frente_caixa_atual"),
       ]);
+      for (const r of [dep, prod, emp, cx]) if (r.error) throw r.error;
       let caixa = null as null | { id: string; numero: number | null; valor_abertura: number };
       if (cx.data) {
         const { data } = await supabase
@@ -1110,7 +1119,10 @@ function FrenteCaixa() {
             id: crypto.randomUUID(),
             em: new Date().toISOString(),
             total,
-            params,
+            tenant: session?.profile?.tenant_id ?? undefined,
+            recebido: Number(recebido.replace(",", ".")) || 0,
+            troco,
+            params: { ...params, p_caixa_id: caixa.id },
             // a conexão caiu no meio da venda: o vínculo vai junto, para ser feito quando a venda for enviada
             ...(vinculo ? { vinculo } : {}),
           },

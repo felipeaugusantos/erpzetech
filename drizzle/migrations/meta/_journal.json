@@ -652,6 +652,20 @@
       "when": 1794602006873,
       "tag": "0092_clinica_excluir_exame_log",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1794753000706,
+      "tag": "0093_pdv_offline_idempotente",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794753265247,
+      "tag": "0094_balcao_offline_caixa_original",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { prepararOffline } from "@/lib/pwa";
 import { consultaDoPortalDeOutroUsuario } from "@/lib/portal-tutor";
 import type { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -180,13 +181,8 @@ function RootComponent() {
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
 
-  // Permite instalar o sistema no celular (atalho em tela cheia abrindo o PDV).
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const id = window.setTimeout(() => {
-      void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-    }, 1200);
-    return () => window.clearTimeout(id);
+    void prepararOffline().catch(() => undefined);
   }, []);
 
   return (
