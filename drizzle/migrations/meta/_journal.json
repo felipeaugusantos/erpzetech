@@ -659,6 +659,13 @@
       "when": 1794753000706,
       "tag": "0093_pdv_offline_idempotente",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794753265247,
+      "tag": "0094_balcao_offline_caixa_original",
+      "breakpoints": true
     }
   ]
 }

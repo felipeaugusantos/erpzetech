@@ -18227,6 +18227,21 @@ export type Database = {
         Returns: string
       }
       frente_venda_existente: { Args: { p_chave: string }; Returns: Json }
+      frente_venda_offline: {
+        Args: {
+          p_autorizacao?: string
+          p_caixa_id: string
+          p_chave: string
+          p_cliente_id?: string
+          p_deposito_id: string
+          p_desconto?: number
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_itens: Json
+          p_parcelas?: number
+          p_primeiro_vencimento?: string
+        }
+        Returns: string
+      }
       gerar_comissoes: { Args: never; Returns: number }
       gerar_compra_estoque_minimo: {
         Args: { p_deposito_id: string }
