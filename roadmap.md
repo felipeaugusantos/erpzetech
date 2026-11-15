@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] PDV e balcão sem internet no celular: fila durável, pagamentos e reenvio idempotente, sincronização automática, saldo local e abertura offline segura no app publicado.
+
 - [x] Completar Fase 1 do PDV: guia F2/Enter/F4/Esc visível, leitor USB e câmera, fechamento com valor contado e diferença, relatório diário imprimível por data e forma de pagamento. Seis testes passaram; bipagem simulada com produto real abriu pagamento, relatório de 20/10 mostrou R$ 188,88 em vendas; celular sem rolagem lateral. Nenhuma venda nem fechamento gravado; não publicado.
 - [ ] Validar leitura com câmera/leitor físico e confirmar fechamento autorizado: requer dispositivo físico e decisão de fechar o caixa real; não alterado durante a conferência.
 - [ ] Enviar resumo diário ao administrador da empresa com contas a pagar no vencimento, orçamentos sem resposta há 48 horas e exames sem laudo; bloqueado: nenhum domínio de envio configurado, depende de cadastrar e verificar um domínio próprio.
