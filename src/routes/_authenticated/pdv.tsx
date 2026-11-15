@@ -156,7 +156,7 @@ function Pdv() {
           .eq("ativo", true)
           .order("nome")
           .limit(1000),
-        supabase.from("caixas").select("id, situacao, valor_abertura").eq("situacao", "aberto"),
+        supabase.from("caixas").select("id, situacao, valor_abertura").eq("situacao", "aberto").order("aberto_em", { ascending: false }),
       ]);
       for (const r of [depRes, prodRes, cliRes, caixaRes]) if (r.error) throw r.error;
       return {
@@ -334,7 +334,7 @@ function Pdv() {
         p_caixa_id: aPrazo ? null : caixaAberto?.id,
       };
       const guardar = (erro?: string) => {
-        salvarFila([...lerFila(), { id: params.p_chave, em: new Date().toISOString(), total, params, ...(erro ? { erro } : {}) }]);
+        salvarFila([...lerFila(), { id: params.p_chave, em: new Date().toISOString(), total, params, recebido: recebidoNum, troco, ...(erro ? { erro } : {}) }]);
         return { pedidoId: "", pedido: null, offline: true };
       };
       if (!navigator.onLine) return guardar();

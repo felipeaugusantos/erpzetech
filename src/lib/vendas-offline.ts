@@ -2,6 +2,8 @@ export type VendaPendente = {
   id: string;
   em: string;
   total: number;
+  recebido?: number;
+  troco?: number;
   params: Record<string, unknown>;
   erro?: string | undefined;
 };

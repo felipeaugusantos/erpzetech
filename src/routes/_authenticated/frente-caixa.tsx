@@ -715,6 +715,9 @@ function FrenteCaixa() {
     id: string;
     em: string;
     total: number;
+    tenant?: string;
+    recebido?: number;
+    troco?: number;
     params: Record<string, unknown>;
     /** pet shop ou lava rápido ligado a esta venda: se ela cair na fila, o vínculo é feito quando a venda for enviada */
     vinculo?: VinculoPet | undefined;
@@ -788,6 +791,7 @@ function FrenteCaixa() {
     let ok = 0;
     let repetidas = 0;
     for (const p of atual) {
+      if (p.tenant && p.tenant !== session?.profile?.tenant_id) { restantes.push(p); continue; }
       // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
       if (p.erro) {
         restantes.push(p);
@@ -852,7 +856,7 @@ function FrenteCaixa() {
       window.removeEventListener("offline", off);
       clearInterval(t);
     };
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, session?.profile?.tenant_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: base } = useQuery({
     queryKey: ["frente-base", userId, session?.profile?.tenant_id],
@@ -1115,6 +1119,9 @@ function FrenteCaixa() {
             id: crypto.randomUUID(),
             em: new Date().toISOString(),
             total,
+            tenant: session?.profile?.tenant_id ?? undefined,
+            recebido: Number(recebido.replace(",", ".")) || 0,
+            troco,
             params,
             // a conexão caiu no meio da venda: o vínculo vai junto, para ser feito quando a venda for enviada
             ...(vinculo ? { vinculo } : {}),
