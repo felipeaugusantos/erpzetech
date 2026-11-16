@@ -41,12 +41,21 @@ const texto = cabecalho + [
   "Resultado................: | 85 | mg/dL | 15 - 65 mg/dL",
 ].join("\n");
 
-test("identifica o mesmo animal e espécie nos três cabeçalhos sem inferir coleta", () => {
+test("identifica o mesmo animal e espécie e usa Data de Atendimento como data do exame", () => {
   const l = lerLaudoTexto(texto);
   assert.equal(l.paciente, "PACIENTE TESTE");
   assert.equal(l.especie, "cao");
-  assert.equal(l.coleta, "");
+  assert.equal(l.coleta, "2026-11-12");
   assert.equal(conferirPacienteLaudo(l, { nome: "Outro", especie: "cao" }), false);
+});
+test("usa Data de Coleta quando o PDF também informa Data de Atendimento", () => {
+  assert.equal(lerLaudoTexto(texto + "\nData de Coleta: | 11/11/2026").coleta, "2026-11-11");
+});
+test("aceita Data de Coleta no lugar de Data de Atendimento", () => {
+  assert.equal(lerLaudoTexto(texto.replaceAll("Data de Atendimento", "Data de Coleta")).coleta, "2026-11-12");
+});
+test("datas de atendimento divergentes exigem conferência manual", () => {
+  assert.equal(lerLaudoTexto(texto + "\nData de Atendimento: | 13/11/2026").coleta, "");
 });
 test("preserva decimais de hemograma e todos os cinco exames bioquímicos", () => {
   const l = lerLaudoTexto(texto);
