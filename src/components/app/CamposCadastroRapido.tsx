@@ -1,5 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { DadosCadastroTutor } from "@/components/app/DadosCadastroTutor";
+import { dadosTutorVazios } from "@/lib/tutor-novo";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -42,6 +45,13 @@ export function CamposCadastroRapido({
       </div>
       {!form.tutorId && (
         <>
+          <div>
+            <Label htmlFor="cr-tipo">Tipo</Label>
+            <Select value={form.tutorTipo ?? "PF"} onValueChange={(v) => mexe({ tutorTipo: v as "PF" | "PJ", tutorDados: { ...(form.tutorDados ?? dadosTutorVazios), documento: "" } })}>
+              <SelectTrigger id="cr-tipo"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="PF">Pessoa física</SelectItem><SelectItem value="PJ">Pessoa jurídica</SelectItem></SelectContent>
+            </Select>
+          </div>
           <div className="sm:col-span-2">
             <Label htmlFor="cr-tnome">Nome do tutor</Label>
             <Input
@@ -50,15 +60,13 @@ export function CamposCadastroRapido({
               onChange={(e) => mexe({ tutorNome: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="cr-tfone">Telefone (com DDD)</Label>
-            <Input
-              mascara="telefone"
-              id="cr-tfone"
-              inputMode="tel"
-              value={form.tutorTelefone}
-              onChange={(e) => mexe({ tutorTelefone: e.target.value })}
-            />
+          <div className="sm:col-span-3">
+            <DadosCadastroTutor dados={form.tutorDados ?? dadosTutorVazios} telefone={form.tutorTelefone}
+              onChange={(tutorDados) => mexe({ tutorDados })} onTelefone={(tutorTelefone) => mexe({ tutorTelefone })} />
+            <div className="mt-3 flex items-center gap-2">
+              <Switch id="cr-mensagens" checked={form.tutorAceitaMensagens ?? true} onCheckedChange={(tutorAceitaMensagens) => mexe({ tutorAceitaMensagens })} />
+              <Label htmlFor="cr-mensagens" className="text-sm">Pode receber mensagens (aniversário, retorno, vacina e agendamento)</Label>
+            </div>
           </div>
         </>
       )}
