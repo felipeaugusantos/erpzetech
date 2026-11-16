@@ -4243,62 +4243,6 @@ export type Database = {
           },
         ]
       }
-      erros_app: {
-        Row: {
-          id: string
-          impressao: string
-          mensagem: string
-          navegador: string | null
-          ocorrencias: number
-          origem: string
-          primeira_vez: string
-          rota: string | null
-          situacao: string
-          situacao_em: string | null
-          stack: string | null
-          tenant_id: string | null
-          ultima_vez: string
-        }
-        Insert: {
-          id?: string
-          impressao: string
-          mensagem: string
-          navegador?: string | null
-          ocorrencias?: number
-          origem: string
-          primeira_vez?: string
-          rota?: string | null
-          situacao?: string
-          situacao_em?: string | null
-          stack?: string | null
-          tenant_id?: string | null
-          ultima_vez?: string
-        }
-        Update: {
-          id?: string
-          impressao?: string
-          mensagem?: string
-          navegador?: string | null
-          ocorrencias?: number
-          origem?: string
-          primeira_vez?: string
-          rota?: string | null
-          situacao?: string
-          situacao_em?: string | null
-          stack?: string | null
-          tenant_id?: string | null
-          ultima_vez?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "erros_app_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       estoque_movimentacoes: {
         Row: {
           created_at: string
@@ -19763,6 +19707,53 @@ export type Database = {
       saas_marcar_enviada: {
         Args: { p_canal?: string; p_fatura_id: string }
         Returns: undefined
+      }
+      saas_monitoramento_dia: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          acoes: number
+          dia: string
+          erros_novos: number
+          usuarios_ativos: number
+        }[]
+      }
+      saas_monitoramento_resumo: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          acoes: number
+          clientes_ativos: number
+          clientes_com_erro: number
+          clientes_sem_uso: number
+          erros_abertos: number
+          erros_novos: number
+          erros_reincidentes: number
+          usuarios_ativos: number
+        }[]
+      }
+      saas_monitoramento_top_erros: {
+        Args: { p_ate: string; p_de: string; p_limite?: number }
+        Returns: {
+          cliente: string
+          id: string
+          mensagem: string
+          ocorrencias: number
+          origem: string
+          rota: string
+          ultima_vez: string
+        }[]
+      }
+      saas_monitoramento_uso_cliente: {
+        Args: { p_ate: string; p_de: string }
+        Returns: {
+          acoes: number
+          cliente: string
+          erros_abertos: number
+          erros_periodo: number
+          tenant_id: string
+          ultima_atividade: string
+          ultimo_login: string
+          usuarios_ativos: number
+        }[]
       }
       saas_notas_por_cliente: {
         Args: { p_ate: string; p_de: string }
