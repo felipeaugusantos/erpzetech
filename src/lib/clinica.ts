@@ -154,6 +154,7 @@ export function evolucaoDoPeso(
 
 /** Os sinais vitais anotados em uma consulta (qualquer campo preenchido já vale uma linha). */
 export type SinaisEmConsulta = {
+  atendimento_id?: string;
   em: string;
   peso_kg: number | null;
   temperatura_c: number | null;
@@ -170,7 +171,7 @@ type ComSinais = Pick<
   | "temperatura_c"
   | "freq_cardiaca"
   | "freq_respiratoria"
->;
+> & { id?: string };
 
 /**
  * Histórico dos sinais vitais, do mais novo para o mais antigo (a recepção e o veterinário leem o
@@ -187,6 +188,7 @@ export function evolucaoDosSinais(atendimentos: readonly ComSinais[]): SinaisEmC
         ),
     )
     .map((a) => ({
+      atendimento_id: a.id,
       em: a.data_atendimento ?? a.aberto_em,
       peso_kg: numero(a.peso_kg),
       temperatura_c: numero(a.temperatura_c),
