@@ -35,6 +35,7 @@ import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
   evolucaoDoPeso,
+  dataClinica,
   evolucaoDosSinais,
   type AtendimentoClinico,
   type PetClinico,
@@ -418,7 +419,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <ul className="grid gap-3 sm:hidden">
             {sinais.map(v => (
               <li key={v.em} className="min-w-0 rounded-md border border-border bg-card p-4">
-                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{dateTimeBR(v.em)}</time>
+                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</time>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
                   <div><dt className="text-muted-foreground">Peso</dt><dd className="mt-1 font-medium">{v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}</dd></div>
                   <div><dt className="text-muted-foreground">Temperatura</dt><dd className="mt-1 font-medium">{v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}</dd></div>
@@ -441,7 +442,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             <tbody>
               {sinais.map((v) => (
                 <tr key={v.em} className="border-t border-border">
-                  <td className="py-1 pr-3">{dateTimeBR(v.em)}</td>
+                  <td className="py-1 pr-3">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</td>
                   <td className="py-1 pr-3">
                     {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
                   </td>
@@ -492,7 +493,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <time dateTime={a.aberto_em} className="font-semibold tabular-nums text-primary">{dateTimeBR(a.aberto_em)}</time>
+                  <time dateTime={a.data_atendimento ?? a.aberto_em} className="font-semibold tabular-nums text-primary">{dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}</time>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
@@ -513,6 +514,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                   </div>
                 )}
                 <dl className="mt-4 grid gap-4">
+                  <Linha rotulo="Peso nesta consulta" valor={a.peso_kg !== null ? `${String(a.peso_kg).replace(".", ",")} kg` : "Não cadastrado"} />
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
                   <Linha

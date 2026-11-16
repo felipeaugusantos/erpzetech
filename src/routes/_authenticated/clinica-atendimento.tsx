@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { AudioConsulta } from "@/components/app/AudioConsulta";
+import { DataAtendimento } from "@/components/app/DataAtendimento";
 import { aplicarTranscricao, type CampoAudio } from "@/lib/consulta-audio";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -28,6 +29,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { useModulosCnae } from "@/lib/cnae";
 import {
   erroDosSinais,
+  erroDataAtendimento,
   faltaParaFechar,
   formDoAtendimento,
   type AtendimentoClinico,
@@ -107,7 +109,7 @@ function Atendimento() {
     if (!data || !form || data.situacao !== "aberto")
       throw new Error("A consulta não está aberta.");
     const novo = aplicarTranscricao(form, campoAudio, texto);
-    const erro = erroDosSinais(novo);
+    const erro = erroDataAtendimento(novo.data_atendimento) ?? erroDosSinais(novo);
     if (erro) throw new Error(erro);
     const resposta = await supabase.rpc("clinica_atendimento_salvar", {
       p_id: data.id,
@@ -122,7 +124,7 @@ function Atendimento() {
   const salvar = useMutation({
     mutationFn: async () => {
       if (!data || !form) return null;
-      const erro = erroDosSinais(form);
+      const erro = erroDataAtendimento(form.data_atendimento) ?? erroDosSinais(form);
       if (erro) throw new Error(erro);
       const { data: r, error } = await supabase.rpc("clinica_atendimento_salvar", {
         p_id: data.id,
@@ -144,7 +146,7 @@ function Atendimento() {
       if (!data || !form) return null;
       const falta = faltaParaFechar(form);
       if (falta.length) throw new Error(`Preencha antes de fechar: ${falta.join(" e ")}.`);
-      const erro = erroDosSinais(form);
+      const erro = erroDataAtendimento(form.data_atendimento) ?? erroDosSinais(form);
       if (erro) throw new Error(erro);
       const salvo = await supabase.rpc("clinica_atendimento_salvar", {
         p_id: data.id,
@@ -259,6 +261,16 @@ function Atendimento() {
       )}
 
       <div className="panel grid gap-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DataAtendimento value={form.data_atendimento ?? ""} disabled={fechado}
+            onChange={(value) => setForm({ ...form, data_atendimento: value })} />
+          <div>
+            <Label htmlFor="c-peso">Peso nesta consulta (kg)</Label>
+            <Input id="c-peso" inputMode="decimal" placeholder="Não cadastrado" {...campo("peso_kg")}
+              className={!form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""} />
+            {p.peso_kg !== null && <p className="mt-1 text-xs text-muted-foreground">Peso no cadastro: {String(p.peso_kg).replace(".", ",")} kg</p>}
+          </div>
+        </div>
         {!fechado && (
           <div className="flex justify-end">
             <AudioConsulta
@@ -277,11 +289,7 @@ function Atendimento() {
           <Label htmlFor="c-anamnese">Anamnese</Label>
           <Textarea id="c-anamnese" rows={3} {...campo("anamnese")} />
         </div>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div>
-            <Label htmlFor="c-peso">Peso (kg)</Label>
-            <Input id="c-peso" inputMode="decimal" {...campo("peso_kg")} />
-          </div>
+        <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="c-temp">Temperatura (°C)</Label>
             <Input id="c-temp" inputMode="decimal" {...campo("temperatura_c")} />

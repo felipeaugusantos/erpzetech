@@ -552,7 +552,7 @@ DECLARE
     'clinica_pacientes', 'clinica_atendimento_abrir', 'clinica_atendimento_salvar', 'clinica_atendimento_fechar',
     'clinica_adendo_criar', 'clinica_historico', 'clinica_pet_alergias',
     -- vacinas: catálogo e cartão para a gestão, o veterinário e a recepção; aplicação só do veterinário
-    'clinica_vacinas_catalogo', 'clinica_vacina_catalogo_salvar', 'clinica_lotes_vacina', 'clinica_aplicadores', 'clinica_vacina_aplicar',
+    'clinica_vacinas_catalogo', 'clinica_vacina_catalogo_salvar', 'clinica_vacina_produtos', 'clinica_lotes_vacina', 'clinica_aplicadores', 'clinica_vacina_aplicar',
     'clinica_vacina_registrar_externa', 'clinica_vacina_cancelar', 'clinica_cartao_vacinacao',
     -- modelos de exame: gestão e veterinário mantêm; cada função confere o perfil e a clínica liberada
     'clinica_exame_modelos', 'clinica_exame_modelo_salvar', 'clinica_exame_campo_salvar', 'clinica_exame_campo_mover',
@@ -4766,6 +4766,14 @@ BEGIN
   PERFORM ci.sair();
 
   -- catálogo: gestão e veterinário editam; validações
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_vacina_produtos()', 'recepção não configura produto de vacina');
+  PERFORM ci.entrar(gest);
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(clinica_vacina_produtos()) p WHERE p ->> 'id' = prod_sem_lote::text), 'produto sem lote aparece na seleção');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(clinica_vacina_produtos()) p WHERE p ->> 'id' = prod_serv::text), 'serviço não aparece como produto de vacina');
+  PERFORM clinica_vacina_catalogo_salvar(jsonb_build_object('nome','Vacina ativar lote CI','produto_id',prod_sem_lote,'reforco_dias',365,'confirmar_controle_lote',true));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT controla_lote FROM produtos WHERE id=prod_sem_lote), 'confirmação ativa controle de lote');
+  UPDATE produtos SET controla_lote=false WHERE id=prod_sem_lote;
   PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','produto_id',%L,'reforco_dias',365))$c$, prod), 'vendedor edita o catálogo');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','doses_serie',3,'reforco_dias',365,'produto_id',%L))$c$, prod), 'série sem intervalo');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',0,'produto_id',%L))$c$, prod), 'reforço zero');
@@ -6030,6 +6038,12 @@ BEGIN
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_visita_registrar(%L, jsonb_build_object('atendimento_id', %L, 'pet_id', %L, 'agendamento_id', %L))$c$, gen_random_uuid(), gen_random_uuid(), pet2, ag_cons), 'consulta já aberta em outro aparelho');
 
   -- preencher e fechar, com chave de repetição
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date - 1))$c$, a1), 'outro veterinário altera data clínica');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date + 2))$c$, a1), 'data clínica no futuro');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_salvar(a1, jsonb_build_object('data_atendimento', (now() AT TIME ZONE 'America/Sao_Paulo')::date - 1, 'peso_kg', '12,345'));
+  PERFORM ci.sair();
+  PERFORM ci.exige(r ->> 'data_atendimento' = ((now() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AND (SELECT peso_kg = 12.345 AND aberto_em = now() - interval '3 hours' FROM pet_atendimentos_clinicos WHERE id=a1), 'data clínica muda, peso preserva decimais e abertura original não muda');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'apagar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'ação inválida');
   PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x"}'::jsonb)$c$, gen_random_uuid(), a1), 'outro veterinário preenche o atendimento');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x","peso_kg":"500"}'::jsonb)$c$, gen_random_uuid(), a1), 'peso absurdo (a regra do prontuário vale também aqui)');
@@ -6053,6 +6067,7 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((r2 ->> 'repetido')::boolean AND r2 ->> 'situacao' = 'fechado', 'reenviar o fechamento devolve o mesmo resultado em vez de recusar');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"depois de fechado"}'::jsonb)$c$, gen_random_uuid(), a1), 'preencher atendimento já fechado');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date - 2))$c$, a1), 'data clínica de atendimento fechado não muda');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'fechar', %L)$c$, gen_random_uuid(), a1), 'fechar de novo com outra chave');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimentos_clinicos SET queixa = 'x' WHERE id = %L$c$, a1), 'alterar atendimento fechado, nem o dono do banco');
   PERFORM ci.exige((SELECT queixa = 'Tosse há 3 dias' FROM pet_atendimentos_clinicos WHERE id = a1), 'o atendimento fechado continua o mesmo');
