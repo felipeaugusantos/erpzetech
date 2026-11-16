@@ -276,10 +276,35 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={porDia} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)} />
-                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={70} tickFormatter={(v: number) => brl(v)} />
-                <Tooltip content={<DashboardChartTooltip moeda />} labelFormatter={(d) => dateBR(String(d))} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
-                <Line type="monotone" dataKey="faturamento" name="Faturamento" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+                <XAxis
+                  dataKey="dia"
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={70}
+                  tickFormatter={(v: number) => brl(v)}
+                />
+                <Tooltip
+                  content={<DashboardChartTooltip moeda />}
+                  labelFormatter={(d) => dateBR(String(d))}
+                  cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="faturamento"
+                  name="Faturamento"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -288,10 +313,32 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={porDia}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                <Tooltip content={<DashboardChartTooltip />} labelFormatter={(d) => dateBR(String(d))} cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }} />
-                <Bar dataKey="atendimentos" name="Atendimentos" fill="var(--chart-2)" radius={[8, 8, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                <XAxis
+                  dataKey="dia"
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(d: string) => d.slice(8, 10) + "/" + d.slice(5, 7)}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  content={<DashboardChartTooltip />}
+                  labelFormatter={(d) => dateBR(String(d))}
+                  cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }}
+                />
+                <Bar
+                  dataKey="atendimentos"
+                  name="Atendimentos"
+                  fill="var(--chart-2)"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={36}
+                  isAnimationActive={false}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -386,7 +433,11 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
       <div className="panel mb-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-sm font-semibold">Período de referência</h2>
-          <div role="group" aria-label="Atalhos de período" className="inline-flex flex-wrap gap-1 rounded-lg bg-secondary p-1">
+          <div
+            role="group"
+            aria-label="Atalhos de período"
+            className="inline-flex flex-wrap gap-1 rounded-lg bg-secondary p-1"
+          >
             {ATALHOS_PERIODO.map((a) => {
               const ativo = atalhoAtivo(periodo) === a.id;
               return (
@@ -399,14 +450,23 @@ export function DashboardPet({ clinica }: { clinica: boolean }) {
                   onClick={() => setPeriodo(periodoDoAtalho(a.id))}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                    ativo ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-background hover:text-foreground",
+                    ativo
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background hover:text-foreground",
                   )}
                 >
                   {a.rotulo}
                 </Button>
               );
             })}
-            <span className={cn("rounded-md px-3 py-1.5 text-xs font-medium", atalhoAtivo(periodo) === null ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+            <span
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium",
+                atalhoAtivo(periodo) === null
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
               Personalizado
             </span>
           </div>

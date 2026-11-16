@@ -35,7 +35,13 @@ import {
   type RascunhoAtendimento,
 } from "@/lib/atendimento-offline";
 import { aberturasDoAtendimento } from "@/lib/exame-offline";
-import { dataClinica, erroDataAtendimento, erroDosSinais, faltaParaFechar, type FormAtendimento } from "@/lib/clinica";
+import {
+  dataClinica,
+  erroDataAtendimento,
+  erroDosSinais,
+  faltaParaFechar,
+  type FormAtendimento,
+} from "@/lib/clinica";
 import { DataAtendimento } from "@/components/app/DataAtendimento";
 import type { Cofre } from "@/lib/cofre";
 import type { OperacaoFila } from "@/lib/fila-clinica";
@@ -344,8 +350,11 @@ function FormularioAtendimento({
           </p>
         )}
         <div className="grid gap-3">
-          <DataAtendimento value={form.data_atendimento ?? dataClinica(rascunho.abertoEm)}
-            disabled={somenteLeitura} onChange={(value) => mexe("data_atendimento", value)} />
+          <DataAtendimento
+            value={form.data_atendimento ?? dataClinica(rascunho.abertoEm)}
+            disabled={somenteLeitura}
+            onChange={(value) => mexe("data_atendimento", value)}
+          />
           <div className="grid gap-3 sm:grid-cols-4">
             {CAMPOS_SINAIS.map((c) => (
               <div key={c.chave}>

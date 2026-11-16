@@ -83,7 +83,10 @@ export function CamposPersonalizados({
                   value={v || NENHUM}
                   onValueChange={(x) => onChange(c.id, x === NENHUM ? "" : x)}
                 >
-                  <SelectTrigger id={id} className={!v ? "border-warning bg-warning/10 text-warning" : ""}>
+                  <SelectTrigger
+                    id={id}
+                    className={!v ? "border-warning bg-warning/10 text-warning" : ""}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

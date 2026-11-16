@@ -241,7 +241,7 @@ function Caixa() {
                   <ArrowUpCircle className="size-4" /> Lançar movimento
                 </Button>
                 <Button
-                disabled={movimentosCarregando}
+                  disabled={movimentosCarregando}
                   onClick={() => {
                     setValorInformado("");
                     setFecharAberto(true);

@@ -42,8 +42,13 @@ export function NovoPacienteDialog({
   const { data: tutores = [] } = useQuery({
     queryKey: ["clinica-tutores-cadastro"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clientes").select("id, nome, cpf, cnpj, telefone")
-        .eq("ativo", true).is("deleted_at", null).order("nome").limit(2000);
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, cnpj, telefone")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome")
+        .limit(2000);
       if (error) throw error;
       return data ?? [];
     },

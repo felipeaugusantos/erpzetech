@@ -1027,7 +1027,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="size-4" />
               </button>
             </div>
-            <ul aria-label={`Opções de ${areaAberta.label}`} tabIndex={0} className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+            <ul
+              aria-label={`Opções de ${areaAberta.label}`}
+              tabIndex={0}
+              className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            >
               {areaAberta.items.map((item, i) => (
                 <li key={`${item.secao ?? ""}-${item.to ?? item.label}`}>
                   {item.secao && item.secao !== areaAberta.items[i - 1]?.secao ? (

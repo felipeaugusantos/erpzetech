@@ -172,13 +172,25 @@ function Prontuario() {
 
       {pet ? (
         <>
-          <Button className="mb-4" variant="outline" onClick={() => { setTermo(""); setBusca(""); void navegar({ to: "/clinica-prontuario", search: { pet: undefined } }); }}>
+          <Button
+            className="mb-4"
+            variant="outline"
+            onClick={() => {
+              setTermo("");
+              setBusca("");
+              void navegar({ to: "/clinica-prontuario", search: { pet: undefined } });
+            }}
+          >
             <PawPrint className="size-4" /> Todos os pacientes atendidos
           </Button>
           <FichaDoPaciente key={pet} petId={pet} />
         </>
-      ) : !termo && (
-        <PacientesProntuario aoAbrir={(id) => void navegar({ to: "/clinica-prontuario", search: { pet: id } })} />
+      ) : (
+        !termo && (
+          <PacientesProntuario
+            aoAbrir={(id) => void navegar({ to: "/clinica-prontuario", search: { pet: id } })}
+          />
+        )
       )}
     </div>
   );
@@ -293,7 +305,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <div className="min-w-0 flex-1">
             <div className="grid min-w-0 gap-1 sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-2">
               <h2 className="break-words font-display text-xl font-semibold">{p.nome}</h2>
-              <span className="break-words text-sm text-muted-foreground">Tutor(a) {data.tutor}</span>
+              <span className="break-words text-sm text-muted-foreground">
+                Tutor(a) {data.tutor}
+              </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Badge variant="secondary">{rotulo(ESPECIES, p.especie)}</Badge>
@@ -344,13 +358,19 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </Button>
           )}
           <Button asChild size="sm" variant="outline">
-            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined, aplicar: true }}>
+            <Link
+              to="/clinica-vacinas"
+              search={{ pet: petId, agendamento: undefined, aplicar: true }}
+            >
               <Syringe /> Aplicar vacina
             </Link>
           </Button>
           <ProximaConsulta petId={petId} petNome={p.nome} />
           <Button asChild size="sm" variant="outline">
-            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined, aplicar: undefined }}>
+            <Link
+              to="/clinica-vacinas"
+              search={{ pet: petId, agendamento: undefined, aplicar: undefined }}
+            >
               <Syringe /> Vacinas e vermífugos
             </Link>
           </Button>
@@ -365,7 +385,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <Button size="sm" variant="outline" onClick={() => setPedidoSolicitacao((n) => n + 1)}>
             <FilePlus2 /> Solicitar exames
           </Button>
-          <Button asChild size="sm" variant="outline"><Link to="/clinica-laudos" search={{ pet: petId }}><FlaskConical />Laudos e evolução</Link></Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clinica-laudos" search={{ pet: petId }}>
+              <FlaskConical />
+              Laudos e evolução
+            </Link>
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link to="/clinica-ficha" search={{ pet: petId }}>
               <Printer /> Imprimir ficha
@@ -421,53 +446,82 @@ function FichaDoPaciente({ petId }: { petId: string }) {
       </div>
 
       {sinais.length > 0 && (
-        <section className="min-w-0 border-b border-border py-4" aria-label="Sinais vitais nas consultas">
+        <section
+          className="min-w-0 border-b border-border py-4"
+          aria-label="Sinais vitais nas consultas"
+        >
           <h3 className="mb-2 font-display text-sm font-semibold">
             Sinais vitais nas consultas (mais recente primeiro)
           </h3>
           <ul className="grid gap-3 sm:hidden">
-            {sinais.map(v => (
+            {sinais.map((v) => (
               <li key={v.em} className="min-w-0 rounded-md border border-border bg-card p-4">
-                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</time>
+                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">
+                  {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
+                </time>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
-                  <div><dt className="text-muted-foreground">Peso</dt><dd className="mt-1 font-medium">{v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}</dd></div>
-                  <div><dt className="text-muted-foreground">Temperatura</dt><dd className="mt-1 font-medium">{v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}</dd></div>
-                  <div><dt className="text-muted-foreground">Freq. cardíaca</dt><dd className="mt-1 font-medium">{v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}</dd></div>
-                  <div><dt className="text-muted-foreground">Freq. respiratória</dt><dd className="mt-1 font-medium">{v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}</dd></div>
+                  <div>
+                    <dt className="text-muted-foreground">Peso</dt>
+                    <dd className="mt-1 font-medium">
+                      {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Temperatura</dt>
+                    <dd className="mt-1 font-medium">
+                      {v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Freq. cardíaca</dt>
+                    <dd className="mt-1 font-medium">
+                      {v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Freq. respiratória</dt>
+                    <dd className="mt-1 font-medium">
+                      {v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}
+                    </dd>
+                  </div>
                 </dl>
               </li>
             ))}
           </ul>
-          <div className="hidden overflow-x-auto sm:block"><table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted-foreground">
-                <th className="py-1 pr-3 font-medium">Consulta</th>
-                <th className="py-1 pr-3 font-medium">Peso</th>
-                <th className="py-1 pr-3 font-medium">Temperatura</th>
-                <th className="py-1 pr-3 font-medium">Freq. cardíaca</th>
-                <th className="py-1 font-medium">Freq. respiratória</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sinais.map((v) => (
-                <tr key={v.em} className="border-t border-border">
-                  <td className="py-1 pr-3">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</td>
-                  <td className="py-1 pr-3">
-                    {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
-                  </td>
-                  <td className="py-1 pr-3">
-                    {v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}
-                  </td>
-                  <td className="py-1 pr-3">
-                    {v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}
-                  </td>
-                  <td className="py-1">
-                    {v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}
-                  </td>
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-1 pr-3 font-medium">Consulta</th>
+                  <th className="py-1 pr-3 font-medium">Peso</th>
+                  <th className="py-1 pr-3 font-medium">Temperatura</th>
+                  <th className="py-1 pr-3 font-medium">Freq. cardíaca</th>
+                  <th className="py-1 font-medium">Freq. respiratória</th>
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {sinais.map((v) => (
+                  <tr key={v.em} className="border-t border-border">
+                    <td className="py-1 pr-3">
+                      {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
+                    </td>
+                    <td className="py-1 pr-3">
+                      {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
+                    </td>
+                    <td className="py-1 pr-3">
+                      {v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}
+                    </td>
+                    <td className="py-1 pr-3">
+                      {v.freq_cardiaca !== null ? `${v.freq_cardiaca} bpm` : "—"}
+                    </td>
+                    <td className="py-1">
+                      {v.freq_respiratoria !== null ? `${v.freq_respiratoria} mpm` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -502,7 +556,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <time dateTime={a.data_atendimento ?? a.aberto_em} className="font-semibold tabular-nums text-primary">{dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}</time>
+                  <time
+                    dateTime={a.data_atendimento ?? a.aberto_em}
+                    className="font-semibold tabular-nums text-primary"
+                  >
+                    {dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}
+                  </time>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
@@ -513,17 +572,21 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                 {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
                   <div className="mt-3">
                     <Button asChild size="sm">
-                      <Link
-                        to="/clinica-atendimento"
-                        search={{ agendamento: a.agendamento_id }}
-                      >
+                      <Link to="/clinica-atendimento" search={{ agendamento: a.agendamento_id }}>
                         <Stethoscope /> Continuar atendimento
                       </Link>
                     </Button>
                   </div>
                 )}
                 <dl className="mt-4 grid gap-4">
-                  <Linha rotulo="Peso nesta consulta" valor={a.peso_kg !== null ? `${String(a.peso_kg).replace(".", ",")} kg` : "Não cadastrado"} />
+                  <Linha
+                    rotulo="Peso nesta consulta"
+                    valor={
+                      a.peso_kg !== null
+                        ? `${String(a.peso_kg).replace(".", ",")} kg`
+                        : "Não cadastrado"
+                    }
+                  />
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
                   <Linha

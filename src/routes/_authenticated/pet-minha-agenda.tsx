@@ -32,7 +32,10 @@ export const Route = createFileRoute("/_authenticated/pet-minha-agenda")({
         content: "Atendimentos do dia do profissional do pet shop: começar e dar como pronto.",
       },
       { property: "og:title", content: "Minha agenda clínica — ERP Ze Tech" },
-      { property: "og:description", content: "Consultas do profissional com alertas antes do horário agendado." },
+      {
+        property: "og:description",
+        content: "Consultas do profissional com alertas antes do horário agendado.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -168,7 +171,9 @@ function MinhaAgenda() {
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                  {a.servicos.some((s) => s.categoria === "consulta") && <AlertaConsulta inicio={a.inicio} situacao={a.situacao} />}
+                  {a.servicos.some((s) => s.categoria === "consulta") && (
+                    <AlertaConsulta inicio={a.inicio} situacao={a.situacao} />
+                  )}
                   <span>{rotulo(ESPECIES, a.pet.especie)}</span>
                   {a.pet.raca && <span>{a.pet.raca}</span>}
                   {a.pet.porte && <span>Porte {rotulo(PORTES, a.pet.porte).toLowerCase()}</span>}
@@ -216,7 +221,10 @@ function MinhaAgenda() {
                     )}
                     {prontuario && a.pet.id && a.servicos.some((s) => s.categoria === "vacina") && (
                       <Button asChild variant="outline">
-                        <Link to="/clinica-vacinas" search={{ agendamento: a.id, pet: a.pet.id, aplicar: undefined }}>
+                        <Link
+                          to="/clinica-vacinas"
+                          search={{ agendamento: a.id, pet: a.pet.id, aplicar: undefined }}
+                        >
                           Registrar vacina
                         </Link>
                       </Button>

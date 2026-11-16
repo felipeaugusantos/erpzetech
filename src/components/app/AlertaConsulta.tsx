@@ -25,7 +25,15 @@ function useRelogioConsulta() {
 export function AlertaConsulta({ inicio, situacao }: { inicio: string; situacao: string }) {
   const agora = useRelogioConsulta();
   if (!consultaProxima(inicio, situacao, agora)) return null;
-  return <span className="mt-2 inline-flex items-center gap-1.5 rounded border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-semibold text-warning" aria-label="Alerta de consulta nas próximas 24 horas"><BellRing className="size-3.5 shrink-0" />Consulta nas próximas 24h</span>;
+  return (
+    <span
+      className="mt-2 inline-flex items-center gap-1.5 rounded border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-semibold text-warning"
+      aria-label="Alerta de consulta nas próximas 24 horas"
+    >
+      <BellRing className="size-3.5 shrink-0" />
+      Consulta nas próximas 24h
+    </span>
+  );
 }
 
 type Consulta = { id: string; inicio: string; veterinario: string; situacao: string };
@@ -42,11 +50,34 @@ export function AlertasConsultaPaciente({ petId }: { petId: string }) {
       return r.data as unknown as { consultas: Consulta[] };
     },
   });
-  if (error) return <p role="status" className="border-l-2 border-warning px-3 py-2 text-sm text-muted-foreground">Não foi possível atualizar os alertas de consulta.</p>;
-  const consultas = (data?.consultas ?? []).filter((c) => consultaProxima(c.inicio, c.situacao, agora));
+  if (error)
+    return (
+      <p
+        role="status"
+        className="border-l-2 border-warning px-3 py-2 text-sm text-muted-foreground"
+      >
+        Não foi possível atualizar os alertas de consulta.
+      </p>
+    );
+  const consultas = (data?.consultas ?? []).filter((c) =>
+    consultaProxima(c.inicio, c.situacao, agora),
+  );
   if (!consultas.length) return null;
-  return <section aria-label="Alertas de próxima consulta" aria-live="polite" className="space-y-2 border-l-4 border-warning bg-warning/10 px-4 py-3">
-    <h3 className="flex items-center gap-2 text-sm font-semibold"><BellRing className="size-4 shrink-0 text-warning" />Consulta nas próximas 24 horas</h3>
-    {consultas.map((c) => <p key={c.id} className="text-sm"><strong>{dateTimeBR(c.inicio)}</strong> · {c.veterinario}</p>)}
-  </section>;
+  return (
+    <section
+      aria-label="Alertas de próxima consulta"
+      aria-live="polite"
+      className="space-y-2 border-l-4 border-warning bg-warning/10 px-4 py-3"
+    >
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <BellRing className="size-4 shrink-0 text-warning" />
+        Consulta nas próximas 24 horas
+      </h3>
+      {consultas.map((c) => (
+        <p key={c.id} className="text-sm">
+          <strong>{dateTimeBR(c.inicio)}</strong> · {c.veterinario}
+        </p>
+      ))}
+    </section>
+  );
 }

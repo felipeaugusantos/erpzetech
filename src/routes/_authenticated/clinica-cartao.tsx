@@ -87,7 +87,10 @@ function Cartao() {
           <>
             {veterinario && (
               <Button asChild variant="outline">
-                <Link to="/clinica-vacinas" search={{ pet, agendamento: undefined, aplicar: undefined }}>
+                <Link
+                  to="/clinica-vacinas"
+                  search={{ pet, agendamento: undefined, aplicar: undefined }}
+                >
                   Registrar vacina
                 </Link>
               </Button>

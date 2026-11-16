@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-const sql = readFileSync(new URL("../drizzle/migrations/0091_clinica_pacientes_proxima_consulta.sql", import.meta.url), "utf8");
+const sql = readFileSync(
+  new URL("../drizzle/migrations/0091_clinica_pacientes_proxima_consulta.sql", import.meta.url),
+  "utf8",
+);
 test("próxima consulta é a mais próxima futura, agendada ou confirmada, com serviço de consulta", () => {
   assert.match(sql, /SELECT min\(ag.inicio\)/);
   assert.match(sql, /ag.inicio >= now\(\)/);

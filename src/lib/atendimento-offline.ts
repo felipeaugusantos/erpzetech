@@ -178,7 +178,11 @@ export function salvamentosSubstituidos(
 
 /** O texto do atendimento como o banco espera (sem os campos vazios cortados: o banco limpa). */
 export function dadosParaSalvar(form: FormAtendimento): Record<string, string> {
-  return Object.fromEntries(Object.entries(form).filter((entrada): entrada is [string, string] => typeof entrada[1] === "string"));
+  return Object.fromEntries(
+    Object.entries(form).filter(
+      (entrada): entrada is [string, string] => typeof entrada[1] === "string",
+    ),
+  );
 }
 
 export function operacaoDeSalvar(

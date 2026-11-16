@@ -2,7 +2,11 @@ export type TelaBusca = { label: string; to: string; grupo: string };
 
 /** Remove acentos e caixa para comparar "prontuario" com "Prontuário". */
 export function normalizar(t: string) {
-  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return t
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 /** Filtra só as telas que a pessoa já vê no menu; começa-por vem antes de contém. */
@@ -31,5 +35,7 @@ export function lerMultiplicador(entrada: string): { quantidade: number; codigo:
   const m = entrada.trim().match(/^(\d+(?:[.,]\d{1,3})?)\s*\*\s*(.+)$/);
   if (!m) return { quantidade: 1, codigo: entrada.trim() };
   const q = Number((m[1] ?? "").replace(",", "."));
-  return q > 0 ? { quantidade: q, codigo: (m[2] ?? "").trim() } : { quantidade: 1, codigo: entrada.trim() };
+  return q > 0
+    ? { quantidade: q, codigo: (m[2] ?? "").trim() }
+    : { quantidade: 1, codigo: entrada.trim() };
 }

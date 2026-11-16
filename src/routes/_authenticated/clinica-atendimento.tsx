@@ -263,13 +263,27 @@ function Atendimento() {
 
       <div className="panel grid gap-4 p-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <DataAtendimento value={form.data_atendimento ?? ""} disabled={fechado}
-            onChange={(value) => setForm({ ...form, data_atendimento: value })} />
+          <DataAtendimento
+            value={form.data_atendimento ?? ""}
+            disabled={fechado}
+            onChange={(value) => setForm({ ...form, data_atendimento: value })}
+          />
           <div>
             <Label htmlFor="c-peso">Peso nesta consulta (kg)</Label>
-            <Input id="c-peso" inputMode="decimal" placeholder="Não cadastrado" {...campo("peso_kg")}
-              className={!form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""} />
-            {p.peso_kg !== null && <p className="mt-1 text-xs text-muted-foreground">Peso no cadastro: {String(p.peso_kg).replace(".", ",")} kg</p>}
+            <Input
+              id="c-peso"
+              inputMode="decimal"
+              placeholder="Não cadastrado"
+              {...campo("peso_kg")}
+              className={
+                !form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""
+              }
+            />
+            {p.peso_kg !== null && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Peso no cadastro: {String(p.peso_kg).replace(".", ",")} kg
+              </p>
+            )}
           </div>
         </div>
         {!fechado && (
@@ -363,8 +377,14 @@ function Atendimento() {
           </DialogHeader>
           <div className="space-y-2 border-y border-border py-3">
             <p className="text-sm font-semibold">Próxima consulta</p>
-            <ProximaConsulta petId={data.pet_id} petNome={p.nome} diaSugerido={form.retorno_em}
-              aoAgendar={(dia) => setForm((atual) => atual ? { ...atual, retorno_em: dia } : atual)} />
+            <ProximaConsulta
+              petId={data.pet_id}
+              petNome={p.nome}
+              diaSugerido={form.retorno_em}
+              aoAgendar={(dia) =>
+                setForm((atual) => (atual ? { ...atual, retorno_em: dia } : atual))
+              }
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmando(false)}>

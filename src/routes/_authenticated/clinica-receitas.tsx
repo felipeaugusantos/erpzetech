@@ -18,7 +18,10 @@ export const Route = createFileRoute("/_authenticated/clinica-receitas")({
   head: () => ({
     meta: [
       { title: "Receitas — ERP Ze Tech" },
-      { name: "description", content: "Receitas emitidas com data, remédios e doses de cada paciente." },
+      {
+        name: "description",
+        content: "Receitas emitidas com data, remédios e doses de cada paciente.",
+      },
       { property: "og:title", content: "Receitas — ERP Ze Tech" },
       { property: "og:description", content: "Acompanhe o tratamento de cada paciente." },
       { property: "og:type", content: "website" },
@@ -157,7 +160,10 @@ function Receitas() {
                       <td className="py-1.5 pr-3 font-medium">
                         {i.medicamento}
                         {i.quantidade ? (
-                          <span className="font-normal text-muted-foreground"> · {i.quantidade}</span>
+                          <span className="font-normal text-muted-foreground">
+                            {" "}
+                            · {i.quantidade}
+                          </span>
                         ) : null}
                       </td>
                       <td className="py-1.5 pr-3">

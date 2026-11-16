@@ -11,7 +11,9 @@ export function DashboardChartTooltip({
   if (!active || !payload?.length) return null;
   return (
     <div className="min-w-40 rounded-lg border border-border bg-popover p-3 text-xs text-popover-foreground shadow-raised">
-      <p className="mb-2 font-semibold capitalize">{labelFormatter ? labelFormatter(label, payload) : label ?? payload[0]?.name}</p>
+      <p className="mb-2 font-semibold capitalize">
+        {labelFormatter ? labelFormatter(label, payload) : (label ?? payload[0]?.name)}
+      </p>
       <div className="space-y-2">
         {payload.map((item, index) => (
           <div key={`${item.dataKey}-${index}`} className="flex items-center justify-between gap-5">

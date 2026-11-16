@@ -73,10 +73,14 @@ export const Route = createFileRoute("/_authenticated/clinica-exames")({
       { title: "Exames e laudos — ERP Ze Tech" },
       {
         name: "description",
-        content: "Resultados de exames do paciente e importação de laudos PDF com conferência veterinária.",
+        content:
+          "Resultados de exames do paciente e importação de laudos PDF com conferência veterinária.",
       },
       { property: "og:title", content: "Exames e laudos — ERP Ze Tech" },
-      { property: "og:description", content: "Exames do paciente e leitura de laudos digitais com referências absolutas." },
+      {
+        property: "og:description",
+        content: "Exames do paciente e leitura de laudos digitais com referências absolutas.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -264,7 +268,7 @@ function ExamesDoPaciente({
     onSuccess: (e) => {
       toast.success("Exame aberto");
       setNovoAberto(false);
-      if (importando) setSolicitacaoImportacao(s => s + 1);
+      if (importando) setSolicitacaoImportacao((s) => s + 1);
       void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
       navegar({
         to: "/clinica-exames",
@@ -301,26 +305,37 @@ function ExamesDoPaciente({
           </Link>
         </div>
         <div className="flex flex-wrap gap-2">
-        <Button asChild variant="outline"><Link to="/clinica-laudos" search={{ pet: petId }}><TrendingUp className="size-4" />Laudos e evolução</Link></Button>
-        <ImportarExamesPetPdf pet={data.pet} onImportado={id => {
-          void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
-          void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos-lista"] });
-          void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos"] });
-          void navegar({ to: "/clinica-exames", search: { pet: petId, exame: id, atendimento: atendimentoId } });
-        }} />
-        <Button
-          onClick={() => {
-            setImportando(false);
-            setModeloId("");
-            setLigar(true);
-            setLaboratorio("");
-            setColeta("");
-            setMaterial("");
-            setNovoAberto(true);
-          }}
-        >
-          <Plus className="size-4" /> Novo exame
-        </Button>
+          <Button asChild variant="outline">
+            <Link to="/clinica-laudos" search={{ pet: petId }}>
+              <TrendingUp className="size-4" />
+              Laudos e evolução
+            </Link>
+          </Button>
+          <ImportarExamesPetPdf
+            pet={data.pet}
+            onImportado={(id) => {
+              void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
+              void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos-lista"] });
+              void qc.invalidateQueries({ queryKey: ["clinica-exame-modelos"] });
+              void navegar({
+                to: "/clinica-exames",
+                search: { pet: petId, exame: id, atendimento: atendimentoId },
+              });
+            }}
+          />
+          <Button
+            onClick={() => {
+              setImportando(false);
+              setModeloId("");
+              setLigar(true);
+              setLaboratorio("");
+              setColeta("");
+              setMaterial("");
+              setNovoAberto(true);
+            }}
+          >
+            <Plus className="size-4" /> Novo exame
+          </Button>
         </div>
       </div>
 
@@ -370,7 +385,17 @@ function ExamesDoPaciente({
 
         <div>
           {exameId ? (
-            <ExameAberto key={exameId} petId={petId} exameId={exameId} solicitacaoImportacao={solicitacaoImportacao} arquivoImportacao={arquivoImportacao} onConsumirImportacao={() => { setSolicitacaoImportacao(0); setArquivoImportacao(null); }} />
+            <ExameAberto
+              key={exameId}
+              petId={petId}
+              exameId={exameId}
+              solicitacaoImportacao={solicitacaoImportacao}
+              arquivoImportacao={arquivoImportacao}
+              onConsumirImportacao={() => {
+                setSolicitacaoImportacao(0);
+                setArquivoImportacao(null);
+              }}
+            />
           ) : (
             <EmptyState
               title="Escolha um exame"
@@ -384,100 +409,131 @@ function ExamesDoPaciente({
       <Dialog open={novoAberto} onOpenChange={(o) => !o && setNovoAberto(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{importando ? `Importar exame — ${data.pet.nome}` : "Novo exame"}</DialogTitle>
+            <DialogTitle>
+              {importando ? `Importar exame — ${data.pet.nome}` : "Novo exame"}
+            </DialogTitle>
           </DialogHeader>
-          {importando && <div className="grid min-w-0 gap-2">
-            <input ref={seletorPdf} type="file" accept="application/pdf,.pdf" className="hidden" aria-label="PDF do exame do animal" onChange={e => {
-              const arquivo = e.target.files?.[0];
-              e.target.value = "";
-              if (!arquivo) return;
-              if (!arquivo.name.toLowerCase().endsWith(".pdf") || arquivo.size > 10 * 1024 * 1024) {
-                toast.error("Envie um PDF digital de até 10 MB.");
-                return;
-              }
-              setArquivoImportacao(arquivo);
-            }} />
-            <Button variant="outline" onClick={() => seletorPdf.current?.click()}><FileUp className="size-4" />{arquivoImportacao ? "Trocar PDF" : "Selecionar PDF"}</Button>
-            {arquivoImportacao && <p className="break-all text-sm text-muted-foreground">{arquivoImportacao.name}</p>}
-          </div>}
-          {importando && <div className="grid gap-2">
-            <Label htmlFor="importar-destino">Exame</Label>
-            <Select value={destinoImportacao} onValueChange={setDestinoImportacao}>
-              <SelectTrigger id="importar-destino"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="novo">Novo exame</SelectItem>
-                {data.exames.filter(e => e.situacao === "aberto").map(e => <SelectItem key={e.id} value={e.id}>{e.nome} · {dateBR(e.data_coleta)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>}
-          {(!importando || destinoImportacao === "novo") && <>
-          <div className="grid gap-3">
-            <div>
-              <Label htmlFor="nx-modelo">Modelo</Label>
-              <Select
-                value={modeloId || "__nenhum"}
-                onValueChange={(v) => setModeloId(v === "__nenhum" ? "" : v)}
-              >
-                <SelectTrigger id="nx-modelo">
+          {importando && (
+            <div className="grid min-w-0 gap-2">
+              <input
+                ref={seletorPdf}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                aria-label="PDF do exame do animal"
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!arquivo) return;
+                  if (
+                    !arquivo.name.toLowerCase().endsWith(".pdf") ||
+                    arquivo.size > 10 * 1024 * 1024
+                  ) {
+                    toast.error("Envie um PDF digital de até 10 MB.");
+                    return;
+                  }
+                  setArquivoImportacao(arquivo);
+                }}
+              />
+              <Button variant="outline" onClick={() => seletorPdf.current?.click()}>
+                <FileUp className="size-4" />
+                {arquivoImportacao ? "Trocar PDF" : "Selecionar PDF"}
+              </Button>
+              {arquivoImportacao && (
+                <p className="break-all text-sm text-muted-foreground">{arquivoImportacao.name}</p>
+              )}
+            </div>
+          )}
+          {importando && (
+            <div className="grid gap-2">
+              <Label htmlFor="importar-destino">Exame</Label>
+              <Select value={destinoImportacao} onValueChange={setDestinoImportacao}>
+                <SelectTrigger id="importar-destino">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__nenhum">Escolha o modelo</SelectItem>
-                  {modelos.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nome} · {rotulo(TIPOS_EXAME, m.tipo)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="novo">Novo exame</SelectItem>
+                  {data.exames
+                    .filter((e) => e.situacao === "aberto")
+                    .map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.nome} · {dateBR(e.data_coleta)}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-              {modelos.length === 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sem modelos ativos: a gestão cria os modelos iniciais em Modelos de exame.
-                </p>
-              )}
             </div>
-            {atendimentoId && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={ligar}
-                  onChange={(e) => setLigar(e.target.checked)}
-                />
-                Ligar ao atendimento aberto
-              </label>
-            )}
-            <div>
-              <Label htmlFor="nx-lab">
-                Laboratório{avulso ? " (obrigatório no exame avulso)" : " (opcional)"}
-              </Label>
-              <Input
-                id="nx-lab"
-                value={laboratorio}
-                onChange={(e) => setLaboratorio(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="nx-coleta">Data da coleta</Label>
-                <Input
-                  id="nx-coleta"
-                  type="date"
-                  value={coleta}
-                  onChange={(e) => setColeta(e.target.value)}
-                />
+          )}
+          {(!importando || destinoImportacao === "novo") && (
+            <>
+              <div className="grid gap-3">
+                <div>
+                  <Label htmlFor="nx-modelo">Modelo</Label>
+                  <Select
+                    value={modeloId || "__nenhum"}
+                    onValueChange={(v) => setModeloId(v === "__nenhum" ? "" : v)}
+                  >
+                    <SelectTrigger id="nx-modelo">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__nenhum">Escolha o modelo</SelectItem>
+                      {modelos.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.nome} · {rotulo(TIPOS_EXAME, m.tipo)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {modelos.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Sem modelos ativos: a gestão cria os modelos iniciais em Modelos de exame.
+                    </p>
+                  )}
+                </div>
+                {atendimentoId && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={ligar}
+                      onChange={(e) => setLigar(e.target.checked)}
+                    />
+                    Ligar ao atendimento aberto
+                  </label>
+                )}
+                <div>
+                  <Label htmlFor="nx-lab">
+                    Laboratório{avulso ? " (obrigatório no exame avulso)" : " (opcional)"}
+                  </Label>
+                  <Input
+                    id="nx-lab"
+                    value={laboratorio}
+                    onChange={(e) => setLaboratorio(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="nx-coleta">Data da coleta</Label>
+                    <Input
+                      id="nx-coleta"
+                      type="date"
+                      value={coleta}
+                      onChange={(e) => setColeta(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nx-mat">Material</Label>
+                    <Input
+                      id="nx-mat"
+                      placeholder="Do modelo"
+                      value={material}
+                      onChange={(e) => setMaterial(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="nx-mat">Material</Label>
-                <Input
-                  id="nx-mat"
-                  placeholder="Do modelo"
-                  value={material}
-                  onChange={(e) => setMaterial(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-          </>}
+            </>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setNovoAberto(false)}>
               Cancelar
@@ -486,11 +542,18 @@ function ExamesDoPaciente({
               onClick={() => {
                 if (importando && destinoImportacao !== "novo") {
                   setNovoAberto(false);
-                  setSolicitacaoImportacao(s => s + 1);
-                  void navegar({ to: "/clinica-exames", search: { pet: petId, exame: destinoImportacao, atendimento: atendimentoId } });
+                  setSolicitacaoImportacao((s) => s + 1);
+                  void navegar({
+                    to: "/clinica-exames",
+                    search: { pet: petId, exame: destinoImportacao, atendimento: atendimentoId },
+                  });
                 } else abrir.mutate();
               }}
-              disabled={abrir.isPending || ((!importando || destinoImportacao === "novo") && (!modeloId || (avulso && !laboratorio.trim())))}
+              disabled={
+                abrir.isPending ||
+                ((!importando || destinoImportacao === "novo") &&
+                  (!modeloId || (avulso && !laboratorio.trim())))
+              }
             >
               {importando ? "Continuar importação" : "Abrir exame"}
             </Button>
@@ -519,7 +582,19 @@ function digitadoDe(e: ExameClinico): Digitado {
   );
 }
 
-function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao, onConsumirImportacao }: { petId: string; exameId: string; solicitacaoImportacao: number; arquivoImportacao: File | null; onConsumirImportacao: () => void }) {
+function ExameAberto({
+  petId,
+  exameId,
+  solicitacaoImportacao,
+  arquivoImportacao,
+  onConsumirImportacao,
+}: {
+  petId: string;
+  exameId: string;
+  solicitacaoImportacao: number;
+  arquivoImportacao: File | null;
+  onConsumirImportacao: () => void;
+}) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["clinica-exame", exameId],
     queryFn: async () => {
@@ -543,7 +618,19 @@ function ExameAberto({ petId, exameId, solicitacaoImportacao, arquivoImportacao,
   );
 }
 
-function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, onConsumirImportacao }: { petId: string; exame: ExameClinico; solicitacaoImportacao: number; arquivoImportacao: File | null; onConsumirImportacao: () => void }) {
+function Formulario({
+  petId,
+  exame,
+  solicitacaoImportacao,
+  arquivoImportacao,
+  onConsumirImportacao,
+}: {
+  petId: string;
+  exame: ExameClinico;
+  solicitacaoImportacao: number;
+  arquivoImportacao: File | null;
+  onConsumirImportacao: () => void;
+}) {
   const qc = useQueryClient();
   const navegar = useNavigate();
   const aberto = exame.situacao === "aberto";
@@ -923,24 +1010,44 @@ function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, on
       )}
 
       <div className="flex flex-wrap gap-2">
-        <ExcluirExame exame={exame} disabled={ocupado || cancelar.isPending || criarAdendo.isPending} onExcluido={() => { void navegar({ to: "/clinica-exames", search: { pet: petId, exame: undefined, atendimento: undefined }, replace: true }); }} />
+        <ExcluirExame
+          exame={exame}
+          disabled={ocupado || cancelar.isPending || criarAdendo.isPending}
+          onExcluido={() => {
+            void navegar({
+              to: "/clinica-exames",
+              search: { pet: petId, exame: undefined, atendimento: undefined },
+              replace: true,
+            });
+          }}
+        />
         {aberto && (
           <>
-            <ImportarLaudoPdf exame={exame} disabled={ocupado} solicitacao={solicitacaoImportacao} arquivo={arquivoImportacao} onConsumir={onConsumirImportacao} onAplicar={(linhas, laudo) => {
-              setDig(atual => {
-                const novo = { ...atual };
-                for (const { campo, item } of linhas) {
-                  const anterior = novo[campo.id] ?? { valor: "", nota: "", min: "", max: "" };
-                  novo[campo.id] = { ...anterior,
-                    ...(campo.forma === "numero" ? { valor: String(item.valor) } : {}),
-                    ...(item.minimo !== null ? { min: String(item.minimo), max: String(item.maximo) } : {}),
-                  };
-                }
-                return novo;
-              });
-              if (laudo.coleta) setColeta(laudo.coleta);
-              toast.success("Rascunho preenchido. Confira e salve o exame.");
-            }} />
+            <ImportarLaudoPdf
+              exame={exame}
+              disabled={ocupado}
+              solicitacao={solicitacaoImportacao}
+              arquivo={arquivoImportacao}
+              onConsumir={onConsumirImportacao}
+              onAplicar={(linhas, laudo) => {
+                setDig((atual) => {
+                  const novo = { ...atual };
+                  for (const { campo, item } of linhas) {
+                    const anterior = novo[campo.id] ?? { valor: "", nota: "", min: "", max: "" };
+                    novo[campo.id] = {
+                      ...anterior,
+                      ...(campo.forma === "numero" ? { valor: String(item.valor) } : {}),
+                      ...(item.minimo !== null
+                        ? { min: String(item.minimo), max: String(item.maximo) }
+                        : {}),
+                    };
+                  }
+                  return novo;
+                });
+                if (laudo.coleta) setColeta(laudo.coleta);
+                toast.success("Rascunho preenchido. Confira e salve o exame.");
+              }}
+            />
             <Button onClick={() => salvar.mutate()} disabled={ocupado}>
               Salvar
             </Button>
@@ -953,7 +1060,13 @@ function Formulario({ petId, exame, solicitacaoImportacao, arquivoImportacao, on
           </>
         )}
         {exame.situacao !== "cancelado" && (
-          <Button variant="outline" onClick={() => { setLaudoPronto(false); setLaudo(true); }}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setLaudoPronto(false);
+              setLaudo(true);
+            }}
+          >
             <Printer className="size-4" /> Laudo para imprimir
           </Button>
         )}
@@ -1096,28 +1209,39 @@ function Laudo({
       : (valores[r.id] ?? r.valor_num) !== null,
   );
   const grupos = agruparCampos(feitos);
-  const numericos = feitos.filter(r => r.forma === "numero" || r.forma === "calculado");
-  const historicos = useQueries({ queries: numericos.map(r => ({
-    queryKey: ["clinica-exame-evolucao", exame.pet_id, r.nome, r.unidade],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("clinica_exame_evolucao", {
-        p_pet_id: exame.pet_id, p_nome: r.nome, p_unidade: r.unidade ?? "",
-      });
-      if (error) throw error;
-      return (data ?? []) as unknown as PontoEvolucao[];
-    },
-    staleTime: 0,
-  })) });
-  const carregando = historicos.some(h => h.isPending || h.isFetching);
-  const falhou = historicos.some(h => h.isError);
+  const numericos = feitos.filter((r) => r.forma === "numero" || r.forma === "calculado");
+  const historicos = useQueries({
+    queries: numericos.map((r) => ({
+      queryKey: ["clinica-exame-evolucao", exame.pet_id, r.nome, r.unidade],
+      queryFn: async () => {
+        const { data, error } = await supabase.rpc("clinica_exame_evolucao", {
+          p_pet_id: exame.pet_id,
+          p_nome: r.nome,
+          p_unidade: r.unidade ?? "",
+        });
+        if (error) throw error;
+        return (data ?? []) as unknown as PontoEvolucao[];
+      },
+      staleTime: 0,
+    })),
+  });
+  const carregando = historicos.some((h) => h.isPending || h.isFetching);
+  const falhou = historicos.some((h) => h.isError);
   const pronto = !carregando && !falhou;
-  useEffect(() => { onReady(pronto); }, [pronto, onReady]);
+  useEffect(() => {
+    onReady(pronto);
+  }, [pronto, onReady]);
   const graficos = numericos.flatMap((r, i) => {
     const valor = valores[r.id] ?? r.valor_num;
     if (valor === null) return [];
     const pontos = pontosDoLaudo(historicos[i]?.data ?? [], {
-      exame_id: exame.id, exame: exame.nome, data_coleta: exame.data_coleta,
-      valor, casas: r.casas, faixa_min: r.faixa_min, faixa_max: r.faixa_max,
+      exame_id: exame.id,
+      exame: exame.nome,
+      data_coleta: exame.data_coleta,
+      valor,
+      casas: r.casas,
+      faixa_min: r.faixa_min,
+      faixa_max: r.faixa_max,
     });
     return pontos.length ? [{ campo: r, pontos }] : [];
   });
@@ -1197,17 +1321,44 @@ function Laudo({
           </table>
         </div>
       ))}
-      {carregando && <p className="text-xs text-muted-foreground print:hidden" role="status">Carregando resultados anteriores…</p>}
-      {falhou && <div className="print:hidden">
-        <p className="text-xs text-destructive" role="alert">Não foi possível consultar os resultados anteriores.</p>
-        <Button variant="outline" size="sm" onClick={() => historicos.forEach(h => { void h.refetch(); })}>Tentar novamente</Button>
-      </div>}
-      {pronto && graficos.length > 0 && <section className="border-t pt-3">
-        <p className="mb-2 font-semibold">Evolução dos resultados</p>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 print:grid-cols-2">
-          {graficos.map(({ campo, pontos }) => <MiniGraficoExame key={campo.id} nome={campo.nome} unidade={campo.unidade} pontos={pontos} />)}
+      {carregando && (
+        <p className="text-xs text-muted-foreground print:hidden" role="status">
+          Carregando resultados anteriores…
+        </p>
+      )}
+      {falhou && (
+        <div className="print:hidden">
+          <p className="text-xs text-destructive" role="alert">
+            Não foi possível consultar os resultados anteriores.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              historicos.forEach((h) => {
+                void h.refetch();
+              })
+            }
+          >
+            Tentar novamente
+          </Button>
         </div>
-      </section>}
+      )}
+      {pronto && graficos.length > 0 && (
+        <section className="border-t pt-3">
+          <p className="mb-2 font-semibold">Evolução dos resultados</p>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 print:grid-cols-2">
+            {graficos.map(({ campo, pontos }) => (
+              <MiniGraficoExame
+                key={campo.id}
+                nome={campo.nome}
+                unidade={campo.unidade}
+                pontos={pontos}
+              />
+            ))}
+          </div>
+        </section>
+      )}
       {exame.observacoes && (
         <p className="whitespace-pre-wrap">
           <span className="font-semibold">Observações: </span>

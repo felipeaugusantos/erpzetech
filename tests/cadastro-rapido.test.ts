@@ -47,8 +47,18 @@ describe("erroDoCadastroRapido", () => {
 
 describe("operacaoDoCadastroRapido", () => {
   it("o mesmo tutor pode ter dois pets sem criar outro cadastro de cliente", () => {
-    const a = operacaoDoCadastroRapido({ ...ok, tutorId: "tutor-9", petNome: "Léo" }, "Ana", { pet: "pet-a" }, hoje);
-    const b = operacaoDoCadastroRapido({ ...ok, tutorId: "tutor-9", petNome: "Thor" }, "Ana", { pet: "pet-b" }, hoje);
+    const a = operacaoDoCadastroRapido(
+      { ...ok, tutorId: "tutor-9", petNome: "Léo" },
+      "Ana",
+      { pet: "pet-a" },
+      hoje,
+    );
+    const b = operacaoDoCadastroRapido(
+      { ...ok, tutorId: "tutor-9", petNome: "Thor" },
+      "Ana",
+      { pet: "pet-b" },
+      hoje,
+    );
     const pa = a.payload as { cliente_id: string; cliente?: unknown; pet: { id: string } };
     const pb = b.payload as typeof pa;
     assert.equal(pa.cliente_id, "tutor-9");

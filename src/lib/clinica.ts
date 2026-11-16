@@ -87,14 +87,21 @@ export function formDoAtendimento(a: AtendimentoClinico): FormAtendimento {
 export function dataClinica(abertoEm: string | undefined): string {
   if (!abertoEm || Number.isNaN(new Date(abertoEm).getTime())) return "";
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(new Date(abertoEm));
 }
 
-export function erroDataAtendimento(data: string | undefined, hoje = dataClinica(new Date().toISOString())) {
+export function erroDataAtendimento(
+  data: string | undefined,
+  hoje = dataClinica(new Date().toISOString()),
+) {
   if (!data) return null;
   const parsed = new Date(`${data}T12:00:00Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== data) return "Data do atendimento inválida";
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== data)
+    return "Data do atendimento inválida";
   return data > hoje ? "A data do atendimento não pode ser no futuro" : null;
 }
 
@@ -146,7 +153,13 @@ export type SinaisEmConsulta = {
 
 type ComSinais = Pick<
   AtendimentoClinico,
-  "aberto_em" | "data_atendimento" | "situacao" | "peso_kg" | "temperatura_c" | "freq_cardiaca" | "freq_respiratoria"
+  | "aberto_em"
+  | "data_atendimento"
+  | "situacao"
+  | "peso_kg"
+  | "temperatura_c"
+  | "freq_cardiaca"
+  | "freq_respiratoria"
 >;
 
 /**

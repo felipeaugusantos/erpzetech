@@ -85,7 +85,9 @@ export function GlobalSearch({
       />
       <CommandList>
         <CommandEmpty>
-          {term.trim().length < 2 ? "Digite ao menos 2 caracteres." : "Nenhum resultado encontrado."}
+          {term.trim().length < 2
+            ? "Digite ao menos 2 caracteres."
+            : "Nenhum resultado encontrado."}
         </CommandEmpty>
         {telasAchadas.length > 0 && (
           <CommandGroup heading="Ir para a tela">

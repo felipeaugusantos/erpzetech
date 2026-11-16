@@ -17,8 +17,8 @@ export function ExamesProntuario({ petId }: { petId: string }) {
       return data as unknown as { exames: ResumoExame[] };
     },
   });
-  const exames = [...(lista.data?.exames ?? [])].sort((a, b) =>
-    b.data_coleta.localeCompare(a.data_coleta) || b.aberto_em.localeCompare(a.aberto_em),
+  const exames = [...(lista.data?.exames ?? [])].sort(
+    (a, b) => b.data_coleta.localeCompare(a.data_coleta) || b.aberto_em.localeCompare(a.aberto_em),
   );
 
   return (
@@ -29,30 +29,73 @@ export function ExamesProntuario({ petId }: { petId: string }) {
           {lista.data && <Badge variant="secondary">{exames.length}</Badge>}
         </h3>
         <Button asChild size="sm" variant="outline" className="min-h-11 w-full sm:w-auto">
-          <Link to="/clinica-laudos" search={{ pet: petId }}><FileText className="size-4" /> Laudos e evolução</Link>
+          <Link to="/clinica-laudos" search={{ pet: petId }}>
+            <FileText className="size-4" /> Laudos e evolução
+          </Link>
         </Button>
       </div>
-      {lista.isPending ? <div className="h-24 animate-pulse bg-muted" aria-label="Carregando exames" /> : lista.error ? (
+      {lista.isPending ? (
+        <div className="h-24 animate-pulse bg-muted" aria-label="Carregando exames" />
+      ) : lista.error ? (
         <div className="grid justify-items-start gap-2">
-          <p role="alert" className="text-sm text-destructive">Não foi possível carregar os exames: {lista.error.message}</p>
-          <Button size="sm" variant="outline" onClick={() => void lista.refetch()}>Tentar novamente</Button>
+          <p role="alert" className="text-sm text-destructive">
+            Não foi possível carregar os exames: {lista.error.message}
+          </p>
+          <Button size="sm" variant="outline" onClick={() => void lista.refetch()}>
+            Tentar novamente
+          </Button>
         </div>
-      ) : !exames.length ? <p className="text-sm text-muted-foreground">Nenhum exame registrado para este paciente.</p> : (
+      ) : !exames.length ? (
+        <p className="text-sm text-muted-foreground">Nenhum exame registrado para este paciente.</p>
+      ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
-          {exames.map(exame => (
-            <li key={exame.id} className="grid min-w-0 gap-3 rounded-md border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+          {exames.map((exame) => (
+            <li
+              key={exame.id}
+              className="grid min-w-0 gap-3 rounded-md border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
+            >
               <div className="flex min-w-0 items-center gap-2 border-b border-border pb-3 text-primary sm:col-span-2">
                 <CalendarDays className="size-5" />
-                <div><p className="text-xs font-medium">Data da coleta</p><time dateTime={exame.data_coleta} className="block text-lg font-semibold tabular-nums">{dateBR(exame.data_coleta)}</time></div>
+                <div>
+                  <p className="text-xs font-medium">Data da coleta</p>
+                  <time
+                    dateTime={exame.data_coleta}
+                    className="block text-lg font-semibold tabular-nums"
+                  >
+                    {dateBR(exame.data_coleta)}
+                  </time>
+                </div>
               </div>
               <div className="min-w-0">
                 <h4 className="break-words text-base font-semibold">{exame.nome}</h4>
-                <Badge className="mt-1" variant={exame.situacao === "fechado" ? "default" : "outline"}>{rotulo(SITUACOES_EXAME, exame.situacao)}</Badge>
-                {exame.laboratorio && <p className="mt-1 break-words text-sm text-muted-foreground">{exame.laboratorio}</p>}
-                <p className="mt-2 break-words text-sm text-muted-foreground">{exame.veterinario}</p>
+                <Badge
+                  className="mt-1"
+                  variant={exame.situacao === "fechado" ? "default" : "outline"}
+                >
+                  {rotulo(SITUACOES_EXAME, exame.situacao)}
+                </Badge>
+                {exame.laboratorio && (
+                  <p className="mt-1 break-words text-sm text-muted-foreground">
+                    {exame.laboratorio}
+                  </p>
+                )}
+                <p className="mt-2 break-words text-sm text-muted-foreground">
+                  {exame.veterinario}
+                </p>
               </div>
-              <Button asChild size="sm" variant="outline" className="min-h-11 w-full self-end sm:w-auto">
-                <Link to="/clinica-exames" search={{ pet: petId, exame: exame.id, atendimento: undefined }}><FileText className="size-4" />{exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}</Link>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="min-h-11 w-full self-end sm:w-auto"
+              >
+                <Link
+                  to="/clinica-exames"
+                  search={{ pet: petId, exame: exame.id, atendimento: undefined }}
+                >
+                  <FileText className="size-4" />
+                  {exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}
+                </Link>
               </Button>
             </li>
           ))}

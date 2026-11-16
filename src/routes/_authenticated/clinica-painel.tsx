@@ -226,7 +226,11 @@ function PainelClinica() {
             Receita: serviços dos agendamentos ligados às consultas do período, sem faltas nem
             cancelamentos.
           </p>
-          <PacientesPainelClinica key={`${periodo.de}-${periodo.ate}`} de={periodo.de} ate={periodo.ate} />
+          <PacientesPainelClinica
+            key={`${periodo.de}-${periodo.ate}`}
+            de={periodo.de}
+            ate={periodo.ate}
+          />
         </>
       )}
     </div>

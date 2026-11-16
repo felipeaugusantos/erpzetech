@@ -16,6 +16,7 @@ export function fatorEntrada(unidadeNota: string, produto?: UnidadesProduto): nu
 }
 
 export function quantidadeEntrada(embalagens: number, fator: number): number {
-  if (!Number.isFinite(fator) || fator <= 0) throw new Error("Informe um fator de conversão maior que zero.");
+  if (!Number.isFinite(fator) || fator <= 0)
+    throw new Error("Informe um fator de conversão maior que zero.");
   return Math.round(embalagens * fator * 1e6) / 1e6;
 }

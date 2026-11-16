@@ -6,7 +6,13 @@ import { toast } from "sonner";
 
 import { DadosCadastroTutor } from "@/components/app/DadosCadastroTutor";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
-import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, tutoresParecidos, type DadosTutor } from "@/lib/tutor-novo";
+import {
+  dadosTutorParaSalvar,
+  dadosTutorVazios,
+  erroDoTutorNovo,
+  tutoresParecidos,
+  type DadosTutor,
+} from "@/lib/tutor-novo";
 import {
   CamposPersonalizados,
   useCamposPet,
@@ -69,7 +75,10 @@ export const Route = createFileRoute("/_authenticated/pets")({
         content: "Cadastro de pets e tutores com CPF ou CNPJ, endereço e dados dos animais.",
       },
       { property: "og:title", content: "Pets e tutores — ERP Ze Tech" },
-      { property: "og:description", content: "Pets e tutores com documentos, endereço e dados dos animais." },
+      {
+        property: "og:description",
+        content: "Pets e tutores com documentos, endereço e dados dos animais.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -162,7 +171,9 @@ function Pets() {
           .order("nome"),
         supabase
           .from("clientes")
-          .select("id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado")
+          .select(
+            "id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado",
+          )
           .is("deleted_at", null)
           .order("nome")
           .limit(2000),
@@ -304,7 +315,10 @@ function Pets() {
     id: string,
   ) => (
     <Select value={valor || NENHUM} onValueChange={(v) => onChange(v === NENHUM ? "" : v)}>
-      <SelectTrigger id={id} className={!valor && nenhum ? "border-warning bg-warning/10 text-warning" : ""}>
+      <SelectTrigger
+        id={id}
+        className={!valor && nenhum ? "border-warning bg-warning/10 text-warning" : ""}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -383,13 +397,23 @@ function Pets() {
               {lista.map((p) => {
                 const c = tutor(p.cliente_id);
                 return (
-                  <TableRow key={p.id} className={p.obito ? "pet-falecido" : p.ativo ? "" : "opacity-60"}>
+                  <TableRow
+                    key={p.id}
+                    className={p.obito ? "pet-falecido" : p.ativo ? "" : "opacity-60"}
+                  >
                     <TableCell className="font-medium">
                       {p.nome}
                       <span className="ml-2 text-xs text-muted-foreground">
                         {rotulo(ESPECIES, p.especie)}
                       </span>
-                      {p.obito && <Badge variant="outline" className="ml-2 border-pet-obito-foreground text-pet-obito-foreground">Óbito</Badge>}
+                      {p.obito && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 border-pet-obito-foreground text-pet-obito-foreground"
+                        >
+                          Óbito
+                        </Badge>
+                      )}
                       {!p.ativo && !p.obito && (
                         <Badge variant="outline" className="ml-2">
                           Inativo
@@ -504,7 +528,10 @@ function Pets() {
                       })
                     }
                   >
-                    <Plus className="size-4" />{form.tutor_novo ? "Escolher tutor já cadastrado" : "Cadastrar tutor junto com o pet"}
+                    <Plus className="size-4" />
+                    {form.tutor_novo
+                      ? "Escolher tutor já cadastrado"
+                      : "Cadastrar tutor junto com o pet"}
                   </Button>
                 )}
               </div>
@@ -553,9 +580,14 @@ function Pets() {
                       </ul>
                     </div>
                   )}
-                  <DadosCadastroTutor dados={form.novo_tutor_dados} telefone={form.novo_tutor_telefone}
+                  <DadosCadastroTutor
+                    dados={form.novo_tutor_dados}
+                    telefone={form.novo_tutor_telefone}
                     onChange={(dados) => setForm((f) => ({ ...f, novo_tutor_dados: dados }))}
-                    onTelefone={(telefone) => setForm((f) => ({ ...f, novo_tutor_telefone: telefone }))} />
+                    onTelefone={(telefone) =>
+                      setForm((f) => ({ ...f, novo_tutor_telefone: telefone }))
+                    }
+                  />
                 </div>
               ) : (
                 <>
@@ -565,15 +597,40 @@ function Pets() {
                     onChange={(id) => setForm({ ...form, cliente_id: id })}
                     placeholder="Buscar tutor já cadastrado…"
                   />
-                  {form.cliente_id && (() => {
-                    const t = tutor(form.cliente_id);
-                    if (!t) return null;
-                    return <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                      <p>{t.cpf ? `CPF: ${t.cpf}` : t.cnpj ? `CNPJ: ${t.cnpj}` : "CPF / CNPJ não informado"}</p>
-                      <p>{[t.endereco, t.numero, t.complemento, t.bairro, t.cidade, t.estado, t.cep].filter(Boolean).join(" · ") || "Endereço não informado"}</p>
-                      <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/clientes" search={{ editar: form.cliente_id }}>Editar cadastro do tutor em Clientes</Link></Button>
-                    </div>;
-                  })()}
+                  {form.cliente_id &&
+                    (() => {
+                      const t = tutor(form.cliente_id);
+                      if (!t) return null;
+                      return (
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                          <p>
+                            {t.cpf
+                              ? `CPF: ${t.cpf}`
+                              : t.cnpj
+                                ? `CNPJ: ${t.cnpj}`
+                                : "CPF / CNPJ não informado"}
+                          </p>
+                          <p>
+                            {[
+                              t.endereco,
+                              t.numero,
+                              t.complemento,
+                              t.bairro,
+                              t.cidade,
+                              t.estado,
+                              t.cep,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Endereço não informado"}
+                          </p>
+                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                            <Link to="/clientes" search={{ editar: form.cliente_id }}>
+                              Editar cadastro do tutor em Clientes
+                            </Link>
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   {!form.id && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Não achou? Use <strong>Cadastrar tutor junto com o pet</strong>.
@@ -635,7 +692,9 @@ function Pets() {
                 inputMode="decimal"
                 value={form.peso_kg}
                 placeholder="Não cadastrado"
-                className={!form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""}
+                className={
+                  !form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""
+                }
                 onChange={(e) => setForm({ ...form, peso_kg: e.target.value })}
               />
             </div>
@@ -665,7 +724,11 @@ function Pets() {
               <Label htmlFor="pet-ativo">Ativo</Label>
             </div>
             <div className="flex items-center gap-2">
-              <Switch id="pet-obito" checked={form.obito} onCheckedChange={(v) => setForm({ ...form, obito: v })} />
+              <Switch
+                id="pet-obito"
+                checked={form.obito}
+                onCheckedChange={(v) => setForm({ ...form, obito: v })}
+              />
               <Label htmlFor="pet-obito">Óbito</Label>
             </div>
             <div>

@@ -9,7 +9,10 @@ test("produto 110441: três fardos com seis unidades entram como 18 unidades", (
   assert.equal(quantidadeEntrada(3, fatorEntrada("CX", coca)), 18);
 });
 test("o custo total de 175,88 é dividido pelas 18 unidades", () => {
-  const [custo = 0] = ratearValorReal([{ quantidade: quantidadeEntrada(3, 6), base: 175.88 }], null);
+  const [custo = 0] = ratearValorReal(
+    [{ quantidade: quantidadeEntrada(3, 6), base: 175.88 }],
+    null,
+  );
   assert.equal(custo, 9.771111);
   assert.equal(Math.round(custo * 18 * 100) / 100, 175.88);
 });

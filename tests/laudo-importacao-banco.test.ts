@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-const sql = readFileSync(new URL("../drizzle/migrations/0088_clinica_importar_pdf_completo.sql", import.meta.url), "utf8");
+const sql = readFileSync(
+  new URL("../drizzle/migrations/0088_clinica_importar_pdf_completo.sql", import.meta.url),
+  "utf8",
+);
 test("criação e preenchimento exigem veterinário e confirmação", () => {
   assert.match(sql, /v_vet := public\._clinica_vet\(\)/);
   assert.match(sql, /p_dados->>'confirmado' IS DISTINCT FROM 'true'/);

@@ -108,10 +108,11 @@ export function operacaoDoCadastroRapido(
       nome: f.tutorNome.trim(),
     };
     if (f.tutorTelefone.trim()) cliente.telefone = f.tutorTelefone.trim();
-    if (f.tutorDados) Object.assign(cliente, dadosTutorParaSalvar(f.tutorDados), {
-      tipo: f.tutorTipo ?? dadosTutorParaSalvar(f.tutorDados).tipo,
-      aceita_mensagens: f.tutorAceitaMensagens ?? true,
-    });
+    if (f.tutorDados)
+      Object.assign(cliente, dadosTutorParaSalvar(f.tutorDados), {
+        tipo: f.tutorTipo ?? dadosTutorParaSalvar(f.tutorDados).tipo,
+        aceita_mensagens: f.tutorAceitaMensagens ?? true,
+      });
     payload = { cliente, pet };
     tutor = cliente.nome;
   }

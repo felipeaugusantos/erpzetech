@@ -11,6 +11,8 @@ describe("pendências do dia", () => {
     expect(pendenciasVisiveis([c("/estoque", 0)], ["/estoque"])).toEqual([]);
   });
   it("orçamento parado é de 48 horas", () => {
-    expect(limiteOrcamentoParado(new Date("2026-11-14T12:00:00Z"))).toBe("2026-11-12T12:00:00.000Z");
+    expect(limiteOrcamentoParado(new Date("2026-11-14T12:00:00Z"))).toBe(
+      "2026-11-12T12:00:00.000Z",
+    );
   });
 });
