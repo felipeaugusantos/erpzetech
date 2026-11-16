@@ -736,6 +736,13 @@
       "when": 1794900100000,
       "tag": "0104_clinica_exames_log_contador",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794900200000,
+      "tag": "0105_clinica_peso_tres_casas",
+      "breakpoints": true
     }
   ]
 }
