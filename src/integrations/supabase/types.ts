@@ -15240,6 +15240,9 @@ export type Database = {
           uf: string | null
           updated_at: string
           whatsapp: string | null
+          cobranca_automatica: boolean
+          gateway_cliente_id: string | null
+          suspenso_automaticamente: boolean
         }
         Insert: {
           admin_criado_em?: string | null
@@ -15272,6 +15275,9 @@ export type Database = {
           uf?: string | null
           updated_at?: string
           whatsapp?: string | null
+          cobranca_automatica?: boolean
+          gateway_cliente_id?: string | null
+          suspenso_automaticamente?: boolean
         }
         Update: {
           admin_criado_em?: string | null
@@ -15304,6 +15310,9 @@ export type Database = {
           uf?: string | null
           updated_at?: string
           whatsapp?: string | null
+          cobranca_automatica?: boolean
+          gateway_cliente_id?: string | null
+          suspenso_automaticamente?: boolean
         }
         Relationships: [
           {
@@ -15451,6 +15460,10 @@ export type Database = {
           valor: number
           valor_pago: number
           vencimento: string
+          gateway_cobranca_id: string | null
+          gateway_evento_em: string | null
+          gateway_status: string | null
+          gateway_url: string | null
         }
         Insert: {
           boleto_linha_digitavel?: string | null
@@ -15472,6 +15485,10 @@ export type Database = {
           valor?: number
           valor_pago?: number
           vencimento: string
+          gateway_cobranca_id?: string | null
+          gateway_evento_em?: string | null
+          gateway_status?: string | null
+          gateway_url?: string | null
         }
         Update: {
           boleto_linha_digitavel?: string | null
@@ -15493,6 +15510,10 @@ export type Database = {
           valor?: number
           valor_pago?: number
           vencimento?: string
+          gateway_cobranca_id?: string | null
+          gateway_evento_em?: string | null
+          gateway_status?: string | null
+          gateway_url?: string | null
         }
         Relationships: [
           {
@@ -16918,6 +16939,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assinatura_situacao: { Args: never; Returns: Json }
+      saas_cobranca_evento: {
+        Args: { p_acao: string; p_data?: string; p_forma: string; p_gateway_id: string; p_status: string; p_valor: number }
+        Returns: string
+      }
+      saas_cobranca_pendentes: {
+        Args: { p_limite?: number }
+        Returns: {
+          cliente_id: string
+          cliente_nome: string
+          descricao: string
+          documento: string
+          email: string
+          fatura_id: string
+          gateway_cliente_id: string
+          valor: number
+          vencimento: string
+          whatsapp: string
+        }[]
+      }
+      saas_cobranca_vincular_cliente: { Args: { p_cliente: string; p_gateway_id: string }; Returns: string }
+      saas_cobranca_vincular_fatura: {
+        Args: { p_boleto_url: string; p_fatura: string; p_gateway_id: string; p_status: string; p_url: string }
+        Returns: boolean
+      }
+      saas_gerar_faturas_auto: { Args: never; Returns: number }
+      saas_inadimplencia_rodar: { Args: { p_cliente?: string }; Returns: Json }
       aceite_legal_meu: { Args: { p_versao: string }; Returns: boolean }
       aceite_legal_registrar: { Args: { p_versao: string }; Returns: string }
       erro_app_registrar: {

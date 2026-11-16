@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Cobrança automática das mensalidades pelo Asaas: fatura do mês gerada pelo servidor, cobrança criada no gateway (Pix, boleto e cartão na página da fatura), webhook com token e idempotência dando baixa/estorno, suspensão com 10 dias de atraso e reativação ao pagar, aviso e tela de bloqueio para a empresa, chave por cliente na tela da equipe. Migração 20270124, seção 105 do smoke (CI do banco inteira verde), 11 testes novos de lógica e de webhook, tsc, lint e build OK. **Nunca rodou contra o Asaas** (sem chave nem sandbox nesta sessão); não publicado. Guia em docs/cobranca-asaas.md.
+- [ ] Validar em sandbox do Asaas (rodada diária, webhook real, baixa e reativação) e configurar as variáveis e o agendamento diário.
+- [ ] Cartão cobrado sozinho todo mês (tokenização do Asaas): exige habilitar no Asaas, decidir o escopo PCI e capturar o cartão.
+- [ ] Trocar a tela /planos da empresa para ler as faturas reais (saas_faturas) e parar de usar assinaturas/assinatura_faturas, que a empresa grava.
+
 - [x] CI do banco verde de ponta a ponta (migrações + smoke + exame-exclusao + concorrência da agenda) e teste do backup: migração 0095 (política do contador no log e na fila de exclusão de exames; trava do contador em `clinica_exame_excluir` e `clinica_exame_exclusao_acesso`), listas do smoke para a agenda de exames e receitas, catálogo do backup (log de exclusões entra; fila de limpeza fica fora) e ajuste dos testes `exame-exclusao.sql` (clínica liberada na transação e RLS escondendo a linha no UPDATE). 1267 testes passaram, CI do banco local OK.
 
 - [x] Monitoramento de erros próprio: captura no navegador (erros não tratados, promessas rejeitadas e a tela de erro) e no servidor (todo Error logado), texto limpo de e-mail, documento, telefone, token e query/fragmento de URL, agrupado por impressão digital com contador, tela `/ze-tech-erros` (equipe: resolver, ignorar, reabrir; erro resolvido que volta é reaberto), retenção de 90 dias na rotina noturna. Migração 20270123, seção 104 do smoke, 9 testes de lógica, tsc, lint e build OK. Telas não vistas no navegador com sessão real; não publicado.

@@ -15,9 +15,36 @@
 import type { Json } from "@/integrations/supabase/types";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { DepsWebhook, ProvedorWebhook } from "@/lib/webhook";
+import { tokenNoCabecalho } from "@/lib/webhook";
+import { lerEventoAsaas } from "@/lib/cobranca-gateway";
 
 const PROVEDORES: Record<string, ProvedorWebhook> = {
-  // Nenhum provedor cadastrado ainda. Exemplo:
+  // Cobrança das mensalidades (Asaas). URL no painel do Asaas: https://<app>/api/public/webhooks/asaas, com o token em
+  // ASAAS_WEBHOOK_TOKEN (o Asaas o envia no cabeçalho asaas-access-token). Ver docs/cobranca-asaas.md.
+  asaas: {
+    nome: "asaas",
+    segredo: () => process.env["ASAAS_WEBHOOK_TOKEN"],
+    autenticar: (headers, segredo) => tokenNoCabecalho(headers, "asaas-access-token", segredo),
+    extrair: (payload) => {
+      const e = lerEventoAsaas(payload);
+      return e ? { id: e.eventoId } : null;
+    },
+    processar: async (evento) => {
+      const e = lerEventoAsaas(evento.payload);
+      if (!e || e.acao === "ignorar") return "ignorado";
+      const { aplicarEvento } = await import("@/lib/cobranca-asaas.server");
+      const resultado = await aplicarEvento({
+        cobrancaId: e.cobrancaId,
+        acao: e.acao,
+        valor: e.valor,
+        forma: e.forma,
+        data: e.data,
+        status: e.status,
+      });
+      return resultado === "desconhecida" ? "ignorado" : "processado";
+    },
+  },
+  // Outros provedores. Exemplo:
   //
   // pix: {
   //   nome: "pix",

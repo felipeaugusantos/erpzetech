@@ -528,7 +528,7 @@ DECLARE
     'backup_drive_config', 'backup_drive_execucoes',
     -- fila de limpeza de arquivos de exames excluídos: só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
     'clinica_exames_limpeza'];
-  sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'saas_erros_listar', 'saas_erro_situacao', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
+  sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'assinatura_situacao', 'saas_erros_listar', 'saas_erro_situacao', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
     'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
@@ -650,7 +650,9 @@ BEGIN
                            -- aceite dos termos (LGPD): vale para qualquer pessoa logada, inclusive o contador
                            'aceite_legal_meu', 'aceite_legal_registrar',
                            -- erros do sistema: respondem só à equipe EZRA (operador), nunca a contador nem a empresa
-                           'saas_erros_listar', 'saas_erro_situacao')
+                           'saas_erros_listar', 'saas_erro_situacao',
+                           -- situação da assinatura: já devolve nada para o contador (confere eh_contador_restrito)
+                           'assinatura_situacao')
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_contador%'
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_contador_tributos%';
   PERFORM ci.exige(faltando IS NULL, 'toda função chamável tem a trava do contador (exige_nao_contador ou exige_contador_tributos) ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
@@ -12614,5 +12616,134 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$SELECT erros_app_limpar()$c$, 'usuário executa a limpeza');
 
   DELETE FROM erros_app;
+  DELETE FROM saas_operadores WHERE user_id = op;
+END $$;
+
+-- 105. Cobrança automática (gateway): funções do serviço fechadas para usuários, fatura do mês só de quem tem cobrança automática (sem duplicar),
+-- vínculo único com o gateway, baixa e estorno idempotentes, suspensão além da tolerância e reativação ao pagar (suspensão manual não é desfeita),
+-- e a situação da assinatura: bloqueio para a empresa, links de pagamento só para administrador e gestor, nada para a equipe nem para quem não tem cobrança automática
+DO $$
+DECLARE
+  adm  constant uuid := 'a0000000-0000-0000-0000-0000e9990105';
+  vend constant uuid := 'a0000000-0000-0000-0000-0000e9990106';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000e9990107';
+  outro constant uuid := 'a0000000-0000-0000-0000-0000e9990108';
+  t_c uuid; t_o uuid; plano uuid; cli uuid; cli_o uuid; fat uuid; n int; r jsonb; s text; v uuid;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Cobranca auto CI') RETURNING id INTO t_c;
+  INSERT INTO tenants (nome) VALUES ('Cobranca manual CI') RETURNING id INTO t_o;
+  INSERT INTO auth.users (id, email) VALUES (adm, 'adm-cobranca@ci'), (vend, 'vend-cobranca@ci'), (op, 'op-cobranca@ci'), (outro, 'outro-cobranca@ci');
+  UPDATE profiles SET tenant_id = t_c WHERE id IN (adm, vend);
+  UPDATE profiles SET tenant_id = t_o WHERE id = outro;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (adm, t_c, 'administrador'), (vend, t_c, 'vendedor'), (outro, t_o, 'administrador');
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+  SELECT id INTO plano FROM saas_planos WHERE codigo = 'loja';
+  INSERT INTO saas_clientes (nome, documento, plano_id, tenant_id, situacao, cobranca_automatica, dia_vencimento)
+  VALUES ('Cliente Auto CI', '12.345.678/0001-90', plano, t_c, 'ativo', true, 10) RETURNING id INTO cli;
+  INSERT INTO saas_clientes (nome, documento, plano_id, tenant_id, situacao, cobranca_automatica, dia_vencimento)
+  VALUES ('Cliente Manual CI', '23.456.789/0001-11', plano, t_o, 'ativo', false, 10) RETURNING id INTO cli_o;
+
+  -- funções do serviço: nenhum usuário nem anônimo executa
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_gerar_faturas_auto()$c$, 'usuário gera faturas automáticas');
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_gerar_faturas_auto()$c$, 'operador executa a geração do serviço');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_cobranca_pendentes(10)$c$, 'usuário lista cobranças pendentes');
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_inadimplencia_rodar()$c$, 'usuário roda a inadimplência');
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_cobranca_evento('pay_x', 'baixar', 10, 'pix', current_date, 'RECEIVED')$c$, 'usuário aplica evento do gateway');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT saas_cobranca_evento('pay_x', 'baixar', 10, 'pix', current_date, 'RECEIVED')$c$, 'anônimo aplica evento do gateway');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT saas_cobranca_vincular_cliente(%L, 'cus_x')$c$, cli), 'usuário vincula cliente do gateway');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT saas_cobranca_vincular_fatura(%L, 'pay_x', 'https://x', NULL, 'PENDING')$c$, gen_random_uuid()), 'usuário vincula fatura do gateway');
+  PERFORM ci.deve_falhar(adm, 'SELECT public._saas_tolerancia_dias()', 'usuário executa a função interna de tolerância');
+
+  -- geração: só quem tem cobrança automática, sem duplicar
+  EXECUTE 'SET ROLE service_role';
+  n := saas_gerar_faturas_auto();
+  RESET ROLE;
+  PERFORM ci.exige(n >= 1, 'a geração cria a fatura do mês do cliente com cobrança automática');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM saas_faturas WHERE cliente_id = cli AND tipo = 'mensalidade'), 'uma mensalidade por competência');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM saas_faturas WHERE cliente_id = cli_o), 'cliente sem cobrança automática não recebe fatura do serviço');
+  EXECUTE 'SET ROLE service_role';
+  n := saas_gerar_faturas_auto();
+  RESET ROLE;
+  PERFORM ci.exige((SELECT count(*) = 1 FROM saas_faturas WHERE cliente_id = cli AND tipo = 'mensalidade'), 'rodar de novo não duplica a fatura');
+  SELECT id INTO fat FROM saas_faturas WHERE cliente_id = cli AND tipo = 'mensalidade';
+  UPDATE saas_faturas SET vencimento = current_date + 3 WHERE id = fat;
+
+  -- vínculo com o gateway
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige((SELECT count(*) = 1 FROM saas_cobranca_pendentes(50) WHERE fatura_id = fat), 'fatura sem cobrança no gateway aparece como pendente');
+  PERFORM ci.exige(saas_cobranca_vincular_cliente(cli, 'cus_ci_1') = 'cus_ci_1', 'vincula o cliente do gateway');
+  PERFORM ci.exige(saas_cobranca_vincular_cliente(cli, 'cus_ci_2') = 'cus_ci_1', 'o primeiro vínculo do cliente vale');
+  PERFORM ci.exige(saas_cobranca_vincular_fatura(fat, 'pay_ci_1', 'https://www.asaas.com/i/ci1', 'https://www.asaas.com/b/ci1', 'PENDING'), 'vincula a cobrança da fatura');
+  PERFORM ci.exige(saas_cobranca_vincular_fatura(fat, 'pay_ci_1', 'https://outro', NULL, 'PENDING'), 'repetir o mesmo vínculo é seguro');
+  PERFORM ci.exige(NOT saas_cobranca_vincular_fatura(fat, 'pay_ci_2', 'https://outro', NULL, 'PENDING'), 'outro id de cobrança na mesma fatura é recusado');
+  PERFORM ci.exige((SELECT count(*) = 0 FROM saas_cobranca_pendentes(50) WHERE fatura_id = fat), 'fatura vinculada deixa de ser pendente');
+  RESET ROLE;
+  PERFORM ci.exige((SELECT gateway_url = 'https://www.asaas.com/i/ci1' AND gateway_cobranca_id = 'pay_ci_1' FROM saas_faturas WHERE id = fat), 'a fatura guarda o link e o id do gateway');
+
+  -- eventos: baixa, estorno e anotação, todos idempotentes
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige(saas_cobranca_evento('pay_desconhecido', 'baixar', 10, 'pix', current_date, 'RECEIVED') = 'desconhecida', 'evento de cobrança desconhecida é ignorado');
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'status', 0, 'outro', NULL, 'OVERDUE') = 'status', 'evento de situação só anota');
+  PERFORM ci.deve_falhar_dono($c$SELECT saas_cobranca_evento('pay_ci_1', 'baixar', 0, 'pix', current_date, 'RECEIVED')$c$, 'baixa sem valor');
+  PERFORM ci.deve_falhar_dono($c$SELECT saas_cobranca_evento('pay_ci_1', 'inventada', 10, 'pix', current_date, 'RECEIVED')$c$, 'ação inventada');
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'baixar', 299, 'pix', current_date, 'RECEIVED') = 'baixada', 'o pagamento dá baixa');
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'baixar', 299, 'pix', current_date, 'RECEIVED') = 'ja_baixada', 'repetir o pagamento não muda nada');
+  RESET ROLE;
+  PERFORM ci.exige((SELECT valor_pago = valor AND pago_em IS NOT NULL AND forma_pagamento = 'pix' FROM saas_faturas WHERE id = fat), 'a fatura fica quitada com a forma e a data');
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'estornar', 299, 'pix', NULL, 'REFUNDED') = 'estornada', 'o estorno desfaz a baixa');
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'estornar', 299, 'pix', NULL, 'REFUNDED') = 'ja_estornada', 'repetir o estorno não muda nada');
+  RESET ROLE;
+  PERFORM ci.exige((SELECT valor_pago = 0 AND pago_em IS NULL FROM saas_faturas WHERE id = fat), 'a fatura volta a aberta depois do estorno');
+
+  -- situação da assinatura: em dia
+  PERFORM ci.entrar(adm); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r IS NOT NULL AND (r ->> 'bloqueado')::boolean = false AND (r ->> 'em_atraso')::boolean = false, 'fatura a vencer: sem bloqueio nem atraso');
+
+  -- atraso dentro da tolerância: avisa, não suspende
+  UPDATE saas_faturas SET vencimento = current_date - 5 WHERE id = fat;
+  EXECUTE 'SET ROLE service_role';
+  r := saas_inadimplencia_rodar();
+  RESET ROLE;
+  PERFORM ci.exige((SELECT situacao = 'ativo' FROM saas_clientes WHERE id = cli), '5 dias de atraso: dentro da tolerância, segue ativo');
+  PERFORM ci.entrar(adm); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'em_atraso')::boolean AND (r ->> 'dias_atraso')::int = 5 AND NOT (r ->> 'bloqueado')::boolean, 'a empresa vê o aviso de atraso sem bloqueio');
+
+  -- além da tolerância: suspende
+  UPDATE saas_faturas SET vencimento = current_date - 20 WHERE id = fat;
+  EXECUTE 'SET ROLE service_role';
+  r := saas_inadimplencia_rodar();
+  RESET ROLE;
+  PERFORM ci.exige((r ->> 'suspensos')::int >= 1, 'a rotina suspende quem passou da tolerância');
+  PERFORM ci.exige((SELECT situacao = 'suspenso' AND suspenso_automaticamente FROM saas_clientes WHERE id = cli), 'o cliente fica suspenso pela rotina');
+  PERFORM ci.exige((SELECT situacao = 'ativo' FROM saas_clientes WHERE id = cli_o), 'cliente sem cobrança automática nunca é suspenso pela rotina');
+
+  PERFORM ci.entrar(adm); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'bloqueado')::boolean AND jsonb_array_length(r -> 'faturas') = 1 AND (r -> 'faturas' -> 0 ->> 'url') = 'https://www.asaas.com/i/ci1', 'administrador vê o bloqueio com o link de pagamento');
+  PERFORM ci.entrar(vend); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige((r ->> 'bloqueado')::boolean AND jsonb_array_length(r -> 'faturas') = 0, 'vendedor vê o bloqueio sem links de pagamento');
+  PERFORM ci.entrar(op); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'a equipe EZRA nunca é bloqueada');
+  PERFORM ci.entrar(outro); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'empresa sem cobrança automática não vê nada');
+  PERFORM ci.exige((SELECT assinatura_situacao() IS NULL), 'sem usuário logado não há situação');
+
+  -- pagou: reativa na hora, no mesmo evento
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige(saas_cobranca_evento('pay_ci_1', 'baixar', 299, 'pix', current_date, 'RECEIVED') = 'baixada', 'pagamento depois do atraso dá baixa');
+  RESET ROLE;
+  PERFORM ci.exige((SELECT situacao = 'ativo' AND NOT suspenso_automaticamente FROM saas_clientes WHERE id = cli), 'pagar reativa o cliente na hora');
+  PERFORM ci.entrar(adm); SELECT assinatura_situacao() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(NOT (r ->> 'bloqueado')::boolean AND NOT (r ->> 'em_atraso')::boolean, 'depois de pagar não há bloqueio nem aviso');
+
+  -- suspensão manual da equipe não é desfeita pela rotina
+  UPDATE saas_clientes SET situacao = 'suspenso', suspenso_automaticamente = false WHERE id = cli;
+  EXECUTE 'SET ROLE service_role';
+  r := saas_inadimplencia_rodar();
+  RESET ROLE;
+  PERFORM ci.exige((SELECT situacao = 'suspenso' FROM saas_clientes WHERE id = cli), 'a rotina não reativa suspensão manual');
+
+  DELETE FROM saas_faturas WHERE cliente_id IN (cli, cli_o);
+  DELETE FROM saas_clientes WHERE id IN (cli, cli_o);
   DELETE FROM saas_operadores WHERE user_id = op;
 END $$;

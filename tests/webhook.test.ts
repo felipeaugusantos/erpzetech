@@ -5,6 +5,7 @@ import {
   calcularHmac,
   compararSeguro,
   timestampValido,
+  tokenNoCabecalho,
   tratarWebhook,
   verificarAssinatura,
   type DepsWebhook,
@@ -295,4 +296,40 @@ test("corpo em fluxo sem Content-Length acima do limite: 413 e a leitura é inte
   assert.equal(r.status, 413);
   assert.equal(chamadas.length, 0);
   assert.ok(lidos < 10, `a leitura devia parar logo após estourar o limite (leu ${lidos} blocos)`);
+});
+
+test("provedor com token fixo: só entra com o token certo no cabeçalho", async () => {
+  const chamadas: string[] = [];
+  const provedor: ProvedorWebhook = {
+    nome: "tok",
+    segredo: () => "segredo-do-token",
+    autenticar: (headers, segredo) => tokenNoCabecalho(headers, "x-token", segredo),
+    extrair: (p) => ({ id: (p as { id: string }).id }),
+    processar: async () => {
+      chamadas.push("processar");
+      return "processado";
+    },
+  };
+  const deps: DepsWebhook = {
+    provedores: { tok: provedor },
+    registrar: async () => ({ resultado: "novo", tentativa: 1 }),
+    concluir: async () => true,
+  };
+  const enviar = (token?: string) =>
+    tratarWebhook(
+      new Request("https://app.test/api/public/webhooks/tok", {
+        method: "POST",
+        headers: token ? { "x-token": token } : {},
+        body: JSON.stringify({ id: "e1" }),
+      }),
+      "tok",
+      deps,
+    );
+  assert.equal((await enviar()).status, 401);
+  assert.equal((await enviar("errado")).status, 401);
+  assert.equal(chamadas.length, 0);
+  assert.equal((await enviar("segredo-do-token")).status, 200);
+  assert.deepEqual(chamadas, ["processar"]);
+  assert.equal(tokenNoCabecalho(new Headers(), "x-token", "s"), false);
+  assert.equal(tokenNoCabecalho(new Headers({ "x-token": "s" }), "x-token", ""), false);
 });

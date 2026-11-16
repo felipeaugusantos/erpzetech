@@ -74,7 +74,7 @@ export function montarTermos(d = DADOS_LEGAIS): DocumentoLegal {
       {
         titulo: "6. Planos, preço e pagamento",
         paragrafos: [
-          "Valores, prazos, período de teste, taxa de implantação e filiais adicionais seguem o plano e a proposta aceitos pelo Cliente. O não pagamento no vencimento pode levar à suspensão do acesso após aviso, sem apagar os dados.",
+          "Valores, prazos, período de teste, taxa de implantação e filiais adicionais seguem o plano e a proposta aceitos pelo Cliente. Nas assinaturas com cobrança automática, a fatura é emitida todo mês com Pix, boleto e cartão, e o pagamento é conferido sozinho. Fatura vencida há mais de 10 dias suspende o acesso, sem apagar os dados, e o acesso volta assim que o pagamento é confirmado.",
           "Reajustes são informados com antecedência e seguem o que estiver previsto na proposta ou no contrato.",
         ],
       },
@@ -159,7 +159,7 @@ export function montarPrivacidade(d = DADOS_LEGAIS): DocumentoLegal {
       {
         titulo: "4. Com quem compartilhamos",
         paragrafos: [
-          "Compartilhamos apenas o necessário com prestadores que fazem o Serviço funcionar: hospedagem e banco de dados, armazenamento de arquivos, envio de e-mail, verificação anti-robô, inteligência artificial e transcrição (apenas nos recursos que o Cliente usa), mensageria como o WhatsApp (apenas onde a empresa ativou) e backup em nuvem (apenas onde o administrador conectou).",
+          "Compartilhamos apenas o necessário com prestadores que fazem o Serviço funcionar: hospedagem e banco de dados, armazenamento de arquivos, envio de e-mail, verificação anti-robô, inteligência artificial e transcrição (apenas nos recursos que o Cliente usa), cobrança e pagamento das mensalidades (Asaas, que recebe nome, CPF/CNPJ, e-mail e telefone do responsável pela assinatura), mensageria como o WhatsApp (apenas onde a empresa ativou) e backup em nuvem (apenas onde o administrador conectou).",
           "Também compartilhamos dados com órgãos públicos quando a função exige (por exemplo, a emissão de notas fiscais envia dados à Receita e às SEFAZ) ou por ordem legal.",
           "O resumo do histórico por inteligência artificial usa só dado clínico do animal, sem dados do tutor, nome do animal, microchip, foto nem veterinário.",
         ],

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
+import { AssinaturaGate } from "@/components/app/AssinaturaGate";
 import { AceiteLegal } from "@/components/app/AceiteLegal";
 import { ContadorShell } from "@/components/app/ContadorShell";
 import { registrarLinkDeEntrada } from "@/lib/link-uso";
@@ -64,9 +65,11 @@ function Layout() {
   }
   return (
     <AceiteLegal userId={user.id}>
-      <AppShell>
-        <Outlet />
-      </AppShell>
+      <AssinaturaGate userId={user.id}>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </AssinaturaGate>
     </AceiteLegal>
   );
 }

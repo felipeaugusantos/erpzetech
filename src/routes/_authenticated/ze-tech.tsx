@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -546,6 +547,7 @@ type Form = {
   situacao: string;
   teste_ate: string;
   implantacao_paga: boolean;
+  cobranca_automatica: boolean;
   observacoes: string;
   link_acesso: string;
 };
@@ -578,6 +580,7 @@ function ClienteDialog({
     situacao: "teste",
     teste_ate: "",
     implantacao_paga: false,
+    cobranca_automatica: false,
     observacoes: "",
     link_acesso: "",
   };
@@ -603,6 +606,7 @@ function ClienteDialog({
       situacao: cliente.situacao,
       teste_ate: cliente.teste_ate ?? "",
       implantacao_paga: cliente.implantacao_paga,
+      cobranca_automatica: cliente.cobranca_automatica,
       observacoes: cliente.observacoes ?? "",
       link_acesso: cliente.link_acesso ?? "",
     });
@@ -634,6 +638,7 @@ function ClienteDialog({
         situacao: form.situacao,
         teste_ate: form.teste_ate || null,
         implantacao_paga: form.implantacao_paga,
+        cobranca_automatica: form.cobranca_automatica,
         observacoes: form.observacoes.trim() || null,
         link_acesso: link,
       };
@@ -834,6 +839,19 @@ function ClienteDialog({
               onChange={(e) => setForm({ ...form, teste_ate: e.target.value })}
             />
           </div>
+          <label className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2">
+            <Checkbox
+              className="mt-0.5"
+              checked={form.cobranca_automatica}
+              onCheckedChange={(v) => setForm({ ...form, cobranca_automatica: v === true })}
+              aria-label="Cobrança automática pelo Asaas"
+            />
+            <span>
+              Cobrança automática (Asaas): gera a fatura do mês, cria a cobrança com Pix, boleto e
+              cartão e dá baixa sozinha. Com fatura vencida há mais de 10 dias, o acesso da loja é
+              suspenso até pagar. Exige CPF/CNPJ do cliente cadastrado.
+            </span>
+          </label>
           {cliente && (
             <div className="sm:col-span-2">
               {aberto && <AcessoAdmin key={cliente.id} cliente={cliente} />}
