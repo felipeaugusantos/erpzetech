@@ -203,7 +203,7 @@ DECLARE
   c record; v_adm boolean; v_dias integer; v_aberto numeric; v_lista jsonb;
 BEGIN
   IF auth.uid() IS NULL OR public.eh_saas_operador() OR public.eh_contador_restrito() THEN RETURN NULL; END IF;
-  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() AND cobranca_automatica ORDER BY inicio DESC LIMIT 1;
+  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() AND cobranca_automatica ORDER BY inicio DESC, created_at DESC LIMIT 1;
   IF NOT FOUND THEN RETURN NULL; END IF;
   v_adm := public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor');
   SELECT coalesce(max(current_date - f.vencimento), 0), coalesce(sum(f.valor - f.valor_pago), 0)

@@ -8457,7 +8457,6 @@ BEGIN
                    AND (SELECT valor_mensal FROM saas_planos WHERE codigo = 'loja') = 299
                    AND (SELECT valor_mensal FROM saas_planos WHERE codigo = 'rede') = 599, 'preços iguais');
   PERFORM ci.exige((SELECT resumo FROM saas_planos WHERE codigo = 'loja') = '1 loja, depósitos ilimitados, 15 usuários', 'a legenda de limites segue com "1 loja"');
-  PERFORM ci.exige((SELECT plano FROM assinaturas LIMIT 1) IN ('balcao', 'loja', 'rede'), 'assinaturas seguem apontando para o código interno');
 END $$;
 
 -- 79. Taxa inicial por segmento: R$ 299 de treinamento e configuração para pet shop, clínica e lava-rápido; o resto segue igual
@@ -8483,9 +8482,10 @@ BEGIN
   -- empresa de segmento comum: mantém a implantação do plano
   UPDATE empresas SET ramo_atividade = 'construcao' WHERE tenant_id = demo;
   PERFORM ci.entrar(adm);
-  SELECT * INTO r FROM assinatura_taxa_inicial();
-  PERFORM ci.exige(r.rotulo = 'Implantação' AND NOT r.excecao, 'segmento comum mostra Implantação');
-  PERFORM ci.exige(r.valor = (SELECT valor_implantacao FROM assinaturas LIMIT 1), 'segmento comum mantém o valor da assinatura');
+  SELECT (assinatura_resumo() -> 'taxa_inicial' ->> 'rotulo') AS rotulo, (assinatura_resumo() -> 'taxa_inicial' ->> 'valor')::numeric AS valor,
+         (assinatura_resumo() -> 'plano' ->> 'valor_implantacao')::numeric AS do_plano INTO r;
+  PERFORM ci.exige(r.rotulo = 'Implantação', 'segmento comum mostra Implantação na tela de assinatura');
+  PERFORM ci.exige(r.valor = r.do_plano AND r.valor > 0, 'segmento comum mantém a implantação do plano na tela de assinatura');
   PERFORM ci.sair();
   PERFORM ci.entrar(op);
   SELECT * INTO r FROM saas_taxa_inicial_cliente(cs);
@@ -8493,18 +8493,16 @@ BEGIN
   PERFORM ci.exige(r.valor = impl_plano AND NOT r.excecao AND r.rotulo = 'Implantação', 'operador: segmento comum mantém a implantação do plano');
 
   -- clínica e lava-rápido: R$ 299, sem mexer no valor de expansão guardado na assinatura
-  SELECT valor_implantacao INTO impl_assin FROM assinaturas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
   PERFORM ci.entrar(adm);
-  SELECT * INTO r FROM assinatura_taxa_inicial();
-  PERFORM ci.exige(r.valor = 299 AND r.excecao AND r.rotulo = 'Treinamento e configuração inicial', 'clínica: assinatura mostra R$ 299');
+  SELECT (assinatura_resumo() -> 'taxa_inicial' ->> 'rotulo') AS rotulo, (assinatura_resumo() -> 'taxa_inicial' ->> 'valor')::numeric AS valor INTO r;
+  PERFORM ci.exige(r.valor = 299 AND r.rotulo = 'Treinamento e configuração inicial', 'clínica: a tela de assinatura mostra R$ 299');
   PERFORM ci.sair();
   UPDATE empresas SET ramo_atividade = 'lavarapido' WHERE tenant_id = demo;
   PERFORM ci.entrar(op);
   SELECT * INTO r FROM saas_taxa_inicial_cliente(cs);
   PERFORM ci.sair();
   PERFORM ci.exige(r.valor = 299 AND r.excecao, 'lava-rápido: operador sugere R$ 299');
-  PERFORM ci.exige((SELECT valor_implantacao FROM assinaturas WHERE tenant_id = demo) = impl_assin, 'a implantação guardada na assinatura (expansão) não muda');
   PERFORM ci.exige((SELECT valor_implantacao FROM saas_planos WHERE codigo = 'loja') = impl_plano, 'a implantação do plano não muda');
   PERFORM ci.exige((SELECT valor_filial_extra FROM saas_planos WHERE codigo = 'loja') = 390, 'a filial extra segue em R$ 390');
 
@@ -12806,25 +12804,12 @@ BEGIN
   DELETE FROM saas_clientes WHERE id = cli;
 END $$;
 
--- 107. Tabelas antigas de assinatura (assinaturas e assinatura_faturas): somente leitura para a empresa. Ninguém insere, altera ou apaga, nem anônimo;
--- a leitura segue; a função que lançava faturas nelas não é mais executável por usuário
+-- 107. Tabelas antigas de assinatura (assinaturas e assinatura_faturas) e as funções que as usavam foram apagadas: nada no banco as referencia
+-- e a assinatura real (saas_*) segue de pé
 DO $$
-DECLARE
-  adm constant uuid := 'a0000000-0000-0000-0000-000000000001';
-  gar constant uuid := 'a0000000-0000-0000-0000-000000000006';
-  v_ass uuid;
 BEGIN
-  SELECT id INTO v_ass FROM assinaturas LIMIT 1;
-  PERFORM ci.deve_falhar(adm, 'UPDATE assinaturas SET valor_mensal = 1', 'administrador altera a assinatura antiga');
-  PERFORM ci.deve_falhar(adm, 'DELETE FROM assinaturas', 'administrador apaga a assinatura antiga');
-  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO assinatura_faturas (tenant_id, assinatura_id, tipo, descricao, valor, vencimento) SELECT tenant_id, id, 'avulso', 'x', 1, current_date FROM assinaturas WHERE id = %L$c$, v_ass), 'administrador cria fatura antiga');
-  PERFORM ci.deve_falhar(adm, 'UPDATE assinatura_faturas SET valor_pago = valor', 'administrador marca a própria fatura antiga como paga');
-  PERFORM ci.deve_falhar(adm, 'DELETE FROM assinatura_faturas', 'administrador apaga fatura antiga');
-  PERFORM ci.deve_falhar(gar, 'UPDATE assinaturas SET valor_mensal = 1', 'garçom altera a assinatura antiga');
-  PERFORM ci.deve_falhar(NULL, 'UPDATE assinatura_faturas SET valor_pago = valor', 'anônimo altera fatura antiga');
-  PERFORM ci.deve_falhar(adm, 'SELECT gerar_faturas_assinatura()', 'administrador gera faturas nas tabelas antigas');
-  PERFORM ci.deve_falhar(NULL, 'SELECT gerar_faturas_assinatura()', 'anônimo gera faturas nas tabelas antigas');
-  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM assinaturas') >= 0, 'a leitura da assinatura antiga segue funcionando');
-  PERFORM ci.exige(NOT has_table_privilege('authenticated', 'public.assinaturas', 'UPDATE') AND NOT has_table_privilege('authenticated', 'public.assinatura_faturas', 'INSERT'), 'o papel authenticated não tem escrita nas tabelas antigas');
-  PERFORM ci.exige(has_table_privilege('service_role', 'public.assinatura_faturas', 'INSERT'), 'o serviço mantém o acesso total');
+  PERFORM ci.exige(to_regclass('public.assinaturas') IS NULL AND to_regclass('public.assinatura_faturas') IS NULL, 'as tabelas antigas de assinatura não existem mais');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proname IN ('gerar_faturas_assinatura', 'assinatura_taxa_inicial')), 'as funções que usavam as tabelas antigas foram apagadas');
+  PERFORM ci.exige(to_regclass('public.saas_faturas') IS NOT NULL AND to_regclass('public.saas_clientes') IS NOT NULL, 'a assinatura real segue existindo');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proname = 'assinatura_resumo'), 'a função da tela de assinatura segue existindo');
 END $$;

@@ -102,113 +102,6 @@ export type Database = {
           },
         ]
       }
-      assinatura_faturas: {
-        Row: {
-          assinatura_id: string
-          competencia: string | null
-          created_at: string
-          descricao: string
-          forma_pagamento: string | null
-          id: string
-          pago_em: string | null
-          tenant_id: string
-          tipo: string
-          updated_at: string
-          valor: number
-          valor_pago: number
-          vencimento: string
-        }
-        Insert: {
-          assinatura_id: string
-          competencia?: string | null
-          created_at?: string
-          descricao: string
-          forma_pagamento?: string | null
-          id?: string
-          pago_em?: string | null
-          tenant_id: string
-          tipo?: string
-          updated_at?: string
-          valor?: number
-          valor_pago?: number
-          vencimento: string
-        }
-        Update: {
-          assinatura_id?: string
-          competencia?: string | null
-          created_at?: string
-          descricao?: string
-          forma_pagamento?: string | null
-          id?: string
-          pago_em?: string | null
-          tenant_id?: string
-          tipo?: string
-          updated_at?: string
-          valor?: number
-          valor_pago?: number
-          vencimento?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assinatura_faturas_assinatura_id_fkey"
-            columns: ["assinatura_id"]
-            isOneToOne: false
-            referencedRelation: "assinaturas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      assinaturas: {
-        Row: {
-          created_at: string
-          dia_vencimento: number
-          filiais_extras: number
-          id: string
-          implantacao_paga: boolean
-          observacoes: string | null
-          plano: string
-          situacao: string
-          tenant_id: string
-          teste_ate: string | null
-          updated_at: string
-          valor_filial_extra: number
-          valor_implantacao: number
-          valor_mensal: number
-        }
-        Insert: {
-          created_at?: string
-          dia_vencimento?: number
-          filiais_extras?: number
-          id?: string
-          implantacao_paga?: boolean
-          observacoes?: string | null
-          plano?: string
-          situacao?: string
-          tenant_id: string
-          teste_ate?: string | null
-          updated_at?: string
-          valor_filial_extra?: number
-          valor_implantacao?: number
-          valor_mensal?: number
-        }
-        Update: {
-          created_at?: string
-          dia_vencimento?: number
-          filiais_extras?: number
-          id?: string
-          implantacao_paga?: boolean
-          observacoes?: string | null
-          plano?: string
-          situacao?: string
-          tenant_id?: string
-          teste_ate?: string | null
-          updated_at?: string
-          valor_filial_extra?: number
-          valor_implantacao?: number
-          valor_mensal?: number
-        }
-        Relationships: []
-      }
       auditoria: {
         Row: {
           created_at: string
@@ -17397,14 +17290,6 @@ export type Database = {
         Returns: string
       }
       assinante_link_sugerido: { Args: never; Returns: string }
-      assinatura_taxa_inicial: {
-        Args: never
-        Returns: {
-          excecao: boolean
-          rotulo: string
-          valor: number
-        }[]
-      }
       assistencia_ordens_relatorio: {
         Args: { p_ate: string; p_de: string; p_filial_id?: string }
         Returns: {
@@ -18434,7 +18319,6 @@ export type Database = {
         }
         Returns: number
       }
-      gerar_faturas_assinatura: { Args: never; Returns: number }
       gerar_nfe: {
         Args: { p_natureza?: string; p_pedido_id: string }
         Returns: string

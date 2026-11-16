@@ -268,8 +268,6 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
   portal_convites: "guarda só o hash do código de convite do tutor; não deve sair do banco",
   saas_clientes:
     "cadastro comercial do cliente na Ze Tech (cobrança, plano), não é dado do cliente",
-  assinaturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
-  assinatura_faturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   clinica_exames_limpeza:
     "fila técnica de arquivos de exames excluídos a apagar do armazenamento; não é dado restaurável",
   aceites_legais:

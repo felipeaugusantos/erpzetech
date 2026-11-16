@@ -14,7 +14,7 @@ BEGIN
   PERFORM public.exige_nao_salao();
   PERFORM public.exige_nao_contador();
   PERFORM public.exige_papel(ARRAY['administrador', 'gestor']);
-  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() ORDER BY inicio DESC LIMIT 1;
+  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() ORDER BY inicio DESC, created_at DESC LIMIT 1;
   IF NOT FOUND THEN RETURN NULL; END IF;
   SELECT * INTO p FROM public.saas_planos WHERE id = c.plano_id;
   SELECT e.ramo_atividade INTO v_ramo FROM public.empresas e WHERE e.tenant_id = c.tenant_id ORDER BY e.created_at LIMIT 1;
