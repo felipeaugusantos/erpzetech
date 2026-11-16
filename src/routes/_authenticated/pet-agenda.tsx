@@ -5,6 +5,7 @@ import { CalendarPlus, ChevronLeft, ChevronRight, Car } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
+import { AlertaConsulta } from "@/components/app/AlertaConsulta";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,10 @@ export const Route = createFileRoute("/_authenticated/pet-agenda")({
         name: "description",
         content: "Agenda de banho e tosa por profissional, sem horários sobrepostos.",
       },
+      { property: "og:title", content: "Agenda da clínica e pet shop — ERP Ze Tech" },
+      { property: "og:description", content: "Calendário por profissional com alertas de consultas próximas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AgendaModulo,
@@ -133,6 +138,7 @@ function Agenda() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["pet-agenda", dia],
+    refetchInterval: 60_000,
     queryFn: async () => {
       const ini = new Date(`${dia}T00:00:00`);
       const fim = new Date(ini);
@@ -150,7 +156,7 @@ function Agenda() {
           .select("id, nome, raca, porte, pelagem, cliente_id, ativo")
           .order("nome")
           .limit(2000),
-        supabase.from("pet_servicos").select("id, nome, duracao_min, ativo").order("nome"),
+        supabase.from("pet_servicos").select("id, nome, duracao_min, ativo, categoria").order("nome"),
         supabase.from("pet_servico_precos").select("id, servico_id, porte, raca, pelagem, preco"),
         supabase
           .from("clientes")
@@ -368,6 +374,8 @@ function Agenda() {
                               </span>
                             )}
                           </p>
+                          {itens.some((i) => data?.servicos.find((s) => s.id === i.servico_id)?.categoria === "consulta") &&
+                            <AlertaConsulta inicio={a.inicio.toISOString()} situacao={a.situacao} />}
                           {ocupaHorario(a.situacao) &&
                             a.situacao !== "retirado" &&
                             itens.map((i) => {

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
 import { ProximaConsulta } from "@/components/app/ProximaConsulta";
+import { AlertasConsultaPaciente } from "@/components/app/AlertaConsulta";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -275,6 +276,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   return (
     <div className="grid gap-4">
+      <AlertasConsultaPaciente petId={petId} />
       <div className="min-w-0 overflow-hidden border-y border-border">
         {p.alergias && (
           <div
