@@ -21,7 +21,8 @@ export const Route = createFileRoute("/api/public/hooks/backup-clientes")({
           let errosApagados: number | null = null;
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const { data } = await supabaseAdmin.rpc("erros_app_limpar");
+            const { clienteLegado } = await import("@/lib/assinatura-legada");
+            const { data } = await clienteLegado(supabaseAdmin).rpc("erros_app_limpar");
             errosApagados = typeof data === "number" ? data : null;
           } catch {
             errosApagados = null;

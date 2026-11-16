@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bug, CheckCircle2, EyeOff, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
+import { assinaturaLegada } from "@/lib/assinatura-legada";
 import { dateTimeBR, num } from "@/lib/format";
 import { useSaasOperador } from "@/lib/saas";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
@@ -30,6 +30,10 @@ export const Route = createFileRoute("/_authenticated/ze-tech-erros")({
   head: () => ({
     meta: [
       { title: "Erros do sistema — EZRA" },
+      { property: "og:title", content: "Erros do sistema — EZRA" },
+      { property: "og:description", content: "Painel da equipe EZRA para acompanhar ocorrências do sistema." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
@@ -53,7 +57,7 @@ function ErrosZeTech() {
     enabled: operador === true,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("saas_erros_listar", {
+      const { data, error } = await assinaturaLegada.rpc("saas_erros_listar", {
         p_situacao: situacao,
         p_limite: 200,
       });
@@ -64,7 +68,7 @@ function ErrosZeTech() {
 
   const mudar = useMutation({
     mutationFn: async (v: { id: string; situacao: Situacao }) => {
-      const { error } = await supabase.rpc("saas_erro_situacao", {
+      const { error } = await assinaturaLegada.rpc("saas_erro_situacao", {
         p_id: v.id,
         p_situacao: v.situacao,
       });

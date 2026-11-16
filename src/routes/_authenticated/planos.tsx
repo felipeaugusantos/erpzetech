@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { assinaturaLegada } from "@/lib/assinatura-legada";
 import { brl, dateBR } from "@/lib/format";
 import { EmptyState, PageHeader, StatCard } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,8 @@ export const Route = createFileRoute("/_authenticated/planos")({
           "Plano contratado, mensalidade, filiais extras, implantação, o que já foi pago e o que falta.",
       },
       { property: "og:title", content: "Plano e assinatura — EZRA ERP" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Acompanhe a assinatura do EZRA ERP, pagamentos e valores em aberto.",
@@ -66,7 +69,7 @@ function Planos() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["assinatura-resumo"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("assinatura_resumo");
+      const { data, error } = await assinaturaLegada.rpc("assinatura_resumo");
       if (error) throw error;
       return lerResumoAssinatura(data);
     },
