@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Syringe } from "lucide-react";
 import { toast } from "sonner";
@@ -105,6 +105,8 @@ function Catalogo() {
   const pode = (sessao?.roles ?? []).some((r) => ["administrador", "gestor", "veterinario"].includes(r));
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [criarDose, setCriarDose] = useState(true);
+  const [novaDoseId, setNovaDoseId] = useState("");
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["clinica-catalogo"],
@@ -141,7 +143,9 @@ function Catalogo() {
           intervalo_serie_dias: form.intervalo_serie_dias,
           reforco_dias: form.reforco_dias,
           idade_minima_dias: form.idade_minima_dias,
-          produto_id: form.produto_id,
+          produto_id: criarDose ? "" : form.produto_id,
+          criar_produto_dose: criarDose,
+          novo_produto_id: criarDose ? novaDoseId : "",
           ativo: form.ativo,
           confirmar_controle_lote: form.confirmar_controle_lote,
         },
@@ -171,6 +175,8 @@ function Catalogo() {
             <Button
               onClick={() => {
                 setForm(vazio);
+                setCriarDose(true);
+                setNovaDoseId(crypto.randomUUID());
                 setAberto(true);
               }}
             >
@@ -223,6 +229,8 @@ function Catalogo() {
                         size="icon"
                         aria-label={`Editar ${i.nome}`}
                         onClick={() => {
+                          setCriarDose(false);
+                          setNovaDoseId(crypto.randomUUID());
                           setForm({
                             id: i.id,
                             nome: i.nome,
@@ -372,7 +380,15 @@ function Catalogo() {
               />
             </div>
             <div>
-              <Label htmlFor="v-prod">Produto da dose (controla lote; baixa o lote)</Label>
+              <div className="mb-2 flex items-center gap-2">
+                <Checkbox id="v-criar-dose" checked={criarDose} onCheckedChange={(checked) => {
+                  setCriarDose(checked === true);
+                  setForm({ ...form, confirmar_controle_lote: false });
+                }} />
+                <Label htmlFor="v-criar-dose">Cadastrar a dose junto com esta vacina</Label>
+              </div>
+              {criarDose ? <p className="text-sm text-muted-foreground">Dose: {form.nome.trim() || "Informe o nome acima"}. Controle de estoque e lote habilitado, sem saldo inicial.</p> : <>
+              <Label htmlFor="v-prod">Dose já cadastrada (controle por lote)</Label>
               <Select
                 value={form.produto_id || "__nenhum"}
                 onValueChange={(v) => setForm({ ...form, produto_id: v === "__nenhum" ? "" : v, confirmar_controle_lote: false })}
@@ -399,7 +415,6 @@ function Catalogo() {
               )}
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={() => void consultaProdutos.refetch()} disabled={consultaProdutos.isFetching}>Atualizar produtos</Button>
-                {(sessao?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r)) && <Button asChild size="sm" variant="outline"><Link to="/produtos" search={{ novo: "1" }} target="_blank" rel="noopener noreferrer"><Plus className="size-4" />Cadastrar produto</Link></Button>}
               </div>
               {precisaControleDose(produto) && <div className="mt-3 rounded-md border border-warning bg-warning/10 p-3">
                 <div className="flex items-start gap-2">
@@ -409,6 +424,7 @@ function Catalogo() {
                 </div>
               </div>}
               {!form.produto_id && <p className="mt-2 text-sm text-warning">Selecione o produto da dose para salvar a vacina.</p>}
+              </>}
             </div>
             <div className="flex items-center gap-2">
               <Switch
@@ -425,7 +441,7 @@ function Catalogo() {
             </Button>
             <Button
               onClick={() => salvar.mutate()}
-              disabled={salvar.isPending || !podeSalvarCatalogo(form.nome, produto, form.confirmar_controle_lote)}
+              disabled={salvar.isPending || !podeSalvarCatalogo(form.nome, produto, form.confirmar_controle_lote, criarDose)}
             >
               Salvar
             </Button>
