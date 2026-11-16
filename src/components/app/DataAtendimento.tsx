@@ -21,7 +21,7 @@ export function DataAtendimento({ value, onChange, disabled = false }: {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0 pointer-events-auto">
-        <Calendar mode="single" locale={ptBR} selected={date} defaultMonth={date}
+        <Calendar mode="single" locale={ptBR} selected={date} {...(date ? { defaultMonth: date } : {})}
           captionLayout="dropdown" startMonth={new Date(1900, 0)} endMonth={new Date()}
           disabled={{ after: new Date() }} className="pointer-events-auto"
           onSelect={(next) => {

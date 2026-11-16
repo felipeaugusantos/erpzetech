@@ -419,7 +419,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           <ul className="grid gap-3 sm:hidden">
             {sinais.map(v => (
               <li key={v.em} className="min-w-0 rounded-md border border-border bg-card p-4">
-                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{dateTimeBR(v.em)}</time>
+                <time dateTime={v.em} className="font-semibold tabular-nums text-primary">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</time>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
                   <div><dt className="text-muted-foreground">Peso</dt><dd className="mt-1 font-medium">{v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}</dd></div>
                   <div><dt className="text-muted-foreground">Temperatura</dt><dd className="mt-1 font-medium">{v.temperatura_c !== null ? `${num(v.temperatura_c, 1)} °C` : "—"}</dd></div>
@@ -442,7 +442,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             <tbody>
               {sinais.map((v) => (
                 <tr key={v.em} className="border-t border-border">
-                  <td className="py-1 pr-3">{dateTimeBR(v.em)}</td>
+                  <td className="py-1 pr-3">{v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}</td>
                   <td className="py-1 pr-3">
                     {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
                   </td>
