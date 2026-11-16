@@ -12,6 +12,7 @@ import { conferirPacienteLaudo, lerLaudoTexto,
   laboratorioDoLaudo, type LaudoPdf } from "@/lib/laudo-exame-pdf";
 import {
   agruparLaudoImportacao,
+  unidadesDivergentes,
   modelosPendentes,
   type GrupoImportacao,
   type ModeloImportacao,
@@ -38,6 +39,7 @@ export function ImportarExamesPetPdf({
     grupos: GrupoImportacao[];
     chave: string;
     arquivo: File;
+    modelos: ModeloImportacao[];
   } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [laboratorio, setLaboratorio] = useState("");
@@ -60,10 +62,11 @@ export function ImportarExamesPetPdf({
         );
       const { data, error } = await supabase.rpc("clinica_exame_modelos");
       if (error) throw error;
-      const grupos = agruparLaudoImportacao(laudo, (data ?? []) as unknown as ModeloImportacao[]);
+      const modelos = (data ?? []) as unknown as ModeloImportacao[];
+      const grupos = agruparLaudoImportacao(laudo, modelos);
       if (token !== geracao.current) return;
       anexos.current.clear();
-      setPrevia({ laudo, grupos, chave: crypto.randomUUID(), arquivo: file });
+      setPrevia({ laudo, grupos, modelos, chave: crypto.randomUUID(), arquivo: file });
       setColeta(laudo.coleta);
       setEmissao(laudo.emissao ?? "");
       const lab = laboratorioDoLaudo(textoPdf);
@@ -282,6 +285,15 @@ export function ImportarExamesPetPdf({
                 Referências do PDF apenas nos exames importados; faixas dos modelos e laudos
                 anteriores permanecem iguais.
               </p>
+              {unidadesDivergentes(previa.grupos, previa.modelos).length > 0 && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                  <p className="font-medium text-destructive">Unidade diferente do modelo cadastrado</p>
+                  <p className="text-muted-foreground">Ajuste a unidade abaixo para a do modelo, se for a mesma medida, ou corrija o modelo antes de importar.</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {unidadesDivergentes(previa.grupos, previa.modelos).map((t) => <li key={t}>{t}</li>)}
+                  </ul>
+                </div>
+              )}
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox
                   disabled={ocupado}
@@ -299,6 +311,7 @@ export function ImportarExamesPetPdf({
                     !laboratorio.trim() ||
                     !coleta ||
                     modelosPendentes(previa.grupos) ||
+                    unidadesDivergentes(previa.grupos, previa.modelos).length > 0 ||
                     previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade))
                   }
                   onClick={() => void importar()}
