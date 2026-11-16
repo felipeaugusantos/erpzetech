@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Importar referências explícitas do PDF sem alterar modelos anteriores; mostrar PDFs e emissão no prontuário ao lado das consultas, sem confundir emissão com coleta ou importação.
+
 - [x] Laudos por paciente: seleção direta e acesso nos dois menus clínicos, histórico com PDFs originais e datas de coleta, consulta vinculada, validação e emissão da impressão; 19 testes passaram e data de consulta conferida no banco.
 - [ ] Conferir histórico e impressão com sessão veterinária autorizada: conta disponível está na tela de aceite dos termos; não aceitar em nome do usuário nem alterar exames reais.
 
