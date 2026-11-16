@@ -719,8 +719,22 @@
     {
       "idx": 102,
       "version": "7",
-      "when": 1794837511125,
-      "tag": "0102_clinica_exames_log_contador",
+      "when": 1794838428930,
+      "tag": "0102_clinica_corrigir_data_consulta",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1794900000000,
+      "tag": "0103_clinica_vet_sem_trava_salao",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1794900100000,
+      "tag": "0104_clinica_exames_log_contador",
       "breakpoints": true
     }
   ]

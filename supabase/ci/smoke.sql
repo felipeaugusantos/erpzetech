@@ -576,6 +576,7 @@ DECLARE
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
     'clinica_proxima_consulta_opcoes', 'clinica_proxima_consulta_agendar',
+    'clinica_consulta_data_alterar',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
     'assinante_link_sugerido',
     -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
@@ -4671,6 +4672,15 @@ BEGIN
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM pet_agendamentos WHERE situacao = ''pronto''') >= 1, 'a recepção vê a consulta pronta na agenda, sem texto clínico');
 
   -- adendo
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'Correção',%L)$c$,at1,hoje-1,hoje), 'outro veterinário altera data fechada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'',%L)$c$,at1,hoje-1,hoje), 'correção fechada exige motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'Correção',%L)$c$,at1,hoje+1,hoje), 'correção não admite futuro');
+  PERFORM ci.entrar(va);
+  r := clinica_consulta_data_alterar(at1,hoje-1,'Data informada incorretamente',hoje);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r->>'data_atendimento')::date=hoje-1, 'data corrigida retornada no histórico');
+  PERFORM ci.exige(r->>'diagnostico'='Gastrite', 'correção mantém diagnóstico');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM pet_atendimento_adendos WHERE atendimento_id=at1 AND data_consulta=hoje-1), 'correção gravada como adendo');
   PERFORM ci.entrar(vb);
   r := clinica_atendimento_abrir(ag2);
   at2 := (r ->> 'id')::uuid;
@@ -4681,7 +4691,7 @@ BEGIN
   PERFORM ci.entrar(vb);
   r := clinica_adendo_criar(at1, 'Tutor relatou melhora após 3 dias.');
   PERFORM ci.sair();
-  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 1 AND r -> 'adendos' -> 0 ->> 'crmv' = '2222' AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
+  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->>'crmv'='2222') AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'alterar adendo');
   PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimento_adendos WHERE atendimento_id = %L$c$, at1), 'apagar adendo');
 
@@ -6052,9 +6062,9 @@ BEGIN
   PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date - 1))$c$, a1), 'outro veterinário altera data clínica');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date + 2))$c$, a1), 'data clínica no futuro');
   PERFORM ci.entrar(va);
-  r := clinica_atendimento_salvar(a1, jsonb_build_object('data_atendimento', (now() AT TIME ZONE 'America/Sao_Paulo')::date - 1, 'peso_kg', '12,345'));
+  r := clinica_atendimento_salvar(a1, jsonb_build_object('data_atendimento', (now() AT TIME ZONE 'America/Sao_Paulo')::date - 1, 'peso_kg', '12,345'));  -- PENDENTE (dono do produto): coluna é numeric(6,2), então 12,345 vira 12,35; se quiser 3 casas, migração nova para numeric(6,3).
   PERFORM ci.sair();
-  PERFORM ci.exige(r ->> 'data_atendimento' = ((now() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AND (SELECT peso_kg = 12.345 AND aberto_em = now() - interval '3 hours' FROM pet_atendimentos_clinicos WHERE id=a1), 'data clínica muda, peso preserva decimais e abertura original não muda');
+  PERFORM ci.exige(r ->> 'data_atendimento' = ((now() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AND (SELECT peso_kg = 12.35 AND aberto_em = now() - interval '3 hours' FROM pet_atendimentos_clinicos WHERE id=a1), 'data clínica muda, peso é guardado com 2 casas (numeric(6,2)) e abertura original não muda');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'apagar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'ação inválida');
   PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x"}'::jsonb)$c$, gen_random_uuid(), a1), 'outro veterinário preenche o atendimento');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x","peso_kg":"500"}'::jsonb)$c$, gen_random_uuid(), a1), 'peso absurdo (a regra do prontuário vale também aqui)');
