@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
+import { ConfigImportacaoExame, useClinicaLiberada } from "@/components/app/ConfigImportacaoExame";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 function Configuracoes() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
+  const { data: clinicaLiberada } = useClinicaLiberada();
   const [empresa, setEmpresa] = useState({
     razao_social: "",
     nome_fantasia: "",
@@ -178,7 +180,14 @@ function Configuracoes() {
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="filiais">Filiais</TabsTrigger>
           <TabsTrigger value="perfil">Meu perfil</TabsTrigger>
+          {clinicaLiberada && <TabsTrigger value="clinica">Clínica</TabsTrigger>}
         </TabsList>
+
+        {clinicaLiberada && (
+          <TabsContent value="clinica" className="mt-4">
+            <ConfigImportacaoExame />
+          </TabsContent>
+        )}
 
         <TabsContent value="empresa" className="mt-4">
           <div className="panel max-w-3xl p-5">

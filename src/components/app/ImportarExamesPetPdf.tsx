@@ -19,6 +19,7 @@ import {
 } from "@/lib/laudo-importacao";
 import { formatarNumero } from "@/lib/exames";
 import { salvarPdfLaudo } from "@/lib/salvar-pdf-laudo";
+import { usePreferenciasClinica } from "@/components/app/ConfigImportacaoExame";
 
 export function ImportarExamesPetPdf({
   pet,
@@ -33,6 +34,8 @@ export function ImportarExamesPetPdf({
     new Map<string, { id: string; caminho: string; enviado: boolean; confirmado: boolean }>(),
   );
   const [aberto, setAberto] = useState(false);
+  const { data: preferencias } = usePreferenciasClinica();
+  const soArquivo = preferencias?.importacao_exame === "arquivo";
   const [ocupado, setOcupado] = useState(false);
   const [previa, setPrevia] = useState<{
     laudo: LaudoPdf;
@@ -83,11 +86,24 @@ export function ImportarExamesPetPdf({
     }
   }
   async function importar() {
-    if (!previa || !confirmado || modelosPendentes(previa.grupos)) return;
+    if (!previa || !confirmado || (!soArquivo && modelosPendentes(previa.grupos))) return;
     setOcupado(true);
     let resultadosSalvos = false;
     try {
-      const { data, error } = await supabase.rpc("clinica_importar_pdf", {
+      const { data, error } = soArquivo
+        ? await supabase.rpc("clinica_importar_pdf_arquivo", {
+            p_pet_id: pet.id,
+            p_chave: previa.chave,
+            p_dados: {
+              paciente: previa.laudo.paciente,
+              especie: previa.laudo.especie,
+              confirmado: true,
+              laboratorio: laboratorio.trim(),
+              coleta,
+              emissao,
+            },
+          })
+        : await supabase.rpc("clinica_importar_pdf", {
         p_pet_id: pet.id,
         p_chave: previa.chave,
         p_dados: {
@@ -109,7 +125,7 @@ export function ImportarExamesPetPdf({
       for (const exame of resultado.exames) {
         await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current);
       }
-      toast.success(`${resultado.exames.length} exame(s) e PDF original salvos`);
+      toast.success(soArquivo ? "PDF do laudo salvo no prontuário" : `${resultado.exames.length} exame(s) e PDF original salvos`);
       setAberto(false);
       setPrevia(null);
       onImportado(resultado.exames[0]?.id);
@@ -213,7 +229,12 @@ export function ImportarExamesPetPdf({
                 <Label htmlFor="pdf-emissao">Data de emissão do laudo (se informada no PDF)</Label>
                 <Input id="pdf-emissao" type="date" value={emissao} disabled={ocupado} onChange={(e) => { setEmissao(e.target.value); setConfirmado(false); }} />
               </div>
-              {previa.grupos.map((g, gi) => (
+              {soArquivo && (
+                <p className="rounded-md border bg-secondary/40 p-3 text-sm">
+                  Ajuste da clínica: o PDF será guardado no prontuário como laudo, sem preencher os valores. Para mudar, vá em Configurações › Clínica.
+                </p>
+              )}
+              {!soArquivo && previa.grupos.map((g, gi) => (
                 <section key={gi} className="border-t pt-3">
                   <h3 className="font-semibold">
                     {g.nome}{" "}
@@ -281,6 +302,7 @@ export function ImportarExamesPetPdf({
                   </div>
                 </section>
               ))}
+              {!soArquivo && <>
               {previa.laudo.avisos.map((a) => (
                 <p key={a} className="text-sm text-warning">
                   {a}
@@ -315,14 +337,16 @@ export function ImportarExamesPetPdf({
                     : "Ignora as faixas do PDF e usa as do modelo cadastrado na clínica."}
                 </p>
               </fieldset>
+              </>}
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox
                   disabled={ocupado}
                   checked={confirmado}
                   onCheckedChange={(v) => setConfirmado(v === true)}
                 />
-                Conferi paciente, espécie, data do exame, resultados e unidades; autorizo criar os modelos
-                e campos faltantes e salvar os exames em rascunho.
+                {soArquivo
+                  ? "Conferi paciente, espécie e data do exame; autorizo guardar este PDF no prontuário."
+                  : "Conferi paciente, espécie, data do exame, resultados e unidades; autorizo criar os modelos e campos faltantes e salvar os exames em rascunho."}
               </label>
               <div className="flex justify-end">
                 <Button
@@ -331,13 +355,14 @@ export function ImportarExamesPetPdf({
                     !confirmado ||
                     !laboratorio.trim() ||
                     !coleta ||
+                    (!soArquivo && (
                     modelosPendentes(previa.grupos) ||
                     unidadesDivergentes(previa.grupos, previa.modelos).length > 0 ||
-                    (referencia === "pdf" && previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade)))
+                    (referencia === "pdf" && previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade)))))
                   }
                   onClick={() => void importar()}
                 >
-                  Importar todos os exames
+                  {soArquivo ? "Salvar PDF no prontuário" : "Importar todos os exames"}
                 </Button>
               </div>
             </>
