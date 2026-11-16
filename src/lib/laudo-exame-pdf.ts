@@ -57,12 +57,101 @@ const nomes: Record<string, string> = {
   albumina: "Albumina",
 };
 
+/** LACVET prints labels and units in separate PDF text fragments. */
+function lerLacvet(linhas: string[]): LaudoPdf {
+  const pacientes = new Set<string>();
+  const especies = new Set<string>();
+  const itens: ItemLaudo[] = [];
+  const avisos = [
+    "O cabeçalho informa a data de atendimento, não a data de coleta. Confira e informe a coleta antes de salvar.",
+  ];
+  let secao = "";
+  let analito = "";
+  const limpar = (s: string) => s.replace(/[.:]+$/g, "").trim();
+  const rotulos: Record<string, string> = {
+    ...nomes,
+    "v.c.m": "VCM",
+    "h.c.m": "HCM",
+    "c.h.c.m": "CHCM",
+    "proteinas totais": "Proteínas totais",
+    "fosfatase alcalina": "Fosfatase alcalina",
+  };
+  const diferencial = /^(segmentados|bastonetes|eosinofilos|basofilos|linfocitos tipicos|linfocitos atipicos|monocitos|mielocitos|metamielocitos)$/;
+  for (const linha of linhas) {
+    const p = linha.split("|").map((s) => s.trim());
+    for (let i = 0; i < p.length; i++) {
+      const rotulo = chaveLaudo(limpar(p[i] ?? ""));
+      if (rotulo === "animal") {
+        const paciente = p[i + 1];
+        if (paciente) pacientes.add(chaveLaudo(paciente));
+      }
+      if (rotulo === "especie") {
+        const especie = chaveLaudo(p[i + 1] ?? "");
+        especies.add(/^canin[ao]$/.test(especie) ? "cao" : /^felin[ao]$/.test(especie) ? "gato" : especie);
+      }
+    }
+    const titulo = chaveLaudo(limpar(p.join(" ")));
+    if (titulo.startsWith("eritrograma")) { secao = "eritrograma"; continue; }
+    if (titulo === "leucograma") { secao = "leucograma"; continue; }
+    if (rotulos[titulo]) { analito = rotulos[titulo] ?? ""; secao = "bioquimica"; continue; }
+    // Join fragmented names only up to the first numeric column, never values or units.
+    const indice = p.findIndex((s) => new RegExp(`^${numero}$`).test(s));
+    if (indice < 1) continue;
+    const nomeOriginal = limpar(p.slice(0, indice).join(" "));
+    const nome = chaveLaudo(nomeOriginal);
+    const valor = n(p[indice] ?? "");
+    const restante = p.slice(indice + 1);
+    if (secao === "leucograma" && (nome === "leucocitos totais" || diferencial.test(nome))) {
+      const absoluto = nome === "leucocitos totais" ? valor : n(restante[0] ?? "");
+      const referencia = restante.slice(nome === "leucocitos totais" ? 0 : 1).join(" ");
+      const faixa = referencia.match(new RegExp(`^(${numero})(?:\\s*a\\s*(${numero}))?\\s*/mm$`));
+      if (!faixa || !Number.isFinite(absoluto))
+        throw new Error(`Resultado ou referência ilegível de ${nomeOriginal}. Confira o laudo manualmente.`);
+      if (nome !== "leucocitos totais")
+        itens.push({ nome: `${nomeOriginal} (%)`, valor, unidade: "%", minimo: null, maximo: null });
+      itens.push({
+        nome: nome === "leucocitos totais" ? "Leucócitos totais" : `${nomeOriginal} (abs.)`,
+        valor: absoluto, unidade: "células/mm³", minimo: n(faixa[1] ?? ""), maximo: n(faixa[2] ?? faixa[1] ?? ""),
+      });
+      continue;
+    }
+    if (nome === "plaquetas") {
+      // This layout explicitly prints /mm³, unlike the older ambiguous report.
+      if (restante[0] === "/mm")
+        itens.push({ nome: "Plaquetas", valor, unidade: "células/mm³", minimo: null, maximo: null });
+      continue;
+    }
+    const identificado = secao === "eritrograma" ? rotulos[nome] : /^resultados?$/.test(nome) ? analito : "";
+    if (!identificado) continue;
+    const unidade = restante[0];
+    if (!unidade) throw new Error(`Unidade não identificada de ${identificado}.`);
+    itens.push({
+      nome: identificado, valor,
+      unidade: unidade === "milh/mm" ? "milhões/mm³" : unidade === "U.I./L" ? "U/L" : unidade,
+      minimo: null, maximo: null,
+    });
+  }
+  if (pacientes.size !== 1 || especies.size !== 1 || !["cao", "gato"].includes([...especies][0] ?? ""))
+    throw new Error("Não foi possível identificar um único paciente e espécie no PDF. Confira o laudo manualmente.");
+  const vistos = new Set<string>();
+  for (const item of itens) {
+    const chave = chaveLaudo(item.nome);
+    if (vistos.has(chave)) throw new Error("O PDF contém resultados repetidos. Separe os laudos antes de importar.");
+    vistos.add(chave);
+    if (!Number.isFinite(item.valor)) throw new Error("Valor ilegível no PDF.");
+  }
+  if (!itens.length) throw new Error("Não foram reconhecidas tabelas de resultados neste PDF digital.");
+  const cabecalho = linhas.find((l) => /^animal[.:]*\s*\|/i.test(l));
+  return { paciente: cabecalho?.split("|")[1]?.trim() ?? "", especie: [...especies][0] ?? "", coleta: "", itens, avisos };
+}
+
 /** Conservative parser for digital reports with labelled pipe-separated table columns. No inference or diagnosis. */
 export function lerLaudoTexto(texto: string): LaudoPdf {
   const linhas = texto
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
+  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return lerLacvet(linhas);
   const pacientes = new Set<string>();
   const especies = new Set<string>();
   let coleta = "";
