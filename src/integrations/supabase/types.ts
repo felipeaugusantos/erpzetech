@@ -11005,6 +11005,7 @@ export type Database = {
           created_at: string
           crmv: string
           crmv_uf: string
+          data_consulta: string | null
           id: string
           tenant_id: string
           texto: string
@@ -11015,6 +11016,7 @@ export type Database = {
           created_at?: string
           crmv: string
           crmv_uf: string
+          data_consulta?: string | null
           id?: string
           tenant_id?: string
           texto: string
@@ -11025,6 +11027,7 @@ export type Database = {
           created_at?: string
           crmv?: string
           crmv_uf?: string
+          data_consulta?: string | null
           id?: string
           tenant_id?: string
           texto?: string
@@ -17401,6 +17404,15 @@ export type Database = {
         Returns: Json
       }
       clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_consulta_data_alterar: {
+        Args: {
+          p_data: string
+          p_data_anterior?: string
+          p_id: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       clinica_documento_cancelar: {
         Args: { p_id: string; p_motivo: string }
         Returns: Json
