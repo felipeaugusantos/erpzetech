@@ -11,6 +11,7 @@ export type LaudoPdf = {
   paciente: string;
   especie: string;
   coleta: string;
+  emissao?: string | undefined;
   itens: ItemLaudo[];
   avisos: string[];
 };
@@ -33,6 +34,14 @@ export const chaveLaudo = (s: string) =>
     .trim();
 const n = (s: string) => Number(s.trim().replace(/\./g, "").replace(",", "."));
 const numero = "[0-9]+(?:[.,][0-9]+)*";
+function faixaExplicita(texto: string): { minimo: number | null; maximo: number | null } {
+  const faixa = texto.replace(/\|/g, " ").trim().match(new RegExp(`^(${numero})\\s*(?:a|[-–])\\s*(${numero})(?:\\s|$)`, "i"));
+  if (!faixa) return { minimo: null, maximo: null };
+  const minimo = n(faixa[1] ?? "");
+  const maximo = n(faixa[2] ?? "");
+  return Number.isFinite(minimo) && Number.isFinite(maximo) && minimo <= maximo
+    ? { minimo, maximo } : { minimo: null, maximo: null };
+}
 const celulas = [
   "METAMIELÓCITOS",
   "BASTONETES",
@@ -118,7 +127,7 @@ function lerLacvet(linhas: string[]): LaudoPdf {
     if (nome === "plaquetas") {
       // This layout explicitly prints /mm³, unlike the older ambiguous report.
       if (restante[0] === "/mm")
-        itens.push({ nome: "Plaquetas", valor, unidade: "células/mm³", minimo: null, maximo: null });
+        itens.push({ nome: "Plaquetas", valor, unidade: "células/mm³", ...faixaExplicita(restante.slice(1).join(" ")) });
       continue;
     }
     const identificado = secao === "eritrograma" ? rotulos[nome] : /^resultados?$/.test(nome) ? analito : "";
@@ -128,7 +137,7 @@ function lerLacvet(linhas: string[]): LaudoPdf {
     itens.push({
       nome: identificado, valor,
       unidade: unidade === "milh/mm" ? "milhões/mm³" : unidade === "U.I./L" ? "U/L" : unidade,
-      minimo: null, maximo: null,
+      ...faixaExplicita(restante.slice(1).join(" ")),
     });
   }
   if (pacientes.size !== 1 || especies.size !== 1 || !["cao", "gato"].includes([...especies][0] ?? ""))
@@ -151,7 +160,12 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return lerLacvet(linhas);
+  const emissoes = new Set(linhas.flatMap((l) => {
+    const m = chaveLaudo(l).match(/(?:data de emissao|emissao do laudo|emitido em|data de liberacao)[.:\s|]*(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? [`${m[3]}-${m[2]}-${m[1]}`] : [];
+  }));
+  const emissao = emissoes.size === 1 ? [...emissoes][0] : undefined;
+  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return { ...lerLacvet(linhas), emissao };
   const pacientes = new Set<string>();
   const especies = new Set<string>();
   let coleta = "";
@@ -251,8 +265,7 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
         nome: pendente,
         valor: n(match[1] ?? ""),
         unidade: match[2] ?? null,
-        minimo: null,
-        maximo: null,
+        ...faixaExplicita(p[p.length - 1] ?? ""),
       });
     pendente = "";
   }
@@ -270,6 +283,7 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
     paciente: [...pacientes][0] ?? "",
     especie: [...especies][0] ?? "",
     coleta,
+    emissao,
     itens,
     avisos,
   };
@@ -291,7 +305,7 @@ export function corresponderLaudo(laudo: LaudoPdf, campos: CampoLaudo[]): Corres
     const campo = candidatos.length === 1 ? candidatos[0] : undefined;
     if (!campo || !["numero", "calculado"].includes(campo.forma)) continue;
     const unidade = chaveLaudo(campo.unidade ?? "");
-    const absoluta = item.minimo !== null;
+    const absoluta = item.minimo !== null && (item.unidade === null || item.nome.endsWith("(abs.)") || item.nome === "Leucócitos totais");
     const compat = absoluta
       ? ["celulas/mm³", "celulas/mm3", "celulas/µl", "celulas/μl"].map(chaveLaudo).includes(unidade)
       : item.unidade === "milhões"

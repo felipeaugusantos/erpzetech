@@ -757,6 +757,13 @@
       "when": 1794900300001,
       "tag": "0107_laudo_data_consulta",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1794900300002,
+      "tag": "0108_laudo_emissao_original",
+      "breakpoints": true
     }
   ]
 }

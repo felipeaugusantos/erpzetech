@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { type ResumoExame, SITUACOES_EXAME } from "@/lib/exames";
 import { dateBR } from "@/lib/format";
 import { rotulo } from "@/lib/pet";
+import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 
 export function ExamesProntuario({ petId }: { petId: string }) {
   const lista = useQuery({
@@ -25,7 +26,7 @@ export function ExamesProntuario({ petId }: { petId: string }) {
     <section className="min-w-0 border-y border-border py-5" aria-label="Exames do paciente">
       <div className="mb-4 grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
         <h3 className="flex min-w-0 items-center gap-2 font-display text-base font-semibold">
-          <FlaskConical className="size-5 shrink-0 text-primary" /> Exames do paciente
+          <FlaskConical className="size-5 shrink-0 text-primary" /> Exames e laudos do paciente
           {lista.data && <Badge variant="secondary">{exames.length}</Badge>}
         </h3>
         <Button asChild size="sm" variant="outline" className="min-h-11 w-full sm:w-auto">
@@ -68,6 +69,9 @@ export function ExamesProntuario({ petId }: { petId: string }) {
               </div>
               <div className="min-w-0">
                 <h4 className="break-words text-base font-semibold">{exame.nome}</h4>
+                {exame.pdf_importado && <Badge variant="secondary" className="mt-1">PDF importado</Badge>}
+                <p className="mt-2 text-sm">Emissão do laudo: {exame.data_emissao ? dateBR(exame.data_emissao) : "Não informada"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Consulta: {exame.data_consulta ? dateBR(exame.data_consulta) : "Sem consulta vinculada"}</p>
                 <Badge
                   className="mt-1"
                   variant={exame.situacao === "fechado" ? "default" : "outline"}
@@ -97,6 +101,7 @@ export function ExamesProntuario({ petId }: { petId: string }) {
                   {exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}
                 </Link>
               </Button>
+              {exame.pdf_importado && <div className="min-w-0 sm:col-span-2"><AnexosClinicos exameId={exame.id} podeEnviar={false} semMoldura /></div>}
             </li>
           ))}
         </ul>

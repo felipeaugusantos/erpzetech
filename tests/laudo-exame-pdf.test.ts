@@ -77,14 +77,14 @@ test("absoluto calculado precisa bater com total e percentual do laudo", () => {
   const divergente = lerLaudoTexto(texto.replace("2.640", "2.641"));
   assert.equal(corresponderLaudo(divergente, campos).length, 2);
 });
-test("bioquímica mantém decimal de creatinina e não copia referência fora do leucograma", () => {
+test("bioquímica mantém decimal e importa a referência explícita da mesma linha", () => {
   const l = lerLaudoTexto(cabecalho + "CREATININA\n1,3 mg/dL | 0,7 a 1,9 mg/dL");
   assert.deepEqual(l.itens[0], {
     nome: "Creatinina",
     valor: 1.3,
     unidade: "mg/dL",
-    minimo: null,
-    maximo: null,
+    minimo: 0.7,
+    maximo: 1.9,
   });
 });
 test("lê os cinco resultados de Léo com títulos Resultado e Referência em linha separada", () => {

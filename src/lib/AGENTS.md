@@ -1,5 +1,7 @@
 # Offline sales
 
+- PDF imports retain explicit same-row reference ranges only on the exam snapshot; issuance is optional and never inferred from collection, consultation, upload or validation dates. Patient charts reuse clinical RPCs and audited private attachment access.
+
 - Consultation date corrections resolve through the clinical JSON helper; closed charts retain immutable dated addenda instead of changing original clinical content.
 - Legacy subscription schema compatibility stays in one explicitly typed client adapter because older installations may retain tables absent from generated types; it never provisions or seeds billing data.
 

@@ -46,10 +46,12 @@ export function AnexosClinicos({
   exameId,
   atendimentoId,
   podeEnviar = true,
+  semMoldura = false,
 }: {
   exameId?: string;
   atendimentoId?: string;
   podeEnviar?: boolean;
+  semMoldura?: boolean;
 }) {
   const alvo = exameId ?? atendimentoId ?? "";
   const qc = useQueryClient();
@@ -194,7 +196,7 @@ export function AnexosClinicos({
   const falhaArquivo = arquivo ? erroDoArquivo(arquivo) : null;
 
   return (
-    <div className="panel grid gap-3 p-4">
+    <div className={semMoldura ? "grid min-w-0 gap-3 border-t border-border pt-3" : "panel grid gap-3 p-4"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <Paperclip className="size-4" /> Anexos

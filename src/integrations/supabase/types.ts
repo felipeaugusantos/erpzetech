@@ -12092,6 +12092,7 @@ export type Database = {
           crmv: string
           crmv_uf: string
           data_coleta: string
+          data_emissao: string | null
           fechado_em: string | null
           id: string
           laboratorio: string | null
@@ -12115,6 +12116,7 @@ export type Database = {
           crmv: string
           crmv_uf: string
           data_coleta: string
+          data_emissao?: string | null
           fechado_em?: string | null
           id?: string
           laboratorio?: string | null
@@ -12138,6 +12140,7 @@ export type Database = {
           crmv?: string
           crmv_uf?: string
           data_coleta?: string
+          data_emissao?: string | null
           fechado_em?: string | null
           id?: string
           laboratorio?: string | null
@@ -16819,6 +16822,7 @@ export type Database = {
           crmv: string
           crmv_uf: string
           data_coleta: string
+          data_emissao: string | null
           fechado_em: string | null
           id: string
           laboratorio: string | null

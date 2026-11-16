@@ -59,8 +59,26 @@ test("preserva contagens absolutas e unidades explícitas sem copiar referência
   assert.equal(l.itens.find((i) => i.nome === "Plaquetas")?.valor, 26000);
   assert.equal(l.itens.find((i) => i.nome === "Linfócitos Atípicos (abs.)")?.maximo, 0);
 });
+for (const [nome, minimo, maximo] of [
+  ["Hemácias", 5.5, 8.5], ["Hemoglobina", 12, 18], ["Hematócrito", 37, 55],
+  ["VCM", 60, 77], ["HCM", 19.5, 24.5], ["CHCM", 30, 36],
+  ["Proteínas totais", 5.5, 8], ["Plaquetas", 200000, 400000],
+  ["Albumina", 2.6, 4], ["ALT (TGP)", 10, 88], ["Creatinina", 0.5, 1.5],
+  ["Fosfatase alcalina", 20, 150], ["Ureia", 15, 65],
+] as const) {
+  test(`importa a faixa explícita de ${nome} do PDF LACVET`, () => {
+    const item = lerLaudoTexto(texto).itens.find((i) => i.nome === nome);
+    assert.equal(item?.minimo, minimo);
+    assert.equal(item?.maximo, maximo);
+  });
+}
 test("continua bloqueando animais, espécies ou resultados divergentes em páginas combinadas", () => {
   assert.throws(() => lerLaudoTexto(texto + cabecalho.replace("PACIENTE TESTE", "OUTRO")), /único paciente/);
   assert.throws(() => lerLaudoTexto(texto + cabecalho.replace("CANINA", "FELINA")), /único paciente/);
   assert.throws(() => lerLaudoTexto(texto + "\nUREIA\nResultado................: | 86 | mg/dL | 15 - 65 mg/dL"), /repetidos/);
+});
+test("não confunde data de atendimento com emissão; lê emissão somente quando explícita", () => {
+  assert.equal(lerLaudoTexto(texto).emissao, undefined);
+  assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026").emissao, "2026-11-13");
+  assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026\nData de emissão: | 14/11/2026").emissao, undefined);
 });
