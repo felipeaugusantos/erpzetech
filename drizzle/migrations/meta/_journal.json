@@ -743,6 +743,13 @@
       "when": 1794900200000,
       "tag": "0105_clinica_peso_tres_casas",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794900300000,
+      "tag": "0106_clinica_corrigir_atendimento_castrado",
+      "breakpoints": true
     }
   ]
 }

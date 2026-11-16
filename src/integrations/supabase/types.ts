@@ -11058,6 +11058,8 @@ export type Database = {
       pet_atendimento_adendos: {
         Row: {
           atendimento_id: string
+          anterior: Json | null
+          correcao: Json | null
           created_at: string
           crmv: string
           crmv_uf: string
@@ -11068,6 +11070,8 @@ export type Database = {
         }
         Insert: {
           atendimento_id: string
+          anterior?: Json | null
+          correcao?: Json | null
           created_at?: string
           crmv: string
           crmv_uf: string
@@ -11078,6 +11082,8 @@ export type Database = {
         }
         Update: {
           atendimento_id?: string
+          anterior?: Json | null
+          correcao?: Json | null
           created_at?: string
           crmv?: string
           crmv_uf?: string
@@ -17488,6 +17494,10 @@ export type Database = {
         Returns: Json
       }
       clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
+      clinica_atendimento_corrigir: {
+        Args: { p_dados: Json; p_id: string; p_motivo: string }
+        Returns: Json
+      }
       clinica_consulta_data_alterar: {
         Args: { p_data: string; p_data_anterior?: string; p_id: string; p_motivo?: string }
         Returns: Json
@@ -17697,6 +17707,10 @@ export type Database = {
       clinica_prescricao_suspender: {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
+      }
+      clinica_pet_castrado_definir: {
+        Args: { p_atendimento_id: string; p_castrado: boolean }
+        Returns: Json
       }
       clinica_proxima_consulta_agendar: {
         Args: { p_chave: string; p_dados: Json }

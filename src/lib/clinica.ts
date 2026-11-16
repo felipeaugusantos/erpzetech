@@ -7,7 +7,35 @@ export type AdendoClinico = {
   veterinario: string;
   crmv: string;
   crmv_uf: string;
+  /** Só nas correções: valores antes e depois dos campos corrigidos. */
+  anterior?: Record<string, string | null> | null;
+  correcao?: Record<string, string | null> | null;
 };
+
+const ROTULOS_CORRECAO: [string, string][] = [
+  ["queixa", "Queixa"],
+  ["anamnese", "Anamnese"],
+  ["peso_kg", "Peso (kg)"],
+  ["temperatura_c", "Temperatura (°C)"],
+  ["freq_cardiaca", "Freq. cardíaca"],
+  ["freq_respiratoria", "Freq. respiratória"],
+  ["exame_fisico", "Exame físico"],
+  ["diagnostico", "Diagnóstico"],
+  ["conduta", "Conduta"],
+  ["retorno_em", "Retorno sugerido"],
+  ["observacoes", "Observações"],
+];
+
+/** Linhas "antes → depois" de uma correção de atendimento, na ordem da ficha; vazio se o adendo não é correção. */
+export function linhasDaCorrecao(d: Pick<AdendoClinico, "anterior" | "correcao">) {
+  const antes = d.anterior ?? {};
+  const depois = d.correcao ?? {};
+  return ROTULOS_CORRECAO.filter(([k]) => k in depois).map(([k, rotulo]) => ({
+    rotulo,
+    antes: antes[k] ?? null,
+    depois: depois[k] ?? null,
+  }));
+}
 
 export type PetClinico = {
   nome: string;

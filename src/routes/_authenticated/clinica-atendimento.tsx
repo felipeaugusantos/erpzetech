@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { AudioConsulta } from "@/components/app/AudioConsulta";
+import { CorrigirAtendimento } from "@/components/app/CorrigirAtendimento";
 import { DataAtendimento } from "@/components/app/DataAtendimento";
 import { ProximaConsulta } from "@/components/app/ProximaConsulta";
 import { aplicarTranscricao, type CampoAudio } from "@/lib/consulta-audio";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -142,6 +144,30 @@ function Atendimento() {
     onError: (e: Error) => toast.error("Não foi possível salvar", { description: e.message }),
   });
 
+  const castracao = useMutation({
+    mutationFn: async (castrado: boolean) => {
+      if (!data) return null;
+      const { error } = await supabase.rpc("clinica_pet_castrado_definir", {
+        p_atendimento_id: data.id,
+        p_castrado: castrado,
+      });
+      if (error) throw error;
+      return castrado;
+    },
+    onSuccess: (castrado) => {
+      if (castrado === null || !data) return;
+      qc.setQueryData(["clinica-atendimento", agendamento], {
+        ...data,
+        pet: { ...data.pet, castrado },
+      });
+      void qc.invalidateQueries({ queryKey: ["clinica-historico"] });
+      void qc.invalidateQueries({ queryKey: ["pets"] });
+      toast.success(castrado ? "Animal marcado como castrado" : "Animal marcado como não castrado");
+    },
+    onError: (e: Error) =>
+      toast.error("Não foi possível alterar a castração", { description: e.message }),
+  });
+
   const fechar = useMutation({
     mutationFn: async () => {
       if (!data || !form) return null;
@@ -227,7 +253,20 @@ function Atendimento() {
           {p.raca && <span>{p.raca}</span>}
           {p.porte && <span>Porte {rotulo(PORTES, p.porte).toLowerCase()}</span>}
           {p.nascimento && <span>{idadeDoPet(p.nascimento)}</span>}
-          {p.castrado !== null && <span>{p.castrado ? "Castrado" : "Não castrado"}</span>}
+          <label
+            htmlFor="c-castrado"
+            className={`flex items-center gap-2 rounded-md px-2 py-0.5 ${
+              p.castrado ? "" : "border border-warning bg-warning/10 text-warning"
+            }`}
+          >
+            <Switch
+              id="c-castrado"
+              checked={Boolean(p.castrado)}
+              disabled={castracao.isPending}
+              onCheckedChange={(v) => castracao.mutate(v)}
+            />
+            {p.castrado ? "Castrado" : "Não castrado"}
+          </label>
         </div>
         {p.alergias && (
           <div className="mt-2 flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
@@ -257,7 +296,17 @@ function Atendimento() {
       {fechado && (
         <div className="mb-4 flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm">
           <Lock className="size-4" /> Atendimento fechado em {dateTimeBR(data.fechado_em)}. Para
-          complementar ou corrigir, registre um adendo no histórico do paciente.
+          complementar, registre um adendo no histórico do paciente; para corrigir informações, use
+          Corrigir atendimento (fica registrado com motivo).
+          <span className="ml-auto">
+            <CorrigirAtendimento
+              atendimento={data}
+              aoCorrigir={(novo) => {
+                guardar(novo);
+                setForm(formDoAtendimento(novo));
+              }}
+            />
+          </span>
         </div>
       )}
 

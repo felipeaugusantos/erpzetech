@@ -419,6 +419,14 @@ function Pets() {
                           Inativo
                         </Badge>
                       )}
+                      {!p.castrado && !p.obito && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 border-warning bg-warning/10 text-warning"
+                        >
+                          Não castrado
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       {c?.nome ?? "—"}
@@ -707,13 +715,17 @@ function Pets() {
                 onChange={(e) => setForm({ ...form, nascimento: e.target.value })}
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-2 rounded-md px-2 py-1 ${
+                form.castrado ? "" : "border border-warning bg-warning/10 text-warning"
+              }`}
+            >
               <Switch
                 id="pet-castrado"
                 checked={form.castrado}
                 onCheckedChange={(v) => setForm({ ...form, castrado: v })}
               />
-              <Label htmlFor="pet-castrado">Castrado</Label>
+              <Label htmlFor="pet-castrado">{form.castrado ? "Castrado" : "Não castrado"}</Label>
             </div>
             <div className="flex items-center gap-2">
               <Switch

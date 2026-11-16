@@ -576,7 +576,7 @@ DECLARE
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
     'clinica_proxima_consulta_opcoes', 'clinica_proxima_consulta_agendar',
-    'clinica_consulta_data_alterar',
+    'clinica_consulta_data_alterar', 'clinica_atendimento_corrigir', 'clinica_pet_castrado_definir',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
     'assinante_link_sugerido',
     -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
@@ -4680,6 +4680,7 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((r->>'data_atendimento')::date=hoje-1, 'data corrigida retornada no histórico');
   PERFORM ci.exige(r->>'diagnostico'='Gastrite', 'correção mantém diagnóstico');
+
   PERFORM ci.exige(EXISTS(SELECT 1 FROM pet_atendimento_adendos WHERE atendimento_id=at1 AND data_consulta=hoje-1), 'correção gravada como adendo');
   PERFORM ci.entrar(vb);
   r := clinica_atendimento_abrir(ag2);
@@ -4692,6 +4693,31 @@ BEGIN
   r := clinica_adendo_criar(at1, 'Tutor relatou melhora após 3 dias.');
   PERFORM ci.sair();
   PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->>'crmv'='2222') AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
+
+  -- correção de atendimento fechado: motivo obrigatório, versão anterior guardada, só o veterinário responsável
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_corrigir(%L,'{"peso_kg":"13"}'::jsonb,'Erro de digitação')$c$,at1), 'outro veterinário corrige atendimento fechado');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_atendimento_corrigir(%L,'{"peso_kg":"13"}'::jsonb,'Erro de digitação')$c$,at1), 'perfil sem veterinário não corrige atendimento');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_corrigir(%L,'{"peso_kg":"13"}'::jsonb,'  ')$c$,at1), 'correção exige motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_corrigir(%L,'{"peso_kg":"500"}'::jsonb,'Erro de digitação')$c$,at1), 'correção valida o peso');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_corrigir(%L,'{"conduta":""}'::jsonb,'Erro de digitação')$c$,at1), 'correção não deixa a conduta vazia');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_corrigir(%L,'{"diagnostico":"Gastrite"}'::jsonb,'Nada mudou')$c$,at1), 'correção sem mudança é recusada');
+  PERFORM ci.entrar(va);
+  r := clinica_atendimento_corrigir(at1,'{"peso_kg":"13,25","diagnostico":"Gastrite aguda"}'::jsonb,'Peso pesado de novo e diagnóstico refinado');
+  PERFORM ci.sair();
+  PERFORM ci.exige((r->>'peso_kg')::numeric=13.25 AND r->>'diagnostico'='Gastrite aguda' AND r->>'situacao'='fechado', 'correção altera os campos e mantém o atendimento fechado');
+  PERFORM ci.exige((SELECT anterior->>'diagnostico'='Gastrite' AND correcao->>'diagnostico'='Gastrite aguda' AND texto LIKE '%Peso pesado de novo%' FROM pet_atendimento_adendos WHERE atendimento_id=at1 AND correcao IS NOT NULL ORDER BY created_at DESC LIMIT 1), 'a correção guarda o valor anterior, o novo e o motivo no adendo');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->'anterior'->>'diagnostico'='Gastrite' AND d->'correcao'->>'diagnostico'='Gastrite aguda' AND d->'correcao'->>'peso_kg'='13.25'), 'o histórico devolve o antes e o depois de cada correção');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimentos_clinicos SET diagnostico = 'outro' WHERE id = %L$c$, at1), 'UPDATE direto continua barrado depois da correção');
+  PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'o adendo da correção não se altera');
+
+  -- castração na consulta: só o veterinário responsável, e a mudança fica na auditoria
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_pet_castrado_definir(%L,true)$c$,at1), 'outro veterinário altera castração');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT clinica_pet_castrado_definir(%L,true)$c$,at1), 'perfil sem veterinário não altera castração');
+  PERFORM ci.entrar(va);
+  r := clinica_pet_castrado_definir(at1,true);
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT castrado FROM pets WHERE id=(SELECT pet_id FROM pet_atendimentos_clinicos WHERE id=at1)), 'castração definida na consulta atualiza o cadastro do pet');
+  PERFORM ci.exige(ci.contar(adm, format($c$SELECT count(*) FROM auditoria WHERE entidade='pets' AND valor_novo->>'castrado'='true' AND entidade_id=%L$c$, (SELECT pet_id FROM pet_atendimentos_clinicos WHERE id=at1))) = 1, 'a mudança de castração fica na auditoria');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'alterar adendo');
   PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimento_adendos WHERE atendimento_id = %L$c$, at1), 'apagar adendo');
 

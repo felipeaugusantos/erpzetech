@@ -1,3 +1,4 @@
+import { CorrecaoDoAdendo } from "@/components/app/CorrecaoDoAdendo";
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -641,6 +642,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3"
                   >
                     <p className="whitespace-pre-wrap break-words">{d.texto}</p>
+                    <CorrecaoDoAdendo adendo={d} />
                     <p className="mt-1 text-xs text-muted-foreground">
                       Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
                       {dateTimeBR(d.created_at)}
