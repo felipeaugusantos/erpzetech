@@ -8,7 +8,10 @@ const sql = readFileSync(
 );
 
 test("WhatsApp aceita clínica liberada sem exigir Lava rápido", () => {
-  assert.match(sql, /IF NOT \(public\.clinica_liberada\(\) OR public\.lava_rapido_liberado\(\)\) THEN/);
+  assert.match(
+    sql,
+    /IF NOT \(public\.clinica_liberada\(\) OR public\.lava_rapido_liberado\(\)\) THEN/,
+  );
   assert.doesNotMatch(sql, /PERFORM public\._lr_exige_liberado/);
 });
 

@@ -957,7 +957,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex min-h-0 shrink-0 transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh min-h-0 shrink-0 overflow-hidden transition-transform lg:sticky lg:top-0 lg:translate-x-0 lg:self-start",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -1009,7 +1009,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* painel de submenus da área */}
         {areaAberta && (mostrarPainel || mobileOpen) && (
-          <div className="flex min-h-0 w-60 min-w-0 flex-col border-r border-border bg-card text-card-foreground">
+          <div className="flex h-full min-h-0 w-60 min-w-0 flex-col overflow-hidden border-r border-border bg-card text-card-foreground">
             <div className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
               <div className="min-w-0">
                 <p className="truncate font-display text-base font-bold">{areaAberta.label}</p>
@@ -1029,7 +1029,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="size-4" />
               </button>
             </div>
-            <ul className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3">
+            <ul
+              aria-label={`Opções de ${areaAberta.label}`}
+              tabIndex={0}
+              className="menu-scroll min-h-0 flex-1 space-y-0.5 px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            >
               {areaAberta.items.map((item, i) => (
                 <li key={`${item.secao ?? ""}-${item.to ?? item.label}`}>
                   {item.secao && item.secao !== areaAberta.items[i - 1]?.secao ? (
@@ -1057,7 +1061,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </li>
               ))}
             </ul>
-            <p className="border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
+            <p className="shrink-0 border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
               Desenvolvido por EZRA
             </p>
           </div>

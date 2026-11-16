@@ -8,7 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
 import { brl, dateTimeBR, num } from "@/lib/format";
 import { useOnline, ehErroDeRede } from "@/lib/offline";
-import { chaveFilaPdv, conciliarVendas, saldoAposFila, type VendaPendente } from "@/lib/vendas-offline";
+import {
+  chaveFilaPdv,
+  conciliarVendas,
+  saldoAposFila,
+  type VendaPendente,
+} from "@/lib/vendas-offline";
 import { lerMultiplicador } from "@/lib/busca-telas";
 import { formasPagamento, hojeISO, labelForma, somaDias } from "@/lib/financeiro";
 import type { FormaPagamento } from "@/lib/financeiro";
@@ -96,7 +101,10 @@ function Pdv() {
       const lote = lerFila();
       const restantes: VendaPendente[] = [];
       for (const v of lote) {
-        if (v.erro) { restantes.push(v); continue; }
+        if (v.erro) {
+          restantes.push(v);
+          continue;
+        }
         const { error } = await supabase.rpc("pdv_venda_offline" as never, v.params as never);
         if (error) restantes.push(ehErroDeRede(error.message) ? v : { ...v, erro: error.message });
       }
@@ -106,12 +114,16 @@ function Pdv() {
         await qc.invalidateQueries({ queryKey: ["pdv-estoque"] });
         void qc.invalidateQueries({ queryKey: ["pdv-base"] });
       }
-    } finally { enviando.current = false; }
+    } finally {
+      enviando.current = false;
+    }
   }
   useEffect(() => {
     setFila(usuario && empresa ? lerFila() : []);
     if (!usuario || !empresa) return;
-    const enviar = () => { void enviarFila().catch(() => undefined); };
+    const enviar = () => {
+      void enviarFila().catch(() => undefined);
+    };
     const atualizar = () => setFila(lerFila());
     window.addEventListener("online", enviar);
     window.addEventListener("storage", atualizar);
@@ -156,7 +168,11 @@ function Pdv() {
           .eq("ativo", true)
           .order("nome")
           .limit(1000),
-        supabase.from("caixas").select("id, situacao, valor_abertura").eq("situacao", "aberto").order("aberto_em", { ascending: false }),
+        supabase
+          .from("caixas")
+          .select("id, situacao, valor_abertura")
+          .eq("situacao", "aberto")
+          .order("aberto_em", { ascending: false }),
       ]);
       for (const r of [depRes, prodRes, cliRes, caixaRes]) if (r.error) throw r.error;
       return {
@@ -194,7 +210,11 @@ function Pdv() {
 
   const disponivelPorProduto = useMemo(() => {
     const m = new Map<string, number>();
-    for (const e of estoque) m.set(e.produto_id, saldoAposFila(Number(e.quantidade) - Number(e.reservado), e.produto_id, depositoId, fila));
+    for (const e of estoque)
+      m.set(
+        e.produto_id,
+        saldoAposFila(Number(e.quantidade) - Number(e.reservado), e.produto_id, depositoId, fila),
+      );
     return m;
   }, [estoque, fila, depositoId]);
 
@@ -317,7 +337,8 @@ function Pdv() {
         throw new Error("Informe a quantidade de cada item (pode ser fracionada, ex.: 0,5)");
       if (!aPrazo && !caixaAberto) throw new Error("Abra o caixa antes de vender no PDV");
       if (!usuario || !empresa) throw new Error("Entre na sua empresa antes de vender");
-      if (semEstoque.length) throw new Error("Saldo insuficiente neste depósito, incluindo vendas guardadas");
+      if (semEstoque.length)
+        throw new Error("Saldo insuficiente neste depósito, incluindo vendas guardadas");
       const params = {
         p_deposito_id: depositoId,
         p_itens: linhas.map((l) => ({
@@ -334,7 +355,18 @@ function Pdv() {
         p_caixa_id: aPrazo ? null : caixaAberto?.id,
       };
       const guardar = (erro?: string) => {
-        salvarFila([...lerFila(), { id: params.p_chave, em: new Date().toISOString(), total, params, recebido: recebidoNum, troco, ...(erro ? { erro } : {}) }]);
+        salvarFila([
+          ...lerFila(),
+          {
+            id: params.p_chave,
+            em: new Date().toISOString(),
+            total,
+            params,
+            recebido: recebidoNum,
+            troco,
+            ...(erro ? { erro } : {}),
+          },
+        ]);
         return { pedidoId: "", pedido: null, offline: true };
       };
       if (!navigator.onLine) return guardar();
@@ -353,13 +385,17 @@ function Pdv() {
     },
     onSuccess: ({ pedidoId, pedido, offline }) => {
       toast.success(offline ? "Venda guardada neste aparelho" : "Venda concluída", {
-        description: offline ? "Pagamento guardado; envio automático quando a internet voltar." : aPrazo
-          ? "Parcelas lançadas em contas a receber."
-          : "Lançada no caixa, com baixa de estoque e comissão do vendedor.",
+        description: offline
+          ? "Pagamento guardado; envio automático quando a internet voltar."
+          : aPrazo
+            ? "Parcelas lançadas em contas a receber."
+            : "Lançada no caixa, com baixa de estoque e comissão do vendedor.",
       });
       setCupom({
         pedidoId,
-        numero: offline ? "LOCAL — aguardando envio" : String(pedido?.numero ?? "—").padStart(4, "0"),
+        numero: offline
+          ? "LOCAL — aguardando envio"
+          : String(pedido?.numero ?? "—").padStart(4, "0"),
         emitidoEm: dateTimeBR(pedido?.created_at ?? new Date().toISOString()),
         loja: session?.empresa?.nome_fantasia ?? session?.empresa?.razao_social ?? "EZRA ERP",
         deposito: nomeDeposito,
@@ -450,13 +486,37 @@ function Pdv() {
         }
       />
 
-      <section className="mb-4 space-y-2 border-y border-border py-3" aria-label="Sincronização das vendas">
-        <Badge variant={online ? "secondary" : "destructive"}>{online ? "Com internet" : "Sem internet"}</Badge>
-        {fila.length > 0 && <p className="text-sm">{fila.length} venda(s) guardada(s) · {brl(fila.reduce((s, v) => s + v.total, 0))}</p>}
-        {fila.map((v) => <div key={v.id} className="flex flex-wrap items-center gap-2 text-sm">
-          <span>{brl(v.total)} · {dateTimeBR(v.em)} · {v.erro ?? "Aguardando envio"}</span>
-          {v.erro && <Button variant="outline" size="sm" onClick={() => { salvarFila(lerFila().map((p) => p.id === v.id ? { ...p, erro: undefined } : p)); void enviarFila().catch(() => undefined); }}>Tentar novamente</Button>}
-        </div>)}
+      <section
+        className="mb-4 space-y-2 border-y border-border py-3"
+        aria-label="Sincronização das vendas"
+      >
+        <Badge variant={online ? "secondary" : "destructive"}>
+          {online ? "Com internet" : "Sem internet"}
+        </Badge>
+        {fila.length > 0 && (
+          <p className="text-sm">
+            {fila.length} venda(s) guardada(s) · {brl(fila.reduce((s, v) => s + v.total, 0))}
+          </p>
+        )}
+        {fila.map((v) => (
+          <div key={v.id} className="flex flex-wrap items-center gap-2 text-sm">
+            <span>
+              {brl(v.total)} · {dateTimeBR(v.em)} · {v.erro ?? "Aguardando envio"}
+            </span>
+            {v.erro && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  salvarFila(lerFila().map((p) => (p.id === v.id ? { ...p, erro: undefined } : p)));
+                  void enviarFila().catch(() => undefined);
+                }}
+              >
+                Tentar novamente
+              </Button>
+            )}
+          </div>
+        ))}
       </section>
       <div
         aria-label="Atalhos do PDV"

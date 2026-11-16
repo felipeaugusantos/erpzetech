@@ -15,7 +15,11 @@ export async function limparArquivosExcluidos(
   let pendentes = 0;
   for (const arquivo of arquivos) {
     let sucesso = false;
-    try { sucesso = await remover(arquivo.caminho); } catch { /* Keep durable retry row. */ }
+    try {
+      sucesso = await remover(arquivo.caminho);
+    } catch {
+      /* Keep durable retry row. */
+    }
     await registrar(arquivo.id, sucesso);
     if (!sucesso) pendentes++;
   }

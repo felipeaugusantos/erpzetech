@@ -8,6 +8,8 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { podeSalvarCatalogo, precisaControleDose, type ProdutoVacina } from "@/lib/vacina-produto";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,13 @@ export const Route = createFileRoute("/_authenticated/clinica-catalogo")({
         name: "description",
         content: "Vacinas e vermífugos da clínica, com série de doses e intervalo de reforço.",
       },
+      { property: "og:title", content: "Catálogo de vacinas — ERP Ze Tech" },
+      {
+        property: "og:description",
+        content: "Vacinas e vermífugos da clínica com produto, lote e protocolo conferidos.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CatalogoModulo,
@@ -69,6 +78,7 @@ type Form = {
   idade_minima_dias: string;
   produto_id: string;
   ativo: boolean;
+  confirmar_controle_lote: boolean;
 };
 
 const vazio: Form = {
@@ -81,6 +91,7 @@ const vazio: Form = {
   idade_minima_dias: "",
   produto_id: "",
   ativo: true,
+  confirmar_controle_lote: false,
 };
 
 function CatalogoModulo() {
@@ -94,9 +105,13 @@ function Catalogo() {
   const qc = useQueryClient();
   const { data: sessao } = useSessionData();
   // a gestão cadastra (escolhe o produto do estoque); o veterinário consulta o catálogo
-  const pode = (sessao?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
+  const pode = (sessao?.roles ?? []).some((r) =>
+    ["administrador", "gestor", "veterinario"].includes(r),
+  );
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<Form>(vazio);
+  const [criarDose, setCriarDose] = useState(true);
+  const [novaDoseId, setNovaDoseId] = useState("");
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["clinica-catalogo"],
@@ -107,22 +122,19 @@ function Catalogo() {
     },
   });
 
-  const { data: produtos = [] } = useQuery({
+  const consultaProdutos = useQuery({
     queryKey: ["clinica-catalogo-produtos"],
     enabled: aberto && pode,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("id, descricao, codigo_interno")
-        .eq("ativo", true)
-        .eq("controla_estoque", true)
-        .eq("controla_lote", true)
-        .order("descricao")
-        .limit(1000);
+      const { data, error } = await supabase.rpc("clinica_vacina_produtos");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as ProdutoVacina[];
     },
   });
+  const produtos = consultaProdutos.data ?? [];
+  const produto = produtos.find((p) => p.id === form.produto_id);
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -136,8 +148,11 @@ function Catalogo() {
           intervalo_serie_dias: form.intervalo_serie_dias,
           reforco_dias: form.reforco_dias,
           idade_minima_dias: form.idade_minima_dias,
-          produto_id: form.produto_id,
+          produto_id: criarDose ? "" : form.produto_id,
+          criar_produto_dose: criarDose,
+          novo_produto_id: criarDose ? novaDoseId : "",
           ativo: form.ativo,
+          confirmar_controle_lote: form.confirmar_controle_lote,
         },
       });
       if (error) throw error;
@@ -147,6 +162,8 @@ function Catalogo() {
       setAberto(false);
       setForm(vazio);
       void qc.invalidateQueries({ queryKey: ["clinica-catalogo"] });
+      void qc.invalidateQueries({ queryKey: ["clinica-catalogo-produtos"] });
+      void qc.invalidateQueries({ queryKey: ["produtos"] });
     },
     onError: (e: Error) => toast.error("Não foi possível salvar", { description: e.message }),
   });
@@ -163,6 +180,8 @@ function Catalogo() {
             <Button
               onClick={() => {
                 setForm(vazio);
+                setCriarDose(true);
+                setNovaDoseId(crypto.randomUUID());
                 setAberto(true);
               }}
             >
@@ -215,6 +234,8 @@ function Catalogo() {
                         size="icon"
                         aria-label={`Editar ${i.nome}`}
                         onClick={() => {
+                          setCriarDose(false);
+                          setNovaDoseId(crypto.randomUUID());
                           setForm({
                             id: i.id,
                             nome: i.nome,
@@ -226,6 +247,7 @@ function Catalogo() {
                             idade_minima_dias: i.idade_minima_dias?.toString() ?? "",
                             produto_id: i.produto_id,
                             ativo: i.ativo,
+                            confirmar_controle_lote: false,
                           });
                           setAberto(true);
                         }}
@@ -242,7 +264,7 @@ function Catalogo() {
       )}
 
       <Dialog open={aberto} onOpenChange={(o) => !o && setAberto(false)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form.id ? "Editar item" : "Novo item do catálogo"}</DialogTitle>
           </DialogHeader>
@@ -363,26 +385,102 @@ function Catalogo() {
               />
             </div>
             <div>
-              <Label htmlFor="v-prod">Produto da dose (controla lote; baixa o lote)</Label>
-              <Select
-                value={form.produto_id || "__nenhum"}
-                onValueChange={(v) => setForm({ ...form, produto_id: v === "__nenhum" ? "" : v })}
-              >
-                <SelectTrigger id="v-prod">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__nenhum">Escolha o produto</SelectItem>
-                  {produtos.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.descricao}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                O produto nunca vai para a venda: a cobrança é do serviço de vacina.
-              </p>
+              <div className="mb-2 flex items-center gap-2">
+                <Checkbox
+                  id="v-criar-dose"
+                  checked={criarDose}
+                  onCheckedChange={(checked) => {
+                    setCriarDose(checked === true);
+                    setForm({ ...form, confirmar_controle_lote: false });
+                  }}
+                />
+                <Label htmlFor="v-criar-dose">Cadastrar a dose junto com esta vacina</Label>
+              </div>
+              {criarDose ? (
+                <p className="text-sm text-muted-foreground">
+                  Dose: {form.nome.trim() || "Informe o nome acima"}. Controle de estoque e lote
+                  habilitado, sem saldo inicial.
+                </p>
+              ) : (
+                <>
+                  <Label htmlFor="v-prod">Dose já cadastrada (controle por lote)</Label>
+                  <Select
+                    value={form.produto_id || "__nenhum"}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        produto_id: v === "__nenhum" ? "" : v,
+                        confirmar_controle_lote: false,
+                      })
+                    }
+                  >
+                    <SelectTrigger id="v-prod">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__nenhum">Escolha o produto</SelectItem>
+                      {produtos.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.descricao}
+                          {precisaControleDose(p) ? " · configurar lote" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    O produto nunca vai para a venda: a cobrança é do serviço de vacina.
+                  </p>
+                  {consultaProdutos.isLoading && (
+                    <p role="status" className="mt-2 text-sm text-muted-foreground">
+                      Carregando produtos…
+                    </p>
+                  )}
+                  {consultaProdutos.error && (
+                    <p role="alert" className="mt-2 text-sm text-destructive">
+                      Não foi possível carregar os produtos.
+                    </p>
+                  )}
+                  {!consultaProdutos.isLoading &&
+                    !consultaProdutos.error &&
+                    produtos.length === 0 && (
+                      <p className="mt-2 text-sm text-warning">
+                        Nenhum produto ativo cadastrado para vincular à dose.
+                      </p>
+                    )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void consultaProdutos.refetch()}
+                      disabled={consultaProdutos.isFetching}
+                    >
+                      Atualizar produtos
+                    </Button>
+                  </div>
+                  {precisaControleDose(produto) && (
+                    <div className="mt-3 rounded-md border border-warning bg-warning/10 p-3">
+                      <div className="flex items-start gap-2">
+                        <Checkbox
+                          id="v-confirmar-lote"
+                          checked={form.confirmar_controle_lote}
+                          onCheckedChange={(checked) =>
+                            setForm({ ...form, confirmar_controle_lote: checked === true })
+                          }
+                        />
+                        <Label htmlFor="v-confirmar-lote" className="leading-relaxed">
+                          Ativar controle de estoque e lote para este produto ao salvar.
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+                  {!form.produto_id && (
+                    <p className="mt-2 text-sm text-warning">
+                      Selecione o produto da dose para salvar a vacina.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Switch
@@ -399,7 +497,10 @@ function Catalogo() {
             </Button>
             <Button
               onClick={() => salvar.mutate()}
-              disabled={salvar.isPending || !form.nome.trim() || !form.produto_id}
+              disabled={
+                salvar.isPending ||
+                !podeSalvarCatalogo(form.nome, produto, form.confirmar_controle_lote, criarDose)
+              }
             >
               Salvar
             </Button>

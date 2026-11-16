@@ -138,7 +138,12 @@ function AgendaExames() {
           icon={CalendarClock}
           tone="success"
         />
-        <StatCard label="Faltas" value={String(conta("faltou"))} icon={CalendarClock} tone="warning" />
+        <StatCard
+          label="Faltas"
+          value={String(conta("faltou"))}
+          icon={CalendarClock}
+          tone="warning"
+        />
       </div>
 
       {lista.isLoading ? (
@@ -163,7 +168,9 @@ function AgendaExames() {
             <ul className="divide-y divide-border text-sm">
               {doDia.map((i) => (
                 <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
-                  <span className="w-14 font-mono font-semibold">{horaBrasilia(i.agendado_para)}</span>
+                  <span className="w-14 font-mono font-semibold">
+                    {horaBrasilia(i.agendado_para)}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{i.exame}</p>
                     <p className="text-xs text-muted-foreground">
@@ -182,7 +189,9 @@ function AgendaExames() {
                   <Badge variant={TOM[i.situacao]}>{SITUACOES_AGENDA_EXAME[i.situacao]}</Badge>
                   <Select
                     value={i.situacao}
-                    onValueChange={(v) => mudar.mutate({ id: i.id, situacao: v as SituacaoAgendaExame })}
+                    onValueChange={(v) =>
+                      mudar.mutate({ id: i.id, situacao: v as SituacaoAgendaExame })
+                    }
                   >
                     <SelectTrigger className="h-8 w-40">
                       <SelectValue />
@@ -311,7 +320,12 @@ function NovoAgendamento({ onFechar, onSalvo }: { onFechar: () => void; onSalvo:
             </div>
             <div>
               <Label htmlFor="ag-hora">Horário *</Label>
-              <Input id="ag-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+              <Input
+                id="ag-hora"
+                type="time"
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+              />
             </div>
           </div>
           <div>

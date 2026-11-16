@@ -90,7 +90,6 @@ REVOKE ALL ON FUNCTION public.saas_gerar_faturas_auto() FROM PUBLIC, anon, authe
 GRANT EXECUTE ON FUNCTION public.saas_gerar_faturas_auto() TO service_role;
 
 -- Faturas em aberto, ainda sem cobrança no gateway, de clientes ativos com cobrança automática (não cobra de novo o que passou de 30 dias de atraso).
--- `valor` é o SALDO (valor da fatura menos o que já foi pago, por exemplo por baixa parcial manual): o gateway cobra só o que falta.
 CREATE OR REPLACE FUNCTION public.saas_cobranca_pendentes(p_limite integer DEFAULT 20)
 RETURNS TABLE (
   fatura_id uuid, cliente_id uuid, descricao text, valor numeric, vencimento date,
@@ -101,7 +100,7 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT f.id, c.id, f.descricao, (f.valor - f.valor_pago), f.vencimento, c.nome, c.documento, c.email, c.whatsapp, c.gateway_cliente_id
+  SELECT f.id, c.id, f.descricao, f.valor, f.vencimento, c.nome, c.documento, c.email, c.whatsapp, c.gateway_cliente_id
     FROM public.saas_faturas f
     JOIN public.saas_clientes c ON c.id = f.cliente_id
    WHERE c.cobranca_automatica AND c.situacao = 'ativo'
@@ -203,7 +202,7 @@ DECLARE
   c record; v_adm boolean; v_dias integer; v_aberto numeric; v_lista jsonb;
 BEGIN
   IF auth.uid() IS NULL OR public.eh_saas_operador() OR public.eh_contador_restrito() THEN RETURN NULL; END IF;
-  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() AND cobranca_automatica ORDER BY inicio DESC, created_at DESC LIMIT 1;
+  SELECT * INTO c FROM public.saas_clientes WHERE tenant_id = public.current_tenant_id() AND cobranca_automatica ORDER BY inicio DESC LIMIT 1;
   IF NOT FOUND THEN RETURN NULL; END IF;
   v_adm := public.has_role(auth.uid(), 'administrador') OR public.has_role(auth.uid(), 'gestor');
   SELECT coalesce(max(current_date - f.vencimento), 0), coalesce(sum(f.valor - f.valor_pago), 0)

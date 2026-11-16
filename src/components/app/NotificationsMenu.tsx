@@ -102,11 +102,36 @@ export function NotificationsMenu({ telas = [] }: { telas?: string[] }) {
           : zero,
       ]);
       return [
-        { chave: "pagar", to: "/contas-pagar", titulo: "Contas a pagar vencendo até hoje", total: pagar },
-        { chave: "receber", to: "/contas-receber", titulo: "Contas a receber em atraso", total: receber },
-        { chave: "orcamentos", to: "/orcamentos", titulo: "Orçamentos sem resposta há mais de 48 h", total: orcamentos },
-        { chave: "entregas", to: "/entregas", titulo: "Entregas do dia ou atrasadas", total: entregas },
-        { chave: "exames", to: "/clinica-exames", titulo: "Exames sem laudo fechado", total: exames },
+        {
+          chave: "pagar",
+          to: "/contas-pagar",
+          titulo: "Contas a pagar vencendo até hoje",
+          total: pagar,
+        },
+        {
+          chave: "receber",
+          to: "/contas-receber",
+          titulo: "Contas a receber em atraso",
+          total: receber,
+        },
+        {
+          chave: "orcamentos",
+          to: "/orcamentos",
+          titulo: "Orçamentos sem resposta há mais de 48 h",
+          total: orcamentos,
+        },
+        {
+          chave: "entregas",
+          to: "/entregas",
+          titulo: "Entregas do dia ou atrasadas",
+          total: entregas,
+        },
+        {
+          chave: "exames",
+          to: "/clinica-exames",
+          titulo: "Exames sem laudo fechado",
+          total: exames,
+        },
       ];
     },
   });
@@ -125,11 +150,20 @@ export function NotificationsMenu({ telas = [] }: { telas?: string[] }) {
 
       const lista: Alerta[] = [];
       for (const e of estoques ?? []) {
-        const p = e.produtos as { descricao: string; estoque_minimo: number; unidade: string } | null;
+        const p = e.produtos as {
+          descricao: string;
+          estoque_minimo: number;
+          unidade: string;
+        } | null;
         if (!p) continue;
         const disponivel = Number(e.quantidade) - Number(e.reservado);
         if (disponivel <= 0) {
-          lista.push({ id: `z-${e.id}`, titulo: p.descricao, detalhe: "Sem estoque disponível", tipo: "zerado" });
+          lista.push({
+            id: `z-${e.id}`,
+            titulo: p.descricao,
+            detalhe: "Sem estoque disponível",
+            tipo: "zerado",
+          });
         } else if (disponivel < Number(p.estoque_minimo)) {
           lista.push({
             id: `b-${e.id}`,
@@ -140,7 +174,10 @@ export function NotificationsMenu({ telas = [] }: { telas?: string[] }) {
         }
       }
       for (const c of clientes ?? []) {
-        if (Number(c.limite_credito) > 0 && Number(c.saldo_utilizado) >= Number(c.limite_credito) * 0.9) {
+        if (
+          Number(c.limite_credito) > 0 &&
+          Number(c.saldo_utilizado) >= Number(c.limite_credito) * 0.9
+        ) {
           lista.push({
             id: `c-${c.id}`,
             titulo: c.nome,
@@ -222,7 +259,11 @@ export function NotificationsMenu({ telas = [] }: { telas?: string[] }) {
               </>
             );
             return to ? (
-              <Link key={a.id} to={to} className="flex gap-2 rounded-md px-2 py-2 text-sm hover:bg-secondary">
+              <Link
+                key={a.id}
+                to={to}
+                className="flex gap-2 rounded-md px-2 py-2 text-sm hover:bg-secondary"
+              >
                 {corpo}
               </Link>
             ) : (

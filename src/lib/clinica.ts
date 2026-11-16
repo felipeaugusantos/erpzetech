@@ -28,6 +28,7 @@ export type AtendimentoClinico = {
   agendamento_id: string;
   situacao: "aberto" | "fechado";
   aberto_em: string;
+  data_atendimento?: string;
   fechado_em: string | null;
   veterinario: { id: string; nome: string; crmv: string; crmv_uf: string };
   queixa: string | null;
@@ -47,6 +48,7 @@ export type AtendimentoClinico = {
 };
 
 export type FormAtendimento = {
+  data_atendimento?: string;
   queixa: string;
   anamnese: string;
   peso_kg: string;
@@ -66,6 +68,7 @@ const texto = (v: string | number | null | undefined) =>
 /** Valores do atendimento como a tela edita (números com vírgula). */
 export function formDoAtendimento(a: AtendimentoClinico): FormAtendimento {
   return {
+    data_atendimento: a.data_atendimento ?? dataClinica(a.aberto_em),
     queixa: a.queixa ?? "",
     anamnese: a.anamnese ?? "",
     peso_kg: texto(a.peso_kg),
@@ -78,6 +81,28 @@ export function formDoAtendimento(a: AtendimentoClinico): FormAtendimento {
     retorno_em: a.retorno_em ?? "",
     observacoes: a.observacoes ?? "",
   };
+}
+
+/** Data clínica separada do instante imutável em que a ficha foi aberta. */
+export function dataClinica(abertoEm: string | undefined): string {
+  if (!abertoEm || Number.isNaN(new Date(abertoEm).getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(abertoEm));
+}
+
+export function erroDataAtendimento(
+  data: string | undefined,
+  hoje = dataClinica(new Date().toISOString()),
+) {
+  if (!data) return null;
+  const parsed = new Date(`${data}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== data)
+    return "Data do atendimento inválida";
+  return data > hoje ? "A data do atendimento não pode ser no futuro" : null;
 }
 
 /** O que falta para poder fechar o atendimento (o banco exige o mesmo). */
@@ -109,11 +134,11 @@ export function erroDosSinais(
 
 /** Peso de cada atendimento fechado, do mais antigo para o mais novo (para acompanhar a evolução). */
 export function evolucaoDoPeso(
-  atendimentos: readonly Pick<AtendimentoClinico, "aberto_em" | "peso_kg">[],
+  atendimentos: readonly Pick<AtendimentoClinico, "aberto_em" | "data_atendimento" | "peso_kg">[],
 ) {
   return atendimentos
     .filter((a) => a.peso_kg !== null && a.peso_kg !== undefined)
-    .map((a) => ({ em: a.aberto_em, peso: Number(a.peso_kg) }))
+    .map((a) => ({ em: a.data_atendimento ?? a.aberto_em, peso: Number(a.peso_kg) }))
     .sort((x, y) => x.em.localeCompare(y.em));
 }
 
@@ -128,7 +153,13 @@ export type SinaisEmConsulta = {
 
 type ComSinais = Pick<
   AtendimentoClinico,
-  "aberto_em" | "situacao" | "peso_kg" | "temperatura_c" | "freq_cardiaca" | "freq_respiratoria"
+  | "aberto_em"
+  | "data_atendimento"
+  | "situacao"
+  | "peso_kg"
+  | "temperatura_c"
+  | "freq_cardiaca"
+  | "freq_respiratoria"
 >;
 
 /**
@@ -146,7 +177,7 @@ export function evolucaoDosSinais(atendimentos: readonly ComSinais[]): SinaisEmC
         ),
     )
     .map((a) => ({
-      em: a.aberto_em,
+      em: a.data_atendimento ?? a.aberto_em,
       peso_kg: numero(a.peso_kg),
       temperatura_c: numero(a.temperatura_c),
       freq_cardiaca: numero(a.freq_cardiaca),

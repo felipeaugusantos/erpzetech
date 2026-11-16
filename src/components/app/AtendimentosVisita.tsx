@@ -35,7 +35,14 @@ import {
   type RascunhoAtendimento,
 } from "@/lib/atendimento-offline";
 import { aberturasDoAtendimento } from "@/lib/exame-offline";
-import { erroDosSinais, faltaParaFechar, type FormAtendimento } from "@/lib/clinica";
+import {
+  dataClinica,
+  erroDataAtendimento,
+  erroDosSinais,
+  faltaParaFechar,
+  type FormAtendimento,
+} from "@/lib/clinica";
+import { DataAtendimento } from "@/components/app/DataAtendimento";
 import type { Cofre } from "@/lib/cofre";
 import type { OperacaoFila } from "@/lib/fila-clinica";
 import { dateTimeBR } from "@/lib/format";
@@ -315,7 +322,7 @@ function FormularioAtendimento({
   const [confirmando, setConfirmando] = useState(false);
   const somenteLeitura = rascunho.fechado;
   const falta = faltaParaFechar(form);
-  const erroSinais = erroDosSinais(form);
+  const erroSinais = erroDataAtendimento(form.data_atendimento) ?? erroDosSinais(form);
   const mexe = (chave: keyof FormAtendimento, v: string) => setForm((f) => ({ ...f, [chave]: v }));
 
   async function rodar(fechar: boolean) {
@@ -343,6 +350,11 @@ function FormularioAtendimento({
           </p>
         )}
         <div className="grid gap-3">
+          <DataAtendimento
+            value={form.data_atendimento ?? dataClinica(rascunho.abertoEm)}
+            disabled={somenteLeitura}
+            onChange={(value) => mexe("data_atendimento", value)}
+          />
           <div className="grid gap-3 sm:grid-cols-4">
             {CAMPOS_SINAIS.map((c) => (
               <div key={c.chave}>

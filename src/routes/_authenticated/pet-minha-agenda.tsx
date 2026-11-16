@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Dog, Scissors, TriangleAlert } from "lucide-
 import { toast } from "sonner";
 
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
+import { AlertaConsulta } from "@/components/app/AlertaConsulta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,13 @@ export const Route = createFileRoute("/_authenticated/pet-minha-agenda")({
         name: "description",
         content: "Atendimentos do dia do profissional do pet shop: começar e dar como pronto.",
       },
+      { property: "og:title", content: "Minha agenda clínica — ERP Ze Tech" },
+      {
+        property: "og:description",
+        content: "Consultas do profissional com alertas antes do horário agendado.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MinhaAgenda,
@@ -75,6 +83,7 @@ function MinhaAgenda() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pet-minha-agenda", dia],
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("pet_minha_agenda", { p_de: dia, p_ate: dia });
       if (error) throw error;
@@ -162,6 +171,9 @@ function MinhaAgenda() {
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {a.servicos.some((s) => s.categoria === "consulta") && (
+                    <AlertaConsulta inicio={a.inicio} situacao={a.situacao} />
+                  )}
                   <span>{rotulo(ESPECIES, a.pet.especie)}</span>
                   {a.pet.raca && <span>{a.pet.raca}</span>}
                   {a.pet.porte && <span>Porte {rotulo(PORTES, a.pet.porte).toLowerCase()}</span>}
@@ -209,7 +221,10 @@ function MinhaAgenda() {
                     )}
                     {prontuario && a.pet.id && a.servicos.some((s) => s.categoria === "vacina") && (
                       <Button asChild variant="outline">
-                        <Link to="/clinica-vacinas" search={{ agendamento: a.id, pet: a.pet.id }}>
+                        <Link
+                          to="/clinica-vacinas"
+                          search={{ agendamento: a.id, pet: a.pet.id, aplicar: undefined }}
+                        >
                           Registrar vacina
                         </Link>
                       </Button>

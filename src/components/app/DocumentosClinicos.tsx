@@ -132,21 +132,26 @@ export function DocumentosClinicos({
           <FilePlus2 className="size-4" /> Documentos
         </p>
         <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
-        <Button size="sm" variant="outline" className="min-h-11" onClick={() => setNovo("solicitacao_exame")}>
-          <FlaskConical className="size-4" /> Solicitar exames
-        </Button>
-        <Select value="" onValueChange={(v) => setNovo(v as TipoDocumento)}>
-          <SelectTrigger className="min-h-11 w-full sm:w-56">
-            <SelectValue placeholder="Emitir documento…" />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(TIPOS_DOCUMENTO) as TipoDocumento[]).map((t) => (
-              <SelectItem key={t} value={t}>
-                {TIPOS_DOCUMENTO[t].rotulo}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setNovo("solicitacao_exame")}
+          >
+            <FlaskConical className="size-4" /> Solicitar exames
+          </Button>
+          <Select value="" onValueChange={(v) => setNovo(v as TipoDocumento)}>
+            <SelectTrigger className="min-h-11 w-full sm:w-56">
+              <SelectValue placeholder="Emitir documento…" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(TIPOS_DOCUMENTO) as TipoDocumento[]).map((t) => (
+                <SelectItem key={t} value={t}>
+                  {TIPOS_DOCUMENTO[t].rotulo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -159,11 +164,21 @@ export function DocumentosClinicos({
       ) : (
         <ul className="grid gap-3 text-sm lg:grid-cols-2">
           {(lista.data ?? []).map((d) => (
-            <li key={d.id} className="grid min-w-0 content-start gap-3 rounded-md border border-border bg-card p-4">
+            <li
+              key={d.id}
+              className="grid min-w-0 content-start gap-3 rounded-md border border-border bg-card p-4"
+            >
               <div className="min-w-0">
                 <p className="break-words text-base font-semibold">{d.titulo}</p>
-                <p className="mt-1 text-sm text-muted-foreground">nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo}</p>
-                <time dateTime={d.emitido_em} className="mt-2 block font-semibold tabular-nums text-primary">{dateTimeBR(d.emitido_em)}</time>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo}
+                </p>
+                <time
+                  dateTime={d.emitido_em}
+                  className="mt-2 block font-semibold tabular-nums text-primary"
+                >
+                  {dateTimeBR(d.emitido_em)}
+                </time>
                 <p className="mt-1 break-words text-sm text-muted-foreground">{d.veterinario}</p>
                 {d.situacao === "cancelado" && (
                   <Badge variant="destructive" className="ml-2">
@@ -178,7 +193,12 @@ export function DocumentosClinicos({
                   </Link>
                 </Button>
                 {d.pode_cancelar && (
-                  <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setCancelando(d)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => setCancelando(d)}
+                  >
                     Cancelar
                   </Button>
                 )}
@@ -650,17 +670,30 @@ function EmitirDocumento({
                       const modelo = modelosExame.data?.find((m) => m.id === id);
                       if (modelo) adicionarExame(modelo.nome);
                     }}
-                    disabled={modelosExame.isPending || Boolean(modelosExame.error) || !modelosExame.data?.length || exames.length >= 30}
+                    disabled={
+                      modelosExame.isPending ||
+                      Boolean(modelosExame.error) ||
+                      !modelosExame.data?.length ||
+                      exames.length >= 30
+                    }
                   >
                     <SelectTrigger id="doc-exame-selecionar" className="w-full min-w-0">
-                      <SelectValue placeholder={modelosExame.isPending ? "Carregando exames…" : "Selecionar exame da clínica"} />
+                      <SelectValue
+                        placeholder={
+                          modelosExame.isPending
+                            ? "Carregando exames…"
+                            : "Selecionar exame da clínica"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {(modelosExame.data ?? []).map((m) => (
                         <SelectItem
                           key={m.id}
                           value={m.id}
-                          disabled={exames.some((e) => e.exame.trim().toLowerCase() === m.nome.toLowerCase())}
+                          disabled={exames.some(
+                            (e) => e.exame.trim().toLowerCase() === m.nome.toLowerCase(),
+                          )}
                         >
                           {m.nome}
                         </SelectItem>
@@ -669,18 +702,31 @@ function EmitirDocumento({
                   </Select>
                   {modelosExame.error ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm text-destructive">Não foi possível carregar os exames.</p>
-                      <Button size="sm" variant="outline" onClick={() => void modelosExame.refetch()}>Tentar novamente</Button>
+                      <p className="text-sm text-destructive">
+                        Não foi possível carregar os exames.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void modelosExame.refetch()}
+                      >
+                        Tentar novamente
+                      </Button>
                     </div>
                   ) : !modelosExame.isPending && !modelosExame.data?.length ? (
-                    <p className="text-sm text-muted-foreground">Nenhum exame ativo cadastrado. Peça à gestão para cadastrar em Modelos de exame.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum exame ativo cadastrado. Peça à gestão para cadastrar em Modelos de
+                      exame.
+                    </p>
                   ) : null}
                 </div>
                 {exames.map((e, idx) => (
                   <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <div className="min-w-0">
                       <Label>Exame</Label>
-                      <p className="flex min-h-9 items-center break-words py-1 text-sm font-medium">{e.exame}</p>
+                      <p className="flex min-h-9 items-center break-words py-1 text-sm font-medium">
+                        {e.exame}
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor={`doc-exame-obs-${idx}`}>Observação</Label>
@@ -696,16 +742,16 @@ function EmitirDocumento({
                         }
                       />
                     </div>
-                      <Button
-                        className="self-end"
-                        size="sm"
-                        variant="ghost"
-                        aria-label={`Remover ${e.exame}`}
-                        title={`Remover ${e.exame}`}
-                        onClick={() => setExames(exames.filter((_, k) => k !== idx))}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                    <Button
+                      className="self-end"
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Remover ${e.exame}`}
+                      title={`Remover ${e.exame}`}
+                      onClick={() => setExames(exames.filter((_, k) => k !== idx))}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 ))}
                 <div>

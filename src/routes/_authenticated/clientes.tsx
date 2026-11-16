@@ -542,8 +542,15 @@ function Clientes() {
                   value={form.cep}
                   onChange={(e) => setForm({ ...form, cep: e.target.value })}
                 />
-                <div id="cliente-cep-status" role="status" aria-live="polite" className={`mt-1 flex items-center gap-1 text-xs ${situacaoCep.erro ? "text-destructive" : "text-muted-foreground"}`}>
-                  {situacaoCep.carregando && <LoaderCircle className="size-3 shrink-0 animate-spin motion-reduce:animate-none" />}
+                <div
+                  id="cliente-cep-status"
+                  role="status"
+                  aria-live="polite"
+                  className={`mt-1 flex items-center gap-1 text-xs ${situacaoCep.erro ? "text-destructive" : "text-muted-foreground"}`}
+                >
+                  {situacaoCep.carregando && (
+                    <LoaderCircle className="size-3 shrink-0 animate-spin motion-reduce:animate-none" />
+                  )}
                   {situacaoCep.mensagem}
                 </div>
               </div>

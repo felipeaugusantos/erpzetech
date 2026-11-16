@@ -19,14 +19,21 @@ export type DadosTutor = {
 };
 
 export const dadosTutorVazios: DadosTutor = {
-  documento: "", cep: "", endereco: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
+  documento: "",
+  cep: "",
+  endereco: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  cidade: "",
+  estado: "",
 };
 
 export function dadosTutorParaSalvar(dados: DadosTutor) {
   const documento = limparDocumento(dados.documento);
   const juridica = documento.length > 11 || /[A-Z]/.test(documento);
   return {
-    tipo: juridica ? "PJ" as const : "PF" as const,
+    tipo: juridica ? ("PJ" as const) : ("PF" as const),
     cpf: !juridica && documento ? documento : null,
     cnpj: juridica && documento ? documento : null,
     cep: dados.cep.replace(/\D/g, "") || null,
@@ -36,10 +43,14 @@ export function dadosTutorParaSalvar(dados: DadosTutor) {
     bairro: dados.bairro.trim() || null,
     cidade: dados.cidade.trim() || null,
     estado: dados.estado.trim().toUpperCase() || null,
-    ...(dados.nome_fantasia !== undefined ? { nome_fantasia: dados.nome_fantasia.trim() || null } : {}),
+    ...(dados.nome_fantasia !== undefined
+      ? { nome_fantasia: dados.nome_fantasia.trim() || null }
+      : {}),
     ...(dados.email !== undefined ? { email: dados.email.trim() || null } : {}),
     ...(dados.whatsapp !== undefined ? { whatsapp: dados.whatsapp.trim() || null } : {}),
-    ...(dados.inscricao_estadual !== undefined ? { inscricao_estadual: dados.inscricao_estadual.trim() || null } : {}),
+    ...(dados.inscricao_estadual !== undefined
+      ? { inscricao_estadual: dados.inscricao_estadual.trim() || null }
+      : {}),
     ...(dados.observacoes !== undefined ? { observacoes: dados.observacoes.trim() || null } : {}),
   };
 }

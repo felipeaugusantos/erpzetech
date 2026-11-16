@@ -787,58 +787,66 @@ function FrenteCaixa() {
     if (!atual.some((p) => !p.erro)) return;
     enviando.current = true;
     try {
-    const restantes: Pendente[] = [];
-    let ok = 0;
-    let repetidas = 0;
-    for (const p of atual) {
-      if (p.tenant && p.tenant !== session?.profile?.tenant_id) { restantes.push(p); continue; }
-      // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
-      if (p.erro) {
-        restantes.push(p);
-        continue;
-      }
-      // Resposta perdida: a venda pode já estar no banco. Avisa em vez de reenviar em silêncio.
-      const chave = (p.params as { p_chave?: string }).p_chave;
-      if (chave) {
-        const { data: ja } = await supabase.rpc("frente_venda_existente", { p_chave: chave });
-        const existente = ja as { pedido_id: string; numero: number | null } | null;
-        if (existente) {
-          repetidas++;
-          toast.warning(
-            `Venda de ${brl(p.total)} já estava registrada${existente.numero != null ? ` (pedido nº ${existente.numero})` : ""}`,
-            {
-              description:
-                "A resposta do envio anterior tinha se perdido. A venda não foi lançada de novo: confira no caixa que o valor entrou uma vez só.",
-              duration: Infinity,
-              closeButton: true,
-            },
-          );
-          // a resposta perdida pode ter deixado a venda sem o vínculo: refaz (o banco repete sem duplicar)
-          if (p.vinculo) await vincularPet(p.vinculo, chave, existente.pedido_id);
+      const restantes: Pendente[] = [];
+      let ok = 0;
+      let repetidas = 0;
+      for (const p of atual) {
+        if (p.tenant && p.tenant !== session?.profile?.tenant_id) {
+          restantes.push(p);
           continue;
         }
-      }
-      const { data: pedidoEnviado, error } = await supabase.rpc(p.params["p_caixa_id"] ? "frente_venda_offline" : "frente_venda", p.params as never);
-      if (error) {
-        if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
-        else {
-          restantes.push({ ...p, erro: error.message });
-          toast.error("Venda guardada recusada — veja em Vendas (F7)", {
-            description: `${brl(p.total)} — ${error.message}`,
-          });
+        // recusada pelo banco: fica guardada até alguém resolver (o dinheiro já foi recebido)
+        if (p.erro) {
+          restantes.push(p);
+          continue;
         }
-      } else {
-        ok++;
-        // venda de ordem do lava rápido, plano ou pet shop: liga ao pedido que acabou de nascer
-        if (p.vinculo && chave)
-          await vincularPet(p.vinculo, chave, (pedidoEnviado as string) ?? null);
+        // Resposta perdida: a venda pode já estar no banco. Avisa em vez de reenviar em silêncio.
+        const chave = (p.params as { p_chave?: string }).p_chave;
+        if (chave) {
+          const { data: ja } = await supabase.rpc("frente_venda_existente", { p_chave: chave });
+          const existente = ja as { pedido_id: string; numero: number | null } | null;
+          if (existente) {
+            repetidas++;
+            toast.warning(
+              `Venda de ${brl(p.total)} já estava registrada${existente.numero != null ? ` (pedido nº ${existente.numero})` : ""}`,
+              {
+                description:
+                  "A resposta do envio anterior tinha se perdido. A venda não foi lançada de novo: confira no caixa que o valor entrou uma vez só.",
+                duration: Infinity,
+                closeButton: true,
+              },
+            );
+            // a resposta perdida pode ter deixado a venda sem o vínculo: refaz (o banco repete sem duplicar)
+            if (p.vinculo) await vincularPet(p.vinculo, chave, existente.pedido_id);
+            continue;
+          }
+        }
+        const { data: pedidoEnviado, error } = await supabase.rpc(
+          p.params["p_caixa_id"] ? "frente_venda_offline" : "frente_venda",
+          p.params as never,
+        );
+        if (error) {
+          if (/fetch|network|failed/i.test(error.message)) restantes.push(p);
+          else {
+            restantes.push({ ...p, erro: error.message });
+            toast.error("Venda guardada recusada — veja em Vendas (F7)", {
+              description: `${brl(p.total)} — ${error.message}`,
+            });
+          }
+        } else {
+          ok++;
+          // venda de ordem do lava rápido, plano ou pet shop: liga ao pedido que acabou de nascer
+          if (p.vinculo && chave)
+            await vincularPet(p.vinculo, chave, (pedidoEnviado as string) ?? null);
+        }
       }
+      const corrente: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
+      salvarFila(conciliarVendas(corrente, atual, restantes));
+      if (ok) toast.success(`${ok} venda(s) guardada(s) enviada(s)`);
+      if (ok || repetidas) void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
+    } finally {
+      enviando.current = false;
     }
-    const corrente: Pendente[] = JSON.parse(localStorage.getItem(chaveFila) ?? "[]");
-    salvarFila(conciliarVendas(corrente, atual, restantes));
-    if (ok) toast.success(`${ok} venda(s) guardada(s) enviada(s)`);
-    if (ok || repetidas) void qc.invalidateQueries({ queryKey: ["frente-vendas"] });
-    } finally { enviando.current = false; }
   }
 
   useEffect(() => {

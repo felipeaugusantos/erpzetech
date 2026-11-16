@@ -162,7 +162,9 @@ function NfeEntrada() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, codigo_interno, codigo_barras, descricao, unidade, unidade_compra, fator_conversao, ncm")
+        .select(
+          "id, codigo_interno, codigo_barras, descricao, unidade, unidade_compra, fator_conversao, ncm",
+        )
         .eq("ativo", true)
         .is("deleted_at", null)
         .order("descricao");
@@ -336,7 +338,9 @@ function NfeEntrada() {
       for (const i of lida.itens) {
         quantidadeEntrada(embalagensRecebidas(i), fatorDoItem(i));
         if (fatorDoItem(i) !== 1 && normaliza(unidadeEstoque(i)) === normaliza(i.unidade))
-          throw new Error(`No cadastro de "${i.descricao}", altere a unidade de estoque para UN e mantenha ${i.unidade} como unidade de compra antes de converter a embalagem.`);
+          throw new Error(
+            `No cadastro de "${i.descricao}", altere a unidade de estoque para UN e mantenha ${i.unidade} como unidade de compra antes de converter a embalagem.`,
+          );
       }
       const semGrade = lida.itens.find((i) => ehTira(i.descricao) && !gradeOk(i));
       if (semGrade)
@@ -813,7 +817,10 @@ function NfeEntrada() {
                             setQtdFisica((m) => ({ ...m, [item.seq]: e.target.value }))
                           }
                         />
-                        <Label htmlFor={`fator-${item.seq}`} className="mt-2 block text-xs font-normal text-muted-foreground">
+                        <Label
+                          htmlFor={`fator-${item.seq}`}
+                          className="mt-2 block text-xs font-normal text-muted-foreground"
+                        >
                           Unidades por embalagem
                         </Label>
                         <Input
@@ -821,16 +828,22 @@ function NfeEntrada() {
                           className="ml-auto h-8 w-24 text-right"
                           inputMode="decimal"
                           value={fatores[item.seq] ?? String(fatorDoItem(item)).replace(".", ",")}
-                          onChange={(e) => setFatores((m) => ({ ...m, [item.seq]: e.target.value }))}
+                          onChange={(e) =>
+                            setFatores((m) => ({ ...m, [item.seq]: e.target.value }))
+                          }
                         />
                         <p className="mt-2 whitespace-nowrap text-xs font-semibold">
                           Estoque: {num(qtdRecebida(item))} {unidadeEstoque(item)}
                         </p>
-                        {fatorDoItem(item) !== 1 && normaliza(unidadeEstoque(item)) === normaliza(item.unidade) && (
-                          <Link to="/produtos" className="mt-1 block text-xs text-destructive underline">
-                            Alterar unidade de estoque no cadastro para UN
-                          </Link>
-                        )}
+                        {fatorDoItem(item) !== 1 &&
+                          normaliza(unidadeEstoque(item)) === normaliza(item.unidade) && (
+                            <Link
+                              to="/produtos"
+                              className="mt-1 block text-xs text-destructive underline"
+                            >
+                              Alterar unidade de estoque no cadastro para UN
+                            </Link>
+                          )}
                       </TableCell>
                       <TableCell className="text-right text-numeric">
                         {brl(item.custo_unitario)}

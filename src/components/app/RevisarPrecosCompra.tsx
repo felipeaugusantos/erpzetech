@@ -156,7 +156,10 @@ export function RevisarPrecosCompra({
               const m = margemSobrePreco(p.custo, Number.isFinite(preco) ? preco : 0);
               const mudou = alterados.some((a) => a.id === p.id);
               return (
-                <li key={p.id} className="grid gap-2 p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+                <li
+                  key={p.id}
+                  className="grid gap-2 p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{p.descricao}</p>
                     <p className="text-xs text-muted-foreground">

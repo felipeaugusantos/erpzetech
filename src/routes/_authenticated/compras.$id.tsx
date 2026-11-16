@@ -455,11 +455,12 @@ function CompraDetalhe() {
                 {labelCompra(s)}
               </Button>
             ))}
-            {["recebido", "parcialmente_recebido"].includes(compra.situacao) && itens.length > 0 && (
-              <Button variant="outline" onClick={() => setPrecosAberto(true)}>
-                Revisar preços de venda
-              </Button>
-            )}
+            {["recebido", "parcialmente_recebido"].includes(compra.situacao) &&
+              itens.length > 0 && (
+                <Button variant="outline" onClick={() => setPrecosAberto(true)}>
+                  Revisar preços de venda
+                </Button>
+              )}
             {["recebido", "parcialmente_recebido"].includes(compra.situacao) && (
               <DevolucaoCompra compraId={id} itens={itens as never} temChave={!!compra.nfe_chave} />
             )}
