@@ -4243,6 +4243,62 @@ export type Database = {
           },
         ]
       }
+      erros_app: {
+        Row: {
+          id: string
+          impressao: string
+          mensagem: string
+          navegador: string | null
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string | null
+          situacao: string
+          situacao_em: string | null
+          stack: string | null
+          tenant_id: string | null
+          ultima_vez: string
+        }
+        Insert: {
+          id?: string
+          impressao: string
+          mensagem: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Update: {
+          id?: string
+          impressao?: string
+          mensagem?: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem?: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erros_app_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_movimentacoes: {
         Row: {
           created_at: string

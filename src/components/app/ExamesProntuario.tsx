@@ -69,9 +69,19 @@ export function ExamesProntuario({ petId }: { petId: string }) {
               </div>
               <div className="min-w-0">
                 <h4 className="break-words text-base font-semibold">{exame.nome}</h4>
-                {exame.pdf_importado && <Badge variant="secondary" className="mt-1">PDF importado</Badge>}
-                <p className="mt-2 text-sm">Emissão do laudo: {exame.data_emissao ? dateBR(exame.data_emissao) : "Não informada"}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Consulta: {exame.data_consulta ? dateBR(exame.data_consulta) : "Sem consulta vinculada"}</p>
+                {exame.pdf_importado && (
+                  <Badge variant="secondary" className="mt-1">
+                    PDF importado
+                  </Badge>
+                )}
+                <p className="mt-2 text-sm">
+                  Emissão do laudo:{" "}
+                  {exame.data_emissao ? dateBR(exame.data_emissao) : "Não informada"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Consulta:{" "}
+                  {exame.data_consulta ? dateBR(exame.data_consulta) : "Sem consulta vinculada"}
+                </p>
                 <Badge
                   className="mt-1"
                   variant={exame.situacao === "fechado" ? "default" : "outline"}
@@ -101,7 +111,11 @@ export function ExamesProntuario({ petId }: { petId: string }) {
                   {exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}
                 </Link>
               </Button>
-              {exame.pdf_importado && <div className="min-w-0 sm:col-span-2"><AnexosClinicos exameId={exame.id} podeEnviar={false} semMoldura /></div>}
+              {exame.pdf_importado && (
+                <div className="min-w-0 sm:col-span-2">
+                  <AnexosClinicos exameId={exame.id} podeEnviar={false} semMoldura />
+                </div>
+              )}
             </li>
           ))}
         </ul>

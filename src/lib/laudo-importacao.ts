@@ -37,14 +37,24 @@ export function agruparLaudoImportacao(
     // The PDF section (e.g. BIOQUÍMICA) disambiguates fields shared by several models.
     const daSecao = item.secao ? compativeis.filter((m) => m.tipo === item.secao) : [];
     const modelo =
-      exatos.length === 1 ? exatos[0]
-        : compativeis.length === 1 ? compativeis[0]
-        : !exatos.length && daSecao.length === 1 ? daSecao[0] : undefined;
+      exatos.length === 1
+        ? exatos[0]
+        : compativeis.length === 1
+          ? compativeis[0]
+          : !exatos.length && daSecao.length === 1
+            ? daSecao[0]
+            : undefined;
     if (exatos.length > 1 || (!exatos.length && compativeis.length > 1 && !modelo)) {
       const candidatos = (exatos.length ? exatos : compativeis).filter((m) => m.ativo);
-      if (!candidatos.length) throw new Error(`Os modelos para ${item.nome} estão inativos. Reative um antes de importar.`);
+      if (!candidatos.length)
+        throw new Error(
+          `Os modelos para ${item.nome} estão inativos. Reative um antes de importar.`,
+        );
       grupos.set(`escolha:${chaveLaudo(item.nome)}`, {
-        nome: item.nome, tipo, modelo_id: null, itens: [item],
+        nome: item.nome,
+        tipo,
+        modelo_id: null,
+        itens: [item],
         candidatos: candidatos.map(({ id, nome, tipo }) => ({ id, nome, tipo })),
       });
       continue;
@@ -58,36 +68,57 @@ export function agruparLaudoImportacao(
       modelo_id: modelo?.id ?? null,
       itens: [],
     };
-    const campo = modelo?.campos.find((c) => c.ativo && chaveLaudo(c.nome) === chaveLaudo(item.nome));
-    grupo.itens.push(campo && unidadesEquivalentes(item.nome, item.unidade, campo.unidade) ? { ...item, unidade: campo.unidade } : item);
+    const campo = modelo?.campos.find(
+      (c) => c.ativo && chaveLaudo(c.nome) === chaveLaudo(item.nome),
+    );
+    grupo.itens.push(
+      campo && unidadesEquivalentes(item.nome, item.unidade, campo.unidade)
+        ? { ...item, unidade: campo.unidade }
+        : item,
+    );
     grupos.set(k, grupo);
   }
   return [...grupos.values()];
 }
 
 export function modelosPendentes(grupos: readonly GrupoImportacao[]): boolean {
-  return grupos.some((g) => Boolean(g.candidatos?.length) && !g.candidatos?.some((m) => m.id === g.modelo_id));
+  return grupos.some(
+    (g) => Boolean(g.candidatos?.length) && !g.candidatos?.some((m) => m.id === g.modelo_id),
+  );
 }
 
-const un = (u: string | null) => chaveLaudo(u ?? "").replace(/\s+/g, "").replace("³", "3");
+const un = (u: string | null) =>
+  chaveLaudo(u ?? "")
+    .replace(/\s+/g, "")
+    .replace("³", "3");
 /** Only numerically identical notations: CHCM in g/dL equals %; spelling variants of the same unit. */
 export function unidadesEquivalentes(nome: string, a: string | null, b: string | null): boolean {
-  const x = un(a), y = un(b);
+  const x = un(a),
+    y = un(b);
   if (x === y) return true;
   if (chaveLaudo(nome) === "chcm") return ["g/dl", "%"].includes(x) && ["g/dl", "%"].includes(y);
-  const grupos = [["milhoes/mm3", "milh/mm3", "milh/mm", "x106/ul", "10^6/ul"], ["fl", "fl."], ["u/l", "ui/l", "u.i./l"]];
+  const grupos = [
+    ["milhoes/mm3", "milh/mm3", "milh/mm", "x106/ul", "10^6/ul"],
+    ["fl", "fl."],
+    ["u/l", "ui/l", "u.i./l"],
+  ];
   return grupos.some((g) => g.includes(x) && g.includes(y));
 }
 
 /** Fields whose PDF unit differs from the saved model; import is blocked until the user reviews them. */
-export function unidadesDivergentes(grupos: readonly GrupoImportacao[], modelos: readonly ModeloImportacao[]): string[] {
+export function unidadesDivergentes(
+  grupos: readonly GrupoImportacao[],
+  modelos: readonly ModeloImportacao[],
+): string[] {
   const out: string[] = [];
   for (const g of grupos) {
     const m = modelos.find((x) => x.id === g.modelo_id);
     for (const it of g.itens) {
       const c = m?.campos.find((x) => x.ativo && chaveLaudo(x.nome) === chaveLaudo(it.nome));
       if (c && !unidadesEquivalentes(it.nome, it.unidade, c.unidade))
-        out.push(`${it.nome}: PDF ${it.unidade ?? "sem unidade"} · modelo ${c.unidade ?? "sem unidade"}`);
+        out.push(
+          `${it.nome}: PDF ${it.unidade ?? "sem unidade"} · modelo ${c.unidade ?? "sem unidade"}`,
+        );
     }
   }
   return out;
