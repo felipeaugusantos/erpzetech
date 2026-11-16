@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Alterar a data da consulta pelo prontuário, com correção imutável e motivo para fichas fechadas; conferir gravação, permissões e celular.
+- [x] Alterar a data da consulta pelo prontuário, com correção imutável e motivo para fichas fechadas; calendário e confirmação conferidos na conta de Bruna para Pandora, computador e celular; 15 testes passaram, build OK, nenhuma consulta real alterada.
+- [ ] Conferir gravação da correção numa consulta autorizada de teste: não alterar a consulta real de Pandora durante a verificação; testes de permissões e adendo incluídos na CI.
 
 - [x] Cadastro de paciente com tutor novo: documentos, endereço completo, contatos e preferência de mensagens no formulário compartilhado com a fila offline; 22 testes passaram, gravação conferida com conta veterinária e registros temporários removidos; celular conferido, build OK.
 

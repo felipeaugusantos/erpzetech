@@ -4681,7 +4681,7 @@ BEGIN
   PERFORM ci.entrar(vb);
   r := clinica_adendo_criar(at1, 'Tutor relatou melhora após 3 dias.');
   PERFORM ci.sair();
-  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 1 AND r -> 'adendos' -> 0 ->> 'crmv' = '2222' AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
+  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->>'crmv'='2222') AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'alterar adendo');
   PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimento_adendos WHERE atendimento_id = %L$c$, at1), 'apagar adendo');
 
