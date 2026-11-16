@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ExameClinico } from "../src/lib/exames";
 
 vi.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) => <section data-open={open}>{open && children}</section>,
+  Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) => (
+    <section data-open={open}>{open && children}</section>
+  ),
   DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
   DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
@@ -19,14 +21,34 @@ it("consome a solicitação uma vez e não reabre ao montar outro exame", async 
   function Tela({ id }: { id: string }) {
     const [pedido, setPedido] = useState(1);
     const exame = { id, nome: "Bioquímica", pet: { nome: "Léo", especie: "gato" } } as ExameClinico;
-    return <QueryClientProvider client={qc}><ImportarLaudoPdf key={id} exame={exame} disabled={false} solicitacao={pedido} onConsumir={() => { consumir(); setPedido(0); }} onAplicar={() => {}} /></QueryClientProvider>;
+    return (
+      <QueryClientProvider client={qc}>
+        <ImportarLaudoPdf
+          key={id}
+          exame={exame}
+          disabled={false}
+          solicitacao={pedido}
+          onConsumir={() => {
+            consumir();
+            setPedido(0);
+          }}
+          onAplicar={() => {}}
+        />
+      </QueryClientProvider>
+    );
   }
   let renderer: ReturnType<typeof create> | undefined;
-  await act(async () => { renderer = create(<Tela id="a" />); });
+  await act(async () => {
+    renderer = create(<Tela id="a" />);
+  });
   expect(consumir).toHaveBeenCalledTimes(1);
   expect(renderer?.root.findAllByProps({ "data-open": true })).toHaveLength(1);
-  await act(async () => { renderer?.update(<Tela id="b" />); });
+  await act(async () => {
+    renderer?.update(<Tela id="b" />);
+  });
   expect(consumir).toHaveBeenCalledTimes(1);
   expect(renderer?.root.findAllByProps({ "data-open": true })).toHaveLength(0);
-  await act(async () => { renderer?.unmount(); });
+  await act(async () => {
+    renderer?.unmount();
+  });
 });

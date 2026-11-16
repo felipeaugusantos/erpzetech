@@ -6,7 +6,13 @@ import { toast } from "sonner";
 
 import { DadosCadastroTutor } from "@/components/app/DadosCadastroTutor";
 import { ClienteCombobox } from "@/components/app/ClienteCombobox";
-import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, tutoresParecidos, type DadosTutor } from "@/lib/tutor-novo";
+import {
+  dadosTutorParaSalvar,
+  dadosTutorVazios,
+  erroDoTutorNovo,
+  tutoresParecidos,
+  type DadosTutor,
+} from "@/lib/tutor-novo";
 import {
   CamposPersonalizados,
   useCamposPet,
@@ -69,7 +75,10 @@ export const Route = createFileRoute("/_authenticated/pets")({
         content: "Cadastro de pets e tutores com CPF ou CNPJ, endereço e dados dos animais.",
       },
       { property: "og:title", content: "Pets e tutores — ERP Ze Tech" },
-      { property: "og:description", content: "Pets e tutores com documentos, endereço e dados dos animais." },
+      {
+        property: "og:description",
+        content: "Pets e tutores com documentos, endereço e dados dos animais.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -160,7 +169,9 @@ function Pets() {
           .order("nome"),
         supabase
           .from("clientes")
-          .select("id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado")
+          .select(
+            "id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado",
+          )
           .is("deleted_at", null)
           .order("nome")
           .limit(2000),
@@ -548,9 +559,14 @@ function Pets() {
                       </ul>
                     </div>
                   )}
-                  <DadosCadastroTutor dados={form.novo_tutor_dados} telefone={form.novo_tutor_telefone}
+                  <DadosCadastroTutor
+                    dados={form.novo_tutor_dados}
+                    telefone={form.novo_tutor_telefone}
                     onChange={(dados) => setForm((f) => ({ ...f, novo_tutor_dados: dados }))}
-                    onTelefone={(telefone) => setForm((f) => ({ ...f, novo_tutor_telefone: telefone }))} />
+                    onTelefone={(telefone) =>
+                      setForm((f) => ({ ...f, novo_tutor_telefone: telefone }))
+                    }
+                  />
                 </div>
               ) : (
                 <>
@@ -560,15 +576,40 @@ function Pets() {
                     onChange={(id) => setForm({ ...form, cliente_id: id })}
                     placeholder="Digite o nome do tutor…"
                   />
-                  {form.cliente_id && (() => {
-                    const t = tutor(form.cliente_id);
-                    if (!t) return null;
-                    return <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                      <p>{t.cpf ? `CPF: ${t.cpf}` : t.cnpj ? `CNPJ: ${t.cnpj}` : "CPF / CNPJ não informado"}</p>
-                      <p>{[t.endereco, t.numero, t.complemento, t.bairro, t.cidade, t.estado, t.cep].filter(Boolean).join(" · ") || "Endereço não informado"}</p>
-                      <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/clientes" search={{ editar: form.cliente_id }}>Editar cadastro do tutor em Clientes</Link></Button>
-                    </div>;
-                  })()}
+                  {form.cliente_id &&
+                    (() => {
+                      const t = tutor(form.cliente_id);
+                      if (!t) return null;
+                      return (
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                          <p>
+                            {t.cpf
+                              ? `CPF: ${t.cpf}`
+                              : t.cnpj
+                                ? `CNPJ: ${t.cnpj}`
+                                : "CPF / CNPJ não informado"}
+                          </p>
+                          <p>
+                            {[
+                              t.endereco,
+                              t.numero,
+                              t.complemento,
+                              t.bairro,
+                              t.cidade,
+                              t.estado,
+                              t.cep,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Endereço não informado"}
+                          </p>
+                          <Button asChild variant="link" size="sm" className="h-auto p-0">
+                            <Link to="/clientes" search={{ editar: form.cliente_id }}>
+                              Editar cadastro do tutor em Clientes
+                            </Link>
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   {!form.id && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Não achou? Use <strong>Tutor novo</strong> para cadastrar aqui mesmo.

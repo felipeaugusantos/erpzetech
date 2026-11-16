@@ -1,13 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { conciliarVendas, saldoAposFila, chaveFilaPdv, type VendaPendente } from "../src/lib/vendas-offline.ts";
+import {
+  conciliarVendas,
+  saldoAposFila,
+  chaveFilaPdv,
+  type VendaPendente,
+} from "../src/lib/vendas-offline.ts";
 import { contextoSemServiceWorker } from "../src/lib/pwa.ts";
-const venda = (id: string): VendaPendente => ({ id, em: "2026-11-15", total: 30, params: { p_chave: id, p_forma: "dinheiro", p_itens: [{ produto_id: "p", quantidade: 3 }], p_deposito_id: "d" } });
+const venda = (id: string): VendaPendente => ({
+  id,
+  em: "2026-11-15",
+  total: 30,
+  params: {
+    p_chave: id,
+    p_forma: "dinheiro",
+    p_itens: [{ produto_id: "p", quantidade: 3 }],
+    p_deposito_id: "d",
+  },
+});
 test("sincronização conserva vendas feitas enquanto o envio aguarda", () => {
   assert.deepEqual(conciliarVendas([venda("1"), venda("2")], [venda("1")], []), [venda("2")]);
 });
 test("recusa permanece guardada com pagamento e chave originais", () => {
-  const v = venda("1"); const recusada = { ...v, erro: "Estoque insuficiente" };
+  const v = venda("1");
+  const recusada = { ...v, erro: "Estoque insuficiente" };
   assert.deepEqual(conciliarVendas([v], [v], [recusada]), [recusada]);
   assert.equal(recusada.params["p_chave"], "1");
   assert.equal(recusada.params["p_forma"], "dinheiro");
@@ -26,7 +42,13 @@ test("filas isoladas por conta e empresa", () => {
   assert.notEqual(chaveFilaPdv("a", "t"), chaveFilaPdv("a", "u"));
 });
 test("offline só registra no publicado, nunca na prévia ou iframe", () => {
-  for (const host of ["id-preview--123.lovable.app", "preview-v2--123.gpt-eng.com", "project--123-dev.lovable.app", "x.lovableproject.com", "beta.lovable.dev"]) {
+  for (const host of [
+    "id-preview--123.lovable.app",
+    "preview-v2--123.gpt-eng.com",
+    "project--123-dev.lovable.app",
+    "x.lovableproject.com",
+    "beta.lovable.dev",
+  ]) {
     assert.equal(contextoSemServiceWorker(host, true, false, false), true);
   }
   assert.equal(contextoSemServiceWorker("erpzetech.lovable.app", true, false, false), false);

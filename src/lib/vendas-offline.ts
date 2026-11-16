@@ -9,7 +9,11 @@ export type VendaPendente = {
 };
 
 /** Remove somente envios confirmados, preservando vendas feitas durante a sincronização. */
-export function conciliarVendas<T extends VendaPendente>(atual: T[], enviadas: T[], restantes: T[]): T[] {
+export function conciliarVendas<T extends VendaPendente>(
+  atual: T[],
+  enviadas: T[],
+  restantes: T[],
+): T[] {
   const lote = new Map(enviadas.map((v) => [v.id, v]));
   const retidas = new Map(restantes.map((v) => [v.id, v]));
   return atual.flatMap((v) => {
@@ -20,12 +24,26 @@ export function conciliarVendas<T extends VendaPendente>(atual: T[], enviadas: T
   });
 }
 
-export function saldoAposFila(saldo: number, produto: string, deposito: string, fila: VendaPendente[]) {
-  return Math.max(0, saldo - fila.reduce((s, v) => {
-    if (v.params['p_deposito_id'] !== deposito) return s;
-    const itens = v.params['p_itens'] as { produto_id: string; quantidade: number }[];
-    return s + itens.filter((i) => i.produto_id === produto).reduce((q, i) => q + Number(i.quantidade), 0);
-  }, 0));
+export function saldoAposFila(
+  saldo: number,
+  produto: string,
+  deposito: string,
+  fila: VendaPendente[],
+) {
+  return Math.max(
+    0,
+    saldo -
+      fila.reduce((s, v) => {
+        if (v.params["p_deposito_id"] !== deposito) return s;
+        const itens = v.params["p_itens"] as { produto_id: string; quantidade: number }[];
+        return (
+          s +
+          itens
+            .filter((i) => i.produto_id === produto)
+            .reduce((q, i) => q + Number(i.quantidade), 0)
+        );
+      }, 0),
+  );
 }
 
 export function chaveFilaPdv(usuario: string, empresa: string) {

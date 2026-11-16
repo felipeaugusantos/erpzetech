@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agruparPorDia, diaBrasilia, horaBrasilia, isoDeBrasilia } from "../src/lib/clinica-agenda-exames.ts";
+import {
+  agruparPorDia,
+  diaBrasilia,
+  horaBrasilia,
+  isoDeBrasilia,
+} from "../src/lib/clinica-agenda-exames.ts";
 
 describe("agenda de exames", () => {
   it("23h30 de Brasília fica no mesmo dia, mesmo já sendo o dia seguinte em UTC", () => {
@@ -15,6 +20,12 @@ describe("agenda de exames", () => {
       { agendado_para: "2026-11-13T12:00:00Z" },
       { agendado_para: "2026-11-13T15:00:00Z" },
     ]);
-    assert.deepEqual(g.map(([d, l]) => [d, l.length]), [["2026-11-13", 2], ["2026-11-14", 1]]);
+    assert.deepEqual(
+      g.map(([d, l]) => [d, l.length]),
+      [
+        ["2026-11-13", 2],
+        ["2026-11-14", 1],
+      ],
+    );
   });
 });

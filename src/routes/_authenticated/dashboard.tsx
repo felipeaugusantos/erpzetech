@@ -622,8 +622,16 @@ function Dashboard() {
               <LineChart data={serieCaixa} accessibilityLayer>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="dia" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickFormatter={eixoMoeda} axisLine={false} tickLine={false} />
-                <Tooltip content={<DashboardChartTooltip moeda />} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickFormatter={eixoMoeda}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  content={<DashboardChartTooltip moeda />}
+                  cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Line
                   type="monotone"
@@ -689,12 +697,40 @@ function Dashboard() {
           <h2 className="font-display text-sm font-semibold">Pedidos por etapa</h2>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={etapas} layout="vertical" accessibilityLayer barSize={16} margin={{ left: 0, right: 18 }}>
+              <BarChart
+                data={etapas}
+                layout="vertical"
+                accessibilityLayer
+                barSize={16}
+                margin={{ left: 0, right: 18 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="nome" type="category" width={130} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<DashboardChartTooltip />} cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }} />
-                <Bar dataKey="valor" name="Pedidos" fill="var(--chart-1)" radius={[0, 8, 8, 0]} isAnimationActive={false} />
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  dataKey="nome"
+                  type="category"
+                  width={130}
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  content={<DashboardChartTooltip />}
+                  cursor={{ fill: "var(--secondary)", fillOpacity: 0.6 }}
+                />
+                <Bar
+                  dataKey="valor"
+                  name="Pedidos"
+                  fill="var(--chart-1)"
+                  radius={[0, 8, 8, 0]}
+                  isAnimationActive={false}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -975,36 +1011,101 @@ function Dashboard() {
         <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
           <div>
             <Label htmlFor="dashboard-de">De</Label>
-            <Input id="dashboard-de" type="date" value={periodo.de} onChange={(e) => setDe(e.target.value)} />
+            <Input
+              id="dashboard-de"
+              type="date"
+              value={periodo.de}
+              onChange={(e) => setDe(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="dashboard-ate">Até</Label>
-            <Input id="dashboard-ate" type="date" value={periodo.ate} onChange={(e) => setAte(e.target.value)} />
+            <Input
+              id="dashboard-ate"
+              type="date"
+              value={periodo.ate}
+              onChange={(e) => setAte(e.target.value)}
+            />
           </div>
         </div>
         <div className="mt-5 border-t border-border pt-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-sm font-semibold">Faturamento por período</h2>
-              <p className="mt-1 text-xs text-muted-foreground">{dateBR(periodo.de)} — {dateBR(periodo.ate)}</p>
-              <p className="mt-2 font-display text-2xl font-bold text-numeric">{brl(receitaPeriodo)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {dateBR(periodo.de)} — {dateBR(periodo.ate)}
+              </p>
+              <p className="mt-2 font-display text-2xl font-bold text-numeric">
+                {brl(receitaPeriodo)}
+              </p>
             </div>
             <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              <div><dt className="text-xs text-muted-foreground">Custo</dt><dd className="mt-1 text-numeric font-semibold">{brl(custoPeriodo)}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Lucro · {num(margemPeriodo, 1)}%</dt><dd className={cn("mt-1 text-numeric font-semibold", lucroPeriodo >= 0 ? "text-success" : "text-destructive")}>{brl(lucroPeriodo)}</dd></div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Custo</dt>
+                <dd className="mt-1 text-numeric font-semibold">{brl(custoPeriodo)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Lucro · {num(margemPeriodo, 1)}%</dt>
+                <dd
+                  className={cn(
+                    "mt-1 text-numeric font-semibold",
+                    lucroPeriodo >= 0 ? "text-success" : "text-destructive",
+                  )}
+                >
+                  {brl(lucroPeriodo)}
+                </dd>
+              </div>
             </dl>
           </div>
-          <div className="mt-4 h-64 min-w-0" role="region" aria-label="Gráfico de faturamento diário">
+          <div
+            className="mt-4 h-64 min-w-0"
+            role="region"
+            aria-label="Gráfico de faturamento diário"
+          >
             {faturamentoDiario.length === 0 ? (
               <EmptyState className="border-0 shadow-none" title="Selecione um período válido." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={faturamentoDiario} accessibilityLayer margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                <LineChart
+                  data={faturamentoDiario}
+                  accessibilityLayer
+                  margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
+                >
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="data" tickFormatter={(d: string) => dateBR(d).slice(0, 5)} minTickGap={32} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={eixoMoeda} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} width={52} />
-                  <Tooltip content={<DashboardChartTooltip moeda />} labelFormatter={(d) => dateBR(String(d))} cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }} />
-                  <Line type="linear" dataKey="faturamento" name="Faturamento" stroke="var(--chart-1)" strokeWidth={3} dot={faturamentoDiario.length <= 7 ? { r: 3, fill: "var(--chart-1)", stroke: "var(--card)", strokeWidth: 2 } : false} activeDot={{ r: 6, stroke: "var(--card)", strokeWidth: 2 }} isAnimationActive={false} />
+                  <XAxis
+                    dataKey="data"
+                    tickFormatter={(d: string) => dateBR(d).slice(0, 5)}
+                    minTickGap={32}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={eixoMoeda}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={52}
+                  />
+                  <Tooltip
+                    content={<DashboardChartTooltip moeda />}
+                    labelFormatter={(d) => dateBR(String(d))}
+                    cursor={{ stroke: "var(--border)", strokeDasharray: "4 4" }}
+                  />
+                  <Line
+                    type="linear"
+                    dataKey="faturamento"
+                    name="Faturamento"
+                    stroke="var(--chart-1)"
+                    strokeWidth={3}
+                    dot={
+                      faturamentoDiario.length <= 7
+                        ? { r: 3, fill: "var(--chart-1)", stroke: "var(--card)", strokeWidth: 2 }
+                        : false
+                    }
+                    activeDot={{ r: 6, stroke: "var(--card)", strokeWidth: 2 }}
+                    isAnimationActive={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { dadosTutorParaSalvar, dadosTutorVazios, erroDoTutorNovo, nomeParaComparar, tutoresParecidos } from "../src/lib/tutor-novo.ts";
+import {
+  dadosTutorParaSalvar,
+  dadosTutorVazios,
+  erroDoTutorNovo,
+  nomeParaComparar,
+  tutoresParecidos,
+} from "../src/lib/tutor-novo.ts";
 
 test("CPF do tutor salva como pessoa física, sem CNPJ", () => {
   const dados = dadosTutorParaSalvar({ ...dadosTutorVazios, documento: "529.982.247-25" });
@@ -11,8 +17,14 @@ test("CPF do tutor salva como pessoa física, sem CNPJ", () => {
 });
 
 test("cadastro do tutor preserva contatos separados, apelido, inscrição e observações", () => {
-  const d = dadosTutorParaSalvar({ ...dadosTutorVazios, nome_fantasia: " Maria ", email: " maria@example.test ",
-    whatsapp: " (16) 99999-0000 ", inscricao_estadual: " ISENTO ", observacoes: " Prefere contato por e-mail. " });
+  const d = dadosTutorParaSalvar({
+    ...dadosTutorVazios,
+    nome_fantasia: " Maria ",
+    email: " maria@example.test ",
+    whatsapp: " (16) 99999-0000 ",
+    inscricao_estadual: " ISENTO ",
+    observacoes: " Prefere contato por e-mail. ",
+  });
   assert.equal(d.nome_fantasia, "Maria");
   assert.equal(d.email, "maria@example.test");
   assert.equal(d.whatsapp, "(16) 99999-0000");
@@ -28,11 +40,30 @@ test("CNPJ do tutor salva como pessoa jurídica, sem CPF", () => {
 });
 
 test("endereço do tutor mantém todos os campos e normaliza CEP e UF", () => {
-  assert.deepEqual(dadosTutorParaSalvar({ ...dadosTutorVazios,
-    cep: "14000-000", endereco: " Rua A ", numero: " 20 ", complemento: " Sala 2 ",
-    bairro: " Centro ", cidade: " Ribeirão Preto ", estado: "sp",
-  }), { tipo: "PF", cpf: null, cnpj: null, cep: "14000000", endereco: "Rua A", numero: "20",
-    complemento: "Sala 2", bairro: "Centro", cidade: "Ribeirão Preto", estado: "SP" });
+  assert.deepEqual(
+    dadosTutorParaSalvar({
+      ...dadosTutorVazios,
+      cep: "14000-000",
+      endereco: " Rua A ",
+      numero: " 20 ",
+      complemento: " Sala 2 ",
+      bairro: " Centro ",
+      cidade: " Ribeirão Preto ",
+      estado: "sp",
+    }),
+    {
+      tipo: "PF",
+      cpf: null,
+      cnpj: null,
+      cep: "14000000",
+      endereco: "Rua A",
+      numero: "20",
+      complemento: "Sala 2",
+      bairro: "Centro",
+      cidade: "Ribeirão Preto",
+      estado: "SP",
+    },
+  );
 });
 
 test("confere nome e telefone do tutor novo", () => {

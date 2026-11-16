@@ -17,29 +17,59 @@ export function DadosCadastroTutor({ dados, telefone, onChange, onTelefone }: Pr
   const situacaoCep = useConsultaCep(dados, onChange);
   const campo = (chave: keyof DadosTutor, titulo: string, classe = "", tipo = "text") => (
     <div className={classe}>
-      <Label htmlFor={`tutor-${chave}`} className="text-xs">{titulo}</Label>
-      <Input id={`tutor-${chave}`} type={tipo} value={dados[chave] ?? ""}
+      <Label htmlFor={`tutor-${chave}`} className="text-xs">
+        {titulo}
+      </Label>
+      <Input
+        id={`tutor-${chave}`}
+        type={tipo}
+        value={dados[chave] ?? ""}
         {...(chave === "cep" ? { mascara: "cep" as const } : {})}
         {...(chave === "documento" ? { mascara: "cpfcnpj" as const } : {})}
         {...(chave === "whatsapp" ? { mascara: "telefone" as const } : {})}
         maxLength={chave === "estado" ? 2 : 160}
-        {...(chave === "cep" ? { inputMode: "numeric" as const, "aria-describedby": "tutor-cep-status" } : {})}
-        onChange={(e) => onChange({ ...dados, [chave]: chave === "estado" ? e.target.value.toUpperCase() : e.target.value })} />
+        {...(chave === "cep"
+          ? { inputMode: "numeric" as const, "aria-describedby": "tutor-cep-status" }
+          : {})}
+        onChange={(e) =>
+          onChange({
+            ...dados,
+            [chave]: chave === "estado" ? e.target.value.toUpperCase() : e.target.value,
+          })
+        }
+      />
     </div>
   );
   return (
     <Tabs defaultValue="contatos" className="sm:col-span-2">
       <TabsList className="mb-3 grid h-auto w-full grid-cols-3 rounded-md">
-        <TabsTrigger value="contatos" className="gap-1.5 whitespace-normal px-2 py-2 text-xs"><MapPin className="size-4 shrink-0" />Endereço e contatos</TabsTrigger>
-        <TabsTrigger value="documentos" className="gap-1.5 px-2 py-2 text-xs"><Contact className="size-4 shrink-0" />Documentos</TabsTrigger>
-        <TabsTrigger value="observacoes" className="gap-1.5 px-2 py-2 text-xs"><FileText className="size-4 shrink-0" />Observações</TabsTrigger>
+        <TabsTrigger value="contatos" className="gap-1.5 whitespace-normal px-2 py-2 text-xs">
+          <MapPin className="size-4 shrink-0" />
+          Endereço e contatos
+        </TabsTrigger>
+        <TabsTrigger value="documentos" className="gap-1.5 px-2 py-2 text-xs">
+          <Contact className="size-4 shrink-0" />
+          Documentos
+        </TabsTrigger>
+        <TabsTrigger value="observacoes" className="gap-1.5 px-2 py-2 text-xs">
+          <FileText className="size-4 shrink-0" />
+          Observações
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="contatos" forceMount className="data-[state=inactive]:hidden">
         <div className="grid gap-3 sm:grid-cols-6">
           {campo("nome_fantasia", "Nome fantasia / apelido", "sm:col-span-6")}
           {campo("cep", "CEP", "sm:col-span-2")}
-          <div id="tutor-cep-status" role="status" aria-live="polite" className={`flex items-center gap-2 text-xs sm:col-span-4 ${situacaoCep.erro ? "text-destructive" : "text-muted-foreground"}`}>
-            {situacaoCep.carregando && <LoaderCircle className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />}{situacaoCep.mensagem}
+          <div
+            id="tutor-cep-status"
+            role="status"
+            aria-live="polite"
+            className={`flex items-center gap-2 text-xs sm:col-span-4 ${situacaoCep.erro ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {situacaoCep.carregando && (
+              <LoaderCircle className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />
+            )}
+            {situacaoCep.mensagem}
           </div>
           {campo("endereco", "Rua / avenida", "sm:col-span-4")}
           {campo("numero", "Número", "sm:col-span-2")}
@@ -47,8 +77,18 @@ export function DadosCadastroTutor({ dados, telefone, onChange, onTelefone }: Pr
           {campo("cidade", "Cidade", "sm:col-span-3")}
           {campo("estado", "UF", "sm:col-span-1")}
           {campo("complemento", "Complemento", "sm:col-span-5")}
-          <div className="sm:col-span-3"><Label htmlFor="tutor-fone" className="text-xs">Telefone (com DDD)</Label>
-            <Input id="tutor-fone" mascara="telefone" value={telefone} maxLength={30} onChange={(e) => onTelefone(e.target.value)} /></div>
+          <div className="sm:col-span-3">
+            <Label htmlFor="tutor-fone" className="text-xs">
+              Telefone (com DDD)
+            </Label>
+            <Input
+              id="tutor-fone"
+              mascara="telefone"
+              value={telefone}
+              maxLength={30}
+              onChange={(e) => onTelefone(e.target.value)}
+            />
+          </div>
           {campo("whatsapp", "WhatsApp", "sm:col-span-3")}
           {campo("email", "E-mail", "sm:col-span-6", "email")}
         </div>
@@ -61,8 +101,13 @@ export function DadosCadastroTutor({ dados, telefone, onChange, onTelefone }: Pr
       </TabsContent>
       <TabsContent value="observacoes" forceMount className="data-[state=inactive]:hidden">
         <Label htmlFor="tutor-observacoes">Observações gerais</Label>
-        <Textarea id="tutor-observacoes" rows={5} value={dados.observacoes ?? ""} maxLength={4000}
-          onChange={(e) => onChange({ ...dados, observacoes: e.target.value })} />
+        <Textarea
+          id="tutor-observacoes"
+          rows={5}
+          value={dados.observacoes ?? ""}
+          maxLength={4000}
+          onChange={(e) => onChange({ ...dados, observacoes: e.target.value })}
+        />
       </TabsContent>
     </Tabs>
   );

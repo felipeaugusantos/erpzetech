@@ -1,13 +1,34 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lerLaudoTexto, corresponderLaudo, conferirPacienteLaudo, type CampoLaudo } from "../src/lib/laudo-exame-pdf.ts";
-const cabecalho = "Paciente | Idade | Sexo\nLEO | 7a | Macho\nResponsável | Raça | Data coleta\nBRUNA | Felino / SRD | 03/08/2026\n";
-const texto = cabecalho + "LEUCOGRAMA | Relativo | Absoluto | Valor Rel. Ref. | Valor Abs. Ref.\nLEUCÓCITOS TOTAIS | 6.600 | 5.500 a 19.500\nSEGMENTADOS | 40 | 2.640 | 35 a 75 | 2.500 a 12.500\nPLAQUETOGRAMA | Resultado | Referência\nPLAQUETAS | 247.000 | 200 a 500\n";
-const campo = (id: string, nome: string, unidade: string, forma = "numero", total_id: string | null = null, pct_id: string | null = null): CampoLaudo => ({ id, nome, unidade, forma, casas: 0, total_id, pct_id });
+import {
+  lerLaudoTexto,
+  corresponderLaudo,
+  conferirPacienteLaudo,
+  type CampoLaudo,
+} from "../src/lib/laudo-exame-pdf.ts";
+const cabecalho =
+  "Paciente | Idade | Sexo\nLEO | 7a | Macho\nResponsável | Raça | Data coleta\nBRUNA | Felino / SRD | 03/08/2026\n";
+const texto =
+  cabecalho +
+  "LEUCOGRAMA | Relativo | Absoluto | Valor Rel. Ref. | Valor Abs. Ref.\nLEUCÓCITOS TOTAIS | 6.600 | 5.500 a 19.500\nSEGMENTADOS | 40 | 2.640 | 35 a 75 | 2.500 a 12.500\nPLAQUETOGRAMA | Resultado | Referência\nPLAQUETAS | 247.000 | 200 a 500\n";
+const campo = (
+  id: string,
+  nome: string,
+  unidade: string,
+  forma = "numero",
+  total_id: string | null = null,
+  pct_id: string | null = null,
+): CampoLaudo => ({ id, nome, unidade, forma, casas: 0, total_id, pct_id });
 
 test("PDF de Leo preserva resultado 6600 e referência absoluta 5500 a 19500", () => {
   const l = lerLaudoTexto(texto);
-  assert.deepEqual(l.itens[0], { nome: "Leucócitos totais", valor: 6600, unidade: null, minimo: 5500, maximo: 19500 });
+  assert.deepEqual(l.itens[0], {
+    nome: "Leucócitos totais",
+    valor: 6600,
+    unidade: null,
+    minimo: 5500,
+    maximo: 19500,
+  });
   assert.equal(l.coleta, "2026-08-03");
   assert.equal(l.especie, "gato");
 });
@@ -21,7 +42,10 @@ test("importa apenas a referência absoluta dos segmentados, não a relativa", (
 });
 test("plaquetas com escala ambígua não são convertidas nem importadas", () => {
   const l = lerLaudoTexto(texto);
-  assert.equal(l.itens.some(i => i.nome === "Plaquetas"), false);
+  assert.equal(
+    l.itens.some((i) => i.nome === "Plaquetas"),
+    false,
+  );
   assert.match(l.avisos.join(""), /escalas diferentes/);
 });
 test("bloqueia paciente ou espécie diferente e laudos de múltiplos pacientes", () => {
@@ -34,39 +58,84 @@ test("bloqueia paciente ou espécie diferente e laudos de múltiplos pacientes",
 test("não mistura unidades incompatíveis ou campos duplicados", () => {
   const l = lerLaudoTexto(texto);
   assert.equal(corresponderLaudo(l, [campo("a", "Leucócitos totais", "%")]).length, 0);
-  assert.equal(corresponderLaudo(l, [campo("a", "Leucócitos totais", "células/mm³"), campo("b", "Leucócitos totais", "células/mm³")]).length, 0);
+  assert.equal(
+    corresponderLaudo(l, [
+      campo("a", "Leucócitos totais", "células/mm³"),
+      campo("b", "Leucócitos totais", "células/mm³"),
+    ]).length,
+    0,
+  );
 });
 test("absoluto calculado precisa bater com total e percentual do laudo", () => {
   const l = lerLaudoTexto(texto);
-  const campos = [campo("a", "Leucócitos totais", "células/mm³"), campo("b", "Segmentados (%)", "%"), campo("c", "Segmentados (abs.)", "células/mm³", "calculado", "a", "b")];
+  const campos = [
+    campo("a", "Leucócitos totais", "células/mm³"),
+    campo("b", "Segmentados (%)", "%"),
+    campo("c", "Segmentados (abs.)", "células/mm³", "calculado", "a", "b"),
+  ];
   assert.equal(corresponderLaudo(l, campos).length, 3);
   const divergente = lerLaudoTexto(texto.replace("2.640", "2.641"));
   assert.equal(corresponderLaudo(divergente, campos).length, 2);
 });
 test("bioquímica mantém decimal de creatinina e não copia referência fora do leucograma", () => {
   const l = lerLaudoTexto(cabecalho + "CREATININA\n1,3 mg/dL | 0,7 a 1,9 mg/dL");
-  assert.deepEqual(l.itens[0], { nome: "Creatinina", valor: 1.3, unidade: "mg/dL", minimo: null, maximo: null });
+  assert.deepEqual(l.itens[0], {
+    nome: "Creatinina",
+    valor: 1.3,
+    unidade: "mg/dL",
+    minimo: null,
+    maximo: null,
+  });
 });
 test("lê os cinco resultados de Léo com títulos Resultado e Referência em linha separada", () => {
-  const laudo = lerLaudoTexto(cabecalho + [
-    "ALT (TGP) | Resultado | Referência", "26,9 U/L | 10,0 a 80,0 U/L",
-    "CREATININA | Resultado | Referência", "1,3 mg/dL | 0,7 a 1,9 mg/dL",
-    "URÉIA | Resultado | Referência", "50,5 mg/dL | 10,0 a 75,0 mg/dL",
-    "FA - FOSFATASE ALCALINA | Resultado | Referência", "30,5 U/L | 10,0 a 96,0 U/L",
-    "ALBUMINA | Resultado | Referência", "2,7 g/dL | 2,1 a 3,9 g/dL",
-  ].join("\n"));
-  const campos = [campo("a", "ALT (TGP)", "U/L"), campo("b", "Creatinina", "mg/dL"), campo("c", "Ureia", "mg/dL"), campo("d", "Fosfatase alcalina", "U/L"), campo("e", "Albumina", "g/dL")];
-  assert.deepEqual(corresponderLaudo(laudo, campos).map(({ item }) => [item.nome, item.valor]), [
-    ["ALT (TGP)", 26.9], ["Creatinina", 1.3], ["Ureia", 50.5], ["Fosfatase alcalina", 30.5], ["Albumina", 2.7],
-  ]);
+  const laudo = lerLaudoTexto(
+    cabecalho +
+      [
+        "ALT (TGP) | Resultado | Referência",
+        "26,9 U/L | 10,0 a 80,0 U/L",
+        "CREATININA | Resultado | Referência",
+        "1,3 mg/dL | 0,7 a 1,9 mg/dL",
+        "URÉIA | Resultado | Referência",
+        "50,5 mg/dL | 10,0 a 75,0 mg/dL",
+        "FA - FOSFATASE ALCALINA | Resultado | Referência",
+        "30,5 U/L | 10,0 a 96,0 U/L",
+        "ALBUMINA | Resultado | Referência",
+        "2,7 g/dL | 2,1 a 3,9 g/dL",
+      ].join("\n"),
+  );
+  const campos = [
+    campo("a", "ALT (TGP)", "U/L"),
+    campo("b", "Creatinina", "mg/dL"),
+    campo("c", "Ureia", "mg/dL"),
+    campo("d", "Fosfatase alcalina", "U/L"),
+    campo("e", "Albumina", "g/dL"),
+  ];
+  assert.deepEqual(
+    corresponderLaudo(laudo, campos).map(({ item }) => [item.nome, item.valor]),
+    [
+      ["ALT (TGP)", 26.9],
+      ["Creatinina", 1.3],
+      ["Ureia", 50.5],
+      ["Fosfatase alcalina", 30.5],
+      ["Albumina", 2.7],
+    ],
+  );
 });
 
 for (const [nome, minimo, maximo] of [
-  ["METAMIELÓCITOS", 0, 0], ["BASTONETES", 0, 300], ["SEGMENTADOS", 2500, 12500],
-  ["EOSINÓFILOS", 120, 1500], ["LINFÓCITOS", 1500, 7000], ["MONÓCITOS", 0, 850], ["BASÓFILOS", 0, 190],
+  ["METAMIELÓCITOS", 0, 0],
+  ["BASTONETES", 0, 300],
+  ["SEGMENTADOS", 2500, 12500],
+  ["EOSINÓFILOS", 120, 1500],
+  ["LINFÓCITOS", 1500, 7000],
+  ["MONÓCITOS", 0, 850],
+  ["BASÓFILOS", 0, 190],
 ] as const) {
   test(`referência absoluta de ${nome}: ${minimo} a ${maximo}`, () => {
-    const l = lerLaudoTexto(cabecalho + `LEUCOGRAMA | Relativo | Absoluto | Valor Rel. Ref. | Valor Abs. Ref.\n${nome} | 0 | 0 | 0 a 1 | ${minimo.toLocaleString("pt-BR")} a ${maximo.toLocaleString("pt-BR")}`);
+    const l = lerLaudoTexto(
+      cabecalho +
+        `LEUCOGRAMA | Relativo | Absoluto | Valor Rel. Ref. | Valor Abs. Ref.\n${nome} | 0 | 0 | 0 a 1 | ${minimo.toLocaleString("pt-BR")} a ${maximo.toLocaleString("pt-BR")}`,
+    );
     assert.equal(l.itens[1]?.minimo, minimo);
     assert.equal(l.itens[1]?.maximo, maximo);
   });
