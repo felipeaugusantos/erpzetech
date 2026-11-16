@@ -11,7 +11,7 @@ export type LaudoPdf = {
   paciente: string;
   especie: string;
   coleta: string;
-  emissao?: string;
+  emissao?: string | undefined;
   itens: ItemLaudo[];
   avisos: string[];
 };

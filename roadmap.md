@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Importar referências explícitas do PDF sem alterar modelos anteriores; mostrar PDFs e emissão no prontuário ao lado das consultas, sem confundir emissão com coleta ou importação.
+- [x] Importar referências explícitas do PDF sem alterar modelos anteriores; PDF real conferido no navegador: 32 resultados e 23 faixas exatas, sem arredondar. PDFs e emissão no prontuário ao lado das consultas, sem confundir emissão com coleta ou importação. 46 testes passaram; conferência da tela autenticada bloqueada pelo aceite dos termos, não aceitos em nome do usuário. Nenhum laudo real alterado.
 
 - [x] Laudos por paciente: seleção direta e acesso nos dois menus clínicos, histórico com PDFs originais e datas de coleta, consulta vinculada, validação e emissão da impressão; 19 testes passaram e data de consulta conferida no banco.
 - [ ] Conferir histórico e impressão com sessão veterinária autorizada: conta disponível está na tela de aceite dos termos; não aceitar em nome do usuário nem alterar exames reais.
