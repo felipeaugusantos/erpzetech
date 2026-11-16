@@ -166,7 +166,8 @@ export async function aplicarEvento(p: {
     p_acao: p.acao,
     p_valor: p.valor,
     p_forma: p.forma,
-    ...(p.data ? { p_data: p.data } : {}),
+    // sempre enviado (nulo quando o evento não traz data): a função do banco exige os seis parâmetros
+    p_data: p.data,
     p_status: p.status,
   } as never);
   if (error) throw new Error(`saas_cobranca_evento: ${error.message}`);

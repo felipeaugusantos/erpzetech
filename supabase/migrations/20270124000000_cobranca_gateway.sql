@@ -90,6 +90,7 @@ REVOKE ALL ON FUNCTION public.saas_gerar_faturas_auto() FROM PUBLIC, anon, authe
 GRANT EXECUTE ON FUNCTION public.saas_gerar_faturas_auto() TO service_role;
 
 -- Faturas em aberto, ainda sem cobrança no gateway, de clientes ativos com cobrança automática (não cobra de novo o que passou de 30 dias de atraso).
+-- `valor` é o SALDO (valor da fatura menos o que já foi pago, por exemplo por baixa parcial manual): o gateway cobra só o que falta.
 CREATE OR REPLACE FUNCTION public.saas_cobranca_pendentes(p_limite integer DEFAULT 20)
 RETURNS TABLE (
   fatura_id uuid, cliente_id uuid, descricao text, valor numeric, vencimento date,
@@ -100,7 +101,7 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT f.id, c.id, f.descricao, f.valor, f.vencimento, c.nome, c.documento, c.email, c.whatsapp, c.gateway_cliente_id
+  SELECT f.id, c.id, f.descricao, (f.valor - f.valor_pago), f.vencimento, c.nome, c.documento, c.email, c.whatsapp, c.gateway_cliente_id
     FROM public.saas_faturas f
     JOIN public.saas_clientes c ON c.id = f.cliente_id
    WHERE c.cobranca_automatica AND c.situacao = 'ativo'

@@ -12671,6 +12671,13 @@ BEGIN
   -- vínculo com o gateway
   EXECUTE 'SET ROLE service_role';
   PERFORM ci.exige((SELECT count(*) = 1 FROM saas_cobranca_pendentes(50) WHERE fatura_id = fat), 'fatura sem cobrança no gateway aparece como pendente');
+  RESET ROLE;
+  UPDATE saas_faturas SET valor_pago = 100 WHERE id = fat;
+  EXECUTE 'SET ROLE service_role';
+  PERFORM ci.exige((SELECT valor = (SELECT valor - 100 FROM saas_faturas WHERE id = fat) FROM saas_cobranca_pendentes(50) WHERE fatura_id = fat), 'fatura com baixa parcial é cobrada só pelo saldo');
+  RESET ROLE;
+  UPDATE saas_faturas SET valor_pago = 0 WHERE id = fat;
+  EXECUTE 'SET ROLE service_role';
   PERFORM ci.exige(saas_cobranca_vincular_cliente(cli, 'cus_ci_1') = 'cus_ci_1', 'vincula o cliente do gateway');
   PERFORM ci.exige(saas_cobranca_vincular_cliente(cli, 'cus_ci_2') = 'cus_ci_1', 'o primeiro vínculo do cliente vale');
   PERFORM ci.exige(saas_cobranca_vincular_fatura(fat, 'pay_ci_1', 'https://www.asaas.com/i/ci1', 'https://www.asaas.com/b/ci1', 'PENDING'), 'vincula a cobrança da fatura');

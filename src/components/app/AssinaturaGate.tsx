@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useOnline } from "@/hooks/useOnline";
 import { Button } from "@/components/ui/button";
 import { lerSituacaoAssinatura, type SituacaoAssinatura } from "@/lib/cobranca-gateway";
 import { brl, dateBR } from "@/lib/format";
@@ -16,6 +17,7 @@ import { DADOS_LEGAIS } from "@/lib/legal";
  * O bloqueio é da tela; a proteção dos dados continua sendo o login e o isolamento por empresa no banco.
  */
 export function AssinaturaGate({ userId, children }: { userId: string; children: ReactNode }) {
+  const online = useOnline();
   const { data: situacao } = useQuery({
     queryKey: ["assinatura-situacao", userId],
     queryFn: async (): Promise<SituacaoAssinatura | null> => {
@@ -28,6 +30,8 @@ export function AssinaturaGate({ userId, children }: { userId: string; children:
     refetchOnWindowFocus: true,
   });
 
+  // sem internet nunca bloqueia (caixa e telas offline seguem); a situação é conferida de novo ao reconectar
+  if (!online) return <>{children}</>;
   if (situacao?.bloqueado) return <TelaDeBloqueio situacao={situacao} />;
   return (
     <>

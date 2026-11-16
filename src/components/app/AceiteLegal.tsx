@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useOnline } from "@/hooks/useOnline";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatarVersaoLegal, VERSAO_LEGAL } from "@/lib/legal";
@@ -16,6 +17,7 @@ export function AceiteLegal({ userId, children }: { userId: string; children: Re
   const qc = useQueryClient();
   const chave = ["aceite-legal", userId, VERSAO_LEGAL] as const;
   const [marcado, setMarcado] = useState(false);
+  const online = useOnline();
 
   const { data: aceitou } = useQuery({
     queryKey: chave,
@@ -39,7 +41,8 @@ export function AceiteLegal({ userId, children }: { userId: string; children: Re
       toast.error("Não foi possível registrar o aceite. Confira a internet e tente de novo."),
   });
 
-  if (aceitou !== false) return <>{children}</>;
+  // sem internet o sistema abre normalmente (caixa e telas offline); o aceite é pedido na próxima entrada com conexão
+  if (!online || aceitou !== false) return <>{children}</>;
 
   return (
     <div
