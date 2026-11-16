@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { AudioConsulta } from "@/components/app/AudioConsulta";
 import { DataAtendimento } from "@/components/app/DataAtendimento";
+import { ProximaConsulta } from "@/components/app/ProximaConsulta";
 import { aplicarTranscricao, type CampoAudio } from "@/lib/consulta-audio";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -360,6 +361,11 @@ function Atendimento() {
               com o seu nome e CRMV. A consulta vai para pronto e a recepção faz a cobrança.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 border-y border-border py-3">
+            <p className="text-sm font-semibold">Próxima consulta</p>
+            <ProximaConsulta petId={data.pet_id} petNome={p.nome} diaSugerido={form.retorno_em}
+              aoAgendar={(dia) => setForm((atual) => atual ? { ...atual, retorno_em: dia } : atual)} />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmando(false)}>
               Voltar
