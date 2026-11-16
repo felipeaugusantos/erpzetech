@@ -20,7 +20,7 @@ type Opcoes = {
 };
 
 export function ProximaConsulta({ petId, petNome, diaSugerido = "", aoAgendar }: {
-  petId: string; petNome: string; diaSugerido?: string; aoAgendar?: (dia: string) => void;
+  petId: string; petNome: string; diaSugerido?: string; aoAgendar?: ((dia: string) => void) | undefined;
 }) {
   const [aberto, setAberto] = useState(false);
   return <>
@@ -30,7 +30,7 @@ export function ProximaConsulta({ petId, petNome, diaSugerido = "", aoAgendar }:
 }
 
 function AgendarConsulta({ petId, petNome, diaSugerido, aoFechar, aoAgendar }: {
-  petId: string; petNome: string; diaSugerido: string; aoFechar: () => void; aoAgendar?: (dia: string) => void;
+  petId: string; petNome: string; diaSugerido: string; aoFechar: () => void; aoAgendar?: ((dia: string) => void) | undefined;
 }) {
   const qc = useQueryClient();
   const [dia, setDia] = useState(diaSugerido);
@@ -65,7 +65,7 @@ function AgendarConsulta({ petId, petNome, diaSugerido, aoFechar, aoAgendar }: {
       return r.data as unknown as { inicio: string; veterinario: string };
     },
     onSuccess: (r) => {
-      for (const key of ["clinica-proxima-consulta", "pet-agenda", "pet-minha-agenda", "clinica-pacientes-atendidos", "clinica-painel", "clinica-veterinarios", "dashboard-pet"])
+      for (const key of ["clinica-proxima-consulta", "pet-agenda", "pet-minha-agenda", "clinica-pacientes-atendidos", "clinica-painel-pacientes", "clinica-visao-veterinarios", "clinica-fila-agora", "dashboard-pet"])
         void qc.invalidateQueries({ queryKey: [key] });
       aoAgendar?.(dia);
       toast.success("Próxima consulta agendada", { description: `${dateTimeBR(r.inicio)} · ${r.veterinario}` });

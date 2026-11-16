@@ -4,6 +4,7 @@ import { inicioProximaConsulta, erroProximaConsulta } from "../src/lib/proxima-c
 
 test("próxima consulta usa o horário de Brasília", () => {
   assert.equal(inicioProximaConsulta("2026-11-17", "10:30"), "2026-11-17T13:30:00.000Z");
+  assert.equal(inicioProximaConsulta("2026-11-17", "23:30"), "2026-11-18T02:30:00.000Z");
 });
 test("agendamento exige horário futuro", () => {
   const agora = new Date("2026-11-16T13:31:00Z");
@@ -14,4 +15,5 @@ test("agendamento exige horário futuro", () => {
 test("horários inválidos não geram agendamento", () => {
   assert.equal(inicioProximaConsulta("2026-11-17", "25:00"), null);
   assert.equal(inicioProximaConsulta("", "10:00"), null);
+  assert.equal(inicioProximaConsulta("2026-02-30", "10:00"), null);
 });
