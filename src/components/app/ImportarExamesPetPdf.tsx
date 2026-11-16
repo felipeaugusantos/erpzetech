@@ -50,7 +50,9 @@ export function ImportarExamesPetPdf({
       const { textoDoPdf } = await import("@/lib/danfe-pdf");
       const laudo = lerLaudoTexto(await textoDoPdf(file));
       if (!conferirPacienteLaudo(laudo, pet))
-        throw new Error("O paciente ou a espécie do PDF não corresponde ao pet selecionado.");
+        throw new Error(
+          `PDF: ${laudo.paciente} (${laudo.especie === "cao" ? "Cão" : laudo.especie === "gato" ? "Gato" : laudo.especie}). Paciente selecionado: ${pet.nome} (${pet.especie === "cao" ? "Cão" : pet.especie === "gato" ? "Gato" : pet.especie}). Abra os exames do paciente indicado no PDF para importar.`,
+        );
       const { data, error } = await supabase.rpc("clinica_exame_modelos");
       if (error) throw error;
       const grupos = agruparLaudoImportacao(laudo, (data ?? []) as unknown as ModeloImportacao[]);
@@ -161,6 +163,7 @@ export function ImportarExamesPetPdf({
           </Button>
           {previa && (
             <>
+              <p className="text-sm font-medium">Paciente no PDF: {previa.laudo.paciente} · {previa.laudo.especie === "cao" ? "Cão" : "Gato"}</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="pdf-lab">Laboratório</Label>
