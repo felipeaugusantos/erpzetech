@@ -4,7 +4,7 @@
 - [ ] Validar em sandbox do Asaas (rodada diária, webhook real, baixa e reativação) e configurar as variáveis e o agendamento diário.
 - [ ] Cartão cobrado sozinho todo mês (tokenização do Asaas): exige habilitar no Asaas, decidir o escopo PCI e capturar o cartão.
 - [x] Tela /planos da empresa migrada para a assinatura real: `assinatura_resumo()` (migração 20270125, seção 106 do smoke, CI do banco verde) lê saas_clientes/saas_planos/saas_faturas só para administrador e gestor; tela só de leitura com link de pagamento (gateway, boleto ou Pix), sem alterar plano, registrar pagamento nem lançar implantação. 5 testes de lógica novos, tsc e lint OK. Tela não vista no navegador com sessão real.
-- [ ] Revogar a escrita da empresa em `assinaturas`/`assinatura_faturas` (sem uso agora) e depois apagar as tabelas.
+- [x] Escrita da empresa revogada em `assinaturas`/`assinatura_faturas` (migração 20270126, seção 107 do smoke) e função `gerar_faturas_assinatura` fechada para usuários; leitura mantida. Apagar as tabelas fica para depois de um tempo sem uso (a função `assinatura_taxa_inicial` ainda lê `assinaturas`).
 
 - [x] CI do banco verde de ponta a ponta (migrações + smoke + exame-exclusao + concorrência da agenda) e teste do backup: migração 0095 (política do contador no log e na fila de exclusão de exames; trava do contador em `clinica_exame_excluir` e `clinica_exame_exclusao_acesso`), listas do smoke para a agenda de exames e receitas, catálogo do backup (log de exclusões entra; fila de limpeza fica fora) e ajuste dos testes `exame-exclusao.sql` (clínica liberada na transação e RLS escondendo a linha no UPDATE). 1267 testes passaram, CI do banco local OK.
 

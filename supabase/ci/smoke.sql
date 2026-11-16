@@ -12805,3 +12805,26 @@ BEGIN
   DELETE FROM saas_faturas WHERE cliente_id = cli;
   DELETE FROM saas_clientes WHERE id = cli;
 END $$;
+
+-- 107. Tabelas antigas de assinatura (assinaturas e assinatura_faturas): somente leitura para a empresa. Ninguém insere, altera ou apaga, nem anônimo;
+-- a leitura segue; a função que lançava faturas nelas não é mais executável por usuário
+DO $$
+DECLARE
+  adm constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  v_ass uuid;
+BEGIN
+  SELECT id INTO v_ass FROM assinaturas LIMIT 1;
+  PERFORM ci.deve_falhar(adm, 'UPDATE assinaturas SET valor_mensal = 1', 'administrador altera a assinatura antiga');
+  PERFORM ci.deve_falhar(adm, 'DELETE FROM assinaturas', 'administrador apaga a assinatura antiga');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO assinatura_faturas (tenant_id, assinatura_id, tipo, descricao, valor, vencimento) SELECT tenant_id, id, 'avulso', 'x', 1, current_date FROM assinaturas WHERE id = %L$c$, v_ass), 'administrador cria fatura antiga');
+  PERFORM ci.deve_falhar(adm, 'UPDATE assinatura_faturas SET valor_pago = valor', 'administrador marca a própria fatura antiga como paga');
+  PERFORM ci.deve_falhar(adm, 'DELETE FROM assinatura_faturas', 'administrador apaga fatura antiga');
+  PERFORM ci.deve_falhar(gar, 'UPDATE assinaturas SET valor_mensal = 1', 'garçom altera a assinatura antiga');
+  PERFORM ci.deve_falhar(NULL, 'UPDATE assinatura_faturas SET valor_pago = valor', 'anônimo altera fatura antiga');
+  PERFORM ci.deve_falhar(adm, 'SELECT gerar_faturas_assinatura()', 'administrador gera faturas nas tabelas antigas');
+  PERFORM ci.deve_falhar(NULL, 'SELECT gerar_faturas_assinatura()', 'anônimo gera faturas nas tabelas antigas');
+  PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM assinaturas') >= 0, 'a leitura da assinatura antiga segue funcionando');
+  PERFORM ci.exige(NOT has_table_privilege('authenticated', 'public.assinaturas', 'UPDATE') AND NOT has_table_privilege('authenticated', 'public.assinatura_faturas', 'INSERT'), 'o papel authenticated não tem escrita nas tabelas antigas');
+  PERFORM ci.exige(has_table_privilege('service_role', 'public.assinatura_faturas', 'INSERT'), 'o serviço mantém o acesso total');
+END $$;
