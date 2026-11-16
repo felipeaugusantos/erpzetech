@@ -184,7 +184,7 @@ export function ImportarExamesPetPdf({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pdf-coleta">Data da coleta</Label>
+                  <Label htmlFor="pdf-coleta">Data do exame (coleta ou atendimento)</Label>
                   <Input
                     id="pdf-coleta"
                     type="date"
@@ -284,7 +284,7 @@ export function ImportarExamesPetPdf({
                   checked={confirmado}
                   onCheckedChange={(v) => setConfirmado(v === true)}
                 />
-                Conferi paciente, espécie, coleta, resultados e unidades; autorizo criar os modelos
+                Conferi paciente, espécie, data do exame, resultados e unidades; autorizo criar os modelos
                 e campos faltantes e salvar os exames em rascunho.
               </label>
               <div className="flex justify-end">

@@ -71,9 +71,7 @@ function lerLacvet(linhas: string[]): LaudoPdf {
   const pacientes = new Set<string>();
   const especies = new Set<string>();
   const itens: ItemLaudo[] = [];
-  const avisos = [
-    "O cabeçalho informa a data de atendimento, não a data de coleta. Confira e informe a coleta antes de salvar.",
-  ];
+  const avisos: string[] = [];
   let secao = "";
   let analito = "";
   const limpar = (s: string) => s.replace(/[.:]+$/g, "").trim();
@@ -165,10 +163,32 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
     return m ? [`${m[3]}-${m[2]}-${m[1]}`] : [];
   }));
   const emissao = emissoes.size === 1 ? [...emissoes][0] : undefined;
-  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return { ...lerLacvet(linhas), emissao };
+  const datasColeta = new Set<string>();
+  const datasAtendimento = new Set<string>();
+  for (let i = 0; i < linhas.length; i++) {
+    const linha = chaveLaudo(linhas[i] ?? "");
+    for (const m of linha.matchAll(/data\s+(?:de\s+)?(coleta|atendimento)[.:\s|]*(\d{2})\/(\d{2})\/(\d{4})/g)) {
+      const datas = m[1] === "coleta" ? datasColeta : datasAtendimento;
+      datas.add(`${m[4]}-${m[3]}-${m[2]}`);
+    }
+    // Older reports put the collection date in the following table row.
+    if (/raca\s*\|\s*data (?:de )?coleta/.test(linha)) {
+      const d = (linhas[i + 1] ?? "").split("|")[2]?.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (d) datasColeta.add(`${d[3]}-${d[2]}-${d[1]}`);
+    }
+  }
+  const datas = datasColeta.size ? datasColeta : datasAtendimento;
+  const dataExame = datas.size === 1 ? [...datas][0] ?? "" : "";
+  const avisosDatas = datas.size > 1
+    ? ["O PDF informa datas diferentes para o exame. Confira e informe a data antes de salvar."]
+    : [];
+  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) {
+    const laudo = lerLacvet(linhas);
+    return { ...laudo, coleta: dataExame, emissao, avisos: [...laudo.avisos, ...avisosDatas] };
+  }
   const pacientes = new Set<string>();
   const especies = new Set<string>();
-  let coleta = "";
+  const coleta = dataExame;
   for (let i = 0; i < linhas.length; i++) {
     const linha = chaveLaudo(linhas[i] ?? "");
     if (linha.startsWith("paciente |")) {
@@ -180,8 +200,6 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
       const raca = chaveLaudo(partes[1] ?? "");
       if (raca.startsWith("felino")) especies.add("gato");
       if (raca.startsWith("canino")) especies.add("cao");
-      const d = partes[2]?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (d) coleta = `${d[3]}-${d[2]}-${d[1]}`;
     }
   }
   if (pacientes.size !== 1 || especies.size !== 1)
@@ -189,7 +207,7 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
       "Não foi possível identificar um único paciente e espécie no PDF. Confira o laudo manualmente.",
     );
   const itens: ItemLaudo[] = [];
-  const avisos: string[] = [];
+  const avisos: string[] = [...avisosDatas];
   let leucograma = false;
   let pendente = "";
   for (const linha of linhas) {

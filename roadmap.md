@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Importação de PDF: preencher a data do exame pela Data de Coleta ou, na ausência, Data de Atendimento; emissão permanece independente e datas divergentes exigem conferência.
+
 - [x] Importar referências explícitas do PDF sem alterar modelos anteriores; PDF real conferido no navegador: 32 resultados e 23 faixas exatas, sem arredondar. PDFs e emissão no prontuário ao lado das consultas, sem confundir emissão com coleta ou importação. 46 testes passaram; conferência da tela autenticada bloqueada pelo aceite dos termos, não aceitos em nome do usuário. Nenhum laudo real alterado.
 
 - [x] Laudos por paciente: seleção direta e acesso nos dois menus clínicos, histórico com PDFs originais e datas de coleta, consulta vinculada, validação e emissão da impressão; 19 testes passaram e data de consulta conferida no banco.
