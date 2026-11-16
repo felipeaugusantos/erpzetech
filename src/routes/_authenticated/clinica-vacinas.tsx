@@ -42,6 +42,7 @@ export const Route = createFileRoute("/_authenticated/clinica-vacinas")({
     agendamento:
       typeof search["agendamento"] === "string" ? (search["agendamento"] as string) : undefined,
     pet: typeof search["pet"] === "string" ? (search["pet"] as string) : undefined,
+    aplicar: search["aplicar"] === true || search["aplicar"] === "1" ? true : undefined,
   }),
   head: () => ({
     meta: [
@@ -112,7 +113,12 @@ function VacinasModulo() {
 }
 
 function Vacinas() {
-  const { agendamento, pet } = Route.useSearch();
+  const { agendamento, pet, aplicar: abrirAplicacao } = Route.useSearch();
+  const [avulso, setAvulso] = useState(Boolean(abrirAplicacao));
+  const [servicoId, setServicoId] = useState("");
+  const [aplicadaEm, setAplicadaEm] = useState(hojeISO());
+  // Chave de repetição: a mesma em reenvios da mesma aplicação, nova depois de gravar.
+  const [chave, setChave] = useState(() => crypto.randomUUID());
   const qc = useQueryClient();
   const hoje = hojeISO();
   const [catalogoId, setCatalogoId] = useState("");
@@ -172,21 +178,52 @@ function Vacinas() {
     },
   });
 
+  const servicos = useQuery({
+    queryKey: ["clinica-servicos-vacina"],
+    enabled: avulso && !agendamento,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pet_servicos")
+        .select("id, nome")
+        .eq("categoria", "vacina")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const servicoAtual = servicoId || servicos.data?.[0]?.id || "";
+
   const item = catalogo.data?.find((i) => i.id === catalogoId);
 
   const aplicar = useMutation({
     mutationFn: async () => {
-      if (!agendamento) throw new Error("Abra pelo atendimento de vacina da Minha agenda.");
-      const { data, error } = await supabase.rpc("clinica_vacina_aplicar", {
-        p_agendamento_id: agendamento,
-        p_dados: {
-          catalogo_id: catalogoId,
-          estoque_lote_id: loteId,
-          ...(aplicador ? { aplicador_id: aplicador } : {}),
-          local_aplicacao: local,
-          observacoes: obs,
-          ...(semProxima ? { proxima_dose_em: "" } : proxima ? { proxima_dose_em: proxima } : {}),
-        },
+      const dados = {
+        catalogo_id: catalogoId,
+        estoque_lote_id: loteId,
+        ...(aplicador ? { aplicador_id: aplicador } : {}),
+        local_aplicacao: local,
+        observacoes: obs,
+        ...(semProxima ? { proxima_dose_em: "" } : proxima ? { proxima_dose_em: proxima } : {}),
+      };
+      if (agendamento) {
+        const { data, error } = await supabase.rpc("clinica_vacina_aplicar", {
+          p_agendamento_id: agendamento,
+          p_dados: dados,
+        });
+        if (error) throw error;
+        return data as unknown as Retorno;
+      }
+      if (!petId) throw new Error("Escolha o paciente");
+      if (!servicoAtual)
+        throw new Error("Cadastre um serviço de vacina ativo em Serviços e preços");
+      if (!aplicadaEm || aplicadaEm > hojeISO())
+        throw new Error("A aplicação não pode ser no futuro");
+      // Sem agendamento: o banco cria o atendimento de vacina (com o preço do serviço) e aplica, baixando o lote.
+      const { data, error } = await supabase.rpc("clinica_vacina_offline", {
+        p_chave: chave,
+        p_acao: "aplicar",
+        p_dados: { ...dados, pet_id: petId, servico_id: servicoAtual, aplicada_em: aplicadaEm },
       });
       if (error) throw error;
       return data as unknown as Retorno;
@@ -203,6 +240,8 @@ function Vacinas() {
       setObs("");
       setProxima("");
       setSemProxima(false);
+      setChave(crypto.randomUUID());
+      if (!agendamento) setAvulso(false);
       void qc.invalidateQueries({ queryKey: ["clinica-cartao"] });
       void qc.invalidateQueries({ queryKey: ["clinica-lotes"] });
       void qc.invalidateQueries({ queryKey: ["pet-minha-agenda"] });
@@ -278,6 +317,11 @@ function Vacinas() {
                 <Printer className="size-4" /> Cartão de vacinação
               </Link>
             </Button>
+            {!agendamento && !avulso && (
+              <Button onClick={() => setAvulso(true)}>
+                <Syringe className="size-4" /> Aplicar vacina
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setExterna(true)}>
               Aplicada em outro local
             </Button>
@@ -285,10 +329,50 @@ function Vacinas() {
         }
       />
 
-      {agendamento && (
+      {(agendamento || avulso) && (
         <div className="panel mb-4 grid gap-3 p-4">
-          <h2 className="font-display text-base font-semibold">Registrar aplicação</h2>
+          <h2 className="font-display text-base font-semibold">
+            {agendamento ? "Registrar aplicação" : "Aplicação de vacina na clínica"}
+          </h2>
+          {!agendamento && (
+            <p className="text-xs text-muted-foreground">
+              Sem agendamento: ao registrar, o atendimento de vacina é criado com o preço do serviço
+              e a dose baixa o lote do estoque.
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
+            {!agendamento && (
+              <>
+                <div>
+                  <Label htmlFor="a-servico">Serviço cobrado</Label>
+                  <Select value={servicoAtual || "__nenhum"} onValueChange={setServicoId}>
+                    <SelectTrigger id="a-servico">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!servicoAtual && (
+                        <SelectItem value="__nenhum">Nenhum serviço de vacina ativo</SelectItem>
+                      )}
+                      {servicos.data?.map((sv) => (
+                        <SelectItem key={sv.id} value={sv.id}>
+                          {sv.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="a-data">Data da aplicação</Label>
+                  <Input
+                    id="a-data"
+                    type="date"
+                    max={hoje}
+                    value={aplicadaEm}
+                    onChange={(e) => setAplicadaEm(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
             <div>
               <Label htmlFor="a-item">Vacina ou vermífugo</Label>
               <Select
@@ -404,10 +488,17 @@ function Vacinas() {
           <div>
             <Button
               onClick={() => aplicar.mutate()}
-              disabled={aplicar.isPending || !catalogoId || !loteId}
+              disabled={
+                aplicar.isPending || !catalogoId || !loteId || (!agendamento && !servicoAtual)
+              }
             >
               <Syringe className="size-4" /> Registrar aplicação
             </Button>
+            {!agendamento && (
+              <Button variant="ghost" className="ml-2" onClick={() => setAvulso(false)}>
+                Fechar
+              </Button>
+            )}
           </div>
         </div>
       )}

@@ -341,7 +341,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </Button>
           )}
           <Button asChild size="sm" variant="outline">
-            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined }}>
+            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined, aplicar: true }}>
+              <Syringe /> Aplicar vacina
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined, aplicar: undefined }}>
               <Syringe /> Vacinas e vermífugos
             </Link>
           </Button>
