@@ -5,6 +5,7 @@ import { AlertTriangle, Building2, Check, CircleDollarSign, Receipt, Wallet } fr
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { assinaturaLegada } from "@/lib/assinatura-legada";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useSaasOperador } from "@/lib/saas";
 import { brl, dateBR } from "@/lib/format";
@@ -47,6 +48,8 @@ export const Route = createFileRoute("/_authenticated/planos")({
           "Plano contratado, mensalidade, filiais extras, implantação, o que já foi pago e o que falta.",
       },
       { property: "og:title", content: "Plano e assinatura — EZRA ERP" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Acompanhe a assinatura do EZRA ERP, pagamentos e valores em aberto.",
@@ -130,13 +133,13 @@ function Planos() {
     queryKey: ["assinatura"],
     queryFn: async () => {
       // gera automaticamente a mensalidade e as filiais extras do mês (sem lançamento manual)
-      await supabase.rpc("gerar_faturas_assinatura");
+      await assinaturaLegada.rpc("gerar_faturas_assinatura");
       const [assinaturaRes, faturasRes] = await Promise.all([
-        supabase.from("assinaturas").select("*").maybeSingle(),
-        supabase.from("assinatura_faturas").select("*").order("vencimento", { ascending: false }),
+        assinaturaLegada.from("assinaturas").select("*").maybeSingle(),
+        assinaturaLegada.from("assinatura_faturas").select("*").order("vencimento", { ascending: false }),
       ]);
       // taxa inicial da empresa: clínica e lava-rápido pagam o treinamento e configuração inicial no lugar da implantação
-      const taxaRes = await supabase.rpc("assinatura_taxa_inicial");
+      const taxaRes = await assinaturaLegada.rpc("assinatura_taxa_inicial");
       return {
         assinatura: assinaturaRes.data ?? null,
         faturas: faturasRes.data ?? [],
@@ -202,7 +205,7 @@ function Planos() {
     mutationFn: async () => {
       if (!assinatura) throw new Error("Assinatura não encontrada");
       const plano = PLANOS.find((p) => p.id === form.plano);
-      const { error } = await supabase
+      const { error } = await assinaturaLegada
         .from("assinaturas")
         .update({
           plano: form.plano,
@@ -231,7 +234,7 @@ function Planos() {
       if (filialNome.trim().length < 2) throw new Error("Informe o nome da filial");
       const venc = new Date();
       venc.setDate(venc.getDate() + 10);
-      const { error } = await supabase.from("assinatura_faturas").insert({
+      const { error } = await assinaturaLegada.from("assinatura_faturas").insert({
         tenant_id: assinatura.tenant_id,
         assinatura_id: assinatura.id,
         tipo: "implantacao",
@@ -241,7 +244,7 @@ function Planos() {
         vencimento: venc.toISOString().slice(0, 10),
       });
       if (error) throw error;
-      const { error: err2 } = await supabase
+      const { error: err2 } = await assinaturaLegada
         .from("assinaturas")
         .update({ filiais_extras: Number(assinatura.filiais_extras) + 1 })
         .eq("id", assinatura.id);
@@ -269,7 +272,7 @@ function Planos() {
       if (valor <= 0) throw new Error("Informe um valor maior que zero");
       const total = Number(pagar.valor_pago) + valor;
       const quitada = total >= Number(pagar.valor) - 0.005;
-      const { error } = await supabase
+      const { error } = await assinaturaLegada
         .from("assinatura_faturas")
         .update({
           valor_pago: total,

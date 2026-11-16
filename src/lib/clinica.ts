@@ -105,6 +105,16 @@ export function erroDataAtendimento(
   return data > hoje ? "A data do atendimento não pode ser no futuro" : null;
 }
 
+export function erroAlteracaoDataConsulta(data: string, nascimento: string | null, fechada: boolean, motivo: string, hoje?: string) {
+  if (!data) return "Informe a data da consulta";
+  const erro = erroDataAtendimento(data, hoje);
+  if (erro) return erro;
+  if (nascimento && data < nascimento) return "O atendimento não pode ser anterior ao nascimento do paciente";
+  if (fechada && !motivo.trim()) return "Informe o motivo da correção";
+  if (motivo.length > 2000) return "O motivo aceita até 2000 caracteres";
+  return null;
+}
+
 /** O que falta para poder fechar o atendimento (o banco exige o mesmo). */
 export function faltaParaFechar(f: Pick<FormAtendimento, "queixa" | "conduta">): string[] {
   const falta: string[] = [];
@@ -144,6 +154,7 @@ export function evolucaoDoPeso(
 
 /** Os sinais vitais anotados em uma consulta (qualquer campo preenchido já vale uma linha). */
 export type SinaisEmConsulta = {
+  atendimento_id?: string;
   em: string;
   peso_kg: number | null;
   temperatura_c: number | null;
@@ -160,7 +171,7 @@ type ComSinais = Pick<
   | "temperatura_c"
   | "freq_cardiaca"
   | "freq_respiratoria"
->;
+> & { id?: string };
 
 /**
  * Histórico dos sinais vitais, do mais novo para o mais antigo (a recepção e o veterinário leem o
@@ -177,6 +188,7 @@ export function evolucaoDosSinais(atendimentos: readonly ComSinais[]): SinaisEmC
         ),
     )
     .map((a) => ({
+      ...(a.id ? { atendimento_id: a.id } : {}),
       em: a.data_atendimento ?? a.aberto_em,
       peso_kg: numero(a.peso_kg),
       temperatura_c: numero(a.temperatura_c),

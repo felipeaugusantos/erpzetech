@@ -572,6 +572,7 @@ DECLARE
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
     'clinica_proxima_consulta_opcoes', 'clinica_proxima_consulta_agendar',
+    'clinica_consulta_data_alterar',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
     'assinante_link_sugerido',
     -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
@@ -4661,6 +4662,15 @@ BEGIN
   PERFORM ci.exige(ci.contar(adm, 'SELECT count(*) FROM pet_agendamentos WHERE situacao = ''pronto''') >= 1, 'a recepção vê a consulta pronta na agenda, sem texto clínico');
 
   -- adendo
+  PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'Correção',%L)$c$,at1,hoje-1,hoje), 'outro veterinário altera data fechada');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'',%L)$c$,at1,hoje-1,hoje), 'correção fechada exige motivo');
+  PERFORM ci.deve_falhar(va, format($c$SELECT clinica_consulta_data_alterar(%L,%L,'Correção',%L)$c$,at1,hoje+1,hoje), 'correção não admite futuro');
+  PERFORM ci.entrar(va);
+  r := clinica_consulta_data_alterar(at1,hoje-1,'Data informada incorretamente',hoje);
+  PERFORM ci.sair();
+  PERFORM ci.exige((r->>'data_atendimento')::date=hoje-1, 'data corrigida retornada no histórico');
+  PERFORM ci.exige(r->>'diagnostico'='Gastrite', 'correção mantém diagnóstico');
+  PERFORM ci.exige(EXISTS(SELECT 1 FROM pet_atendimento_adendos WHERE atendimento_id=at1 AND data_consulta=hoje-1), 'correção gravada como adendo');
   PERFORM ci.entrar(vb);
   r := clinica_atendimento_abrir(ag2);
   at2 := (r ->> 'id')::uuid;
@@ -4671,7 +4681,7 @@ BEGIN
   PERFORM ci.entrar(vb);
   r := clinica_adendo_criar(at1, 'Tutor relatou melhora após 3 dias.');
   PERFORM ci.sair();
-  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 1 AND r -> 'adendos' -> 0 ->> 'crmv' = '2222' AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
+  PERFORM ci.exige(jsonb_array_length(r -> 'adendos') = 2 AND EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->>'crmv'='2222') AND r ->> 'diagnostico' = 'Gastrite', 'o adendo identifica quem escreveu e não muda o original');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'alterar adendo');
   PERFORM ci.deve_falhar_dono(format($c$DELETE FROM pet_atendimento_adendos WHERE atendimento_id = %L$c$, at1), 'apagar adendo');
 
