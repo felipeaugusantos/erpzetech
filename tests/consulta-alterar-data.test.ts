@@ -14,10 +14,10 @@ test("permite data passada em consulta finalizada com motivo", () => {
     null,
   );
 });
-test("correção de consulta fechada exige motivo", () => {
+test("consulta fechada permite editar a data sem motivo", () => {
   assert.equal(
     erroAlteracaoDataConsulta("2026-11-10", null, true, " ", "2026-11-16"),
-    "Informe o motivo da correção",
+    null,
   );
 });
 test("consulta aberta pode alterar data sem motivo", () => {

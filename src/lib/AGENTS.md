@@ -2,7 +2,7 @@
 
 - PDF imports use explicit collection dates first, falling back to report attendance dates for the exam date; conflicting dates require manual review. References stay on the exam snapshot and issuance is never inferred from exam, consultation, upload or validation dates, preserving source meaning. Patient charts reuse clinical RPCs and audited private attachment access.
 
-- Consultation date corrections resolve through the clinical JSON helper; closed charts retain immutable dated addenda instead of changing original clinical content.
+- Consultation edits update the existing record through tenant-scoped responsible-veterinarian RPCs without generating addenda; explicit date overrides take precedence over legacy dated addenda, preserving old records.
 - Legacy subscription schema compatibility stays in one explicitly typed client adapter because older installations may retain tables absent from generated types; it never provisions or seeds billing data.
 
 - Pin React, React DOM and the mounted-test renderer to the same release and pre-optimize Radix Slot/compose-refs; dependency installs must not introduce a separate hook runtime on lazy navigation.

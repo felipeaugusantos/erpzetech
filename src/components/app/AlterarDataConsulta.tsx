@@ -5,8 +5,6 @@ import { toast } from "sonner";
 import { DataAtendimento } from "@/components/app/DataAtendimento";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { dataClinica, erroAlteracaoDataConsulta, type AtendimentoClinico } from "@/lib/clinica";
 
@@ -19,15 +17,13 @@ export function AlterarDataConsulta({
 }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState("");
-  const [motivo, setMotivo] = useState("");
   const qc = useQueryClient();
   const anterior = atendimento.data_atendimento ?? dataClinica(atendimento.aberto_em);
-  const fechada = atendimento.situacao === "fechado";
   const erro = erroAlteracaoDataConsulta(
     data,
     atendimento.pet?.nascimento ?? null,
-    fechada,
-    motivo,
+    atendimento.situacao === "fechado",
+    "",
   );
   const salvar = useMutation({
     mutationFn: async () => {
@@ -35,7 +31,7 @@ export function AlterarDataConsulta({
       const { error } = await supabase.rpc("clinica_consulta_data_alterar", {
         p_id: atendimento.id,
         p_data: data,
-        p_motivo: motivo.trim(),
+        p_motivo: "",
         p_data_anterior: anterior,
       });
       if (error) throw error;
@@ -59,7 +55,6 @@ export function AlterarDataConsulta({
         variant="outline"
         onClick={() => {
           setData(anterior);
-          setMotivo("");
           setOpen(true);
         }}
       >
@@ -76,18 +71,6 @@ export function AlterarDataConsulta({
             <DialogTitle>Alterar data da consulta</DialogTitle>
           </DialogHeader>
           <DataAtendimento value={data} onChange={setData} disabled={salvar.isPending} />
-          {fechada && (
-            <div className="grid gap-2">
-              <Label htmlFor={`motivo-data-${atendimento.id}`}>Motivo da correção</Label>
-              <Textarea
-                id={`motivo-data-${atendimento.id}`}
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                maxLength={2000}
-                disabled={salvar.isPending}
-              />
-            </div>
-          )}
           {erro && data !== anterior && (
             <p role="alert" className="text-sm text-destructive">
               {erro}

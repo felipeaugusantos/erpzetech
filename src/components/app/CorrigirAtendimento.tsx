@@ -31,7 +31,7 @@ const TEXTOS: { chave: keyof FormAtendimento; rotulo: string; linhas: number }[]
   { chave: "conduta", rotulo: "Conduta", linhas: 3 },
 ];
 
-/** Corrige um atendimento já fechado: o motivo é obrigatório e a versão anterior fica guardada no adendo da correção. */
+/** Atualiza os dados da consulta fechada sem criar um adendo. */
 export function CorrigirAtendimento({
   atendimento,
   petId,
@@ -44,7 +44,6 @@ export function CorrigirAtendimento({
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<FormAtendimento>(() => formDoAtendimento(atendimento));
-  const [motivo, setMotivo] = useState("");
   const original = formDoAtendimento(atendimento);
   const mudou = (Object.keys(original) as (keyof FormAtendimento)[]).some(
     (k) => k !== "data_atendimento" && (form[k] ?? "") !== (original[k] ?? ""),
@@ -57,11 +56,10 @@ export function CorrigirAtendimento({
   const corrigir = useMutation({
     mutationFn: async () => {
       if (erro) throw new Error(erro);
-      if (motivo.trim() === "") throw new Error("Informe o motivo da correção");
       const { data, error } = await supabase.rpc("clinica_atendimento_corrigir", {
         p_id: atendimento.id,
         p_dados: { ...form, data_atendimento: undefined } as unknown as Json,
-        p_motivo: motivo.trim(),
+        p_motivo: "",
       });
       if (error) throw error;
       return data as unknown as AtendimentoClinico;
@@ -74,9 +72,7 @@ export function CorrigirAtendimento({
         }),
         qc.invalidateQueries({ queryKey: ["clinica-atendimento"] }),
       ]);
-      toast.success("Atendimento corrigido", {
-        description: "A correção ficou registrada no histórico com o seu nome e o motivo.",
-      });
+      toast.success("Consulta atualizada");
       setAberto(false);
     },
     onError: (e: Error) => toast.error("Não foi possível corrigir", { description: e.message }),
@@ -91,19 +87,17 @@ export function CorrigirAtendimento({
         size="sm"
         onClick={() => {
           setForm(formDoAtendimento(atendimento));
-          setMotivo("");
           setAberto(true);
         }}
       >
-        <Pencil className="size-4" /> Corrigir atendimento
+        <Pencil className="size-4" /> Editar consulta
       </Button>
       <Dialog open={aberto} onOpenChange={(o) => !corrigir.isPending && setAberto(o)}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Corrigir atendimento</DialogTitle>
+            <DialogTitle>Editar consulta</DialogTitle>
             <DialogDescription>
-              O que mudar fica registrado como correção, com seu nome, CRMV, o motivo e o valor
-              anterior. O texto original continua guardado no histórico.
+              Dados da consulta de {atendimento.pet?.nome ?? "paciente"}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
@@ -175,16 +169,6 @@ export function CorrigirAtendimento({
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="cc-motivo">Motivo da correção *</Label>
-              <Textarea
-                id="cc-motivo"
-                rows={2}
-                maxLength={2000}
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-              />
-            </div>
             {mudou && erro && (
               <p role="alert" className="text-sm text-destructive">
                 {erro}
@@ -200,10 +184,10 @@ export function CorrigirAtendimento({
               Cancelar
             </Button>
             <Button
-              disabled={corrigir.isPending || !mudou || !!erro || motivo.trim() === ""}
+              disabled={corrigir.isPending || !mudou || !!erro}
               onClick={() => corrigir.mutate()}
             >
-              {corrigir.isPending ? "Salvando…" : "Salvar correção"}
+              {corrigir.isPending ? "Salvando…" : "Salvar alterações"}
             </Button>
           </div>
         </DialogContent>

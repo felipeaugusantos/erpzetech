@@ -792,6 +792,13 @@
       "when": 1794900300006,
       "tag": "0112_clinica_laudo_pdf_campo",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1794900300007,
+      "tag": "0113_clinica_consulta_edicao_direta",
+      "breakpoints": true
     }
   ]
 }

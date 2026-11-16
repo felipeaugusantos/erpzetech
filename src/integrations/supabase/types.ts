@@ -11100,6 +11100,7 @@ export type Database = {
           crmv: string
           crmv_uf: string
           data_atendimento: string | null
+          data_consulta_editada: string | null
           diagnostico: string | null
           exame_fisico: string | null
           fechado_em: string | null
@@ -11127,6 +11128,7 @@ export type Database = {
           crmv: string
           crmv_uf: string
           data_atendimento?: string | null
+          data_consulta_editada?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null
@@ -11154,6 +11156,7 @@ export type Database = {
           crmv?: string
           crmv_uf?: string
           data_atendimento?: string | null
+          data_consulta_editada?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null

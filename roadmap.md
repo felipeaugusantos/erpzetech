@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Editar informações e data da consulta diretamente, sem gerar adendos novos nem exigir motivo; funções instaladas conferidas, testes de validação passaram e testes comportamentais da CI atualizados; registros antigos preservados.
+- [ ] Conferir edição e leitura pela tela em consulta autorizada de teste: conta atual é da administração, sem vínculo veterinário; nenhuma consulta real alterada.
+
 - [x] Importação de PDF: preencher a data do exame pela Data de Coleta ou, na ausência, Data de Atendimento; emissão permanece independente e datas divergentes exigem conferência.
 
 - [x] Importar referências explícitas do PDF sem alterar modelos anteriores; PDF real conferido no navegador: 32 resultados e 23 faixas exatas, sem arredondar. PDFs e emissão no prontuário ao lado das consultas, sem confundir emissão com coleta ou importação. 46 testes passaram; conferência da tela autenticada bloqueada pelo aceite dos termos, não aceitos em nome do usuário. Nenhum laudo real alterado.
