@@ -34,9 +34,13 @@ export function agruparLaudoImportacao(
       (m) =>
         m.ativo && m.campos.some((c) => c.ativo && chaveLaudo(c.nome) === chaveLaudo(item.nome)),
     );
+    // The PDF section (e.g. BIOQUÍMICA) disambiguates fields shared by several models.
+    const daSecao = item.secao ? compativeis.filter((m) => m.tipo === item.secao) : [];
     const modelo =
-      exatos.length === 1 ? exatos[0] : compativeis.length === 1 ? compativeis[0] : undefined;
-    if (exatos.length > 1 || (!exatos.length && compativeis.length > 1)) {
+      exatos.length === 1 ? exatos[0]
+        : compativeis.length === 1 ? compativeis[0]
+        : !exatos.length && daSecao.length === 1 ? daSecao[0] : undefined;
+    if (exatos.length > 1 || (!exatos.length && compativeis.length > 1 && !modelo)) {
       const candidatos = (exatos.length ? exatos : compativeis).filter((m) => m.ativo);
       if (!candidatos.length) throw new Error(`Os modelos para ${item.nome} estão inativos. Reative um antes de importar.`);
       grupos.set(`escolha:${chaveLaudo(item.nome)}`, {

@@ -6,6 +6,8 @@ export type ItemLaudo = {
   unidade: string | null;
   minimo: number | null;
   maximo: number | null;
+  /** Report section the value was printed in, when the layout states it. */
+  secao?: "hemograma" | "bioquimica";
 };
 export type LaudoPdf = {
   paciente: string;
@@ -133,7 +135,7 @@ function lerLacvet(linhas: string[]): LaudoPdf {
     const unidade = restante[0];
     if (!unidade) throw new Error(`Unidade não identificada de ${identificado}.`);
     itens.push({
-      nome: identificado, valor,
+      nome: identificado, valor, secao: secao === "bioquimica" ? "bioquimica" : "hemograma",
       unidade: unidade === "milh/mm" ? "milhões/mm³" : unidade === "U.I./L" ? "U/L" : unidade,
       ...faixaExplicita(restante.slice(1).join(" ")),
     });
