@@ -287,6 +287,7 @@ const groups: Group[] = [
       { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
       { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
       { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
+      { label: "Laudos por paciente", to: "/clinica-laudos", icon: ClipboardList },
       { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
       { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
       { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },
@@ -675,6 +676,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (
                 i.to === "/clinica-prontuario" ||
                 i.to === "/clinica-exames" ||
+                i.to === "/clinica-laudos" ||
                 i.to === "/clinica-offline"
               )
                 return souVeterinario;
@@ -820,6 +822,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { label: "Boxes de internação", to: "/clinica-boxes", icon: BedDouble },
                   { label: "SNGPC", to: "/sngpc", icon: ClipboardList },
                   { label: "Exames", to: "/clinica-exames", icon: ClipboardList },
+                  { label: "Laudos por paciente", to: "/clinica-laudos", icon: ClipboardList },
                   { label: "Trabalho sem internet", to: "/clinica-offline", icon: WifiOff },
                   { label: "Catálogo de vacinas", to: "/clinica-catalogo", icon: Syringe },
                   { label: "Bulário veterinário", to: "/clinica-bulario", icon: BookOpen },

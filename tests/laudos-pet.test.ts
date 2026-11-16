@@ -47,6 +47,15 @@ test("ordena anteriores e mantém 26,9 sem arredondamento", () => {
     [30.5, 26.9],
   );
 });
+test("histórico preserva separadamente coleta, consulta e validação do laudo", () => {
+  const original = { ...exame("datas", "2026-11-12", 2.89), data_consulta: "2026-11-10", fechado_em: "2026-11-13T15:00:00Z" };
+  const [salvo] = historicoParaImpressao([original]);
+  assert.equal(salvo?.data_coleta, "2026-11-12");
+  assert.equal(salvo?.data_consulta, "2026-11-10");
+  assert.equal(salvo?.fechado_em, "2026-11-13T15:00:00Z");
+  const [avulso] = historicoParaImpressao([{ ...original, data_consulta: null }]);
+  assert.equal(avulso?.data_consulta, null);
+});
 test("não mistura unidades nem inclui rascunhos e cancelados na evolução", () => {
   const grupos = evolucaoDosLaudos([
     exame("a", "2026-08-03", 26.9),
