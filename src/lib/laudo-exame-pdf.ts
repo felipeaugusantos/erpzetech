@@ -343,3 +343,12 @@ export function corresponderLaudo(laudo: LaudoPdf, campos: CampoLaudo[]): Corres
     return calcularAbsoluto(total.item.valor, pct.item.valor, campo.casas) === item.valor;
   });
 }
+
+/** Laboratory name printed in the report text; empty when it cannot be stated with certainty. */
+export function laboratorioDoLaudo(texto: string): string {
+  const t = chaveLaudo(texto);
+  if (/\blacvet/.test(t)) return "LACVET";
+  if (/\bhope ?lab\b/.test(t)) return "HopeLab";
+  const m = texto.match(/\b(Laborat[óo]rio\s+[A-ZÀ-Ú][\wÀ-ú.&-]*(?:\s+[A-ZÀ-Ú][\wÀ-ú.&-]*){0,4})/);
+  return m?.[1]?.trim().slice(0, 120) ?? "";
+}

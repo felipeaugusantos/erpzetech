@@ -104,3 +104,9 @@ test("seção do PDF escolhe o modelo de campo repetido", () => {
   const semSecao = { itens: [item] } as never;
   assert.equal(agruparLaudoImportacao(semSecao, modelos)[0]?.modelo_id, null);
 });
+import { laboratorioDoLaudo } from "../src/lib/laudo-exame-pdf.ts";
+test("identifica o laboratório pelo texto do PDF", () => {
+  assert.equal(laboratorioDoLaudo("e-mail: lacvetribeirao@outook.com"), "LACVET");
+  assert.equal(laboratorioDoLaudo("A HopeLab oferece assessoria"), "HopeLab");
+  assert.equal(laboratorioDoLaudo("Paciente BIBI"), "");
+});
