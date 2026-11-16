@@ -27,7 +27,8 @@ export function CamposCadastroRapido({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <div className="sm:col-span-3">
+      <div className="sm:col-span-3 border-b border-border pb-3">
+        <h3 className="mb-3 font-semibold">Cadastro do tutor</h3>
         <Label htmlFor="cr-tutor">Tutor</Label>
         <Select
           value={form.tutorId || "__novo"}
@@ -77,6 +78,7 @@ export function CamposCadastroRapido({
       )}
 
       <div className="sm:col-span-2">
+        <h3 className="mb-3 font-semibold">Cadastro do paciente</h3>
         <Label htmlFor="cr-pet">Nome do pet</Label>
         <Input
           id="cr-pet"
@@ -112,11 +114,11 @@ export function CamposCadastroRapido({
           value={form.sexo || "__nd"}
           onValueChange={(v) => mexe({ sexo: v === "__nd" ? "" : (v as "macho" | "femea") })}
         >
-          <SelectTrigger id="cr-sexo">
+          <SelectTrigger id="cr-sexo" className={!form.sexo ? "border-warning bg-warning/10 text-warning" : ""}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__nd">Não informado</SelectItem>
+            <SelectItem value="__nd">Não cadastrado</SelectItem>
             <SelectItem value="macho">Macho</SelectItem>
             <SelectItem value="femea">Fêmea</SelectItem>
           </SelectContent>
@@ -128,11 +130,11 @@ export function CamposCadastroRapido({
           value={form.castrado || "__nd"}
           onValueChange={(v) => mexe({ castrado: v === "__nd" ? "" : (v as "sim" | "nao") })}
         >
-          <SelectTrigger id="cr-cast">
+          <SelectTrigger id="cr-cast" className={!form.castrado ? "border-warning bg-warning/10 text-warning" : ""}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__nd">Não informado</SelectItem>
+            <SelectItem value="__nd">Não cadastrado</SelectItem>
             <SelectItem value="sim">Sim</SelectItem>
             <SelectItem value="nao">Não</SelectItem>
           </SelectContent>

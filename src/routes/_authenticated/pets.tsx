@@ -301,11 +301,11 @@ function Pets() {
     id: string,
   ) => (
     <Select value={valor || NENHUM} onValueChange={(v) => onChange(v === NENHUM ? "" : v)}>
-      <SelectTrigger id={id}>
+      <SelectTrigger id={id} className={!valor && nenhum ? "border-warning bg-warning/10 text-warning" : ""}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {nenhum && <SelectItem value={NENHUM}>Não informado</SelectItem>}
+        {nenhum && <SelectItem value={NENHUM}>Não cadastrado</SelectItem>}
         {opcoes.map((o) => (
           <SelectItem key={o.value} value={o.value}>
             {o.label}
@@ -488,9 +488,9 @@ function Pets() {
                 {!form.id && (
                   <Button
                     type="button"
-                    variant="link"
+                    variant="outline"
                     size="sm"
-                    className="h-auto p-0"
+                    className="min-h-10 gap-2"
                     onClick={() =>
                       setForm({
                         ...form,
@@ -499,7 +499,7 @@ function Pets() {
                       })
                     }
                   >
-                    {form.tutor_novo ? "Escolher tutor já cadastrado" : "Tutor novo"}
+                    <Plus className="size-4" />{form.tutor_novo ? "Escolher tutor já cadastrado" : "Cadastrar tutor junto com o pet"}
                   </Button>
                 )}
               </div>
@@ -571,7 +571,7 @@ function Pets() {
                   })()}
                   {!form.id && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Não achou? Use <strong>Tutor novo</strong> para cadastrar aqui mesmo.
+                      Não achou? Use <strong>Cadastrar tutor junto com o pet</strong>.
                     </p>
                   )}
                 </>
@@ -601,6 +601,7 @@ function Pets() {
                 id="pet-raca"
                 value={form.raca}
                 placeholder="Ex.: Poodle, SRD"
+                className={!form.raca ? "border-warning bg-warning/10" : ""}
                 onChange={(e) => setForm({ ...form, raca: e.target.value })}
               />
             </div>
@@ -628,6 +629,8 @@ function Pets() {
                 id="pet-peso"
                 inputMode="decimal"
                 value={form.peso_kg}
+                placeholder="Não cadastrado"
+                className={!form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""}
                 onChange={(e) => setForm({ ...form, peso_kg: e.target.value })}
               />
             </div>

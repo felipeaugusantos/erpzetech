@@ -83,11 +83,11 @@ export function CamposPersonalizados({
                   value={v || NENHUM}
                   onValueChange={(x) => onChange(c.id, x === NENHUM ? "" : x)}
                 >
-                  <SelectTrigger id={id}>
+                  <SelectTrigger id={id} className={!v ? "border-warning bg-warning/10 text-warning" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NENHUM}>Não informado</SelectItem>
+                    <SelectItem value={NENHUM}>Não cadastrado</SelectItem>
                     {c.tipo === "sim_nao" ? (
                       <>
                         <SelectItem value="sim">Sim</SelectItem>

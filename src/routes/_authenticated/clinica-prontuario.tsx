@@ -35,6 +35,7 @@ import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
   evolucaoDoPeso,
+  dataClinica,
   evolucaoDosSinais,
   type AtendimentoClinico,
   type PetClinico,
@@ -492,7 +493,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <time dateTime={a.aberto_em} className="font-semibold tabular-nums text-primary">{dateTimeBR(a.aberto_em)}</time>
+                  <time dateTime={a.data_atendimento ?? a.aberto_em} className="font-semibold tabular-nums text-primary">{dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}</time>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
@@ -513,6 +514,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                   </div>
                 )}
                 <dl className="mt-4 grid gap-4">
+                  <Linha rotulo="Peso nesta consulta" valor={a.peso_kg !== null ? `${String(a.peso_kg).replace(".", ",")} kg` : "Não cadastrado"} />
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
                   <Linha
