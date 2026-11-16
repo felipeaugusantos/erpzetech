@@ -456,12 +456,21 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           </h3>
           <ul className="grid gap-3 sm:hidden">
             {sinais.map((v, index) => (
-              <li key={`${v.em}-${index}`} className="min-w-0 rounded-md border border-border bg-card p-4">
+              <li
+                key={`${v.em}-${index}`}
+                className="min-w-0 rounded-md border border-border bg-card p-4"
+              >
                 <time dateTime={v.em} className="font-semibold tabular-nums text-primary">
                   {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
                 </time>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {data.atendimentos.filter((a) => a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data).map((a) => <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />)}
+                  {data.atendimentos
+                    .filter(
+                      (a) => a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data,
+                    )
+                    .map((a) => (
+                      <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />
+                    ))}
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
                   <div>
@@ -509,7 +518,14 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     <td className="py-1 pr-3">
                       {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {data.atendimentos.filter((a) => a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data).map((a) => <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />)}
+                        {data.atendimentos
+                          .filter(
+                            (a) =>
+                              a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data,
+                          )
+                          .map((a) => (
+                            <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />
+                          ))}
                       </div>
                     </td>
                     <td className="py-1 pr-3">
@@ -576,7 +592,11 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
                 </div>
-                {a.veterinario.id === meuVeterinario.data && <div className="mt-3"><AlterarDataConsulta atendimento={a} petId={petId} /></div>}
+                {a.veterinario.id === meuVeterinario.data && (
+                  <div className="mt-3">
+                    <AlterarDataConsulta atendimento={a} petId={petId} />
+                  </div>
+                )}
                 {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
                   <div className="mt-3">
                     <Button asChild size="sm">
