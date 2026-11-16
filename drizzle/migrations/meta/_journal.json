@@ -694,6 +694,13 @@
       "when": 1794832334332,
       "tag": "0098_pet_obito_travas",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794833149856,
+      "tag": "0099_clinica_vacina_dose_no_catalogo",
+      "breakpoints": true
     }
   ]
 }
