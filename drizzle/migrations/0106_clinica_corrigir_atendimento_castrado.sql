@@ -119,3 +119,13 @@ DROP TRIGGER IF EXISTS trg_auditar_pets_castrado ON public.pets;
 CREATE TRIGGER trg_auditar_pets_castrado
   AFTER UPDATE ON public.pets
   FOR EACH ROW EXECUTE FUNCTION public.auditar_campos('castrado');
+
+-- O histórico passa a devolver o antes/depois de cada correção (as telas mostram o texto original que foi corrigido).
+DO $$ DECLARE d text; BEGIN
+ d := pg_get_functiondef('public._clinica_atendimento_json(uuid)'::regprocedure);
+ IF position('''correcao'', d.correcao' in d) = 0 THEN
+  d := replace(d, '''crmv_uf'', d.crmv_uf)', '''crmv_uf'', d.crmv_uf, ''anterior'', d.anterior, ''correcao'', d.correcao)');
+  IF position('''correcao'', d.correcao' in d) = 0 THEN RAISE EXCEPTION 'Não foi possível incluir a correção no histórico'; END IF;
+  EXECUTE d;
+ END IF;
+END $$;

@@ -4706,6 +4706,7 @@ BEGIN
   PERFORM ci.sair();
   PERFORM ci.exige((r->>'peso_kg')::numeric=13.25 AND r->>'diagnostico'='Gastrite aguda' AND r->>'situacao'='fechado', 'correção altera os campos e mantém o atendimento fechado');
   PERFORM ci.exige((SELECT anterior->>'diagnostico'='Gastrite' AND correcao->>'diagnostico'='Gastrite aguda' AND texto LIKE '%Peso pesado de novo%' FROM pet_atendimento_adendos WHERE atendimento_id=at1 AND correcao IS NOT NULL ORDER BY created_at DESC LIMIT 1), 'a correção guarda o valor anterior, o novo e o motivo no adendo');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(r->'adendos') d WHERE d->'anterior'->>'diagnostico'='Gastrite' AND d->'correcao'->>'diagnostico'='Gastrite aguda' AND d->'correcao'->>'peso_kg'='13.25'), 'o histórico devolve o antes e o depois de cada correção');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimentos_clinicos SET diagnostico = 'outro' WHERE id = %L$c$, at1), 'UPDATE direto continua barrado depois da correção');
   PERFORM ci.deve_falhar_dono(format($c$UPDATE pet_atendimento_adendos SET texto = 'x' WHERE atendimento_id = %L$c$, at1), 'o adendo da correção não se altera');
 

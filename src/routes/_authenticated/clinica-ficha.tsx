@@ -1,3 +1,4 @@
+import { CorrecaoDoAdendo } from "@/components/app/CorrecaoDoAdendo";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Printer } from "lucide-react";
@@ -204,6 +205,7 @@ function FichaImpressa() {
               {a.adendos.map((d) => (
                 <p key={d.id} className="mt-1 border-l-4 border-border pl-2">
                   <span className="whitespace-pre-wrap">{d.texto}</span>
+                  <CorrecaoDoAdendo adendo={d} />
                   <span className="block text-xs text-muted-foreground">
                     Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
                     {dateTimeBR(d.created_at)}
