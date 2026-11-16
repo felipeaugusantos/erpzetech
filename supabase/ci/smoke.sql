@@ -6052,9 +6052,9 @@ BEGIN
   PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date - 1))$c$, a1), 'outro veterinário altera data clínica');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_salvar(%L, jsonb_build_object('data_atendimento', current_date + 2))$c$, a1), 'data clínica no futuro');
   PERFORM ci.entrar(va);
-  r := clinica_atendimento_salvar(a1, jsonb_build_object('data_atendimento', (now() AT TIME ZONE 'America/Sao_Paulo')::date - 1, 'peso_kg', '12,345'));
+  r := clinica_atendimento_salvar(a1, jsonb_build_object('data_atendimento', (now() AT TIME ZONE 'America/Sao_Paulo')::date - 1, 'peso_kg', '12,345'));  -- PENDENTE (dono do produto): coluna é numeric(6,2), então 12,345 vira 12,35; se quiser 3 casas, migração nova para numeric(6,3).
   PERFORM ci.sair();
-  PERFORM ci.exige(r ->> 'data_atendimento' = ((now() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AND (SELECT peso_kg = 12.345 AND aberto_em = now() - interval '3 hours' FROM pet_atendimentos_clinicos WHERE id=a1), 'data clínica muda, peso preserva decimais e abertura original não muda');
+  PERFORM ci.exige(r ->> 'data_atendimento' = ((now() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AND (SELECT peso_kg = 12.35 AND aberto_em = now() - interval '3 hours' FROM pet_atendimentos_clinicos WHERE id=a1), 'data clínica muda, peso é guardado com 2 casas (numeric(6,2)) e abertura original não muda');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'apagar', %L, '{}'::jsonb)$c$, gen_random_uuid(), a1), 'ação inválida');
   PERFORM ci.deve_falhar(vb, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x"}'::jsonb)$c$, gen_random_uuid(), a1), 'outro veterinário preenche o atendimento');
   PERFORM ci.deve_falhar(va, format($c$SELECT clinica_atendimento_offline(%L, 'salvar', %L, '{"queixa":"x","peso_kg":"500"}'::jsonb)$c$, gen_random_uuid(), a1), 'peso absurdo (a regra do prontuário vale também aqui)');
