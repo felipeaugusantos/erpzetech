@@ -4766,6 +4766,14 @@ BEGIN
   PERFORM ci.sair();
 
   -- catálogo: gestão e veterinário editam; validações
+  PERFORM ci.deve_falhar(vend, 'SELECT clinica_vacina_produtos()', 'recepção não configura produto de vacina');
+  PERFORM ci.entrar(gest);
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM jsonb_array_elements(clinica_vacina_produtos()) p WHERE p ->> 'id' = prod_sem_lote::text), 'produto sem lote aparece na seleção');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM jsonb_array_elements(clinica_vacina_produtos()) p WHERE p ->> 'id' = prod_serv::text), 'serviço não aparece como produto de vacina');
+  PERFORM clinica_vacina_catalogo_salvar(jsonb_build_object('nome','Vacina ativar lote CI','produto_id',prod_sem_lote,'reforco_dias',365,'confirmar_controle_lote',true));
+  PERFORM ci.sair();
+  PERFORM ci.exige((SELECT controla_lote FROM produtos WHERE id=prod_sem_lote), 'confirmação ativa controle de lote');
+  UPDATE produtos SET controla_lote=false WHERE id=prod_sem_lote;
   PERFORM ci.deve_falhar(vend, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','produto_id',%L,'reforco_dias',365))$c$, prod), 'vendedor edita o catálogo');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','doses_serie',3,'reforco_dias',365,'produto_id',%L))$c$, prod), 'série sem intervalo');
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_catalogo_salvar(jsonb_build_object('nome','V10 CI','reforco_dias',0,'produto_id',%L))$c$, prod), 'reforço zero');
