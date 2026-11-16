@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] CI do banco verde de ponta a ponta (migrações + smoke + exame-exclusao + concorrência da agenda) e teste do backup: migração 0095 (política do contador no log e na fila de exclusão de exames; trava do contador em `clinica_exame_excluir` e `clinica_exame_exclusao_acesso`), listas do smoke para a agenda de exames e receitas, catálogo do backup (log de exclusões entra; fila de limpeza fica fora) e ajuste dos testes `exame-exclusao.sql` (clínica liberada na transação e RLS escondendo a linha no UPDATE). 1267 testes passaram, CI do banco local OK.
+
 - [x] Monitoramento de erros próprio: captura no navegador (erros não tratados, promessas rejeitadas e a tela de erro) e no servidor (todo Error logado), texto limpo de e-mail, documento, telefone, token e query/fragmento de URL, agrupado por impressão digital com contador, tela `/ze-tech-erros` (equipe: resolver, ignorar, reabrir; erro resolvido que volta é reaberto), retenção de 90 dias na rotina noturna. Migração 20270123, seção 104 do smoke, 9 testes de lógica, tsc, lint e build OK. Telas não vistas no navegador com sessão real; não publicado.
 - [ ] Alertas do monitoramento (e-mail/WhatsApp à equipe quando surgir erro novo): depende de domínio de envio configurado. Hoje a equipe precisa abrir /ze-tech-erros.
 - [ ] Monitoramento de disponibilidade (uptime) por serviço externo e erros de consultas do navegador (react-query) ainda fora do monitor.

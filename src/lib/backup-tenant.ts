@@ -39,6 +39,7 @@ const TABELAS_COM_TENANT = [
   "clientes",
   "clinica_acessos",
   "clinica_cadastros_rapidos",
+  "clinica_exames_exclusoes",
   "clinica_fila",
   "clinica_operacoes_offline",
   "cobranca_config",
@@ -269,6 +270,8 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
     "cadastro comercial do cliente na Ze Tech (cobrança, plano), não é dado do cliente",
   assinaturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   assinatura_faturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
+  clinica_exames_limpeza:
+    "fila técnica de arquivos de exames excluídos a apagar do armazenamento; não é dado restaurável",
   aceites_legais:
     "prova do aceite dos termos (LGPD) de cada pessoa: fica com a EZRA e uma restauração não pode apagar nem refazer",
   erros_app:

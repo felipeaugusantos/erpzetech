@@ -8,9 +8,13 @@ BEGIN
  WHERE p.ativo AND p.funcao='veterinario' AND p.crmv IS NOT NULL
  AND EXISTS(SELECT 1 FROM public.user_roles r WHERE r.user_id=p.profile_id AND r.tenant_id=p.tenant_id AND r.role='veterinario')
  AND EXISTS(SELECT 1 FROM public.pet_exame_modelos m WHERE m.tenant_id=p.tenant_id AND m.ativo)
- AND EXISTS(SELECT 1 FROM public.pets a WHERE a.tenant_id=p.tenant_id) LIMIT 1;
+ AND EXISTS(SELECT 1 FROM public.pets a WHERE a.tenant_id=p.tenant_id AND a.ativo) LIMIT 1;
  IF u IS NULL THEN RAISE EXCEPTION 'Need veterinarian fixtures before exclusion test'; END IF;
- SELECT id INTO pet FROM public.pets WHERE tenant_id=t LIMIT 1;
+ -- o smoke devolve a empresa ao estado original ao terminar (sem clínica liberada); a liberação vale só nesta transação (ROLLBACK no fim)
+ INSERT INTO public.empresa_modulos_liberados(empresa_id,modulo)
+  SELECT e.id,'clinica' FROM public.empresas e WHERE e.tenant_id=t
+  AND NOT EXISTS(SELECT 1 FROM public.empresa_modulos_liberados m WHERE m.empresa_id=e.id AND m.modulo='clinica');
+ SELECT id INTO pet FROM public.pets WHERE tenant_id=t AND ativo LIMIT 1;
  SELECT id INTO modelo FROM public.pet_exame_modelos WHERE tenant_id=t AND ativo LIMIT 1;
  PERFORM set_config('request.jwt.claim.sub',u::text,true);
  trocar_papel := pg_has_role(current_user,'authenticated','MEMBER');
@@ -33,7 +37,9 @@ BEGIN
  log := (r->>'exclusao_id')::uuid;
  IF public.clinica_exame_excluir(ex,'Registro de teste removido',true)->>'exclusao_id' <> log::text THEN RAISE EXCEPTION 'Retry duplicated exclusion'; END IF;
  recusado := false;
- BEGIN UPDATE public.clinica_exames_exclusoes SET motivo='alterado' WHERE id=log; EXCEPTION WHEN OTHERS THEN recusado:=true; END;
+ -- sem política de UPDATE o RLS esconde a linha (0 linhas, sem erro); com permissão total o gatilho recusa. As duas formas protegem o log;
+ -- a conferência de que o motivo segue intacto vem logo abaixo, depois do RESET ROLE.
+ BEGIN UPDATE public.clinica_exames_exclusoes SET motivo='alterado' WHERE id=log; GET DIAGNOSTICS n = ROW_COUNT; recusado := (n = 0); EXCEPTION WHEN OTHERS THEN recusado:=true; END;
  IF NOT recusado THEN RAISE EXCEPTION 'Log editable'; END IF;
  IF trocar_papel THEN EXECUTE 'RESET ROLE'; END IF;
  IF EXISTS(SELECT 1 FROM public.pet_exames WHERE id=ex) OR EXISTS(SELECT 1 FROM public.pet_exame_resultados WHERE exame_id=ex) THEN RAISE EXCEPTION 'Exam or results not physically deleted'; END IF;

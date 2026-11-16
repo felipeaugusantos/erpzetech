@@ -525,7 +525,9 @@ DECLARE
     -- backup por cliente (rotina noturna da equipe): controle interno, só o serviço lê e grava; nenhum grant para authenticated
     'backup_execucoes',
     -- backup no Google Drive por cliente: conector cifrado e execuções; só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
-    'backup_drive_config', 'backup_drive_execucoes'];
+    'backup_drive_config', 'backup_drive_execucoes',
+    -- fila de limpeza de arquivos de exames excluídos: só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
+    'clinica_exames_limpeza'];
   sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'saas_erros_listar', 'saas_erro_situacao', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
@@ -559,6 +561,8 @@ DECLARE
     'clinica_exame_referencia_salvar', 'clinica_exame_modelos_iniciais',
     -- resultados de exame: cada função confere o perfil Veterinário, a clínica liberada e o cadastro com CRMV
     'clinica_exame_abrir', 'clinica_exame_salvar', 'clinica_exame_fechar', 'clinica_exame_cancelar', 'clinica_exame_adendo_criar',
+    -- agenda de exames e receitas emitidas: cada função confere o perfil Veterinário (_clinica_vet) e bloqueia o contador
+    'clinica_exame_agenda', 'clinica_exame_agendar', 'clinica_exame_agenda_situacao', 'clinica_exame_agenda_do_pet', 'clinica_receitas',
     'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao', 'clinica_importar_pdf', 'clinica_pacientes_atendidos', 'clinica_exame_excluir', 'clinica_exame_exclusao_acesso',
     -- anexos: cada função confere o perfil Veterinário e a clínica liberada; as duas de apoio só respondem verdadeiro com perfil, clínica e registro prévio
     'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
@@ -4375,7 +4379,7 @@ DECLARE
   p1   constant uuid := 'a0000000-0000-0000-0000-0000000000d1';
   p2   constant uuid := 'a0000000-0000-0000-0000-0000000000d2';
   psem constant uuid := 'a0000000-0000-0000-0000-0000000000d3';
-  pmix constant uuid := 'a0000000-0000-0000-0000-0000000000d4';
+  pmix constant uuid := 'a0000000-0000-0000-0000-00000e000104';
   pout constant uuid := 'a0000000-0000-0000-0000-0000000000d5';
   t0 timestamptz := date_trunc('day', now()) + interval '9 days' + interval '8 hours';
   hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
@@ -12542,7 +12546,7 @@ DO $$
 DECLARE
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
-  op   constant uuid := 'a0000000-0000-0000-0000-0000000000d4';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000e9990104';
   eid uuid; n int;
 BEGIN
   INSERT INTO auth.users (id, email) VALUES (op, 'operador-erros@ci');
