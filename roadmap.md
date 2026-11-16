@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Melhorias clínicas: data de atendimento editável sem alterar data de abertura/auditoria; tutor junto do paciente; peso em cada consulta; destaque de campos não cadastrados; corrigir seleção do produto da vacina mantendo controle de lote.
+
 - [x] PDV e balcão: fila local com pagamento, recebido/troco, reenvio idempotente, sincronização automática e conciliação concorrente; PDV desconta fila do saldo disponível e mostra recusas. Migrações 0093/0094 preservam caixa original. Dezessete testes passaram; celular autenticado confirmou venda offline e reconexão com recusa controlada sem apagar pagamento, nenhuma venda real criada; build OK.
 - [ ] Validar reabertura sem internet e sincronização financeira completa no publicado: depende de publicar a nova versão e conferir no celular com caixa autorizado; a prévia não registra cache de páginas por segurança. Testes SQL de idempotência/caixa/perfis adicionados à CI; sessão sandbox não pode assumir authenticated.
 
