@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,11 +34,14 @@ const TEXTOS: { chave: keyof FormAtendimento; rotulo: string; linhas: number }[]
 /** Corrige um atendimento já fechado: o motivo é obrigatório e a versão anterior fica guardada no adendo da correção. */
 export function CorrigirAtendimento({
   atendimento,
+  petId,
   aoCorrigir,
 }: {
   atendimento: AtendimentoClinico;
-  aoCorrigir: (novo: AtendimentoClinico) => void;
+  petId?: string;
+  aoCorrigir?: (novo: AtendimentoClinico) => void;
 }) {
+  const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState<FormAtendimento>(() => formDoAtendimento(atendimento));
   const [motivo, setMotivo] = useState("");
@@ -63,8 +66,14 @@ export function CorrigirAtendimento({
       if (error) throw error;
       return data as unknown as AtendimentoClinico;
     },
-    onSuccess: (novo) => {
-      aoCorrigir(novo);
+    onSuccess: async (novo) => {
+      aoCorrigir?.(novo);
+      await Promise.all([
+        qc.invalidateQueries({
+          queryKey: petId ? ["clinica-historico", petId] : ["clinica-historico"],
+        }),
+        qc.invalidateQueries({ queryKey: ["clinica-atendimento"] }),
+      ]);
       toast.success("Atendimento corrigido", {
         description: "A correção ficou registrada no histórico com o seu nome e o motivo.",
       });

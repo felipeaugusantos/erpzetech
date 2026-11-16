@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
 import { AlterarDataConsulta } from "@/components/app/AlterarDataConsulta";
+import { CorrigirAtendimento } from "@/components/app/CorrigirAtendimento";
 import { ProximaConsulta } from "@/components/app/ProximaConsulta";
 import { AlertasConsultaPaciente } from "@/components/app/AlertaConsulta";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
@@ -470,7 +471,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       (a) => a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data,
                     )
                     .map((a) => (
-                      <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />
+                      <span key={a.id} className="flex flex-wrap gap-2">
+                        <AlterarDataConsulta atendimento={a} petId={petId} />
+                        {a.situacao === "fechado" && (
+                          <CorrigirAtendimento atendimento={a} petId={petId} />
+                        )}
+                      </span>
                     ))}
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
@@ -525,7 +531,12 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                               a.id === v.atendimento_id && a.veterinario.id === meuVeterinario.data,
                           )
                           .map((a) => (
-                            <AlterarDataConsulta key={a.id} atendimento={a} petId={petId} />
+                            <span key={a.id} className="flex flex-wrap gap-2">
+                              <AlterarDataConsulta atendimento={a} petId={petId} />
+                              {a.situacao === "fechado" && (
+                                <CorrigirAtendimento atendimento={a} petId={petId} />
+                              )}
+                            </span>
                           ))}
                       </div>
                     </td>
@@ -594,8 +605,11 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                   </Badge>
                 </div>
                 {a.veterinario.id === meuVeterinario.data && (
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <AlterarDataConsulta atendimento={a} petId={petId} />
+                    {a.situacao === "fechado" && (
+                      <CorrigirAtendimento atendimento={a} petId={petId} />
+                    )}
                   </div>
                 )}
                 {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
