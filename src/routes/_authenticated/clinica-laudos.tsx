@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ClipboardList, FileText, Printer, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +31,7 @@ import {
 } from "@/lib/exames";
 import { evolucaoDosLaudos, historicoParaImpressao } from "@/lib/laudos-pet";
 import { ESPECIES, rotulo } from "@/lib/pet";
-import { dateBR } from "@/lib/format";
+import { dateBR, dateTimeBR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/clinica-laudos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -63,31 +63,43 @@ type Lista = {
 };
 function Tela() {
   const { pet } = Route.useSearch();
+  const navegar = useNavigate();
+  const [busca, setBusca] = useState("");
+  const [termo, setTermo] = useState("");
+  const pacientes = useQuery({
+    queryKey: ["clinica-pacientes", termo],
+    enabled: termo.trim().length >= 2,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_pacientes", { p_busca: termo });
+      if (error) throw error;
+      return data as unknown as { id: string; nome: string; especie: string; tutor: string }[];
+    },
+  });
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
   if (!modulos.clinica) return <ModuloBloqueado modulo="clinica" />;
-  if (!pet)
-    return (
-      <EmptyState
-        title="Escolha um paciente"
-        action={
-          <Button asChild>
-            <Link
-              to="/clinica-exames"
-              search={{ pet: undefined, exame: undefined, atendimento: undefined }}
-            >
-              Exames
-            </Link>
-          </Button>
-        }
-      />
-    );
-  return <Laudos key={pet} petId={pet} />;
+  return <div className="min-w-0">
+    {!pet && <PageHeader title="Laudos por paciente" />}
+    <form className="mb-4 flex max-w-xl gap-2" onSubmit={(e) => { e.preventDefault(); setTermo(busca.trim()); }}>
+      <Input aria-label="Buscar paciente" placeholder="Nome do paciente ou tutor" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <Button type="submit" variant="outline" disabled={busca.trim().length < 2}>Buscar</Button>
+    </form>
+    {pacientes.isFetching && <p className="mb-4 text-sm text-muted-foreground">Buscando pacientes…</p>}
+    {pacientes.error && <p role="alert" className="mb-4 text-sm text-destructive">{pacientes.error.message}</p>}
+    {termo && pacientes.data?.length === 0 && <EmptyState title="Nenhum paciente encontrado" />}
+    <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {pacientes.data?.map((p) => <Button key={p.id} variant="outline" className="h-auto justify-start whitespace-normal py-3 text-left" onClick={() => { void navegar({ to: "/clinica-laudos", search: { pet: p.id } }); setTermo(""); setBusca(""); }}>
+        <span className="min-w-0"><span className="block break-words font-semibold">{p.nome}</span><span className="block break-words text-xs text-muted-foreground">{rotulo(ESPECIES, p.especie)} · Tutor(a): {p.tutor}</span></span>
+      </Button>)}
+    </div>
+    {pet ? <Laudos key={pet} petId={pet} /> : !termo && <EmptyState title="Escolha um paciente" />}
+  </div>;
 }
 
 function Laudos({ petId }: { petId: string }) {
   const [busca, setBusca] = useState("");
   const [imprimindo, setImprimindo] = useState(false);
+  const [emissao, setEmissao] = useState("");
   const lista = useQuery({
     queryKey: ["clinica-exames-pet", petId],
     queryFn: async () => {
@@ -130,7 +142,7 @@ function Laudos({ petId }: { petId: string }) {
             variant="outline"
             size="sm"
             disabled={carregando || !!falha || !exames.length}
-            onClick={() => setImprimindo(true)}
+            onClick={() => { setEmissao(new Date().toISOString()); setImprimindo(true); }}
           >
             <Printer className="size-4" />
             Imprimir histórico
@@ -202,6 +214,7 @@ function Laudos({ petId }: { petId: string }) {
                   <p className="text-sm text-muted-foreground">
                     {e.veterinario.nome} · CRMV {e.veterinario.crmv}-{e.veterinario.crmv_uf}
                   </p>
+                  <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -337,12 +350,14 @@ function Laudos({ petId }: { petId: string }) {
               <p className="text-sm">
                 {rotulo(ESPECIES, lista.data?.pet.especie ?? "")} · Tutor(a): {lista.data?.tutor}
               </p>
+              <p className="text-sm">Emissão desta impressão: {dateTimeBR(emissao)}</p>
             </header>
             {exames.map((e) => (
               <section key={e.id} className="border-b pb-4">
                 <h2 className="font-semibold">
                   {e.nome} · {dateBR(e.data_coleta)}
                 </h2>
+                <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
                 <p className="mb-2 text-sm">
                   {rotulo(SITUACOES_EXAME, e.situacao)}
                   {e.situacao === "aberto" ? " — Rascunho, não validado" : ""} · {e.laboratorio} ·{" "}

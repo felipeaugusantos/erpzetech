@@ -1203,6 +1203,7 @@ function Laudo({
   valores: Record<string, number | null>;
   onReady: (ready: boolean) => void;
 }) {
+  const [emissao] = useState(() => new Date().toISOString());
   const feitos = exame.resultados.filter((r) =>
     r.forma === "texto" || r.forma === "escolha"
       ? r.valor_texto !== null
@@ -1256,6 +1257,9 @@ function Laudo({
         </div>
         <div className="text-right">
           <p>Coleta: {dateBR(exame.data_coleta)}</p>
+          <p>Consulta: {exame.data_consulta ? dateBR(exame.data_consulta) : "Sem consulta vinculada"}</p>
+          <p>Laudo validado: {exame.fechado_em ? dateTimeBR(exame.fechado_em) : "Ainda não validado"}</p>
+          <p>Emissão desta impressão: {dateTimeBR(emissao)}</p>
           {exame.laboratorio && <p>Laboratório: {exame.laboratorio}</p>}
         </div>
       </div>
