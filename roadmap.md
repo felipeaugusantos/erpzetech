@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Laudos por paciente: seleção direta, histórico com PDFs originais e datas de coleta, consulta vinculada e emissão na tela e na impressão.
+- [x] Laudos por paciente: seleção direta e acesso nos dois menus clínicos, histórico com PDFs originais e datas de coleta, consulta vinculada, validação e emissão da impressão; 19 testes passaram e data de consulta conferida no banco.
+- [ ] Conferir histórico e impressão com sessão veterinária autorizada: conta disponível está na tela de aceite dos termos; não aceitar em nome do usuário nem alterar exames reais.
 
 - [x] Cobrança automática das mensalidades pelo Asaas: fatura do mês gerada pelo servidor, cobrança criada no gateway (Pix, boleto e cartão na página da fatura), webhook com token e idempotência dando baixa/estorno, suspensão com 10 dias de atraso e reativação ao pagar, aviso e tela de bloqueio para a empresa, chave por cliente na tela da equipe. Migração 20270124, seção 105 do smoke (CI do banco inteira verde), 11 testes novos de lógica e de webhook, tsc, lint e build OK. **Nunca rodou contra o Asaas** (sem chave nem sandbox nesta sessão); não publicado. Guia em docs/cobranca-asaas.md.
 - [ ] Validar em sandbox do Asaas (rodada diária, webhook real, baixa e reativação) e configurar as variáveis e o agendamento diário.
