@@ -16,6 +16,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as FuncionalidadesRouteImport } from './routes/funcionalidades'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
@@ -194,6 +196,7 @@ import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authe
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
 import { Route as AuthenticatedZeTechContratosRouteImport } from './routes/_authenticated/ze-tech-contratos'
 import { Route as AuthenticatedZeTechEquipeRouteImport } from './routes/_authenticated/ze-tech-equipe'
+import { Route as AuthenticatedZeTechErrosRouteImport } from './routes/_authenticated/ze-tech-erros'
 import { Route as AuthenticatedZeTechFiscalRouteImport } from './routes/_authenticated/ze-tech-fiscal'
 import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
 import { Route as AuthenticatedZeTechLinksRouteImport } from './routes/_authenticated/ze-tech-links'
@@ -218,11 +221,13 @@ import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ApiClinicaTranscreverRouteImport } from './routes/api.clinica.transcrever'
+import { Route as ApiPublicErrosRouteImport } from './routes/api.public.erros'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
 import { Route as PortalReceitaIdRouteImport } from './routes/portal.receita.$id'
 import { Route as ApiPublicHooksBackupClientesRouteImport } from './routes/api.public.hooks.backup-clientes'
+import { Route as ApiPublicHooksCobrancaDiariaRouteImport } from './routes/api.public.hooks.cobranca-diaria'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
@@ -260,6 +265,16 @@ const ContatoRoute = ContatoRouteImport.update({
 const FuncionalidadesRoute = FuncionalidadesRouteImport.update({
   id: '/funcionalidades',
   path: '/funcionalidades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
@@ -1266,6 +1281,12 @@ const AuthenticatedZeTechEquipeRoute =
     path: '/ze-tech-equipe',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechErrosRoute =
+  AuthenticatedZeTechErrosRouteImport.update({
+    id: '/ze-tech-erros',
+    path: '/ze-tech-erros',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechFiscalRoute =
   AuthenticatedZeTechFiscalRouteImport.update({
     id: '/ze-tech-fiscal',
@@ -1404,6 +1425,11 @@ const ApiClinicaTranscreverRoute = ApiClinicaTranscreverRouteImport.update({
   path: '/api/clinica/transcrever',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicErrosRoute = ApiPublicErrosRouteImport.update({
+  id: '/api/public/erros',
+  path: '/api/public/erros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
   id: '/chamar/$empresa/$mesa',
   path: '/chamar/$empresa/$mesa',
@@ -1428,6 +1454,12 @@ const ApiPublicHooksBackupClientesRoute =
   ApiPublicHooksBackupClientesRouteImport.update({
     id: '/api/public/hooks/backup-clientes',
     path: '/api/public/hooks/backup-clientes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksCobrancaDiariaRoute =
+  ApiPublicHooksCobrancaDiariaRouteImport.update({
+    id: '/api/public/hooks/cobranca-diaria',
+    path: '/api/public/hooks/cobranca-diaria',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksWhatsappDespacharRoute =
@@ -1462,6 +1494,8 @@ export interface FileRoutesByFullPath {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1640,6 +1674,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -1660,6 +1695,7 @@ export interface FileRoutesByFullPath {
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1669,6 +1705,7 @@ export interface FileRoutesByFullPath {
   '/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
+  '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -1681,6 +1718,8 @@ export interface FileRoutesByTo {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1859,6 +1898,7 @@ export interface FileRoutesByTo {
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -1879,6 +1919,7 @@ export interface FileRoutesByTo {
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1888,6 +1929,7 @@ export interface FileRoutesByTo {
   '/depositos': typeof AuthenticatedDepositosIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
+  '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -1902,6 +1944,8 @@ export interface FileRoutesById {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -2080,6 +2124,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/_authenticated/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/_authenticated/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/_authenticated/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/_authenticated/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/_authenticated/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -2100,6 +2145,7 @@ export interface FileRoutesById {
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2109,6 +2155,7 @@ export interface FileRoutesById {
   '/_authenticated/depositos/': typeof AuthenticatedDepositosIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
+  '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
@@ -2123,6 +2170,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -2301,6 +2350,7 @@ export interface FileRouteTypes {
     | '/ze-tech-contas-pagar'
     | '/ze-tech-contratos'
     | '/ze-tech-equipe'
+    | '/ze-tech-erros'
     | '/ze-tech-fiscal'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
@@ -2321,6 +2371,7 @@ export interface FileRouteTypes {
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2330,6 +2381,7 @@ export interface FileRouteTypes {
     | '/depositos/'
     | '/pedidos/'
     | '/api/public/hooks/backup-clientes'
+    | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2342,6 +2394,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -2520,6 +2574,7 @@ export interface FileRouteTypes {
     | '/ze-tech-contas-pagar'
     | '/ze-tech-contratos'
     | '/ze-tech-equipe'
+    | '/ze-tech-erros'
     | '/ze-tech-fiscal'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
@@ -2540,6 +2595,7 @@ export interface FileRouteTypes {
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2549,6 +2605,7 @@ export interface FileRouteTypes {
     | '/depositos'
     | '/pedidos'
     | '/api/public/hooks/backup-clientes'
+    | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2562,6 +2619,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
@@ -2740,6 +2799,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-contas-pagar'
     | '/_authenticated/ze-tech-contratos'
     | '/_authenticated/ze-tech-equipe'
+    | '/_authenticated/ze-tech-erros'
     | '/_authenticated/ze-tech-fiscal'
     | '/_authenticated/ze-tech-lava-rapido'
     | '/_authenticated/ze-tech-links'
@@ -2760,6 +2820,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2769,6 +2830,7 @@ export interface FileRouteTypes {
     | '/_authenticated/depositos/'
     | '/_authenticated/pedidos/'
     | '/api/public/hooks/backup-clientes'
+    | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
@@ -2783,16 +2845,20 @@ export interface RootRouteChildren {
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
   FuncionalidadesRoute: typeof FuncionalidadesRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
   MenuEmpresaRoute: typeof MenuEmpresaRoute
   PortalEntrarRoute: typeof PortalEntrarRoute
   PortalIndexRoute: typeof PortalIndexRoute
   ApiClinicaTranscreverRoute: typeof ApiClinicaTranscreverRoute
+  ApiPublicErrosRoute: typeof ApiPublicErrosRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
   PortalReceitaIdRoute: typeof PortalReceitaIdRoute
   ApiPublicHooksBackupClientesRoute: typeof ApiPublicHooksBackupClientesRoute
+  ApiPublicHooksCobrancaDiariaRoute: typeof ApiPublicHooksCobrancaDiariaRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
@@ -2848,6 +2914,20 @@ declare module '@tanstack/react-router' {
       path: '/funcionalidades'
       fullPath: '/funcionalidades'
       preLoaderRoute: typeof FuncionalidadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ze-tech-login': {
@@ -4096,6 +4176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechEquipeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-erros': {
+      id: '/_authenticated/ze-tech-erros'
+      path: '/ze-tech-erros'
+      fullPath: '/ze-tech-erros'
+      preLoaderRoute: typeof AuthenticatedZeTechErrosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-fiscal': {
       id: '/_authenticated/ze-tech-fiscal'
       path: '/ze-tech-fiscal'
@@ -4264,6 +4351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiClinicaTranscreverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/erros': {
+      id: '/api/public/erros'
+      path: '/api/public/erros'
+      fullPath: '/api/public/erros'
+      preLoaderRoute: typeof ApiPublicErrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chamar/$empresa/$mesa': {
       id: '/chamar/$empresa/$mesa'
       path: '/chamar/$empresa/$mesa'
@@ -4297,6 +4391,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/backup-clientes'
       fullPath: '/api/public/hooks/backup-clientes'
       preLoaderRoute: typeof ApiPublicHooksBackupClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cobranca-diaria': {
+      id: '/api/public/hooks/cobranca-diaria'
+      path: '/api/public/hooks/cobranca-diaria'
+      fullPath: '/api/public/hooks/cobranca-diaria'
+      preLoaderRoute: typeof ApiPublicHooksCobrancaDiariaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/whatsapp-despachar': {
@@ -4508,6 +4609,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
   AuthenticatedZeTechContratosRoute: typeof AuthenticatedZeTechContratosRoute
   AuthenticatedZeTechEquipeRoute: typeof AuthenticatedZeTechEquipeRoute
+  AuthenticatedZeTechErrosRoute: typeof AuthenticatedZeTechErrosRoute
   AuthenticatedZeTechFiscalRoute: typeof AuthenticatedZeTechFiscalRoute
   AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
   AuthenticatedZeTechLinksRoute: typeof AuthenticatedZeTechLinksRoute
@@ -4714,6 +4816,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,
   AuthenticatedZeTechContratosRoute: AuthenticatedZeTechContratosRoute,
   AuthenticatedZeTechEquipeRoute: AuthenticatedZeTechEquipeRoute,
+  AuthenticatedZeTechErrosRoute: AuthenticatedZeTechErrosRoute,
   AuthenticatedZeTechFiscalRoute: AuthenticatedZeTechFiscalRoute,
   AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
   AuthenticatedZeTechLinksRoute: AuthenticatedZeTechLinksRoute,
@@ -4748,16 +4851,20 @@ const rootRouteChildren: RootRouteChildren = {
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
   FuncionalidadesRoute: FuncionalidadesRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
   MenuEmpresaRoute: MenuEmpresaRoute,
   PortalEntrarRoute: PortalEntrarRoute,
   PortalIndexRoute: PortalIndexRoute,
   ApiClinicaTranscreverRoute: ApiClinicaTranscreverRoute,
+  ApiPublicErrosRoute: ApiPublicErrosRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
   PortalReceitaIdRoute: PortalReceitaIdRoute,
   ApiPublicHooksBackupClientesRoute: ApiPublicHooksBackupClientesRoute,
+  ApiPublicHooksCobrancaDiariaRoute: ApiPublicHooksCobrancaDiariaRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,

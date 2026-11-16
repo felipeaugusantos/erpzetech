@@ -93,6 +93,12 @@ export function timestampValido(
 
 // ---------------------------------------------------------------------------------------------
 
+/** Confere um token fixo enviado em um cabeçalho (comparação em tempo constante). */
+export function tokenNoCabecalho(headers: Headers, cabecalho: string, segredo: string): boolean {
+  const recebido = headers.get(cabecalho);
+  return Boolean(segredo) && Boolean(recebido) && compararSeguro(recebido!.trim(), segredo);
+}
+
 export type EventoWebhook = {
   provedor: string;
   id: string;
@@ -104,8 +110,14 @@ export type ProvedorWebhook = {
   nome: string;
   /** Lê o segredo compartilhado (variável de ambiente). Sem segredo, o provedor fica desativado. */
   segredo: () => string | undefined;
-  cabecalhoAssinatura: string;
+  /** Cabeçalho da assinatura HMAC. Não usado quando o provedor define `autenticar`. */
+  cabecalhoAssinatura?: string;
   assinatura?: Omit<ConfigAssinatura, "segredo">;
+  /**
+   * Autenticação própria, para provedores que mandam um token fixo em vez de assinar o corpo (ex.: Asaas, cabeçalho
+   * `asaas-access-token`). Quando existe, substitui a verificação por HMAC. Use `tokenNoCabecalho` para comparar em tempo constante.
+   */
+  autenticar?: (headers: Headers, segredo: string) => boolean | Promise<boolean>;
   /** Texto assinado pelo provedor. Padrão: o corpo bruto da requisição. */
   textoAssinado?: (corpo: string, headers: Headers) => string;
   /** Extrai o id único do evento (e, se houver, o tenant) do payload. null = payload inválido. */
@@ -201,11 +213,13 @@ export async function tratarWebhook(
   if (corpo === null) return resposta(413, { erro: "Corpo grande demais" });
 
   const assinado = provedor.textoAssinado ? provedor.textoAssinado(corpo, request.headers) : corpo;
-  const valida = await verificarAssinatura(
-    assinado,
-    request.headers.get(provedor.cabecalhoAssinatura),
-    { segredo, ...provedor.assinatura },
-  );
+  const valida = provedor.autenticar
+    ? await provedor.autenticar(request.headers, segredo)
+    : await verificarAssinatura(
+        assinado,
+        provedor.cabecalhoAssinatura ? request.headers.get(provedor.cabecalhoAssinatura) : null,
+        { segredo, ...provedor.assinatura },
+      );
   if (!valida) return resposta(401, { erro: "Assinatura inválida" });
 
   let payload: unknown;

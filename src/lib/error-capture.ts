@@ -57,6 +57,10 @@ console.error = (...args: unknown[]) => {
   const expanded = args.map((arg) => {
     if (!isErrorLike(arg)) return arg;
     record(arg);
+    // monitoramento: grava o erro no banco (sem esperar, sem nunca falhar)
+    void import("./monitoramento.server")
+      .then((m) => m.relatarErroDoServidor(arg))
+      .catch(() => undefined);
     return describeError(arg);
   });
   originalConsoleError(...expanded);

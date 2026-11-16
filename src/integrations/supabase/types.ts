@@ -46,6 +46,62 @@ export type Database = {
           },
         ]
       }
+      erros_app: {
+        Row: {
+          id: string
+          impressao: string
+          mensagem: string
+          navegador: string | null
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string | null
+          situacao: string
+          situacao_em: string | null
+          stack: string | null
+          tenant_id: string | null
+          ultima_vez: string
+        }
+        Insert: {
+          id?: string
+          impressao: string
+          mensagem: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Update: {
+          id?: string
+          impressao?: string
+          mensagem?: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem?: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erros_app_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           created_at: string
@@ -11005,7 +11061,6 @@ export type Database = {
           created_at: string
           crmv: string
           crmv_uf: string
-          data_consulta: string | null
           id: string
           tenant_id: string
           texto: string
@@ -11016,7 +11071,6 @@ export type Database = {
           created_at?: string
           crmv: string
           crmv_uf: string
-          data_consulta?: string | null
           id?: string
           tenant_id?: string
           texto: string
@@ -11027,7 +11081,6 @@ export type Database = {
           created_at?: string
           crmv?: string
           crmv_uf?: string
-          data_consulta?: string | null
           id?: string
           tenant_id?: string
           texto?: string
@@ -17186,6 +17239,37 @@ export type Database = {
       aceite_legal_meu: { Args: { p_versao: string }; Returns: boolean }
       aceite_legal_registrar: { Args: { p_versao: string }; Returns: string }
       assinante_link_sugerido: { Args: never; Returns: string }
+      assinatura_resumo: { Args: never; Returns: Json }
+      erro_app_registrar: {
+        Args: {
+          p_impressao: string
+          p_mensagem: string
+          p_navegador: string
+          p_origem: string
+          p_rota: string
+          p_stack: string
+          p_tenant: string
+        }
+        Returns: undefined
+      }
+      erros_app_limpar: { Args: never; Returns: number }
+      saas_erro_situacao: { Args: { p_id: string; p_situacao: string }; Returns: undefined }
+      saas_erros_listar: {
+        Args: { p_limite?: number; p_situacao?: string }
+        Returns: {
+          cliente: string
+          id: string
+          mensagem: string
+          navegador: string
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string
+          situacao: string
+          stack: string
+          ultima_vez: string
+        }[]
+      }
       assinatura_situacao: { Args: never; Returns: Json }
       assistencia_ordens_relatorio: {
         Args: { p_ate: string; p_de: string; p_filial_id?: string }
@@ -17405,12 +17489,7 @@ export type Database = {
       }
       clinica_cartao_vacinacao: { Args: { p_pet_id: string }; Returns: Json }
       clinica_consulta_data_alterar: {
-        Args: {
-          p_data: string
-          p_data_anterior?: string
-          p_id: string
-          p_motivo?: string
-        }
+        Args: { p_data: string; p_data_anterior?: string; p_id: string; p_motivo?: string }
         Returns: Json
       }
       clinica_documento_cancelar: {

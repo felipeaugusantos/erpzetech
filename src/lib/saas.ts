@@ -82,6 +82,8 @@ export type ClienteSaas = {
   admin_criado_em: string | null;
   /** Nome do link da tela de login da loja (empresas.slug). */
   link_acesso: string | null;
+  /** Cobrança automática pelo gateway (Asaas) ligada pela equipe. */
+  cobranca_automatica: boolean;
 };
 
 export const SITUACAO_SAAS: Record<string, string> = {

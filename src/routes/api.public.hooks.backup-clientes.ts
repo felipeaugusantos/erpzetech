@@ -17,7 +17,16 @@ export const Route = createFileRoute("/api/public/hooks/backup-clientes")({
           const local = await rodadaDeBackup({ lote });
           const { rodadaDrive } = await import("@/lib/backup-drive.server");
           const drive = await rodadaDrive();
-          return Response.json({ ...local, drive });
+          // aproveita a rotina noturna para apagar erros resolvidos há mais de 90 dias (monitoramento); falha aqui não derruba o backup
+          let errosApagados: number | null = null;
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { data } = await supabaseAdmin.rpc("erros_app_limpar");
+            errosApagados = typeof data === "number" ? data : null;
+          } catch {
+            errosApagados = null;
+          }
+          return Response.json({ ...local, drive, errosApagados });
         } catch (e) {
           console.error("[backup] falha na rodada", e);
           return Response.json({ erro: (e as Error).message }, { status: 500 });

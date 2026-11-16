@@ -908,6 +908,14 @@ function Landing() {
       <footer className="bg-[#0a1610] px-5 py-10 text-center text-xs text-white/50 sm:px-8">
         <p>EZRA ERP • WhatsApp {WHATSAPP_LABEL} • contato@zeregistra.com.br</p>
         <p className="mt-1.5">Desenvolvido por EZRA</p>
+        <p className="mt-1.5 space-x-3">
+          <Link to="/termos" className="underline underline-offset-4 hover:text-white">
+            Termos de Uso
+          </Link>
+          <Link to="/privacidade" className="underline underline-offset-4 hover:text-white">
+            Política de Privacidade
+          </Link>
+        </p>
         <Button
           asChild
           variant="ghost"

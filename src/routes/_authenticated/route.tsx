@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app/AppShell";
+import { AssinaturaGate } from "@/components/app/AssinaturaGate";
+import { AceiteLegal } from "@/components/app/AceiteLegal";
 import { ContadorShell } from "@/components/app/ContadorShell";
 import { registrarLinkDeEntrada } from "@/lib/link-uso";
 
@@ -47,21 +49,27 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function Layout() {
-  const { contador } = Route.useRouteContext();
+  const { contador, user } = Route.useRouteContext();
   // quem entrou pelo link da empresa tem o uso registrado (o link fica guardado até o login terminar)
   useEffect(() => {
     void registrarLinkDeEntrada();
   }, []);
   if (contador) {
     return (
-      <ContadorShell editaTributos={contador.editaTributos}>
-        <Outlet />
-      </ContadorShell>
+      <AceiteLegal userId={user.id}>
+        <ContadorShell editaTributos={contador.editaTributos}>
+          <Outlet />
+        </ContadorShell>
+      </AceiteLegal>
     );
   }
   return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
+    <AceiteLegal userId={user.id}>
+      <AssinaturaGate userId={user.id}>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </AssinaturaGate>
+    </AceiteLegal>
   );
 }

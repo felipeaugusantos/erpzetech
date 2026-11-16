@@ -89,6 +89,8 @@ type Fatura = {
   pix_copia_cola: string | null;
   boleto_linha_digitavel: string | null;
   boleto_url: string | null;
+  gateway_url?: string | null;
+  gateway_status?: string | null;
   enviado_em: string | null;
   enviado_canal: string | null;
   observacao: string | null;
@@ -502,8 +504,22 @@ function CobrancaZeTech() {
                           <p className="text-xs text-muted-foreground">
                             {TIPO_FATURA_SAAS[f.tipo] ?? f.tipo}
                             {f.forma_cobranca
-                              ? ` · ${f.forma_cobranca === "pix" ? "PIX" : "Boleto"}`
+                              ? ` · ${f.forma_cobranca === "pix" ? "PIX" : f.forma_cobranca === "gateway" ? "Asaas" : "Boleto"}`
                               : ""}
+                            {f.gateway_status ? ` · ${f.gateway_status}` : ""}
+                            {f.gateway_url && (
+                              <>
+                                {" · "}
+                                <a
+                                  href={f.gateway_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2"
+                                >
+                                  página de pagamento
+                                </a>
+                              </>
+                            )}
                           </p>
                         </TableCell>
                         <TableCell>{dateBR(f.vencimento)}</TableCell>
