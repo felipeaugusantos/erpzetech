@@ -10,6 +10,7 @@ import { brl, dateTimeBR, num } from "@/lib/format";
 import { useOnline, ehErroDeRede } from "@/lib/offline";
 import {
   chaveFilaPdv,
+  caixaDoPdv,
   conciliarVendas,
   saldoAposFila,
   type VendaPendente,
@@ -150,7 +151,7 @@ function Pdv() {
   const [cupom, setCupom] = useState<(CupomDados & { pedidoId: string }) | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["pdv-base", usuario, empresa],
+    queryKey: ["pdv-base", usuario, empresa, "caixa-operador-v2"],
     enabled: !!usuario && !!empresa,
     queryFn: async () => {
       const [depRes, prodRes, cliRes, caixaRes] = await Promise.all([
@@ -170,7 +171,7 @@ function Pdv() {
           .limit(1000),
         supabase
           .from("caixas")
-          .select("id, situacao, valor_abertura")
+          .select("id, situacao, valor_abertura, aberto_por")
           .eq("situacao", "aberto")
           .order("aberto_em", { ascending: false }),
       ]);
@@ -179,7 +180,7 @@ function Pdv() {
         depositos: depRes.data ?? [],
         produtos: prodRes.data ?? [],
         clientes: cliRes.data ?? [],
-        caixaAberto: (caixaRes.data ?? [])[0] ?? null,
+        caixaAberto: caixaDoPdv(caixaRes.data ?? [], usuario),
       };
     },
   });
