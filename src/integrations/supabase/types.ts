@@ -13895,6 +13895,7 @@ export type Database = {
           microchip: string | null
           nascimento: string | null
           nome: string
+          obito: boolean
           obito_em: string | null
           observacoes: string | null
           pelagem: string | null
@@ -13917,6 +13918,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome: string
+          obito?: boolean
           obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
@@ -13939,6 +13941,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome?: string
+          obito?: boolean
           obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
@@ -19288,6 +19291,7 @@ export type Database = {
         Returns: undefined
       }
       pet_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_salvar_com_obito: { Args: { p_dados: Json }; Returns: string }
       pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_servicos_por_profissional: {
         Args: { p_ate: string; p_de: string }

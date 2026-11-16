@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -30,23 +31,8 @@ export function CamposCadastroRapido({
       <div className="sm:col-span-3 border-b border-border pb-3">
         <h3 className="mb-3 font-semibold">Cadastro do tutor</h3>
         <Label htmlFor="cr-tutor">Tutor</Label>
-        <Select
-          value={form.tutorId || "__novo"}
-          onValueChange={(v) => mexe({ tutorId: v === "__novo" ? "" : v })}
-        >
-          <SelectTrigger id="cr-tutor">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__novo">Tutor novo</SelectItem>
-            {tutores.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.nome}
-                {t.telefone ? ` · ${t.telefone}` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ClienteCombobox clientes={tutores} value={form.tutorId} onChange={(id) => mexe({ tutorId: id })}
+          balcaoValue="" balcaoLabel="Cadastrar tutor novo" placeholder="Buscar tutor já cadastrado…" />
         {semCopia && (
           <p className="mt-1 text-xs text-muted-foreground">
             Para escolher um tutor que já existe, prepare a visita antes (a agenda baixada traz os

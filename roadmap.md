@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Cadastro de pet: busca de tutor existente também no cadastro rápido, campo Óbito persistido e pets falecidos em preto com texto branco. Dez testes passaram; navegador autenticado confirmou busca, gravação, reabertura e retirada de óbito em registro temporário, removido após conferência. Computador/celular conferidos; build OK. Não publicado.
+
 - [x] Melhorias clínicas: data clínica editável nas consultas abertas, preservando abertura original e fichas fechadas; tutor junto do paciente com ação destacada; peso próprio destacado em cada consulta e no histórico; campos não cadastrados em cor de aviso; produtos de vacina sem lote disponíveis com confirmação explícita, sem aceitar serviços. Migrações 0095/0096 conferidas; 47 testes de lógica e 11 de ciclo de vida passaram. Catálogo e cadastro conjunto conferidos autenticados no computador/celular; data 15/11/2026 e peso 12,345 conferidos com resposta controlada, sem gravar pacientes reais; build OK. Não publicado.
 - [ ] Conferir salvamento real da data/peso e vacina em consulta autorizada: sessão atual é da administração sem vínculo veterinário; conferência visual controlada não grava dados clínicos. Testes SQL adicionados à CI (sandbox não assume authenticated).
 

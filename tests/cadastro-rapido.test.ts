@@ -46,6 +46,17 @@ describe("erroDoCadastroRapido", () => {
 });
 
 describe("operacaoDoCadastroRapido", () => {
+  it("o mesmo tutor pode ter dois pets sem criar outro cadastro de cliente", () => {
+    const a = operacaoDoCadastroRapido({ ...ok, tutorId: "tutor-9", petNome: "Léo" }, "Ana", { pet: "pet-a" }, hoje);
+    const b = operacaoDoCadastroRapido({ ...ok, tutorId: "tutor-9", petNome: "Thor" }, "Ana", { pet: "pet-b" }, hoje);
+    const pa = a.payload as { cliente_id: string; cliente?: unknown; pet: { id: string } };
+    const pb = b.payload as typeof pa;
+    assert.equal(pa.cliente_id, "tutor-9");
+    assert.equal(pb.cliente_id, "tutor-9");
+    assert.equal(pa.cliente, undefined);
+    assert.equal(pb.cliente, undefined);
+    assert.notEqual(pa.pet.id, pb.pet.id);
+  });
   const ids = { operacao: "op-1", cliente: "cli-1", pet: "pet-1" };
   it("tutor novo: os ids nascem no notebook e a chave de repetição é o id da operação", () => {
     const op = operacaoDoCadastroRapido(

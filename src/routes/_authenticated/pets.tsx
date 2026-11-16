@@ -99,6 +99,7 @@ type Form = {
   alergias: string;
   observacoes: string;
   ativo: boolean;
+  obito: boolean;
   microchip: string;
   /** foto atual do pet (miniatura JPEG); só vai ao banco quando fotoMudou */
   foto: string | null;
@@ -123,6 +124,7 @@ const vazio: Form = {
   alergias: "",
   observacoes: "",
   ativo: true,
+  obito: false,
   microchip: "",
   foto: null,
   fotoMudou: false,
@@ -155,7 +157,7 @@ function Pets() {
         supabase
           .from("pets")
           .select(
-            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, microchip, created_at, updated_at",
+            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, obito, microchip, created_at, updated_at",
           )
           .order("nome"),
         supabase
@@ -241,7 +243,7 @@ function Pets() {
         setForm((f) => ({ ...f, cliente_id: idTutor, tutor_novo: false }));
         void qc.invalidateQueries({ queryKey: ["clientes"] });
       }
-      const { data: petId, error } = await supabase.rpc("pet_salvar", {
+      const { data: petId, error } = await supabase.rpc("pet_salvar_com_obito", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           cliente_id: clienteId,
@@ -257,6 +259,7 @@ function Pets() {
           alergias: form.alergias.trim() || null,
           observacoes: form.observacoes.trim() || null,
           ativo: form.ativo,
+          obito: form.obito,
           microchip: normalizarMicrochip(form.microchip) || null,
           ...(form.fotoMudou ? { foto: form.foto } : {}),
         },
@@ -380,13 +383,14 @@ function Pets() {
               {lista.map((p) => {
                 const c = tutor(p.cliente_id);
                 return (
-                  <TableRow key={p.id} className={p.ativo ? "" : "opacity-60"}>
+                  <TableRow key={p.id} className={p.obito ? "pet-falecido" : p.ativo ? "" : "opacity-60"}>
                     <TableCell className="font-medium">
                       {p.nome}
                       <span className="ml-2 text-xs text-muted-foreground">
                         {rotulo(ESPECIES, p.especie)}
                       </span>
-                      {!p.ativo && (
+                      {p.obito && <Badge variant="outline" className="ml-2 border-pet-obito-foreground text-pet-obito-foreground">Óbito</Badge>}
+                      {!p.ativo && !p.obito && (
                         <Badge variant="outline" className="ml-2">
                           Inativo
                         </Badge>
@@ -456,6 +460,7 @@ function Pets() {
                               alergias: p.alergias ?? "",
                               observacoes: p.observacoes ?? "",
                               ativo: p.ativo,
+                              obito: p.obito,
                               microchip: p.microchip ?? "",
                               foto: null,
                               fotoMudou: false,
@@ -558,7 +563,7 @@ function Pets() {
                     clientes={clientes}
                     value={form.cliente_id}
                     onChange={(id) => setForm({ ...form, cliente_id: id })}
-                    placeholder="Digite o nome do tutor…"
+                    placeholder="Buscar tutor já cadastrado…"
                   />
                   {form.cliente_id && (() => {
                     const t = tutor(form.cliente_id);
@@ -658,6 +663,10 @@ function Pets() {
                 onCheckedChange={(v) => setForm({ ...form, ativo: v })}
               />
               <Label htmlFor="pet-ativo">Ativo</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="pet-obito" checked={form.obito} onCheckedChange={(v) => setForm({ ...form, obito: v })} />
+              <Label htmlFor="pet-obito">Óbito</Label>
             </div>
             <div>
               <Label htmlFor="pet-chip">Microchip</Label>

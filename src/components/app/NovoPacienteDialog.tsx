@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +38,15 @@ export function NovoPacienteDialog({
 }) {
   const [form, setForm] = useState<FormCadastroRapido>(cadastroVazio);
   const [salvando, setSalvando] = useState(false);
+  const { data: tutores = [] } = useQuery({
+    queryKey: ["clinica-tutores-cadastro"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clientes").select("id, nome, cpf, cnpj, telefone")
+        .eq("ativo", true).is("deleted_at", null).order("nome").limit(2000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   // o mesmo formulário reenviado (por exemplo, depois de a conexão cair) leva a mesma chave: o banco não cria o paciente duas vezes
   const tentativa = useRef<{ assinatura: string; op: OperacaoFila } | null>(null);
   const erro = erroDoCadastroRapido(form);
@@ -77,7 +88,7 @@ export function NovoPacienteDialog({
           Para cão ou gato que chegou direto à clínica. Se o telefone do tutor já existir em outro
           cadastro, a recepção recebe um aviso para conferir e unir; nada é apagado.
         </p>
-        <CamposCadastroRapido form={form} mexe={mexe} tutores={[]} />
+        <CamposCadastroRapido form={form} mexe={mexe} tutores={tutores} />
         {erro && (form.petNome || form.tutorNome) && (
           <p className="text-sm text-destructive">{erro}</p>
         )}
