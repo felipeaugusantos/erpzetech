@@ -526,7 +526,7 @@ DECLARE
     'backup_execucoes',
     -- backup no Google Drive por cliente: conector cifrado e execuções; só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
     'backup_drive_config', 'backup_drive_execucoes'];
-  sem_trava constant text[] := ARRAY['current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
+  sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
     'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
@@ -642,7 +642,9 @@ BEGIN
      AND p.proname NOT IN ('current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
                            'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco', 'eh_contador_restrito',
                            'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
-                           'filial_irrestrita', 'pode_filial', 'eh_profissional_restrito')
+                           'filial_irrestrita', 'pode_filial', 'eh_profissional_restrito',
+                           -- aceite dos termos (LGPD): vale para qualquer pessoa logada, inclusive o contador
+                           'aceite_legal_meu', 'aceite_legal_registrar')
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_contador%'
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_contador_tributos%';
   PERFORM ci.exige(faltando IS NULL, 'toda função chamável tem a trava do contador (exige_nao_contador ou exige_contador_tributos) ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
@@ -12491,4 +12493,43 @@ BEGIN
   DELETE FROM lr_agenda_config WHERE tenant_id = demo;
   DELETE FROM lr_config WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = ramo_ant, cnae = cnae_ant, cnae_secundarios = cnae2_ant WHERE tenant_id = demo;
+END $$;
+
+-- 103. Aceite dos termos (LGPD): sem acesso direto à tabela, cada pessoa aceita só por si, repetir não duplica nem muda a data,
+-- versão inválida é recusada, o aceite de uma pessoa não aparece para outra e vale para qualquer perfil (salão inclusive)
+DO $$
+DECLARE
+  demo constant uuid := '11111111-1111-1111-1111-111111111111';
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  v1 timestamptz; v2 timestamptz;
+BEGIN
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM aceites_legais', 'authenticated lê a tabela de aceites direto');
+  PERFORM ci.deve_falhar(adm, format($c$INSERT INTO aceites_legais (user_id, versao) VALUES (%L, '2026-01-01')$c$, adm), 'authenticated grava aceite direto');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT aceite_legal_registrar('2026-01-01')$c$, 'anon registra aceite');
+  PERFORM ci.deve_falhar(adm, $c$SELECT aceite_legal_registrar('ontem')$c$, 'versão fora do formato');
+
+  PERFORM ci.exige(NOT (SELECT public.aceite_legal_meu('2026-01-01')), 'sem aceite registrado a função diz falso (postgres sem sessão)');
+  PERFORM ci.entrar(adm);
+  PERFORM ci.exige(NOT aceite_legal_meu('2026-01-01'), 'administrador ainda não aceitou');
+  v1 := aceite_legal_registrar('2026-01-01');
+  PERFORM ci.exige(aceite_legal_meu('2026-01-01'), 'administrador aceitou');
+  PERFORM ci.exige(NOT aceite_legal_meu('2026-02-02'), 'aceite de uma versão não vale para outra');
+  PERFORM ci.sair();
+
+  PERFORM pg_sleep(0.01);
+  PERFORM ci.entrar(adm);
+  v2 := aceite_legal_registrar('2026-01-01');
+  PERFORM ci.sair();
+  PERFORM ci.exige(v1 = v2, 'repetir o aceite devolve a data do primeiro');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM aceites_legais WHERE user_id = adm AND versao = '2026-01-01'), 'repetir não duplica');
+  PERFORM ci.exige((SELECT tenant_id = demo FROM aceites_legais WHERE user_id = adm AND versao = '2026-01-01'), 'o aceite guarda a empresa da pessoa');
+
+  PERFORM ci.entrar(gar);
+  PERFORM ci.exige(NOT aceite_legal_meu('2026-01-01'), 'o aceite do administrador não vale para o garçom');
+  PERFORM aceite_legal_registrar('2026-01-01');
+  PERFORM ci.exige(aceite_legal_meu('2026-01-01'), 'perfil do salão também aceita');
+  PERFORM ci.sair();
+
+  DELETE FROM aceites_legais WHERE versao IN ('2026-01-01', '2026-02-02');
 END $$;

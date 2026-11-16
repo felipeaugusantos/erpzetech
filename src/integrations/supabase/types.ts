@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      aceites_legais: {
+        Row: {
+          aceito_em: string
+          id: string
+          tenant_id: string | null
+          user_id: string
+          versao: string
+        }
+        Insert: {
+          aceito_em?: string
+          id?: string
+          tenant_id?: string | null
+          user_id: string
+          versao: string
+        }
+        Update: {
+          aceito_em?: string
+          id?: string
+          tenant_id?: string | null
+          user_id?: string
+          versao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aceites_legais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinatura_faturas: {
         Row: {
           assinatura_id: string
@@ -16830,6 +16862,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aceite_legal_meu: { Args: { p_versao: string }; Returns: boolean }
+      aceite_legal_registrar: { Args: { p_versao: string }; Returns: string }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string

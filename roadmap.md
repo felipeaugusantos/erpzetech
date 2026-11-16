@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Termos de Uso e Política de Privacidade (LGPD): páginas públicas /termos e /privacidade, aceite obrigatório da versão vigente na primeira entrada (todos os perfis; não trava sem internet), prova em `aceites_legais` (migração 20270122, seção 103 do smoke) e texto em `src/lib/legal.ts`. Testes de texto/versão passaram, tsc e build OK, seção 103 do smoke passou num Postgres 16 local. Telas não vistas no navegador com sessão real; não publicado.
+- [ ] Antes de vender: preencher razão social, CNPJ, foro e e-mail do encarregado em `DADOS_LEGAIS` e revisão jurídica do texto (docs/termos-lgpd.md).
+
 - [x] PDV e balcão: fila local com pagamento, recebido/troco, reenvio idempotente, sincronização automática e conciliação concorrente; PDV desconta fila do saldo disponível e mostra recusas. Migrações 0093/0094 preservam caixa original. Dezessete testes passaram; celular autenticado confirmou venda offline e reconexão com recusa controlada sem apagar pagamento, nenhuma venda real criada; build OK.
 - [ ] Validar reabertura sem internet e sincronização financeira completa no publicado: depende de publicar a nova versão e conferir no celular com caixa autorizado; a prévia não registra cache de páginas por segurança. Testes SQL de idempotência/caixa/perfis adicionados à CI; sessão sandbox não pode assumir authenticated.
 

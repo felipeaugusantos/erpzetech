@@ -16,6 +16,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as FuncionalidadesRouteImport } from './routes/funcionalidades'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
@@ -260,6 +262,16 @@ const ContatoRoute = ContatoRouteImport.update({
 const FuncionalidadesRoute = FuncionalidadesRouteImport.update({
   id: '/funcionalidades',
   path: '/funcionalidades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZeTechLoginRoute = ZeTechLoginRouteImport.update({
@@ -1462,6 +1474,8 @@ export interface FileRoutesByFullPath {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1681,6 +1695,8 @@ export interface FileRoutesByTo {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -1902,6 +1918,8 @@ export interface FileRoutesById {
   '/boas-vindas': typeof BoasVindasRoute
   '/contato': typeof ContatoRoute
   '/funcionalidades': typeof FuncionalidadesRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/ze-tech-login': typeof ZeTechLoginRoute
   '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
@@ -2123,6 +2141,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -2342,6 +2362,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/ajuste-lotes'
     | '/assistencia'
@@ -2562,6 +2584,8 @@ export interface FileRouteTypes {
     | '/boas-vindas'
     | '/contato'
     | '/funcionalidades'
+    | '/privacidade'
+    | '/termos'
     | '/ze-tech-login'
     | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
@@ -2783,6 +2807,8 @@ export interface RootRouteChildren {
   BoasVindasRoute: typeof BoasVindasRoute
   ContatoRoute: typeof ContatoRoute
   FuncionalidadesRoute: typeof FuncionalidadesRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   ZeTechLoginRoute: typeof ZeTechLoginRoute
   MenuEmpresaRoute: typeof MenuEmpresaRoute
   PortalEntrarRoute: typeof PortalEntrarRoute
@@ -2848,6 +2874,20 @@ declare module '@tanstack/react-router' {
       path: '/funcionalidades'
       fullPath: '/funcionalidades'
       preLoaderRoute: typeof FuncionalidadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ze-tech-login': {
@@ -4748,6 +4788,8 @@ const rootRouteChildren: RootRouteChildren = {
   BoasVindasRoute: BoasVindasRoute,
   ContatoRoute: ContatoRoute,
   FuncionalidadesRoute: FuncionalidadesRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   ZeTechLoginRoute: ZeTechLoginRoute,
   MenuEmpresaRoute: MenuEmpresaRoute,
   PortalEntrarRoute: PortalEntrarRoute,
