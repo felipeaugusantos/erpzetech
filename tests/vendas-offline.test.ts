@@ -4,6 +4,7 @@ import {
   conciliarVendas,
   saldoAposFila,
   chaveFilaPdv,
+  caixaDoPdv,
   type VendaPendente,
 } from "../src/lib/vendas-offline.ts";
 import { contextoSemServiceWorker } from "../src/lib/pwa.ts";
@@ -17,6 +18,24 @@ const venda = (id: string): VendaPendente => ({
     p_itens: [{ produto_id: "p", quantidade: 3 }],
     p_deposito_id: "d",
   },
+});
+test("PDV usa o caixa do vendedor mesmo quando outro operador abriu um depois", () => {
+  const caixas = [
+    { id: "caixa-B", aberto_por: "operador-B" },
+    { id: "caixa-A", aberto_por: "operador-A" },
+  ];
+  assert.equal(caixaDoPdv(caixas, "operador-A")?.id, "caixa-A");
+  assert.equal(caixaDoPdv(caixas, "operador-B")?.id, "caixa-B");
+});
+test("sem caixa próprio, PDV mantém o caixa mais recente como o servidor", () => {
+  assert.equal(caixaDoPdv([
+    { id: "caixa-recente", aberto_por: "operador-B" },
+    { id: "caixa-antigo", aberto_por: "operador-C" },
+  ], "operador-A")?.id, "caixa-recente");
+});
+test("PDV não seleciona caixa sem sessão ou sem caixa aberto", () => {
+  assert.equal(caixaDoPdv([], "operador-A"), null);
+  assert.equal(caixaDoPdv([{ id: "caixa-B", aberto_por: "operador-B" }], ""), null);
 });
 test("sincronização conserva vendas feitas enquanto o envio aguarda", () => {
   assert.deepEqual(conciliarVendas([venda("1"), venda("2")], [venda("1")], []), [venda("2")]);

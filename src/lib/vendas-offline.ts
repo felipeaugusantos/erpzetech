@@ -49,3 +49,12 @@ export function saldoAposFila(
 export function chaveFilaPdv(usuario: string, empresa: string) {
   return `zt-pdv-fila-${usuario}-${empresa}`;
 }
+
+/** Recebe caixas abertos do tenant, do mais recente ao mais antigo; espelha a seleção do servidor. */
+export function caixaDoPdv<T extends { aberto_por: string | null }>(
+  caixas: readonly T[],
+  usuario: string,
+): T | null {
+  if (!usuario) return null;
+  return caixas.find((caixa) => caixa.aberto_por === usuario) ?? caixas[0] ?? null;
+}

@@ -1,6 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
+
+export type ErroLegado = {
+  id: string;
+  mensagem: string;
+  origem: string;
+  situacao: string;
+  rota: string | null;
+  cliente: string | null;
+  ocorrencias: number;
+  primeira_vez: string;
+  ultima_vez: string;
+  navegador: string | null;
+  stack: string | null;
+};
 
 // Historical installations can still expose this schema; missing tables remain errors, not invented data.
 type Assinatura = {
@@ -42,6 +56,16 @@ type LegacyDatabase = Omit<Database, "public"> & {
       assinatura_faturas: Table<Fatura>;
     };
     Functions: Database["public"]["Functions"] & {
+      assinatura_resumo: { Args: Record<string, never>; Returns: Json };
+      saas_erros_listar: {
+        Args: { p_situacao: string; p_limite: number };
+        Returns: ErroLegado[];
+      };
+      saas_erro_situacao: {
+        Args: { p_id: string; p_situacao: string };
+        Returns: undefined;
+      };
+      erros_app_limpar: { Args: Record<string, never>; Returns: number };
       gerar_faturas_assinatura: { Args: Record<string, never>; Returns: number };
       assinatura_taxa_inicial: {
         Args: Record<string, never>;
@@ -50,4 +74,7 @@ type LegacyDatabase = Omit<Database, "public"> & {
     };
   };
 };
-export const assinaturaLegada = supabase as unknown as SupabaseClient<LegacyDatabase>;
+export function clienteLegado(client: SupabaseClient<Database>) {
+  return client as unknown as SupabaseClient<LegacyDatabase>;
+}
+export const assinaturaLegada = clienteLegado(supabase);
