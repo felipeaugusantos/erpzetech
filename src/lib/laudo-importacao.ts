@@ -12,6 +12,7 @@ export type GrupoImportacao = {
   tipo: string;
   modelo_id: string | null;
   itens: ItemLaudo[];
+  candidatos?: { id: string; nome: string; tipo: string }[];
 };
 
 /** Keep every recognized value in the review; ambiguous mappings require an explicit model choice. */
@@ -35,10 +36,15 @@ export function agruparLaudoImportacao(
     );
     const modelo =
       exatos.length === 1 ? exatos[0] : compativeis.length === 1 ? compativeis[0] : undefined;
-    if (exatos.length > 1 || (!exatos.length && compativeis.length > 1))
-      throw new Error(
-        `Há mais de um modelo para ${item.nome}. Confira os modelos antes de importar.`,
-      );
+    if (exatos.length > 1 || (!exatos.length && compativeis.length > 1)) {
+      const candidatos = (exatos.length ? exatos : compativeis).filter((m) => m.ativo);
+      if (!candidatos.length) throw new Error(`Os modelos para ${item.nome} estão inativos. Reative um antes de importar.`);
+      grupos.set(`escolha:${chaveLaudo(item.nome)}`, {
+        nome: item.nome, tipo, modelo_id: null, itens: [item],
+        candidatos: candidatos.map(({ id, nome, tipo }) => ({ id, nome, tipo })),
+      });
+      continue;
+    }
     if (modelo && !modelo.ativo)
       throw new Error(`O modelo ${modelo.nome} está inativo. Reative-o antes de importar.`);
     const k = modelo?.id ?? nome;
@@ -52,4 +58,8 @@ export function agruparLaudoImportacao(
     grupos.set(k, grupo);
   }
   return [...grupos.values()];
+}
+
+export function modelosPendentes(grupos: readonly GrupoImportacao[]): boolean {
+  return grupos.some((g) => Boolean(g.candidatos?.length) && !g.candidatos?.some((m) => m.id === g.modelo_id));
 }
