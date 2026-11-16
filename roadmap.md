@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Próxima consulta: agendar pelo prontuário e no fechamento, com horário, serviço, confirmação e atualização da agenda.
+- [x] Próxima consulta: agendar pelo prontuário e no fechamento, com horário de Brasília, veterinário, serviço, confirmação e atualização da agenda; gravação e leitura conferidas com Bruna, agendamento temporário removido. Doze testes passaram; computador/celular conferidos, build OK; nenhuma consulta real fechada.
 
 - [x] Cadastro da dose habilitado no próprio formulário de vacina, sem abrir Produtos; salvamento atômico com estoque/lote e sem saldo inicial. Quatorze testes passaram; navegador autenticado confirmou salvar e reabrir com dose vinculada, computador/celular sem transbordamento. Registro temporário removido após conferência; build OK. Não publicado.
 
