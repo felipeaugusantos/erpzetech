@@ -136,8 +136,8 @@ export function erroDataAtendimento(
 export function erroAlteracaoDataConsulta(
   data: string,
   nascimento: string | null,
-  fechada: boolean,
-  motivo: string,
+  _fechada: boolean,
+  _motivo: string,
   hoje?: string,
 ) {
   if (!data) return "Informe a data da consulta";
@@ -145,8 +145,6 @@ export function erroAlteracaoDataConsulta(
   if (erro) return erro;
   if (nascimento && data < nascimento)
     return "O atendimento não pode ser anterior ao nascimento do paciente";
-  if (fechada && !motivo.trim()) return "Informe o motivo da correção";
-  if (motivo.length > 2000) return "O motivo aceita até 2000 caracteres";
   return null;
 }
 
