@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { conferirPacienteLaudo, lerLaudoTexto, type LaudoPdf } from "@/lib/laudo-exame-pdf";
+import { conferirPacienteLaudo, lerLaudoTexto,
+  laboratorioDoLaudo, type LaudoPdf } from "@/lib/laudo-exame-pdf";
 import {
   agruparLaudoImportacao,
   modelosPendentes,
@@ -51,7 +52,8 @@ export function ImportarExamesPetPdf({
       if (!file.name.toLowerCase().endsWith(".pdf") || file.size > 10 * 1024 * 1024)
         throw new Error("Envie um PDF digital de até 10 MB.");
       const { textoDoPdf } = await import("@/lib/danfe-pdf");
-      const laudo = lerLaudoTexto(await textoDoPdf(file));
+      const textoPdf = await textoDoPdf(file);
+      const laudo = lerLaudoTexto(textoPdf);
       if (!conferirPacienteLaudo(laudo, pet))
         throw new Error(
           `PDF: ${laudo.paciente} (${laudo.especie === "cao" ? "Cão" : laudo.especie === "gato" ? "Gato" : laudo.especie}). Paciente selecionado: ${pet.nome} (${pet.especie === "cao" ? "Cão" : pet.especie === "gato" ? "Gato" : pet.especie}). Abra os exames do paciente indicado no PDF para importar.`,
@@ -64,6 +66,8 @@ export function ImportarExamesPetPdf({
       setPrevia({ laudo, grupos, chave: crypto.randomUUID(), arquivo: file });
       setColeta(laudo.coleta);
       setEmissao(laudo.emissao ?? "");
+      const lab = laboratorioDoLaudo(textoPdf);
+      if (lab) setLaboratorio(lab);
     } catch (e) {
       if (token === geracao.current)
         toast.error("Não foi possível ler o laudo", {
