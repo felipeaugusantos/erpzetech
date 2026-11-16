@@ -11171,6 +11171,7 @@ export type Database = {
           created_at: string
           crmv: string
           crmv_uf: string
+          data_atendimento: string | null
           diagnostico: string | null
           exame_fisico: string | null
           fechado_em: string | null
@@ -11197,6 +11198,7 @@ export type Database = {
           created_at?: string
           crmv: string
           crmv_uf: string
+          data_atendimento?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null
@@ -11223,6 +11225,7 @@ export type Database = {
           created_at?: string
           crmv?: string
           crmv_uf?: string
+          data_atendimento?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null
@@ -17776,6 +17779,7 @@ export type Database = {
         Args: { p_acao: string; p_chave: string; p_dados: Json }
         Returns: Json
       }
+      clinica_vacina_produtos: { Args: never; Returns: Json }
       clinica_vacina_registrar_externa: {
         Args: { p_dados: Json; p_pet_id: string }
         Returns: Json
