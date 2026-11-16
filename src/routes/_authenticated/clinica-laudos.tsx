@@ -215,6 +215,7 @@ function Laudos({ petId }: { petId: string }) {
                     {e.veterinario.nome} · CRMV {e.veterinario.crmv}-{e.veterinario.crmv_uf}
                   </p>
                   <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
+                  <p className="text-sm">Emissão do laudo original: {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}</p>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -357,6 +358,7 @@ function Laudos({ petId }: { petId: string }) {
                 <h2 className="font-semibold">
                   {e.nome} · {dateBR(e.data_coleta)}
                 </h2>
+                <p className="text-sm">Emissão do laudo original: {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}</p>
                 <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
                 <p className="mb-2 text-sm">
                   {rotulo(SITUACOES_EXAME, e.situacao)}

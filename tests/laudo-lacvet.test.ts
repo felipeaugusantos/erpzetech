@@ -77,3 +77,8 @@ test("continua bloqueando animais, espécies ou resultados divergentes em págin
   assert.throws(() => lerLaudoTexto(texto + cabecalho.replace("CANINA", "FELINA")), /único paciente/);
   assert.throws(() => lerLaudoTexto(texto + "\nUREIA\nResultado................: | 86 | mg/dL | 15 - 65 mg/dL"), /repetidos/);
 });
+test("não confunde data de atendimento com emissão; lê emissão somente quando explícita", () => {
+  assert.equal(lerLaudoTexto(texto).emissao, undefined);
+  assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026").emissao, "2026-11-13");
+  assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026\nData de emissão: | 14/11/2026").emissao, undefined);
+});

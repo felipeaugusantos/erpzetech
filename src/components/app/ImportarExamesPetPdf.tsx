@@ -41,6 +41,7 @@ export function ImportarExamesPetPdf({
   const [confirmado, setConfirmado] = useState(false);
   const [laboratorio, setLaboratorio] = useState("");
   const [coleta, setColeta] = useState("");
+  const [emissao, setEmissao] = useState("");
   async function ler(file: File) {
     const token = ++geracao.current;
     setOcupado(true);
@@ -62,6 +63,7 @@ export function ImportarExamesPetPdf({
       anexos.current.clear();
       setPrevia({ laudo, grupos, chave: crypto.randomUUID(), arquivo: file });
       setColeta(laudo.coleta);
+      setEmissao(laudo.emissao ?? "");
     } catch (e) {
       if (token === geracao.current)
         toast.error("Não foi possível ler o laudo", {
@@ -85,6 +87,7 @@ export function ImportarExamesPetPdf({
           confirmado: true,
           laboratorio: laboratorio.trim(),
           coleta,
+          emissao,
           grupos: previa.grupos,
         },
       });
@@ -194,6 +197,10 @@ export function ImportarExamesPetPdf({
                   />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="pdf-emissao">Data de emissão do laudo (se informada no PDF)</Label>
+                <Input id="pdf-emissao" type="date" value={emissao} disabled={ocupado} onChange={(e) => { setEmissao(e.target.value); setConfirmado(false); }} />
+              </div>
               {previa.grupos.map((g, gi) => (
                 <section key={gi} className="border-t pt-3">
                   <h3 className="font-semibold">
@@ -254,7 +261,7 @@ export function ImportarExamesPetPdf({
                         />
                         <span className="text-xs text-muted-foreground">
                           {it.minimo !== null && it.maximo !== null
-                            ? `Ref. absoluta: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}`
+                            ? `Referência do PDF: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}`
                             : "Sem referência importada"}
                         </span>
                       </div>
@@ -268,7 +275,7 @@ export function ImportarExamesPetPdf({
                 </p>
               ))}
               <p className="text-sm text-muted-foreground">
-                Referências absolutas apenas nos exames importados; faixas dos modelos e laudos
+                Referências do PDF apenas nos exames importados; faixas dos modelos e laudos
                 anteriores permanecem iguais.
               </p>
               <label className="flex items-start gap-2 text-sm">

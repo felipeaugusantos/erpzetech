@@ -1257,6 +1257,7 @@ function Laudo({
         </div>
         <div className="text-right">
           <p>Coleta: {dateBR(exame.data_coleta)}</p>
+          <p>Emissão do laudo original: {exame.data_emissao ? dateBR(exame.data_emissao) : "Não informada"}</p>
           <p>Consulta: {exame.data_consulta ? dateBR(exame.data_consulta) : "Sem consulta vinculada"}</p>
           <p>Laudo validado: {exame.fechado_em ? dateTimeBR(exame.fechado_em) : "Ainda não validado"}</p>
           <p>Emissão desta impressão: {dateTimeBR(emissao)}</p>

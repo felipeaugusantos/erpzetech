@@ -560,8 +560,6 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         </section>
       )}
 
-      <ExamesProntuario petId={petId} />
-
       <DocumentosClinicos
         petId={petId}
         pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
@@ -575,7 +573,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
       <ListaFavoritosBulario titulo="Remédios favoritos da clínica" />
 
-      <h3 className="font-display text-base font-semibold">Atendimentos</h3>
+      <ExamesProntuario petId={petId} />
+
+      <h3 className="font-display text-base font-semibold">Consultas do paciente</h3>
       {data.atendimentos.length === 0 ? (
         <EmptyState
           title="Sem atendimentos"

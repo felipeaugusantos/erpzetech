@@ -160,7 +160,12 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return lerLacvet(linhas);
+  const emissoes = new Set(linhas.flatMap((l) => {
+    const m = chaveLaudo(l).match(/(?:data de emissao|emissao do laudo|emitido em|data de liberacao)[.:\s|]*(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? [`${m[3]}-${m[2]}-${m[1]}`] : [];
+  }));
+  const emissao = emissoes.size === 1 ? [...emissoes][0] : undefined;
+  if (linhas.some((l) => /^animal[.:]*\s*\|/i.test(l))) return { ...lerLacvet(linhas), emissao };
   const pacientes = new Set<string>();
   const especies = new Set<string>();
   let coleta = "";
@@ -278,6 +283,7 @@ export function lerLaudoTexto(texto: string): LaudoPdf {
     paciente: [...pacientes][0] ?? "",
     especie: [...especies][0] ?? "",
     coleta,
+    emissao,
     itens,
     avisos,
   };

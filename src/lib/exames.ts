@@ -185,6 +185,7 @@ export type ExameClinico = {
   laboratorio: string | null;
   data_coleta: string;
   data_consulta?: string | null;
+  data_emissao?: string | null;
   observacoes: string | null;
   situacao: "aberto" | "fechado" | "cancelado";
   aberto_em: string;
@@ -210,6 +211,9 @@ export type ResumoExame = {
   tipo: string;
   situacao: "aberto" | "fechado" | "cancelado";
   data_coleta: string;
+  data_emissao?: string | null;
+  data_consulta?: string | null;
+  pdf_importado?: boolean;
   laboratorio: string | null;
   atendimento_id: string | null;
   aberto_em: string;
