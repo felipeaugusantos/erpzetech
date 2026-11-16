@@ -11,3 +11,11 @@ export function erroProximaConsulta(dia: string, hora: string, agora = new Date(
   if (!inicio) return "Informe uma data e horário válidos.";
   return new Date(inicio) <= agora ? "Escolha uma data e horário futuros." : null;
 }
+
+export const ANTECEDENCIA_CONSULTA_MS = 24 * 60 * 60 * 1000;
+
+export function consultaProxima(inicio: string, situacao: string, agora = Date.now()): boolean {
+  if (situacao !== "agendado" && situacao !== "confirmado") return false;
+  const restante = new Date(inicio).getTime() - agora;
+  return restante > 0 && restante <= ANTECEDENCIA_CONSULTA_MS;
+}
