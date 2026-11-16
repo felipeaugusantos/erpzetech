@@ -91,3 +91,16 @@ test("não confunde data de atendimento com emissão; lê emissão somente quand
   assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026").emissao, "2026-11-13");
   assert.equal(lerLaudoTexto(texto + "\nData de emissão: | 13/11/2026\nData de emissão: | 14/11/2026").emissao, undefined);
 });
+import { agruparLaudoImportacao } from "../src/lib/laudo-importacao.ts";
+test("seção do PDF escolhe o modelo de campo repetido", () => {
+  const campo = { nome: "Proteínas totais", unidade: "g/dL", forma: "numero", ativo: true };
+  const modelos = [
+    { id: "h", nome: "Hemograma", tipo: "hemograma", ativo: true, campos: [campo] },
+    { id: "b", nome: "Bioquímica sanguínea", tipo: "bioquimica", ativo: true, campos: [campo] },
+  ];
+  const item = { nome: "Proteínas totais", valor: 10, unidade: "g/dL", minimo: 5.5, maximo: 8 };
+  const laudo = { itens: [{ ...item, secao: "bioquimica" as const }] } as never;
+  assert.equal(agruparLaudoImportacao(laudo, modelos)[0]?.modelo_id, "b");
+  const semSecao = { itens: [item] } as never;
+  assert.equal(agruparLaudoImportacao(semSecao, modelos)[0]?.modelo_id, null);
+});
