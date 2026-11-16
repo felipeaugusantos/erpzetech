@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   ArrowLeftRight,
   Calculator,
   Bike,
@@ -786,6 +787,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { label: "Contas a pagar", to: "/ze-tech-contas-pagar", icon: Wallet },
       { label: "Notas emitidas", to: "/ze-tech-notas", icon: FileText },
       { label: "Erros do sistema", to: "/ze-tech-erros", icon: Bug },
+      { label: "Monitoramento", to: "/ze-tech-monitoramento", icon: Activity },
       { label: "Relatório fiscal", to: "/ze-tech-relatorio-fiscal", icon: Percent },
       { label: "Base fiscal (NCM)", to: "/ze-tech-fiscal", icon: Scale },
       { label: "Assistência técnica", to: "/ze-tech-assistencia", icon: Wrench },
