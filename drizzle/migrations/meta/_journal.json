@@ -701,6 +701,13 @@
       "when": 1794833149856,
       "tag": "0099_clinica_vacina_dose_no_catalogo",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1794836291256,
+      "tag": "0100_clinica_proxima_consulta",
+      "breakpoints": true
     }
   ]
 }

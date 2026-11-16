@@ -17722,6 +17722,14 @@ export type Database = {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
       }
+      clinica_proxima_consulta_agendar: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_proxima_consulta_opcoes: {
+        Args: { p_pet_id: string }
+        Returns: Json
+      }
       clinica_receita_modelo_excluir: {
         Args: { p_id: string }
         Returns: undefined
