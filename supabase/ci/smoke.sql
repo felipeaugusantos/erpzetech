@@ -529,6 +529,8 @@ DECLARE
     -- fila de limpeza de arquivos de exames excluídos: só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
     'clinica_exames_limpeza'];
   sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'assinatura_situacao', 'saas_erros_listar', 'saas_erro_situacao', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
+    -- dashboard gerencial (erro e uso): respondem só à equipe EZRA (operador)
+    'saas_monitoramento_resumo', 'saas_monitoramento_dia', 'saas_monitoramento_uso_cliente', 'saas_monitoramento_top_erros',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
     'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
@@ -653,6 +655,8 @@ BEGIN
                            'aceite_legal_meu', 'aceite_legal_registrar',
                            -- erros do sistema: respondem só à equipe EZRA (operador), nunca a contador nem a empresa
                            'saas_erros_listar', 'saas_erro_situacao',
+                           -- dashboard gerencial (erro e uso): também só da equipe EZRA
+                           'saas_monitoramento_resumo', 'saas_monitoramento_dia', 'saas_monitoramento_uso_cliente', 'saas_monitoramento_top_erros',
                            -- situação da assinatura: já devolve nada para o contador (confere eh_contador_restrito)
                            'assinatura_situacao')
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_contador%'
@@ -12680,6 +12684,56 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$SELECT erros_app_limpar()$c$, 'usuário executa a limpeza');
 
   DELETE FROM erros_app;
+  DELETE FROM saas_operadores WHERE user_id = op;
+END $$;
+
+-- 104b. Dashboard gerencial (erro e uso): leitura só da equipe EZRA; os números batem com a auditoria,
+-- o erros_app e o último login da autenticação
+DO $$
+DECLARE
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000e9990201';
+  usr  constant uuid := 'a0000000-0000-0000-0000-0000e9990202';
+  tm uuid; r record;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Monitor CI') RETURNING id INTO tm;
+  INSERT INTO auth.users (id, email, last_sign_in_at) VALUES
+    (op, 'operador-monitor@ci', NULL),
+    (usr, 'usuario-monitor@ci', now());
+  UPDATE profiles SET tenant_id = tm WHERE id = usr;
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+  INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Cliente Monitor CI', tm);
+
+  INSERT INTO auditoria (tenant_id, usuario_id, entidade, operacao) VALUES
+    (tm, usr, 'pedidos', 'insert'),
+    (tm, usr, 'pedidos', 'update'),
+    (tm, adm, 'clientes', 'insert');
+
+  EXECUTE 'SET ROLE service_role';
+  PERFORM erro_app_registrar('impressao-monitor01', 'navegador', 'Erro monitor CI', NULL, '/caixa', 'Firefox', tm);
+  RESET ROLE;
+
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_resumo(current_date, current_date)$c$, 'empresa lê o resumo gerencial');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT * FROM saas_monitoramento_resumo(current_date, current_date)$c$, 'anon lê o resumo gerencial');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_dia(current_date, current_date)$c$, 'empresa lê a série diária do monitoramento');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_uso_cliente(current_date, current_date)$c$, 'empresa lê o uso por cliente');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_top_erros(current_date, current_date, 5)$c$, 'empresa lê os erros mais repetidos');
+
+  PERFORM ci.entrar(op);
+  SELECT * INTO r FROM saas_monitoramento_resumo(current_date, current_date);
+  PERFORM ci.exige(r.erros_abertos >= 1 AND r.erros_novos >= 1 AND r.clientes_com_erro >= 1, 'resumo gerencial conta os erros do período');
+  PERFORM ci.exige(r.usuarios_ativos >= 2 AND r.acoes >= 3 AND r.clientes_ativos >= 1, 'resumo gerencial conta o uso do período');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM saas_monitoramento_dia(current_date, current_date)
+     WHERE dia = current_date AND acoes >= 3 AND erros_novos >= 1), 'série diária mostra o dia com uso e erro');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM saas_monitoramento_uso_cliente(current_date, current_date)
+     WHERE cliente = 'Cliente Monitor CI' AND usuarios_ativos = 2 AND acoes = 3
+       AND ultima_atividade IS NOT NULL AND ultimo_login IS NOT NULL
+       AND erros_abertos = 1 AND erros_periodo = 1), 'uso por cliente soma auditoria, login e erros');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM saas_monitoramento_top_erros(current_date, current_date, 5)
+     WHERE mensagem = 'Erro monitor CI' AND cliente = 'Cliente Monitor CI'), 'erros mais repetidos trazem o cliente');
+  PERFORM ci.sair();
+
+  DELETE FROM erros_app WHERE impressao = 'impressao-monitor01';
   DELETE FROM saas_operadores WHERE user_id = op;
 END $$;
 

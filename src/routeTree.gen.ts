@@ -201,6 +201,7 @@ import { Route as AuthenticatedZeTechFiscalRouteImport } from './routes/_authent
 import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
 import { Route as AuthenticatedZeTechLinksRouteImport } from './routes/_authenticated/ze-tech-links'
 import { Route as AuthenticatedZeTechLojasRouteImport } from './routes/_authenticated/ze-tech-lojas'
+import { Route as AuthenticatedZeTechMonitoramentoRouteImport } from './routes/_authenticated/ze-tech-monitoramento'
 import { Route as AuthenticatedZeTechNotasRouteImport } from './routes/_authenticated/ze-tech-notas'
 import { Route as AuthenticatedZeTechPlanosRouteImport } from './routes/_authenticated/ze-tech-planos'
 import { Route as AuthenticatedZeTechRelatorioFiscalRouteImport } from './routes/_authenticated/ze-tech-relatorio-fiscal'
@@ -1311,6 +1312,12 @@ const AuthenticatedZeTechLojasRoute =
     path: '/ze-tech-lojas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechMonitoramentoRoute =
+  AuthenticatedZeTechMonitoramentoRouteImport.update({
+    id: '/ze-tech-monitoramento',
+    path: '/ze-tech-monitoramento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechNotasRoute =
   AuthenticatedZeTechNotasRouteImport.update({
     id: '/ze-tech-notas',
@@ -1679,6 +1686,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
+  '/ze-tech-monitoramento': typeof AuthenticatedZeTechMonitoramentoRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
@@ -1903,6 +1911,7 @@ export interface FileRoutesByTo {
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
+  '/ze-tech-monitoramento': typeof AuthenticatedZeTechMonitoramentoRoute
   '/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
@@ -2129,6 +2138,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/_authenticated/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
   '/_authenticated/ze-tech-lojas': typeof AuthenticatedZeTechLojasRoute
+  '/_authenticated/ze-tech-monitoramento': typeof AuthenticatedZeTechMonitoramentoRoute
   '/_authenticated/ze-tech-notas': typeof AuthenticatedZeTechNotasRoute
   '/_authenticated/ze-tech-planos': typeof AuthenticatedZeTechPlanosRoute
   '/_authenticated/ze-tech-relatorio-fiscal': typeof AuthenticatedZeTechRelatorioFiscalRoute
@@ -2355,6 +2365,7 @@ export interface FileRouteTypes {
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
     | '/ze-tech-lojas'
+    | '/ze-tech-monitoramento'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
     | '/ze-tech-relatorio-fiscal'
@@ -2579,6 +2590,7 @@ export interface FileRouteTypes {
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
     | '/ze-tech-lojas'
+    | '/ze-tech-monitoramento'
     | '/ze-tech-notas'
     | '/ze-tech-planos'
     | '/ze-tech-relatorio-fiscal'
@@ -2804,6 +2816,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-lava-rapido'
     | '/_authenticated/ze-tech-links'
     | '/_authenticated/ze-tech-lojas'
+    | '/_authenticated/ze-tech-monitoramento'
     | '/_authenticated/ze-tech-notas'
     | '/_authenticated/ze-tech-planos'
     | '/_authenticated/ze-tech-relatorio-fiscal'
@@ -4211,6 +4224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechLojasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-monitoramento': {
+      id: '/_authenticated/ze-tech-monitoramento'
+      path: '/ze-tech-monitoramento'
+      fullPath: '/ze-tech-monitoramento'
+      preLoaderRoute: typeof AuthenticatedZeTechMonitoramentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-notas': {
       id: '/_authenticated/ze-tech-notas'
       path: '/ze-tech-notas'
@@ -4614,6 +4634,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
   AuthenticatedZeTechLinksRoute: typeof AuthenticatedZeTechLinksRoute
   AuthenticatedZeTechLojasRoute: typeof AuthenticatedZeTechLojasRoute
+  AuthenticatedZeTechMonitoramentoRoute: typeof AuthenticatedZeTechMonitoramentoRoute
   AuthenticatedZeTechNotasRoute: typeof AuthenticatedZeTechNotasRoute
   AuthenticatedZeTechPlanosRoute: typeof AuthenticatedZeTechPlanosRoute
   AuthenticatedZeTechRelatorioFiscalRoute: typeof AuthenticatedZeTechRelatorioFiscalRoute
@@ -4821,6 +4842,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
   AuthenticatedZeTechLinksRoute: AuthenticatedZeTechLinksRoute,
   AuthenticatedZeTechLojasRoute: AuthenticatedZeTechLojasRoute,
+  AuthenticatedZeTechMonitoramentoRoute: AuthenticatedZeTechMonitoramentoRoute,
   AuthenticatedZeTechNotasRoute: AuthenticatedZeTechNotasRoute,
   AuthenticatedZeTechPlanosRoute: AuthenticatedZeTechPlanosRoute,
   AuthenticatedZeTechRelatorioFiscalRoute:

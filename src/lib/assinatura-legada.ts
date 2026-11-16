@@ -16,6 +16,45 @@ export type ErroLegado = {
   stack: string | null;
 };
 
+export type MonitoramentoResumo = {
+  erros_abertos: number;
+  erros_novos: number;
+  erros_reincidentes: number;
+  clientes_com_erro: number;
+  clientes_ativos: number;
+  clientes_sem_uso: number;
+  usuarios_ativos: number;
+  acoes: number;
+};
+
+export type MonitoramentoDia = {
+  dia: string;
+  erros_novos: number;
+  usuarios_ativos: number;
+  acoes: number;
+};
+
+export type MonitoramentoUsoCliente = {
+  cliente: string;
+  tenant_id: string;
+  usuarios_ativos: number;
+  acoes: number;
+  ultima_atividade: string | null;
+  ultimo_login: string | null;
+  erros_abertos: number;
+  erros_periodo: number;
+};
+
+export type MonitoramentoTopErro = {
+  id: string;
+  mensagem: string;
+  rota: string | null;
+  origem: string;
+  cliente: string | null;
+  ocorrencias: number;
+  ultima_vez: string;
+};
+
 // Historical installations can still expose this schema; missing tables remain errors, not invented data.
 type Assinatura = {
   id: string;
@@ -64,6 +103,22 @@ type LegacyDatabase = Omit<Database, "public"> & {
       saas_erro_situacao: {
         Args: { p_id: string; p_situacao: string };
         Returns: undefined;
+      };
+      saas_monitoramento_resumo: {
+        Args: { p_de: string; p_ate: string };
+        Returns: MonitoramentoResumo[];
+      };
+      saas_monitoramento_dia: {
+        Args: { p_de: string; p_ate: string };
+        Returns: MonitoramentoDia[];
+      };
+      saas_monitoramento_uso_cliente: {
+        Args: { p_de: string; p_ate: string };
+        Returns: MonitoramentoUsoCliente[];
+      };
+      saas_monitoramento_top_erros: {
+        Args: { p_de: string; p_ate: string; p_limite: number };
+        Returns: MonitoramentoTopErro[];
       };
       erros_app_limpar: { Args: Record<string, never>; Returns: number };
       gerar_faturas_assinatura: { Args: Record<string, never>; Returns: number };

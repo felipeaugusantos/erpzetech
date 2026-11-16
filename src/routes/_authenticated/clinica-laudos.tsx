@@ -78,22 +78,63 @@ function Tela() {
   const modulos = useModulosCnae();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
   if (!modulos.clinica) return <ModuloBloqueado modulo="clinica" />;
-  return <div className="min-w-0">
-    {!pet && <PageHeader title="Laudos por paciente" />}
-    <form className="mb-4 flex max-w-xl gap-2" onSubmit={(e) => { e.preventDefault(); setTermo(busca.trim()); }}>
-      <Input aria-label="Buscar paciente" placeholder="Nome do paciente ou tutor" value={busca} onChange={(e) => setBusca(e.target.value)} />
-      <Button type="submit" variant="outline" disabled={busca.trim().length < 2}>Buscar</Button>
-    </form>
-    {pacientes.isFetching && <p className="mb-4 text-sm text-muted-foreground">Buscando pacientes…</p>}
-    {pacientes.error && <p role="alert" className="mb-4 text-sm text-destructive">{pacientes.error.message}</p>}
-    {termo && pacientes.data?.length === 0 && <EmptyState title="Nenhum paciente encontrado" />}
-    <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {pacientes.data?.map((p) => <Button key={p.id} variant="outline" className="h-auto justify-start whitespace-normal py-3 text-left" onClick={() => { void navegar({ to: "/clinica-laudos", search: { pet: p.id } }); setTermo(""); setBusca(""); }}>
-        <span className="min-w-0"><span className="block break-words font-semibold">{p.nome}</span><span className="block break-words text-xs text-muted-foreground">{rotulo(ESPECIES, p.especie)} · Tutor(a): {p.tutor}</span></span>
-      </Button>)}
+  return (
+    <div className="min-w-0">
+      {!pet && <PageHeader title="Laudos por paciente" />}
+      <form
+        className="mb-4 flex max-w-xl gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setTermo(busca.trim());
+        }}
+      >
+        <Input
+          aria-label="Buscar paciente"
+          placeholder="Nome do paciente ou tutor"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+        <Button type="submit" variant="outline" disabled={busca.trim().length < 2}>
+          Buscar
+        </Button>
+      </form>
+      {pacientes.isFetching && (
+        <p className="mb-4 text-sm text-muted-foreground">Buscando pacientes…</p>
+      )}
+      {pacientes.error && (
+        <p role="alert" className="mb-4 text-sm text-destructive">
+          {pacientes.error.message}
+        </p>
+      )}
+      {termo && pacientes.data?.length === 0 && <EmptyState title="Nenhum paciente encontrado" />}
+      <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {pacientes.data?.map((p) => (
+          <Button
+            key={p.id}
+            variant="outline"
+            className="h-auto justify-start whitespace-normal py-3 text-left"
+            onClick={() => {
+              void navegar({ to: "/clinica-laudos", search: { pet: p.id } });
+              setTermo("");
+              setBusca("");
+            }}
+          >
+            <span className="min-w-0">
+              <span className="block break-words font-semibold">{p.nome}</span>
+              <span className="block break-words text-xs text-muted-foreground">
+                {rotulo(ESPECIES, p.especie)} · Tutor(a): {p.tutor}
+              </span>
+            </span>
+          </Button>
+        ))}
+      </div>
+      {pet ? (
+        <Laudos key={pet} petId={pet} />
+      ) : (
+        !termo && <EmptyState title="Escolha um paciente" />
+      )}
     </div>
-    {pet ? <Laudos key={pet} petId={pet} /> : !termo && <EmptyState title="Escolha um paciente" />}
-  </div>;
+  );
 }
 
 function Laudos({ petId }: { petId: string }) {
@@ -142,7 +183,10 @@ function Laudos({ petId }: { petId: string }) {
             variant="outline"
             size="sm"
             disabled={carregando || !!falha || !exames.length}
-            onClick={() => { setEmissao(new Date().toISOString()); setImprimindo(true); }}
+            onClick={() => {
+              setEmissao(new Date().toISOString());
+              setImprimindo(true);
+            }}
           >
             <Printer className="size-4" />
             Imprimir histórico
@@ -214,8 +258,15 @@ function Laudos({ petId }: { petId: string }) {
                   <p className="text-sm text-muted-foreground">
                     {e.veterinario.nome} · CRMV {e.veterinario.crmv}-{e.veterinario.crmv_uf}
                   </p>
-                  <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
-                  <p className="text-sm">Emissão do laudo original: {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}</p>
+                  <p className="text-sm">
+                    Coleta: {dateBR(e.data_coleta)} · Consulta:{" "}
+                    {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo
+                    validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}
+                  </p>
+                  <p className="text-sm">
+                    Emissão do laudo original:{" "}
+                    {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}
+                  </p>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -358,8 +409,15 @@ function Laudos({ petId }: { petId: string }) {
                 <h2 className="font-semibold">
                   {e.nome} · {dateBR(e.data_coleta)}
                 </h2>
-                <p className="text-sm">Emissão do laudo original: {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}</p>
-                <p className="text-sm">Coleta: {dateBR(e.data_coleta)} · Consulta: {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}</p>
+                <p className="text-sm">
+                  Emissão do laudo original:{" "}
+                  {e.data_emissao ? dateBR(e.data_emissao) : "Não informada"}
+                </p>
+                <p className="text-sm">
+                  Coleta: {dateBR(e.data_coleta)} · Consulta:{" "}
+                  {e.data_consulta ? dateBR(e.data_consulta) : "Sem consulta vinculada"} · Laudo
+                  validado: {e.fechado_em ? dateTimeBR(e.fechado_em) : "Ainda não validado"}
+                </p>
                 <p className="mb-2 text-sm">
                   {rotulo(SITUACOES_EXAME, e.situacao)}
                   {e.situacao === "aberto" ? " — Rascunho, não validado" : ""} · {e.laboratorio} ·{" "}

@@ -6,10 +6,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { conferirPacienteLaudo, lerLaudoTexto,
-  laboratorioDoLaudo, type LaudoPdf } from "@/lib/laudo-exame-pdf";
+import {
+  conferirPacienteLaudo,
+  lerLaudoTexto,
+  laboratorioDoLaudo,
+  type LaudoPdf,
+} from "@/lib/laudo-exame-pdf";
 import {
   agruparLaudoImportacao,
   unidadesDivergentes,
@@ -104,28 +114,35 @@ export function ImportarExamesPetPdf({
             },
           })
         : await supabase.rpc("clinica_importar_pdf", {
-        p_pet_id: pet.id,
-        p_chave: previa.chave,
-        p_dados: {
-          paciente: previa.laudo.paciente,
-          especie: previa.laudo.especie,
-          confirmado: true,
-          laboratorio: laboratorio.trim(),
-          coleta,
-          emissao,
-          grupos: referencia === "pdf" ? previa.grupos : previa.grupos.map((g) => ({
-            ...g,
-            itens: g.itens.map((i) => ({ ...i, minimo: null, maximo: null })),
-          })),
-        },
-      });
+            p_pet_id: pet.id,
+            p_chave: previa.chave,
+            p_dados: {
+              paciente: previa.laudo.paciente,
+              especie: previa.laudo.especie,
+              confirmado: true,
+              laboratorio: laboratorio.trim(),
+              coleta,
+              emissao,
+              grupos:
+                referencia === "pdf"
+                  ? previa.grupos
+                  : previa.grupos.map((g) => ({
+                      ...g,
+                      itens: g.itens.map((i) => ({ ...i, minimo: null, maximo: null })),
+                    })),
+            },
+          });
       if (error) throw error;
       const resultado = data as unknown as { exames: { id: string }[] };
       resultadosSalvos = true;
       for (const exame of resultado.exames) {
         await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current);
       }
-      toast.success(soArquivo ? "PDF do laudo salvo no prontuário" : `${resultado.exames.length} exame(s) e PDF original salvos`);
+      toast.success(
+        soArquivo
+          ? "PDF do laudo salvo no prontuário"
+          : `${resultado.exames.length} exame(s) e PDF original salvos`,
+      );
       setAberto(false);
       setPrevia(null);
       onImportado(resultado.exames[0]?.id);
@@ -196,7 +213,10 @@ export function ImportarExamesPetPdf({
           </Button>
           {previa && (
             <>
-              <p className="text-sm font-medium">Paciente no PDF: {previa.laudo.paciente} · {previa.laudo.especie === "cao" ? "Cão" : "Gato"}</p>
+              <p className="text-sm font-medium">
+                Paciente no PDF: {previa.laudo.paciente} ·{" "}
+                {previa.laudo.especie === "cao" ? "Cão" : "Gato"}
+              </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="pdf-lab">Laboratório</Label>
@@ -227,117 +247,179 @@ export function ImportarExamesPetPdf({
               </div>
               <div>
                 <Label htmlFor="pdf-emissao">Data de emissão do laudo (se informada no PDF)</Label>
-                <Input id="pdf-emissao" type="date" value={emissao} disabled={ocupado} onChange={(e) => { setEmissao(e.target.value); setConfirmado(false); }} />
+                <Input
+                  id="pdf-emissao"
+                  type="date"
+                  value={emissao}
+                  disabled={ocupado}
+                  onChange={(e) => {
+                    setEmissao(e.target.value);
+                    setConfirmado(false);
+                  }}
+                />
               </div>
               {soArquivo && (
                 <p className="rounded-md border bg-secondary/40 p-3 text-sm">
-                  Ajuste da clínica: o PDF será guardado no prontuário como laudo, sem preencher os valores. Para mudar, vá em Configurações › Clínica.
+                  Ajuste da clínica: o PDF será guardado no prontuário como laudo, sem preencher os
+                  valores. Para mudar, vá em Configurações › Clínica.
                 </p>
               )}
-              {!soArquivo && previa.grupos.map((g, gi) => (
-                <section key={gi} className="border-t pt-3">
-                  <h3 className="font-semibold">
-                    {g.nome}{" "}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ·{" "}
-                      {g.modelo_id
-                        ? "Modelo existente; campos ausentes serão cadastrados"
-                        : g.candidatos ? "Escolha o modelo" : "Novo modelo"}
-                    </span>
-                  </h3>
-                  {g.candidatos && (
-                    <div className="mt-2 grid gap-1">
-                      <Label htmlFor={`pdf-modelo-${gi}`}>Modelo para {g.itens[0]?.nome}</Label>
-                      <Select disabled={ocupado} value={g.modelo_id ?? ""} onValueChange={(id) => {
-                        const modelo = g.candidatos?.find((m) => m.id === id);
-                        if (!modelo) return;
-                        setPrevia({ ...previa, grupos: previa.grupos.map((gr, i) => i === gi ? { ...gr, modelo_id: modelo.id, nome: modelo.nome, tipo: modelo.tipo } : gr) });
-                        setConfirmado(false);
-                      }}>
-                        <SelectTrigger id={`pdf-modelo-${gi}`} className="w-full"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
-                        <SelectContent>{g.candidatos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="mt-2 grid gap-2">
-                    {g.itens.map((it, ii) => (
-                      <div
-                        key={ii}
-                        className="grid items-center gap-2 border-b pb-2 sm:grid-cols-[1fr_6rem_8rem_1fr]"
-                      >
-                        <span className="text-sm">{it.nome}</span>
-                        <span className="text-sm font-medium">
-                          {formatarNumero(it.valor, null)}
-                        </span>
-                        <Input
-                          aria-label={`Unidade de ${it.nome}`}
-                          placeholder="Unidade"
+              {!soArquivo &&
+                previa.grupos.map((g, gi) => (
+                  <section key={gi} className="border-t pt-3">
+                    <h3 className="font-semibold">
+                      {g.nome}{" "}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ·{" "}
+                        {g.modelo_id
+                          ? "Modelo existente; campos ausentes serão cadastrados"
+                          : g.candidatos
+                            ? "Escolha o modelo"
+                            : "Novo modelo"}
+                      </span>
+                    </h3>
+                    {g.candidatos && (
+                      <div className="mt-2 grid gap-1">
+                        <Label htmlFor={`pdf-modelo-${gi}`}>Modelo para {g.itens[0]?.nome}</Label>
+                        <Select
                           disabled={ocupado}
-                          value={it.unidade ?? ""}
-                          maxLength={30}
-                          onChange={(e) => {
-                            const grupos = previa.grupos.map((gr, j) =>
-                              j === gi
-                                ? {
-                                    ...gr,
-                                    itens: gr.itens.map((item, k) =>
-                                      k === ii
-                                        ? { ...item, unidade: e.target.value || null }
-                                        : item,
-                                    ),
-                                  }
-                                : gr,
-                            );
-                            setPrevia({ ...previa, grupos });
+                          value={g.modelo_id ?? ""}
+                          onValueChange={(id) => {
+                            const modelo = g.candidatos?.find((m) => m.id === id);
+                            if (!modelo) return;
+                            setPrevia({
+                              ...previa,
+                              grupos: previa.grupos.map((gr, i) =>
+                                i === gi
+                                  ? {
+                                      ...gr,
+                                      modelo_id: modelo.id,
+                                      nome: modelo.nome,
+                                      tipo: modelo.tipo,
+                                    }
+                                  : gr,
+                              ),
+                            });
                             setConfirmado(false);
                           }}
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {it.minimo !== null && it.maximo !== null
-                            ? `Referência do PDF: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}`
-                            : "Sem referência importada"}
-                        </span>
+                        >
+                          <SelectTrigger id={`pdf-modelo-${gi}`} className="w-full">
+                            <SelectValue placeholder="Selecione o modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {g.candidatos.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
-              {!soArquivo && <>
-              {previa.laudo.avisos.map((a) => (
-                <p key={a} className="text-sm text-warning">
-                  {a}
-                </p>
-              ))}
-              <p className="text-sm text-muted-foreground">
-                Referências do PDF apenas nos exames importados; faixas dos modelos e laudos
-                anteriores permanecem iguais.
-              </p>
-              {unidadesDivergentes(previa.grupos, previa.modelos).length > 0 && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                  <p className="font-medium text-destructive">Unidade diferente do modelo cadastrado</p>
-                  <p className="text-muted-foreground">Ajuste a unidade abaixo para a do modelo, se for a mesma medida, ou corrija o modelo antes de importar.</p>
-                  <ul className="mt-1 list-disc pl-5">
-                    {unidadesDivergentes(previa.grupos, previa.modelos).map((t) => <li key={t}>{t}</li>)}
-                  </ul>
-                </div>
+                    )}
+                    <div className="mt-2 grid gap-2">
+                      {g.itens.map((it, ii) => (
+                        <div
+                          key={ii}
+                          className="grid items-center gap-2 border-b pb-2 sm:grid-cols-[1fr_6rem_8rem_1fr]"
+                        >
+                          <span className="text-sm">{it.nome}</span>
+                          <span className="text-sm font-medium">
+                            {formatarNumero(it.valor, null)}
+                          </span>
+                          <Input
+                            aria-label={`Unidade de ${it.nome}`}
+                            placeholder="Unidade"
+                            disabled={ocupado}
+                            value={it.unidade ?? ""}
+                            maxLength={30}
+                            onChange={(e) => {
+                              const grupos = previa.grupos.map((gr, j) =>
+                                j === gi
+                                  ? {
+                                      ...gr,
+                                      itens: gr.itens.map((item, k) =>
+                                        k === ii
+                                          ? { ...item, unidade: e.target.value || null }
+                                          : item,
+                                      ),
+                                    }
+                                  : gr,
+                              );
+                              setPrevia({ ...previa, grupos });
+                              setConfirmado(false);
+                            }}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {it.minimo !== null && it.maximo !== null
+                              ? `Referência do PDF: ${formatarNumero(it.minimo, null)} a ${formatarNumero(it.maximo, null)}`
+                              : "Sem referência importada"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              {!soArquivo && (
+                <>
+                  {previa.laudo.avisos.map((a) => (
+                    <p key={a} className="text-sm text-warning">
+                      {a}
+                    </p>
+                  ))}
+                  <p className="text-sm text-muted-foreground">
+                    Referências do PDF apenas nos exames importados; faixas dos modelos e laudos
+                    anteriores permanecem iguais.
+                  </p>
+                  {unidadesDivergentes(previa.grupos, previa.modelos).length > 0 && (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                      <p className="font-medium text-destructive">
+                        Unidade diferente do modelo cadastrado
+                      </p>
+                      <p className="text-muted-foreground">
+                        Ajuste a unidade abaixo para a do modelo, se for a mesma medida, ou corrija
+                        o modelo antes de importar.
+                      </p>
+                      <ul className="mt-1 list-disc pl-5">
+                        {unidadesDivergentes(previa.grupos, previa.modelos).map((t) => (
+                          <li key={t}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <fieldset className="space-y-2 rounded-md border p-3">
+                    <legend className="px-1 text-sm font-medium">
+                      Qual referência usar nestes exames?
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={ocupado}
+                        variant={referencia === "pdf" ? "default" : "outline"}
+                        aria-pressed={referencia === "pdf"}
+                        onClick={() => setReferencia("pdf")}
+                      >
+                        Do PDF do laboratório
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={ocupado}
+                        variant={referencia === "modelo" ? "default" : "outline"}
+                        aria-pressed={referencia === "modelo"}
+                        onClick={() => setReferencia("modelo")}
+                      >
+                        Do modelo cadastrado
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {referencia === "pdf"
+                        ? "Usa as faixas impressas no laudo; onde o PDF não traz faixa, vale a do modelo."
+                        : "Ignora as faixas do PDF e usa as do modelo cadastrado na clínica."}
+                    </p>
+                  </fieldset>
+                </>
               )}
-              <fieldset className="space-y-2 rounded-md border p-3">
-                <legend className="px-1 text-sm font-medium">Qual referência usar nestes exames?</legend>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" disabled={ocupado} variant={referencia === "pdf" ? "default" : "outline"} aria-pressed={referencia === "pdf"} onClick={() => setReferencia("pdf")}>
-                    Do PDF do laboratório
-                  </Button>
-                  <Button type="button" size="sm" disabled={ocupado} variant={referencia === "modelo" ? "default" : "outline"} aria-pressed={referencia === "modelo"} onClick={() => setReferencia("modelo")}>
-                    Do modelo cadastrado
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {referencia === "pdf"
-                    ? "Usa as faixas impressas no laudo; onde o PDF não traz faixa, vale a do modelo."
-                    : "Ignora as faixas do PDF e usa as do modelo cadastrado na clínica."}
-                </p>
-              </fieldset>
-              </>}
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox
                   disabled={ocupado}
@@ -355,10 +437,13 @@ export function ImportarExamesPetPdf({
                     !confirmado ||
                     !laboratorio.trim() ||
                     !coleta ||
-                    (!soArquivo && (
-                    modelosPendentes(previa.grupos) ||
-                    unidadesDivergentes(previa.grupos, previa.modelos).length > 0 ||
-                    (referencia === "pdf" && previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade)))))
+                    (!soArquivo &&
+                      (modelosPendentes(previa.grupos) ||
+                        unidadesDivergentes(previa.grupos, previa.modelos).length > 0 ||
+                        (referencia === "pdf" &&
+                          previa.grupos.some((g) =>
+                            g.itens.some((i) => i.minimo !== null && !i.unidade),
+                          ))))
                   }
                   onClick={() => void importar()}
                 >
