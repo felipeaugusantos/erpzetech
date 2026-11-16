@@ -708,6 +708,13 @@
       "when": 1794836291256,
       "tag": "0100_clinica_proxima_consulta",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794837451125,
+      "tag": "0101_clinica_tutor_dados_completos",
+      "breakpoints": true
     }
   ]
 }
