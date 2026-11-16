@@ -12754,3 +12754,54 @@ BEGIN
   DELETE FROM saas_clientes WHERE id IN (cli, cli_o);
   DELETE FROM saas_operadores WHERE user_id = op;
 END $$;
+
+-- 106. Tela "Plano e assinatura": a empresa lê a assinatura REAL (plano, situação e faturas com o link de pagamento) só por função, só como
+-- administrador ou gestor, só da própria empresa; vendedor, salão, equipe EZRA sem papel e anônimo são recusados; empresa sem assinatura recebe nada
+DO $$
+DECLARE
+  adm  constant uuid := 'a0000000-0000-0000-0000-0000e9990109';
+  ges  constant uuid := 'a0000000-0000-0000-0000-0000e999010a';
+  vend constant uuid := 'a0000000-0000-0000-0000-0000e999010b';
+  gar  constant uuid := 'a0000000-0000-0000-0000-0000e999010c';
+  outro constant uuid := 'a0000000-0000-0000-0000-0000e999010d';
+  t_a uuid; t_b uuid; plano uuid; cli uuid; cli_b uuid; r jsonb;
+BEGIN
+  INSERT INTO tenants (nome) VALUES ('Assinatura tela A CI') RETURNING id INTO t_a;
+  INSERT INTO tenants (nome) VALUES ('Assinatura tela B CI') RETURNING id INTO t_b;
+  INSERT INTO auth.users (id, email) VALUES (adm, 'adm-tela@ci'), (ges, 'ges-tela@ci'), (vend, 'vend-tela@ci'), (gar, 'gar-tela@ci'), (outro, 'outro-tela@ci');
+  UPDATE profiles SET tenant_id = t_a WHERE id IN (adm, ges, vend, gar);
+  UPDATE profiles SET tenant_id = t_b WHERE id = outro;
+  INSERT INTO user_roles (user_id, tenant_id, role) VALUES (adm, t_a, 'administrador'), (ges, t_a, 'gestor'), (vend, t_a, 'vendedor'), (gar, t_a, 'garcom'), (outro, t_b, 'administrador');
+  SELECT id INTO plano FROM saas_planos WHERE codigo = 'loja';
+  INSERT INTO saas_clientes (nome, plano_id, tenant_id, situacao, cobranca_automatica, dia_vencimento, filiais_extras)
+  VALUES ('Cliente Tela A CI', plano, t_a, 'ativo', true, 12, 1) RETURNING id INTO cli;
+  INSERT INTO saas_clientes (nome, plano_id, tenant_id, situacao, dia_vencimento) VALUES ('Cliente Tela B CI', plano, t_b, 'ativo', 5) RETURNING id INTO cli_b;
+  INSERT INTO saas_faturas (cliente_id, descricao, tipo, valor, valor_pago, vencimento, gateway_url, pix_copia_cola)
+  VALUES (cli, 'Mensalidade A CI', 'mensalidade', 299, 100, current_date - 3, 'https://www.asaas.com/i/tela1', 'pix-copia-cola-a'),
+         (cli, 'Filial A CI', 'filial_extra', 390, 390, current_date - 30, NULL, NULL);
+  INSERT INTO saas_faturas (cliente_id, descricao, tipo, valor, vencimento) VALUES (cli_b, 'Mensalidade B CI', 'mensalidade', 299, current_date + 5);
+
+  PERFORM ci.entrar(adm); SELECT assinatura_resumo() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'cliente' ->> 'nome' = 'Cliente Tela A CI' AND (r -> 'cliente' ->> 'dia_vencimento')::int = 12, 'administrador lê a assinatura da própria empresa');
+  PERFORM ci.exige(r -> 'plano' ->> 'codigo' = 'loja' AND (r -> 'plano' ->> 'valor_mensal')::numeric > 0, 'a resposta traz o plano real');
+  PERFORM ci.exige(jsonb_array_length(r -> 'faturas') = 2, 'traz só as faturas da própria empresa');
+  PERFORM ci.exige((r -> 'faturas' -> 0 ->> 'descricao') = 'Mensalidade A CI' AND (r -> 'faturas' -> 0 ->> 'url') = 'https://www.asaas.com/i/tela1' AND (r -> 'faturas' -> 0 ->> 'pix_copia_cola') = 'pix-copia-cola-a', 'a fatura traz o link de pagamento, mais recente primeiro');
+  PERFORM ci.exige(NOT (r::text LIKE '%Mensalidade B CI%'), 'fatura de outra empresa não aparece');
+  PERFORM ci.entrar(ges); SELECT assinatura_resumo() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'cliente' ->> 'nome' = 'Cliente Tela A CI', 'gestor também lê');
+  PERFORM ci.entrar(outro); SELECT assinatura_resumo() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r -> 'cliente' ->> 'nome' = 'Cliente Tela B CI' AND jsonb_array_length(r -> 'faturas') = 1, 'a outra empresa lê só a sua');
+
+  PERFORM ci.deve_falhar(vend, 'SELECT assinatura_resumo()', 'vendedor lê a assinatura');
+  PERFORM ci.deve_falhar(gar, 'SELECT assinatura_resumo()', 'garçom lê a assinatura');
+  PERFORM ci.deve_falhar(NULL, 'SELECT assinatura_resumo()', 'anônimo lê a assinatura');
+
+  -- empresa sem assinatura cadastrada: nada (a tela mostra "nenhuma assinatura")
+  DELETE FROM saas_faturas WHERE cliente_id = cli_b;
+  DELETE FROM saas_clientes WHERE id = cli_b;
+  PERFORM ci.entrar(outro); SELECT assinatura_resumo() INTO r; PERFORM ci.sair();
+  PERFORM ci.exige(r IS NULL, 'empresa sem assinatura recebe nulo');
+
+  DELETE FROM saas_faturas WHERE cliente_id = cli;
+  DELETE FROM saas_clientes WHERE id = cli;
+END $$;

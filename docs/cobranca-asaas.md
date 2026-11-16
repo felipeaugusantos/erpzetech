@@ -24,6 +24,6 @@
 
 ## Limites e cuidados
 - O bloqueio é da tela. A proteção real dos dados continua sendo o login e o isolamento por empresa no banco; quem chamar a API direto não é barrado pela suspensão. Se isso for requisito, o próximo passo é uma trava no banco (função chamada pelas políticas), com custo de desempenho a medir.
-- A tela `/planos` da empresa ainda usa as tabelas antigas `assinaturas` e `assinatura_faturas`, que a própria empresa consegue gravar. Elas NÃO alimentam a cobrança nem a inadimplência; o certo é a `/planos` passar a ler `saas_faturas` por função.
+- A tela `/planos` da empresa lê a assinatura real (`assinatura_resumo()`, migração 20270125: saas_clientes, saas_planos e saas_faturas) e é só leitura: não altera plano, não registra pagamento nem lança implantação (mudança de plano vira chamado em `/chamados`; cobrança e baixa são da equipe e do gateway). As tabelas antigas `assinaturas` e `assinatura_faturas` ficaram no banco sem uso, mas a empresa ainda tem permissão de gravar nelas; o próximo passo seguro é revogar essa escrita (e depois apagá-las), conferindo antes que nada mais as usa.
 - Teste em sandbox antes: crie um cliente de teste com CPF/CNPJ válido, ligue a cobrança automática, rode a rotina, pague a cobrança no sandbox e confira a baixa e a reativação.
 - Fatura com valor cobrado diferente do valor da fatura (juros e multa do Asaas) quita a fatura pelo valor dela; o excedente não é registrado.

@@ -16939,6 +16939,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assinatura_resumo: { Args: never; Returns: Json }
       assinatura_situacao: { Args: never; Returns: Json }
       saas_cobranca_evento: {
         Args: { p_acao: string; p_data?: string; p_forma: string; p_gateway_id: string; p_status: string; p_valor: number }

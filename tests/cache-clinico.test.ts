@@ -21,6 +21,7 @@ describe("consultaPersistivel", () => {
   it("os portões de acesso (aceite dos termos e assinatura) não são salvos", () => {
     assert.equal(consultaPersistivel(["aceite-legal", "u", "2026-11-16"]), false);
     assert.equal(consultaPersistivel(["assinatura-situacao", "u"]), false);
+    assert.equal(consultaPersistivel(["assinatura-resumo"]), false);
   });
   it("o resto do sistema continua salvando", () => {
     assert.equal(consultaPersistivel(["produtos"]), true);

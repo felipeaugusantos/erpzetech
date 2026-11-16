@@ -12,4 +12,4 @@ export function consultaPersistivel(chave: readonly unknown[]): boolean {
  * Consultas dos portões de acesso (aceite dos termos e situação da assinatura): nunca vão para o cache do navegador, para um
  * "ainda não aceitou" ou "bloqueado" antigo não voltar quando a tela reabrir sem internet.
  */
-const NAO_PERSISTIR = ["aceite-legal", "assinatura-situacao"];
+const NAO_PERSISTIR = ["aceite-legal", "assinatura-situacao", "assinatura-resumo"];
