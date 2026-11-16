@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Habilitar cadastro da dose no próprio formulário de vacina, sem abrir Produtos; manter estoque e lote e conferir salvamento.
+- [x] Cadastro da dose habilitado no próprio formulário de vacina, sem abrir Produtos; salvamento atômico com estoque/lote e sem saldo inicial. Quatorze testes passaram; navegador autenticado confirmou salvar e reabrir com dose vinculada, computador/celular sem transbordamento. Registro temporário removido após conferência; build OK. Não publicado.
 
 - [x] Cadastro de pet: busca de tutor existente também no cadastro rápido, campo Óbito persistido e pets falecidos em preto com texto branco. Dez testes passaram; navegador autenticado confirmou busca, gravação, reabertura e retirada de óbito em registro temporário, removido após conferência. Computador/celular conferidos; build OK. Não publicado.
 
