@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Cadastro de paciente com tutor novo: mostrar e salvar documentos, endereço completo, contatos e preferência de mensagens, preservando tutor existente e fila offline.
+- [x] Cadastro de paciente com tutor novo: documentos, endereço completo, contatos e preferência de mensagens no formulário compartilhado com a fila offline; 22 testes passaram, gravação conferida com conta veterinária e registros temporários removidos; celular conferido, build OK.
 
 - [x] Alerta automático nas 24 horas anteriores à consulta, no prontuário e nas agendas da clínica, com atualização periódica; sete testes passaram e alerta conferido com agendamento temporário pela conta veterinária, removido após verificação; build OK.
 
