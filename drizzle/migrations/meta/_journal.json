@@ -680,6 +680,13 @@
       "when": 1794831844341,
       "tag": "0096_clinica_vacina_produtos_apenas_estoque",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794832249176,
+      "tag": "0097_pet_obito",
+      "breakpoints": true
     }
   ]
 }
