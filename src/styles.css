@@ -47,6 +47,8 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-pet-obito: var(--pet-obito);
+  --color-pet-obito-foreground: var(--pet-obito-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
@@ -83,6 +85,8 @@
 
 :root {
   --radius: 0.5rem;
+  --pet-obito: #000000;
+  --pet-obito-foreground: #ffffff;
 
   --background: #f0f4f2;
   --foreground: #1a1a1a;
@@ -222,18 +226,40 @@
   box-shadow: var(--shadow-panel);
 }
 
+.pet-falecido,
+.pet-falecido:hover {
+  background-color: var(--pet-obito);
+  color: var(--pet-obito-foreground);
+}
+.pet-falecido .text-muted-foreground,
+.pet-falecido [data-slot="badge"],
+.pet-falecido button,
+.pet-falecido a {
+  color: var(--pet-obito-foreground);
+}
+
 @utility text-numeric {
   font-variant-numeric: tabular-nums;
 }
 
-/* O menu continua rolável por mouse, toque e teclado, sem barras permanentes. */
+/* Barra visível para indicar opções fora da tela em monitores menores. */
 @utility menu-scroll {
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-width: none;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+  scrollbar-gutter: stable;
 
   &::-webkit-scrollbar {
-    display: none;
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
   }
 }
 

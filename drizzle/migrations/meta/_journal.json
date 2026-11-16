@@ -666,6 +666,55 @@
       "when": 1794753265247,
       "tag": "0094_balcao_offline_caixa_original",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794831540655,
+      "tag": "0095_clinica_data_atendimento_catalogo_produtos",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794831844341,
+      "tag": "0096_clinica_vacina_produtos_apenas_estoque",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794832249176,
+      "tag": "0097_pet_obito",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1794832334332,
+      "tag": "0098_pet_obito_travas",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794833149856,
+      "tag": "0099_clinica_vacina_dose_no_catalogo",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1794836291256,
+      "tag": "0100_clinica_proxima_consulta",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794837451125,
+      "tag": "0101_clinica_tutor_dados_completos",
+      "breakpoints": true
     }
   ]
 }

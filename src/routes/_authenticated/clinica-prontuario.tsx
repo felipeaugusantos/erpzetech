@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
+import { ProximaConsulta } from "@/components/app/ProximaConsulta";
+import { AlertasConsultaPaciente } from "@/components/app/AlertaConsulta";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -35,6 +37,7 @@ import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
   evolucaoDoPeso,
+  dataClinica,
   evolucaoDosSinais,
   type AtendimentoClinico,
   type PetClinico,
@@ -285,6 +288,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
 
   return (
     <div className="grid gap-4">
+      <AlertasConsultaPaciente petId={petId} />
       <div className="min-w-0 overflow-hidden border-y border-border">
         {p.alergias && (
           <div
@@ -354,7 +358,19 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             </Button>
           )}
           <Button asChild size="sm" variant="outline">
-            <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined }}>
+            <Link
+              to="/clinica-vacinas"
+              search={{ pet: petId, agendamento: undefined, aplicar: true }}
+            >
+              <Syringe /> Aplicar vacina
+            </Link>
+          </Button>
+          <ProximaConsulta petId={petId} petNome={p.nome} />
+          <Button asChild size="sm" variant="outline">
+            <Link
+              to="/clinica-vacinas"
+              search={{ pet: petId, agendamento: undefined, aplicar: undefined }}
+            >
               <Syringe /> Vacinas e vermífugos
             </Link>
           </Button>
@@ -441,7 +457,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
             {sinais.map((v) => (
               <li key={v.em} className="min-w-0 rounded-md border border-border bg-card p-4">
                 <time dateTime={v.em} className="font-semibold tabular-nums text-primary">
-                  {dateTimeBR(v.em)}
+                  {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
                 </time>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-4 text-sm">
                   <div>
@@ -486,7 +502,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <tbody>
                 {sinais.map((v) => (
                   <tr key={v.em} className="border-t border-border">
-                    <td className="py-1 pr-3">{dateTimeBR(v.em)}</td>
+                    <td className="py-1 pr-3">
+                      {v.em.length === 10 ? dateBR(v.em) : dateTimeBR(v.em)}
+                    </td>
                     <td className="py-1 pr-3">
                       {v.peso_kg !== null ? `${num(v.peso_kg, 2)} kg` : "—"}
                     </td>
@@ -538,8 +556,11 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <time dateTime={a.aberto_em} className="font-semibold tabular-nums text-primary">
-                    {dateTimeBR(a.aberto_em)}
+                  <time
+                    dateTime={a.data_atendimento ?? a.aberto_em}
+                    className="font-semibold tabular-nums text-primary"
+                  >
+                    {dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}
                   </time>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
@@ -558,6 +579,14 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                   </div>
                 )}
                 <dl className="mt-4 grid gap-4">
+                  <Linha
+                    rotulo="Peso nesta consulta"
+                    valor={
+                      a.peso_kg !== null
+                        ? `${String(a.peso_kg).replace(".", ",")} kg`
+                        : "Não cadastrado"
+                    }
+                  />
                   <Linha rotulo="Queixa" valor={a.queixa} />
                   <Linha rotulo="Anamnese" valor={a.anamnese} />
                   <Linha

@@ -1,4 +1,8 @@
 import { Input } from "@/components/ui/input";
+import { ClienteCombobox } from "@/components/app/ClienteCombobox";
+import { DadosCadastroTutor } from "@/components/app/DadosCadastroTutor";
+import { dadosTutorVazios } from "@/lib/tutor-novo";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,25 +31,17 @@ export function CamposCadastroRapido({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <div className="sm:col-span-3">
+      <div className="sm:col-span-3 border-b border-border pb-3">
+        <h3 className="mb-3 font-semibold">Cadastro do tutor</h3>
         <Label htmlFor="cr-tutor">Tutor</Label>
-        <Select
-          value={form.tutorId || "__novo"}
-          onValueChange={(v) => mexe({ tutorId: v === "__novo" ? "" : v })}
-        >
-          <SelectTrigger id="cr-tutor">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__novo">Tutor novo</SelectItem>
-            {tutores.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.nome}
-                {t.telefone ? ` · ${t.telefone}` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ClienteCombobox
+          clientes={tutores}
+          value={form.tutorId}
+          onChange={(id) => mexe({ tutorId: id })}
+          balcaoValue=""
+          balcaoLabel="Cadastrar tutor novo"
+          placeholder="Buscar tutor já cadastrado…"
+        />
         {semCopia && (
           <p className="mt-1 text-xs text-muted-foreground">
             Para escolher um tutor que já existe, prepare a visita antes (a agenda baixada traz os
@@ -55,6 +51,26 @@ export function CamposCadastroRapido({
       </div>
       {!form.tutorId && (
         <>
+          <div>
+            <Label htmlFor="cr-tipo">Tipo</Label>
+            <Select
+              value={form.tutorTipo ?? "PF"}
+              onValueChange={(v) =>
+                mexe({
+                  tutorTipo: v as "PF" | "PJ",
+                  tutorDados: { ...(form.tutorDados ?? dadosTutorVazios), documento: "" },
+                })
+              }
+            >
+              <SelectTrigger id="cr-tipo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PF">Pessoa física</SelectItem>
+                <SelectItem value="PJ">Pessoa jurídica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="sm:col-span-2">
             <Label htmlFor="cr-tnome">Nome do tutor</Label>
             <Input
@@ -63,20 +79,29 @@ export function CamposCadastroRapido({
               onChange={(e) => mexe({ tutorNome: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="cr-tfone">Telefone (com DDD)</Label>
-            <Input
-              mascara="telefone"
-              id="cr-tfone"
-              inputMode="tel"
-              value={form.tutorTelefone}
-              onChange={(e) => mexe({ tutorTelefone: e.target.value })}
+          <div className="sm:col-span-3">
+            <DadosCadastroTutor
+              dados={form.tutorDados ?? dadosTutorVazios}
+              telefone={form.tutorTelefone}
+              onChange={(tutorDados) => mexe({ tutorDados })}
+              onTelefone={(tutorTelefone) => mexe({ tutorTelefone })}
             />
+            <div className="mt-3 flex items-center gap-2">
+              <Switch
+                id="cr-mensagens"
+                checked={form.tutorAceitaMensagens ?? true}
+                onCheckedChange={(tutorAceitaMensagens) => mexe({ tutorAceitaMensagens })}
+              />
+              <Label htmlFor="cr-mensagens" className="text-sm">
+                Pode receber mensagens (aniversário, retorno, vacina e agendamento)
+              </Label>
+            </div>
           </div>
         </>
       )}
 
       <div className="sm:col-span-2">
+        <h3 className="mb-3 font-semibold">Cadastro do paciente</h3>
         <Label htmlFor="cr-pet">Nome do pet</Label>
         <Input
           id="cr-pet"
@@ -112,11 +137,14 @@ export function CamposCadastroRapido({
           value={form.sexo || "__nd"}
           onValueChange={(v) => mexe({ sexo: v === "__nd" ? "" : (v as "macho" | "femea") })}
         >
-          <SelectTrigger id="cr-sexo">
+          <SelectTrigger
+            id="cr-sexo"
+            className={!form.sexo ? "border-warning bg-warning/10 text-warning" : ""}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__nd">Não informado</SelectItem>
+            <SelectItem value="__nd">Não cadastrado</SelectItem>
             <SelectItem value="macho">Macho</SelectItem>
             <SelectItem value="femea">Fêmea</SelectItem>
           </SelectContent>
@@ -128,11 +156,14 @@ export function CamposCadastroRapido({
           value={form.castrado || "__nd"}
           onValueChange={(v) => mexe({ castrado: v === "__nd" ? "" : (v as "sim" | "nao") })}
         >
-          <SelectTrigger id="cr-cast">
+          <SelectTrigger
+            id="cr-cast"
+            className={!form.castrado ? "border-warning bg-warning/10 text-warning" : ""}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__nd">Não informado</SelectItem>
+            <SelectItem value="__nd">Não cadastrado</SelectItem>
             <SelectItem value="sim">Sim</SelectItem>
             <SelectItem value="nao">Não</SelectItem>
           </SelectContent>

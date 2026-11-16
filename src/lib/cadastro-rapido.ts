@@ -1,6 +1,7 @@
 // Cadastro rápido de tutor e pet pelo veterinário, feito sem internet: regras do formulário (as mesmas do banco), a operação que vai para a
 // fila e os pacientes que ainda só existem no notebook. Os identificadores nascem aqui, para o pet novo já poder receber atendimento.
 import { novaOperacao, type OperacaoFila } from "./fila-clinica.ts";
+import { dadosTutorParaSalvar, type DadosTutor } from "./tutor-novo.ts";
 
 export const TIPO_CADASTRO_RAPIDO = "cadastro_rapido";
 
@@ -14,6 +15,9 @@ export type FormCadastroRapido = {
   tutorId: string;
   tutorNome: string;
   tutorTelefone: string;
+  tutorDados?: DadosTutor;
+  tutorTipo?: "PF" | "PJ";
+  tutorAceitaMensagens?: boolean;
   petNome: string;
   especie: "cao" | "gato";
   raca: string;
@@ -28,6 +32,8 @@ export const cadastroVazio: FormCadastroRapido = {
   tutorId: "",
   tutorNome: "",
   tutorTelefone: "",
+  tutorTipo: "PF",
+  tutorAceitaMensagens: true,
   petNome: "",
   especie: "cao",
   raca: "",
@@ -71,7 +77,7 @@ export function erroDoCadastroRapido(
 
 export type CadastroRapidoPayload = {
   cliente_id?: string;
-  cliente?: { id: string; nome: string; telefone?: string };
+  cliente?: { id: string; nome: string; telefone?: string } & Record<string, unknown>;
   pet: Record<string, unknown>;
 };
 
@@ -97,11 +103,16 @@ export function operacaoDoCadastroRapido(
     payload = { cliente_id: f.tutorId, pet };
     tutor = nomeDoTutorExistente ?? "tutor já cadastrado";
   } else {
-    const cliente: { id: string; nome: string; telefone?: string } = {
+    const cliente: NonNullable<CadastroRapidoPayload["cliente"]> = {
       id: ids.cliente ?? crypto.randomUUID(),
       nome: f.tutorNome.trim(),
     };
     if (f.tutorTelefone.trim()) cliente.telefone = f.tutorTelefone.trim();
+    if (f.tutorDados)
+      Object.assign(cliente, dadosTutorParaSalvar(f.tutorDados), {
+        tipo: f.tutorTipo ?? dadosTutorParaSalvar(f.tutorDados).tipo,
+        aceita_mensagens: f.tutorAceitaMensagens ?? true,
+      });
     payload = { cliente, pet };
     tutor = cliente.nome;
   }

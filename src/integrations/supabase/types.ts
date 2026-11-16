@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      aceites_legais: {
+        Row: {
+          aceito_em: string
+          id: string
+          tenant_id: string | null
+          user_id: string
+          versao: string
+        }
+        Insert: {
+          aceito_em?: string
+          id?: string
+          tenant_id?: string | null
+          user_id: string
+          versao: string
+        }
+        Update: {
+          aceito_em?: string
+          id?: string
+          tenant_id?: string | null
+          user_id?: string
+          versao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aceites_legais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinatura_faturas: {
         Row: {
           assinatura_id: string
@@ -11139,6 +11171,7 @@ export type Database = {
           created_at: string
           crmv: string
           crmv_uf: string
+          data_atendimento: string | null
           diagnostico: string | null
           exame_fisico: string | null
           fechado_em: string | null
@@ -11165,6 +11198,7 @@ export type Database = {
           created_at?: string
           crmv: string
           crmv_uf: string
+          data_atendimento?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null
@@ -11191,6 +11225,7 @@ export type Database = {
           created_at?: string
           crmv?: string
           crmv_uf?: string
+          data_atendimento?: string | null
           diagnostico?: string | null
           exame_fisico?: string | null
           fechado_em?: string | null
@@ -13860,6 +13895,7 @@ export type Database = {
           microchip: string | null
           nascimento: string | null
           nome: string
+          obito: boolean
           obito_em: string | null
           observacoes: string | null
           pelagem: string | null
@@ -13882,6 +13918,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome: string
+          obito?: boolean
           obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
@@ -13904,6 +13941,7 @@ export type Database = {
           microchip?: string | null
           nascimento?: string | null
           nome?: string
+          obito?: boolean
           obito_em?: string | null
           observacoes?: string | null
           pelagem?: string | null
@@ -15128,6 +15166,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          cobranca_automatica: boolean
           complemento: string | null
           created_at: string
           dia_vencimento: number
@@ -15135,6 +15174,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           filiais_extras: number
+          gateway_cliente_id: string | null
           id: string
           implantacao_paga: boolean
           inicio: string
@@ -15146,6 +15186,7 @@ export type Database = {
           prazo_meses: number
           responsavel: string | null
           situacao: string
+          suspenso_automaticamente: boolean
           telefone: string | null
           tenant_id: string | null
           teste_ate: string | null
@@ -15160,6 +15201,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cobranca_automatica?: boolean
           complemento?: string | null
           created_at?: string
           dia_vencimento?: number
@@ -15167,6 +15209,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           filiais_extras?: number
+          gateway_cliente_id?: string | null
           id?: string
           implantacao_paga?: boolean
           inicio?: string
@@ -15178,6 +15221,7 @@ export type Database = {
           prazo_meses?: number
           responsavel?: string | null
           situacao?: string
+          suspenso_automaticamente?: boolean
           telefone?: string | null
           tenant_id?: string | null
           teste_ate?: string | null
@@ -15192,6 +15236,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cobranca_automatica?: boolean
           complemento?: string | null
           created_at?: string
           dia_vencimento?: number
@@ -15199,6 +15244,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           filiais_extras?: number
+          gateway_cliente_id?: string | null
           id?: string
           implantacao_paga?: boolean
           inicio?: string
@@ -15210,6 +15256,7 @@ export type Database = {
           prazo_meses?: number
           responsavel?: string | null
           situacao?: string
+          suspenso_automaticamente?: boolean
           telefone?: string | null
           tenant_id?: string | null
           teste_ate?: string | null
@@ -15354,6 +15401,10 @@ export type Database = {
           enviado_em: string | null
           forma_cobranca: string | null
           forma_pagamento: string | null
+          gateway_cobranca_id: string | null
+          gateway_evento_em: string | null
+          gateway_status: string | null
+          gateway_url: string | null
           id: string
           observacao: string | null
           pago_em: string | null
@@ -15375,6 +15426,10 @@ export type Database = {
           enviado_em?: string | null
           forma_cobranca?: string | null
           forma_pagamento?: string | null
+          gateway_cobranca_id?: string | null
+          gateway_evento_em?: string | null
+          gateway_status?: string | null
+          gateway_url?: string | null
           id?: string
           observacao?: string | null
           pago_em?: string | null
@@ -15396,6 +15451,10 @@ export type Database = {
           enviado_em?: string | null
           forma_cobranca?: string | null
           forma_pagamento?: string | null
+          gateway_cobranca_id?: string | null
+          gateway_evento_em?: string | null
+          gateway_status?: string | null
+          gateway_url?: string | null
           id?: string
           observacao?: string | null
           pago_em?: string | null
@@ -17190,6 +17249,7 @@ export type Database = {
         Args: { p_dados: Json; p_ramo: string }
         Returns: string
       }
+      _saas_tolerancia_dias: { Args: never; Returns: number }
       _sinal_valor: { Args: { p_texto: string }; Returns: number }
       _sngpc_assinatura: {
         Args: { p_fim: string; p_inicio: string }
@@ -17227,7 +17287,10 @@ export type Database = {
         Args: { p_filial_id: string; p_valor_abertura?: number }
         Returns: string
       }
+      aceite_legal_meu: { Args: { p_versao: string }; Returns: boolean }
+      aceite_legal_registrar: { Args: { p_versao: string }; Returns: string }
       assinante_link_sugerido: { Args: never; Returns: string }
+      assinatura_situacao: { Args: never; Returns: Json }
       assinatura_taxa_inicial: {
         Args: never
         Returns: {
@@ -17659,6 +17722,14 @@ export type Database = {
         Args: { p_motivo: string; p_prescricao_id: string }
         Returns: undefined
       }
+      clinica_proxima_consulta_agendar: {
+        Args: { p_chave: string; p_dados: Json }
+        Returns: Json
+      }
+      clinica_proxima_consulta_opcoes: {
+        Args: { p_pet_id: string }
+        Returns: Json
+      }
       clinica_receita_modelo_excluir: {
         Args: { p_id: string }
         Returns: undefined
@@ -17719,6 +17790,7 @@ export type Database = {
         Args: { p_acao: string; p_chave: string; p_dados: Json }
         Returns: Json
       }
+      clinica_vacina_produtos: { Args: never; Returns: Json }
       clinica_vacina_registrar_externa: {
         Args: { p_dados: Json; p_pet_id: string }
         Returns: Json
@@ -19227,6 +19299,7 @@ export type Database = {
         Returns: undefined
       }
       pet_salvar: { Args: { p_dados: Json }; Returns: string }
+      pet_salvar_com_obito: { Args: { p_dados: Json }; Returns: string }
       pet_servico_salvar: { Args: { p_dados: Json }; Returns: string }
       pet_servicos_por_profissional: {
         Args: { p_ate: string; p_de: string }
@@ -19577,6 +19650,46 @@ export type Database = {
         }
         Returns: undefined
       }
+      saas_cobranca_evento: {
+        Args: {
+          p_acao: string
+          p_data: string
+          p_forma: string
+          p_gateway_id: string
+          p_status: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      saas_cobranca_pendentes: {
+        Args: { p_limite?: number }
+        Returns: {
+          cliente_id: string
+          cliente_nome: string
+          descricao: string
+          documento: string
+          email: string
+          fatura_id: string
+          gateway_cliente_id: string
+          valor: number
+          vencimento: string
+          whatsapp: string
+        }[]
+      }
+      saas_cobranca_vincular_cliente: {
+        Args: { p_cliente: string; p_gateway_id: string }
+        Returns: string
+      }
+      saas_cobranca_vincular_fatura: {
+        Args: {
+          p_boleto_url: string
+          p_fatura: string
+          p_gateway_id: string
+          p_status: string
+          p_url: string
+        }
+        Returns: boolean
+      }
       saas_custo_por_tecnico: {
         Args: { p_ate: string; p_de: string }
         Returns: {
@@ -19626,6 +19739,8 @@ export type Database = {
         }[]
       }
       saas_gerar_faturas: { Args: never; Returns: number }
+      saas_gerar_faturas_auto: { Args: never; Returns: number }
+      saas_inadimplencia_rodar: { Args: { p_cliente?: string }; Returns: Json }
       saas_lava_rapido_por_cliente: {
         Args: { p_ate: string; p_de: string }
         Returns: Json

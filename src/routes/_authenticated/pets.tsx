@@ -108,6 +108,7 @@ type Form = {
   alergias: string;
   observacoes: string;
   ativo: boolean;
+  obito: boolean;
   microchip: string;
   /** foto atual do pet (miniatura JPEG); só vai ao banco quando fotoMudou */
   foto: string | null;
@@ -132,6 +133,7 @@ const vazio: Form = {
   alergias: "",
   observacoes: "",
   ativo: true,
+  obito: false,
   microchip: "",
   foto: null,
   fotoMudou: false,
@@ -164,7 +166,7 @@ function Pets() {
         supabase
           .from("pets")
           .select(
-            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, microchip, created_at, updated_at",
+            "id, tenant_id, cliente_id, nome, especie, raca, porte, sexo, pelagem, peso_kg, nascimento, castrado, alergias, observacoes, ativo, obito, microchip, created_at, updated_at",
           )
           .order("nome"),
         supabase
@@ -252,7 +254,7 @@ function Pets() {
         setForm((f) => ({ ...f, cliente_id: idTutor, tutor_novo: false }));
         void qc.invalidateQueries({ queryKey: ["clientes"] });
       }
-      const { data: petId, error } = await supabase.rpc("pet_salvar", {
+      const { data: petId, error } = await supabase.rpc("pet_salvar_com_obito", {
         p_dados: {
           ...(form.id ? { id: form.id } : {}),
           cliente_id: clienteId,
@@ -268,6 +270,7 @@ function Pets() {
           alergias: form.alergias.trim() || null,
           observacoes: form.observacoes.trim() || null,
           ativo: form.ativo,
+          obito: form.obito,
           microchip: normalizarMicrochip(form.microchip) || null,
           ...(form.fotoMudou ? { foto: form.foto } : {}),
         },
@@ -312,11 +315,14 @@ function Pets() {
     id: string,
   ) => (
     <Select value={valor || NENHUM} onValueChange={(v) => onChange(v === NENHUM ? "" : v)}>
-      <SelectTrigger id={id}>
+      <SelectTrigger
+        id={id}
+        className={!valor && nenhum ? "border-warning bg-warning/10 text-warning" : ""}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {nenhum && <SelectItem value={NENHUM}>Não informado</SelectItem>}
+        {nenhum && <SelectItem value={NENHUM}>Não cadastrado</SelectItem>}
         {opcoes.map((o) => (
           <SelectItem key={o.value} value={o.value}>
             {o.label}
@@ -391,13 +397,24 @@ function Pets() {
               {lista.map((p) => {
                 const c = tutor(p.cliente_id);
                 return (
-                  <TableRow key={p.id} className={p.ativo ? "" : "opacity-60"}>
+                  <TableRow
+                    key={p.id}
+                    className={p.obito ? "pet-falecido" : p.ativo ? "" : "opacity-60"}
+                  >
                     <TableCell className="font-medium">
                       {p.nome}
                       <span className="ml-2 text-xs text-muted-foreground">
                         {rotulo(ESPECIES, p.especie)}
                       </span>
-                      {!p.ativo && (
+                      {p.obito && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 border-pet-obito-foreground text-pet-obito-foreground"
+                        >
+                          Óbito
+                        </Badge>
+                      )}
+                      {!p.ativo && !p.obito && (
                         <Badge variant="outline" className="ml-2">
                           Inativo
                         </Badge>
@@ -467,6 +484,7 @@ function Pets() {
                               alergias: p.alergias ?? "",
                               observacoes: p.observacoes ?? "",
                               ativo: p.ativo,
+                              obito: p.obito,
                               microchip: p.microchip ?? "",
                               foto: null,
                               fotoMudou: false,
@@ -499,9 +517,9 @@ function Pets() {
                 {!form.id && (
                   <Button
                     type="button"
-                    variant="link"
+                    variant="outline"
                     size="sm"
-                    className="h-auto p-0"
+                    className="min-h-10 gap-2"
                     onClick={() =>
                       setForm({
                         ...form,
@@ -510,7 +528,10 @@ function Pets() {
                       })
                     }
                   >
-                    {form.tutor_novo ? "Escolher tutor já cadastrado" : "Tutor novo"}
+                    <Plus className="size-4" />
+                    {form.tutor_novo
+                      ? "Escolher tutor já cadastrado"
+                      : "Cadastrar tutor junto com o pet"}
                   </Button>
                 )}
               </div>
@@ -574,7 +595,7 @@ function Pets() {
                     clientes={clientes}
                     value={form.cliente_id}
                     onChange={(id) => setForm({ ...form, cliente_id: id })}
-                    placeholder="Digite o nome do tutor…"
+                    placeholder="Buscar tutor já cadastrado…"
                   />
                   {form.cliente_id &&
                     (() => {
@@ -612,7 +633,7 @@ function Pets() {
                     })()}
                   {!form.id && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Não achou? Use <strong>Tutor novo</strong> para cadastrar aqui mesmo.
+                      Não achou? Use <strong>Cadastrar tutor junto com o pet</strong>.
                     </p>
                   )}
                 </>
@@ -642,6 +663,7 @@ function Pets() {
                 id="pet-raca"
                 value={form.raca}
                 placeholder="Ex.: Poodle, SRD"
+                className={!form.raca ? "border-warning bg-warning/10" : ""}
                 onChange={(e) => setForm({ ...form, raca: e.target.value })}
               />
             </div>
@@ -669,6 +691,10 @@ function Pets() {
                 id="pet-peso"
                 inputMode="decimal"
                 value={form.peso_kg}
+                placeholder="Não cadastrado"
+                className={
+                  !form.peso_kg ? "border-warning bg-warning/10 placeholder:text-warning" : ""
+                }
                 onChange={(e) => setForm({ ...form, peso_kg: e.target.value })}
               />
             </div>
@@ -696,6 +722,14 @@ function Pets() {
                 onCheckedChange={(v) => setForm({ ...form, ativo: v })}
               />
               <Label htmlFor="pet-ativo">Ativo</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="pet-obito"
+                checked={form.obito}
+                onCheckedChange={(v) => setForm({ ...form, obito: v })}
+              />
+              <Label htmlFor="pet-obito">Óbito</Label>
             </div>
             <div>
               <Label htmlFor="pet-chip">Microchip</Label>

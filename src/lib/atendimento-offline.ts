@@ -2,6 +2,7 @@
 // (abrir, salvar, fechar). O atendimento nasce no notebook com id e hora próprios; o banco aceita cada operação uma vez só, pela chave dela.
 import { novaOperacao, type OperacaoFila } from "./fila-clinica.ts";
 import type { FormAtendimento } from "./clinica.ts";
+import { dataClinica } from "./clinica.ts";
 
 export const TIPO_VISITA_REGISTRAR = "visita_registrar";
 export const TIPO_ATENDIMENTO_SALVAR = "atendimento_salvar";
@@ -148,7 +149,7 @@ export function abrirAtendimento(
       servicoId: marcada ? null : origem.servicoId,
       cadastroOpId,
       registrarOpId: operacao.id,
-      form: { ...formAtendimentoVazio },
+      form: { ...formAtendimentoVazio, data_atendimento: dataClinica(abertoEm) },
       fechado: false,
     },
     operacao,
@@ -177,7 +178,11 @@ export function salvamentosSubstituidos(
 
 /** O texto do atendimento como o banco espera (sem os campos vazios cortados: o banco limpa). */
 export function dadosParaSalvar(form: FormAtendimento): Record<string, string> {
-  return { ...form };
+  return Object.fromEntries(
+    Object.entries(form).filter(
+      (entrada): entrada is [string, string] => typeof entrada[1] === "string",
+    ),
+  );
 }
 
 export function operacaoDeSalvar(

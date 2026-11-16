@@ -1,5 +1,18 @@
 # Roadmap
 
+- [x] Cadastro de paciente com tutor novo: documentos, endereço completo, contatos e preferência de mensagens no formulário compartilhado com a fila offline; 22 testes passaram, gravação conferida com conta veterinária e registros temporários removidos; celular conferido, build OK.
+
+- [x] Alerta automático nas 24 horas anteriores à consulta, no prontuário e nas agendas da clínica, com atualização periódica; sete testes passaram e alerta conferido com agendamento temporário pela conta veterinária, removido após verificação; build OK.
+
+- [x] Próxima consulta: agendar pelo prontuário e no fechamento, com horário de Brasília, veterinário, serviço, confirmação e atualização da agenda; gravação e leitura conferidas com Bruna, agendamento temporário removido. Doze testes passaram; computador/celular conferidos, build OK; nenhuma consulta real fechada.
+
+- [x] Cadastro da dose habilitado no próprio formulário de vacina, sem abrir Produtos; salvamento atômico com estoque/lote e sem saldo inicial. Quatorze testes passaram; navegador autenticado confirmou salvar e reabrir com dose vinculada, computador/celular sem transbordamento. Registro temporário removido após conferência; build OK. Não publicado.
+
+- [x] Cadastro de pet: busca de tutor existente também no cadastro rápido, campo Óbito persistido e pets falecidos em preto com texto branco. Dez testes passaram; navegador autenticado confirmou busca, gravação, reabertura e retirada de óbito em registro temporário, removido após conferência. Computador/celular conferidos; build OK. Não publicado.
+
+- [x] Melhorias clínicas: data clínica editável nas consultas abertas, preservando abertura original e fichas fechadas; tutor junto do paciente com ação destacada; peso próprio destacado em cada consulta e no histórico; campos não cadastrados em cor de aviso; produtos de vacina sem lote disponíveis com confirmação explícita, sem aceitar serviços. Migrações 0095/0096 conferidas; 47 testes de lógica e 11 de ciclo de vida passaram. Catálogo e cadastro conjunto conferidos autenticados no computador/celular; data 15/11/2026 e peso 12,345 conferidos com resposta controlada, sem gravar pacientes reais; build OK. Não publicado.
+- [ ] Conferir salvamento real da data/peso e vacina em consulta autorizada: sessão atual é da administração sem vínculo veterinário; conferência visual controlada não grava dados clínicos. Testes SQL adicionados à CI (sandbox não assume authenticated).
+
 - [x] PDV e balcão: fila local com pagamento, recebido/troco, reenvio idempotente, sincronização automática e conciliação concorrente; PDV desconta fila do saldo disponível e mostra recusas. Migrações 0093/0094 preservam caixa original. Dezessete testes passaram; celular autenticado confirmou venda offline e reconexão com recusa controlada sem apagar pagamento, nenhuma venda real criada; build OK.
 - [ ] Validar reabertura sem internet e sincronização financeira completa no publicado: depende de publicar a nova versão e conferir no celular com caixa autorizado; a prévia não registra cache de páginas por segurança. Testes SQL de idempotência/caixa/perfis adicionados à CI; sessão sandbox não pode assumir authenticated.
 
