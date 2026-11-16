@@ -16,6 +16,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { iniciarMonitoramento, relatarErro } from "../lib/monitoramento-cliente";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -71,6 +72,7 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
   useEffect(() => {
     if (ehVersaoAntiga(error) && recarregarVersaoNova()) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    void relatarErro(error);
   }, [error]);
 
   return (
@@ -183,6 +185,7 @@ function RootComponent() {
 
   useEffect(() => {
     void prepararOffline().catch(() => undefined);
+    iniciarMonitoramento();
   }, []);
 
   return (

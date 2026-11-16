@@ -526,7 +526,7 @@ DECLARE
     'backup_execucoes',
     -- backup no Google Drive por cliente: conector cifrado e execuções; só o serviço lê e grava (a política restritiva é USING (false), sem grant para authenticated)
     'backup_drive_config', 'backup_drive_execucoes'];
-  sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
+  sem_trava constant text[] := ARRAY['aceite_legal_meu', 'aceite_legal_registrar', 'saas_erros_listar', 'saas_erro_situacao', 'current_tenant_id', 'current_motorista_id', 'has_role', 'eh_motorista_restrito',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
     'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
@@ -644,7 +644,9 @@ BEGIN
                            'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
                            'filial_irrestrita', 'pode_filial', 'eh_profissional_restrito',
                            -- aceite dos termos (LGPD): vale para qualquer pessoa logada, inclusive o contador
-                           'aceite_legal_meu', 'aceite_legal_registrar')
+                           'aceite_legal_meu', 'aceite_legal_registrar',
+                           -- erros do sistema: respondem só à equipe EZRA (operador), nunca a contador nem a empresa
+                           'saas_erros_listar', 'saas_erro_situacao')
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_nao_contador%'
      AND pg_get_functiondef(p.oid) NOT LIKE '%exige_contador_tributos%';
   PERFORM ci.exige(faltando IS NULL, 'toda função chamável tem a trava do contador (exige_nao_contador ou exige_contador_tributos) ou está na lista liberada' || coalesce(' (faltam: ' || faltando || ')', ''));
@@ -12532,4 +12534,81 @@ BEGIN
   PERFORM ci.sair();
 
   DELETE FROM aceites_legais WHERE versao IN ('2026-01-01', '2026-02-02');
+END $$;
+
+-- 104. Monitoramento de erros: sem acesso direto, gravação só pelo serviço (agrupa por impressão, soma, reabre resolvido, teto de novos por hora),
+-- leitura e mudança de situação só da equipe EZRA (operador), nunca de empresa, salão nem anônimo
+DO $$
+DECLARE
+  adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
+  gar  constant uuid := 'a0000000-0000-0000-0000-000000000006';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000000000d4';
+  eid uuid; n int;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (op, 'operador-erros@ci');
+  INSERT INTO saas_operadores (user_id) VALUES (op);
+
+  PERFORM ci.deve_falhar(adm, 'SELECT count(*) FROM erros_app', 'administrador lê a tabela de erros direto');
+  PERFORM ci.deve_falhar(op, 'SELECT count(*) FROM erros_app', 'operador lê a tabela de erros direto');
+  PERFORM ci.deve_falhar(adm, $c$SELECT erro_app_registrar('abcdefgh01', 'navegador', 'x', NULL, NULL, NULL, NULL)$c$, 'usuário registra erro');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT erro_app_registrar('abcdefgh01', 'navegador', 'x', NULL, NULL, NULL, NULL)$c$, 'anon registra erro');
+  PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_erros_listar('aberto', 10)$c$, 'administrador da empresa lista erros');
+  PERFORM ci.deve_falhar(gar, $c$SELECT * FROM saas_erros_listar('aberto', 10)$c$, 'garçom lista erros');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT * FROM saas_erros_listar('aberto', 10)$c$, 'anon lista erros');
+  PERFORM ci.deve_falhar(adm, format($c$SELECT saas_erro_situacao(%L, 'resolvido')$c$, gen_random_uuid()), 'administrador da empresa muda situação');
+
+  EXECUTE 'SET ROLE service_role';
+  PERFORM erro_app_registrar('impressao-um-0001', 'navegador', 'TypeError: algo', 'stack', '/vendas', 'Chrome', '11111111-1111-1111-1111-111111111111');
+  PERFORM erro_app_registrar('impressao-um-0001', 'navegador', 'TypeError: algo', 'stack', '/vendas', 'Chrome', NULL);
+  PERFORM erro_app_registrar('impressao-dois-002', 'servidor', 'Erro no servidor', NULL, NULL, NULL, NULL);
+  BEGIN
+    PERFORM erro_app_registrar('curto', 'navegador', 'x', NULL, NULL, NULL, NULL);
+    RAISE EXCEPTION 'FALHA: impressão curta deveria ser recusada';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE 'FALHA:%' THEN RAISE; END IF;
+  END;
+  RESET ROLE;
+  PERFORM ci.exige((SELECT ocorrencias = 2 AND tenant_id = '11111111-1111-1111-1111-111111111111' FROM erros_app WHERE impressao = 'impressao-um-0001'), 'o mesmo erro soma ocorrências e guarda a empresa');
+  PERFORM ci.exige((SELECT count(*) = 1 FROM erros_app WHERE impressao = 'impressao-um-0001'), 'o mesmo erro não duplica a linha');
+
+  PERFORM ci.entrar(op);
+  SELECT count(*) INTO n FROM saas_erros_listar('aberto', 100) WHERE mensagem IN ('TypeError: algo', 'Erro no servidor');
+  SELECT id INTO eid FROM saas_erros_listar('aberto', 100) WHERE mensagem = 'TypeError: algo';
+  PERFORM ci.sair();
+  PERFORM ci.exige(n = 2, 'a equipe lista os dois erros abertos');
+
+  PERFORM ci.entrar(op);
+  PERFORM saas_erro_situacao(eid, 'resolvido');
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM saas_erros_listar('aberto', 100) WHERE id = eid), 'resolvido sai da lista de abertos');
+  PERFORM ci.exige(EXISTS (SELECT 1 FROM saas_erros_listar('resolvido', 100) WHERE id = eid), 'resolvido aparece na lista de resolvidos');
+  PERFORM ci.sair();
+  PERFORM ci.deve_falhar(op, $c$SELECT saas_erro_situacao(gen_random_uuid(), 'resolvido')$c$, 'situação de erro inexistente');
+  PERFORM ci.deve_falhar(op, format($c$SELECT saas_erro_situacao(%L, 'qualquer')$c$, eid), 'situação inválida');
+
+  EXECUTE 'SET ROLE service_role';
+  PERFORM erro_app_registrar('impressao-um-0001', 'navegador', 'TypeError: algo', 'stack', '/vendas', 'Chrome', NULL);
+  RESET ROLE;
+  PERFORM ci.exige((SELECT situacao = 'aberto' AND ocorrencias = 3 FROM erros_app WHERE id = eid), 'erro resolvido que volta é reaberto');
+
+  -- teto: com 500 novos na última hora, um erro novo é descartado e um conhecido continua somando
+  INSERT INTO erros_app (impressao, origem, mensagem)
+  SELECT 'enchente-' || lpad(i::text, 5, '0'), 'navegador', 'enchente' FROM generate_series(1, 500) i;
+  EXECUTE 'SET ROLE service_role';
+  PERFORM erro_app_registrar('impressao-nova-0003', 'navegador', 'novo depois do teto', NULL, NULL, NULL, NULL);
+  PERFORM erro_app_registrar('impressao-dois-002', 'servidor', 'Erro no servidor', NULL, NULL, NULL, NULL);
+  RESET ROLE;
+  PERFORM ci.exige(NOT EXISTS (SELECT 1 FROM erros_app WHERE impressao = 'impressao-nova-0003'), 'passou do teto por hora: erro novo é descartado');
+  PERFORM ci.exige((SELECT ocorrencias = 2 FROM erros_app WHERE impressao = 'impressao-dois-002'), 'passou do teto: erro conhecido segue somando');
+
+  -- retenção: resolvido há mais de 90 dias é apagado, aberto nunca
+  UPDATE erros_app SET situacao = 'resolvido', situacao_em = now() - interval '91 days' WHERE impressao = 'enchente-00001';
+  UPDATE erros_app SET situacao_em = now() - interval '91 days' WHERE impressao = 'enchente-00002';
+  EXECUTE 'SET ROLE service_role';
+  n := erros_app_limpar();
+  RESET ROLE;
+  PERFORM ci.exige(n = 1 AND NOT EXISTS (SELECT 1 FROM erros_app WHERE impressao = 'enchente-00001') AND EXISTS (SELECT 1 FROM erros_app WHERE impressao = 'enchente-00002'), 'retenção apaga só o resolvido antigo');
+  PERFORM ci.deve_falhar(adm, $c$SELECT erros_app_limpar()$c$, 'usuário executa a limpeza');
+
+  DELETE FROM erros_app;
+  DELETE FROM saas_operadores WHERE user_id = op;
 END $$;

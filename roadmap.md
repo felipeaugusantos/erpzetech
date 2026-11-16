@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Monitoramento de erros próprio: captura no navegador (erros não tratados, promessas rejeitadas e a tela de erro) e no servidor (todo Error logado), texto limpo de e-mail, documento, telefone, token e query/fragmento de URL, agrupado por impressão digital com contador, tela `/ze-tech-erros` (equipe: resolver, ignorar, reabrir; erro resolvido que volta é reaberto), retenção de 90 dias na rotina noturna. Migração 20270123, seção 104 do smoke, 9 testes de lógica, tsc, lint e build OK. Telas não vistas no navegador com sessão real; não publicado.
+- [ ] Alertas do monitoramento (e-mail/WhatsApp à equipe quando surgir erro novo): depende de domínio de envio configurado. Hoje a equipe precisa abrir /ze-tech-erros.
+- [ ] Monitoramento de disponibilidade (uptime) por serviço externo e erros de consultas do navegador (react-query) ainda fora do monitor.
+
 - [x] Termos de Uso e Política de Privacidade (LGPD): páginas públicas /termos e /privacidade, aceite obrigatório da versão vigente na primeira entrada (todos os perfis; não trava sem internet), prova em `aceites_legais` (migração 20270122, seção 103 do smoke) e texto em `src/lib/legal.ts`. Testes de texto/versão passaram, tsc e build OK, seção 103 do smoke passou num Postgres 16 local. Telas não vistas no navegador com sessão real; não publicado.
 - [ ] Antes de vender: preencher razão social, CNPJ, foro e e-mail do encarregado em `DADOS_LEGAIS` e revisão jurídica do texto (docs/termos-lgpd.md).
 

@@ -271,6 +271,8 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
   assinatura_faturas: "cobrança do cliente pela Ze Tech, não é dado do cliente",
   aceites_legais:
     "prova do aceite dos termos (LGPD) de cada pessoa: fica com a EZRA e uma restauração não pode apagar nem refazer",
+  erros_app:
+    "registro técnico de erros do sistema, da equipe EZRA; não é dado do cliente nem se restaura",
   backup_execucoes: "controle interno da rotina de backup, não é dado do cliente",
   backup_drive_config: "credencial cifrada e autorização do Drive: nunca exportar",
   backup_drive_execucoes: "controle interno das cópias no Drive, não é dado restaurável",

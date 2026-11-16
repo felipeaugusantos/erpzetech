@@ -46,6 +46,62 @@ export type Database = {
           },
         ]
       }
+      erros_app: {
+        Row: {
+          id: string
+          impressao: string
+          mensagem: string
+          navegador: string | null
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string | null
+          situacao: string
+          situacao_em: string | null
+          stack: string | null
+          tenant_id: string | null
+          ultima_vez: string
+        }
+        Insert: {
+          id?: string
+          impressao: string
+          mensagem: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Update: {
+          id?: string
+          impressao?: string
+          mensagem?: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem?: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erros_app_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinatura_faturas: {
         Row: {
           assinatura_id: string
@@ -16864,6 +16920,36 @@ export type Database = {
     Functions: {
       aceite_legal_meu: { Args: { p_versao: string }; Returns: boolean }
       aceite_legal_registrar: { Args: { p_versao: string }; Returns: string }
+      erro_app_registrar: {
+        Args: {
+          p_impressao: string
+          p_mensagem: string
+          p_navegador: string
+          p_origem: string
+          p_rota: string
+          p_stack: string
+          p_tenant: string
+        }
+        Returns: undefined
+      }
+      erros_app_limpar: { Args: never; Returns: number }
+      saas_erro_situacao: { Args: { p_id: string; p_situacao: string }; Returns: undefined }
+      saas_erros_listar: {
+        Args: { p_limite?: number; p_situacao?: string }
+        Returns: {
+          cliente: string
+          id: string
+          mensagem: string
+          navegador: string
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string
+          situacao: string
+          stack: string
+          ultima_vez: string
+        }[]
+      }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string

@@ -196,6 +196,7 @@ import { Route as AuthenticatedZeTechCobrancaRouteImport } from './routes/_authe
 import { Route as AuthenticatedZeTechContasPagarRouteImport } from './routes/_authenticated/ze-tech-contas-pagar'
 import { Route as AuthenticatedZeTechContratosRouteImport } from './routes/_authenticated/ze-tech-contratos'
 import { Route as AuthenticatedZeTechEquipeRouteImport } from './routes/_authenticated/ze-tech-equipe'
+import { Route as AuthenticatedZeTechErrosRouteImport } from './routes/_authenticated/ze-tech-erros'
 import { Route as AuthenticatedZeTechFiscalRouteImport } from './routes/_authenticated/ze-tech-fiscal'
 import { Route as AuthenticatedZeTechLavaRapidoRouteImport } from './routes/_authenticated/ze-tech-lava-rapido'
 import { Route as AuthenticatedZeTechLinksRouteImport } from './routes/_authenticated/ze-tech-links'
@@ -220,6 +221,7 @@ import { Route as AuthenticatedHotelEstadiaIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ApiClinicaTranscreverRouteImport } from './routes/api.clinica.transcrever'
+import { Route as ApiPublicErrosRouteImport } from './routes/api.public.erros'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
@@ -1278,6 +1280,12 @@ const AuthenticatedZeTechEquipeRoute =
     path: '/ze-tech-equipe',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedZeTechErrosRoute =
+  AuthenticatedZeTechErrosRouteImport.update({
+    id: '/ze-tech-erros',
+    path: '/ze-tech-erros',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedZeTechFiscalRoute =
   AuthenticatedZeTechFiscalRouteImport.update({
     id: '/ze-tech-fiscal',
@@ -1414,6 +1422,11 @@ const AuthenticatedPedidosIdRoute = AuthenticatedPedidosIdRouteImport.update({
 const ApiClinicaTranscreverRoute = ApiClinicaTranscreverRouteImport.update({
   id: '/api/clinica/transcrever',
   path: '/api/clinica/transcrever',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicErrosRoute = ApiPublicErrosRouteImport.update({
+  id: '/api/public/erros',
+  path: '/api/public/erros',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
@@ -1654,6 +1667,7 @@ export interface FileRoutesByFullPath {
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -1674,6 +1688,7 @@ export interface FileRoutesByFullPath {
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1875,6 +1890,7 @@ export interface FileRoutesByTo {
   '/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -1895,6 +1911,7 @@ export interface FileRoutesByTo {
   '/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2098,6 +2115,7 @@ export interface FileRoutesById {
   '/_authenticated/ze-tech-contas-pagar': typeof AuthenticatedZeTechContasPagarRoute
   '/_authenticated/ze-tech-contratos': typeof AuthenticatedZeTechContratosRoute
   '/_authenticated/ze-tech-equipe': typeof AuthenticatedZeTechEquipeRoute
+  '/_authenticated/ze-tech-erros': typeof AuthenticatedZeTechErrosRoute
   '/_authenticated/ze-tech-fiscal': typeof AuthenticatedZeTechFiscalRoute
   '/_authenticated/ze-tech-lava-rapido': typeof AuthenticatedZeTechLavaRapidoRoute
   '/_authenticated/ze-tech-links': typeof AuthenticatedZeTechLinksRoute
@@ -2118,6 +2136,7 @@ export interface FileRoutesById {
   '/_authenticated/hotel-estadia/$id': typeof AuthenticatedHotelEstadiaIdRoute
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
+  '/api/public/erros': typeof ApiPublicErrosRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2321,6 +2340,7 @@ export interface FileRouteTypes {
     | '/ze-tech-contas-pagar'
     | '/ze-tech-contratos'
     | '/ze-tech-equipe'
+    | '/ze-tech-erros'
     | '/ze-tech-fiscal'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
@@ -2341,6 +2361,7 @@ export interface FileRouteTypes {
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2542,6 +2563,7 @@ export interface FileRouteTypes {
     | '/ze-tech-contas-pagar'
     | '/ze-tech-contratos'
     | '/ze-tech-equipe'
+    | '/ze-tech-erros'
     | '/ze-tech-fiscal'
     | '/ze-tech-lava-rapido'
     | '/ze-tech-links'
@@ -2562,6 +2584,7 @@ export interface FileRouteTypes {
     | '/hotel-estadia/$id'
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2764,6 +2787,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ze-tech-contas-pagar'
     | '/_authenticated/ze-tech-contratos'
     | '/_authenticated/ze-tech-equipe'
+    | '/_authenticated/ze-tech-erros'
     | '/_authenticated/ze-tech-fiscal'
     | '/_authenticated/ze-tech-lava-rapido'
     | '/_authenticated/ze-tech-links'
@@ -2784,6 +2808,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hotel-estadia/$id'
     | '/_authenticated/pedidos/$id'
     | '/api/clinica/transcrever'
+    | '/api/public/erros'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2814,6 +2839,7 @@ export interface RootRouteChildren {
   PortalEntrarRoute: typeof PortalEntrarRoute
   PortalIndexRoute: typeof PortalIndexRoute
   ApiClinicaTranscreverRoute: typeof ApiClinicaTranscreverRoute
+  ApiPublicErrosRoute: typeof ApiPublicErrosRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
@@ -4136,6 +4162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedZeTechEquipeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ze-tech-erros': {
+      id: '/_authenticated/ze-tech-erros'
+      path: '/ze-tech-erros'
+      fullPath: '/ze-tech-erros'
+      preLoaderRoute: typeof AuthenticatedZeTechErrosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ze-tech-fiscal': {
       id: '/_authenticated/ze-tech-fiscal'
       path: '/ze-tech-fiscal'
@@ -4302,6 +4335,13 @@ declare module '@tanstack/react-router' {
       path: '/api/clinica/transcrever'
       fullPath: '/api/clinica/transcrever'
       preLoaderRoute: typeof ApiClinicaTranscreverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/erros': {
+      id: '/api/public/erros'
+      path: '/api/public/erros'
+      fullPath: '/api/public/erros'
+      preLoaderRoute: typeof ApiPublicErrosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chamar/$empresa/$mesa': {
@@ -4548,6 +4588,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedZeTechContasPagarRoute: typeof AuthenticatedZeTechContasPagarRoute
   AuthenticatedZeTechContratosRoute: typeof AuthenticatedZeTechContratosRoute
   AuthenticatedZeTechEquipeRoute: typeof AuthenticatedZeTechEquipeRoute
+  AuthenticatedZeTechErrosRoute: typeof AuthenticatedZeTechErrosRoute
   AuthenticatedZeTechFiscalRoute: typeof AuthenticatedZeTechFiscalRoute
   AuthenticatedZeTechLavaRapidoRoute: typeof AuthenticatedZeTechLavaRapidoRoute
   AuthenticatedZeTechLinksRoute: typeof AuthenticatedZeTechLinksRoute
@@ -4754,6 +4795,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedZeTechContasPagarRoute: AuthenticatedZeTechContasPagarRoute,
   AuthenticatedZeTechContratosRoute: AuthenticatedZeTechContratosRoute,
   AuthenticatedZeTechEquipeRoute: AuthenticatedZeTechEquipeRoute,
+  AuthenticatedZeTechErrosRoute: AuthenticatedZeTechErrosRoute,
   AuthenticatedZeTechFiscalRoute: AuthenticatedZeTechFiscalRoute,
   AuthenticatedZeTechLavaRapidoRoute: AuthenticatedZeTechLavaRapidoRoute,
   AuthenticatedZeTechLinksRoute: AuthenticatedZeTechLinksRoute,
@@ -4795,6 +4837,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalEntrarRoute: PortalEntrarRoute,
   PortalIndexRoute: PortalIndexRoute,
   ApiClinicaTranscreverRoute: ApiClinicaTranscreverRoute,
+  ApiPublicErrosRoute: ApiPublicErrosRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
