@@ -12,7 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/cnae", () => ({ useModulosCnae: () => ({ clinica: true, carregando: false }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { rpc: vi.fn(async (name: string) => ({
-    data: name === "_pet_meu_profissional" || name === "_clinica_vet" ? "vet-a" : [], error: null,
+    data: name === "clinica_meu_veterinario" ? "vet-a" : [], error: null,
   })) },
 }));
 vi.mock("@/lib/clinica-resumo-ia.functions", () => ({
