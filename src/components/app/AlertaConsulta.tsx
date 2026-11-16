@@ -8,6 +8,7 @@ import { dateTimeBR } from "@/lib/format";
 function useRelogioConsulta() {
   const [agora, setAgora] = useState(() => Date.now());
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const atualizar = () => setAgora(Date.now());
     const timer = window.setInterval(atualizar, 30_000);
     window.addEventListener("focus", atualizar);
