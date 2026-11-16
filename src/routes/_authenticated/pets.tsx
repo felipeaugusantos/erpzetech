@@ -664,6 +664,10 @@ function Pets() {
               />
               <Label htmlFor="pet-ativo">Ativo</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch id="pet-obito" checked={form.obito} onCheckedChange={(v) => setForm({ ...form, obito: v })} />
+              <Label htmlFor="pet-obito">Óbito</Label>
+            </div>
             <div>
               <Label htmlFor="pet-chip">Microchip</Label>
               <Input
