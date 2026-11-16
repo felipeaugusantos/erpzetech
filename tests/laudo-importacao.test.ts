@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { agruparLaudoImportacao } from "../src/lib/laudo-importacao.ts";
+import { agruparLaudoImportacao, modelosPendentes } from "../src/lib/laudo-importacao.ts";
 import { lerLaudoTexto, type LaudoPdf } from "../src/lib/laudo-exame-pdf.ts";
 const laudo: LaudoPdf = {
   paciente: "LEO",
@@ -28,6 +28,19 @@ test("modelo existente é reutilizado, não duplicado", () => {
     { id: "bio", nome: "Bioquímica", tipo: "bioquimica", ativo: true, campos: [] },
   ]);
   assert.equal(g[0]?.modelo_id, "bio");
+});
+test("Proteínas totais com dois modelos mantém resultado e exige escolha explícita", () => {
+  const resultado = { nome: "Proteínas totais", valor: 10, unidade: "g/dL", minimo: null, maximo: null };
+  const grupos = agruparLaudoImportacao({ ...laudo, itens: [resultado] }, [
+    { id: "a", nome: "Proteínas séricas", tipo: "bioquimica", ativo: true, campos: [{ nome: "Proteínas totais", unidade: "g/dL", forma: "numero", ativo: true }] },
+    { id: "b", nome: "Painel de proteínas", tipo: "bioquimica", ativo: true, campos: [{ nome: "Proteínas totais", unidade: "g/dL", forma: "numero", ativo: true }] },
+  ]);
+  assert.deepEqual(grupos[0]?.itens, [resultado]);
+  assert.equal(grupos[0]?.modelo_id, null);
+  assert.deepEqual(grupos[0]?.candidatos?.map((m) => m.id), ["a", "b"]);
+  assert.equal(modelosPendentes(grupos), true);
+  assert.equal(modelosPendentes(grupos.map((g) => ({ ...g, modelo_id: "b" }))), false);
+  assert.equal(modelosPendentes(grupos.map((g) => ({ ...g, modelo_id: "invalido" }))), true);
 });
 test("modelo inativo não é reativado silenciosamente", () => {
   assert.throws(

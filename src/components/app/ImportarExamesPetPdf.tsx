@@ -6,10 +6,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { conferirPacienteLaudo, lerLaudoTexto, type LaudoPdf } from "@/lib/laudo-exame-pdf";
 import {
   agruparLaudoImportacao,
+  modelosPendentes,
   type GrupoImportacao,
   type ModeloImportacao,
 } from "@/lib/laudo-importacao";
@@ -70,7 +72,7 @@ export function ImportarExamesPetPdf({
     }
   }
   async function importar() {
-    if (!previa || !confirmado) return;
+    if (!previa || !confirmado || modelosPendentes(previa.grupos)) return;
     setOcupado(true);
     let resultadosSalvos = false;
     try {
@@ -200,9 +202,23 @@ export function ImportarExamesPetPdf({
                       ·{" "}
                       {g.modelo_id
                         ? "Modelo existente; campos ausentes serão cadastrados"
-                        : "Novo modelo"}
+                        : g.candidatos ? "Escolha o modelo" : "Novo modelo"}
                     </span>
                   </h3>
+                  {g.candidatos && (
+                    <div className="mt-2 grid gap-1">
+                      <Label htmlFor={`pdf-modelo-${gi}`}>Modelo para {g.itens[0]?.nome}</Label>
+                      <Select disabled={ocupado} value={g.modelo_id ?? ""} onValueChange={(id) => {
+                        const modelo = g.candidatos?.find((m) => m.id === id);
+                        if (!modelo) return;
+                        setPrevia({ ...previa, grupos: previa.grupos.map((gr, i) => i === gi ? { ...gr, modelo_id: modelo.id, nome: modelo.nome, tipo: modelo.tipo } : gr) });
+                        setConfirmado(false);
+                      }}>
+                        <SelectTrigger id={`pdf-modelo-${gi}`} className="w-full"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
+                        <SelectContent>{g.candidatos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="mt-2 grid gap-2">
                     {g.itens.map((it, ii) => (
                       <div
@@ -271,6 +287,7 @@ export function ImportarExamesPetPdf({
                     !confirmado ||
                     !laboratorio.trim() ||
                     !coleta ||
+                    modelosPendentes(previa.grupos) ||
                     previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade))
                   }
                   onClick={() => void importar()}
