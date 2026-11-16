@@ -45,11 +45,13 @@ export function ImportarExamesPetPdf({
   const [laboratorio, setLaboratorio] = useState("");
   const [coleta, setColeta] = useState("");
   const [emissao, setEmissao] = useState("");
+  const [referencia, setReferencia] = useState<"pdf" | "modelo">("pdf");
   async function ler(file: File) {
     const token = ++geracao.current;
     setOcupado(true);
     setPrevia(null);
     setConfirmado(false);
+    setReferencia("pdf");
     try {
       if (!file.name.toLowerCase().endsWith(".pdf") || file.size > 10 * 1024 * 1024)
         throw new Error("Envie um PDF digital de até 10 MB.");
@@ -95,7 +97,10 @@ export function ImportarExamesPetPdf({
           laboratorio: laboratorio.trim(),
           coleta,
           emissao,
-          grupos: previa.grupos,
+          grupos: referencia === "pdf" ? previa.grupos : previa.grupos.map((g) => ({
+            ...g,
+            itens: g.itens.map((i) => ({ ...i, minimo: null, maximo: null })),
+          })),
         },
       });
       if (error) throw error;
@@ -294,6 +299,22 @@ export function ImportarExamesPetPdf({
                   </ul>
                 </div>
               )}
+              <fieldset className="space-y-2 rounded-md border p-3">
+                <legend className="px-1 text-sm font-medium">Qual referência usar nestes exames?</legend>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" disabled={ocupado} variant={referencia === "pdf" ? "default" : "outline"} aria-pressed={referencia === "pdf"} onClick={() => setReferencia("pdf")}>
+                    Do PDF do laboratório
+                  </Button>
+                  <Button type="button" size="sm" disabled={ocupado} variant={referencia === "modelo" ? "default" : "outline"} aria-pressed={referencia === "modelo"} onClick={() => setReferencia("modelo")}>
+                    Do modelo cadastrado
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {referencia === "pdf"
+                    ? "Usa as faixas impressas no laudo; onde o PDF não traz faixa, vale a do modelo."
+                    : "Ignora as faixas do PDF e usa as do modelo cadastrado na clínica."}
+                </p>
+              </fieldset>
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox
                   disabled={ocupado}
@@ -312,7 +333,7 @@ export function ImportarExamesPetPdf({
                     !coleta ||
                     modelosPendentes(previa.grupos) ||
                     unidadesDivergentes(previa.grupos, previa.modelos).length > 0 ||
-                    previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade))
+                    (referencia === "pdf" && previa.grupos.some((g) => g.itens.some((i) => i.minimo !== null && !i.unidade)))
                   }
                   onClick={() => void importar()}
                 >
