@@ -28,10 +28,16 @@ test("PDV usa o caixa do vendedor mesmo quando outro operador abriu um depois", 
   assert.equal(caixaDoPdv(caixas, "operador-B")?.id, "caixa-B");
 });
 test("sem caixa próprio, PDV mantém o caixa mais recente como o servidor", () => {
-  assert.equal(caixaDoPdv([
-    { id: "caixa-recente", aberto_por: "operador-B" },
-    { id: "caixa-antigo", aberto_por: "operador-C" },
-  ], "operador-A")?.id, "caixa-recente");
+  assert.equal(
+    caixaDoPdv(
+      [
+        { id: "caixa-recente", aberto_por: "operador-B" },
+        { id: "caixa-antigo", aberto_por: "operador-C" },
+      ],
+      "operador-A",
+    )?.id,
+    "caixa-recente",
+  );
 });
 test("PDV não seleciona caixa sem sessão ou sem caixa aberto", () => {
   assert.equal(caixaDoPdv([], "operador-A"), null);

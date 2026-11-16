@@ -31,7 +31,10 @@ export const Route = createFileRoute("/_authenticated/ze-tech-erros")({
     meta: [
       { title: "Erros do sistema — EZRA" },
       { property: "og:title", content: "Erros do sistema — EZRA" },
-      { property: "og:description", content: "Painel da equipe EZRA para acompanhar ocorrências do sistema." },
+      {
+        property: "og:description",
+        content: "Painel da equipe EZRA para acompanhar ocorrências do sistema.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
