@@ -209,7 +209,7 @@ function MinhaAgenda() {
                     )}
                     {prontuario && a.pet.id && a.servicos.some((s) => s.categoria === "vacina") && (
                       <Button asChild variant="outline">
-                        <Link to="/clinica-vacinas" search={{ agendamento: a.id, pet: a.pet.id }}>
+                        <Link to="/clinica-vacinas" search={{ agendamento: a.id, pet: a.pet.id, aplicar: undefined }}>
                           Registrar vacina
                         </Link>
                       </Button>
