@@ -785,6 +785,13 @@
       "when": 1794900300005,
       "tag": "0111_clinica_preferencias_contador",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1794900300006,
+      "tag": "0112_clinica_laudo_pdf_campo",
+      "breakpoints": true
     }
   ]
 }
