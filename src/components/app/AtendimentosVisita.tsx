@@ -423,8 +423,7 @@ function FormularioAtendimento({
                 <DialogTitle>Fechar o atendimento?</DialogTitle>
               </DialogHeader>
               <p className="text-sm">
-                Depois de fechado o atendimento não se altera mais. Só um adendo poderá
-                complementá-lo.
+                Confirma o encerramento desta consulta?
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setConfirmando(false)}>

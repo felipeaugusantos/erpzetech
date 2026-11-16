@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Editar informações e data da consulta diretamente, sem gerar adendos novos; preservar acesso do veterinário responsável e registros antigos; verificar gravação e leitura.
+- [x] Editar informações e data da consulta diretamente, sem gerar adendos novos nem exigir motivo; funções instaladas conferidas, testes de validação passaram e testes comportamentais da CI atualizados; registros antigos preservados.
+- [ ] Conferir edição e leitura pela tela em consulta autorizada de teste: conta atual é da administração, sem vínculo veterinário; nenhuma consulta real alterada.
 
 - [x] Importação de PDF: preencher a data do exame pela Data de Coleta ou, na ausência, Data de Atendimento; emissão permanece independente e datas divergentes exigem conferência.
 
