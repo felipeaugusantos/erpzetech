@@ -771,6 +771,13 @@
       "when": 1794900300003,
       "tag": "0109_clinica_importar_pdf_unidade",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1794900300004,
+      "tag": "0110_clinica_importacao_exame_modo",
+      "breakpoints": true
     }
   ]
 }
