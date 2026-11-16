@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Cadastro de paciente com tutor novo: mostrar e salvar documentos, endereço completo, contatos e preferência de mensagens, preservando tutor existente e fila offline.
+
 - [x] Alerta automático nas 24 horas anteriores à consulta, no prontuário e nas agendas da clínica, com atualização periódica; sete testes passaram e alerta conferido com agendamento temporário pela conta veterinária, removido após verificação; build OK.
 
 - [x] Próxima consulta: agendar pelo prontuário e no fechamento, com horário de Brasília, veterinário, serviço, confirmação e atualização da agenda; gravação e leitura conferidas com Bruna, agendamento temporário removido. Doze testes passaram; computador/celular conferidos, build OK; nenhuma consulta real fechada.
