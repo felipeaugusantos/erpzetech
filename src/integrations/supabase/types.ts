@@ -1591,6 +1591,32 @@ export type Database = {
           },
         ]
       }
+      clinica_preferencias: {
+        Row: {
+          importacao_exame: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          importacao_exame?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          importacao_exame?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_preferencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobranca_config: {
         Row: {
           ambiente: string
@@ -17527,6 +17553,10 @@ export type Database = {
         Args: { p_chave: string; p_dados: Json; p_pet_id: string }
         Returns: Json
       }
+      clinica_importar_pdf_arquivo: {
+        Args: { p_chave: string; p_dados: Json; p_pet_id: string }
+        Returns: Json
+      }
       clinica_internacao_admitir: {
         Args: { p_dados: Json; p_pet_id: string }
         Returns: string
@@ -17631,6 +17661,11 @@ export type Database = {
       }
       clinica_portal_vinculo_revogar: {
         Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_preferencias_ler: { Args: never; Returns: Json }
+      clinica_preferencias_salvar: {
+        Args: { p_importacao_exame: string }
         Returns: undefined
       }
       clinica_prescricao_suspender: {

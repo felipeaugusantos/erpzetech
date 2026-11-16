@@ -771,6 +771,27 @@
       "when": 1794900300003,
       "tag": "0109_clinica_importar_pdf_unidade",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1794900300004,
+      "tag": "0110_clinica_importacao_exame_modo",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1794900300005,
+      "tag": "0111_clinica_preferencias_contador",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1794900300006,
+      "tag": "0112_clinica_laudo_pdf_campo",
+      "breakpoints": true
     }
   ]
 }

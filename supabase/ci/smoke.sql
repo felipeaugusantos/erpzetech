@@ -563,7 +563,7 @@ DECLARE
     'clinica_exame_abrir', 'clinica_exame_salvar', 'clinica_exame_fechar', 'clinica_exame_cancelar', 'clinica_exame_adendo_criar',
     -- agenda de exames e receitas emitidas: cada função confere o perfil Veterinário (_clinica_vet) e bloqueia o contador
     'clinica_exame_agenda', 'clinica_exame_agendar', 'clinica_exame_agenda_situacao', 'clinica_exame_agenda_do_pet', 'clinica_receitas',
-    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao', 'clinica_importar_pdf', 'clinica_pacientes_atendidos', 'clinica_exame_excluir', 'clinica_exame_exclusao_acesso',
+    'clinica_exame_get', 'clinica_exames_do_pet', 'clinica_exame_evolucao', 'clinica_importar_pdf', 'clinica_importar_pdf_arquivo', 'clinica_pacientes_atendidos', 'clinica_exame_excluir', 'clinica_exame_exclusao_acesso',
     -- anexos: cada função confere o perfil Veterinário e a clínica liberada; as duas de apoio só respondem verdadeiro com perfil, clínica e registro prévio
     'clinica_anexo_preparar', 'clinica_anexo_confirmar', 'clinica_anexos', 'clinica_anexo_abrir', 'clinica_anexo_cancelar',
     '_clinica_anexo_pode_enviar', '_clinica_anexo_pode_ler',
