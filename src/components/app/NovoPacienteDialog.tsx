@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ export function NovoPacienteDialog({
 }) {
   const [form, setForm] = useState<FormCadastroRapido>(cadastroVazio);
   const [salvando, setSalvando] = useState(false);
+  const qc = useQueryClient();
   const { data: tutores = [] } = useQuery({
     queryKey: ["clinica-tutores-cadastro"],
     queryFn: async () => {
@@ -61,6 +62,8 @@ export function NovoPacienteDialog({
         tentativa.current = { assinatura, op: operacaoDoCadastroRapido(form) };
       const op = tentativa.current.op;
       await enviarOperacao(op);
+      void qc.invalidateQueries({ queryKey: ["clientes"] });
+      void qc.invalidateQueries({ queryKey: ["clinica-tutores-cadastro"] });
       const petId = String((op.payload as CadastroRapidoPayload).pet["id"]);
       toast.success(`${form.petNome.trim()} cadastrado`);
       aoCadastrar(petId);
