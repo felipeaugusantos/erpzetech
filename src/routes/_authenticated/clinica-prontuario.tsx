@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 
 import { IniciarAtendimentoDialog } from "@/components/app/IniciarAtendimentoDialog";
+import { ProximaConsulta } from "@/components/app/ProximaConsulta";
 import { NovoPacienteDialog } from "@/components/app/NovoPacienteDialog";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -345,6 +346,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <Syringe /> Aplicar vacina
             </Link>
           </Button>
+          <ProximaConsulta petId={petId} petNome={p.nome} />
           <Button asChild size="sm" variant="outline">
             <Link to="/clinica-vacinas" search={{ pet: petId, agendamento: undefined, aplicar: undefined }}>
               <Syringe /> Vacinas e vermífugos

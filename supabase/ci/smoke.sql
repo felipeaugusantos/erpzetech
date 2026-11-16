@@ -571,6 +571,7 @@ DECLARE
     'clinica_visita_registrar', 'clinica_atendimento_offline', 'clinica_vacina_offline', 'clinica_exame_offline', 'clinica_anexo_offline_preparar',
     -- serviços de consulta para iniciar atendimento no Prontuário: só o veterinário
     'clinica_servicos_consulta', 'clinica_meu_veterinario',
+    'clinica_proxima_consulta_opcoes', 'clinica_proxima_consulta_agendar',
     -- link combinado no cadastro do assinante, mostrado no primeiro acesso: só o do próprio tenant
     'assinante_link_sugerido',
     -- taxa inicial por segmento: só calcula o valor; confere o operador da equipe
@@ -6698,6 +6699,20 @@ BEGIN
   PERFORM ci.deve_falhar(vend, 'SELECT clinica_meu_veterinario()', 'recepção pede o cadastro de veterinário');
   PERFORM ci.deve_falhar(gest, 'SELECT clinica_servicos_consulta()', 'gestor lista os serviços de consulta da clínica');
   PERFORM ci.deve_falhar(vend, 'SELECT clinica_servicos_consulta()', 'recepção lista os serviços de consulta da clínica');
+
+  DECLARE ck uuid := gen_random_uuid(); payload jsonb; primeiro jsonb; repetido jsonb;
+  BEGIN
+    payload := jsonb_build_object('pet_id',pet,'profissional_id',pvz,'servico_id',cons,'inicio',now()+interval '15 days');
+    PERFORM ci.entrar(vz);
+    primeiro := clinica_proxima_consulta_agendar(ck,payload);
+    repetido := clinica_proxima_consulta_agendar(ck,payload);
+    PERFORM ci.exige(primeiro->>'agendamento_id'=repetido->>'agendamento_id','reenvio da próxima consulta não duplica');
+    PERFORM ci.exige(EXISTS(SELECT 1 FROM jsonb_array_elements(clinica_proxima_consulta_opcoes(pet)->'consultas') x WHERE x->>'id'=primeiro->>'agendamento_id'),'próxima consulta aparece nas consultas do paciente');
+    PERFORM ci.sair();
+    PERFORM ci.deve_falhar(vz,format('SELECT clinica_proxima_consulta_agendar(%L,%L::jsonb)',gen_random_uuid(),payload),'próxima consulta não sobrepõe horário');
+    PERFORM ci.deve_falhar(vz,format('SELECT clinica_proxima_consulta_agendar(%L,%L::jsonb)',gen_random_uuid(),payload||jsonb_build_object('inicio',now()-interval '1 day')),'próxima consulta não agenda no passado');
+    PERFORM ci.deve_falhar(vend,format('SELECT clinica_proxima_consulta_agendar(%L,%L::jsonb)',gen_random_uuid(),payload),'recepção não usa função exclusiva do prontuário');
+  END;
 
   -- iniciar o atendimento no Prontuário é a mesma visita avulsa do trabalho sem internet; repetir a chave não duplica
   PERFORM ci.entrar(vz);
