@@ -188,7 +188,7 @@ export function evolucaoDosSinais(atendimentos: readonly ComSinais[]): SinaisEmC
         ),
     )
     .map((a) => ({
-      atendimento_id: a.id,
+      ...(a.id ? { atendimento_id: a.id } : {}),
       em: a.data_atendimento ?? a.aberto_em,
       peso_kg: numero(a.peso_kg),
       temperatura_c: numero(a.temperatura_c),
