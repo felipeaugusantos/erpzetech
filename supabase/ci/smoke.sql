@@ -12692,8 +12692,8 @@ END $$;
 DO $$
 DECLARE
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
-  op   constant uuid := 'a0000000-0000-0000-0000-0000e9990109';
-  usr  constant uuid := 'a0000000-0000-0000-0000-0000e9990110';
+  op   constant uuid := 'a0000000-0000-0000-0000-0000e9990201';
+  usr  constant uuid := 'a0000000-0000-0000-0000-0000e9990202';
   tm uuid; r record;
 BEGIN
   INSERT INTO tenants (nome) VALUES ('Monitor CI') RETURNING id INTO tm;
