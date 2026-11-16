@@ -110,3 +110,15 @@ test("identifica o laboratório pelo texto do PDF", () => {
   assert.equal(laboratorioDoLaudo("A HopeLab oferece assessoria"), "HopeLab");
   assert.equal(laboratorioDoLaudo("Paciente BIBI"), "");
 });
+import { unidadesEquivalentes } from "../src/lib/laudo-importacao.ts";
+test("CHCM em g/dL é aceita no modelo em %, plaquetas em escalas diferentes não", () => {
+  assert.equal(unidadesEquivalentes("CHCM", "g/dL", "%"), true);
+  assert.equal(unidadesEquivalentes("Hemácias", "milhões/mm³", "milhões/mm3"), true);
+  assert.equal(unidadesEquivalentes("Plaquetas", "células/mm³", "mil/mm³"), false);
+  assert.equal(unidadesEquivalentes("Hemoglobina", "g/dL", "%"), false);
+});
+test("grupo usa a unidade do modelo quando é a mesma medida", () => {
+  const modelos = [{ id: "h", nome: "Hemograma", tipo: "hemograma", ativo: true, campos: [{ nome: "CHCM", unidade: "%", forma: "numero", ativo: true }] }];
+  const laudo = { itens: [{ nome: "CHCM", valor: 32, unidade: "g/dL", minimo: 30, maximo: 36 }] } as never;
+  assert.equal(agruparLaudoImportacao(laudo, modelos)[0]?.itens[0]?.unidade, "%");
+});
