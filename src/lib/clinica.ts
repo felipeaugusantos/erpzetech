@@ -105,6 +105,16 @@ export function erroDataAtendimento(
   return data > hoje ? "A data do atendimento não pode ser no futuro" : null;
 }
 
+export function erroAlteracaoDataConsulta(data: string, nascimento: string | null, fechada: boolean, motivo: string, hoje?: string) {
+  if (!data) return "Informe a data da consulta";
+  const erro = erroDataAtendimento(data, hoje);
+  if (erro) return erro;
+  if (nascimento && data < nascimento) return "O atendimento não pode ser anterior ao nascimento do paciente";
+  if (fechada && !motivo.trim()) return "Informe o motivo da correção";
+  if (motivo.length > 2000) return "O motivo aceita até 2000 caracteres";
+  return null;
+}
+
 /** O que falta para poder fechar o atendimento (o banco exige o mesmo). */
 export function faltaParaFechar(f: Pick<FormAtendimento, "queixa" | "conduta">): string[] {
   const falta: string[] = [];
