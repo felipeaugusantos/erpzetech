@@ -750,6 +750,13 @@
       "when": 1794900300000,
       "tag": "0106_clinica_corrigir_atendimento_castrado",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1794900300001,
+      "tag": "0107_laudo_data_consulta",
+      "breakpoints": true
     }
   ]
 }
