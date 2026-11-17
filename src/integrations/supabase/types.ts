@@ -4023,6 +4023,62 @@ export type Database = {
           },
         ]
       }
+      erros_app: {
+        Row: {
+          id: string
+          impressao: string
+          mensagem: string
+          navegador: string | null
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string | null
+          situacao: string
+          situacao_em: string | null
+          stack: string | null
+          tenant_id: string | null
+          ultima_vez: string
+        }
+        Insert: {
+          id?: string
+          impressao: string
+          mensagem: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Update: {
+          id?: string
+          impressao?: string
+          mensagem?: string
+          navegador?: string | null
+          ocorrencias?: number
+          origem?: string
+          primeira_vez?: string
+          rota?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          stack?: string | null
+          tenant_id?: string | null
+          ultima_vez?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erros_app_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_grade: {
         Row: {
           deposito_id: string
@@ -18047,6 +18103,19 @@ export type Database = {
         Args: { p_entrega_id: string; p_motivo: string; p_observacao?: string }
         Returns: undefined
       }
+      erro_app_registrar: {
+        Args: {
+          p_impressao: string
+          p_mensagem: string
+          p_navegador: string
+          p_origem: string
+          p_rota: string
+          p_stack: string
+          p_tenant: string
+        }
+        Returns: undefined
+      }
+      erros_app_limpar: { Args: never; Returns: number }
       estoque_grade_ajustar: {
         Args: { p_deposito_id: string; p_grade: Json; p_produto_id: string }
         Returns: undefined
@@ -19665,6 +19734,26 @@ export type Database = {
           valor_servicos: number
         }[]
       }
+      saas_erro_situacao: {
+        Args: { p_id: string; p_situacao: string }
+        Returns: undefined
+      }
+      saas_erros_listar: {
+        Args: { p_limite?: number; p_situacao?: string }
+        Returns: {
+          cliente: string
+          id: string
+          mensagem: string
+          navegador: string
+          ocorrencias: number
+          origem: string
+          primeira_vez: string
+          rota: string
+          situacao: string
+          stack: string
+          ultima_vez: string
+        }[]
+      }
       saas_fiscal_por_periodo: {
         Args: { p_ate: string; p_de: string }
         Returns: {
@@ -19745,6 +19834,7 @@ export type Database = {
           ultima_vez: string
         }[]
       }
+      saas_monitoramento_tv: { Args: never; Returns: Json }
       saas_monitoramento_uso_cliente: {
         Args: { p_ate: string; p_de: string }
         Returns: {
