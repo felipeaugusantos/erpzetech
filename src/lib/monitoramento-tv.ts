@@ -1,4 +1,5 @@
-// Painel de TV da central: resposta AGREGADA de erro e uso do EZRA ERP (sem nome de cliente, e-mail nem texto de erro).
+// Painel de TV da central: resposta de erro e uso do EZRA ERP. Agregado, com UMA exceção aprovada pelo dono em
+// 17/11/2026: a lista de clientes sem uso em 7 dias leva nome e dias sem uso (sem e-mail, documento nem telefone).
 // A rota /api/public/tv/monitoramento só entrega para quem manda a chave de leitura; aqui fica a parte pura (testável).
 import { createHash, timingSafeEqual } from "node:crypto";
 
@@ -33,6 +34,12 @@ function inteiro(valor: unknown): number {
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 
+function inteiroOuNulo(valor: unknown): number | null {
+  if (valor === null || valor === undefined) return null;
+  const n = Number(valor);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+}
+
 function texto(valor: unknown, limite: number): string {
   return typeof valor === "string" ? valor.slice(0, limite) : "";
 }
@@ -48,10 +55,26 @@ export type ResumoTv = {
   acoes_24h: number;
   clientes_ativos_24h: number;
   clientes_sem_uso_7d: number;
+  clientes_sem_uso: ClienteSemUsoTv[];
   serie: { dia: string; erros_novos: number; acoes: number; usuarios_ativos: number }[];
   top_erros: { rota: string; origem: string; ocorrencias: number }[];
   backup: ResumoBackupTv;
 };
+
+/** Cliente parado há 7 dias ou mais: só o nome e há quantos dias (null = nunca usou). Lista vinda do banco já limitada a 20. */
+export type ClienteSemUsoTv = { nome: string; dias_sem_uso: number | null };
+
+export function montarClientesSemUsoTv(bruto: unknown): ClienteSemUsoTv[] {
+  const lista = Array.isArray(bruto) ? bruto : [];
+  const saida: ClienteSemUsoTv[] = [];
+  for (const item of lista.slice(0, 20)) {
+    const c = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+    const nome = texto(c["nome"], 60).trim();
+    if (!nome) continue;
+    saida.push({ nome, dias_sem_uso: inteiroOuNulo(c["dias_sem_uso"]) });
+  }
+  return saida;
+}
 
 /** Backup noturno por cliente, só contagens e datas (nada de nome de cliente nem caminho de arquivo). */
 export type ResumoBackupTv = {
@@ -82,7 +105,7 @@ export function montarBackupTv(bruto: unknown): ResumoBackupTv {
   };
 }
 
-/** Copia só os campos conhecidos: se o banco passar a devolver mais coisa (nome de cliente, por exemplo), isso nunca sai na rota. */
+/** Copia só os campos conhecidos: se o banco passar a devolver mais coisa (e-mail, documento, texto de erro), isso nunca sai na rota. */
 export function montarResumoTv(bruto: unknown): ResumoTv {
   const r = (bruto && typeof bruto === "object" ? bruto : {}) as Record<string, unknown>;
   const serie = Array.isArray(r["serie"]) ? r["serie"].slice(0, 31) : [];
@@ -99,6 +122,7 @@ export function montarResumoTv(bruto: unknown): ResumoTv {
     acoes_24h: inteiro(r["acoes_24h"]),
     clientes_ativos_24h: inteiro(r["clientes_ativos_24h"]),
     clientes_sem_uso_7d: inteiro(r["clientes_sem_uso_7d"]),
+    clientes_sem_uso: montarClientesSemUsoTv(r["clientes_sem_uso"]),
     serie: serie.map((item) => {
       const s = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
       return {
