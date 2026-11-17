@@ -10,7 +10,10 @@ export function chaveBearer(cabecalho: string | null): string | null {
   return /^Bearer ([^\s,]{20,200})$/.exec(cabecalho ?? "")?.[1] ?? null;
 }
 
-export function chaveTvConfere(chave: string | null, hashEsperado: string = TV_CHAVE_SHA256): boolean {
+export function chaveTvConfere(
+  chave: string | null,
+  hashEsperado: string = TV_CHAVE_SHA256,
+): boolean {
   if (!chave || !/^[0-9a-f]{64}$/.test(hashEsperado)) return false;
   const recebido = createHash("sha256").update(chave, "utf8").digest();
   return timingSafeEqual(recebido, Buffer.from(hashEsperado, "hex"));
@@ -52,32 +55,36 @@ export type ResumoTv = {
 /** Copia só os campos conhecidos: se o banco passar a devolver mais coisa (nome de cliente, por exemplo), isso nunca sai na rota. */
 export function montarResumoTv(bruto: unknown): ResumoTv {
   const r = (bruto && typeof bruto === "object" ? bruto : {}) as Record<string, unknown>;
-  const serie = Array.isArray(r.serie) ? r.serie.slice(0, 31) : [];
-  const top = Array.isArray(r.top_erros) ? r.top_erros.slice(0, 3) : [];
-  const erros1h = inteiro(r.erros_novos_1h);
+  const serie = Array.isArray(r["serie"]) ? r["serie"].slice(0, 31) : [];
+  const top = Array.isArray(r["top_erros"]) ? r["top_erros"].slice(0, 3) : [];
+  const erros1h = inteiro(r["erros_novos_1h"]);
   return {
     agregado: true,
-    gerado_em: texto(r.gerado_em, 40) || new Date().toISOString(),
+    gerado_em: texto(r["gerado_em"], 40) || new Date().toISOString(),
     saude: saudeDeErros(erros1h),
-    erros_abertos: inteiro(r.erros_abertos),
+    erros_abertos: inteiro(r["erros_abertos"]),
     erros_novos_1h: erros1h,
-    erros_novos_24h: inteiro(r.erros_novos_24h),
-    usuarios_ativos_24h: inteiro(r.usuarios_ativos_24h),
-    acoes_24h: inteiro(r.acoes_24h),
-    clientes_ativos_24h: inteiro(r.clientes_ativos_24h),
-    clientes_sem_uso_7d: inteiro(r.clientes_sem_uso_7d),
+    erros_novos_24h: inteiro(r["erros_novos_24h"]),
+    usuarios_ativos_24h: inteiro(r["usuarios_ativos_24h"]),
+    acoes_24h: inteiro(r["acoes_24h"]),
+    clientes_ativos_24h: inteiro(r["clientes_ativos_24h"]),
+    clientes_sem_uso_7d: inteiro(r["clientes_sem_uso_7d"]),
     serie: serie.map((item) => {
       const s = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
       return {
-        dia: texto(s.dia, 10),
-        erros_novos: inteiro(s.erros_novos),
-        acoes: inteiro(s.acoes),
-        usuarios_ativos: inteiro(s.usuarios_ativos),
+        dia: texto(s["dia"], 10),
+        erros_novos: inteiro(s["erros_novos"]),
+        acoes: inteiro(s["acoes"]),
+        usuarios_ativos: inteiro(s["usuarios_ativos"]),
       };
     }),
     top_erros: top.map((item) => {
       const t = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
-      return { rota: texto(t.rota, 80), origem: texto(t.origem, 20), ocorrencias: inteiro(t.ocorrencias) };
+      return {
+        rota: texto(t["rota"], 80),
+        origem: texto(t["origem"], 20),
+        ocorrencias: inteiro(t["ocorrencias"]),
+      };
     }),
   };
 }

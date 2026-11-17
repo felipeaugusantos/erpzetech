@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 
-import { chaveBearer, chaveTvConfere, montarResumoTv, saudeDeErros } from "../src/lib/monitoramento-tv.ts";
+import {
+  chaveBearer,
+  chaveTvConfere,
+  montarResumoTv,
+  saudeDeErros,
+} from "../src/lib/monitoramento-tv.ts";
 
 describe("painel de TV: chave de leitura", () => {
   const chave = "chave-de-teste-com-mais-de-20-caracteres";
@@ -47,10 +52,20 @@ describe("painel de TV: saúde e resposta agregada", () => {
       clientes_ativos_24h: 3,
       clientes_sem_uso_7d: 1,
       cliente: "Clínica Secreta",
-      serie: [{ dia: "2026-11-17", erros_novos: 1, acoes: 10, usuarios_ativos: 2, cliente: "Loja X" }],
+      serie: [
+        { dia: "2026-11-17", erros_novos: 1, acoes: 10, usuarios_ativos: 2, cliente: "Loja X" },
+      ],
       top_erros: [
-        { rota: "/caixa", origem: "navegador", ocorrencias: 9, cliente: "Loja Y", mensagem: "x@y.com" },
-        {}, {}, { rota: "/quarto" },
+        {
+          rota: "/caixa",
+          origem: "navegador",
+          ocorrencias: 9,
+          cliente: "Loja Y",
+          mensagem: "x@y.com",
+        },
+        {},
+        {},
+        { rota: "/quarto" },
       ],
     });
     assert.equal(r.saude, "amarelo");
