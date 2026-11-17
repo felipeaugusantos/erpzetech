@@ -50,7 +50,37 @@ export type ResumoTv = {
   clientes_sem_uso_7d: number;
   serie: { dia: string; erros_novos: number; acoes: number; usuarios_ativos: number }[];
   top_erros: { rota: string; origem: string; ocorrencias: number }[];
+  backup: ResumoBackupTv;
 };
+
+/** Backup noturno por cliente, só contagens e datas (nada de nome de cliente nem caminho de arquivo). */
+export type ResumoBackupTv = {
+  clientes_ativos: number;
+  em_dia: number;
+  atrasados: number;
+  sem_backup: number;
+  com_erro: number;
+  ultimo_em: string | null;
+  mais_antigo_em: string | null;
+};
+
+function dataOuNula(valor: unknown): string | null {
+  const s = texto(valor, 40);
+  return s && !Number.isNaN(Date.parse(s)) ? s : null;
+}
+
+export function montarBackupTv(bruto: unknown): ResumoBackupTv {
+  const b = (bruto && typeof bruto === "object" ? bruto : {}) as Record<string, unknown>;
+  return {
+    clientes_ativos: inteiro(b["clientes_ativos"]),
+    em_dia: inteiro(b["em_dia"]),
+    atrasados: inteiro(b["atrasados"]),
+    sem_backup: inteiro(b["sem_backup"]),
+    com_erro: inteiro(b["com_erro"]),
+    ultimo_em: dataOuNula(b["ultimo_em"]),
+    mais_antigo_em: dataOuNula(b["mais_antigo_em"]),
+  };
+}
 
 /** Copia só os campos conhecidos: se o banco passar a devolver mais coisa (nome de cliente, por exemplo), isso nunca sai na rota. */
 export function montarResumoTv(bruto: unknown): ResumoTv {
@@ -86,5 +116,6 @@ export function montarResumoTv(bruto: unknown): ResumoTv {
         ocorrencias: inteiro(t["ocorrencias"]),
       };
     }),
+    backup: montarBackupTv(r["backup"]),
   };
 }

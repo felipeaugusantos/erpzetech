@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   chaveBearer,
   chaveTvConfere,
+  montarBackupTv,
   montarResumoTv,
   saudeDeErros,
 } from "../src/lib/monitoramento-tv.ts";
@@ -79,5 +80,41 @@ describe("painel de TV: saúde e resposta agregada", () => {
     assert.equal(r.erros_abertos, 0);
     assert.deepEqual(r.serie, []);
     assert.equal(r.saude, "verde");
+  });
+});
+
+describe("painel de TV: backup por cliente", () => {
+  it("copia só contagens e datas válidas", () => {
+    const b = montarBackupTv({
+      clientes_ativos: 5,
+      em_dia: 4,
+      atrasados: 1,
+      sem_backup: 0,
+      com_erro: 1,
+      ultimo_em: "2026-11-17T05:15:11.633+00:00",
+      mais_antigo_em: "2026-11-16T05:00:00+00:00",
+      caminho: "geral/abc/2026-11-17.ndjson.gz",
+      cliente: "Clínica Secreta",
+    });
+    assert.deepEqual(Object.keys(b).sort(), [
+      "atrasados",
+      "clientes_ativos",
+      "com_erro",
+      "em_dia",
+      "mais_antigo_em",
+      "sem_backup",
+      "ultimo_em",
+    ]);
+    assert.equal(b.em_dia, 4);
+    assert.equal(JSON.stringify(b).includes("Secreta"), false);
+    assert.equal(JSON.stringify(b).includes("ndjson"), false);
+  });
+
+  it("sem dado ou com lixo vira zero e data nula", () => {
+    const b = montarBackupTv({ em_dia: -3, ultimo_em: "ontem", mais_antigo_em: 5 });
+    assert.equal(b.em_dia, 0);
+    assert.equal(b.ultimo_em, null);
+    assert.equal(b.mais_antigo_em, null);
+    assert.equal(montarResumoTv(undefined).backup.clientes_ativos, 0);
   });
 });

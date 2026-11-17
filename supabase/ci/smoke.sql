@@ -12728,6 +12728,10 @@ BEGIN
      AND jsonb_array_length(saas_monitoramento_tv()->'serie') = 7
      AND saas_monitoramento_tv()::text NOT LIKE '%Cliente Monitor CI%'
      AND saas_monitoramento_tv()::text NOT LIKE '%Erro monitor CI%', 'resumo da TV conta erro e uso e não traz cliente nem texto de erro');
+  PERFORM ci.exige((saas_monitoramento_tv()->'backup'->>'clientes_ativos')::int >= 0
+     AND (saas_monitoramento_tv()->'backup'->>'em_dia') IS NOT NULL
+     AND saas_monitoramento_tv()->'backup' ? 'sem_backup'
+     AND saas_monitoramento_tv()::text NOT LIKE '%ndjson%', 'resumo da TV traz o backup por cliente só agregado, sem caminho de arquivo');
 
   PERFORM ci.entrar(op);
   SELECT * INTO r FROM saas_monitoramento_resumo(current_date, current_date);
