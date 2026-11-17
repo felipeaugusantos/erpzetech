@@ -27,7 +27,10 @@ export function ModeloMensagem({
 }) {
   const qc = useQueryClient();
   const { data: sessao } = useSessionData();
-  const podeGuardar = (sessao?.roles ?? []).some((r) => r === "administrador" || r === "gestor");
+  const clinicoAutomatico = ["vacina_antes", "vacina_atrasada", "consulta_antes"].includes(tipo);
+  const podeGuardar = (sessao?.roles ?? []).some(
+    (r) => r === "administrador" || r === "gestor" || (clinicoAutomatico && r === "veterinario"),
+  );
   const { salvo, padrao, carregando } = useModeloMensagem(tipo);
   const base = salvo ?? padrao;
   const [iniciado, setIniciado] = useState<TipoMensagem | null>(null);

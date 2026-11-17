@@ -1,5 +1,7 @@
 # Offline sales
 
+- Automatic clinic reminders use independent tenant message models for upcoming vaccines, overdue vaccines and upcoming consultations; reservation and default rendering select by the same São Paulo calendar date, keeping manual reminder models separate.
+
 - PDF imports use explicit collection dates first, falling back to report attendance dates for the exam date; conflicting dates require manual review. References stay on the exam snapshot and issuance is never inferred from exam, consultation, upload or validation dates, preserving source meaning. Patient charts reuse clinical RPCs and audited private attachment access.
 
 - Consultation edits update the existing record through tenant-scoped responsible-veterinarian RPCs without generating addenda; explicit date overrides take precedence over legacy dated addenda, preserving old records.

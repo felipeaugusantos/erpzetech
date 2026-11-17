@@ -43,6 +43,10 @@ export const Route = createFileRoute("/_authenticated/clinica-whatsapp")({
         content:
           "Lembretes de vacina e de retorno de consulta enviados pelo sistema no WhatsApp da clínica.",
       },
+      { property: "og:title", content: "WhatsApp da clínica — ERP Ze Tech" },
+      { property: "og:description", content: "Regras e mensagens de vacina e retorno da clínica." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: WhatsAppClinicaModulo,
@@ -90,6 +94,8 @@ function WhatsAppClinica() {
   const desconectar = useServerFn(whatsappDesconectar);
   const [conexao, setConexao] = useState<ResultadoConexao | null>(null);
   const [modeloRetorno, setModeloRetorno] = useState(MENSAGEM_PADRAO.retorno_clinica);
+  const [modeloAntes, setModeloAntes] = useState(MENSAGEM_PADRAO.vacina_antes);
+  const [modeloAtrasada, setModeloAtrasada] = useState(MENSAGEM_PADRAO.vacina_atrasada);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["wa-config-clinica"],
@@ -318,11 +324,32 @@ function WhatsAppClinica() {
           <h3 className="text-xs font-semibold">Regras de envio</h3>
           <div className="grid items-end gap-3 sm:grid-cols-3">
             {[
-              { k: "reforcoAntes" as const, l: "Vacina: dias antes", max: 30 },
-              { k: "reforcoAtraso" as const, l: "Vacina: dias após vencer", max: 60 },
-              { k: "retornoAntes" as const, l: "Retorno: dias antes", max: 30 },
+              {
+                k: "reforcoAntes" as const,
+                l: "Vacina: dias antes",
+                max: 30,
+                tipo: "vacina_antes" as const,
+                valor: modeloAntes,
+                mudar: setModeloAntes,
+              },
+              {
+                k: "reforcoAtraso" as const,
+                l: "Vacina: dias após vencer",
+                max: 60,
+                tipo: "vacina_atrasada" as const,
+                valor: modeloAtrasada,
+                mudar: setModeloAtrasada,
+              },
+              {
+                k: "retornoAntes" as const,
+                l: "Retorno: dias antes",
+                max: 30,
+                tipo: "consulta_antes" as const,
+                valor: modeloRetorno,
+                mudar: setModeloRetorno,
+              },
             ].map((f) => (
-              <div key={f.k} className="space-y-1">
+              <div key={f.k} className="space-y-1 sm:col-span-3">
                 <Label htmlFor={`dias-${f.k}`} className="block truncate text-xs">
                   {f.l}
                 </Label>
@@ -339,6 +366,12 @@ function WhatsAppClinica() {
                       [f.k]: Math.max(0, Math.min(f.max, Math.trunc(Number(e.target.value) || 0))),
                     }))
                   }
+                />
+                <ModeloMensagem
+                  tipo={f.tipo}
+                  id={`mensagem-${f.k}`}
+                  valor={f.valor}
+                  onChange={f.mudar}
                 />
               </div>
             ))}
@@ -363,16 +396,6 @@ function WhatsAppClinica() {
             </p>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">
-          O texto do lembrete de vacina é o modelo da lista de reforços (Clínica › Reforços de
-          vacina). O do retorno:
-        </p>
-        <ModeloMensagem
-          tipo="retorno_clinica"
-          id="wa-modelo-retorno"
-          valor={modeloRetorno}
-          onChange={setModeloRetorno}
-        />
       </div>
 
       <PainelRelacionamentoClinica />

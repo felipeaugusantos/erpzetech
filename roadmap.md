@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Separar modelos automáticos de vacina antes, vacina vencida e retorno com os textos informados e edição autorizada; 42 testes passaram, seleção por data de Brasília conferida no banco e na lógica, três editores conferidos com sessão real; gravação e reabertura de modelo verificadas e textos temporários removidos. Nenhum WhatsApp enviado; envio real ainda não exercitado.
+
 - [x] Editar informações e data da consulta diretamente, sem gerar adendos novos nem exigir motivo; funções instaladas conferidas, testes de validação passaram e testes comportamentais da CI atualizados; registros antigos preservados.
 - [ ] Conferir edição e leitura pela tela em consulta autorizada de teste: conta atual é da administração, sem vínculo veterinário; nenhuma consulta real alterada.
 

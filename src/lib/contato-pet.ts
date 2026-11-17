@@ -3,7 +3,13 @@
 export type TipoContato = "aniversario" | "retorno" | "confirmacao" | "pronto" | "exame";
 
 /** Tipos de mensagem com modelo editável por empresa (inclui o lembrete de vacina da clínica). */
-export type TipoMensagem = TipoContato | "reforco" | "retorno_clinica";
+export type TipoMensagem =
+  | TipoContato
+  | "reforco"
+  | "retorno_clinica"
+  | "vacina_antes"
+  | "vacina_atrasada"
+  | "consulta_antes";
 
 /** Telefone brasileiro para o WhatsApp (só dígitos, com 55 na frente); null se não der para usar. */
 export function telefoneWhatsApp(telefone: string | null | undefined): string | null {
@@ -33,6 +39,12 @@ export const MENSAGEM_PADRAO: Record<TipoMensagem, string> = {
     "Oi, {tutor}! Aqui é da {loja}. O resultado do exame do {pet} já está disponível. Passe aqui ou fale com a gente para receber.",
   retorno_clinica:
     "Oi, {tutor}! Aqui é da {loja}. Está chegando a data do retorno do {pet}: {data}. Quer confirmar o horário?",
+  vacina_antes:
+    "Oi, {tutor}! Aqui é da {loja}. Está chegando a data da Vacina(Dose) {pet}: {data}. Quer confirmar o horário?",
+  vacina_atrasada:
+    "Atenção, {tutor}!\nAqui é da {loja}. Estamos passando para informar que já venceu a data da aplicação da vacina(Dose) {pet}: {data}. Gostaria de confirmar um horario?",
+  consulta_antes:
+    "Oi, {tutor}! Aqui é da {loja}. Está chegando a data da Consulta do seu {pet}: {data}. Podemos confirmar o horário na {data}",
 };
 
 /** Mensagem do lembrete de vacina e vermífugo da clínica ({itens}: "V10 e Vermífugo"). */
@@ -47,6 +59,9 @@ export const CAMPOS_MENSAGEM: Record<TipoMensagem, string[]> = {
   pronto: [],
   exame: [],
   retorno_clinica: ["data"],
+  vacina_antes: ["data", "itens"],
+  vacina_atrasada: ["data", "itens"],
+  consulta_antes: ["data"],
 };
 
 /** Lista de nomes em português: "A", "A e B", "A, B e C". */

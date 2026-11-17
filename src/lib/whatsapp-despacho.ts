@@ -1,5 +1,5 @@
 // Regras do envio automático de WhatsApp, sem banco nem rede: texto final, espera entre tentativas e ritmo de envio.
-import { MENSAGEM_PADRAO, montarMensagem } from "./contato-pet.ts";
+import { MENSAGEM_PADRAO, montarMensagem, type TipoMensagem } from "./contato-pet.ts";
 import { dateBR } from "./format.ts";
 import {
   MENSAGEM_LAVA_PADRAO,
@@ -60,11 +60,25 @@ export type ItemReservado = {
 };
 
 /** Texto final de um aviso da clínica: modelo da empresa (reforco / retorno_clinica) ou o padrão do sistema. */
-function textoClinica(item: ItemReservado & { tipo: TipoAvisoClinica }) {
+export function modeloClinica(
+  tipo: TipoAvisoClinica,
+  data: string | undefined,
+  agora = new Date(),
+): TipoMensagem {
+  if (tipo === "retorno_consulta") return "consulta_antes";
+  const hoje = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(agora);
+  return data && data < hoje ? "vacina_atrasada" : "vacina_antes";
+}
+
+function textoClinica(item: ItemReservado & { tipo: TipoAvisoClinica }, agora: Date) {
   const v = item.variaveis;
   const texto = (k: string) => (typeof v[k] === "string" ? (v[k] as string) : undefined);
-  const padrao =
-    item.tipo === "reforco_vacina" ? MENSAGEM_PADRAO.reforco : MENSAGEM_PADRAO.retorno_clinica;
+  const padrao = MENSAGEM_PADRAO[modeloClinica(item.tipo, texto("data"), agora)];
   const base = item.modelo && item.modelo.trim() ? item.modelo : padrao;
   const data = texto("data");
   const tutor = texto("cliente");
@@ -82,7 +96,7 @@ function textoClinica(item: ItemReservado & { tipo: TipoAvisoClinica }) {
 }
 
 /** Texto final de um item reservado: modelo da empresa (ou padrão) com os dados guardados na fila. */
-export function textoDoItem(item: ItemReservado) {
+export function textoDoItem(item: ItemReservado, agora = new Date()) {
   const v = item.variaveis;
   const texto = (k: string) => (typeof v[k] === "string" ? (v[k] as string) : undefined);
   const numero = (k: string) => (typeof v[k] === "number" ? (v[k] as number) : undefined);
@@ -92,7 +106,7 @@ export function textoDoItem(item: ItemReservado) {
   const restam = numero("restam");
   const dias = numero("dias");
   const cliente = texto("cliente");
-  if (ehAvisoClinica(item.tipo)) return textoClinica({ ...item, tipo: item.tipo });
+  if (ehAvisoClinica(item.tipo)) return textoClinica({ ...item, tipo: item.tipo }, agora);
   return textoDoAviso(
     item.tipo,
     {
@@ -166,7 +180,7 @@ export async function despachar(deps: DepsDespacho): Promise<RelatorioDespacho> 
     primeiro = false;
     let enviado: { idMensagem: string; jid: string | null };
     try {
-      enviado = await deps.enviar(item, textoDoItem(item), atrasoDeEnvio(aleatorio));
+      enviado = await deps.enviar(item, textoDoItem(item, agora()), atrasoDeEnvio(aleatorio));
     } catch (e) {
       const erro = e instanceof Error ? e.message : "Falha no envio";
       const proxima = falhaRepetivel(e) ? proximaTentativaEm(item.tentativas, agora()) : null;

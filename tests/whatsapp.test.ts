@@ -407,10 +407,10 @@ describe("avisos da clínica", () => {
   });
 
   it("reforço de vacina usa o padrão da clínica com tutor, pet, itens e data", () => {
-    const t = textoDoItem(itemClinica());
+    const t = textoDoItem(itemClinica(), new Date("2026-11-09T15:00:00Z"));
     assert.ok(t.includes("Oi, Ana!"));
     assert.ok(t.includes("Thor"));
-    assert.ok(t.includes("V10 e Vermífugo"));
+    assert.ok(t.includes("Vacina(Dose)"));
     assert.ok(t.includes("10/11/2026"));
     assert.ok(t.includes("Clínica Bicho Bom"));
     assert.ok(t.includes("responda SAIR"));
@@ -423,7 +423,7 @@ describe("avisos da clínica", () => {
         variaveis: { cliente: "Bia", pet: "Luna", data: "2026-11-12" },
       }),
     );
-    assert.ok(t.includes("retorno"));
+    assert.ok(t.includes("Consulta do seu"));
     assert.ok(t.includes("Luna"));
     assert.ok(t.includes("12/11/2026"));
   });
@@ -435,6 +435,20 @@ describe("avisos da clínica", () => {
     assert.ok(t.startsWith("Atenção, Ana: o Thor tem vacina em 10/11/2026."));
     assert.ok(t.includes("Clínica Bicho Bom"));
     assert.ok(!t.includes("{tutor}"));
+  });
+
+  it("vacina vencida usa mensagem de atraso, somente após a data em Brasília", () => {
+    const aviso = itemClinica();
+    assert.ok(textoDoItem(aviso, new Date("2026-11-11T02:59:00Z")).startsWith("Oi, Ana!"));
+    const atrasada = textoDoItem(aviso, new Date("2026-11-11T03:00:00Z"));
+    assert.ok(atrasada.startsWith("Atenção, Ana!\n"));
+    assert.ok(atrasada.includes("já venceu a data da aplicação da vacina(Dose) Thor: 10/11/2026"));
+  });
+
+  it("retorno preenche ambas as ocorrências da data", () => {
+    const texto = textoDoItem(itemClinica({ tipo: "retorno_consulta" }));
+    assert.equal(texto.match(/10\/11\/2026/g)?.length, 2);
+    assert.ok(texto.includes("Podemos confirmar o horário na 10/11/2026"));
   });
 });
 
