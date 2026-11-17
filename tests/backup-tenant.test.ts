@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -38,6 +38,21 @@ function esquema(): Map<string, string[]> {
   return mapa;
 }
 
+// tabelas criadas pelas migrações (supabase/migrations e drizzle/migrations). O types.ts é gerado do banco publicado e fica atrás
+// enquanto uma migração ainda não foi aplicada; a lista de tabelas de fora do backup não pode quebrar por isso.
+function tabelasDasMigracoes(): Set<string> {
+  const achadas = new Set<string>();
+  for (const pasta of ["../supabase/migrations", "../drizzle/migrations"]) {
+    const dir = new URL(`${pasta}/`, import.meta.url);
+    for (const arq of readdirSync(dir).filter((a) => a.endsWith(".sql"))) {
+      const sql = readFileSync(new URL(arq, dir), "utf8");
+      for (const m of sql.matchAll(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:public\.)?"?(\w+)"?/gi))
+        achadas.add(m[1]!);
+    }
+  }
+  return achadas;
+}
+
 describe("backup por cliente: catálogo contra o esquema do banco", () => {
   const tabelas = esquema();
 
@@ -63,7 +78,9 @@ describe("backup por cliente: catálogo contra o esquema do banco", () => {
       if (escopo === "empresa") assert.ok(cols.includes("empresa_id"), `${t} sem empresa_id`);
       if (escopo === "tenants") assert.ok(cols.includes("id"), `${t} sem id`);
     }
-    for (const t of Object.keys(TABELAS_FORA_DO_BACKUP)) assert.ok(tabelas.has(t), t);
+    const dasMigracoes = tabelasDasMigracoes();
+    for (const t of Object.keys(TABELAS_FORA_DO_BACKUP))
+      assert.ok(tabelas.has(t) || dasMigracoes.has(t), `tabela de fora do backup não existe: ${t}`);
   });
 
   it("toda ordem de leitura aponta para colunas que existem", () => {

@@ -422,9 +422,7 @@ function FormularioAtendimento({
               <DialogHeader>
                 <DialogTitle>Fechar o atendimento?</DialogTitle>
               </DialogHeader>
-              <p className="text-sm">
-                Confirma o encerramento desta consulta?
-              </p>
+              <p className="text-sm">Confirma o encerramento desta consulta?</p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setConfirmando(false)}>
                   Voltar
