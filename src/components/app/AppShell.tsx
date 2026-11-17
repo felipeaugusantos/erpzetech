@@ -794,6 +794,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ],
   };
 
+  /** Dentro da área Ze Tech o menu da loja não aparece; este botão no trilho leva de volta ao sistema normal. */
+  const grupoVoltarAoSistema: Group = {
+    label: "Sistema da loja",
+    icon: Store,
+    items: [{ label: "Voltar ao sistema da loja", to: "/dashboard", icon: Store }],
+  };
+
   /** Dentro da área Ze Tech o menu da loja não aparece. */
   const naAreaZeTech = pathname.startsWith("/ze-tech");
 
@@ -842,7 +849,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ]
         : operadorSaas
           ? naAreaZeTech
-            ? [grupoZeTech]
+            ? [grupoZeTech, grupoVoltarAoSistema]
             : [...gruposLoja, grupoZeTech]
           : gruposLoja;
 
