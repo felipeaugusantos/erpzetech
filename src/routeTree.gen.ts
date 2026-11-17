@@ -223,7 +223,6 @@ import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ApiClinicaTranscreverRouteImport } from './routes/api.clinica.transcrever'
 import { Route as ApiPublicErrosRouteImport } from './routes/api.public.erros'
-import { Route as ApiPublicTvMonitoramentoRouteImport } from './routes/api.public.tv.monitoramento'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
@@ -231,6 +230,7 @@ import { Route as PortalReceitaIdRouteImport } from './routes/portal.receita.$id
 import { Route as ApiPublicHooksBackupClientesRouteImport } from './routes/api.public.hooks.backup-clientes'
 import { Route as ApiPublicHooksCobrancaDiariaRouteImport } from './routes/api.public.hooks.cobranca-diaria'
 import { Route as ApiPublicHooksWhatsappDespacharRouteImport } from './routes/api.public.hooks.whatsapp-despachar'
+import { Route as ApiPublicTvMonitoramentoRouteImport } from './routes/api.public.tv.monitoramento'
 import { Route as ApiPublicWebhooksProvedorRouteImport } from './routes/api.public.webhooks.$provedor'
 import { Route as ApiPublicWhatsappEventosRouteImport } from './routes/api.public.whatsapp.eventos'
 import { Route as ApiPublicOauthBackupDriveReturnRouteImport } from './routes/api.public.oauth.backup-drive.return'
@@ -1438,11 +1438,6 @@ const ApiPublicErrosRoute = ApiPublicErrosRouteImport.update({
   path: '/api/public/erros',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTvMonitoramentoRoute = ApiPublicTvMonitoramentoRouteImport.update({
-  id: '/api/public/tv/monitoramento',
-  path: '/api/public/tv/monitoramento',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
   id: '/chamar/$empresa/$mesa',
   path: '/chamar/$empresa/$mesa',
@@ -1479,6 +1474,12 @@ const ApiPublicHooksWhatsappDespacharRoute =
   ApiPublicHooksWhatsappDespacharRouteImport.update({
     id: '/api/public/hooks/whatsapp-despachar',
     path: '/api/public/hooks/whatsapp-despachar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTvMonitoramentoRoute =
+  ApiPublicTvMonitoramentoRouteImport.update({
+    id: '/api/public/tv/monitoramento',
+    path: '/api/public/tv/monitoramento',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWebhooksProvedorRoute =
@@ -1710,7 +1711,6 @@ export interface FileRoutesByFullPath {
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
-  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1722,6 +1722,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
   '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
@@ -1936,7 +1937,6 @@ export interface FileRoutesByTo {
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
-  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1948,6 +1948,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
   '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
@@ -2164,7 +2165,6 @@ export interface FileRoutesById {
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
-  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2176,6 +2176,7 @@ export interface FileRoutesById {
   '/api/public/hooks/backup-clientes': typeof ApiPublicHooksBackupClientesRoute
   '/api/public/hooks/cobranca-diaria': typeof ApiPublicHooksCobrancaDiariaRoute
   '/api/public/hooks/whatsapp-despachar': typeof ApiPublicHooksWhatsappDespacharRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/api/public/webhooks/$provedor': typeof ApiPublicWebhooksProvedorRoute
   '/api/public/whatsapp/eventos': typeof ApiPublicWhatsappEventosRoute
   '/api/public/oauth/backup-drive/return': typeof ApiPublicOauthBackupDriveReturnRoute
@@ -2392,7 +2393,6 @@ export interface FileRouteTypes {
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
-    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2404,6 +2404,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
+    | '/api/public/tv/monitoramento'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
     | '/api/public/oauth/backup-drive/return'
@@ -2618,7 +2619,6 @@ export interface FileRouteTypes {
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
-    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2630,6 +2630,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
+    | '/api/public/tv/monitoramento'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
     | '/api/public/oauth/backup-drive/return'
@@ -2845,7 +2846,6 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
-    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2857,6 +2857,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backup-clientes'
     | '/api/public/hooks/cobranca-diaria'
     | '/api/public/hooks/whatsapp-despachar'
+    | '/api/public/tv/monitoramento'
     | '/api/public/webhooks/$provedor'
     | '/api/public/whatsapp/eventos'
     | '/api/public/oauth/backup-drive/return'
@@ -2878,7 +2879,6 @@ export interface RootRouteChildren {
   PortalIndexRoute: typeof PortalIndexRoute
   ApiClinicaTranscreverRoute: typeof ApiClinicaTranscreverRoute
   ApiPublicErrosRoute: typeof ApiPublicErrosRoute
-  ApiPublicTvMonitoramentoRoute: typeof ApiPublicTvMonitoramentoRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
@@ -2886,6 +2886,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBackupClientesRoute: typeof ApiPublicHooksBackupClientesRoute
   ApiPublicHooksCobrancaDiariaRoute: typeof ApiPublicHooksCobrancaDiariaRoute
   ApiPublicHooksWhatsappDespacharRoute: typeof ApiPublicHooksWhatsappDespacharRoute
+  ApiPublicTvMonitoramentoRoute: typeof ApiPublicTvMonitoramentoRoute
   ApiPublicWebhooksProvedorRoute: typeof ApiPublicWebhooksProvedorRoute
   ApiPublicWhatsappEventosRoute: typeof ApiPublicWhatsappEventosRoute
   ApiPublicOauthBackupDriveReturnRoute: typeof ApiPublicOauthBackupDriveReturnRoute
@@ -4391,13 +4392,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicErrosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/tv/monitoramento': {
-      id: '/api/public/tv/monitoramento'
-      path: '/api/public/tv/monitoramento'
-      fullPath: '/api/public/tv/monitoramento'
-      preLoaderRoute: typeof ApiPublicTvMonitoramentoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/chamar/$empresa/$mesa': {
       id: '/chamar/$empresa/$mesa'
       path: '/chamar/$empresa/$mesa'
@@ -4445,6 +4439,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/whatsapp-despachar'
       fullPath: '/api/public/hooks/whatsapp-despachar'
       preLoaderRoute: typeof ApiPublicHooksWhatsappDespacharRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/tv/monitoramento': {
+      id: '/api/public/tv/monitoramento'
+      path: '/api/public/tv/monitoramento'
+      fullPath: '/api/public/tv/monitoramento'
+      preLoaderRoute: typeof ApiPublicTvMonitoramentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/$provedor': {
@@ -4901,7 +4902,6 @@ const rootRouteChildren: RootRouteChildren = {
   PortalIndexRoute: PortalIndexRoute,
   ApiClinicaTranscreverRoute: ApiClinicaTranscreverRoute,
   ApiPublicErrosRoute: ApiPublicErrosRoute,
-  ApiPublicTvMonitoramentoRoute: ApiPublicTvMonitoramentoRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
@@ -4909,6 +4909,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBackupClientesRoute: ApiPublicHooksBackupClientesRoute,
   ApiPublicHooksCobrancaDiariaRoute: ApiPublicHooksCobrancaDiariaRoute,
   ApiPublicHooksWhatsappDespacharRoute: ApiPublicHooksWhatsappDespacharRoute,
+  ApiPublicTvMonitoramentoRoute: ApiPublicTvMonitoramentoRoute,
   ApiPublicWebhooksProvedorRoute: ApiPublicWebhooksProvedorRoute,
   ApiPublicWhatsappEventosRoute: ApiPublicWhatsappEventosRoute,
   ApiPublicOauthBackupDriveReturnRoute: ApiPublicOauthBackupDriveReturnRoute,

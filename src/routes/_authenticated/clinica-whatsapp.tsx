@@ -9,6 +9,7 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { PainelRelacionamentoClinica } from "@/components/app/PainelRelacionamentoClinica";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -59,6 +60,9 @@ type Config = {
   numero: string | null;
   auto_reforco: boolean;
   auto_retorno: boolean;
+  reforco_dias_antes: number;
+  reforco_dias_atraso: number;
+  retorno_dias_antes: number;
 };
 
 type Linha = {
@@ -78,6 +82,9 @@ function WhatsAppClinica() {
   const qc = useQueryClient();
   const { data: session } = useSessionData();
   const gestor = (session?.roles ?? []).some((r) => ["administrador", "gestor"].includes(r));
+  const podeRegras = (session?.roles ?? []).some((r) =>
+    ["administrador", "gestor", "veterinario"].includes(r),
+  );
   const conectar = useServerFn(whatsappConectar);
   const atualizar = useServerFn(whatsappAtualizar);
   const desconectar = useServerFn(whatsappDesconectar);
@@ -89,7 +96,9 @@ function WhatsAppClinica() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_config")
-        .select("estado, numero, auto_reforco, auto_retorno")
+        .select(
+          "estado, numero, auto_reforco, auto_retorno, reforco_dias_antes, reforco_dias_atraso, retorno_dias_antes",
+        )
         .maybeSingle();
       if (error) throw error;
       return (data as Config | null) ?? null;
@@ -159,15 +168,32 @@ function WhatsAppClinica() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [esperando]);
 
+  const [dias, setDias] = useState({ reforcoAntes: 3, reforcoAtraso: 7, retornoAntes: 2 });
+  useEffect(() => {
+    if (config)
+      setDias({
+        reforcoAntes: config.reforco_dias_antes,
+        reforcoAtraso: config.reforco_dias_atraso,
+        retornoAntes: config.retorno_dias_antes,
+      });
+  }, [config]);
+
   const automatico = useMutation({
-    mutationFn: async (p: { reforco: boolean; retorno: boolean }) => {
-      const { error } = await supabase.rpc("clinica_wa_automatico_salvar", {
+    mutationFn: async (p: { reforco: boolean; retorno: boolean; aviso?: boolean }) => {
+      const { error } = await supabase.rpc("clinica_wa_regras_salvar", {
         p_reforco: p.reforco,
         p_retorno: p.retorno,
+        p_reforco_antes: dias.reforcoAntes,
+        p_reforco_atraso: dias.reforcoAtraso,
+        p_retorno_antes: dias.retornoAntes,
       });
       if (error) throw error;
+      return p.aviso;
     },
-    onSuccess: refresh,
+    onSuccess: (aviso) => {
+      if (aviso) toast.success("Regras de envio salvas.");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -264,12 +290,12 @@ function WhatsAppClinica() {
         {[
           {
             chave: "reforco" as const,
-            titulo: "Vacina ou vermífugo (3 dias antes até 7 de atraso)",
+            titulo: `Vacina ou vermífugo (${dias.reforcoAntes} dia(s) antes até ${dias.reforcoAtraso} de atraso)`,
             valor: config?.auto_reforco ?? false,
           },
           {
             chave: "retorno" as const,
-            titulo: "Retorno de consulta (do dia até 2 dias antes)",
+            titulo: `Retorno de consulta (do dia até ${dias.retornoAntes} dia(s) antes)`,
             valor: config?.auto_retorno ?? false,
           },
         ].map((o) => (
@@ -277,7 +303,7 @@ function WhatsAppClinica() {
             <Switch
               id={`auto-${o.chave}`}
               checked={o.valor}
-              disabled={!gestor || estado !== "conectada" || automatico.isPending}
+              disabled={!podeRegras || estado !== "conectada" || automatico.isPending}
               onCheckedChange={(v) =>
                 automatico.mutate({
                   reforco: o.chave === "reforco" ? v : (config?.auto_reforco ?? false),
@@ -288,6 +314,55 @@ function WhatsAppClinica() {
             <Label htmlFor={`auto-${o.chave}`}>{o.titulo}</Label>
           </div>
         ))}
+        <div className="space-y-2 rounded border p-3">
+          <h3 className="text-xs font-semibold">Regras de envio</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { k: "reforcoAntes" as const, l: "Vacina: dias antes da dose", max: 30 },
+              { k: "reforcoAtraso" as const, l: "Vacina: dias de atraso ainda avisando", max: 60 },
+              { k: "retornoAntes" as const, l: "Retorno: dias antes", max: 30 },
+            ].map((f) => (
+              <div key={f.k} className="space-y-1">
+                <Label htmlFor={`dias-${f.k}`} className="text-xs">
+                  {f.l}
+                </Label>
+                <Input
+                  id={`dias-${f.k}`}
+                  type="number"
+                  min={0}
+                  max={f.max}
+                  value={dias[f.k]}
+                  disabled={!podeRegras}
+                  onChange={(e) =>
+                    setDias((d) => ({
+                      ...d,
+                      [f.k]: Math.max(0, Math.min(f.max, Math.trunc(Number(e.target.value) || 0))),
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          {podeRegras ? (
+            <Button
+              size="sm"
+              disabled={estado !== "conectada" || automatico.isPending}
+              onClick={() =>
+                automatico.mutate({
+                  reforco: config?.auto_reforco ?? false,
+                  retorno: config?.auto_retorno ?? false,
+                  aviso: true,
+                })
+              }
+            >
+              Salvar regras
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Só veterinário, administrador ou gestor altera as regras.
+            </p>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
           O texto do lembrete de vacina é o modelo da lista de reforços (Clínica › Reforços de
           vacina). O do retorno:

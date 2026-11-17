@@ -16665,6 +16665,9 @@ export type Database = {
           estado: string
           instancia: string
           numero: string | null
+          reforco_dias_antes: number
+          reforco_dias_atraso: number
+          retorno_dias_antes: number
           tenant_id: string
         }
         Insert: {
@@ -16678,6 +16681,9 @@ export type Database = {
           estado?: string
           instancia: string
           numero?: string | null
+          reforco_dias_antes?: number
+          reforco_dias_atraso?: number
+          retorno_dias_antes?: number
           tenant_id?: string
         }
         Update: {
@@ -16691,6 +16697,9 @@ export type Database = {
           estado?: string
           instancia?: string
           numero?: string | null
+          reforco_dias_antes?: number
+          reforco_dias_atraso?: number
+          retorno_dias_antes?: number
           tenant_id?: string
         }
         Relationships: [
@@ -17828,6 +17837,16 @@ export type Database = {
       }
       clinica_wa_mensagem_reenviar: {
         Args: { p_id: string }
+        Returns: undefined
+      }
+      clinica_wa_regras_salvar: {
+        Args: {
+          p_reforco: boolean
+          p_reforco_antes: number
+          p_reforco_atraso: number
+          p_retorno: boolean
+          p_retorno_antes: number
+        }
         Returns: undefined
       }
       cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }
