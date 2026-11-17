@@ -316,14 +316,14 @@ function WhatsAppClinica() {
         ))}
         <div className="space-y-2 rounded border p-3">
           <h3 className="text-xs font-semibold">Regras de envio</h3>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid items-end gap-3 sm:grid-cols-3">
             {[
-              { k: "reforcoAntes" as const, l: "Vacina: dias antes da dose", max: 30 },
-              { k: "reforcoAtraso" as const, l: "Vacina: dias de atraso ainda avisando", max: 60 },
+              { k: "reforcoAntes" as const, l: "Vacina: dias antes", max: 30 },
+              { k: "reforcoAtraso" as const, l: "Vacina: dias após vencer", max: 60 },
               { k: "retornoAntes" as const, l: "Retorno: dias antes", max: 30 },
             ].map((f) => (
               <div key={f.k} className="space-y-1">
-                <Label htmlFor={`dias-${f.k}`} className="text-xs">
+                <Label htmlFor={`dias-${f.k}`} className="block truncate text-xs">
                   {f.l}
                 </Label>
                 <Input
