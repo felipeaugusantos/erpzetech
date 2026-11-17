@@ -813,6 +813,13 @@
       "when": 1794929388231,
       "tag": "0115_clinica_mensagens_por_prazo",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1794933000000,
+      "tag": "0116_clinica_wa_regras_contador",
+      "breakpoints": true
     }
   ]
 }
