@@ -12718,6 +12718,17 @@ BEGIN
   PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_uso_cliente(current_date, current_date)$c$, 'empresa lê o uso por cliente');
   PERFORM ci.deve_falhar(adm, $c$SELECT * FROM saas_monitoramento_top_erros(current_date, current_date, 5)$c$, 'empresa lê os erros mais repetidos');
 
+  PERFORM ci.deve_falhar(adm, $c$SELECT saas_monitoramento_tv()$c$, 'empresa lê o resumo agregado da TV');
+  PERFORM ci.deve_falhar(NULL, $c$SELECT saas_monitoramento_tv()$c$, 'anon lê o resumo agregado da TV');
+  PERFORM ci.exige(has_function_privilege('service_role', 'public.saas_monitoramento_tv()', 'EXECUTE')
+     AND NOT has_function_privilege('authenticated', 'public.saas_monitoramento_tv()', 'EXECUTE')
+     AND NOT has_function_privilege('anon', 'public.saas_monitoramento_tv()', 'EXECUTE'), 'resumo da TV só executa pelo serviço');
+  PERFORM ci.exige((saas_monitoramento_tv()->>'erros_abertos')::int >= 1
+     AND (saas_monitoramento_tv()->>'acoes_24h')::int >= 3
+     AND jsonb_array_length(saas_monitoramento_tv()->'serie') = 7
+     AND saas_monitoramento_tv()::text NOT LIKE '%Cliente Monitor CI%'
+     AND saas_monitoramento_tv()::text NOT LIKE '%Erro monitor CI%', 'resumo da TV conta erro e uso e não traz cliente nem texto de erro');
+
   PERFORM ci.entrar(op);
   SELECT * INTO r FROM saas_monitoramento_resumo(current_date, current_date);
   PERFORM ci.exige(r.erros_abertos >= 1 AND r.erros_novos >= 1 AND r.clientes_com_erro >= 1, 'resumo gerencial conta os erros do período');
