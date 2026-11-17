@@ -12693,7 +12693,7 @@ DECLARE
   adm  constant uuid := 'a0000000-0000-0000-0000-000000000001';
   op   constant uuid := 'a0000000-0000-0000-0000-0000e9990201';
   usr  constant uuid := 'a0000000-0000-0000-0000-0000e9990202';
-  tm uuid; r record;
+  tm uuid; tm2 uuid; r record;
 BEGIN
   INSERT INTO tenants (nome) VALUES ('Monitor CI') RETURNING id INTO tm;
   INSERT INTO auth.users (id, email, last_sign_in_at) VALUES
@@ -12728,6 +12728,19 @@ BEGIN
      AND jsonb_array_length(saas_monitoramento_tv()->'serie') = 7
      AND saas_monitoramento_tv()::text NOT LIKE '%Cliente Monitor CI%'
      AND saas_monitoramento_tv()::text NOT LIKE '%Erro monitor CI%', 'resumo da TV conta erro e uso e não traz cliente nem texto de erro');
+  -- lista nominal de clientes sem uso (o dono aprovou nomes no painel em 17/11/2026): só nome e dias, sem e-mail
+  INSERT INTO tenants (nome) VALUES ('Monitor CI Parado') RETURNING id INTO tm2;
+  INSERT INTO saas_clientes (nome, tenant_id, email) VALUES ('Cliente Parado CI', tm2, 'parado@ci.test');
+  PERFORM ci.exige(EXISTS (
+     SELECT 1 FROM jsonb_array_elements(saas_monitoramento_tv()->'clientes_sem_uso') c
+      WHERE c->>'nome' = 'Cliente Parado CI' AND c->>'dias_sem_uso' IS NULL),
+     'cliente sem uso aparece nominal, com dias nulo quando nunca usou');
+  PERFORM ci.exige(NOT EXISTS (
+     SELECT 1 FROM jsonb_array_elements(saas_monitoramento_tv()->'clientes_sem_uso') c
+      WHERE c->>'nome' = 'Cliente Monitor CI'),
+     'cliente com uso recente não entra na lista de sem uso');
+  PERFORM ci.exige(saas_monitoramento_tv()::text NOT LIKE '%parado@ci.test%', 'lista de clientes sem uso não traz e-mail');
+
   PERFORM ci.exige((saas_monitoramento_tv()->'backup'->>'clientes_ativos')::int >= 0
      AND (saas_monitoramento_tv()->'backup'->>'em_dia') IS NOT NULL
      AND saas_monitoramento_tv()->'backup' ? 'sem_backup'

@@ -4,7 +4,8 @@ import { chaveBearer, chaveTvConfere, montarResumoTv } from "@/lib/monitoramento
 import { criarLimitador } from "@/lib/monitoramento";
 
 // Painel de TV da central Zé Registra: GET /api/public/tv/monitoramento com "Authorization: Bearer <chave de leitura>".
-// Devolve só números agregados (sem cliente, e-mail ou texto de erro). Quem chama é o servidor da central, nunca o navegador.
+// Devolve números agregados (sem e-mail, documento nem texto de erro) mais a lista de clientes sem uso em 7 dias com
+// nome e dias (exceção aprovada pelo dono em 17/11/2026). Quem chama é o servidor da central, nunca o navegador.
 // Chave errada ou ausente = 401 sem detalhe; limite por IP; nada fica em cache.
 const podeConsultar = criarLimitador(60, 60_000);
 

@@ -6,6 +6,7 @@ import {
   chaveBearer,
   chaveTvConfere,
   montarBackupTv,
+  montarClientesSemUsoTv,
   montarResumoTv,
   saudeDeErros,
 } from "../src/lib/monitoramento-tv.ts";
@@ -80,6 +81,53 @@ describe("painel de TV: saúde e resposta agregada", () => {
     assert.equal(r.erros_abertos, 0);
     assert.deepEqual(r.serie, []);
     assert.equal(r.saude, "verde");
+  });
+});
+
+describe("painel de TV: lista nominal de clientes sem uso", () => {
+  it("passa só nome e dias, corta nome longo e preserva 'nunca usou' (null)", () => {
+    const lista = montarClientesSemUsoTv([
+      { nome: "Loja Boa", dias_sem_uso: 12, email: "a@b.com", documento: "123" },
+      { nome: "Clínica Nova", dias_sem_uso: null },
+      { nome: `Nome com mais de sessenta caracteres para testar o corte do painel de TV` },
+      { nome: "   ", dias_sem_uso: 4 },
+      "lixo",
+      { dias_sem_uso: 9 },
+    ]);
+    assert.deepEqual(lista, [
+      { nome: "Loja Boa", dias_sem_uso: 12 },
+      { nome: "Clínica Nova", dias_sem_uso: null },
+      { nome: "Nome com mais de sessenta caracteres para testar o corte do", dias_sem_uso: null },
+    ]);
+    assert.equal(JSON.stringify(lista).includes("a@b.com"), false);
+    assert.equal(JSON.stringify(lista).includes("123"), false);
+  });
+
+  it("limita a 20 e entrada inválida vira lista vazia", () => {
+    const muitos = Array.from({ length: 30 }, (_, i) => ({
+      nome: `Cliente ${i + 1}`,
+      dias_sem_uso: i,
+    }));
+    assert.equal(montarClientesSemUsoTv(muitos).length, 20);
+    assert.deepEqual(montarClientesSemUsoTv("lixo"), []);
+    assert.deepEqual(montarResumoTv(null).clientes_sem_uso, []);
+  });
+
+  it("dias inválidos viram null, nunca número negativo", () => {
+    assert.deepEqual(montarClientesSemUsoTv([{ nome: "Loja", dias_sem_uso: -3 }]), [
+      { nome: "Loja", dias_sem_uso: null },
+    ]);
+    assert.deepEqual(montarClientesSemUsoTv([{ nome: "Loja", dias_sem_uso: "9" }]), [
+      { nome: "Loja", dias_sem_uso: 9 },
+    ]);
+  });
+
+  it("o resumo leva a lista e continua sem deixar passar campo desconhecido", () => {
+    const r = montarResumoTv({
+      clientes_sem_uso: [{ nome: "Loja Parada", dias_sem_uso: 21, email: "x@y.com" }],
+    });
+    assert.deepEqual(r.clientes_sem_uso, [{ nome: "Loja Parada", dias_sem_uso: 21 }]);
+    assert.equal(JSON.stringify(r).includes("x@y.com"), false);
   });
 });
 
