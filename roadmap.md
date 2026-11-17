@@ -15,6 +15,9 @@
 - [x] Termos de Uso e Política de Privacidade (LGPD): páginas públicas /termos e /privacidade, aceite obrigatório da versão vigente na primeira entrada (todos os perfis; não trava sem internet), prova em `aceites_legais` (migração 20270122, seção 103 do smoke) e texto em `src/lib/legal.ts`. Testes de texto/versão passaram, tsc e build OK, seção 103 do smoke passou num Postgres 16 local. Telas não vistas no navegador com sessão real; não publicado.
 - [ ] Antes de vender: preencher razão social, CNPJ, foro e e-mail do encarregado em `DADOS_LEGAIS` e revisão jurídica do texto (docs/termos-lgpd.md).
 
+- [x] Alterar a data da consulta pelo prontuário, com correção imutável e motivo para fichas fechadas; calendário e confirmação conferidos na conta de Bruna para Pandora, computador e celular; 15 testes passaram, build OK, nenhuma consulta real alterada.
+- [ ] Conferir gravação da correção numa consulta autorizada de teste: não alterar a consulta real de Pandora durante a verificação; testes de permissões e adendo incluídos na CI.
+
 - [x] Cadastro de paciente com tutor novo: documentos, endereço completo, contatos e preferência de mensagens no formulário compartilhado com a fila offline; 22 testes passaram, gravação conferida com conta veterinária e registros temporários removidos; celular conferido, build OK.
 
 - [x] Alerta automático nas 24 horas anteriores à consulta, no prontuário e nas agendas da clínica, com atualização periódica; sete testes passaram e alerta conferido com agendamento temporário pela conta veterinária, removido após verificação; build OK.
