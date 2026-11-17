@@ -71,7 +71,7 @@ describe("painel de TV: saúde e resposta agregada", () => {
     assert.equal(r.saude, "amarelo");
     assert.equal(r.top_erros.length, 3);
     assert.doesNotMatch(JSON.stringify(r), /Secreta|Loja|x@y/);
-    assert.equal(r.serie[0].acoes, 10);
+    assert.equal(r.serie[0]?.acoes, 10);
   });
 
   it("entrada inválida vira zeros, não erro", () => {
