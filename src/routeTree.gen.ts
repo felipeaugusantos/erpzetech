@@ -223,6 +223,7 @@ import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPedidosIdRouteImport } from './routes/_authenticated/pedidos.$id'
 import { Route as ApiClinicaTranscreverRouteImport } from './routes/api.clinica.transcrever'
 import { Route as ApiPublicErrosRouteImport } from './routes/api.public.erros'
+import { Route as ApiPublicTvMonitoramentoRouteImport } from './routes/api.public.tv.monitoramento'
 import { Route as ChamarEmpresaMesaRouteImport } from './routes/chamar.$empresa.$mesa'
 import { Route as PortalAnimalIdRouteImport } from './routes/portal.animal.$id'
 import { Route as PortalExameIdRouteImport } from './routes/portal.exame.$id'
@@ -1437,6 +1438,11 @@ const ApiPublicErrosRoute = ApiPublicErrosRouteImport.update({
   path: '/api/public/erros',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTvMonitoramentoRoute = ApiPublicTvMonitoramentoRouteImport.update({
+  id: '/api/public/tv/monitoramento',
+  path: '/api/public/tv/monitoramento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChamarEmpresaMesaRoute = ChamarEmpresaMesaRouteImport.update({
   id: '/chamar/$empresa/$mesa',
   path: '/chamar/$empresa/$mesa',
@@ -1704,6 +1710,7 @@ export interface FileRoutesByFullPath {
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -1929,6 +1936,7 @@ export interface FileRoutesByTo {
   '/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2156,6 +2164,7 @@ export interface FileRoutesById {
   '/_authenticated/pedidos/$id': typeof AuthenticatedPedidosIdRoute
   '/api/clinica/transcrever': typeof ApiClinicaTranscreverRoute
   '/api/public/erros': typeof ApiPublicErrosRoute
+  '/api/public/tv/monitoramento': typeof ApiPublicTvMonitoramentoRoute
   '/chamar/$empresa/$mesa': typeof ChamarEmpresaMesaRoute
   '/portal/animal/$id': typeof PortalAnimalIdRoute
   '/portal/exame/$id': typeof PortalExameIdRoute
@@ -2383,6 +2392,7 @@ export interface FileRouteTypes {
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
+    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2608,6 +2618,7 @@ export interface FileRouteTypes {
     | '/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
+    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2834,6 +2845,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos/$id'
     | '/api/clinica/transcrever'
     | '/api/public/erros'
+    | '/api/public/tv/monitoramento'
     | '/chamar/$empresa/$mesa'
     | '/portal/animal/$id'
     | '/portal/exame/$id'
@@ -2866,6 +2878,7 @@ export interface RootRouteChildren {
   PortalIndexRoute: typeof PortalIndexRoute
   ApiClinicaTranscreverRoute: typeof ApiClinicaTranscreverRoute
   ApiPublicErrosRoute: typeof ApiPublicErrosRoute
+  ApiPublicTvMonitoramentoRoute: typeof ApiPublicTvMonitoramentoRoute
   ChamarEmpresaMesaRoute: typeof ChamarEmpresaMesaRoute
   PortalAnimalIdRoute: typeof PortalAnimalIdRoute
   PortalExameIdRoute: typeof PortalExameIdRoute
@@ -4378,6 +4391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicErrosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/tv/monitoramento': {
+      id: '/api/public/tv/monitoramento'
+      path: '/api/public/tv/monitoramento'
+      fullPath: '/api/public/tv/monitoramento'
+      preLoaderRoute: typeof ApiPublicTvMonitoramentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chamar/$empresa/$mesa': {
       id: '/chamar/$empresa/$mesa'
       path: '/chamar/$empresa/$mesa'
@@ -4881,6 +4901,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalIndexRoute: PortalIndexRoute,
   ApiClinicaTranscreverRoute: ApiClinicaTranscreverRoute,
   ApiPublicErrosRoute: ApiPublicErrosRoute,
+  ApiPublicTvMonitoramentoRoute: ApiPublicTvMonitoramentoRoute,
   ChamarEmpresaMesaRoute: ChamarEmpresaMesaRoute,
   PortalAnimalIdRoute: PortalAnimalIdRoute,
   PortalExameIdRoute: PortalExameIdRoute,
