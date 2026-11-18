@@ -848,6 +848,13 @@
       "when": 1795043698140,
       "tag": "0120_seguranca_logos_cotacao",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1795044160805,
+      "tag": "0121_empresa_reset_static_statements",
+      "breakpoints": true
     }
   ]
 }
