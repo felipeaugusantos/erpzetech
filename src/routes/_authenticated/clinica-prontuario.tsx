@@ -211,7 +211,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const navegar = useNavigate();
   const { data: preferencias } = usePreferenciasClinica();
   const oculta = (s: string) => preferencias?.secoes_ocultas.includes(s as never) ?? false;
-  const [recolhidos, setRecolhidos] = useState<Set<string>>(new Set());
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [examesAbertos, setExamesAbertos] = useState(false);
   const contato = useQuery({
     queryKey: ["clinica-contato-tutor", petId],
@@ -622,14 +622,14 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         <h3 className="font-display text-base font-semibold">Consultas do paciente</h3>
         {data.atendimentos.length > 0 && (
           <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setRecolhidos(new Set())}>
-              Expandir todas
-            </Button>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setRecolhidos(new Set(data.atendimentos.map((a) => a.id)))}
+              onClick={() => setExpandidos(new Set(data.atendimentos.map((a) => a.id)))}
             >
+              Expandir todas
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setExpandidos(new Set())}>
               Recolher todas
             </Button>
           </div>
@@ -650,12 +650,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
-                    aria-expanded={!recolhidos.has(a.id)}
+                    aria-expanded={expandidos.has(a.id)}
                     className="flex items-center gap-1 text-left font-semibold tabular-nums text-primary"
                     onClick={() =>
-                      setRecolhidos((atual) => {
+                      setExpandidos((atual) => {
                         const novo = new Set(atual);
                         if (novo.has(a.id)) novo.delete(a.id);
                         else novo.add(a.id);
@@ -663,7 +664,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       })
                     }
                   >
-                    {recolhidos.has(a.id) ? (
+                    {!expandidos.has(a.id) ? (
                       <ChevronRight className="size-4" />
                     ) : (
                       <ChevronDown className="size-4" />
@@ -671,7 +672,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     <time dateTime={a.data_atendimento ?? a.aberto_em}>
                       {dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}
                     </time>
-                  </button>
+                  </Button>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
@@ -679,106 +680,109 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
                 </div>
-                {!recolhidos.has(a.id) && (
-                <>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setExamesAbertos(true)}>
-                    <FlaskConical /> Exames
-                  </Button>
-                </div>
-                {a.veterinario.id === meuVeterinario.data && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <AlterarDataConsulta atendimento={a} petId={petId} />
-                    {a.situacao === "fechado" && (
-                      <CorrigirAtendimento atendimento={a} petId={petId} />
+                {expandidos.has(a.id) && (
+                  <>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setExamesAbertos(true)}>
+                        <FlaskConical /> Exames
+                      </Button>
+                    </div>
+                    {a.veterinario.id === meuVeterinario.data && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <AlterarDataConsulta atendimento={a} petId={petId} />
+                        {a.situacao === "fechado" && (
+                          <CorrigirAtendimento atendimento={a} petId={petId} />
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-                {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
-                  <div className="mt-3">
-                    <Button asChild size="sm">
-                      <Link to="/clinica-atendimento" search={{ agendamento: a.agendamento_id }}>
-                        <Stethoscope /> Continuar atendimento
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-                <dl className="mt-4 grid gap-4">
-                  <Linha
-                    rotulo="Peso nesta consulta"
-                    valor={
-                      a.peso_kg !== null
-                        ? `${String(a.peso_kg).replace(".", ",")} kg`
-                        : "Não cadastrado"
-                    }
-                  />
-                  <Linha rotulo="Queixa" valor={a.queixa} />
-                  <Linha rotulo="Anamnese" valor={a.anamnese} />
-                  <Linha
-                    rotulo="Sinais"
-                    valor={[
-                      a.peso_kg ? `${num(Number(a.peso_kg), 2)} kg` : null,
-                      a.temperatura_c ? `${num(Number(a.temperatura_c), 1)} °C` : null,
-                      a.freq_cardiaca ? `${a.freq_cardiaca} bpm` : null,
-                      a.freq_respiratoria ? `${a.freq_respiratoria} mpm` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  />
-                  <Linha rotulo="Exame físico" valor={a.exame_fisico} />
-                  <Linha rotulo="Diagnóstico" valor={a.diagnostico} />
-                  <Linha rotulo="Conduta" valor={a.conduta} />
-                  <Linha rotulo="Retorno" valor={a.retorno_em ? dateBR(a.retorno_em) : null} />
-                  <Linha rotulo="Observações" valor={a.observacoes} />
-                </dl>
-
-                {a.adendos.map((d) => (
-                  <div
-                    key={d.id}
-                    className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3"
-                  >
-                    <p className="whitespace-pre-wrap break-words">{d.texto}</p>
-                    <CorrecaoDoAdendo adendo={d} />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
-                      {dateTimeBR(d.created_at)}
-                    </p>
-                  </div>
-                ))}
-
-                {a.situacao === "fechado" &&
-                  (adendo?.id === a.id ? (
-                    <div className="mt-3 grid gap-2">
-                      <Textarea
-                        aria-label="Texto do adendo"
-                        rows={3}
-                        value={adendo.texto}
-                        onChange={(e) => setAdendo({ id: a.id, texto: e.target.value })}
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => criarAdendo.mutate()}
-                          disabled={criarAdendo.isPending || !adendo.texto.trim()}
-                        >
-                          Registrar adendo
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setAdendo(null)}>
-                          Cancelar
+                    {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
+                      <div className="mt-3">
+                        <Button asChild size="sm">
+                          <Link
+                            to="/clinica-atendimento"
+                            search={{ agendamento: a.agendamento_id }}
+                          >
+                            <Stethoscope /> Continuar atendimento
+                          </Link>
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-4 min-h-11 w-full sm:w-auto"
-                      onClick={() => setAdendo({ id: a.id, texto: "" })}
-                    >
-                      Adicionar adendo
-                    </Button>
-                  ))}
-                </>
+                    )}
+                    <dl className="mt-4 grid gap-4">
+                      <Linha
+                        rotulo="Peso nesta consulta"
+                        valor={
+                          a.peso_kg !== null
+                            ? `${String(a.peso_kg).replace(".", ",")} kg`
+                            : "Não cadastrado"
+                        }
+                      />
+                      <Linha rotulo="Queixa" valor={a.queixa} />
+                      <Linha rotulo="Anamnese" valor={a.anamnese} />
+                      <Linha
+                        rotulo="Sinais"
+                        valor={[
+                          a.peso_kg ? `${num(Number(a.peso_kg), 2)} kg` : null,
+                          a.temperatura_c ? `${num(Number(a.temperatura_c), 1)} °C` : null,
+                          a.freq_cardiaca ? `${a.freq_cardiaca} bpm` : null,
+                          a.freq_respiratoria ? `${a.freq_respiratoria} mpm` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      />
+                      <Linha rotulo="Exame físico" valor={a.exame_fisico} />
+                      <Linha rotulo="Diagnóstico" valor={a.diagnostico} />
+                      <Linha rotulo="Conduta" valor={a.conduta} />
+                      <Linha rotulo="Retorno" valor={a.retorno_em ? dateBR(a.retorno_em) : null} />
+                      <Linha rotulo="Observações" valor={a.observacoes} />
+                    </dl>
+
+                    {a.adendos.map((d) => (
+                      <div
+                        key={d.id}
+                        className="mt-3 rounded-md border-l-4 border-primary bg-muted/50 p-3"
+                      >
+                        <p className="whitespace-pre-wrap break-words">{d.texto}</p>
+                        <CorrecaoDoAdendo adendo={d} />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Adendo de {d.veterinario} (CRMV {d.crmv}/{d.crmv_uf}) em{" "}
+                          {dateTimeBR(d.created_at)}
+                        </p>
+                      </div>
+                    ))}
+
+                    {a.situacao === "fechado" &&
+                      (adendo?.id === a.id ? (
+                        <div className="mt-3 grid gap-2">
+                          <Textarea
+                            aria-label="Texto do adendo"
+                            rows={3}
+                            value={adendo.texto}
+                            onChange={(e) => setAdendo({ id: a.id, texto: e.target.value })}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => criarAdendo.mutate()}
+                              disabled={criarAdendo.isPending || !adendo.texto.trim()}
+                            >
+                              Registrar adendo
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setAdendo(null)}>
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-4 min-h-11 w-full sm:w-auto"
+                          onClick={() => setAdendo({ id: a.id, texto: "" })}
+                        >
+                          Adicionar adendo
+                        </Button>
+                      ))}
+                  </>
                 )}
               </article>
             </li>

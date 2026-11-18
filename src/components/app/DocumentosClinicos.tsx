@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FilePlus2, FlaskConical, Plus, Printer, Trash2, TriangleAlert } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FilePlus2,
+  FlaskConical,
+  Plus,
+  Printer,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { CampoMedicamento } from "@/components/app/CampoMedicamento";
@@ -88,6 +97,7 @@ export function DocumentosClinicos({
   }, [pedidoSolicitacao]);
   const [cancelando, setCancelando] = useState<ResumoDocumento | null>(null);
   const [motivo, setMotivo] = useState("");
+  const [expandido, setExpandido] = useState(false);
 
   const chave = ["clinica-documentos", petId, atendimentoId ?? null];
   const lista = useQuery({
@@ -128,9 +138,19 @@ export function DocumentosClinicos({
   return (
     <div className="min-w-0 border-b border-border py-4">
       <div className="mb-3 grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
-        <p className="flex items-center gap-2 font-display text-sm font-semibold">
+        <Button
+          variant="ghost"
+          className="min-h-11 justify-start font-display font-semibold"
+          aria-expanded={expandido}
+          aria-controls={`documentos-historico-${petId}`}
+          onClick={() => setExpandido((atual) => !atual)}
+        >
+          {expandido ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
           <FilePlus2 className="size-4" /> Documentos
-        </p>
+          <span className="text-xs font-normal text-muted-foreground">
+            {expandido ? "Recolher" : "Expandir"}
+          </span>
+        </Button>
         <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
           <Button
             size="sm"
@@ -155,58 +175,60 @@ export function DocumentosClinicos({
         </div>
       </div>
 
-      {lista.isLoading ? (
-        <div className="h-12 animate-pulse rounded-md bg-muted" />
-      ) : lista.error ? (
-        <p className="text-sm text-destructive">{(lista.error as Error).message}</p>
-      ) : (lista.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhum documento emitido.</p>
-      ) : (
-        <ul className="grid gap-3 text-sm lg:grid-cols-2">
-          {(lista.data ?? []).map((d) => (
-            <li
-              key={d.id}
-              className="grid min-w-0 content-start gap-3 rounded-md border border-border bg-card p-4"
-            >
-              <div className="min-w-0">
-                <p className="break-words text-base font-semibold">{d.titulo}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo}
-                </p>
-                <time
-                  dateTime={d.emitido_em}
-                  className="mt-2 block font-semibold tabular-nums text-primary"
-                >
-                  {dateTimeBR(d.emitido_em)}
-                </time>
-                <p className="mt-1 break-words text-sm text-muted-foreground">{d.veterinario}</p>
-                {d.situacao === "cancelado" && (
-                  <Badge variant="destructive" className="ml-2">
-                    Cancelado
-                  </Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <Button asChild size="sm" variant="outline" className="min-h-11">
-                  <Link to="/clinica-documento" search={{ id: d.id }}>
-                    <Printer className="size-4" /> Abrir / imprimir
-                  </Link>
-                </Button>
-                {d.pode_cancelar && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="min-h-11"
-                    onClick={() => setCancelando(d)}
+      <div id={`documentos-historico-${petId}`} hidden={!expandido}>
+        {lista.isLoading ? (
+          <div className="h-12 animate-pulse rounded-md bg-muted" />
+        ) : lista.error ? (
+          <p className="text-sm text-destructive">{(lista.error as Error).message}</p>
+        ) : (lista.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum documento emitido.</p>
+        ) : (
+          <ul className="grid gap-3 text-sm lg:grid-cols-2">
+            {(lista.data ?? []).map((d) => (
+              <li
+                key={d.id}
+                className="grid min-w-0 content-start gap-3 rounded-md border border-border bg-card p-4"
+              >
+                <div className="min-w-0">
+                  <p className="break-words text-base font-semibold">{d.titulo}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    nº {numeroDoDocumento(d)} · {TIPOS_DOCUMENTO[d.tipo].rotulo}
+                  </p>
+                  <time
+                    dateTime={d.emitido_em}
+                    className="mt-2 block font-semibold tabular-nums text-primary"
                   >
-                    Cancelar
+                    {dateTimeBR(d.emitido_em)}
+                  </time>
+                  <p className="mt-1 break-words text-sm text-muted-foreground">{d.veterinario}</p>
+                  {d.situacao === "cancelado" && (
+                    <Badge variant="destructive" className="ml-2">
+                      Cancelado
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <Button asChild size="sm" variant="outline" className="min-h-11">
+                    <Link to="/clinica-documento" search={{ id: d.id }}>
+                      <Printer className="size-4" /> Abrir / imprimir
+                    </Link>
                   </Button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                  {d.pode_cancelar && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="min-h-11"
+                      onClick={() => setCancelando(d)}
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {novo && (
         <EmitirDocumento
