@@ -49,7 +49,7 @@ export function ExamesProntuario({ petId }: { petId: string }) {
       ) : !exames.length ? (
         <p className="text-sm text-muted-foreground">Nenhum exame registrado para este paciente.</p>
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
+        <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-3 lg:grid-cols-2">
           {exames.map((exame) => (
             <li
               key={exame.id}

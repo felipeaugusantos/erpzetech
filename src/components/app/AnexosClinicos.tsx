@@ -198,7 +198,9 @@ export function AnexosClinicos({
   return (
     <div
       className={
-        semMoldura ? "grid min-w-0 gap-3 border-t border-border pt-3" : "panel grid gap-3 p-4"
+        semMoldura
+          ? "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 border-t border-border pt-3"
+          : "panel grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 p-4"
       }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -224,24 +226,28 @@ export function AnexosClinicos({
       ) : visiveis.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum anexo.</p>
       ) : (
-        <ul className="grid gap-2 text-sm">
+        <ul className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm">
           {visiveis.map((a) => (
             <li
               key={a.id}
-              className={`flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 ${
+              className={`grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 rounded-md border border-border p-3 ${
                 a.situacao === "cancelado" ? "opacity-70" : ""
               }`}
             >
               <div className="min-w-0">
-                <p className="font-medium">
-                  {a.descricao}{" "}
+                <p className="break-words font-medium [overflow-wrap:anywhere]">
+                  {a.descricao}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-1">
                   <Badge variant="outline">
                     {rotulo(CATEGORIAS_ANEXO, a.categoria).split(" (")[0]}
                   </Badge>
                   {a.situacao === "cancelado" && <Badge variant="outline">Cancelado</Badge>}
+                </div>
+                <p className="mt-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                  {a.nome_arquivo}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {a.nome_arquivo} ·{" "}
+                <p className="mt-1 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                   {rotulo(
                     TIPOS_ANEXO.map((t) => ({ value: t.mime, label: t.rotulo })),
                     a.mime,
@@ -250,12 +256,12 @@ export function AnexosClinicos({
                   {dateTimeBR(a.created_at)}
                 </p>
                 {a.situacao === "cancelado" && (
-                  <p className="text-xs text-amber-800">
+                  <p className="mt-1 break-words text-xs text-warning [overflow-wrap:anywhere]">
                     Cancelado em {dateTimeBR(a.cancelado_em)}: {a.cancelado_motivo}
                   </p>
                 )}
               </div>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button
                   variant="outline"
                   size="sm"
