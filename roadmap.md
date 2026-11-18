@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Laudo FIV/FeLV no prontuário via emissão veterinária existente, com amostra, data, produto, lote, validade e resultados explícitos; pet/tutor/veterinário vêm do documento salvo e logo da clínica também no PDF.
+
 - [x] Segurança selecionada: páginas públicas só assinam logo validado pela empresa de origem; aplicar cotação exige administrador, gestor ou comprador antes de alterar valores.
 - [ ] Segurança selecionada do teste WhatsApp: limitar destinatários mudaria o teste com número digitado solicitado; aguarda confirmação do usuário. Nenhuma mensagem enviada.
 

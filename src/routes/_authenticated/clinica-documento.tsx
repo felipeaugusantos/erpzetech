@@ -137,7 +137,7 @@ function Documento() {
               disabled={gerandoPdf}
               onClick={() => {
                 setGerandoPdf(true);
-                baixarPdfDocumento(d)
+                baixarPdfDocumento(d, logoUrl)
                   .catch((e: Error) =>
                     toast.error("Não foi possível gerar o PDF", { description: e.message }),
                   )
@@ -195,11 +195,11 @@ function Documento() {
 
         <div className="mb-4 flex items-baseline justify-between">
           <p className="font-display text-base font-bold uppercase">
-            {TIPOS_DOCUMENTO[d.tipo].impresso}
+            {d.titulo === "Laudo FIV / FeLV" ? d.titulo : TIPOS_DOCUMENTO[d.tipo].impresso}
           </p>
           <p className="text-xs text-muted-foreground">nº {numeroDoDocumento(d)}</p>
         </div>
-        {d.titulo !== TIPOS_DOCUMENTO[d.tipo].rotulo && (
+        {d.titulo !== TIPOS_DOCUMENTO[d.tipo].rotulo && d.titulo !== "Laudo FIV / FeLV" && (
           <p className="mb-3 font-semibold">{d.titulo}</p>
         )}
 

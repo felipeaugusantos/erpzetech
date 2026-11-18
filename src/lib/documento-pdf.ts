@@ -16,10 +16,29 @@ const SEXOS: Record<string, string> = { macho: "Macho", femea: "Fêmea" };
 const MARGEM = 20;
 const LARGURA = 210 - 2 * MARGEM; // A4 em mm
 
-export async function baixarPdfDocumento(d: DocumentoClinico): Promise<void> {
+export async function baixarPdfDocumento(d: DocumentoClinico, logoUrl?: string | null): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = MARGEM;
+  if (logoUrl) {
+    const imagem = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Não foi possível carregar a logo da clínica. Tente novamente."));
+      img.src = logoUrl;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = imagem.naturalWidth;
+    canvas.height = imagem.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx || !canvas.width || !canvas.height) throw new Error("Logo inválida.");
+    ctx.drawImage(imagem, 0, 0);
+    const altura = Math.min(20, 45 * canvas.height / canvas.width);
+    const largura = altura * canvas.width / canvas.height;
+    doc.addImage(canvas.toDataURL("image/png"), "PNG", MARGEM, y, largura, altura);
+    y += altura + 6;
+  }
 
   const quebra = (texto: string, largura = LARGURA) =>
     doc.splitTextToSize(texto, largura) as string[];
@@ -64,11 +83,11 @@ export async function baixarPdfDocumento(d: DocumentoClinico): Promise<void> {
   // título do documento
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  linhas(TIPOS_DOCUMENTO[d.tipo].impresso.toUpperCase(), 7);
+  linhas((d.titulo === "Laudo FIV / FeLV" ? d.titulo : TIPOS_DOCUMENTO[d.tipo].impresso).toUpperCase(), 7);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   linhas(`nº ${numeroDoDocumento(d)}`, 5);
-  if (d.titulo !== TIPOS_DOCUMENTO[d.tipo].rotulo) {
+  if (d.titulo !== TIPOS_DOCUMENTO[d.tipo].rotulo && d.titulo !== "Laudo FIV / FeLV") {
     doc.setFont("helvetica", "bold");
     linhas(d.titulo, 6);
     doc.setFont("helvetica", "normal");

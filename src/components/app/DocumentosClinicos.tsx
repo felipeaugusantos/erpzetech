@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { CampoMedicamento } from "@/components/app/CampoMedicamento";
+import { LaudoFivFelv } from "@/components/app/LaudoFivFelv";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,6 +93,7 @@ export function DocumentosClinicos({
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [novo, setNovo] = useState<TipoDocumento | null>(null);
+  const [laudoTeste, setLaudoTeste] = useState(false);
   useEffect(() => {
     if (pedidoSolicitacao > 0) setNovo("solicitacao_exame");
   }, [pedidoSolicitacao]);
@@ -152,6 +154,9 @@ export function DocumentosClinicos({
           </span>
         </Button>
         <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
+          <Button size="sm" variant="outline" className="min-h-11" onClick={() => setLaudoTeste(true)}>
+            <FlaskConical className="size-4" /> Laudo FIV / FeLV
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -248,6 +253,8 @@ export function DocumentosClinicos({
           }}
         />
       )}
+
+      {laudoTeste && <LaudoFivFelv petId={petId} {...(atendimentoId ? { atendimentoId } : {})} nome={pet.nome} fechar={() => setLaudoTeste(false)} />}
 
       <Dialog open={Boolean(cancelando)} onOpenChange={(o) => !o && fecharCancelamento()}>
         <DialogContent>
