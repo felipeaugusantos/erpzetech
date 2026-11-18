@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { entradaTesteWhatsApp, textoTesteWhatsApp } from "./whatsapp-teste";
+import { exigirAcessoTesteWhatsApp } from "./whatsapp-teste-acesso";
 
 export const whatsappTeste = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,10 +16,10 @@ export const whatsappTeste = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const db = context.supabase;
-    const papel = await db.rpc("exige_papel", {
-      p_papeis: ["administrador", "gestor", "veterinario"],
-    });
-    if (papel.error) throw new Error("Somente veterinário, administrador ou gestor pode testar.");
+    await exigirAcessoTesteWhatsApp((papel) => db.rpc("has_role", {
+      _user_id: context.userId,
+      _role: papel,
+    }));
     const clinica = await db.rpc("clinica_liberada");
     if (clinica.error || !clinica.data) throw new Error("Clínica não liberada.");
     const tenant = await db.rpc("current_tenant_id");
