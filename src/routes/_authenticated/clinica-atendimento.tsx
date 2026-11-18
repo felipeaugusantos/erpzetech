@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Lock, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/clinica-atendimento")({
   }),
   head: () => ({
     meta: [
-      { title: "Atendimento clínico — EZRA ERP" },
+      { title: "Atendimento clínico — ERP Ze Tech" },
       {
         name: "description",
         content: "Prontuário da consulta: queixa, exame, diagnóstico e conduta.",
@@ -239,6 +239,11 @@ function Atendimento() {
 
   return (
     <div>
+      <Button asChild variant="outline" size="sm" className="mb-4 min-h-11">
+        <Link to="/clinica-prontuario" search={{ pet: data.pet_id }}>
+          <ArrowLeft className="size-4" /> Voltar ao prontuário
+        </Link>
+      </Button>
       <PageHeader
         title={`Atendimento de ${p.nome}`}
         description={`Tutor(a) ${data.tutor} · aberto em ${dateTimeBR(data.aberto_em)} por ${data.veterinario.nome} (CRMV ${data.veterinario.crmv}/${data.veterinario.crmv_uf})`}
