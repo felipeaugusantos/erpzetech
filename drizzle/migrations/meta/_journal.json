@@ -827,6 +827,20 @@
       "when": 1794963028724,
       "tag": "0117_clinica_preferencias_ficha",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1795042379313,
+      "tag": "0118_clinica_whatsapp_testes",
+      "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1795042575666,
+      "tag": "0119_clinica_whatsapp_testes_privilegios",
+      "breakpoints": true
     }
   ]
 }

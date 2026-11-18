@@ -54,6 +54,12 @@ export const Route = createFileRoute("/api/public/whatsapp/eventos")({
           if (error) return new Response("Erro ao gravar", { status: 500 });
         } else if (ev.tipo === "status") {
           if (ev.status !== "enviada") {
+            const teste = await supabaseAdmin.rpc("clinica_wa_teste_status", {
+              p_instancia: ev.instancia,
+              p_id_externo: ev.idMensagem,
+              p_status: ev.status,
+            });
+            if (teste.error) return new Response("Erro ao gravar teste", { status: 500 });
             const { error } = await supabaseAdmin.rpc("wa_status", {
               p_instancia: ev.instancia,
               p_id_externo: ev.idMensagem,

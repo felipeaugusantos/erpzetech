@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Botão de teste do WhatsApp com número digitado, modelo salvo, prévia e confirmação; registro separado e acompanhamento pela conexão existente.
+- [ ] Conferir recebimento real do teste: conta disponível está desconectada e nenhum número de destino autorizado foi informado; nenhum WhatsApp enviado.
+
 - [x] Alinhar ações das consultas e abrir anexos por atendimento; aviso de exames ativos com a última data de inclusão permanece visível no histórico recolhido e usa o mesmo cache invalidado ao enviar/cancelar.
 - [ ] Conferir envio e leitura do anexo por consulta na tela com sessão veterinária autorizada: sessão atual é da administração, sem pacientes clínicos acessíveis.
 

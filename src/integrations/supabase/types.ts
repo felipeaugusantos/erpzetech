@@ -1623,6 +1623,85 @@ export type Database = {
           },
         ]
       }
+      clinica_wa_teste_status: {
+        Row: {
+          id_externo: string
+          recebido_em: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          id_externo: string
+          recebido_em?: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          id_externo?: string
+          recebido_em?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_wa_teste_status_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinica_wa_testes: {
+        Row: {
+          created_at: string
+          criado_por: string
+          erro: string | null
+          id: string
+          id_externo: string | null
+          modelo: string
+          numero: string
+          situacao: string
+          tenant_id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por: string
+          erro?: string | null
+          id: string
+          id_externo?: string | null
+          modelo: string
+          numero: string
+          situacao?: string
+          tenant_id: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          modelo?: string
+          numero?: string
+          situacao?: string
+          tenant_id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_wa_testes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobranca_config: {
         Row: {
           ambiente: string
@@ -17857,6 +17936,10 @@ export type Database = {
           p_retorno: boolean
           p_retorno_antes: number
         }
+        Returns: undefined
+      }
+      clinica_wa_teste_status: {
+        Args: { p_id_externo: string; p_instancia: string; p_status: string }
         Returns: undefined
       }
       cobranca_cancelar: { Args: { p_cobranca_id: string }; Returns: undefined }

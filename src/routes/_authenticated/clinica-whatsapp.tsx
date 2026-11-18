@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ModeloMensagem } from "@/components/app/ModeloMensagem";
+import { TesteWhatsAppClinica } from "@/components/app/TesteWhatsAppClinica";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { PainelRelacionamentoClinica } from "@/components/app/PainelRelacionamentoClinica";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
@@ -37,7 +38,7 @@ import { ROTULO_AVISO_CLINICA } from "@/lib/whatsapp-despacho";
 export const Route = createFileRoute("/_authenticated/clinica-whatsapp")({
   head: () => ({
     meta: [
-      { title: "WhatsApp da clínica — EZRA ERP" },
+      { title: "WhatsApp da clínica — ERP Ze Tech" },
       {
         name: "description",
         content:
@@ -397,6 +398,8 @@ function WhatsAppClinica() {
           )}
         </div>
       </div>
+
+      {podeRegras && <TesteWhatsAppClinica conectado={estado === "conectada"} />}
 
       <PainelRelacionamentoClinica />
 
