@@ -1,4 +1,6 @@
 import { CorrecaoDoAdendo } from "@/components/app/CorrecaoDoAdendo";
+import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { AvisoExamesConsulta } from "@/components/app/AvisoExamesConsulta";
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +16,7 @@ import {
   TrendingUp,
   TriangleAlert,
   UserPlus,
+  Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -213,6 +216,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const oculta = (s: string) => preferencias?.secoes_ocultas.includes(s as never) ?? false;
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [examesAbertos, setExamesAbertos] = useState(false);
+  const [anexandoConsulta, setAnexandoConsulta] = useState<AtendimentoClinico | null>(null);
   const contato = useQuery({
     queryKey: ["clinica-contato-tutor", petId],
     queryFn: async () => {
@@ -618,6 +622,32 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!anexandoConsulta}
+        onOpenChange={(aberto) => !aberto && setAnexandoConsulta(null)}
+      >
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Anexar exame à consulta de{" "}
+              {anexandoConsulta
+                ? dateBR(
+                    anexandoConsulta.data_atendimento ?? dataClinica(anexandoConsulta.aberto_em),
+                  )
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {anexandoConsulta && (
+            <AnexosClinicos
+              categoriaInicial="laboratorial"
+              key={anexandoConsulta.id}
+              atendimentoId={anexandoConsulta.id}
+              semMoldura
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-base font-semibold">Consultas do paciente</h3>
         {data.atendimentos.length > 0 && (
@@ -679,6 +709,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                   <Badge variant={a.situacao === "fechado" ? "secondary" : "default"}>
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
+                  <div className="col-span-2">
+                    <AvisoExamesConsulta atendimentoId={a.id} />
+                  </div>
                 </div>
                 {expandidos.has(a.id) && (
                   <>
@@ -686,27 +719,34 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       <Button size="sm" variant="outline" onClick={() => setExamesAbertos(true)}>
                         <FlaskConical /> Exames
                       </Button>
-                    </div>
-                    {a.veterinario.id === meuVeterinario.data && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <AlterarDataConsulta atendimento={a} petId={petId} />
-                        {a.situacao === "fechado" && (
-                          <CorrigirAtendimento atendimento={a} petId={petId} />
-                        )}
-                      </div>
-                    )}
-                    {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
-                      <div className="mt-3">
-                        <Button asChild size="sm">
-                          <Link
-                            to="/clinica-atendimento"
-                            search={{ agendamento: a.agendamento_id }}
+                      {a.veterinario.id === meuVeterinario.data && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAnexandoConsulta(a)}
                           >
-                            <Stethoscope /> Continuar atendimento
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
+                            <Paperclip className="size-4" /> Anexar exame
+                          </Button>
+                          <AlterarDataConsulta atendimento={a} petId={petId} />
+                          {a.situacao === "fechado" && (
+                            <CorrigirAtendimento atendimento={a} petId={petId} />
+                          )}
+                        </>
+                      )}
+                      {a.situacao === "aberto" && a.veterinario.id === meuVeterinario.data && (
+                        <>
+                          <Button asChild size="sm">
+                            <Link
+                              to="/clinica-atendimento"
+                              search={{ agendamento: a.agendamento_id }}
+                            >
+                              <Stethoscope /> Continuar atendimento
+                            </Link>
+                          </Button>
+                        </>
+                      )}
+                    </div>
                     <dl className="mt-4 grid gap-4">
                       <Linha
                         rotulo="Peso nesta consulta"

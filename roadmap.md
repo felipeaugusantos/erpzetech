@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Alinhar ações das consultas e abrir anexos por atendimento; aviso de exames ativos com a última data de inclusão permanece visível no histórico recolhido e usa o mesmo cache invalidado ao enviar/cancelar.
+- [ ] Conferir envio e leitura do anexo por consulta na tela com sessão veterinária autorizada: sessão atual é da administração, sem pacientes clínicos acessíveis.
+
 - [x] Separar modelos automáticos de vacina antes, vacina vencida e retorno com os textos informados e edição autorizada; 42 testes passaram, seleção por data de Brasília conferida no banco e na lógica, três editores conferidos com sessão real; gravação e reabertura de modelo verificadas e textos temporários removidos. Nenhum WhatsApp enviado; envio real ainda não exercitado.
 
 - [x] Editar informações e data da consulta diretamente, sem gerar adendos novos nem exigir motivo; funções instaladas conferidas, testes de validação passaram e testes comportamentais da CI atualizados; registros antigos preservados.

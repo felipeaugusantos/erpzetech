@@ -47,11 +47,13 @@ export function AnexosClinicos({
   atendimentoId,
   podeEnviar = true,
   semMoldura = false,
+  categoriaInicial = "imagem",
 }: {
   exameId?: string;
   atendimentoId?: string;
   podeEnviar?: boolean;
   semMoldura?: boolean;
+  categoriaInicial?: CategoriaAnexo;
 }) {
   const alvo = exameId ?? atendimentoId ?? "";
   const qc = useQueryClient();
@@ -62,7 +64,7 @@ export function AnexosClinicos({
     caminho: string;
     enviado: boolean;
   } | null>(null);
-  const [categoria, setCategoria] = useState<CategoriaAnexo>("imagem");
+  const [categoria, setCategoria] = useState<CategoriaAnexo>(categoriaInicial);
   const [descricao, setDescricao] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [verCancelados, setVerCancelados] = useState(false);
@@ -235,9 +237,7 @@ export function AnexosClinicos({
               }`}
             >
               <div className="min-w-0">
-                <p className="break-words font-medium [overflow-wrap:anywhere]">
-                  {a.descricao}
-                </p>
+                <p className="break-words font-medium [overflow-wrap:anywhere]">{a.descricao}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <Badge variant="outline">
                     {rotulo(CATEGORIAS_ANEXO, a.categoria).split(" (")[0]}
