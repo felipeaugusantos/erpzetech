@@ -36,6 +36,9 @@ import { useModulosCnae } from "@/lib/cnae";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ExamesAgendadosPaciente } from "@/components/app/ExamesAgendadosPaciente";
 import { ExamesProntuario } from "@/components/app/ExamesProntuario";
+import { usePreferenciasClinica } from "@/components/app/ConfigImportacaoExame";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronDown, ChevronRight, MessageCircle } from "lucide-react";
 import { ListaFavoritosBulario } from "@/components/app/FavoritosBulario";
 import { ResumoIaClinica } from "@/components/app/ResumoIaClinica";
 import {
@@ -206,6 +209,23 @@ function FichaDoPaciente({ petId }: { petId: string }) {
   const [iniciando, setIniciando] = useState(false);
   const [pedidoSolicitacao, setPedidoSolicitacao] = useState(0);
   const navegar = useNavigate();
+  const { data: preferencias } = usePreferenciasClinica();
+  const oculta = (s: string) => preferencias?.secoes_ocultas.includes(s as never) ?? false;
+  const [recolhidos, setRecolhidos] = useState<Set<string>>(new Set());
+  const [examesAbertos, setExamesAbertos] = useState(false);
+  const contato = useQuery({
+    queryKey: ["clinica-contato-tutor", petId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pets")
+        .select("cliente:clientes(whatsapp, telefone)")
+        .eq("id", petId)
+        .maybeSingle();
+      if (error) throw error;
+      const c = data?.cliente as { whatsapp: string | null; telefone: string | null } | null;
+      return c?.whatsapp || c?.telefone || null;
+    },
+  });
 
   const meuVeterinario = useQuery({
     queryKey: ["clinica-meu-veterinario"],
@@ -310,6 +330,16 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <h2 className="break-words font-display text-xl font-semibold">{p.nome}</h2>
               <span className="break-words text-sm text-muted-foreground">
                 Tutor(a) {data.tutor}
+                {contato.data && (
+                  <a
+                    className="ml-2 inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                    href={`https://wa.me/${contato.data.replace(/\D/g, "").replace(/^(?!55)(\d{10,11})$/, "55$1")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle className="size-4" /> {contato.data}
+                  </a>
+                )}
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -368,7 +398,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <Syringe /> Aplicar vacina
             </Link>
           </Button>
-          <ProximaConsulta petId={petId} petNome={p.nome} />
+          {preferencias?.proxima_consulta !== false && (
+            <ProximaConsulta petId={petId} petNome={p.nome} />
+          )}
           <Button asChild size="sm" variant="outline">
             <Link
               to="/clinica-vacinas"
@@ -448,7 +480,7 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         </div>
       </div>
 
-      {sinais.length > 0 && (
+      {sinais.length > 0 && !oculta("sinais") && (
         <section
           className="min-w-0 border-b border-border py-4"
           aria-label="Sinais vitais nas consultas"
@@ -560,22 +592,49 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         </section>
       )}
 
-      <DocumentosClinicos
-        petId={petId}
-        pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
-        tutor={data.tutor}
-        pedidoSolicitacao={pedidoSolicitacao}
-      />
+      {!oculta("documentos") && (
+        <DocumentosClinicos
+          petId={petId}
+          pet={{ nome: p.nome, especie: p.especie, raca: p.raca }}
+          tutor={data.tutor}
+          pedidoSolicitacao={pedidoSolicitacao}
+        />
+      )}
 
-      <ExamesAgendadosPaciente petId={petId} />
+      {!oculta("exames_agendados") && <ExamesAgendadosPaciente petId={petId} />}
 
-      <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
+      {!oculta("resumo_ia") && (
+        <ResumoIaClinica petId={petId} souVeterinario={!!meuVeterinario.data} />
+      )}
 
-      <ListaFavoritosBulario titulo="Remédios favoritos da clínica" />
+      {!oculta("favoritos") && <ListaFavoritosBulario titulo="Remédios favoritos da clínica" />}
 
-      <ExamesProntuario petId={petId} />
+      <Dialog open={examesAbertos} onOpenChange={setExamesAbertos}>
+        <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Exames de {p.nome}</DialogTitle>
+          </DialogHeader>
+          <ExamesProntuario petId={petId} />
+        </DialogContent>
+      </Dialog>
 
-      <h3 className="font-display text-base font-semibold">Consultas do paciente</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-display text-base font-semibold">Consultas do paciente</h3>
+        {data.atendimentos.length > 0 && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setRecolhidos(new Set())}>
+              Expandir todas
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setRecolhidos(new Set(data.atendimentos.map((a) => a.id)))}
+            >
+              Recolher todas
+            </Button>
+          </div>
+        )}
+      </div>
       {data.atendimentos.length === 0 ? (
         <EmptyState
           title="Sem atendimentos"
@@ -591,18 +650,41 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               />
               <article className="min-w-0 rounded-md border border-border bg-card p-4 text-base leading-relaxed sm:text-sm">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border pb-3">
-                  <time
-                    dateTime={a.data_atendimento ?? a.aberto_em}
-                    className="font-semibold tabular-nums text-primary"
+                  <button
+                    type="button"
+                    aria-expanded={!recolhidos.has(a.id)}
+                    className="flex items-center gap-1 text-left font-semibold tabular-nums text-primary"
+                    onClick={() =>
+                      setRecolhidos((atual) => {
+                        const novo = new Set(atual);
+                        if (novo.has(a.id)) novo.delete(a.id);
+                        else novo.add(a.id);
+                        return novo;
+                      })
+                    }
                   >
-                    {dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}
-                  </time>
+                    {recolhidos.has(a.id) ? (
+                      <ChevronRight className="size-4" />
+                    ) : (
+                      <ChevronDown className="size-4" />
+                    )}
+                    <time dateTime={a.data_atendimento ?? a.aberto_em}>
+                      {dateBR(a.data_atendimento ?? dataClinica(a.aberto_em))}
+                    </time>
+                  </button>
                   <span className="col-span-2 row-start-2 break-words text-sm text-muted-foreground">
                     {a.veterinario.nome} · CRMV {a.veterinario.crmv}/{a.veterinario.crmv_uf}
                   </span>
                   <Badge variant={a.situacao === "fechado" ? "secondary" : "default"}>
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
+                </div>
+                {!recolhidos.has(a.id) && (
+                <>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setExamesAbertos(true)}>
+                    <FlaskConical /> Exames
+                  </Button>
                 </div>
                 {a.veterinario.id === meuVeterinario.data && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -696,6 +778,8 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       Adicionar adendo
                     </Button>
                   ))}
+                </>
+                )}
               </article>
             </li>
           ))}

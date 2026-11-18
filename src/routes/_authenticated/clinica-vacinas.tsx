@@ -344,7 +344,7 @@ function Vacinas() {
             {!agendamento && (
               <>
                 <div>
-                  <Label htmlFor="a-servico">Serviço cobrado</Label>
+                  <Label htmlFor="a-servico">Serviço cobrado <span className="text-destructive">*</span></Label>
                   <Select value={servicoAtual || "__nenhum"} onValueChange={setServicoId}>
                     <SelectTrigger id="a-servico">
                       <SelectValue />
@@ -362,7 +362,7 @@ function Vacinas() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="a-data">Data da aplicação</Label>
+                  <Label htmlFor="a-data">Data da aplicação <span className="text-destructive">*</span></Label>
                   <Input
                     id="a-data"
                     type="date"
@@ -374,7 +374,7 @@ function Vacinas() {
               </>
             )}
             <div>
-              <Label htmlFor="a-item">Vacina ou vermífugo</Label>
+              <Label htmlFor="a-item">Vacina ou vermífugo <span className="text-destructive">*</span></Label>
               <Select
                 value={catalogoId || "__nenhum"}
                 onValueChange={(v) => {
@@ -399,7 +399,7 @@ function Vacinas() {
               )}
             </div>
             <div>
-              <Label htmlFor="a-lote">Lote</Label>
+              <Label htmlFor="a-lote">Lote e vencimento <span className="text-destructive">*</span></Label>
               <Select
                 value={loteId || "__nenhum"}
                 onValueChange={(v) => setLoteId(v === "__nenhum" ? "" : v)}
@@ -410,7 +410,9 @@ function Vacinas() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__nenhum">Escolha o lote</SelectItem>
-                  {lotes.data?.map((l) => (
+                  {lotes.data
+                    ?.filter((l) => l.quantidade > 0 && (!l.validade || l.validade >= (aplicadaEm || hoje)))
+                    .map((l) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.lote} · vence {dateBR(l.validade)} · {l.quantidade} dose(s) · {l.deposito}
                     </SelectItem>
@@ -424,7 +426,7 @@ function Vacinas() {
               )}
             </div>
             <div>
-              <Label htmlFor="a-aplicador">Aplicado por</Label>
+              <Label htmlFor="a-aplicador">Aplicado por <span className="text-destructive">*</span></Label>
               <Select
                 value={aplicador || "__eu"}
                 onValueChange={(v) => setAplicador(v === "__eu" ? "" : v)}
@@ -443,7 +445,7 @@ function Vacinas() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="a-local">Local da aplicação</Label>
+              <Label htmlFor="a-local">Local da aplicação <span className="text-destructive">*</span></Label>
               <Input
                 id="a-local"
                 value={local}
@@ -461,6 +463,7 @@ function Vacinas() {
                 onChange={(e) => setProxima(e.target.value)}
               />
               <AtalhosProximaDose
+                base={aplicadaEm || hoje}
                 valor={proxima}
                 desativado={semProxima}
                 onEscolher={(d) => {
@@ -489,7 +492,11 @@ function Vacinas() {
             <Button
               onClick={() => aplicar.mutate()}
               disabled={
-                aplicar.isPending || !catalogoId || !loteId || (!agendamento && !servicoAtual)
+                aplicar.isPending ||
+                !catalogoId ||
+                !loteId ||
+                !local.trim() ||
+                (!agendamento && (!servicoAtual || !aplicadaEm || aplicadaEm > hoje))
               }
             >
               <Syringe className="size-4" /> Registrar aplicação

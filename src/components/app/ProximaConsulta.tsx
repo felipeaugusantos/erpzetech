@@ -77,7 +77,9 @@ function AgendarConsulta({
   aoAgendar?: ((dia: string) => void) | undefined;
 }) {
   const qc = useQueryClient();
-  const [dia, setDia] = useState(diaSugerido);
+  // Sem data padrão: o veterinário escolhe o dia da próxima consulta.
+  const [dia, setDia] = useState("");
+  void diaSugerido;
   const [hora, setHora] = useState("");
   const [profissional, setProfissional] = useState("");
   const [servico, setServico] = useState("");

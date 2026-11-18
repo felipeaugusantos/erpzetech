@@ -820,6 +820,13 @@
       "when": 1794933000000,
       "tag": "0116_clinica_wa_regras_contador",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1794963028724,
+      "tag": "0117_clinica_preferencias_ficha",
+      "breakpoints": true
     }
   ]
 }

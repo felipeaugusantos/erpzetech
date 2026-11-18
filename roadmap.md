@@ -371,3 +371,11 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] PR 3 — Exames: resultados só com número, cálculo do hemograma, valor fora da faixa, evolução e laudo
 - [x] PR 4 — Exames: anexos (ultrassom, raio-x, laudos) em armazenamento privado
 - [ ] PR 5 — Trabalho sem internet (cães e gatos; cadastro, atendimento, vacina e exame): 5a base segura (cofre criptografado, fila, pendências, preparar visita) ✔ · 5b cadastros ✔ · 5c atendimento ✔ · 5d vacina e exame ✔ · 5e anexos ✔
+
+## Ajustes do prontuário (nov/2026)
+- [x] Contato WhatsApp do tutor na ficha
+- [x] Botão Exames no histórico (saiu do topo)
+- [x] Nome do PDF importado digitado pelo veterinário
+- [x] Próxima dose da vacina a partir da data de aplicação; lote com saldo e dentro da validade; campos obrigatórios
+- [x] Próxima consulta sem data padrão; ligar/desligar em Configurações → Clínica
+- [x] Recolher/expandir consultas; escolher seções da ficha em Configurações

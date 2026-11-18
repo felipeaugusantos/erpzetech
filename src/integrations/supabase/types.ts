@@ -1594,16 +1594,22 @@ export type Database = {
       clinica_preferencias: {
         Row: {
           importacao_exame: string
+          proxima_consulta: boolean
+          secoes_ocultas: string[]
           tenant_id: string
           updated_at: string
         }
         Insert: {
           importacao_exame?: string
+          proxima_consulta?: boolean
+          secoes_ocultas?: string[]
           tenant_id: string
           updated_at?: string
         }
         Update: {
           importacao_exame?: string
+          proxima_consulta?: boolean
+          secoes_ocultas?: string[]
           tenant_id?: string
           updated_at?: string
         }
@@ -17729,6 +17735,10 @@ export type Database = {
       }
       clinica_portal_vinculo_revogar: {
         Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      clinica_preferencias_ficha_salvar: {
+        Args: { p_proxima_consulta: boolean; p_secoes_ocultas: string[] }
         Returns: undefined
       }
       clinica_preferencias_ler: { Args: never; Returns: Json }

@@ -9,6 +9,7 @@ import { AudioConsulta } from "@/components/app/AudioConsulta";
 import { CorrigirAtendimento } from "@/components/app/CorrigirAtendimento";
 import { DataAtendimento } from "@/components/app/DataAtendimento";
 import { ProximaConsulta } from "@/components/app/ProximaConsulta";
+import { usePreferenciasClinica } from "@/components/app/ConfigImportacaoExame";
 import { aplicarTranscricao, type CampoAudio } from "@/lib/consulta-audio";
 import { DocumentosClinicos } from "@/components/app/DocumentosClinicos";
 import { ModuloBloqueado } from "@/components/app/ModuloCnae";
@@ -82,6 +83,7 @@ function Atendimento() {
   const qc = useQueryClient();
   const [form, setForm] = useState<FormAtendimento | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const { data: preferencias } = usePreferenciasClinica();
 
   // abrir é idempotente: devolve o atendimento que já existe para a consulta
   const { data, isLoading, error } = useQuery({
@@ -424,6 +426,7 @@ function Atendimento() {
               com o seu nome e CRMV. A consulta vai para pronto e a recepção faz a cobrança.
             </DialogDescription>
           </DialogHeader>
+          {preferencias?.proxima_consulta !== false && (
           <div className="space-y-2 border-y border-border py-3">
             <p className="text-sm font-semibold">Próxima consulta</p>
             <ProximaConsulta
@@ -435,6 +438,7 @@ function Atendimento() {
               }
             />
           </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmando(false)}>
               Voltar

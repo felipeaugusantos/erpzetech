@@ -10,7 +10,10 @@ export async function salvarPdfLaudo(
   exameId: string,
   arquivo: File,
   reservas: Map<string, ReservaPdfLaudo>,
+  nome?: string,
 ) {
+  const base = (nome?.trim() || arquivo.name).replace(/[\\/:*?"<>|]/g, "-").replace(/\.pdf$/i, "");
+  const nomeArquivo = (base.length > 116 ? base.slice(0, 116) : base) + ".pdf";
   let reserva = reservas.get(exameId);
   if (!reserva) {
     const { data, error } = await supabase.rpc("clinica_anexo_preparar", {
@@ -18,8 +21,7 @@ export async function salvarPdfLaudo(
         exame_id: exameId,
         categoria: "laudo",
         descricao: "PDF original do laudo importado",
-        nome_arquivo:
-          arquivo.name.length > 120 ? arquivo.name.slice(0, 116) + ".pdf" : arquivo.name,
+        nome_arquivo: nomeArquivo,
         mime: "application/pdf",
         tamanho: arquivo.size,
       },

@@ -6,7 +6,11 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionData } from "@/hooks/useSessionData";
-import { ConfigImportacaoExame, useClinicaLiberada } from "@/components/app/ConfigImportacaoExame";
+import {
+  ConfigFichaProntuario,
+  ConfigImportacaoExame,
+  useClinicaLiberada,
+} from "@/components/app/ConfigImportacaoExame";
 import { PageHeader, EmptyState } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,7 +188,8 @@ function Configuracoes() {
         </TabsList>
 
         {clinicaLiberada && (
-          <TabsContent value="clinica" className="mt-4">
+          <TabsContent value="clinica" className="mt-4 space-y-4">
+            <ConfigFichaProntuario />
             <ConfigImportacaoExame />
           </TabsContent>
         )}

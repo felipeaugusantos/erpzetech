@@ -56,6 +56,7 @@ export function ImportarExamesPetPdf({
   } | null>(null);
   const [confirmado, setConfirmado] = useState(false);
   const [laboratorio, setLaboratorio] = useState("");
+  const [nomePdf, setNomePdf] = useState("");
   const [coleta, setColeta] = useState("");
   const [emissao, setEmissao] = useState("");
   const [referencia, setReferencia] = useState<"pdf" | "modelo">("pdf");
@@ -82,6 +83,7 @@ export function ImportarExamesPetPdf({
       if (token !== geracao.current) return;
       anexos.current.clear();
       setPrevia({ laudo, grupos, modelos, chave: crypto.randomUUID(), arquivo: file });
+      setNomePdf(file.name.replace(/\.pdf$/i, ""));
       setColeta(laudo.coleta);
       setEmissao(laudo.emissao ?? "");
       const lab = laboratorioDoLaudo(textoPdf);
@@ -136,7 +138,7 @@ export function ImportarExamesPetPdf({
       const resultado = data as unknown as { exames: { id: string }[] };
       resultadosSalvos = true;
       for (const exame of resultado.exames) {
-        await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current);
+        await salvarPdfLaudo(exame.id, previa.arquivo, anexos.current, nomePdf);
       }
       toast.success(
         soArquivo
@@ -218,6 +220,17 @@ export function ImportarExamesPetPdf({
                 {previa.laudo.especie === "cao" ? "Cão" : "Gato"}
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="pdf-nome">Nome do PDF no prontuário</Label>
+                  <Input
+                    id="pdf-nome"
+                    value={nomePdf}
+                    maxLength={116}
+                    disabled={ocupado}
+                    placeholder="Ex.: Hemograma Bibi novembro"
+                    onChange={(e) => setNomePdf(e.target.value)}
+                  />
+                </div>
                 <div>
                   <Label htmlFor="pdf-lab">Laboratório</Label>
                   <Input

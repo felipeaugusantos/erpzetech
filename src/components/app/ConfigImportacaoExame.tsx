@@ -2,9 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ModoImportacaoExame = "valores" | "arquivo";
+export const SECOES_FICHA = [
+  { id: "sinais", titulo: "Sinais vitais nas consultas" },
+  { id: "documentos", titulo: "Receitas, atestados e pedidos de exame" },
+  { id: "exames_agendados", titulo: "Exames agendados" },
+  { id: "resumo_ia", titulo: "Resumo do histórico com IA" },
+  { id: "favoritos", titulo: "Remédios favoritos da clínica" },
+] as const;
+export type SecaoFicha = (typeof SECOES_FICHA)[number]["id"];
 export const chavePreferenciasClinica = ["clinica-preferencias"] as const;
 
 export function usePreferenciasClinica(ativo = true) {
@@ -14,9 +23,17 @@ export function usePreferenciasClinica(ativo = true) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("clinica_preferencias_ler");
       if (error) throw error;
-      const modo = (data as { importacao_exame?: string } | null)?.importacao_exame;
+      const d = data as {
+        importacao_exame?: string;
+        proxima_consulta?: boolean;
+        secoes_ocultas?: string[];
+      } | null;
       return {
-        importacao_exame: (modo === "arquivo" ? "arquivo" : "valores") as ModoImportacaoExame,
+        importacao_exame: (d?.importacao_exame === "arquivo"
+          ? "arquivo"
+          : "valores") as ModoImportacaoExame,
+        proxima_consulta: d?.proxima_consulta !== false,
+        secoes_ocultas: (d?.secoes_ocultas ?? []) as SecaoFicha[],
       };
     },
   });
@@ -102,6 +119,73 @@ export function ConfigImportacaoExame() {
       </div>
       <p className="text-xs text-muted-foreground">
         Só administrador e gestor alteram este ajuste.
+      </p>
+    </div>
+  );
+}
+
+export function ConfigFichaProntuario() {
+  const qc = useQueryClient();
+  const { data } = usePreferenciasClinica();
+  const salvar = useMutation({
+    mutationFn: async (v: { proxima: boolean; ocultas: SecaoFicha[] }) => {
+      const { error } = await supabase.rpc("clinica_preferencias_ficha_salvar", {
+        p_proxima_consulta: v.proxima,
+        p_secoes_ocultas: v.ocultas,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ficha do prontuário atualizada");
+      void qc.invalidateQueries({ queryKey: chavePreferenciasClinica });
+    },
+    onError: (e) =>
+      toast.error("Não foi possível salvar", {
+        description: e instanceof Error ? e.message : (e as { message?: string }).message,
+      }),
+  });
+  if (!data) return <div className="panel h-32 max-w-3xl animate-pulse" />;
+  const ocultas = data.secoes_ocultas;
+  return (
+    <div className="panel max-w-3xl space-y-4 p-5">
+      <div>
+        <p className="font-display text-sm font-semibold">Ficha do prontuário</p>
+        <p className="text-xs text-muted-foreground">
+          Escolha o que aparece na ficha do paciente. O histórico de consultas sempre aparece.
+        </p>
+      </div>
+      <label className="flex items-start gap-3 text-sm">
+        <Switch
+          checked={data.proxima_consulta}
+          disabled={salvar.isPending}
+          onCheckedChange={(v) => salvar.mutate({ proxima: v, ocultas })}
+        />
+        <span>
+          <span className="font-medium">Trabalhar com próxima consulta</span>
+          <span className="block text-xs text-muted-foreground">
+            Desligado, some o botão de agendar a próxima consulta no prontuário e no fechamento.
+          </span>
+        </span>
+      </label>
+      <div className="grid gap-2 border-t border-border pt-3">
+        {SECOES_FICHA.map((s) => (
+          <label key={s.id} className="flex items-center gap-3 text-sm">
+            <Switch
+              checked={!ocultas.includes(s.id)}
+              disabled={salvar.isPending}
+              onCheckedChange={(v) =>
+                salvar.mutate({
+                  proxima: data.proxima_consulta,
+                  ocultas: v ? ocultas.filter((o) => o !== s.id) : [...ocultas, s.id],
+                })
+              }
+            />
+            {s.titulo}
+          </label>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Veterinário, administrador e gestor alteram este ajuste.
       </p>
     </div>
   );
