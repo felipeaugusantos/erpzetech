@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import { entradaTesteWhatsApp, textoTesteWhatsApp } from "./whatsapp-teste";
+import { telefoneWhatsApp } from "./contato-pet.ts";
 import { exigirAcessoTesteWhatsApp } from "./whatsapp-teste-acesso";
 
 export const whatsappTeste = createServerFn({ method: "POST" })
@@ -27,6 +28,19 @@ export const whatsappTeste = createServerFn({ method: "POST" })
     const tenantId = String(tenant.data);
     const srv = await import("./whatsapp.server");
     srv.exigirEmpresaLiberada(tenantId);
+    // O teste só pode ir para o telefone cadastrado da própria pessoa que testa,
+    // para o WhatsApp da clínica não virar canal de mensagem para terceiros.
+    const perfil = await db
+      .from("profiles")
+      .select("telefone")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (perfil.error) throw new Error("Não foi possível conferir o seu telefone cadastrado.");
+    const proprio = telefoneWhatsApp(perfil.data?.telefone ?? "");
+    if (!proprio)
+      throw new Error("Cadastre o seu telefone no seu usuário para receber o teste.");
+    if (data.dados.numero !== proprio)
+      throw new Error("O teste só pode ser enviado para o seu próprio telefone cadastrado.");
     const [config, empresa, modelo] = await Promise.all([
       db
         .from("wa_config")
@@ -46,8 +60,7 @@ export const whatsappTeste = createServerFn({ method: "POST" })
       throw new Error("Não foi possível conferir a configuração do teste.");
     if (!config.data || config.data.estado !== "conectada")
       throw new Error("Conecte o WhatsApp antes de testar.");
-    if (!data.dados.numero) throw new Error("Informe o número com DDD.");
-    if (data.dados.numero === config.data.numero)
+    if (proprio === config.data.numero)
       throw new Error("Use outro número, diferente do WhatsApp conectado.");
     const texto = textoTesteWhatsApp(
       data.dados,
@@ -70,7 +83,7 @@ export const whatsappTeste = createServerFn({ method: "POST" })
       id: data.envio.id,
       tenant_id: tenantId,
       criado_por: context.userId,
-      numero: data.dados.numero,
+      numero: proprio,
       modelo: data.dados.modelo,
       texto,
     });
@@ -82,7 +95,7 @@ export const whatsappTeste = createServerFn({ method: "POST" })
       resultado = await ev.enviarTexto(
         srv.configEvolution(),
         config.data.instancia,
-        data.dados.numero,
+        proprio,
         texto,
         0,
       );

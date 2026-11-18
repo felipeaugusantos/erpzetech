@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FlaskConical, Send } from "lucide-react";
@@ -55,6 +55,23 @@ export function TesteWhatsAppClinica({ conectado }: { conectado: boolean }) {
       return data ?? [];
     },
   });
+  const meuTelefone = useQuery({
+    queryKey: ["meu-telefone-teste-wa"],
+    queryFn: async () => {
+      const { data: u, error: eu } = await supabase.auth.getUser();
+      if (eu || !u.user) throw eu ?? new Error("Sessão expirada");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("telefone")
+        .eq("id", u.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.telefone ?? "";
+    },
+  });
+  useEffect(() => {
+    if (meuTelefone.data !== undefined) setDados((d) => ({ ...d, numero: meuTelefone.data }));
+  }, [meuTelefone.data]);
   const preparar = useMutation({
     mutationFn: () => chamar({ data: { dados } }),
     onSuccess: (r) => {
@@ -124,14 +141,13 @@ export function TesteWhatsAppClinica({ conectado }: { conectado: boolean }) {
               </p>
             )}
             <div>
-              <Label htmlFor="teste-numero">Número de destino com DDD</Label>
-              <Input
-                id="teste-numero"
-                type="tel"
-                value={dados.numero}
-                disabled={enviar.isPending}
-                onChange={(e) => mudar("numero", e.target.value)}
-              />
+              <Label htmlFor="teste-numero">Seu telefone cadastrado</Label>
+              <Input id="teste-numero" type="tel" value={dados.numero} readOnly disabled />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {meuTelefone.isSuccess && !dados.numero
+                  ? "Cadastre o seu telefone no seu usuário para receber o teste."
+                  : "O teste é enviado somente para o seu próprio telefone cadastrado."}
+              </p>
             </div>
             <div>
               <Label htmlFor="teste-modelo">Lembrete</Label>
