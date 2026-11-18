@@ -841,6 +841,13 @@
       "when": 1795042575666,
       "tag": "0119_clinica_whatsapp_testes_privilegios",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1795043698140,
+      "tag": "0120_seguranca_logos_cotacao",
+      "breakpoints": true
     }
   ]
 }

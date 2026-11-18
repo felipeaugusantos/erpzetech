@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Segurança selecionada: páginas públicas só assinam logo validado pela empresa de origem; aplicar cotação exige administrador, gestor ou comprador antes de alterar valores.
+- [ ] Segurança selecionada do teste WhatsApp: limitar destinatários mudaria o teste com número digitado solicitado; aguarda confirmação do usuário. Nenhuma mensagem enviada.
+
 - [x] Corrigir teste de WhatsApp para conferir os três papéis por has_role (executável pela sessão), sem chamar exige_papel (restrito); manter bloqueio para demais funções e para falhas de conferência.
 
 - [x] Aviso de exames no histórico inclui laudos importados por vínculo explícito ou por data da coleta quando só existe uma consulta naquele dia; Bianca tem laudo e consulta de 12/11 sem vínculo salvo. Nenhum registro clínico alterado.

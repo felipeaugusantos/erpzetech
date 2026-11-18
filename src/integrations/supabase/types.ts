@@ -17073,6 +17073,10 @@ export type Database = {
       _contador_travas_funcoes: { Args: never; Returns: undefined }
       _contador_travas_tabelas: { Args: never; Returns: undefined }
       _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
+      _empresa_logo_publicavel: {
+        Args: { p_caminho: string; p_tenant: string }
+        Returns: string
+      }
       _fiscal_perfil_json: {
         Args: { p: Database["public"]["Tables"]["fiscal_perfis"]["Row"] }
         Returns: Json
