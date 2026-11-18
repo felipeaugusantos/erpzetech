@@ -710,7 +710,15 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                     {a.situacao === "fechado" ? "Fechado" : "Em atendimento"}
                   </Badge>
                   <div className="col-span-2">
-                    <AvisoExamesConsulta atendimentoId={a.id} />
+                    <AvisoExamesConsulta
+                      atendimentoId={a.id}
+                      petId={petId}
+                      dia={a.data_atendimento ?? dataClinica(a.aberto_em)}
+                      consultasNoDia={data.atendimentos.filter((consulta) =>
+                        (consulta.data_atendimento ?? dataClinica(consulta.aberto_em)) ===
+                        (a.data_atendimento ?? dataClinica(a.aberto_em))
+                      ).length}
+                    />
                   </div>
                 </div>
                 {expandidos.has(a.id) && (

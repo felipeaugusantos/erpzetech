@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Aviso de exames no histórico inclui laudos importados por vínculo explícito ou por data da coleta quando só existe uma consulta naquele dia; Bianca tem laudo e consulta de 12/11 sem vínculo salvo. Nenhum registro clínico alterado.
+
 - [x] Botão de teste do WhatsApp com número digitado, modelo salvo, prévia e confirmação; registro separado e acompanhamento pela conexão existente.
 - [ ] Conferir recebimento real do teste: conta disponível está desconectada e nenhum número de destino autorizado foi informado; nenhum WhatsApp enviado.
 
