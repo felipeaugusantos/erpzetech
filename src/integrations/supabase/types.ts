@@ -17616,6 +17616,10 @@ export type Database = {
       }
       clinica_documento_contexto: { Args: never; Returns: Json }
       clinica_documento_emitir: { Args: { p_dados: Json }; Returns: Json }
+      clinica_documento_excluir: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
       clinica_documento_modelo_excluir: {
         Args: { p_id: string }
         Returns: undefined

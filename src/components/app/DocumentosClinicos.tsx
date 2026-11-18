@@ -100,6 +100,28 @@ export function DocumentosClinicos({
   const [cancelando, setCancelando] = useState<ResumoDocumento | null>(null);
   const [motivo, setMotivo] = useState("");
   const [expandido, setExpandido] = useState(false);
+  const [excluindo, setExcluindo] = useState<ResumoDocumento | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
+  const fecharExclusao = () => {
+    setExcluindo(null);
+    setMotivoExclusao("");
+  };
+  const excluir = useMutation({
+    mutationFn: async () => {
+      if (!excluindo) return;
+      const { error } = await supabase.rpc("clinica_documento_excluir", {
+        p_id: excluindo.id,
+        p_motivo: motivoExclusao,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Documento excluído");
+      fecharExclusao();
+      void qc.invalidateQueries({ queryKey: ["clinica-documentos"] });
+    },
+    onError: (e: Error) => toast.error("Não foi possível excluir", { description: e.message }),
+  });
 
   const chave = ["clinica-documentos", petId, atendimentoId ?? null];
   const lista = useQuery({
@@ -165,7 +187,10 @@ export function DocumentosClinicos({
           >
             <FlaskConical className="size-4" /> Solicitar exames
           </Button>
-          <Select value="" onValueChange={(v) => setNovo(v as TipoDocumento)}>
+          <Select
+            value=""
+            onValueChange={(v) => (v === "fiv_felv" ? setLaudoTeste(true) : setNovo(v as TipoDocumento))}
+          >
             <SelectTrigger className="min-h-11 w-full sm:w-56">
               <SelectValue placeholder="Emitir documento…" />
             </SelectTrigger>
@@ -175,6 +200,7 @@ export function DocumentosClinicos({
                   {TIPOS_DOCUMENTO[t].rotulo}
                 </SelectItem>
               ))}
+              <SelectItem value="fiv_felv">Laudo FIV / FeLV</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -212,7 +238,7 @@ export function DocumentosClinicos({
                     </Badge>
                   )}
                 </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
                   <Button asChild size="sm" variant="outline" className="min-h-11">
                     <Link to="/clinica-documento" search={{ id: d.id }}>
                       <Printer className="size-4" /> Abrir / imprimir
@@ -228,6 +254,15 @@ export function DocumentosClinicos({
                       Cancelar
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="min-h-11 text-destructive"
+                    aria-label={`Excluir ${d.titulo}`}
+                    onClick={() => setExcluindo(d)}
+                  >
+                    <Trash2 className="size-4" /> Excluir
+                  </Button>
                 </div>
               </li>
             ))}
@@ -255,6 +290,37 @@ export function DocumentosClinicos({
       )}
 
       {laudoTeste && <LaudoFivFelv petId={petId} {...(atendimentoId ? { atendimentoId } : {})} nome={pet.nome} fechar={() => setLaudoTeste(false)} />}
+
+      <Dialog open={Boolean(excluindo)} onOpenChange={(o) => !o && !excluir.isPending && fecharExclusao()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir {excluindo?.titulo}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            O documento sai do prontuário. Só o veterinário que emitiu pode excluir; uma cópia fica guardada na auditoria.
+          </p>
+          <div>
+            <Label htmlFor="doc-motivo-exclusao">Motivo</Label>
+            <Input
+              id="doc-motivo-exclusao"
+              value={motivoExclusao}
+              onChange={(e) => setMotivoExclusao(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={fecharExclusao} disabled={excluir.isPending}>
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={excluir.isPending || motivoExclusao.trim().length < 5}
+              onClick={() => excluir.mutate()}
+            >
+              Excluir documento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(cancelando)} onOpenChange={(o) => !o && fecharCancelamento()}>
         <DialogContent>
