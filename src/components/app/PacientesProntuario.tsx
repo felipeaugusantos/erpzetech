@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, PawPrint, RefreshCw, ArrowUpRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  PawPrint,
+  RefreshCw,
+  ArrowUpRight,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -24,6 +32,7 @@ type Lista = { total: number; pacientes: Paciente[] };
 export function PacientesProntuario({ aoAbrir }: { aoAbrir: (id: string) => void }) {
   const { data: sessao } = useSessionData();
   const [pagina, setPagina] = useState(0);
+  const [visualizacao, setVisualizacao] = useState<"cards" | "lista">("cards");
   const lista = useQuery({
     queryKey: ["clinica-pacientes-atendidos", sessao?.user.id, sessao?.profile?.tenant_id, pagina],
     enabled: Boolean(sessao?.user.id),
@@ -42,14 +51,38 @@ export function PacientesProntuario({ aoAbrir }: { aoAbrir: (id: string) => void
           <h2 className="font-display text-lg font-semibold">Pacientes atendidos</h2>
           {lista.data && <Badge variant="secondary">{lista.data.total}</Badge>}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={lista.isFetching}
-          onClick={() => void lista.refetch()}
-        >
-          <RefreshCw className="size-4" /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <div role="group" aria-label="Visualização dos pacientes" className="flex gap-1">
+            <Button
+              size="icon"
+              variant={visualizacao === "cards" ? "default" : "outline"}
+              aria-label="Visualizar como cartões"
+              title="Cartões"
+              aria-pressed={visualizacao === "cards"}
+              onClick={() => setVisualizacao("cards")}
+            >
+              <LayoutGrid className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant={visualizacao === "lista" ? "default" : "outline"}
+              aria-label="Visualizar como lista"
+              title="Lista"
+              aria-pressed={visualizacao === "lista"}
+              onClick={() => setVisualizacao("lista")}
+            >
+              <List className="size-4" />
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={lista.isFetching}
+            onClick={() => void lista.refetch()}
+          >
+            <RefreshCw className="size-4" /> Atualizar
+          </Button>
+        </div>
       </div>
       {lista.isPending ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -65,6 +98,51 @@ export function PacientesProntuario({ aoAbrir }: { aoAbrir: (id: string) => void
         <p className="py-8 text-sm text-muted-foreground">
           Nenhum paciente atendido nesta empresa.
         </p>
+      ) : visualizacao === "lista" ? (
+        <ul className="min-w-0 divide-y divide-border border-y border-border">
+          {lista.data.pacientes.map((p) => (
+            <li
+              key={p.id}
+              className="grid min-w-0 items-center gap-3 py-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+            >
+              <div className="min-w-0">
+                <h3 className="break-words font-semibold">{p.nome}</h3>
+                <p className="break-words text-xs text-muted-foreground">
+                  {rotulo(ESPECIES, p.especie)}
+                  {p.raca ? ` · ${p.raca}` : ""}
+                </p>
+                <p className="mt-1 break-words text-sm text-muted-foreground">
+                  Tutor(a): {p.tutor ?? "—"}
+                </p>
+              </div>
+              <div className="min-w-0 text-sm">
+                <p className="text-xs text-muted-foreground">Última visita</p>
+                <p>{dateTimeBR(p.ultimo_atendimento)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {p.atendimentos} atendimento{p.atendimentos === 1 ? "" : "s"}
+                </p>
+                {p.em_atendimento && (
+                  <Badge variant="secondary" className="mt-1">
+                    Em atendimento
+                  </Badge>
+                )}
+              </div>
+              <div className="min-w-0 text-sm">
+                <p className="text-xs text-muted-foreground">Próxima consulta</p>
+                <p
+                  className={
+                    p.proxima_consulta ? "font-medium text-primary" : "text-muted-foreground"
+                  }
+                >
+                  {p.proxima_consulta ? dateTimeBR(p.proxima_consulta) : "Sem consulta agendada"}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => aoAbrir(p.id)}>
+                Abrir prontuário <ArrowUpRight className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {lista.data.pacientes.map((p) => (
