@@ -10,6 +10,7 @@ import { consultarCnpj } from "@/lib/cnpj.functions";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useConsultaCep } from "@/hooks/useConsultaCep";
 import { brl, num } from "@/lib/format";
+import { UnificarClientes } from "@/components/app/UnificarClientes";
 import { PageHeader, EmptyState, StatCard } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -269,14 +270,19 @@ function Clientes() {
         title="Clientes"
         description="Pessoa física e jurídica, com controle de crédito, prazo e desconto máximo."
         actions={
-          <Button
-            onClick={() => {
-              setForm(vazio);
-              setOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" /> Novo cliente
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <UnificarClientes
+              clientes={(data?.clientes ?? []) as { id: string; nome: string; cpf: string | null; cnpj: string | null; telefone: string | null }[]}
+            />
+            <Button
+              onClick={() => {
+                setForm(vazio);
+                setOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" /> Novo cliente
+            </Button>
+          </div>
         }
       />
 

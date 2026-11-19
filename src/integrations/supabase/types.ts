@@ -17637,6 +17637,10 @@ export type Database = {
         }
         Returns: string
       }
+      cliente_unificar: {
+        Args: { p_duplicado: string; p_manter: string }
+        Returns: Json
+      }
       clinica_adendo_criar: {
         Args: { p_atendimento_id: string; p_texto: string }
         Returns: Json
