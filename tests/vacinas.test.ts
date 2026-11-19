@@ -60,7 +60,7 @@ test("as sugestões do catálogo respeitam as regras do banco", () => {
 });
 
 test("atalhos da próxima dose: 21 dias, 30 dias e 1 ano a partir da aplicação", () => {
-  const [d21, d30, ano] = ATALHOS_PROXIMA_DOSE;
+  const [, d21, d30, ano] = ATALHOS_PROXIMA_DOSE;
   assert.equal(dataDoAtalho("2026-10-19", d21!), "2026-11-09");
   assert.equal(dataDoAtalho("2026-10-19", d30!), "2026-11-18");
   assert.equal(dataDoAtalho("2026-10-19", ano!), "2027-10-19");
@@ -70,4 +70,9 @@ test("atalhos da próxima dose: 21 dias, 30 dias e 1 ano a partir da aplicação
 test("1 ano a partir de 29/02 cai em 28/02 do ano seguinte", () => {
   assert.equal(dataDoAtalho("2028-02-29", { anos: 1 }), "2029-02-28");
   assert.equal(dataDoAtalho("2028-02-29", { anos: 4 }), "2032-02-29");
+});
+
+test("atalho de 7 dias para retorno de medicação conta a partir da aplicação", () => {
+  const sete = ATALHOS_PROXIMA_DOSE.find((a) => a.rotulo === "7 dias")!;
+  assert.equal(dataDoAtalho("2026-11-28", sete), "2026-12-05");
 });

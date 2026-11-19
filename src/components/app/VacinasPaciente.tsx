@@ -37,7 +37,7 @@ import {
   type ItemCatalogo,
 } from "@/lib/vacinas";
 
-/** Botões "21 dias", "30 dias" e "1 ano": preenchem a data a partir do dia da aplicação (sem `base`, do dia de hoje no momento do clique). */
+/** Botões "7 dias", "21 dias", "30 dias" e "1 ano": preenchem a data a partir do dia da aplicação (sem `base`, do dia de hoje no momento do clique). */
 function AtalhosProximaDose({
   base,
   valor,

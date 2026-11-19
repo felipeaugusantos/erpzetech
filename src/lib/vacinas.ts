@@ -152,6 +152,7 @@ export function resumoDoProtocolo(
 export type AtalhoProximaDose = { rotulo: string; dias?: number; anos?: number };
 
 export const ATALHOS_PROXIMA_DOSE: readonly AtalhoProximaDose[] = [
+  { rotulo: "7 dias", dias: 7 },
   { rotulo: "21 dias", dias: 21 },
   { rotulo: "30 dias", dias: 30 },
   { rotulo: "1 ano", anos: 1 },
