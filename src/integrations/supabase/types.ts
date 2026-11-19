@@ -1623,6 +1623,69 @@ export type Database = {
           },
         ]
       }
+      clinica_wa_campanha_envios: {
+        Row: {
+          campanha_id: string
+          cliente_id: string
+          created_at: string
+          criado_por: string
+          erro: string | null
+          id: string
+          id_externo: string | null
+          numero: string
+          situacao: string
+          tenant_id: string
+          texto: string
+          tutor: string
+          updated_at: string
+        }
+        Insert: {
+          campanha_id: string
+          cliente_id: string
+          created_at?: string
+          criado_por: string
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          numero: string
+          situacao?: string
+          tenant_id: string
+          texto: string
+          tutor: string
+          updated_at?: string
+        }
+        Update: {
+          campanha_id?: string
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string
+          erro?: string | null
+          id?: string
+          id_externo?: string | null
+          numero?: string
+          situacao?: string
+          tenant_id?: string
+          texto?: string
+          tutor?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinica_wa_campanha_envios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinica_wa_campanha_envios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinica_wa_teste_status: {
         Row: {
           id_externo: string

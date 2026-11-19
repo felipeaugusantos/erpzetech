@@ -69,6 +69,7 @@ import {
   BarChart3,
   PanelLeftClose,
   PanelLeftOpen,
+  Send,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -297,6 +298,7 @@ const groups: Group[] = [
       { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
       { label: "WhatsApp da clínica", to: "/clinica-whatsapp", icon: MessageCircle },
+      { label: "Campanhas WhatsApp", to: "/clinica-campanhas", icon: Send },
       { label: "Internações a cobrar", to: "/clinica-cobrancas", icon: BedDouble },
     ],
   },
@@ -711,6 +713,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )
                 return souGestao || souRecepcao;
               // a recepção registra a fila e o veterinário acompanha e chama o próximo
+              if (i.to === "/clinica-campanhas") return souGestao || souVeterinario;
               if (i.to === "/clinica-fila") return souGestao || souRecepcao || souVeterinario;
               if (
                 i.to === "/personalizacao" ||
