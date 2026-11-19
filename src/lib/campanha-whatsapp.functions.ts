@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
-import { MAX_CAMPANHA, MAX_TEXTO_CAMPANHA, textoCampanha, validarCampanha } from "./campanha-whatsapp";
+import { MAX_CAMPANHA, MAX_CAMPANHA_DIA, MAX_TEXTO_CAMPANHA, textoCampanha, validarCampanha } from "./campanha-whatsapp";
 import { telefoneWhatsApp } from "./contato-pet.ts";
 import { exigirAcessoTesteWhatsApp } from "./whatsapp-teste-acesso";
 
@@ -67,6 +67,13 @@ export const campanhaEnviar = createServerFn({ method: "POST" })
     if (anterior) return { situacao: anterior.situacao, repetido: true };
     if ((ja.data?.length ?? 0) >= MAX_CAMPANHA)
       throw new Error(`Cada campanha vai para no máximo ${MAX_CAMPANHA} tutores.`);
+
+    const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const hoje = await supabaseAdmin.from("clinica_wa_campanha_envios")
+      .select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("created_at", desde);
+    if (hoje.error) throw new Error("Não foi possível conferir a campanha.");
+    if ((hoje.count ?? 0) >= MAX_CAMPANHA_DIA)
+      throw new Error(`Limite de ${MAX_CAMPANHA_DIA} mensagens de campanha por dia atingido.`);
 
     const reserva = await supabaseAdmin.from("clinica_wa_campanha_envios").insert({
       campanha_id: data.campanhaId, tenant_id: tenantId, criado_por: context.userId,

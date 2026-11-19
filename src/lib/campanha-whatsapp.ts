@@ -26,10 +26,15 @@ export function textoCampanha(modelo: string, d: Destinatario, clinica: string) 
     .trim();
 }
 
+/** Limite diário de envios de campanha por empresa (conferido no servidor). */
+export const MAX_CAMPANHA_DIA = 50;
+
 export function validarCampanha(modelo: string, quantidade: number): string | null {
   const t = modelo.trim();
   if (t.length < 5) return "Escreva a mensagem da campanha.";
   if (t.length > MAX_TEXTO_CAMPANHA) return `A mensagem passa de ${MAX_TEXTO_CAMPANHA} caracteres.`;
+  if (/(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|br|io|me|ly|link|app)\b)/i.test(t))
+    return "Campanhas não podem conter links.";
   if (quantidade < 1) return "Selecione ao menos um tutor.";
   if (quantidade > MAX_CAMPANHA) return `Selecione no máximo ${MAX_CAMPANHA} tutores por envio.`;
   return null;
