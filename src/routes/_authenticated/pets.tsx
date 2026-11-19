@@ -175,6 +175,7 @@ function Pets() {
             "id, nome, cpf, cnpj, telefone, cep, endereco, numero, complemento, bairro, cidade, estado",
           )
           .is("deleted_at", null)
+          .eq("ativo", true)
           .order("nome")
           .limit(2000),
       ]);
