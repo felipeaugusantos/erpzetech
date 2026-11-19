@@ -34,9 +34,16 @@ import { usePreferenciasClinica } from "@/components/app/ConfigImportacaoExame";
 export function ImportarExamesPetPdf({
   pet,
   onImportado,
+  rotuloBotao = "Importar exame",
+  pequeno = false,
+  dataPadrao,
 }: {
   pet: { id: string; nome: string; especie: string };
   onImportado: (id: string | undefined) => void;
+  rotuloBotao?: string;
+  pequeno?: boolean;
+  /** data usada quando o PDF não traz coleta nem atendimento (ex.: a data da consulta) */
+  dataPadrao?: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const geracao = useRef(0);
@@ -84,7 +91,7 @@ export function ImportarExamesPetPdf({
       anexos.current.clear();
       setPrevia({ laudo, grupos, modelos, chave: crypto.randomUUID(), arquivo: file });
       setNomePdf(file.name.replace(/\.pdf$/i, ""));
-      setColeta(laudo.coleta);
+      setColeta(laudo.coleta || dataPadrao || "");
       setEmissao(laudo.emissao ?? "");
       const lab = laboratorioDoLaudo(textoPdf);
       if (lab) setLaboratorio(lab);
@@ -168,6 +175,7 @@ export function ImportarExamesPetPdf({
     <>
       <Button
         variant="outline"
+        size={pequeno ? "sm" : "default"}
         onClick={() => {
           setAberto(true);
           setPrevia(null);
@@ -176,7 +184,7 @@ export function ImportarExamesPetPdf({
         }}
       >
         <FileUp className="size-4" />
-        Importar exame
+        {rotuloBotao}
       </Button>
       <Dialog
         open={aberto}

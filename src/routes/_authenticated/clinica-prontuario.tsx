@@ -1,5 +1,6 @@
 import { CorrecaoDoAdendo } from "@/components/app/CorrecaoDoAdendo";
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ImportarExamesPetPdf } from "@/components/app/ImportarExamesPetPdf";
 import { AvisoExamesConsulta } from "@/components/app/AvisoExamesConsulta";
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -729,13 +730,16 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       </Button>
                       {a.veterinario.id === meuVeterinario.data && (
                         <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setAnexandoConsulta(a)}
-                          >
-                            <Paperclip className="size-4" /> Anexar exame
-                          </Button>
+                          <ImportarExamesPetPdf
+                            pet={p}
+                            pequeno
+                            rotuloBotao="Anexar exame"
+                            dataPadrao={a.data_atendimento ?? dataClinica(a.aberto_em)}
+                            onImportado={() => {
+                              void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
+                              void qc.invalidateQueries({ queryKey: ["clinica-historico", petId] });
+                            }}
+                          />
                           <AlterarDataConsulta atendimento={a} petId={petId} />
                           {a.situacao === "fechado" && (
                             <CorrigirAtendimento atendimento={a} petId={petId} />
