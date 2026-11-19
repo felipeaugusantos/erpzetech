@@ -25,6 +25,12 @@ test("dias até a data atravessa mês e ano", () => {
   assert.equal(diasAte("2026-10-01", "2026-10-19"), -18);
 });
 
+test("intervalo efetivo usa as datas salvas da aplicação e próxima dose", () => {
+  assert.equal(diasAte("2026-12-10", "2026-11-19"), 21);
+  assert.equal(diasAte("2027-11-19", "2026-11-19"), 365);
+  assert.equal(diasAte("2026-12-19", "2026-11-19"), 30);
+});
+
 test("situação da próxima dose: atrasada, próxima (30 dias) ou em dia", () => {
   const hoje = "2026-10-19";
   assert.equal(situacaoDaDose("2026-10-18", hoje), "atrasada");

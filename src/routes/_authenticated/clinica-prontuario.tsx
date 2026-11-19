@@ -1,3 +1,4 @@
+import { VacinasPaciente } from "@/components/app/VacinasPaciente";
 import { CorrecaoDoAdendo } from "@/components/app/CorrecaoDoAdendo";
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
 import { ImportarExamesPetPdf } from "@/components/app/ImportarExamesPetPdf";
@@ -12,7 +13,6 @@ import {
   Printer,
   Search,
   Stethoscope,
-  Syringe,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
@@ -395,25 +395,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
               <Stethoscope /> Iniciar atendimento
             </Button>
           )}
-          <Button asChild size="sm" variant="outline">
-            <Link
-              to="/clinica-vacinas"
-              search={{ pet: petId, agendamento: undefined, aplicar: true }}
-            >
-              <Syringe /> Aplicar vacina
-            </Link>
-          </Button>
           {preferencias?.proxima_consulta !== false && (
             <ProximaConsulta petId={petId} petNome={p.nome} />
           )}
-          <Button asChild size="sm" variant="outline">
-            <Link
-              to="/clinica-vacinas"
-              search={{ pet: petId, agendamento: undefined, aplicar: undefined }}
-            >
-              <Syringe /> Vacinas e vermífugos
-            </Link>
-          </Button>
           <Button asChild size="sm" variant="outline">
             <Link
               to="/clinica-exames"
@@ -484,6 +468,10 @@ function FichaDoPaciente({ petId }: { petId: string }) {
           )}
         </div>
       </div>
+
+      <section aria-label="Cartão vacinal do paciente" className="min-w-0 border-b border-border py-4">
+        <VacinasPaciente key={petId} pet={petId} embutido />
+      </section>
 
       {sinais.length > 0 && !oculta("sinais") && (
         <section

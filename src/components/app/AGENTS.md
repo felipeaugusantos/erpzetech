@@ -1,0 +1,1 @@
+- Vaccination in the patient record and dedicated screen shares VacinasPaciente and existing clinical RPCs; display saved dose dates and catalog intervals without inventing medical protocols.

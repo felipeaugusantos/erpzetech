@@ -394,3 +394,6 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [x] Próxima dose da vacina a partir da data de aplicação; lote com saldo e dentro da validade; campos obrigatórios
 - [x] Próxima consulta sem data padrão; ligar/desligar em Configurações → Clínica
 - [x] Recolher/expandir consultas; escolher seções da ficha em Configurações
+
+- [x] Incorporar cartão vacinal e aplicação no prontuário usando a mesma aplicação da tela de vacinas; mostrar doses, lote/validade, intervalo efetivo e prazos salvos; protocolos cadastrados por espécie. 20 testes passaram e build OK.
+- [ ] Conferir aplicação e leitura no prontuário com conta veterinária: conta do solicitante é administrativa, sem vínculo ativo com CRMV; nenhum registro clínico real alterado.
