@@ -911,6 +911,13 @@
       "when": 1795120331954,
       "tag": "0129_baixar_conta_caixa_tenant",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1795126946966,
+      "tag": "0130_clinica_vacinas_painel",
+      "breakpoints": true
     }
   ]
 }

@@ -17994,6 +17994,7 @@ export type Database = {
         Returns: Json
       }
       clinica_vacinas_catalogo: { Args: never; Returns: Json }
+      clinica_vacinas_painel: { Args: { p_janela?: number }; Returns: Json }
       clinica_visao_veterinarios: {
         Args: { p_ate: string; p_de: string }
         Returns: Json

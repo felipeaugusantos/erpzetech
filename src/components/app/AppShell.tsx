@@ -296,6 +296,7 @@ const groups: Group[] = [
       { label: "Portal do tutor", to: "/clinica-portal", icon: Smartphone },
       { label: "Modelos de exame", to: "/clinica-exames-modelos", icon: FlaskConical },
       { label: "Fila do dia", to: "/clinica-fila", icon: ListOrdered },
+      { label: "Painel de vacinas", to: "/clinica-vacinas-painel", icon: Syringe },
       { label: "Reforços de vacina", to: "/clinica-reforcos", icon: MessageCircle },
       { label: "WhatsApp da clínica", to: "/clinica-whatsapp", icon: MessageCircle },
       { label: "Campanhas WhatsApp", to: "/clinica-campanhas", icon: Send },
@@ -715,6 +716,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               // a recepção registra a fila e o veterinário acompanha e chama o próximo
               if (i.to === "/clinica-campanhas") return souGestao || souVeterinario;
               if (i.to === "/clinica-fila") return souGestao || souRecepcao || souVeterinario;
+              if (i.to === "/clinica-vacinas-painel")
+                return souGestao || souRecepcao || souVeterinario;
               if (
                 i.to === "/personalizacao" ||
                 i.to === "/custo-par" ||
