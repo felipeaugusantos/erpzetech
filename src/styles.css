@@ -602,3 +602,53 @@
     display: none;
   }
 }
+
+@media screen and (max-width: 639px) {
+  .carteirinha-doses thead {
+    display: none;
+  }
+  .carteirinha-doses,
+  .carteirinha-doses tbody,
+  .carteirinha-doses tr {
+    display: block;
+    width: 100%;
+  }
+  .carteirinha-doses tr {
+    padding: 0.5rem 0;
+  }
+  .carteirinha-doses td {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .carteirinha-doses td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  .carteirinha-doses td > span {
+    grid-column: 2;
+  }
+}
+@media print {
+  .carteirinha-vacinacao {
+    font-size: 10pt;
+  }
+  .carteirinha-vacinacao header,
+  .carteirinha-vacinacao footer {
+    break-inside: avoid;
+  }
+  .carteirinha-vacinacao h3 {
+    break-after: avoid;
+  }
+  .carteirinha-vacinacao tr,
+  .carteirinha-vacinacao li {
+    break-inside: avoid;
+  }
+  .carteirinha-vacinacao thead {
+    display: table-header-group;
+  }
+  .carteirinha-vacinacao .overflow-x-auto {
+    overflow: visible;
+  }
+}

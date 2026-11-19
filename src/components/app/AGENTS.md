@@ -1,1 +1,2 @@
 - Vaccination in the patient record and dedicated screen shares VacinasPaciente and existing clinical RPCs; display saved dose dates and catalog intervals without inventing medical protocols.
+- The digital and printed vaccination booklet share CarteirinhaVacinacao and the existing clinical card RPC; dates and effective intervals come only from saved patient applications, so printing cannot invent a protocol.

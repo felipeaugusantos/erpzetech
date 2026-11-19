@@ -397,3 +397,5 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 
 - [x] Incorporar cartão vacinal e aplicação no prontuário usando a mesma aplicação da tela de vacinas; mostrar doses, lote/validade, intervalo efetivo e prazos salvos; protocolos cadastrados por espécie. 20 testes passaram e build OK.
 - [ ] Conferir aplicação e leitura no prontuário com conta veterinária: conta do solicitante é administrativa, sem vínculo ativo com CRMV; nenhum registro clínico real alterado.
+
+- [x] Reformular carteirinha digital e impressa ligada ao prontuário, com doses, intervalos efetivos e próximas datas; computador, celular, PDF e retorno ao prontuário conferidos com sessão real (paciente sem doses); 20 testes passaram.

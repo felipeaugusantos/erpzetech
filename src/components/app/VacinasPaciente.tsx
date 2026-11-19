@@ -298,7 +298,7 @@ export function VacinasPaciente({
           <>
             <Button asChild variant="outline">
               <Link to="/clinica-cartao" search={{ pet: petId }}>
-                <Printer className="size-4" /> Cartão de vacinação
+                <Printer className="size-4" /> Carteirinha de vacinação
               </Link>
             </Button>
             {!agendamento && !avulso && (
