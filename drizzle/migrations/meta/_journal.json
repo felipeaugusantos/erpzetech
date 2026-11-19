@@ -869,6 +869,13 @@
       "when": 1795047380343,
       "tag": "0123_clinica_wa_campanhas",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1795047759494,
+      "tag": "0124_restauracao_colunas_comissoes_insert",
+      "breakpoints": true
     }
   ]
 }

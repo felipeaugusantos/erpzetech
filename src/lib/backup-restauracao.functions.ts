@@ -8,6 +8,7 @@ import {
   pontoDeSegurancaValido,
   restaurarLote,
   tabelaRestauravel,
+  camposRestauraveis,
   MOTIVO_NAO_RESTAURAVEL,
 } from "./backup-restauracao";
 
@@ -93,7 +94,7 @@ export const restaurarLoteFn = createServerFn({ method: "POST" })
     const r = await rpc.call(supabaseAdmin, "backup_restaurar_tabela", {
       p_tenant: data.tenantId,
       p_tabela: data.tabela,
-      p_linhas: data.registros,
+      p_linhas: camposRestauraveis(data.tabela, data.registros),
       p_usuario: context.userId,
     });
     if (r.error) throw new Error(`Falha ao restaurar ${data.tabela}: ${r.error.message}`);

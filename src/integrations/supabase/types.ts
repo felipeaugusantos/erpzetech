@@ -17036,6 +17036,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _backup_restauracao_colunas_ok: {
+        Args: { p_linhas: Json; p_tabela: string }
+        Returns: undefined
+      }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string

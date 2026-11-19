@@ -54,8 +54,17 @@ export const conferirIds = z.object({
 export const restaurarLote = z.object({
   tenantId: z.guid("Cliente inválido."),
   tabela: z.string().min(1).max(80),
-  registros: z.array(z.record(z.string(), z.unknown())).min(1).max(LINHAS_POR_LOTE_RESTAURACAO),
+  registros: z
+    .array(z.record(z.string().regex(/^[a-z_][a-z0-9_]{0,62}$/, "Campo inválido."), z.unknown()))
+    .min(1)
+    .max(LINHAS_POR_LOTE_RESTAURACAO),
 });
+
+/** só os campos que o backup guarda: tira os que ficam fora do backup (segredos) e qualquer coisa não listada */
+export function camposRestauraveis(tabela: string, registros: RegistroArquivo[]): RegistroArquivo[] {
+  const fora = new Set(COLUNAS_FORA_DO_BACKUP[tabela] ?? []);
+  return registros.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !fora.has(k))));
+}
 
 export type RegistroArquivo = Record<string, unknown>;
 
