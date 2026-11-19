@@ -636,6 +636,49 @@ function Pets() {
                               Editar cadastro do tutor em Clientes
                             </Link>
                           </Button>
+                          {(() => {
+                            const doTutor = pets.filter((x) => x.cliente_id === form.cliente_id);
+                            return (
+                              <div className="mt-2 rounded-md border bg-muted/30 p-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="font-medium text-foreground">
+                                    Pets deste tutor ({doTutor.length})
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      tutorNovoId.current = null;
+                                      setForm({ ...vazio, cliente_id: form.cliente_id });
+                                    }}
+                                  >
+                                    <Plus className="size-4" /> Cadastrar novo pet
+                                  </Button>
+                                </div>
+                                {doTutor.length === 0 ? (
+                                  <p className="mt-1">Nenhum pet cadastrado para este tutor.</p>
+                                ) : (
+                                  <ul className="mt-1 grid gap-1">
+                                    {doTutor.map((x) => (
+                                      <li
+                                        key={x.id}
+                                        className={`flex flex-wrap items-center gap-2 rounded px-1 ${x.obito ? "pet-falecido" : ""} ${x.id === form.id ? "font-semibold text-foreground" : ""}`}
+                                      >
+                                        <PawPrint className="size-3" />
+                                        {x.nome}
+                                        <span>
+                                          {[rotulo(ESPECIES, x.especie), x.raca].filter(Boolean).join(" · ")}
+                                        </span>
+                                        {x.obito && <Badge variant="outline">Óbito</Badge>}
+                                        {!x.ativo && !x.obito && <Badge variant="outline">Inativo</Badge>}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })()}
