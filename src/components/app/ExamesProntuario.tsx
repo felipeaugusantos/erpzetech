@@ -8,6 +8,7 @@ import { type ResumoExame, SITUACOES_EXAME } from "@/lib/exames";
 import { dateBR } from "@/lib/format";
 import { rotulo } from "@/lib/pet";
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ExcluirExame } from "@/components/app/ExcluirExame";
 
 export function ExamesProntuario({ petId }: { petId: string }) {
   const lista = useQuery({
@@ -97,20 +98,23 @@ export function ExamesProntuario({ petId }: { petId: string }) {
                   {exame.veterinario}
                 </p>
               </div>
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="min-h-11 w-full self-end sm:w-auto"
-              >
-                <Link
-                  to="/clinica-exames"
-                  search={{ pet: petId, exame: exame.id, atendimento: undefined }}
+              <div className="flex w-full flex-wrap items-end gap-2 self-end sm:w-auto">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 w-full self-end sm:w-auto"
                 >
-                  <FileText className="size-4" />
-                  {exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}
-                </Link>
-              </Button>
+                  <Link
+                    to="/clinica-exames"
+                    search={{ pet: petId, exame: exame.id, atendimento: undefined }}
+                  >
+                    <FileText className="size-4" />
+                    {exame.situacao === "fechado" ? "Ver laudo" : "Ver exame"}
+                  </Link>
+                </Button>
+                <ExcluirExame exame={exame} />
+              </div>
               {exame.pdf_importado && (
                 <div className="min-w-0 sm:col-span-2">
                   <AnexosClinicos exameId={exame.id} podeEnviar={false} semMoldura />

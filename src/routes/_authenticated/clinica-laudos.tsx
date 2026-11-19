@@ -7,6 +7,7 @@ import { ModuloBloqueado } from "@/components/app/ModuloCnae";
 import { EmptyState, PageHeader } from "@/components/app/PageHeader";
 import { MiniGraficoExame } from "@/components/app/MiniGraficoExame";
 import { AnexosClinicos } from "@/components/app/AnexosClinicos";
+import { ExcluirExame } from "@/components/app/ExcluirExame";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -303,7 +304,7 @@ function Laudos({ petId }: { petId: string }) {
                     </div>
                   ))}
                   <AnexosClinicos exameId={e.id} podeEnviar={false} />
-                  <div>
+                  <div className="flex flex-wrap gap-2">
                     <Button asChild variant="outline" size="sm">
                       <Link
                         to="/clinica-exames"
@@ -312,6 +313,7 @@ function Laudos({ petId }: { petId: string }) {
                         Abrir laudo
                       </Link>
                     </Button>
+                    <ExcluirExame exame={e} />
                   </div>
                 </div>
               </details>

@@ -26,9 +26,11 @@ export function ExcluirExame({
   disabled,
   onExcluido,
 }: {
-  exame: ExameClinico;
-  disabled: boolean;
-  onExcluido: () => void;
+  exame: Pick<ExameClinico, "id" | "nome" | "data_coleta" | "situacao"> & {
+    pet?: Pick<ExameClinico["pet"], "nome">;
+  };
+  disabled?: boolean;
+  onExcluido?: () => void;
 }) {
   const qc = useQueryClient();
   const limpar = useServerFn(limparPdfsExcluidos);
@@ -66,7 +68,7 @@ export function ExcluirExame({
       void qc.invalidateQueries({
         predicate: (q) => typeof q.queryKey[0] === "string" && q.queryKey[0].startsWith("clinica-"),
       });
-      onExcluido();
+      onExcluido?.();
     },
     onError: (e: Error) =>
       toast.error("Não foi possível excluir o exame", { description: e.message }),
@@ -97,7 +99,8 @@ export function ExcluirExame({
           </DialogHeader>
           <p className="text-sm">
             <strong>
-              {exame.pet.nome} · {exame.nome}
+              {exame.pet ? `${exame.pet.nome} · ` : ""}
+              {exame.nome}
             </strong>
             <br />
             Coleta {dateBR(exame.data_coleta)} · {rotulo(SITUACOES_EXAME, exame.situacao)}
