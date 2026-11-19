@@ -86,7 +86,17 @@ type Retorno = {
   dose_numero: number;
 };
 
-export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicacao, embutido = false }: { pet: string; agendamento?: string | undefined; aplicar?: boolean | undefined; embutido?: boolean }) {
+export function VacinasPaciente({
+  pet: petId,
+  agendamento,
+  aplicar: abrirAplicacao,
+  embutido = false,
+}: {
+  pet: string;
+  agendamento?: string | undefined;
+  aplicar?: boolean | undefined;
+  embutido?: boolean;
+}) {
   const [avulso, setAvulso] = useState(Boolean(abrirAplicacao));
   const [servicoId, setServicoId] = useState("");
   const [aplicadaEm, setAplicadaEm] = useState(hojeISO());
@@ -318,7 +328,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
             {!agendamento && (
               <>
                 <div>
-                  <Label htmlFor="a-servico">Serviço cobrado <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="a-servico">
+                    Serviço cobrado <span className="text-destructive">*</span>
+                  </Label>
                   <Select value={servicoAtual || "__nenhum"} onValueChange={setServicoId}>
                     <SelectTrigger id="a-servico">
                       <SelectValue />
@@ -336,7 +348,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="a-data">Data da aplicação <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="a-data">
+                    Data da aplicação <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="a-data"
                     type="date"
@@ -348,7 +362,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
               </>
             )}
             <div>
-              <Label htmlFor="a-item">Vacina ou vermífugo <span className="text-destructive">*</span></Label>
+              <Label htmlFor="a-item">
+                Vacina ou vermífugo <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={catalogoId || "__nenhum"}
                 onValueChange={(v) => {
@@ -373,7 +389,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
               )}
             </div>
             <div>
-              <Label htmlFor="a-lote">Lote e vencimento <span className="text-destructive">*</span></Label>
+              <Label htmlFor="a-lote">
+                Lote e vencimento <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={loteId || "__nenhum"}
                 onValueChange={(v) => setLoteId(v === "__nenhum" ? "" : v)}
@@ -385,12 +403,16 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
                 <SelectContent>
                   <SelectItem value="__nenhum">Escolha o lote</SelectItem>
                   {lotes.data
-                    ?.filter((l) => l.quantidade > 0 && (!l.validade || l.validade >= (aplicadaEm || hoje)))
+                    ?.filter(
+                      (l) =>
+                        l.quantidade > 0 && (!l.validade || l.validade >= (aplicadaEm || hoje)),
+                    )
                     .map((l) => (
-                    <SelectItem key={l.id} value={l.id}>
-                      {l.lote} · vence {dateBR(l.validade)} · {l.quantidade} dose(s) · {l.deposito}
-                    </SelectItem>
-                  ))}
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.lote} · vence {dateBR(l.validade)} · {l.quantidade} dose(s) ·{" "}
+                        {l.deposito}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {catalogoId && lotes.data?.length === 0 && (
@@ -400,7 +422,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
               )}
             </div>
             <div>
-              <Label htmlFor="a-aplicador">Aplicado por <span className="text-destructive">*</span></Label>
+              <Label htmlFor="a-aplicador">
+                Aplicado por <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={aplicador || "__eu"}
                 onValueChange={(v) => setAplicador(v === "__eu" ? "" : v)}
@@ -419,7 +443,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
               </Select>
             </div>
             <div>
-              <Label htmlFor="a-local">Local da aplicação <span className="text-destructive">*</span></Label>
+              <Label htmlFor="a-local">
+                Local da aplicação <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="a-local"
                 value={local}
@@ -488,12 +514,14 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
         <details className="mb-4 border-b border-border pb-3">
           <summary className="cursor-pointer text-sm font-semibold">Protocolos cadastrados</summary>
           <ul className="mt-2 grid gap-2 text-sm">
-            {catalogo.data.filter((i) => i.especie === "todas" || i.especie === c.pet.especie).map((i) => (
-              <li key={i.id} className="min-w-0 break-words">
-                <strong>{i.nome}</strong> · {resumoDoProtocolo(i)}
-                {i.idade_minima_dias !== null && ` · idade mínima ${i.idade_minima_dias} dias`}
-              </li>
-            ))}
+            {catalogo.data
+              .filter((i) => i.especie === "todas" || i.especie === c.pet.especie)
+              .map((i) => (
+                <li key={i.id} className="min-w-0 break-words">
+                  <strong>{i.nome}</strong> · {resumoDoProtocolo(i)}
+                  {i.idade_minima_dias !== null && ` · idade mínima ${i.idade_minima_dias} dias`}
+                </li>
+              ))}
           </ul>
         </details>
       )}
@@ -503,12 +531,29 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
           <ul className="grid gap-2 sm:grid-cols-2">
             {c.proximas.map((dose) => {
               const dias = diasAte(dose.proxima_dose_em, hoje);
-              return <li key={`${dose.nome}-${dose.proxima_dose_em}`} className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="min-w-0 break-words font-medium">{dose.nome} · {dateBR(dose.proxima_dose_em)}</span>
-                <Badge variant={situacaoDaDose(dose.proxima_dose_em, hoje) === "atrasada" ? "destructive" : "secondary"}>
-                  {dias < 0 ? `${Math.abs(dias)} dia(s) de atraso` : dias === 0 ? "Hoje" : `Em ${dias} dia(s)`}
-                </Badge>
-              </li>;
+              return (
+                <li
+                  key={`${dose.nome}-${dose.proxima_dose_em}`}
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                  <span className="min-w-0 break-words font-medium">
+                    {dose.nome} · {dateBR(dose.proxima_dose_em)}
+                  </span>
+                  <Badge
+                    variant={
+                      situacaoDaDose(dose.proxima_dose_em, hoje) === "atrasada"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {dias < 0
+                      ? `${Math.abs(dias)} dia(s) de atraso`
+                      : dias === 0
+                        ? "Hoje"
+                        : `Em ${dias} dia(s)`}
+                  </Badge>
+                </li>
+              );
             })}
           </ul>
         </section>
@@ -539,7 +584,9 @@ export function VacinasPaciente({ pet: petId, agendamento, aplicar: abrirAplicac
                   {a.origem === "outro_local"
                     ? `Aplicada em outro local — informado por ${a.informado_por}`
                     : `Lote ${a.lote}${a.validade_lote ? ` (vence ${dateBR(a.validade_lote)})` : ""} · ${a.aplicador ?? a.veterinario} · resp. ${a.veterinario} (CRMV ${a.crmv}/${a.crmv_uf})`}
-                  {a.proxima_dose_em ? ` · próxima ${dateBR(a.proxima_dose_em)} · intervalo ${diasAte(a.proxima_dose_em, a.aplicada_em)} dias` : " · sem próxima dose"}
+                  {a.proxima_dose_em
+                    ? ` · próxima ${dateBR(a.proxima_dose_em)} · intervalo ${diasAte(a.proxima_dose_em, a.aplicada_em)} dias`
+                    : " · sem próxima dose"}
                 </span>
               </div>
               <div className="flex items-center gap-2">

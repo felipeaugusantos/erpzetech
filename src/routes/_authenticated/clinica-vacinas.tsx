@@ -15,7 +15,10 @@ export const Route = createFileRoute("/_authenticated/clinica-vacinas")({
     meta: [
       { title: "Vacinas e vermífugos — ERP Ze Tech" },
       { property: "og:title", content: "Vacinas e vermífugos — ERP Ze Tech" },
-      { property: "og:description", content: "Aplicações, lotes, intervalos e próximas doses do paciente." },
+      {
+        property: "og:description",
+        content: "Aplicações, lotes, intervalos e próximas doses do paciente.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
@@ -32,6 +35,12 @@ function VacinasModulo() {
   const { pet, agendamento, aplicar } = Route.useSearch();
   if (modulos.carregando) return <div className="panel h-40 animate-pulse" />;
   if (!modulos.clinica) return <ModuloBloqueado modulo="clinica" />;
-  if (!pet) return <EmptyState title="Nenhum paciente escolhido" description="Escolha o paciente na ficha ou na agenda." />;
+  if (!pet)
+    return (
+      <EmptyState
+        title="Nenhum paciente escolhido"
+        description="Escolha o paciente na ficha ou na agenda."
+      />
+    );
   return <VacinasPaciente key={pet} pet={pet} agendamento={agendamento} aplicar={aplicar} />;
 }

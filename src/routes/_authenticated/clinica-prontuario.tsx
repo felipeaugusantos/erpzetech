@@ -469,7 +469,10 @@ function FichaDoPaciente({ petId }: { petId: string }) {
         </div>
       </div>
 
-      <section aria-label="Cartão vacinal do paciente" className="min-w-0 border-b border-border py-4">
+      <section
+        aria-label="Cartão vacinal do paciente"
+        className="min-w-0 border-b border-border py-4"
+      >
         <VacinasPaciente key={petId} pet={petId} embutido />
       </section>
 
@@ -703,10 +706,13 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                       atendimentoId={a.id}
                       petId={petId}
                       dia={a.data_atendimento ?? dataClinica(a.aberto_em)}
-                      consultasNoDia={data.atendimentos.filter((consulta) =>
-                        (consulta.data_atendimento ?? dataClinica(consulta.aberto_em)) ===
-                        (a.data_atendimento ?? dataClinica(a.aberto_em))
-                      ).length}
+                      consultasNoDia={
+                        data.atendimentos.filter(
+                          (consulta) =>
+                            (consulta.data_atendimento ?? dataClinica(consulta.aberto_em)) ===
+                            (a.data_atendimento ?? dataClinica(a.aberto_em)),
+                        ).length
+                      }
                     />
                   </div>
                 </div>
@@ -724,7 +730,9 @@ function FichaDoPaciente({ petId }: { petId: string }) {
                             rotuloBotao="Anexar exame"
                             dataPadrao={a.data_atendimento ?? dataClinica(a.aberto_em)}
                             onImportado={() => {
-                              void qc.invalidateQueries({ queryKey: ["clinica-exames-pet", petId] });
+                              void qc.invalidateQueries({
+                                queryKey: ["clinica-exames-pet", petId],
+                              });
                               void qc.invalidateQueries({ queryKey: ["clinica-historico", petId] });
                             }}
                           />
