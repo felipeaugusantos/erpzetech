@@ -17040,6 +17040,18 @@ export type Database = {
         Args: { p_linhas: Json; p_tabela: string }
         Returns: undefined
       }
+      _baixar_conta_interno: {
+        Args: {
+          p_caixa_id?: string
+          p_conta_id: string
+          p_data?: string
+          p_forma: Database["public"]["Enums"]["forma_pagamento"]
+          p_observacao?: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: string
+      }
       _clinica_agendamento_avulso: {
         Args: {
           p_categoria: string
