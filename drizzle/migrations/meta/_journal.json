@@ -876,6 +876,20 @@
       "when": 1795047759494,
       "tag": "0124_restauracao_colunas_comissoes_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1795115721591,
+      "tag": "0125_clientes_documento_unico",
+      "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1795115739167,
+      "tag": "0126_clientes_documento_unico_codigo",
+      "breakpoints": true
     }
   ]
 }
