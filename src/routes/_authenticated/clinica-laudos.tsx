@@ -232,6 +232,10 @@ function Laudos({ petId }: { petId: string }) {
               <FileText className="size-4" />
               Todos os laudos ({exames.length})
             </TabsTrigger>
+            <TabsTrigger value="consultas">
+              <FileText className="size-4" />
+              Anexos das consultas
+            </TabsTrigger>
             <TabsTrigger value="evolucao">
               <TrendingUp className="size-4" />
               Evolução
@@ -312,6 +316,9 @@ function Laudos({ petId }: { petId: string }) {
                 </div>
               </details>
             ))}
+          </TabsContent>
+          <TabsContent value="consultas" className="mt-4">
+            <AnexosDasConsultas petId={petId} />
           </TabsContent>
           <TabsContent value="evolucao" className="mt-4">
             <Input
@@ -466,6 +473,48 @@ function Laudos({ petId }: { petId: string }) {
           </article>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+type ConsultaResumo = { id: string; aberto_em: string; data_atendimento?: string };
+
+/** Arquivos enviados por "Anexar exame" ficam na consulta (não viram laudo com valores); aqui eles aparecem juntos. */
+function AnexosDasConsultas({ petId }: { petId: string }) {
+  const hist = useQuery({
+    queryKey: ["clinica-historico", petId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clinica_historico", { p_pet_id: petId });
+      if (error) throw error;
+      return data as unknown as { atendimentos: ConsultaResumo[] };
+    },
+  });
+  const consultas = hist.data?.atendimentos ?? [];
+  const anexos = useQueries({
+    queries: consultas.map((c) => ({
+      queryKey: ["clinica-anexos", c.id],
+      queryFn: async () => {
+        const { data, error } = await supabase.rpc("clinica_anexos", { p_atendimento_id: c.id });
+        if (error) throw error;
+        return (data ?? []) as unknown as { situacao: string }[];
+      },
+    })),
+  });
+  if (hist.error) return <p className="text-sm text-destructive">{hist.error.message}</p>;
+  if (hist.isPending || anexos.some((a) => a.isPending))
+    return <div className="h-24 animate-pulse bg-muted" aria-label="Carregando anexos" />;
+  const comAnexo = consultas.filter((_, i) => (anexos[i]?.data ?? []).length > 0);
+  if (!comAnexo.length) return <EmptyState title="Nenhum arquivo anexado às consultas" />;
+  return (
+    <div className="grid gap-4">
+      {comAnexo.map((c) => (
+        <div key={c.id} className="grid gap-2">
+          <p className="text-sm font-semibold">
+            Consulta de {dateBR(c.data_atendimento ?? c.aberto_em)}
+          </p>
+          <AnexosClinicos atendimentoId={c.id} podeEnviar={false} />
+        </div>
+      ))}
     </div>
   );
 }
