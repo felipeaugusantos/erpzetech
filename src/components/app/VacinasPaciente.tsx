@@ -26,7 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import { hojeISO } from "@/lib/financeiro";
-import { dadosLoteManual } from "@/lib/vacina-lote-manual";
+import { dadosLoteManual, dadosServicoCobrado } from "@/lib/vacina-lote-manual";
 import {
   ATALHOS_PROXIMA_DOSE,
   dataDoAtalho,
@@ -158,7 +158,7 @@ export function VacinasPaciente({
       return data ?? [];
     },
   });
-  const servicoAtual = servicoId || servicos.data?.[0]?.id || "";
+  const servicoAtual = servicoId;
 
   const item = catalogo.data?.find((i) => i.id === catalogoId);
 
@@ -182,15 +182,18 @@ export function VacinasPaciente({
         return data as unknown as Retorno;
       }
       if (!petId) throw new Error("Escolha o paciente");
-      if (!servicoAtual)
-        throw new Error("Cadastre um serviço de vacina ativo em Serviços e preços");
       if (!aplicadaEm || aplicadaEm > hojeISO())
         throw new Error("A aplicação não pode ser no futuro");
       // Sem agendamento: cria o atendimento e registra o lote informado, sem baixa de estoque.
       const { data, error } = await supabase.rpc("clinica_vacina_offline", {
         p_chave: chave,
         p_acao: "aplicar",
-        p_dados: { ...dados, pet_id: petId, servico_id: servicoAtual, aplicada_em: aplicadaEm },
+        p_dados: {
+          ...dados,
+          pet_id: petId,
+          ...dadosServicoCobrado(servicoAtual),
+          aplicada_em: aplicadaEm,
+        },
       });
       if (error) throw error;
       return data as unknown as Retorno;
@@ -313,17 +316,16 @@ export function VacinasPaciente({
             {!agendamento && (
               <>
                 <div>
-                  <Label htmlFor="a-servico">
-                    Serviço cobrado <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={servicoAtual || "__nenhum"} onValueChange={setServicoId}>
+                  <Label htmlFor="a-servico">Serviço cobrado</Label>
+                  <Select
+                    value={servicoAtual || "__nenhum"}
+                    onValueChange={(v) => setServicoId(v === "__nenhum" ? "" : v)}
+                  >
                     <SelectTrigger id="a-servico">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {!servicoAtual && (
-                        <SelectItem value="__nenhum">Nenhum serviço de vacina ativo</SelectItem>
-                      )}
+                      <SelectItem value="__nenhum">Sem serviço cobrado</SelectItem>
                       {servicos.data?.map((sv) => (
                         <SelectItem key={sv.id} value={sv.id}>
                           {sv.nome}
@@ -375,27 +377,21 @@ export function VacinasPaciente({
               )}
             </div>
             <div>
-              <Label htmlFor="a-lote">
-                Lote <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="a-lote">Lote</Label>
               <Input
                 id="a-lote"
                 value={lote}
                 maxLength={120}
-                required
                 onChange={(e) => setLote(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="a-validade">
-                Vencimento do lote <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="a-validade">Vencimento do lote</Label>
               <Input
                 id="a-validade"
                 type="date"
                 value={validadeLote}
                 min={aplicadaEm || hoje}
-                required
                 onChange={(e) => setValidadeLote(e.target.value)}
               />
             </div>
@@ -472,11 +468,9 @@ export function VacinasPaciente({
               disabled={
                 aplicar.isPending ||
                 !catalogoId ||
-                !lote.trim() ||
-                !validadeLote ||
-                validadeLote < (aplicadaEm || hoje) ||
+                (Boolean(validadeLote) && validadeLote < (aplicadaEm || hoje)) ||
                 !local.trim() ||
-                (!agendamento && (!servicoAtual || !aplicadaEm || aplicadaEm > hoje))
+                (!agendamento && (!aplicadaEm || aplicadaEm > hoje))
               }
             >
               <Syringe className="size-4" /> Registrar aplicação

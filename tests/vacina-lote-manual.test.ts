@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dadosLoteManual } from "../src/lib/vacina-lote-manual.ts";
+import { dadosLoteManual, dadosServicoCobrado } from "../src/lib/vacina-lote-manual.ts";
+
+test("serviço cobrado é opcional e não envia cobrança implícita", () => {
+  assert.deepEqual(dadosServicoCobrado(""), {});
+  assert.deepEqual(dadosServicoCobrado("11111111-1111-1111-1111-111111111111"), {
+    servico_id: "11111111-1111-1111-1111-111111111111",
+  });
+  assert.throws(() => dadosServicoCobrado("__nenhum"));
+});
 
 test("lote e vencimento manuais não exigem cadastro de lote", () => {
   assert.deepEqual(dadosLoteManual(" VAC-2026-A ", "2027-06-30", "2026-11-20"), {
@@ -8,11 +16,26 @@ test("lote e vencimento manuais não exigem cadastro de lote", () => {
     validade_lote: "2027-06-30",
   });
 });
-test("lote informado é obrigatório", () => {
-  assert.throws(() => dadosLoteManual("   ", "2027-06-30", "2026-11-20"));
+test("lote é opcional mesmo com vencimento preenchido", () => {
+  assert.deepEqual(dadosLoteManual("   ", "2027-06-30", "2026-11-20"), {
+    lote: null,
+    validade_lote: "2027-06-30",
+  });
 });
-test("vencimento informado é obrigatório e deve ser uma data real", () => {
-  for (const data of ["", "2027-02-30", "não é data"])
+test("vencimento é opcional mesmo com lote preenchido", () => {
+  assert.deepEqual(dadosLoteManual("VAC-A", "", "2026-11-20"), {
+    lote: "VAC-A",
+    validade_lote: null,
+  });
+});
+test("lote e vencimento podem ficar ambos vazios", () => {
+  assert.deepEqual(dadosLoteManual("", "", "2026-11-20"), {
+    lote: null,
+    validade_lote: null,
+  });
+});
+test("vencimento preenchido deve ser uma data real", () => {
+  for (const data of ["2027-02-30", "não é data"])
     assert.throws(() => dadosLoteManual("VAC-A", data, "2026-11-20"));
 });
 test("validade é conferida contra aplicação e não contra dia atual", () => {

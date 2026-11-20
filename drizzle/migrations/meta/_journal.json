@@ -925,6 +925,20 @@
       "when": 1795183218779,
       "tag": "0131_vacinas_lote_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1795185933587,
+      "tag": "0132_vacina_campos_opcionais",
+      "breakpoints": true
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1795185964551,
+      "tag": "0133_vacina_visita_sem_cobranca_intervalo",
+      "breakpoints": true
     }
   ]
 }

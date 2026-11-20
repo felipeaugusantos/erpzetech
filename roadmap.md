@@ -1,7 +1,9 @@
 # Roadmap
 
+- [x] Serviço cobrado, lote e vencimento opcionais na vacinação; sem seleção não cria cobrança, dados preenchidos continuam validados e autorização veterinária preservada. Tela autenticada e funções instaladas conferidas; testes passaram. Nenhuma aplicação real gravada.
+
 - [x] Lote e vencimento manuais na aplicação de vacina, sem cadastro ou baixa de estoque; preservadas aplicações antigas e operações offline vinculadas ao estoque. 25 testes passaram; campos digitados conferidos com conta real e funções instaladas verificadas.
-- [ ] Conferir gravação, leitura e cancelamento de aplicação manual com conta veterinária autorizada: conta disponível é administrativa sem vínculo veterinário e a empresa não tem serviço de vacina ativo; nenhuma aplicação real criada.
+- [ ] Conferir gravação, leitura e cancelamento de aplicação manual com conta veterinária autorizada: conta disponível é administrativa sem vínculo veterinário; nenhuma aplicação real criada. Serviço cobrado não é mais obrigatório.
 
 - [x] Laudo FIV/FeLV no prontuário via emissão veterinária existente, com amostra, data, produto, lote, validade e resultados explícitos; pet/tutor/veterinário vêm do documento salvo e logo da clínica também no PDF.
 
