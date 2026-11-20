@@ -1,2 +1,3 @@
 - Vaccination in the patient record and dedicated screen shares VacinasPaciente and existing clinical RPCs; display saved dose dates and catalog intervals without inventing medical protocols.
+- Manual vaccination batches are saved as application snapshots without stock movements; preserve the legacy inventory branch and reverse stock only for inventory-linked applications to keep pending offline operations compatible.
 - The digital and printed vaccination booklet share CarteirinhaVacinacao and the existing clinical card RPC; dates and effective intervals come only from saved patient applications, so printing cannot invent a protocol.

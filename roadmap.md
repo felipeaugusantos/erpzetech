@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Lote e vencimento manuais na aplicação de vacina, sem cadastro ou baixa de estoque; preservadas aplicações antigas e operações offline vinculadas ao estoque. 25 testes passaram; campos digitados conferidos com conta real e funções instaladas verificadas.
+- [ ] Conferir gravação, leitura e cancelamento de aplicação manual com conta veterinária autorizada: conta disponível é administrativa sem vínculo veterinário e a empresa não tem serviço de vacina ativo; nenhuma aplicação real criada.
+
 - [x] Laudo FIV/FeLV no prontuário via emissão veterinária existente, com amostra, data, produto, lote, validade e resultados explícitos; pet/tutor/veterinário vêm do documento salvo e logo da clínica também no PDF.
 
 - [x] Segurança selecionada: páginas públicas só assinam logo validado pela empresa de origem; aplicar cotação exige administrador, gestor ou comprador antes de alterar valores.

@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import { hojeISO } from "@/lib/financeiro";
+import { dadosLoteManual } from "@/lib/vacina-lote-manual";
 import {
   ATALHOS_PROXIMA_DOSE,
   dataDoAtalho,
@@ -71,13 +72,6 @@ function AtalhosProximaDose({
   );
 }
 
-type Lote = {
-  id: string;
-  lote: string;
-  validade: string | null;
-  quantidade: number;
-  deposito: string;
-};
 type Aplicador = { id: string; nome: string; funcao: string };
 type Retorno = {
   avisos?: string[];
@@ -105,7 +99,8 @@ export function VacinasPaciente({
   const qc = useQueryClient();
   const hoje = hojeISO();
   const [catalogoId, setCatalogoId] = useState("");
-  const [loteId, setLoteId] = useState("");
+  const [lote, setLote] = useState("");
+  const [validadeLote, setValidadeLote] = useState("");
   const [aplicador, setAplicador] = useState("");
   const [local, setLocal] = useState("");
   const [obs, setObs] = useState("");
@@ -140,17 +135,6 @@ export function VacinasPaciente({
       return data as unknown as CartaoVacinacao;
     },
   });
-  const lotes = useQuery({
-    queryKey: ["clinica-lotes", catalogoId],
-    enabled: Boolean(catalogoId),
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("clinica_lotes_vacina", {
-        p_catalogo_id: catalogoId,
-      });
-      if (error) throw error;
-      return (data ?? []) as unknown as Lote[];
-    },
-  });
   const aplicadores = useQuery({
     queryKey: ["clinica-aplicadores"],
     queryFn: async () => {
@@ -182,7 +166,8 @@ export function VacinasPaciente({
     mutationFn: async () => {
       const dados = {
         catalogo_id: catalogoId,
-        estoque_lote_id: loteId,
+        ...dadosLoteManual(lote, validadeLote, aplicadaEm || hojeISO()),
+        aplicada_em: aplicadaEm,
         ...(aplicador ? { aplicador_id: aplicador } : {}),
         local_aplicacao: local,
         observacoes: obs,
@@ -201,7 +186,7 @@ export function VacinasPaciente({
         throw new Error("Cadastre um serviço de vacina ativo em Serviços e preços");
       if (!aplicadaEm || aplicadaEm > hojeISO())
         throw new Error("A aplicação não pode ser no futuro");
-      // Sem agendamento: o banco cria o atendimento de vacina (com o preço do serviço) e aplica, baixando o lote.
+      // Sem agendamento: cria o atendimento e registra o lote informado, sem baixa de estoque.
       const { data, error } = await supabase.rpc("clinica_vacina_offline", {
         p_chave: chave,
         p_acao: "aplicar",
@@ -217,7 +202,8 @@ export function VacinasPaciente({
           : "Sem próxima dose.",
       });
       for (const a of r.avisos ?? []) toast.warning(a);
-      setLoteId("");
+      setLote("");
+      setValidadeLote("");
       setLocal("");
       setObs("");
       setProxima("");
@@ -267,7 +253,7 @@ export function VacinasPaciente({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Aplicação cancelada", { description: "A dose voltou ao lote." });
+      toast.success("Aplicação cancelada");
       setCancelando(null);
       void qc.invalidateQueries({ queryKey: ["clinica-cartao"] });
       void qc.invalidateQueries({ queryKey: ["clinica-lotes"] });
@@ -320,8 +306,7 @@ export function VacinasPaciente({
           </h2>
           {!agendamento && (
             <p className="text-xs text-muted-foreground">
-              Sem agendamento: ao registrar, o atendimento de vacina é criado com o preço do serviço
-              e a dose baixa o lote do estoque.
+              Serviço de vacina: {servicos.data?.find((s) => s.id === servicoAtual)?.nome ?? "—"}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
@@ -369,7 +354,8 @@ export function VacinasPaciente({
                 value={catalogoId || "__nenhum"}
                 onValueChange={(v) => {
                   setCatalogoId(v === "__nenhum" ? "" : v);
-                  setLoteId("");
+                  setLote("");
+                  setValidadeLote("");
                 }}
               >
                 <SelectTrigger id="a-item">
@@ -390,36 +376,28 @@ export function VacinasPaciente({
             </div>
             <div>
               <Label htmlFor="a-lote">
-                Lote e vencimento <span className="text-destructive">*</span>
+                Lote <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={loteId || "__nenhum"}
-                onValueChange={(v) => setLoteId(v === "__nenhum" ? "" : v)}
-                disabled={!catalogoId}
-              >
-                <SelectTrigger id="a-lote">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__nenhum">Escolha o lote</SelectItem>
-                  {lotes.data
-                    ?.filter(
-                      (l) =>
-                        l.quantidade > 0 && (!l.validade || l.validade >= (aplicadaEm || hoje)),
-                    )
-                    .map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.lote} · vence {dateBR(l.validade)} · {l.quantidade} dose(s) ·{" "}
-                        {l.deposito}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {catalogoId && lotes.data?.length === 0 && (
-                <p className="mt-1 text-xs text-amber-800">
-                  Nenhum lote com saldo e dentro da validade para este item.
-                </p>
-              )}
+              <Input
+                id="a-lote"
+                value={lote}
+                maxLength={120}
+                required
+                onChange={(e) => setLote(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="a-validade">
+                Vencimento do lote <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="a-validade"
+                type="date"
+                value={validadeLote}
+                min={aplicadaEm || hoje}
+                required
+                onChange={(e) => setValidadeLote(e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="a-aplicador">
@@ -494,7 +472,9 @@ export function VacinasPaciente({
               disabled={
                 aplicar.isPending ||
                 !catalogoId ||
-                !loteId ||
+                !lote.trim() ||
+                !validadeLote ||
+                validadeLote < (aplicadaEm || hoje) ||
                 !local.trim() ||
                 (!agendamento && (!servicoAtual || !aplicadaEm || aplicadaEm > hoje))
               }
@@ -710,8 +690,8 @@ export function VacinasPaciente({
               }
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              O registro não some: fica cancelado com o motivo. Aplicação da clínica devolve a dose
-              ao lote e ao estoque.
+              O registro fica cancelado com o motivo. Lote e vencimento informados permanecem no
+              histórico.
             </p>
           </div>
           <DialogFooter>
