@@ -1,4 +1,5 @@
 -- Real behavior, all temporary exam fixtures rolled back; never deletes a saved clinical exam.
+-- DEPENDE do ci/smoke.sql: usa o veterinário, o modelo de exame e o pet que ele deixa no banco (rode depois dele, como no run.sh).
 \set ON_ERROR_STOP on
 BEGIN;
 DO $$
@@ -9,7 +10,7 @@ BEGIN
  AND EXISTS(SELECT 1 FROM public.user_roles r WHERE r.user_id=p.profile_id AND r.tenant_id=p.tenant_id AND r.role='veterinario')
  AND EXISTS(SELECT 1 FROM public.pet_exame_modelos m WHERE m.tenant_id=p.tenant_id AND m.ativo)
  AND EXISTS(SELECT 1 FROM public.pets a WHERE a.tenant_id=p.tenant_id AND a.ativo) LIMIT 1;
- IF u IS NULL THEN RAISE EXCEPTION 'Need veterinarian fixtures before exclusion test'; END IF;
+ IF u IS NULL THEN RAISE EXCEPTION 'Este teste não cria dados: usa o veterinário (com CRMV e papel veterinario), o modelo de exame e o pet que o ci/smoke.sql deixa no banco. Rode antes o smoke.sql completo (ou o ci/run.sh) no mesmo banco; se o smoke falhou, corrija-o primeiro.'; END IF;
  -- o smoke devolve a empresa ao estado original ao terminar (sem clínica liberada); a liberação vale só nesta transação (ROLLBACK no fim)
  INSERT INTO public.empresa_modulos_liberados(empresa_id,modulo)
   SELECT e.id,'clinica' FROM public.empresas e WHERE e.tenant_id=t

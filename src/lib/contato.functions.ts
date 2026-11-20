@@ -17,7 +17,7 @@ type EntradaContato = {
 };
 
 /**
- * Envio do formulário público de contato. Confere o CAPTCHA (se `TURNSTILE_SECRET_KEY` estiver configurada) e só então
+ * Envio do formulário público de contato. Confere o CAPTCHA (em produção `TURNSTILE_SECRET_KEY` é obrigatória; só `TURNSTILE_DESLIGADO=true` dispensa) e só então
  * grava, pela função do banco que valida, limita por origem e por hora. Só este servidor chama a função do banco.
  */
 export const enviarContato = createServerFn({ method: "POST" })
@@ -45,6 +45,10 @@ export const enviarContato = createServerFn({ method: "POST" })
       process.env["TURNSTILE_SECRET_KEY"],
       ip,
       (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(5000) }),
+      {
+        producao: process.env["NODE_ENV"] === "production",
+        desligado: process.env["TURNSTILE_DESLIGADO"] === "true",
+      },
     );
     if (!captcha.ok) throw new Error(MENSAGEM_CAPTCHA[captcha.motivo]);
 

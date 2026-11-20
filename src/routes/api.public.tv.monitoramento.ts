@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { chaveBearer, chaveTvConfere, montarResumoTv } from "@/lib/monitoramento-tv";
+import { ipDoCliente } from "@/lib/ip-cliente";
 import { criarLimitador } from "@/lib/monitoramento";
 
 // Painel de TV da central Zé Registra: GET /api/public/tv/monitoramento com "Authorization: Bearer <chave de leitura>".
@@ -10,11 +11,7 @@ import { criarLimitador } from "@/lib/monitoramento";
 const podeConsultar = criarLimitador(60, 60_000);
 
 function ipDe(request: Request): string {
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "desconhecido"
-  );
+  return ipDoCliente(request.headers) ?? "desconhecido";
 }
 
 const SEM_CACHE = { "Cache-Control": "no-store" };

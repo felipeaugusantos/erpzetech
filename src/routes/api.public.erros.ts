@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ipDoCliente } from "@/lib/ip-cliente";
 import { criarLimitador, ehRuido, LIMITE_CORPO, lerCorpoDoNavegador } from "@/lib/monitoramento";
 
 // Recebe os erros do navegador: POST /api/public/erros. É público porque o erro pode acontecer antes do login. Por isso: corpo
@@ -7,11 +8,7 @@ import { criarLimitador, ehRuido, LIMITE_CORPO, lerCorpoDoNavegador } from "@/li
 const podeEnviar = criarLimitador(20, 60_000);
 
 function ipDe(request: Request): string {
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "desconhecido"
-  );
+  return ipDoCliente(request.headers) ?? "desconhecido";
 }
 
 export const Route = createFileRoute("/api/public/erros")({

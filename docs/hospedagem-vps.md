@@ -149,6 +149,8 @@ server {
 }
 ```
 
+Na VPS **sem Cloudflare** defina `IP_ORIGEM=proxy` no ambiente do servidor: assim o limite de uso por IP (erros, contato, consulta de CNPJ) lê só o último item do `X-Forwarded-For`, o que o nginx acrescenta, e ignora `cf-connecting-ip`, que o cliente poderia forjar. Atrás da Cloudflare não precisa definir nada. Em produção o formulário de contato exige `TURNSTILE_SECRET_KEY`; só `TURNSTILE_DESLIGADO=true` dispensa o CAPTCHA.
+
 ```bash
 ln -s /etc/nginx/sites-available/ezra /etc/nginx/sites-enabled/ezra
 nginx -t && systemctl reload nginx
