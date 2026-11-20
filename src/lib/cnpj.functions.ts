@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { limparDocumento } from "./cnpj-alfa";
+import { criarLimitador } from "./monitoramento";
+
+// A consulta é pública (usada antes do login) e cada chamada gasta a cota das bases externas: limite por IP.
+const podeConsultarCnpj = criarLimitador(15, 60_000);
 
 /** Dados públicos da empresa retornados pela consulta de CNPJ. */
 export type DadosCnpj = {
@@ -43,6 +47,12 @@ export const consultarCnpj = createServerFn({ method: "GET" })
     return { cnpj };
   })
   .handler(async ({ data }): Promise<DadosCnpj> => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { ipDoCliente } = await import("./ip-cliente.ts");
+    const ip = ipDoCliente(getRequest().headers) ?? "desconhecido";
+    if (!podeConsultarCnpj(ip)) {
+      throw new Error("Muitas consultas seguidas. Aguarde um minuto e tente de novo.");
+    }
     const cabecalhos = {
       accept: "application/json",
       "user-agent": "Mozilla/5.0 (compatible; ERPZeTech/1.0)",

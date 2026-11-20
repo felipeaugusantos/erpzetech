@@ -5,7 +5,19 @@ import { URL_VERIFICACAO_TURNSTILE, ipDoEnvio, verificarTurnstile } from "../src
 
 const resposta = (ok: boolean, corpo: unknown) => ({ ok, json: async () => corpo });
 
-test("sem segredo configurado o CAPTCHA fica desligado e não consulta ninguém", async () => {
+test("em produção, sem segredo, o envio é barrado (falha fechada), salvo desligamento explícito", async () => {
+  const buscar = async () => resposta(true, { success: true });
+  assert.deepEqual(await verificarTurnstile("tk", "", null, buscar, { producao: true }), {
+    ok: false,
+    motivo: "nao_configurado",
+  });
+  assert.deepEqual(
+    await verificarTurnstile("tk", undefined, null, buscar, { producao: true, desligado: true }),
+    { ok: true },
+  );
+});
+
+test("sem segredo configurado (desenvolvimento) o CAPTCHA fica desligado e não consulta ninguém", async () => {
   let chamadas = 0;
   const r = await verificarTurnstile(undefined, "", "1.2.3.4", async () => {
     chamadas++;
@@ -94,7 +106,8 @@ test("o IP vem de cf-connecting-ip, senão do primeiro de x-forwarded-for", () =
     ipDoEnvio(h({ "cf-connecting-ip": "198.51.100.7", "x-forwarded-for": "10.0.0.1" })),
     "198.51.100.7",
   );
-  assert.equal(ipDoEnvio(h({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" })), "203.0.113.9");
+  // o primeiro item do x-forwarded-for é escrito pelo cliente: vale o último, acrescentado pelo nosso proxy
+  assert.equal(ipDoEnvio(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" })), "203.0.113.9");
   assert.equal(ipDoEnvio(h({})), null);
   assert.equal(ipDoEnvio(h({ "x-forwarded-for": " " })), null);
 });

@@ -532,6 +532,8 @@ DECLARE
     -- dashboard gerencial (erro e uso): respondem só à equipe EZRA (operador)
     'saas_monitoramento_resumo', 'saas_monitoramento_dia', 'saas_monitoramento_uso_cliente', 'saas_monitoramento_top_erros',
     'eh_saas_operador', 'eh_salao_restrito', 'onboarding_criar_espaco',
+    -- exige veterinário com CRMV e clínica liberada (_clinica_vet): o perfil restrito do salão sem essa função nunca passa e o contador já é barrado por exige_nao_contador
+    'clinica_documento_excluir',
     -- contador: só respondem sobre o próprio acesso (sem dado de empresa); a trava do salão não se aplica porque o perfil do salão nunca é contador
     'eh_contador_restrito', 'contador_empresa_id', 'contador_edita_tributos', 'contador_meu_acesso',
     -- página de login da empresa: devolve só nome, cor e logo (dados públicos de marca) de uma empresa ativa com link
