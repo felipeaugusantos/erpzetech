@@ -3895,7 +3895,7 @@ DECLARE
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Pet Cobrança CI') RETURNING id INTO dep;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'PET-COB-RACAO', 'Ração cobrança', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança CI', '85012003101') RETURNING id INTO tutor;
   PERFORM ci.entrar(adm);
   PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci');
   PERFORM ci.sair();
@@ -4132,7 +4132,7 @@ DECLARE
 BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Pet Pacote CI') RETURNING id INTO dep;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'PET-PAC-RACAO', 'Ração pacote', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Pacote CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Pacote CI', '85012003284') RETURNING id INTO tutor;
   INSERT INTO tenants (nome) VALUES ('Pacote B') RETURNING id INTO tb;
   PERFORM ci.entrar(adm);
   PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 20, 'ci', 'ci');
@@ -4396,7 +4396,7 @@ DECLARE
   tutor uuid; pet uuid; serv uuid; prof1 uuid; prof2 uuid; ag1 uuid; ag2 uuid; ag3 uuid; tb uuid;
   r jsonb; n bigint;
 BEGIN
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Maria Tutora CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Maria Tutora CI', '85012003365') RETURNING id INTO tutor;
   INSERT INTO tenants (nome) VALUES ('Prof B') RETURNING id INTO tb;
   INSERT INTO auth.users (id, email) VALUES (p1, 'prof1@ci'), (p2, 'prof2@ci'), (psem, 'profsem@ci'), (pmix, 'profmix@ci'), (pout, 'profout@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (p1, p2, psem, pmix);
@@ -4493,7 +4493,7 @@ DECLARE
   hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
   tutor uuid; pet uuid; cons uuid; vet uuid; ban uuid; ag uuid; r jsonb; ramo_ant text; cnae_ant text; cnae2_ant text;
 BEGIN
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Clinica CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Clinica CI', '85012003446') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (v1, 'vet1@ci'), (vmix, 'vetmix@ci'), (pban, 'banhista@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (v1, vmix, pban);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (v1, demo, 'veterinario'), (vmix, demo, 'veterinario'), (vmix, demo, 'vendedor'), (pban, demo, 'profissional');
@@ -4596,7 +4596,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Joana Tutora Prontuario CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Joana Tutora Prontuario CI', '85012004175') RETURNING id INTO tutor;
   INSERT INTO tenants (nome) VALUES ('Clinica B CI') RETURNING id INTO tb;
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Outra Empresa', '11144477735') RETURNING id INTO tutor_b;
   INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor_b, 'Pet Outra Empresa') RETURNING id INTO pet_b;
@@ -4781,7 +4781,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina CI', '85012004256') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (vg, 'vetvac@ci');
   UPDATE profiles SET tenant_id = demo WHERE id = vg;
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vg, demo, 'veterinario');
@@ -4862,7 +4862,7 @@ BEGIN
 
   -- aplicar: só o veterinário, com lote válido, dentro do atendimento de vacina
   PERFORM ci.deve_falhar(gest, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_ok), 'gestor aplica vacina');
-  PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag_banho, cat, l_ok), 'agendamento sem serviço de vacina');
+  -- (a regra "agendamento sem serviço de vacina" foi retirada de propósito na migração 0132: a aplicação não exige mais o serviço cobrado)
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_venc), 'lote vencido');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_zero), 'lote sem saldo');
   PERFORM ci.deve_falhar(vg, format($c$SELECT clinica_vacina_aplicar(%L, jsonb_build_object('catalogo_id',%L,'estoque_lote_id',%L))$c$, ag, cat, l_semval), 'lote sem validade registrada');
@@ -4988,7 +4988,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Ana Souza Reforco CI', '52998224725', '(16) 99999-1234') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Ana Souza Reforco CI', '85012004337', '(16) 99999-1234') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (vh, 'vetref@ci');
   UPDATE profiles SET tenant_id = demo WHERE id = vh;
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vh, demo, 'veterinario');
@@ -5274,7 +5274,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Exame CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Exame CI', '85012004418') RETURNING id INTO tutor;
   INSERT INTO tenants (nome) VALUES ('Clinica B Exame CI') RETURNING id INTO tb;
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Outra Empresa Exame', '11144477735') RETURNING id INTO tutor_b;
   INSERT INTO pets (tenant_id, cliente_id, nome) VALUES (tb, tutor_b, 'Pet Outra Empresa Exame') RETURNING id INTO pet_b;
@@ -5566,7 +5566,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo CI', '85012004507') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (va, 'vetana@ci'), (vb, 'vetanb@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
@@ -5773,7 +5773,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Tutor Visita CI', '52998224725', '(16) 98888-7777') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Tutor Visita CI', '85012004680', '(16) 98888-7777') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (va, 'vetvisa@ci'), (vb, 'vetvisb@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
@@ -5992,7 +5992,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Atendimento Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Atendimento Offline CI', '85012004760') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (va, 'vetoffa@ci'), (vb, 'vetoffb@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (va, vb);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (va, demo, 'veterinario'), (vb, demo, 'veterinario');
@@ -6150,7 +6150,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Vacina Offline CI', '85012004841') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (vc, 'vetvacoff@ci');
   UPDATE profiles SET tenant_id = demo WHERE id = vc;
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vc, demo, 'veterinario');
@@ -6324,7 +6324,7 @@ DECLARE
   cli uuid; eq_e uuid; loc5 uuid; eq_a uuid; eq_b uuid; eq_c uuid; eq_d uuid; loc1 uuid; loc2 uuid; loc3 uuid; loc4 uuid;
   r jsonb; n bigint;
 BEGIN
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Vistoria CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Vistoria CI', '85012004922') RETURNING id INTO cli;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Betoneira Vistoria CI', 100, 4000) RETURNING id INTO eq_a;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Andaime Vistoria CI', 50, 1000) RETURNING id INTO eq_b;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, valor_aquisicao) VALUES (demo, 'Furadeira Vistoria CI', 30, 600) RETURNING id INTO eq_c;
@@ -6423,7 +6423,7 @@ DECLARE
   cli uuid; eq1 uuid; eq2 uuid; eq3 uuid; plano uuid; plano2 uuid; plano3 uuid; locb uuid; loca uuid; locc uuid; locd uuid;
   r jsonb; s jsonb; n bigint;
 BEGIN
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Manutencao CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Manutencao CI', '85012005066') RETURNING id INTO cli;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Compactador Manut CI', 100) RETURNING id INTO eq1;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, situacao) VALUES (demo, 'Gerador Manut CI', 100, 'manutencao') RETURNING id INTO eq2;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria, situacao, ativo) VALUES (demo, 'Perdido Manut CI', 100, 'manutencao', false) RETURNING id INTO eq3;
@@ -6547,7 +6547,7 @@ DECLARE
   cli uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; l1 uuid; l2 uuid; l3 uuid; l4 uuid; l5 uuid;
   n1 integer; n2 integer; n3 integer; n4 integer; n5 integer; r jsonb;
 BEGIN
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Cobranca Devolucao CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Cobranca Devolucao CI', '85012005147') RETURNING id INTO cli;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 1 CI', 100) RETURNING id INTO f1;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 2 CI', 100) RETURNING id INTO f2;
   INSERT INTO locacao_equipamentos (tenant_id, nome, valor_diaria) VALUES (demo, 'Cobranca 3 CI', 100) RETURNING id INTO f3;
@@ -6624,7 +6624,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo Offline CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Anexo Offline CI', '85012005228') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (vx, 'vetanexooff@ci'), (vy, 'vetanexooffb@ci');
   UPDATE profiles SET tenant_id = demo WHERE id IN (vx, vy);
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vx, demo, 'veterinario'), (vy, demo, 'veterinario');
@@ -6724,7 +6724,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Iniciar Atendimento CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Iniciar Atendimento CI', '85012005309') RETURNING id INTO tutor;
   INSERT INTO auth.users (id, email) VALUES (vz, 'vetiniciar@ci');
   UPDATE profiles SET tenant_id = demo WHERE id = vz;
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (vz, demo, 'veterinario');
@@ -6985,7 +6985,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo ORDER BY created_at LIMIT 1;
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutora Documento CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutora Documento CI', '85012005490') RETURNING id INTO tutor;
   INSERT INTO pets (tenant_id, cliente_id, nome, especie) VALUES (demo, tutor, 'Rex Documento CI', 'cao') RETURNING id INTO pet;
   INSERT INTO tenants (nome) VALUES ('Clinica Documento B CI') RETURNING id INTO tb;
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (tb, 'Tutor Doc Outra Empresa', '11144477735') RETURNING id INTO tutor_b;
@@ -7134,7 +7134,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Lava CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Lava CI', '85012005570') RETURNING id INTO cli;
 
   -- sem a atividade de lavagem, nada funciona
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4789-0/99', cnae_secundarios = NULL WHERE tenant_id = demo;
@@ -7292,7 +7292,7 @@ BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Planos CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano CI', '85012005651') RETURNING id INTO cli;
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel CI', '11144477735') RETURNING id INTO cli2;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PLA1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
@@ -7482,8 +7482,8 @@ BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Avisos CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente Aviso CI', '52998224725', '11999990000', '11988887777') RETURNING id INTO cli;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg CI', '11144477735', '11977776666', false) RETURNING id INTO cli_no;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente Aviso CI', '85012005732', '11999990000', '11988887777') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg CI', '85013000122', '11977776666', false) RETURNING id INTO cli_no;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AVI1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
   v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'AVI2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
@@ -7637,7 +7637,7 @@ BEGIN
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Outro depósito CI') RETURNING id INTO dep_b;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-SHAMPOO-CI', 'Shampoo automotivo CI', 'L', 0, true) RETURNING id INTO shampoo;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, controla_estoque) VALUES (demo, 'LR-CERA-CI', 'Cera CI', 'UN', 0, true) RETURNING id INTO cera;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Insumo CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Insumo CI', '85012005813') RETURNING id INTO cli;
   PERFORM ci.entrar(adm);
   PERFORM registrar_movimentacao(shampoo, dep, 'entrada'::mov_tipo, 1, 'ci', 'ci');
   PERFORM registrar_movimentacao(cera, dep, 'entrada'::mov_tipo, 5, 'ci', 'ci');
@@ -7753,7 +7753,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Checklist CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Checklist CI', '85012005902') RETURNING id INTO cli;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'CHK1A11', 'fabricante', 'Fiat', 'modelo', 'Palio'));
   v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'helicoptero', 'identificacao', 'PRCHK', 'fabricante', 'Robinson', 'modelo', 'R44'));
@@ -7861,7 +7861,7 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Foto CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Foto CI', '85012006038') RETURNING id INTO cli;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'aviao', 'identificacao', 'PTFOT', 'fabricante', 'Cessna', 'modelo', '172'));
   PERFORM ci.sair();
@@ -7995,7 +7995,7 @@ BEGIN
   INSERT INTO tenants (nome) VALUES ('Loja sem lava CI') RETURNING id INTO t_sem;
   INSERT INTO saas_clientes (nome, tenant_id) VALUES ('Sem Lava Painel CI', t_sem) RETURNING id INTO c_sem;
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Painel CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Painel CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Painel CI', '85012006119') RETURNING id INTO cli;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'PNL1A11', 'fabricante', 'Fiat', 'modelo', 'Uno'));
   PERFORM ci.sair();
@@ -8063,7 +8063,7 @@ BEGIN
   UPDATE fiscal_config SET aliquota_iss = 5 WHERE tenant_id = demo;
 
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava NFSe CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente NFSe CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente NFSe CI', '85012006208') RETURNING id INTO cli;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'NFS1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
   v2 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'moto', 'identificacao', 'NFS2B22', 'fabricante', 'Honda', 'modelo', 'Biz'));
@@ -8195,8 +8195,8 @@ DECLARE
 BEGIN
   SELECT ramo_atividade, cnae, cnae_secundarios INTO ramo_ant, cnae_ant, cnae2_ant FROM empresas WHERE tenant_id = demo;
   UPDATE empresas SET ramo_atividade = 'outro', cnae = '4520-0/06', cnae_secundarios = NULL WHERE tenant_id = demo;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente WhatsApp CI', '52998224725', '11999990000', '(11) 98888-7777') RETURNING id INTO cli;
-  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg WA CI', '11144477735', '11977776666', false) RETURNING id INTO cli_no;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, whatsapp) VALUES (demo, 'Cliente WhatsApp CI', '85012006380', '11999990000', '(11) 98888-7777') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf, telefone, aceita_mensagens) VALUES (demo, 'Cliente Sem Msg WA CI', '85013000203', '11977776666', false) RETURNING id INTO cli_no;
   INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Cliente Sem Telefone WA CI', '39053344705', '123') RETURNING id INTO cli_tel;
   INSERT INTO clientes (tenant_id, nome, cpf, telefone) VALUES (demo, 'Cliente Lid WA CI', '12345678909', '21955554444') RETURNING id INTO cli_lid;
   PERFORM ci.entrar(vend);
@@ -10210,7 +10210,7 @@ BEGIN
   UPDATE empresas SET ramo_atividade = 'clinica' WHERE tenant_id = demo;
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Cobrança OS CI') RETURNING id INTO dep;
   INSERT INTO produtos (tenant_id, codigo_interno, descricao, unidade, preco_venda, ncm, cst_csosn) VALUES (demo, 'COB-RACAO', 'Ração cobrança OS', 'UN', 20, '23091000', '102') RETURNING id INTO merc;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança OS CI', '52998224725') RETURNING id INTO tutor;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Tutor Cobrança OS CI', '85012006461') RETURNING id INTO tutor;
   PERFORM ci.entrar(adm);
   PERFORM registrar_movimentacao(merc, dep, 'entrada'::mov_tipo, 50, 'ci', 'ci');
   PERFORM ci.sair();
@@ -11590,7 +11590,7 @@ BEGIN
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (hgar, demo, 'garcom');
   INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Checkout A') RETURNING id INTO fb;
   INSERT INTO filiais (tenant_id, empresa_id, nome) VALUES (demo, emp, 'Hotel CI Checkout B') RETURNING id INTO fb2;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Hotel CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Hotel CI', '85012006542') RETURNING id INTO cli;
 
   PERFORM ci.entrar(gest);
   tpo := hs_tipo_uh_salvar(jsonb_build_object('filial_id', fb, 'nome', 'Duplo', 'capacidade_adultos', 3, 'capacidade_criancas', 1));
@@ -12204,7 +12204,7 @@ BEGIN
   INSERT INTO user_roles (user_id, tenant_id, role) VALUES (u2, t2, 'administrador'), (u3, t3, 'administrador');
 
   INSERT INTO depositos (tenant_id, nome) VALUES (demo, 'Lava Agenda CI') RETURNING id INTO dep;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Agenda CI', '52998224725') RETURNING id INTO cli;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Agenda CI', '85012006623') RETURNING id INTO cli;
   INSERT INTO clientes (tenant_id, nome, cpf) VALUES (t2, 'Cliente Agenda T2', '11144477735') RETURNING id INTO cli_b;
   PERFORM ci.entrar(vend);
   v1 := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli, 'tipo', 'carro', 'identificacao', 'AGD1A11', 'fabricante', 'Fiat', 'modelo', 'Argo'));
@@ -12464,8 +12464,8 @@ BEGIN
   PERFORM ci.exige((r ->> 'ordem_id')::uuid = o AND (r ->> 'repetido')::boolean, 'depois de entregue, a chegada repetida ainda devolve a mesma ordem');
 
   -- ===== plano e fidelidade: a chegada aplica a mesma cobertura da ordem aberta no pátio =====
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano Agenda CI', '11144477735') RETURNING id INTO cli_p;
-  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel Agenda CI', '39053344705') RETURNING id INTO cli_f;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Plano Agenda CI', '85013000394') RETURNING id INTO cli_p;
+  INSERT INTO clientes (tenant_id, nome, cpf) VALUES (demo, 'Cliente Fiel Agenda CI', '85013000475') RETURNING id INTO cli_f;
   PERFORM ci.entrar(vend);
   v_p := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP1A11', 'fabricante', 'Fiat', 'modelo', 'Mobi'));
   v_q := lr_veiculo_salvar(jsonb_build_object('cliente_id', cli_p, 'tipo', 'carro', 'identificacao', 'AGP2B22', 'fabricante', 'Fiat', 'modelo', 'Palio'));
