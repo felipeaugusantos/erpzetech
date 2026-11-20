@@ -58,10 +58,10 @@ BEGIN
   IF (r->>'inseridas')::int <> 0 THEN RAISE EXCEPTION 'FALHA: repetir inseriu de novo'; END IF;
   RAISE NOTICE 'ok: restaurar de novo não duplica';
 
-  -- self-referência (categoria filha e pai no mesmo envio)
+  -- self-referência (categoria filha e pai no mesmo envio); todas as linhas trazem as mesmas chaves, como num backup real (to_jsonb da linha)
   r := public.backup_restaurar_tabela(a, 'categorias', jsonb_build_array(
     jsonb_build_object('id', c_filha, 'tenant_id', a, 'nome', 'Filha', 'parent_id', c_pai),
-    jsonb_build_object('id', c_pai, 'tenant_id', a, 'nome', 'Pai')));
+    jsonb_build_object('id', c_pai, 'tenant_id', a, 'nome', 'Pai', 'parent_id', NULL::uuid)));
   IF (r->>'inseridas')::int <> 2 THEN RAISE EXCEPTION 'FALHA: categoria pai e filha, veio %', r; END IF;
   RAISE NOTICE 'ok: pai e filha da mesma tabela entram juntos';
 
