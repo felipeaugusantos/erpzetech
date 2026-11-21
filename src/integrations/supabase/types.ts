@@ -16801,6 +16801,44 @@ export type Database = {
           },
         ]
       }
+      wa_assistente_preferencias: {
+        Row: {
+          agendamentos: boolean
+          atualizado_em: string
+          boas_vindas: string
+          nome: string
+          orcamentos: boolean
+          responsavel_numero: string
+          tenant_id: string
+        }
+        Insert: {
+          agendamentos?: boolean
+          atualizado_em?: string
+          boas_vindas?: string
+          nome?: string
+          orcamentos?: boolean
+          responsavel_numero?: string
+          tenant_id: string
+        }
+        Update: {
+          agendamentos?: boolean
+          atualizado_em?: string
+          boas_vindas?: string
+          nome?: string
+          orcamentos?: boolean
+          responsavel_numero?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_assistente_preferencias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_config: {
         Row: {
           atualizado_em: string
@@ -20238,6 +20276,11 @@ export type Database = {
       vencimento_parcela: {
         Args: { p_numero: number; p_primeiro: string }
         Returns: string
+      }
+      wa_assistente_preferencias_ler: { Args: never; Returns: Json }
+      wa_assistente_preferencias_salvar: {
+        Args: { p_dados: Json }
+        Returns: undefined
       }
       wa_auto_varrer: { Args: never; Returns: number }
       wa_automatico_salvar: {

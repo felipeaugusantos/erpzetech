@@ -404,6 +404,7 @@ const groups: Group[] = [
 
       { label: "Filial extra", to: "/filial-extra", icon: Building2 },
       { label: "Plano e assinatura", to: "/planos", icon: Wallet },
+      { label: "Assistente WhatsApp", to: "/assistente-whatsapp", icon: MessageCircle },
       { label: "Configurações", to: "/configuracoes", icon: Settings },
       { label: "Backup na nuvem", to: "/backup-nuvem", icon: DatabaseBackup },
       { label: "Chamados de suporte", to: "/chamados", icon: MessageCircle },
@@ -699,6 +700,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               if (i.to === "/clinica-portal") return souVeterinario || souGestao || souRecepcao;
               // o menu da empresa é organizado pela administração
               if (i.to === "/menu-personalizado") return souGestao;
+              if (i.to === "/assistente-whatsapp") return souGestao;
               // as regras fiscais da empresa são da administração
               if (i.to === "/fiscal-regras") return souGestao;
               // ajustar os tributos aproximados: administração e financeiro (o banco confere de novo)

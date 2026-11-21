@@ -943,8 +943,22 @@
     {
       "idx": 134,
       "version": "7",
-      "when": 1795186024551,
-      "tag": "0134_baixar_conta_travas",
+      "when": 1795271396548,
+      "tag": "0134_assistente_whatsapp_preferencias",
+      "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1795271552243,
+      "tag": "0135_assistente_whatsapp_tenant_correto",
+      "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1795271612243,
+      "tag": "0136_baixar_conta_travas",
       "breakpoints": true
     }
   ]

@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Preparar configurações do assistente WhatsApp para todos os negócios, sem preço ou ativação: nome, boas-vindas, responsável humano e preferências de orçamento/agendamento. Salvar/reabrir conferido com conta real; nome temporário restaurado, sem mensagens ou cobrança.
+- [ ] Assistente WhatsApp operacional 24 horas: recepção durável, respostas de IA, orçamento pelos preços da empresa, reserva real por agenda e transferência humana; adicional pago com preço ainda indefinido. Contratação e cobrança aguardam definição comercial; respostas reais ainda não ativadas.
+
 - [x] Serviço cobrado, lote e vencimento opcionais na vacinação; sem seleção não cria cobrança, dados preenchidos continuam validados e autorização veterinária preservada. Tela autenticada e funções instaladas conferidas; testes passaram. Nenhuma aplicação real gravada.
 
 - [x] Lote e vencimento manuais na aplicação de vacina, sem cadastro ou baixa de estoque; preservadas aplicações antigas e operações offline vinculadas ao estoque. 25 testes passaram; campos digitados conferidos com conta real e funções instaladas verificadas.
