@@ -22,6 +22,7 @@ import { Route as ZeTechLoginRouteImport } from './routes/ze-tech-login'
 import { Route as AuthenticatedAjusteLotesRouteImport } from './routes/_authenticated/ajuste-lotes'
 import { Route as AuthenticatedAssistenciaRouteImport } from './routes/_authenticated/assistencia'
 import { Route as AuthenticatedAssistenciaLojasRouteImport } from './routes/_authenticated/assistencia-lojas'
+import { Route as AuthenticatedAssistenteWhatsappRouteImport } from './routes/_authenticated/assistente-whatsapp'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedBackupHistoricoRouteImport } from './routes/_authenticated/backup-historico'
 import { Route as AuthenticatedBackupNuvemRouteImport } from './routes/_authenticated/backup-nuvem'
@@ -302,6 +303,12 @@ const AuthenticatedAssistenciaLojasRoute =
   AuthenticatedAssistenciaLojasRouteImport.update({
     id: '/assistencia-lojas',
     path: '/assistencia-lojas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistenteWhatsappRoute =
+  AuthenticatedAssistenteWhatsappRouteImport.update({
+    id: '/assistente-whatsapp',
+    path: '/assistente-whatsapp',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
@@ -1528,6 +1535,7 @@ export interface FileRoutesByFullPath {
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/assistente-whatsapp': typeof AuthenticatedAssistenteWhatsappRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
@@ -1756,6 +1764,7 @@ export interface FileRoutesByTo {
   '/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/assistencia': typeof AuthenticatedAssistenciaRoute
   '/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/assistente-whatsapp': typeof AuthenticatedAssistenteWhatsappRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
@@ -1986,6 +1995,7 @@ export interface FileRoutesById {
   '/_authenticated/ajuste-lotes': typeof AuthenticatedAjusteLotesRoute
   '/_authenticated/assistencia': typeof AuthenticatedAssistenciaRoute
   '/_authenticated/assistencia-lojas': typeof AuthenticatedAssistenciaLojasRoute
+  '/_authenticated/assistente-whatsapp': typeof AuthenticatedAssistenteWhatsappRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/backup-historico': typeof AuthenticatedBackupHistoricoRoute
   '/_authenticated/backup-nuvem': typeof AuthenticatedBackupNuvemRoute
@@ -2216,6 +2226,7 @@ export interface FileRouteTypes {
     | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
+    | '/assistente-whatsapp'
     | '/auditoria'
     | '/backup-historico'
     | '/backup-nuvem'
@@ -2444,6 +2455,7 @@ export interface FileRouteTypes {
     | '/ajuste-lotes'
     | '/assistencia'
     | '/assistencia-lojas'
+    | '/assistente-whatsapp'
     | '/auditoria'
     | '/backup-historico'
     | '/backup-nuvem'
@@ -2673,6 +2685,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ajuste-lotes'
     | '/_authenticated/assistencia'
     | '/_authenticated/assistencia-lojas'
+    | '/_authenticated/assistente-whatsapp'
     | '/_authenticated/auditoria'
     | '/_authenticated/backup-historico'
     | '/_authenticated/backup-nuvem'
@@ -3009,6 +3022,13 @@ declare module '@tanstack/react-router' {
       path: '/assistencia-lojas'
       fullPath: '/assistencia-lojas'
       preLoaderRoute: typeof AuthenticatedAssistenciaLojasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistente-whatsapp': {
+      id: '/_authenticated/assistente-whatsapp'
+      path: '/assistente-whatsapp'
+      fullPath: '/assistente-whatsapp'
+      preLoaderRoute: typeof AuthenticatedAssistenteWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/auditoria': {
@@ -4516,6 +4536,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAjusteLotesRoute: typeof AuthenticatedAjusteLotesRoute
   AuthenticatedAssistenciaRoute: typeof AuthenticatedAssistenciaRoute
   AuthenticatedAssistenciaLojasRoute: typeof AuthenticatedAssistenciaLojasRoute
+  AuthenticatedAssistenteWhatsappRoute: typeof AuthenticatedAssistenteWhatsappRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedBackupHistoricoRoute: typeof AuthenticatedBackupHistoricoRoute
   AuthenticatedBackupNuvemRoute: typeof AuthenticatedBackupNuvemRoute
@@ -4720,6 +4741,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAjusteLotesRoute: AuthenticatedAjusteLotesRoute,
   AuthenticatedAssistenciaRoute: AuthenticatedAssistenciaRoute,
   AuthenticatedAssistenciaLojasRoute: AuthenticatedAssistenciaLojasRoute,
+  AuthenticatedAssistenteWhatsappRoute: AuthenticatedAssistenteWhatsappRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedBackupHistoricoRoute: AuthenticatedBackupHistoricoRoute,
   AuthenticatedBackupNuvemRoute: AuthenticatedBackupNuvemRoute,

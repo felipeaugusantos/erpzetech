@@ -1,0 +1,2 @@
+ALTER TABLE public.wa_assistente_preferencias DROP CONSTRAINT wa_assistente_preferencias_tenant_id_fkey;
+ALTER TABLE public.wa_assistente_preferencias ADD CONSTRAINT wa_assistente_preferencias_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;

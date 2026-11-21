@@ -939,6 +939,20 @@
       "when": 1795185964551,
       "tag": "0133_vacina_visita_sem_cobranca_intervalo",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1795271396548,
+      "tag": "0134_assistente_whatsapp_preferencias",
+      "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1795271552243,
+      "tag": "0135_assistente_whatsapp_tenant_correto",
+      "breakpoints": true
     }
   ]
 }
