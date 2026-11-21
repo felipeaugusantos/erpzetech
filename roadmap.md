@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Assistente WhatsApp 24 horas: novos leads, orçamento pelos preços cadastrados, agendamento e transferência humana. Aguarda definição do negócio atendido antes de ligar preços e agenda ou ativar respostas reais.
+- [ ] Assistente WhatsApp 24 horas para todos os negócios: novos leads, orçamento pelos preços cadastrados, agendamento e transferência humana; ativação por adicional na mensalidade de cada empresa. Aguarda valor mensal antes de configurar contratação e cobrança; respostas reais ainda não ativadas.
 
 - [x] Serviço cobrado, lote e vencimento opcionais na vacinação; sem seleção não cria cobrança, dados preenchidos continuam validados e autorização veterinária preservada. Tela autenticada e funções instaladas conferidas; testes passaram. Nenhuma aplicação real gravada.
 
