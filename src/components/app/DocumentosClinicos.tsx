@@ -176,7 +176,12 @@ export function DocumentosClinicos({
           </span>
         </Button>
         <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
-          <Button size="sm" variant="outline" className="min-h-11" onClick={() => setLaudoTeste(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setLaudoTeste(true)}
+          >
             <FlaskConical className="size-4" /> Laudo FIV / FeLV
           </Button>
           <Button
@@ -189,7 +194,9 @@ export function DocumentosClinicos({
           </Button>
           <Select
             value=""
-            onValueChange={(v) => (v === "fiv_felv" ? setLaudoTeste(true) : setNovo(v as TipoDocumento))}
+            onValueChange={(v) =>
+              v === "fiv_felv" ? setLaudoTeste(true) : setNovo(v as TipoDocumento)
+            }
           >
             <SelectTrigger className="min-h-11 w-full sm:w-56">
               <SelectValue placeholder="Emitir documento…" />
@@ -289,15 +296,26 @@ export function DocumentosClinicos({
         />
       )}
 
-      {laudoTeste && <LaudoFivFelv petId={petId} {...(atendimentoId ? { atendimentoId } : {})} nome={pet.nome} fechar={() => setLaudoTeste(false)} />}
+      {laudoTeste && (
+        <LaudoFivFelv
+          petId={petId}
+          {...(atendimentoId ? { atendimentoId } : {})}
+          nome={pet.nome}
+          fechar={() => setLaudoTeste(false)}
+        />
+      )}
 
-      <Dialog open={Boolean(excluindo)} onOpenChange={(o) => !o && !excluir.isPending && fecharExclusao()}>
+      <Dialog
+        open={Boolean(excluindo)}
+        onOpenChange={(o) => !o && !excluir.isPending && fecharExclusao()}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Excluir {excluindo?.titulo}?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            O documento sai do prontuário. Só o veterinário que emitiu pode excluir; uma cópia fica guardada na auditoria.
+            O documento sai do prontuário. Só o veterinário que emitiu pode excluir; uma cópia fica
+            guardada na auditoria.
           </p>
           <div>
             <Label htmlFor="doc-motivo-exclusao">Motivo</Label>

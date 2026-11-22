@@ -432,17 +432,17 @@ function Atendimento() {
             </DialogDescription>
           </DialogHeader>
           {preferencias?.proxima_consulta !== false && (
-          <div className="space-y-2 border-y border-border py-3">
-            <p className="text-sm font-semibold">Próxima consulta</p>
-            <ProximaConsulta
-              petId={data.pet_id}
-              petNome={p.nome}
-              diaSugerido={form.retorno_em}
-              aoAgendar={(dia) =>
-                setForm((atual) => (atual ? { ...atual, retorno_em: dia } : atual))
-              }
-            />
-          </div>
+            <div className="space-y-2 border-y border-border py-3">
+              <p className="text-sm font-semibold">Próxima consulta</p>
+              <ProximaConsulta
+                petId={data.pet_id}
+                petNome={p.nome}
+                diaSugerido={form.retorno_em}
+                aoAgendar={(dia) =>
+                  setForm((atual) => (atual ? { ...atual, retorno_em: dia } : atual))
+                }
+              />
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmando(false)}>

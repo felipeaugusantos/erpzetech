@@ -1,7 +1,16 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
 import { corpoLaudoFivFelv } from "../src/lib/laudo-fiv-felv.ts";
-const dados = { amostra: "Sangue", data: "2026-11-05", produto: "Teste combinado", lote: "003/26", validade: "mai/27", fiv: "Negativo", felv: "Positivo", observacao: "" };
+const dados = {
+  amostra: "Sangue",
+  data: "2026-11-05",
+  produto: "Teste combinado",
+  lote: "003/26",
+  validade: "mai/27",
+  fiv: "Negativo",
+  felv: "Positivo",
+  observacao: "",
+};
 it("preserva os resultados independentes e a data do teste", () => {
   const corpo = corpoLaudoFivFelv(dados);
   assert.ok(corpo.includes("FIV: Negativo\nFeLV: Positivo"));

@@ -61,7 +61,10 @@ export const restaurarLote = z.object({
 });
 
 /** só os campos que o backup guarda: tira os que ficam fora do backup (segredos) e qualquer coisa não listada */
-export function camposRestauraveis(tabela: string, registros: RegistroArquivo[]): RegistroArquivo[] {
+export function camposRestauraveis(
+  tabela: string,
+  registros: RegistroArquivo[],
+): RegistroArquivo[] {
   const fora = new Set(COLUNAS_FORA_DO_BACKUP[tabela] ?? []);
   return registros.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !fora.has(k))));
 }

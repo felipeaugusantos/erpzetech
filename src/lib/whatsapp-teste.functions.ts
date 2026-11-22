@@ -17,10 +17,12 @@ export const whatsappTeste = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const db = context.supabase;
-    await exigirAcessoTesteWhatsApp((papel) => db.rpc("has_role", {
-      _user_id: context.userId,
-      _role: papel,
-    }));
+    await exigirAcessoTesteWhatsApp((papel) =>
+      db.rpc("has_role", {
+        _user_id: context.userId,
+        _role: papel,
+      }),
+    );
     const clinica = await db.rpc("clinica_liberada");
     if (clinica.error || !clinica.data) throw new Error("Clínica não liberada.");
     const tenant = await db.rpc("current_tenant_id");
@@ -37,8 +39,7 @@ export const whatsappTeste = createServerFn({ method: "POST" })
       .maybeSingle();
     if (perfil.error) throw new Error("Não foi possível conferir o seu telefone cadastrado.");
     const proprio = telefoneWhatsApp(perfil.data?.telefone ?? "");
-    if (!proprio)
-      throw new Error("Cadastre o seu telefone no seu usuário para receber o teste.");
+    if (!proprio) throw new Error("Cadastre o seu telefone no seu usuário para receber o teste.");
     if (data.dados.numero !== proprio)
       throw new Error("O teste só pode ser enviado para o seu próprio telefone cadastrado.");
     const [config, empresa, modelo] = await Promise.all([
