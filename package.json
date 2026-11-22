@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\"",
+    "test:componentes": "vitest run",
     "format": "prettier --write ."
   },
   "overrides": {

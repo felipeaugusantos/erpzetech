@@ -12,7 +12,13 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@/components/ui/select", () => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-  return { Select: Wrapper, SelectTrigger: Wrapper, SelectValue: Wrapper, SelectContent: Wrapper, SelectItem: Wrapper };
+  return {
+    Select: Wrapper,
+    SelectTrigger: Wrapper,
+    SelectValue: Wrapper,
+    SelectContent: Wrapper,
+    SelectItem: Wrapper,
+  };
 });
 import { ExamesAgendadosPaciente } from "../src/components/app/ExamesAgendadosPaciente";
 import { DocumentosClinicos } from "../src/components/app/DocumentosClinicos";
@@ -27,7 +33,11 @@ for (const secao of ["documentos", "exames"] as const) {
       tela = create(
         <QueryClientProvider client={qc}>
           {secao === "documentos" ? (
-            <DocumentosClinicos petId="paciente" pet={{ nome: "Paciente", especie: "cao", raca: null }} tutor="Tutor" />
+            <DocumentosClinicos
+              petId="paciente"
+              pet={{ nome: "Paciente", especie: "cao", raca: null }}
+              tutor="Tutor"
+            />
           ) : (
             <ExamesAgendadosPaciente petId="paciente" />
           )}
@@ -35,7 +45,8 @@ for (const secao of ["documentos", "exames"] as const) {
       );
     });
     if (!tela) throw new Error("Seção não montada");
-    const controle = () => tela.root.findAllByType("button").find((b) => b.props["aria-expanded"] !== undefined);
+    const controle = () =>
+      tela.root.findAllByType("button").find((b) => b.props["aria-expanded"] !== undefined);
     expect(controle()?.props["aria-expanded"]).toBe(false);
     await act(async () => controle()?.props.onClick());
     expect(controle()?.props["aria-expanded"]).toBe(true);

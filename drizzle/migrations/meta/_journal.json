@@ -953,6 +953,20 @@
       "when": 1795271552243,
       "tag": "0135_assistente_whatsapp_tenant_correto",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1795271612243,
+      "tag": "0136_baixar_conta_travas",
+      "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1795271672243,
+      "tag": "0137_assistente_whatsapp_contador",
+      "breakpoints": true
     }
   ]
 }

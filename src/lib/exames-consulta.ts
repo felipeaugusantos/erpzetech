@@ -12,8 +12,11 @@ export function examesDaConsulta<T extends ExameConsulta>(
   dia: string,
   consultasNoDia: number,
 ): T[] {
-  return exames.filter((e) =>
-    e.situacao !== "cancelado" &&
-    (e.atendimento_id ? e.atendimento_id === atendimentoId : consultasNoDia === 1 && e.data_coleta === dia),
+  return exames.filter(
+    (e) =>
+      e.situacao !== "cancelado" &&
+      (e.atendimento_id
+        ? e.atendimento_id === atendimentoId
+        : consultasNoDia === 1 && e.data_coleta === dia),
   );
 }

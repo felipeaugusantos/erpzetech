@@ -44,8 +44,8 @@ jobs:
       - name: Aplicar migrations e rodar testes
         run: supabase/ci/run.sh
 
-  # Testes unitários (node:test). Instala as dependências porque há teste que importa pacote
-  # (ex.: help-chamados usa zod).
+  # Testes unitários (node:test) e de componentes React (Vitest, tests/**/*.vitest.tsx). Instala as
+  # dependências porque há teste que importa pacote (ex.: help-chamados usa zod).
   testes:
     name: Testes unitários
     runs-on: ubuntu-latest
@@ -57,6 +57,8 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm test
+      - name: Testes de componentes (Vitest)
+        run: npm run test:componentes
 
   # Typecheck e build do app. As dependências vêm do npm público e são instaladas pelo
   # package-lock.json (mesmas versões diretas do bun.lock, que aponta para um cache privado do

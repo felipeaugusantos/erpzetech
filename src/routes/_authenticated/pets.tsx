@@ -669,10 +669,14 @@ function Pets() {
                                         <PawPrint className="size-3" />
                                         {x.nome}
                                         <span>
-                                          {[rotulo(ESPECIES, x.especie), x.raca].filter(Boolean).join(" · ")}
+                                          {[rotulo(ESPECIES, x.especie), x.raca]
+                                            .filter(Boolean)
+                                            .join(" · ")}
                                         </span>
                                         {x.obito && <Badge variant="outline">Óbito</Badge>}
-                                        {!x.ativo && !x.obito && <Badge variant="outline">Inativo</Badge>}
+                                        {!x.ativo && !x.obito && (
+                                          <Badge variant="outline">Inativo</Badge>
+                                        )}
                                       </li>
                                     ))}
                                   </ul>

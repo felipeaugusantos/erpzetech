@@ -272,7 +272,15 @@ function Clientes() {
         actions={
           <div className="flex flex-wrap gap-2">
             <UnificarClientes
-              clientes={(data?.clientes ?? []) as { id: string; nome: string; cpf: string | null; cnpj: string | null; telefone: string | null }[]}
+              clientes={
+                (data?.clientes ?? []) as {
+                  id: string;
+                  nome: string;
+                  cpf: string | null;
+                  cnpj: string | null;
+                  telefone: string | null;
+                }[]
+              }
             />
             <Button
               onClick={() => {

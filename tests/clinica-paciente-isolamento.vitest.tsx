@@ -13,7 +13,26 @@ vi.mock("@/lib/cnae", () => ({ useModulosCnae: () => ({ clinica: true, carregand
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: vi.fn(async (name: string) => ({
-      data: name === "clinica_meu_veterinario" ? "vet-a" : [],
+      // o cartão de vacinação real é um objeto (com `proximas` e `aplicacoes`), não uma lista
+      data:
+        name === "clinica_meu_veterinario"
+          ? "vet-a"
+          : name === "clinica_cartao_vacinacao"
+            ? {
+                clinica: null,
+                pet: {
+                  id: "x",
+                  nome: "Paciente",
+                  especie: "cao",
+                  raca: null,
+                  sexo: null,
+                  nascimento: null,
+                },
+                tutor: "Tutor",
+                aplicacoes: [],
+                proximas: [],
+              }
+            : [],
       error: null,
     })),
   },

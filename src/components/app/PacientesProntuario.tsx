@@ -100,57 +100,68 @@ export function PacientesProntuario({ aoAbrir }: { aoAbrir: (id: string) => void
         </p>
       ) : visualizacao === "lista" ? (
         <div className="min-w-0 border-y border-border">
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_2.25rem] gap-3 border-b border-border py-2 text-xs font-medium text-muted-foreground lg:grid">
+          <div
+            aria-hidden="true"
+            className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_2.25rem] gap-3 border-b border-border py-2 text-xs font-medium text-muted-foreground lg:grid"
+          >
             <span>Paciente</span>
             <span>Tutor(a)</span>
             <span>Última visita · Atendimentos</span>
             <span>Próxima consulta</span>
             <span />
           </div>
-        <ul className="min-w-0 divide-y divide-border">
-          {lista.data.pacientes.map((p) => (
-            <li
-              key={p.id}
-              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_2.25rem]"
-            >
-              <div className="min-w-0">
-                <h3 className="break-words font-semibold">{p.nome}</h3>
-                <p className="break-words text-xs text-muted-foreground">
-                  {rotulo(ESPECIES, p.especie)}
-                  {p.raca ? ` · ${p.raca}` : ""}
+          <ul className="min-w-0 divide-y divide-border">
+            {lista.data.pacientes.map((p) => (
+              <li
+                key={p.id}
+                className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_2.25rem]"
+              >
+                <div className="min-w-0">
+                  <h3 className="break-words font-semibold">{p.nome}</h3>
+                  <p className="break-words text-xs text-muted-foreground">
+                    {rotulo(ESPECIES, p.especie)}
+                    {p.raca ? ` · ${p.raca}` : ""}
+                  </p>
+                </div>
+                <p className="col-start-1 min-w-0 break-words text-sm text-muted-foreground lg:col-auto">
+                  <span className="lg:hidden">Tutor(a): </span>
+                  {p.tutor ?? "—"}
                 </p>
-              </div>
-              <p className="col-start-1 min-w-0 break-words text-sm text-muted-foreground lg:col-auto">
-                <span className="lg:hidden">Tutor(a): </span>{p.tutor ?? "—"}
-              </p>
-              <div className="col-start-1 min-w-0 text-sm sm:col-start-2 sm:row-start-1 lg:col-auto lg:row-auto">
-                <p className="text-xs text-muted-foreground lg:hidden">Última visita</p>
-                <p>{dateTimeBR(p.ultimo_atendimento)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {p.atendimentos} atendimento{p.atendimentos === 1 ? "" : "s"}
-                </p>
-                {p.em_atendimento && (
-                  <Badge variant="secondary" className="mt-1">
-                    Em atendimento
-                  </Badge>
-                )}
-              </div>
-              <div className="col-start-1 min-w-0 text-sm sm:col-start-2 sm:row-start-2 lg:col-auto lg:row-auto">
-                <p className="text-xs text-muted-foreground lg:hidden">Próxima consulta</p>
-                <p
-                  className={
-                    p.proxima_consulta ? "font-medium text-primary" : "text-muted-foreground"
-                  }
+                <div className="col-start-1 min-w-0 text-sm sm:col-start-2 sm:row-start-1 lg:col-auto lg:row-auto">
+                  <p className="text-xs text-muted-foreground lg:hidden">Última visita</p>
+                  <p>{dateTimeBR(p.ultimo_atendimento)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.atendimentos} atendimento{p.atendimentos === 1 ? "" : "s"}
+                  </p>
+                  {p.em_atendimento && (
+                    <Badge variant="secondary" className="mt-1">
+                      Em atendimento
+                    </Badge>
+                  )}
+                </div>
+                <div className="col-start-1 min-w-0 text-sm sm:col-start-2 sm:row-start-2 lg:col-auto lg:row-auto">
+                  <p className="text-xs text-muted-foreground lg:hidden">Próxima consulta</p>
+                  <p
+                    className={
+                      p.proxima_consulta ? "font-medium text-primary" : "text-muted-foreground"
+                    }
+                  >
+                    {p.proxima_consulta ? dateTimeBR(p.proxima_consulta) : "Sem consulta agendada"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="col-start-2 row-start-1 size-9 shrink-0 sm:col-start-3 lg:col-auto lg:row-auto"
+                  aria-label={`Abrir prontuário de ${p.nome}`}
+                  title={`Abrir prontuário de ${p.nome}`}
+                  onClick={() => aoAbrir(p.id)}
                 >
-                  {p.proxima_consulta ? dateTimeBR(p.proxima_consulta) : "Sem consulta agendada"}
-                </p>
-              </div>
-              <Button variant="outline" size="icon" className="col-start-2 row-start-1 size-9 shrink-0 sm:col-start-3 lg:col-auto lg:row-auto" aria-label={`Abrir prontuário de ${p.nome}`} title={`Abrir prontuário de ${p.nome}`} onClick={() => aoAbrir(p.id)}>
-                <ArrowUpRight className="size-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
+                  <ArrowUpRight className="size-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

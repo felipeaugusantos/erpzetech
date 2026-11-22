@@ -89,10 +89,13 @@ export const iniciarBackupDrive = createServerFn({ method: "POST" })
     const request = getRequest();
     if (!request) throw new Error("Solicitação não disponível.");
     const url = new URL(request.url);
-    const encaminhado = url.hostname === "localhost" ? request.headers.get("x-forwarded-host") : null;
+    const encaminhado =
+      url.hostname === "localhost" ? request.headers.get("x-forwarded-host") : null;
     // só volta para endereços do próprio app; qualquer outro host é ignorado
     const host =
-      encaminhado && /^[a-z0-9-]+(\.[a-z0-9-]+)*\.lovable\.app$/i.test(encaminhado) ? encaminhado : null;
+      encaminhado && /^[a-z0-9-]+(\.[a-z0-9-]+)*\.lovable\.app$/i.test(encaminhado)
+        ? encaminhado
+        : null;
     if (!host && url.hostname === "localhost") throw new Error("Endereço do app não reconhecido.");
     const returnUrl = new URL(
       "/api/public/oauth/backup-drive/return",

@@ -16,7 +16,10 @@ const SEXOS: Record<string, string> = { macho: "Macho", femea: "Fêmea" };
 const MARGEM = 20;
 const LARGURA = 210 - 2 * MARGEM; // A4 em mm
 
-export async function baixarPdfDocumento(d: DocumentoClinico, logoUrl?: string | null): Promise<void> {
+export async function baixarPdfDocumento(
+  d: DocumentoClinico,
+  logoUrl?: string | null,
+): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = MARGEM;
@@ -25,7 +28,8 @@ export async function baixarPdfDocumento(d: DocumentoClinico, logoUrl?: string |
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("Não foi possível carregar a logo da clínica. Tente novamente."));
+      img.onerror = () =>
+        reject(new Error("Não foi possível carregar a logo da clínica. Tente novamente."));
       img.src = logoUrl;
     });
     const canvas = document.createElement("canvas");
@@ -34,8 +38,8 @@ export async function baixarPdfDocumento(d: DocumentoClinico, logoUrl?: string |
     const ctx = canvas.getContext("2d");
     if (!ctx || !canvas.width || !canvas.height) throw new Error("Logo inválida.");
     ctx.drawImage(imagem, 0, 0);
-    const altura = Math.min(20, 45 * canvas.height / canvas.width);
-    const largura = altura * canvas.width / canvas.height;
+    const altura = Math.min(20, (45 * canvas.height) / canvas.width);
+    const largura = (altura * canvas.width) / canvas.height;
     doc.addImage(canvas.toDataURL("image/png"), "PNG", MARGEM, y, largura, altura);
     y += altura + 6;
   }
@@ -83,7 +87,10 @@ export async function baixarPdfDocumento(d: DocumentoClinico, logoUrl?: string |
   // título do documento
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  linhas((d.titulo === "Laudo FIV / FeLV" ? d.titulo : TIPOS_DOCUMENTO[d.tipo].impresso).toUpperCase(), 7);
+  linhas(
+    (d.titulo === "Laudo FIV / FeLV" ? d.titulo : TIPOS_DOCUMENTO[d.tipo].impresso).toUpperCase(),
+    7,
+  );
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   linhas(`nº ${numeroDoDocumento(d)}`, 5);
