@@ -280,6 +280,14 @@ export const TABELAS_FORA_DO_BACKUP: Record<string, string> = {
   backup_drive_execucoes: "controle interno das cópias no Drive, não é dado restaurável",
   webhook_eventos:
     "corpo bruto de avisos de provedores externos; pode trazer segredos e é reenviável",
+  clinica_wa_testes:
+    "mensagens de teste do WhatsApp que o próprio usuário manda a si (número e prévia); registro técnico, não é dado restaurável",
+  clinica_wa_teste_status:
+    "confirmações de entrega e leitura dessas mensagens de teste, recebidas do provedor; registro técnico",
+  clinica_wa_campanha_envios:
+    "registro dos envios de campanha a tutores (número, texto e situação de entrega); uma restauração não deve recriar envios nem reabrir os que estavam em andamento",
+  wa_assistente_preferencias:
+    "preferências do assistente de WhatsApp, ainda em preparação (sem ativação nem cobrança); a empresa configura de novo na tela",
 };
 
 /** colunas que nunca saem no backup (segredos e chaves de integração) */
