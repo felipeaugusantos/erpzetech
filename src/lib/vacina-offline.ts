@@ -2,6 +2,7 @@
 // O banco confere tudo de novo ao receber. Se o lote acabou antes do envio, a operação é recusada e fica guardada com o motivo: o
 // veterinário escolhe outro lote (a operação mantém a mesma chave, porque a recusa não grava nada) e reenvia.
 import { novaOperacao, type OperacaoFila } from "./fila-clinica.ts";
+import { dadosDoseAplicacao } from "./vacina-dose.ts";
 
 export const TIPO_VACINA_APLICAR = "vacina_aplicar";
 export const TIPO_VACINA_EXTERNA = "vacina_externa";
@@ -162,6 +163,7 @@ export function lotesDisponiveis(
 }
 
 export type FormAplicacao = {
+  dose?: string;
   catalogoId: string;
   loteId: string;
   aplicadaEm: string;
@@ -170,6 +172,7 @@ export type FormAplicacao = {
 };
 
 export const aplicacaoVazia = (hoje: string): FormAplicacao => ({
+  dose: "auto",
   catalogoId: "",
   loteId: "",
   aplicadaEm: hoje,
@@ -203,7 +206,8 @@ export function operacaoDeAplicar(
   agora: Date = new Date(),
   id?: string,
 ): OperacaoFila {
-  const payload: Record<string, string> = {
+  const payload: Record<string, string | number> = {
+    ...dadosDoseAplicacao(form.dose ?? "auto"),
     catalogo_id: form.catalogoId,
     estoque_lote_id: form.loteId,
     aplicada_em: form.aplicadaEm,
@@ -228,6 +232,7 @@ export function operacaoDeAplicar(
 }
 
 export type FormExterna = {
+  dose?: string;
   catalogoId: string;
   aplicadaEm: string;
   informadoPor: string;
@@ -236,6 +241,7 @@ export type FormExterna = {
 };
 
 export const externaVazia = (hoje: string): FormExterna => ({
+  dose: "auto",
   catalogoId: "",
   aplicadaEm: hoje,
   informadoPor: "",
@@ -259,7 +265,8 @@ export function operacaoDeExterna(
   agora: Date = new Date(),
   id?: string,
 ): OperacaoFila {
-  const payload: Record<string, string> = {
+  const payload: Record<string, string | number> = {
+    ...dadosDoseAplicacao(form.dose ?? "auto"),
     pet_id: paciente.petId,
     catalogo_id: form.catalogoId,
     aplicada_em: form.aplicadaEm,

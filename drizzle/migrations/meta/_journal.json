@@ -967,6 +967,13 @@
       "when": 1795271672243,
       "tag": "0137_assistente_whatsapp_contador",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1795692955911,
+      "tag": "0138_vacina_dose_informada",
+      "breakpoints": true
     }
   ]
 }

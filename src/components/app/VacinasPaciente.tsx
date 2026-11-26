@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dateBR } from "@/lib/format";
 import { hojeISO } from "@/lib/financeiro";
 import { dadosLoteManual, dadosServicoCobrado } from "@/lib/vacina-lote-manual";
+import { DOSES_APLICACAO, dadosDoseAplicacao } from "@/lib/vacina-dose";
 import {
   ATALHOS_PROXIMA_DOSE,
   dataDoAtalho,
@@ -99,6 +100,7 @@ export function VacinasPaciente({
   const qc = useQueryClient();
   const hoje = hojeISO();
   const [catalogoId, setCatalogoId] = useState("");
+  const [dose, setDose] = useState("auto");
   const [lote, setLote] = useState("");
   const [validadeLote, setValidadeLote] = useState("");
   const [aplicador, setAplicador] = useState("");
@@ -109,6 +111,7 @@ export function VacinasPaciente({
   const [externa, setExterna] = useState(false);
   const [ext, setExt] = useState({
     catalogo: "",
+    dose: "auto",
     data: hoje,
     informado: "",
     lote: "",
@@ -166,6 +169,7 @@ export function VacinasPaciente({
     mutationFn: async () => {
       const dados = {
         catalogo_id: catalogoId,
+        ...dadosDoseAplicacao(dose),
         ...dadosLoteManual(lote, validadeLote, aplicadaEm || hojeISO()),
         aplicada_em: aplicadaEm,
         ...(aplicador ? { aplicador_id: aplicador } : {}),
@@ -211,6 +215,7 @@ export function VacinasPaciente({
       setObs("");
       setProxima("");
       setSemProxima(false);
+      setDose("auto");
       setChave(crypto.randomUUID());
       if (!agendamento) setAvulso(false);
       void qc.invalidateQueries({ queryKey: ["clinica-cartao"] });
@@ -228,6 +233,7 @@ export function VacinasPaciente({
         p_pet_id: petId as string,
         p_dados: {
           catalogo_id: ext.catalogo,
+          ...dadosDoseAplicacao(ext.dose),
           aplicada_em: ext.data,
           informado_por: ext.informado,
           lote: ext.lote,
@@ -240,7 +246,7 @@ export function VacinasPaciente({
     onSuccess: () => {
       toast.success("Registrada como aplicada em outro local");
       setExterna(false);
-      setExt({ catalogo: "", data: hoje, informado: "", lote: "", proxima: "" });
+      setExt({ catalogo: "", dose: "auto", data: hoje, informado: "", lote: "", proxima: "" });
       void qc.invalidateQueries({ queryKey: ["clinica-cartao"] });
     },
     onError: (e: Error) => toast.error("Não foi possível registrar", { description: e.message }),
@@ -356,6 +362,7 @@ export function VacinasPaciente({
                 value={catalogoId || "__nenhum"}
                 onValueChange={(v) => {
                   setCatalogoId(v === "__nenhum" ? "" : v);
+                  setDose("auto");
                   setLote("");
                   setValidadeLote("");
                 }}
@@ -375,6 +382,17 @@ export function VacinasPaciente({
               {item && (
                 <p className="mt-1 text-xs text-muted-foreground">{resumoDoProtocolo(item)}</p>
               )}
+            </div>
+            <div>
+              <Label htmlFor="a-dose">Dose aplicada</Label>
+              <Select value={dose} onValueChange={setDose}>
+                <SelectTrigger id="a-dose"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOSES_APLICACAO.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="a-lote">Lote</Label>
@@ -588,7 +606,7 @@ export function VacinasPaciente({
               <Label htmlFor="e-item">Vacina ou vermífugo</Label>
               <Select
                 value={ext.catalogo || "__nenhum"}
-                onValueChange={(v) => setExt({ ...ext, catalogo: v === "__nenhum" ? "" : v })}
+                onValueChange={(v) => setExt({ ...ext, catalogo: v === "__nenhum" ? "" : v, dose: "auto" })}
               >
                 <SelectTrigger id="e-item">
                   <SelectValue />
@@ -599,6 +617,17 @@ export function VacinasPaciente({
                     <SelectItem key={i.id} value={i.id}>
                       {i.nome}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="e-dose">Dose aplicada</Label>
+              <Select value={ext.dose} onValueChange={(v) => setExt({ ...ext, dose: v })}>
+                <SelectTrigger id="e-dose"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOSES_APLICACAO.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

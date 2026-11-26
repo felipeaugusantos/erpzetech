@@ -8,6 +8,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FilePlus2,
+  ArrowLeft,
   FlaskConical,
   PawPrint,
   Printer,
@@ -117,9 +118,20 @@ function Prontuario() {
         title="Prontuário"
         description="Ficha e histórico do paciente. Só o veterinário vê o texto clínico; cada abertura de ficha fica registrada."
         actions={
+          <>
+          {pet && (
+            <Button variant="outline" onClick={() => {
+              setTermo("");
+              setBusca("");
+              void navegar({ to: "/clinica-prontuario", search: { pet: undefined } });
+            }}>
+              <ArrowLeft className="size-4" /> Voltar
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setCadastrando(true)}>
             <UserPlus className="size-4" /> Cadastrar paciente
           </Button>
+          </>
         }
       />
       {cadastrando && (

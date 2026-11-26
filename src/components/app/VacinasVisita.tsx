@@ -24,6 +24,7 @@ import type { Cofre } from "@/lib/cofre";
 import type { OperacaoFila } from "@/lib/fila-clinica";
 import { dateTimeBR } from "@/lib/format";
 import { hojeISO } from "@/lib/financeiro";
+import { DOSES_APLICACAO } from "@/lib/vacina-dose";
 import {
   aplicacaoVazia,
   consultasDeVacina,
@@ -217,7 +218,7 @@ export function VacinasVisita({
                 <Label htmlFor="vc-item">Vacina ou vermífugo</Label>
                 <Select
                   value={aplic.catalogoId}
-                  onValueChange={(v) => setAplic((f) => ({ ...f, catalogoId: v, loteId: "" }))}
+                  onValueChange={(v) => setAplic((f) => ({ ...f, catalogoId: v, loteId: "", dose: "auto" }))}
                 >
                   <SelectTrigger id="vc-item">
                     <SelectValue placeholder="Escolha" />
@@ -227,6 +228,17 @@ export function VacinasVisita({
                       <SelectItem key={i.id} value={i.id}>
                         {i.nome}
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="vc-dose">Dose aplicada</Label>
+                <Select value={aplic.dose ?? "auto"} onValueChange={(v) => setAplic((f) => ({ ...f, dose: v }))}>
+                  <SelectTrigger id="vc-dose"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DOSES_APLICACAO.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -283,7 +295,7 @@ export function VacinasVisita({
                 <Label htmlFor="ve-item">Vacina ou vermífugo</Label>
                 <Select
                   value={ext.catalogoId}
-                  onValueChange={(v) => setExt((f) => ({ ...f, catalogoId: v }))}
+                  onValueChange={(v) => setExt((f) => ({ ...f, catalogoId: v, dose: "auto" }))}
                 >
                   <SelectTrigger id="ve-item">
                     <SelectValue placeholder="Escolha" />
@@ -293,6 +305,17 @@ export function VacinasVisita({
                       <SelectItem key={i.id} value={i.id}>
                         {i.nome}
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="ve-dose">Dose aplicada</Label>
+                <Select value={ext.dose ?? "auto"} onValueChange={(v) => setExt((f) => ({ ...f, dose: v }))}>
+                  <SelectTrigger id="ve-dose"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DOSES_APLICACAO.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

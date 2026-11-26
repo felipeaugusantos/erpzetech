@@ -407,3 +407,13 @@ Decisão: o restaurante entra como ramo da mesma plataforma (mesmos login, empre
 - [ ] Conferir aplicação e leitura no prontuário com conta veterinária: conta do solicitante é administrativa, sem vínculo ativo com CRMV; nenhum registro clínico real alterado.
 
 - [x] Reformular carteirinha digital e impressa ligada ao prontuário, com doses, intervalos efetivos e próximas datas; computador, celular, PDF e retorno ao prontuário conferidos com sessão real (paciente sem doses); 20 testes passaram.
+
+## Solicitação de 26/11/2026
+- [x] Aparecido: consulta fechada, retorno 25/11, paciente/tutora ativos, WhatsApp conectado e regra de 2 dias ligada; não havia mensagem nem rotina agendada. Rotina instalada sem reenviar retorno vencido.
+- [x] Botão Voltar no topo da ficha; clique autenticado conferido retorna à lista de prontuários.
+- [x] Dose explícita 1ª, 2ª, 3ª ou reforço na aplicação da agenda/prontuário e externa; também em visita offline. Seleção e retorno conferidos na tela; 72 testes de vacinação/envio passaram; funções instaladas preservam datas do catálogo e registros anteriores.
+- [x] Rotina automática autorizada ativa a cada 5 minutos. Rodada real respondeu 200, criou e enviou dois lembretes sem erro e com identificadores salvos; recebimento final ainda não confirmado pelos retornos do WhatsApp.
+- [ ] Conferir gravação e releitura da dose explícita com conta veterinária e paciente de teste: sessão disponível é administrativa sem vínculo veterinário; nenhuma aplicação real criada.
+
+Regras verificadas nesta solicitação: retorno deve gerar lembrete dentro da janela configurada; ficha deve oferecer volta à lista; dose informada deve ser preservada em todo caminho de aplicação e leitura.
+Caminhos lidos: prontuário, atendimento (já tem volta), carteirinha (já tem volta e lê dose salva), tela de vacinas compartilhada, aplicação externa, visita offline, executor da fila, clinica_vacina_aplicar, clinica_vacina_registrar_externa, clinica_vacina_offline, clinica_cartao_vacinacao, wa_auto_varrer, _wa_enfileirar, wa_reservar, rodadaDeEnvio, despachar e rota de envio. Apenas os formulários e funções sem seleção explícita foram alterados; agendamento ausente foi ativado com autorização. Histórico, permissões e preferências existentes preservados.
