@@ -17190,6 +17190,7 @@ export type Database = {
       _contador_travas_funcoes: { Args: never; Returns: undefined }
       _contador_travas_tabelas: { Args: never; Returns: undefined }
       _cpf_valido: { Args: { p_cpf: string }; Returns: boolean }
+      _direto: { Args: never; Returns: boolean }
       _empresa_logo_publicavel: {
         Args: { p_caminho: string; p_tenant: string }
         Returns: string
@@ -17472,6 +17473,7 @@ export type Database = {
         Args: { p_lote: string; p_medicamento_id: string }
         Returns: boolean
       }
+      _tenant_suspenso: { Args: never; Returns: boolean }
       _wa_clinica_liberada: { Args: { p_tenant: string }; Returns: boolean }
       _wa_enfileirar: {
         Args: {
