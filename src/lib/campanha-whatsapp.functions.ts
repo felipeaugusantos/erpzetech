@@ -4,7 +4,6 @@ import { requireSupabaseAuth } from "@/lib/auth-sem-contador";
 import {
   MAX_CAMPANHA,
   MAX_CAMPANHA_DIA,
-  MAX_TEXTO_CAMPANHA,
   textoCampanha,
   validarCampanha,
 } from "./campanha-whatsapp";
@@ -19,7 +18,7 @@ export const campanhaEnviar = createServerFn({ method: "POST" })
       .object({
         campanhaId: z.guid(),
         clienteId: z.guid(),
-        modelo: z.string().max(MAX_TEXTO_CAMPANHA),
+        modeloId: z.guid(),
       })
       .parse(input),
   )
@@ -30,7 +29,16 @@ export const campanhaEnviar = createServerFn({ method: "POST" })
     ).catch((e: Error) => {
       throw new Error(e.message.replace("testar", "enviar campanhas"));
     });
-    const erroTexto = validarCampanha(data.modelo, 1);
+    // o texto vem só de mensagem aprovada por administrador ou gestor da empresa
+    const aprovado = await db
+      .from("clinica_wa_campanha_modelos")
+      .select("texto,ativo")
+      .eq("id", data.modeloId)
+      .maybeSingle();
+    if (aprovado.error || !aprovado.data || !aprovado.data.ativo)
+      throw new Error("Escolha uma mensagem aprovada para a campanha.");
+    const modelo = aprovado.data.texto;
+    const erroTexto = validarCampanha(modelo, 1);
     if (erroTexto) throw new Error(erroTexto);
     const clinica = await db.rpc("clinica_liberada");
     if (clinica.error || !clinica.data) throw new Error("Clínica não liberada.");
@@ -78,7 +86,7 @@ export const campanhaEnviar = createServerFn({ method: "POST" })
     const numero = telefoneWhatsApp(c.whatsapp || c.telefone);
     if (!numero) throw new Error("Tutor sem WhatsApp válido.");
     const texto = textoCampanha(
-      data.modelo,
+      modelo,
       { tutor: c.nome, pets: (pets.data ?? []).map((p) => p.nome) },
       empresa.data?.nome_fantasia || empresa.data?.razao_social || "Clínica",
     );

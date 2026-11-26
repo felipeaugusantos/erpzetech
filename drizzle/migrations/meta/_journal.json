@@ -981,6 +981,13 @@
       "when": 1795694106405,
       "tag": "0139_travas_compras_credito_caixa",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1795694270279,
+      "tag": "0140_campanha_modelos_aprovados",
+      "breakpoints": true
     }
   ]
 }

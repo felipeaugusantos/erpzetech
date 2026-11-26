@@ -1686,6 +1686,39 @@ export type Database = {
           },
         ]
       }
+      clinica_wa_campanha_modelos: {
+        Row: {
+          aprovado_por: string
+          ativo: boolean
+          created_at: string
+          id: string
+          tenant_id: string
+          texto: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          aprovado_por?: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          texto: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          aprovado_por?: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          texto?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clinica_wa_teste_status: {
         Row: {
           id_externo: string

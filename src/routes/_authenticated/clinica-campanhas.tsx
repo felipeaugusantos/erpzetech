@@ -69,6 +69,71 @@ function Campanhas() {
   const [busca, setBusca] = useState("");
   const [sel, setSel] = useState<string[]>([]);
   const [modelo, setModelo] = useState(MODELO_INICIAL);
+  const [titulo, setTitulo] = useState("");
+  const [modeloId, setModeloId] = useState("");
+  const aprovador = useQuery({
+    queryKey: ["campanha-aprovador"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return false;
+      const [a, g] = await Promise.all([
+        supabase.rpc("has_role", { _user_id: u.user.id, _role: "administrador" }),
+        supabase.rpc("has_role", { _user_id: u.user.id, _role: "gestor" }),
+      ]);
+      return Boolean(a.data || g.data);
+    },
+  });
+  const modelos = useQuery({
+    queryKey: ["campanha-modelos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clinica_wa_campanha_modelos")
+        .select("id,titulo,texto")
+        .eq("ativo", true)
+        .order("titulo");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const escolhido = (modelos.data ?? []).find((m) => m.id === modeloId);
+  async function aprovarModelo() {
+    const e = validarCampanha(modelo, 1);
+    if (e) {
+      toast.error(e);
+      return;
+    }
+    if (!titulo.trim()) {
+      toast.error("Dê um título à mensagem.");
+      return;
+    }
+    const { data: u } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("clinica_wa_campanha_modelos")
+      .insert({ titulo: titulo.trim(), texto: modelo.trim(), aprovado_por: u.user?.id ?? "" })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error("Não foi possível aprovar a mensagem.");
+      return;
+    }
+    toast.success("Mensagem aprovada.");
+    setTitulo("");
+    await qc.invalidateQueries({ queryKey: ["campanha-modelos"] });
+    setModeloId(data.id);
+  }
+  async function desativarModelo() {
+    if (!modeloId) return;
+    const { error } = await supabase
+      .from("clinica_wa_campanha_modelos")
+      .update({ ativo: false })
+      .eq("id", modeloId);
+    if (error) {
+      toast.error("Não foi possível desativar.");
+      return;
+    }
+    setModeloId("");
+    void qc.invalidateQueries({ queryKey: ["campanha-modelos"] });
+  }
   const [progresso, setProgresso] = useState<{ feito: number; total: number } | null>(null);
 
   const tutores = useQuery({
@@ -112,9 +177,15 @@ function Campanhas() {
   }, [tutores.data, busca]);
   const escolhidos = (tutores.data ?? []).filter((t) => sel.includes(t.id));
   const previa = escolhidos[0]
-    ? textoCampanha(modelo, { tutor: escolhidos[0].nome, pets: escolhidos[0].pets }, "sua clínica")
+    ? textoCampanha(
+        escolhido?.texto ?? "",
+        { tutor: escolhidos[0].nome, pets: escolhidos[0].pets },
+        "sua clínica",
+      )
     : "";
-  const erro = validarCampanha(modelo, sel.length);
+  const erro = escolhido
+    ? validarCampanha(escolhido.texto, sel.length)
+    : "Escolha uma mensagem aprovada.";
 
   function alternar(id: string) {
     setSel((s) =>
@@ -142,7 +213,7 @@ function Campanhas() {
     for (let i = 0; i < alvo.length; i++) {
       if (i > 0) await espera(PAUSA_CAMPANHA_MS + Math.floor(Math.random() * 2000));
       try {
-        const r = await enviar({ data: { campanhaId, clienteId: alvo[i]!, modelo } });
+        const r = await enviar({ data: { campanhaId, clienteId: alvo[i]!, modeloId } });
         if (r.situacao in contagem) contagem[r.situacao as "enviada"] += 1;
       } catch (e) {
         contagem.falhou += 1;
@@ -165,7 +236,7 @@ function Campanhas() {
     <div className="space-y-4">
       <PageHeader
         title="Campanhas de WhatsApp"
-        description={`Selecione até ${MAX_CAMPANHA} tutores por envio e escreva a mensagem. Só aparecem tutores que aceitam mensagens e têm WhatsApp.`}
+        description={`Selecione até ${MAX_CAMPANHA} tutores por envio e escolha uma mensagem aprovada. Só aparecem tutores que aceitam mensagens e têm WhatsApp.`}
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="panel space-y-3 p-4">
@@ -207,34 +278,77 @@ function Campanhas() {
         </section>
         <section className="panel space-y-3 p-4">
           <h2 className="font-semibold">2. Mensagem</h2>
-          <div className="flex flex-wrap gap-2">
-            {["{tutor}", "{pet}", "{clinica}"].map((t) => (
-              <Button
-                key={t}
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => inserir(t)}
-                disabled={enviando}
-              >
-                {t}
-              </Button>
-            ))}
-          </div>
-          <Label htmlFor="texto-campanha" className="sr-only">
-            Mensagem
-          </Label>
-          <Textarea
-            id="texto-campanha"
-            rows={6}
-            maxLength={MAX_TEXTO_CAMPANHA}
-            value={modelo}
-            onChange={(e) => setModelo(e.target.value)}
+          <Label htmlFor="modelo-aprovado">Mensagem aprovada</Label>
+          <select
+            id="modelo-aprovado"
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            value={modeloId}
+            onChange={(e) => setModeloId(e.target.value)}
             disabled={enviando}
-          />
-          <p className="text-xs text-muted-foreground">
-            {modelo.length}/{MAX_TEXTO_CAMPANHA} caracteres
-          </p>
+          >
+            <option value="">Selecione…</option>
+            {(modelos.data ?? []).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.titulo}
+              </option>
+            ))}
+          </select>
+          {(modelos.data ?? []).length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma mensagem aprovada. Administrador ou gestor aprova as mensagens abaixo.
+            </p>
+          )}
+          {aprovador.data && modeloId && (
+            <Button type="button" size="sm" variant="outline" onClick={desativarModelo}>
+              Desativar esta mensagem
+            </Button>
+          )}
+          {aprovador.data && (
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                Aprovar nova mensagem
+              </summary>
+              <div className="mt-3 space-y-3">
+                <Input
+                  placeholder="Título (ex.: Campanha de vacinação)"
+                  maxLength={80}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {["{tutor}", "{pet}", "{clinica}"].map((t) => (
+                    <Button
+                      key={t}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => inserir(t)}
+                      disabled={enviando}
+                    >
+                      {t}
+                    </Button>
+                  ))}
+                </div>
+                <Label htmlFor="texto-campanha" className="sr-only">
+                  Mensagem
+                </Label>
+                <Textarea
+                  id="texto-campanha"
+                  rows={6}
+                  maxLength={MAX_TEXTO_CAMPANHA}
+                  value={modelo}
+                  onChange={(e) => setModelo(e.target.value)}
+                  disabled={enviando}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {modelo.length}/{MAX_TEXTO_CAMPANHA} caracteres
+                </p>
+                <Button type="button" size="sm" onClick={aprovarModelo}>
+                  Aprovar mensagem
+                </Button>
+              </div>
+            </details>
+          )}
           {previa && (
             <div className="rounded-md border bg-muted/40 p-3 text-sm">
               <p className="mb-1 text-xs font-semibold text-muted-foreground">
